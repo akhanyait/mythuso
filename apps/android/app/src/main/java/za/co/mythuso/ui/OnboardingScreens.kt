@@ -36,12 +36,7 @@ import za.co.mythuso.model.*
     val idCheck = validateSaId(idNumber)
     if (recovering) { RecoverAccessScreen(back = { recovering = false }, done = done); return }
     ScreenColumn {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            steps.forEachIndexed { index, _ ->
-                Box(Modifier.weight(1f).height(4.dp).background(if (index <= step) Teal else Color(0x1A000000), RoundedCornerShape(3.dp)))
-            }
-        }
-        Text("Step ${step + 1} of ${steps.size} · ${steps[step]}", style = MaterialTheme.typography.labelMedium, color = Teal)
+        StepDots(step + 1, steps.size, steps[step])
         when (step) {
             0 -> {
                 Heading("Design preview", "Care that comes to you.", "Let’s set up your MyThuso account. It takes about two minutes, and you can stop at any point.")
@@ -73,9 +68,9 @@ import za.co.mythuso.model.*
             }
             2 -> {
                 Heading("Verify", "Check your messages.", "In this preview the code is 240924.")
-                OutlinedTextField(code, { code = it.filter { c -> c.isDigit() }.take(6); codeError = "" }, label = { Text("Verification code") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    isError = codeError.isNotEmpty(), supportingText = { if (codeError.isNotEmpty()) Text(codeError) })
+                Text("Verification code", style = MaterialTheme.typography.labelLarge, color = Forest)
+                CodeBoxes(code, { code = it; codeError = "" }, invalid = codeError.isNotEmpty(), label = "Verification code")
+                if (codeError.isNotEmpty()) Note(codeError)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(onClick = { step = 1 }) { Text("Different number") }
                     Button(onClick = { if (code == "240924") step = 3 else codeError = "That code doesn’t match. Check the message and try again." }, enabled = code.length == 6) { Text("Verify") }

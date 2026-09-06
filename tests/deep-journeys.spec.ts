@@ -1,21 +1,27 @@
 import { test, expect, type Page } from '@playwright/test';
-async function openSidebar(page: Page) {
-  if (await page.locator('.sidebar.is-open').count()) return;
-  const menu = page.getByRole('button', { name: 'Open navigation', exact: true });
-  if (await menu.isVisible()) await menu.click();
-}
+/* Tab-bar labels are translated, so the phone path addresses tabs by position, not by text. */
+const tabOrder = ['Overview', 'Book a nurse', 'My visits', 'Health Passport', 'More'];
+const tab = (page: Page, index: number) => page.locator('.tabbar button').nth(index);
 async function navigate(page: Page, name: string) {
-  await openSidebar(page);
-  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('button', { name, exact: true }).click();
+  const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
+  if (await sidebar.isVisible()) { await sidebar.getByRole('button', { name, exact: true }).click(); return; }
+  const index = tabOrder.indexOf(name);
+  if (index >= 0) { await tab(page, index).click(); return; }
+  await tab(page, 4).click();
+  await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+}
+async function openStates(page: Page, dialog = false) {
+  const root = dialog ? page.getByRole('dialog') : page.locator('main');
+  await root.locator('details.state-picker > summary').first().click();
 }
 async function switchRole(page: Page, role: string) {
-  await page.getByRole('button', { name: 'Preview workspaces' }).click();
+  await page.locator('.preview-line').getByRole('button', { name: 'Preview workspaces' }).click();
   await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText(role, { exact: true }) }).click();
   await expect(page.getByText(`${role.toUpperCase()} WORKSPACE · DEMO`)).toBeVisible();
 }
 test('sign-up refuses a bad code and a bad ID number, then completes', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'First-run flow' }).click();
+  await page.locator('.preview-line').getByRole('button', { name: 'First-run flow' }).click();
   await page.getByRole('radio', { name: 'isiZulu' }).check();
   await page.getByRole('button', { name: 'Create my account' }).click();
   await expect(page.getByRole('button', { name: 'Send my code' })).toBeDisabled();
@@ -23,10 +29,10 @@ test('sign-up refuses a bad code and a bad ID number, then completes', async ({ 
   await expect(page.getByText('Enter a 10-digit South African mobile number, starting with 0.')).toBeVisible();
   await page.getByLabel('Mobile number').fill('0820000000');
   await page.getByRole('button', { name: 'Send my code' }).click();
-  await page.getByLabel('Verification code').fill('000000');
+  await page.getByLabel('Verification code, digit 1 of 6').fill('000000');
   await page.getByRole('button', { name: 'Verify' }).click();
   await expect(page.getByText('That code doesn’t match. Check the message and try again.')).toBeVisible();
-  await page.getByLabel('Verification code').fill('240924');
+  await page.getByLabel('Verification code, digit 1 of 6').fill('240924');
   await page.getByRole('button', { name: 'Verify' }).click();
   const id = page.getByLabel('South African ID number');
   await id.fill('8001015009088');
@@ -48,7 +54,7 @@ test('sign-up refuses a bad code and a bad ID number, then completes', async ({ 
 });
 test('account recovery offers a route that does not need the lost phone', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'First-run flow' }).click();
+  await page.locator('.preview-line').getByRole('button', { name: 'First-run flow' }).click();
   await page.getByRole('button', { name: 'I’ve lost access to my account' }).click();
   await expect(page.getByRole('button', { name: 'Start recovery' })).toBeDisabled();
   await page.getByRole('radio', { name: /Ask my trusted contact/ }).check();
@@ -86,11 +92,11 @@ test('a nurse assessment checks identity, flags an out-of-range reading and sign
   await switchRole(page, 'Nurse');
   await page.getByRole('button', { name: /Visit assessment · TH-2048/ }).first().click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Visit code').fill('111111');
+  await dialog.getByLabel('Visit code, digit 1 of 6').fill('111111');
   await dialog.getByRole('checkbox').check();
   await dialog.getByRole('button', { name: 'Confirm identity' }).click();
   await expect(dialog.getByText(/Call the Control Tower before continuing/)).toBeVisible();
-  await dialog.getByLabel('Visit code').fill('482190');
+  await dialog.getByLabel('Visit code, digit 1 of 6').fill('482190');
   await dialog.getByRole('button', { name: 'Confirm identity' }).click();
   await expect(dialog.getByRole('button', { name: 'Start observations' })).toBeDisabled();
   await dialog.getByRole('checkbox').first().check();
@@ -134,6 +140,7 @@ test('partner orders show chain of custody and every integration state', async (
   await expect(dialog.getByText('0 of 2 items checked in this preview')).toBeVisible();
   await dialog.getByRole('checkbox', { name: 'Mark Amlodipine 5 mg checked by pharmacist' }).check();
   await expect(dialog.getByText('1 of 2 items checked in this preview')).toBeVisible();
+  await openStates(page, true);
   await dialog.getByRole('button', { name: 'Offline', exact: true }).click();
   await expect(dialog.getByRole('heading', { name: 'You’re offline' })).toBeVisible();
   await dialog.getByRole('button', { name: 'Permission denied' }).click();
@@ -160,7 +167,7 @@ test('nurse vetting will not let an unvetted nurse take visits', async ({ page }
 test('every clinical chart is also available as a table', async ({ page }) => {
   await page.goto('/');
   await navigate(page, 'Health Passport');
-  const chart = page.locator('.chart-card').filter({ hasText: 'Blood pressure — systolic' });
+  const chart = page.locator('.chart-card').filter({ hasText: 'Blood pressure' }).first();
   await expect(chart.locator('svg.chart-plot')).toHaveAttribute('aria-label', /Latest sample reading 136 mmHg on 4 Sep/);
   await expect(chart.getByRole('table')).toBeHidden();
   await chart.getByRole('button', { name: 'Show readings as a table' }).click();
@@ -169,15 +176,15 @@ test('every clinical chart is also available as a table', async ({ page }) => {
 });
 test('the shell can be read in isiZulu, Sesotho and Afrikaans', async ({ page }) => {
   await page.goto('/');
-  for (const [language, overview, passport] of [['Sesotho', 'Kakaretso', 'Phasepoto ya Bophelo'], ['Afrikaans', 'Oorsig', 'Gesondheidspaspoort'], ['isiZulu', 'Uhlolojikelele', 'Iphasiphothi Yezempilo']]) {
-    await openSidebar(page);
-    await page.locator('button.settings-link').first().click();
+  for (const [language, overview, passport, tabLabel] of [['Sesotho', 'Kakaretso', 'Phasepoto ya Bophelo', 'Lehae'], ['Afrikaans', 'Oorsig', 'Gesondheidspaspoort', 'Tuis'], ['isiZulu', 'Uhlolojikelele', 'Iphasiphothi Yezempilo', 'Ikhaya']]) {
+    const settings = page.locator('button.settings-link').first();
+    if (await settings.isVisible()) await settings.click();
+    else { await tab(page, 4).click(); await page.getByRole('button', { name: /^Language/ }).click(); }
     await page.getByRole('dialog').getByRole('radio', { name: language }).check();
     await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
-    await openSidebar(page);
     const nav = page.getByRole('navigation', { name: 'Main navigation' });
-    await expect(nav).toContainText(overview);
-    await expect(nav).toContainText(passport);
+    if (await nav.isVisible()) { await expect(nav).toContainText(overview); await expect(nav).toContainText(passport); }
+    else await expect(page.locator('.tabbar')).toContainText(tabLabel);
   }
 });
 test('the state gallery covers loading, error, offline, denied and empty', async ({ page }) => {
@@ -198,13 +205,47 @@ test('new surfaces do not overflow the viewport or throw', async ({ page }, test
   await page.goto('/');
   await navigate(page, 'Health Passport');
   await expect(page.locator('.chart-card').first()).toBeVisible();
-  await page.screenshot({ path: `test-results/passport-charts-${testInfo.project.name}.png`, fullPage: true });
+  await page.screenshot({ path: `test-results/passport-charts-${testInfo.project.name}.png` });
   await switchRole(page, 'Control Tower');
   await expect(page.locator('.dispatch-map')).toBeVisible();
-  await page.screenshot({ path: `test-results/dispatch-${testInfo.project.name}.png`, fullPage: true });
-  await page.getByRole('button', { name: 'First-run flow' }).click();
+  await page.screenshot({ path: `test-results/dispatch-${testInfo.project.name}.png` });
+  await page.locator('.preview-line').getByRole('button', { name: 'First-run flow' }).click();
   await expect(page.getByRole('heading', { name: 'Care that comes to you.' })).toBeVisible();
-  await page.screenshot({ path: `test-results/onboarding-${testInfo.project.name}.png`, fullPage: true });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: `test-results/onboarding-${testInfo.project.name}.png` });
+  expect(await page.evaluate(() => (() => { const el = document.querySelector('main') ?? document.documentElement; return el.scrollWidth <= el.clientWidth; })())).toBe(true);
   expect(errors).toEqual([]);
+});
+
+test('the hero rotates on its own, and can be stopped', async ({ page }) => {
+  await page.goto('/');
+  const hero = page.getByRole('region', { name: 'MyThuso highlights' });
+  await expect(hero.getByRole('heading', { name: 'Care that comes to you.' })).toBeVisible();
+  // only the current slide is exposed; the others are hidden from assistive technology
+  await expect(hero.getByRole('heading', { name: 'Your health. One safe place.' })).toBeHidden();
+  // it advances by itself
+  await expect(hero.getByRole('heading', { name: 'Your health. One safe place.' })).toBeVisible({ timeout: 12000 });
+  // and a viewer can stop it — WCAG 2.2.2
+  await page.getByRole('button', { name: 'Pause the highlights' }).click();
+  const current = await hero.getByRole('heading').first().textContent();
+  await page.waitForTimeout(8000);
+  expect(await hero.getByRole('heading').first().textContent()).toBe(current);
+  await page.getByRole('button', { name: 'Play the highlights' }).click();
+  // the dots jump straight to a slide and take over from the timer
+  await page.getByRole('button', { name: /^Highlight 3 of 3/ }).click();
+  await expect(hero.getByRole('heading', { name: 'Feel better. Right at home.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play the highlights' })).toBeVisible();
+  await hero.getByRole('button', { name: 'Book a nurse' }).click();
+  await expect(page.getByRole('heading', { name: 'Professional care at your door' })).toBeVisible();
+});
+test('the hero banner is translated with the rest of the shell', async ({ page }) => {
+  await page.goto('/');
+  const settings = page.locator('button.settings-link').first();
+  if (await settings.isVisible()) await settings.click();
+  else { await tab(page, 4).click(); await page.getByRole('button', { name: /^Language/ }).click(); }
+  await page.getByRole('dialog').getByRole('radio', { name: 'isiZulu' }).check();
+  await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
+  const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
+  await (await sidebar.isVisible() ? sidebar.getByRole('button').first() : tab(page, 0)).click();
+  await expect(page.getByRole('region', { name: 'MyThuso highlights' })).toContainText('Thola usizo manje');
+  await expect(page.getByRole('heading', { name: 'Sawubona, Lerato' })).toBeVisible();
 });

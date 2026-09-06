@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="6 16 208 234" preserveAspectRatio="xMidYMax meet">
+  <ellipse cx="110" cy="120" rx="102" ry="104" fill="#dcecef" opacity=".5"/>
+  <!-- nurse, standing behind -->
+  <path d="M108 250c2-56 26-84 74-92 30 5 38 40 38 92Z" fill="#12786c"/>
+  <ellipse cx="160" cy="84" rx="36" ry="43" fill="#a9714c"/>
+  <path d="M124 66c-2-26 16-40 36-40s38 14 36 40c-7-5-11-14-13-21-9 12-34 17-59 21Z" fill="#241c1a"/>
+  <path d="M126 44c14-16 54-18 68 2 6 9 4 22-2 30-4-30-44-34-66-32Z" fill="#241c1a"/>
+  <ellipse cx="147" cy="86" rx="3.8" ry="4.3" fill="#2a1d18"/><ellipse cx="174" cy="86" rx="3.8" ry="4.3" fill="#2a1d18"/>
+  <path d="M139 75c4-3 10-4 13-2M168 73c4-2 10-1 13 2" stroke="#2a1d18" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M149 103c5 6 20 6 25 0" stroke="#5c3222" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+  <path d="M148 122h24v18c0 7-24 7-24 0Z" fill="#a9714c"/>
+  <path d="M136 146c-5 20-3 40 5 56M186 146c5 20 3 40-5 56" stroke="#e6f2ef" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <circle cx="172" cy="206" r="9" fill="#e6f2ef"/><circle cx="172" cy="206" r="4" fill="#b9cfca"/>
+  <!-- arm resting on the elder's shoulder -->
+  <path d="M116 168c-24 4-42 14-52 26" stroke="#12786c" stroke-width="21" stroke-linecap="round" fill="none"/>
+  <path d="M66 196c-8 3-13 7-16 11" stroke="#a9714c" stroke-width="18" stroke-linecap="round" fill="none"/>
+  <!-- elder, seated in front -->
+  <path d="M6 250c2-44 22-64 58-70 34 6 52 26 54 70Z" fill="#f2ede4"/>
+  <path d="M18 250c4-32 20-46 46-50 26 4 42 18 46 50Z" fill="#dbe8dc"/>
+  <ellipse cx="64" cy="140" rx="34" ry="39" fill="#b87c53"/>
+  <path d="M30 124c-2-24 15-38 34-38s36 14 34 38c-25-6-48-2-68 0Z" fill="#2f6b60"/>
+  <path d="M30 124c20-8 48-10 68 0l2-12c-22-9-48-8-72 0Z" fill="#c9a86a"/>
+  <ellipse cx="52" cy="142" rx="3.6" ry="4" fill="#2a1d18"/><ellipse cx="78" cy="142" rx="3.6" ry="4" fill="#2a1d18"/>
+  <path d="M43 133c4-3 9-4 12-2M74 131c4-2 9-1 12 2" stroke="#4a3228" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+  <path d="M52 160c5 7 19 7 24 0" stroke="#5c3222" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+  <path d="M44 152c3 2 7 2 10 0M74 152c3 2 7 2 10 0" stroke="#96603f" stroke-width="2" stroke-linecap="round" fill="none" opacity=".6"/>
+  <path d="M52 176h24v16c0 7-24 7-24 0Z" fill="#b87c53"/>
+</svg>

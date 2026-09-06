@@ -19,16 +19,7 @@ struct OnboardingView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    HStack(spacing: 10) {
-                        ForEach(Array(steps.enumerated()), id: \.offset) { index, _ in
-                            Capsule().fill(index <= step ? ThusoTheme.teal : Color.gray.opacity(0.2)).frame(height: 4)
-                        }
-                    }
-                    .accessibilityElement()
-                    .accessibilityLabel("Step \(step + 1) of \(steps.count): \(steps[step])")
-                    Text(steps[step]).font(.caption).foregroundStyle(.secondary)
-                }
+                Section { StepDots(step: step + 1, total: steps.count, label: steps[step]) }
                 switch step {
                 case 0: welcome
                 case 1: number
@@ -68,7 +59,7 @@ struct OnboardingView: View {
     @ViewBuilder private var verify: some View {
         Section("Check your messages") {
             Text("In this preview the code is 240924.").font(.caption).foregroundStyle(.secondary)
-            TextField("6-digit code", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode)
+            CodeBoxes(code: $code, invalid: !codeError.isEmpty, label: "Verification code").listRowInsets(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
             if !codeError.isEmpty { Text(codeError).font(.caption).foregroundStyle(.red) }
         }
         Section {

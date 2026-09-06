@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Check, CircleAlert, KeyRound, Stethoscope, ShieldCheck, UserCheck } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { ClinicalChart } from '../components/Chart';
+import { CodeInput, StepHead } from '../components/Steps';
 /* Indicative adult reference ranges, used only to flag a value for the nurse's attention.
    This is not a validated triage or early-warning score and it never decides anything. */
 export const observations = [
@@ -41,12 +42,13 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
  const invalid = flags.some(f => f.flag === 'invalid');
  const set = (id: string, v: string) => setValues({ ...values, [id]: v });
  return <div className="assessment">
-  <ol className="stepper wide" aria-label="Assessment progress">{stages.map((s, i) => <li key={s} aria-current={i === stage ? 'step' : undefined} className={i <= stage ? 'current' : ''}><b>{i < stage ? <Check size={12}/> : i + 1}</b>{s}</li>)}</ol>
+  <StepHead step={stage + 1} total={stages.length} label={stages[stage]}/>
   <div className="review-line"><span>Visit</span><strong>{reference} · {patient}</strong></div>
   {stage === 0 ? <div className="form-stack">
    <h3>Confirm you’re at the right door.</h3>
    <p className="muted">Ask {patient.split(' ')[0]} for the six-digit code in the MyThuso app. In this preview the code is <strong>4821</strong>90.</p>
-   <label>Visit code<input inputMode="numeric" autoFocus value={otp} onChange={e => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }} className={otpError ? 'field-error' : ''} aria-invalid={!!otpError} aria-describedby="otp-help"/></label>
+   <label id="otp-label">Visit code</label>
+   <CodeInput value={otp} onChange={v => { setOtp(v); setOtpError(''); }} label="Visit code" describedBy="otp-help" invalid={!!otpError} autoFocus/>
    <p className="helper" id="otp-help" role="status">{otpError || 'The code changes for every visit and expires when the visit ends.'}</p>
    <label className="checkbox"><input type="checkbox" checked={idSeen} onChange={e => setIdSeen(e.target.checked)}/><span>I have seen the patient’s identity document or a household member has confirmed identity.</span></label>
    <div className="privacy-note"><KeyRound size={19}/>If the code fails, the visit does not start. The nurse contacts the Control Tower instead of proceeding.</div>

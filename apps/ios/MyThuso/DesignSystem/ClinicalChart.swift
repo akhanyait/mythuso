@@ -14,6 +14,7 @@ struct ClinicalChart: View {
     let readings: [Reading]
     var normal: ClosedRange<Double>?
     var decimals = 0
+    var symbol: String? = nil
     @State private var showTable = false
     private func format(_ value: Double) -> String { String(format: "%.\(decimals)f", value) }
     private var latest: Reading { readings.last! }
@@ -28,7 +29,8 @@ struct ClinicalChart: View {
     var body: some View {
         CareCard {
             HStack(alignment: .top) {
-                Text(title).font(.subheadline.weight(.semibold))
+                if let symbol { Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(ThusoTheme.teal) }
+                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Spacer()
                 Text(inRange ? "Within sample range" : "Outside sample range")
                     .font(.caption2.weight(.semibold))

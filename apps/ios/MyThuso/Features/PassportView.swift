@@ -1,44 +1,105 @@
 import SwiftUI
 
 struct PassportView: View {
+    @State private var tab = "Overview"
     @State private var share = false
     @State private var deviceState: LoadState = .denied
     var body: some View {
-        List {
-            Section { DemoBadge(); CareHeading(eyebrow: "Thuso Pass", title: "Your story. Your health.", subtitle: "Lerato Molefe · Fictional record") }
-            Section("Sample trends") {
-                ClinicalChart(title: "Blood pressure — systolic", unit: "mmHg",
-                              readings: [.init(label: "12 Aug", value: 128), .init(label: "19 Aug", value: 134), .init(label: "28 Aug", value: 141, note: "Missed medication"), .init(label: "4 Sep", value: 136)],
-                              normal: 90...140).listRowInsets(EdgeInsets())
-                ClinicalChart(title: "Heart rate", unit: "bpm",
-                              readings: [.init(label: "12 Aug", value: 76), .init(label: "19 Aug", value: 74), .init(label: "28 Aug", value: 80), .init(label: "4 Sep", value: 72)],
-                              normal: 50...100).listRowInsets(EdgeInsets())
-                ClinicalChart(title: "Blood glucose", unit: "mmol/L",
-                              readings: [.init(label: "12 Aug", value: 5.6), .init(label: "19 Aug", value: 6.1), .init(label: "28 Aug", value: 5.4), .init(label: "4 Sep", value: 5.2)],
-                              normal: 4...7.8, decimals: 1).listRowInsets(EdgeInsets())
-            }
-            Section("Your records") {
-                NavigationLink("Visit summary") { FeatureDetail(title: "Visit summary") }
-                NavigationLink("Laboratory results") { LabOrderView() }
-                NavigationLink("Medical certificate") { FeatureDetail(title: "Medical certificate") }
-                NavigationLink("Medicines") { PrescriptionView() }
-            }
-            Section("Sharing") {
-                Toggle("Demo access for Dr. A. Dlamini", isOn: $share)
-                Text(share ? "Demo access active for 24 hours. Turn off to revoke. No real access is granted." : "No active shares. You control who sees your records.").font(.caption).foregroundStyle(.secondary)
-                ShareLink(item: "MyThuso fictional passport: BP 118/78 mmHg, pulse 72 bpm, glucose 5.2 mmol/L. Demo only, not a medical record.") { Label("Export sample passport", systemImage: "square.and.arrow.up") }
-            }
-            Section("Connected devices") {
-                StatePicker(title: "Preview the device permission state", state: $deviceState)
-                if deviceState == .ready {
-                    NavigationLink("Apple Health") { FeatureDetail(title: "Apple Health connection") }
-                    NavigationLink("Thuso Kit") { FeatureDetail(title: "Thuso Kit") }
-                } else {
-                    StateBlock(state: deviceState, subject: "Readings from your connected devices", permission: "Apple Health access", retry: { deviceState = .ready }) { EmptyView() }
-                        .listRowInsets(EdgeInsets())
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                DemoBadge()
+                hero
+                Picker("Passport sections", selection: $tab) { ForEach(["Overview", "Records", "Medications", "More"], id: \.self) { Text($0) } }.pickerStyle(.segmented)
+                switch tab {
+                case "Records":
+                    CareCard {
+                        NavigationLink { FeatureDetail(title: "Visit summary") } label: { MenuRow(title: "Visit summary", subtitle: "Fictional document · 4 September", symbol: "doc.text") }.buttonStyle(.plain)
+                        Divider().overlay(ThusoTheme.line)
+                        NavigationLink { LabOrderView() } label: { MenuRow(title: "Laboratory results", subtitle: "Fasting panel · Released", symbol: "flask") }.buttonStyle(.plain)
+                        Divider().overlay(ThusoTheme.line)
+                        NavigationLink { FeatureDetail(title: "Medical certificate") } label: { MenuRow(title: "Medical certificate", subtitle: "Doctor reviewed · Demo", symbol: "checkmark.seal") }.buttonStyle(.plain)
+                    }
+                case "Medications":
+                    EmptyStateCard(title: "No active prescriptions", message: "Prescriptions appear here after a registered doctor issues them.")
+                    NavigationLink { PrescriptionView() } label: { Text("Preview a sample prescription") }.buttonStyle(QuietButton())
+                case "More":
+                    StatePicker(title: "Preview the device permission state", state: $deviceState)
+                    StateBlock(state: deviceState, subject: "Readings from your connected devices", permission: "Apple Health access", retry: { deviceState = .ready }) {
+                        CareCard {
+                            NavigationLink { FeatureDetail(title: "Apple Health connection") } label: { MenuRow(title: "Apple Health", subtitle: "Choose exactly which readings you share", symbol: "heart.circle") }.buttonStyle(.plain)
+                            Divider().overlay(ThusoTheme.line)
+                            NavigationLink { FeatureDetail(title: "Thuso Kit") } label: { MenuRow(title: "Thuso Kit", subtitle: "Connected diagnostic capture", symbol: "sensor") }.buttonStyle(.plain)
+                        }
+                    }
+                    CareCard {
+                        Toggle("Demo access for Dr. A. Dlamini", isOn: $share).font(.subheadline)
+                        Text(share ? "Demo access active for 24 hours. Turn off to revoke. No real access is granted." : "No active shares. You control who sees your records.")
+                            .font(.footnote).foregroundStyle(ThusoTheme.body)
+                    }
+                default:
+                    Text("Health trends").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    ClinicalChart(title: "Blood pressure", unit: "mmHg",
+                                  readings: [.init(label: "12 Aug", value: 128), .init(label: "19 Aug", value: 134), .init(label: "28 Aug", value: 141, note: "Missed medication"), .init(label: "4 Sep", value: 136)],
+                                  normal: 90...140, symbol: "heart")
+                    ClinicalChart(title: "Heart rate", unit: "bpm",
+                                  readings: [.init(label: "12 Aug", value: 76), .init(label: "19 Aug", value: 74), .init(label: "28 Aug", value: 80), .init(label: "4 Sep", value: 72)],
+                                  normal: 50...100, symbol: "waveform.path.ecg")
+                    ClinicalChart(title: "Blood glucose", unit: "mmol/L",
+                                  readings: [.init(label: "12 Aug", value: 5.6), .init(label: "19 Aug", value: 6.1), .init(label: "28 Aug", value: 5.4), .init(label: "4 Sep", value: 5.2)],
+                                  normal: 4...7.8, decimals: 1, symbol: "drop")
+                    HStack(spacing: 10) {
+                        actionTile("Share record", "square.and.arrow.up") { share = true }
+                        ShareLink(item: "MyThuso fictional passport: BP 118/78 mmHg, pulse 72 bpm, glucose 5.2 mmol/L. Demo only, not a medical record.") {
+                            VStack(spacing: 8) { Image(systemName: "arrow.down.doc").font(.system(size: 19)).foregroundStyle(ThusoTheme.teal)
+                                Text("Export sample").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.forest) }
+                                .frame(maxWidth: .infinity, minHeight: 80)
+                                .background(.white, in: RoundedRectangle(cornerRadius: 18))
+                                .overlay(RoundedRectangle(cornerRadius: 18).stroke(ThusoTheme.line, lineWidth: 1))
+                        }
+                        NavigationLink { FeatureDetail(title: "Your care team") } label: {
+                            VStack(spacing: 8) { Image(systemName: "person.2").font(.system(size: 19)).foregroundStyle(ThusoTheme.teal)
+                                Text("Doctors").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.forest) }
+                                .frame(maxWidth: .infinity, minHeight: 80)
+                                .background(.white, in: RoundedRectangle(cornerRadius: 18))
+                                .overlay(RoundedRectangle(cornerRadius: 18).stroke(ThusoTheme.line, lineWidth: 1))
+                        }.buttonStyle(.plain)
+                    }
                 }
+            }.padding(18)
+        }
+        .background(ThusoTheme.canvas)
+        .navigationTitle("Health Passport").navigationBarTitleDisplayMode(.large)
+    }
+    private func actionTile(_ title: String, _ symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: symbol).font(.system(size: 19)).foregroundStyle(ThusoTheme.teal)
+                Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.forest)
             }
-        }.navigationTitle("Health Passport").navigationBarTitleDisplayMode(.inline)
+            .frame(maxWidth: .infinity, minHeight: 80)
+            .background(.white, in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(ThusoTheme.line, lineWidth: 1))
+        }.buttonStyle(.plain)
+    }
+    private var hero: some View {
+        ZStack(alignment: .leading) {
+            LinearGradient(colors: [Color(red: 0.059, green: 0.290, blue: 0.251), Color(red: 0.078, green: 0.420, blue: 0.361)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            HStack {
+                VStack(alignment: .leading, spacing: 11) {
+                    StatusPill(text: "Thuso Pass", tone: "light")
+                    Text("Your health.\nYour story.").font(.system(size: 24, weight: .bold)).foregroundStyle(.white)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Lerato Molefe").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
+                        Text("ID: TH-2048-3920").font(.system(size: 12)).foregroundStyle(Color(red: 0.725, green: 0.863, blue: 0.824))
+                    }
+                }
+                Spacer(minLength: 8)
+                Image("Patient").resizable().scaledToFill().frame(width: 84, height: 84)
+                    .clipShape(Circle()).overlay(Circle().stroke(.white.opacity(0.25), lineWidth: 3)).accessibilityHidden(true)
+            }.padding(20)
+        }
+        .frame(minHeight: 160)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }
 struct FamilyView: View {
@@ -87,29 +148,88 @@ struct NotificationsView: View {
 }
 struct MoreView: View {
     let firstRun: () -> Void
+    @EnvironmentObject private var store: PreviewStore
+    private let groups: [[(String, String, String)]] = [
+        [("My family", "Manage your loved ones", "person.2"), ("Care plans", "Ongoing care and subscriptions", "heart.text.square"), ("Payments", "Cards, history and refunds", "creditcard")],
+        [("Notifications", "Visit updates and messages", "bell"), ("Privacy & settings", "Your data and app preferences", "slider.horizontal.3"), ("Language", "Read MyThuso your way", "globe")],
+        [("Design review", "First-run, recovery and system states", "sparkles"), ("Workspace previews", "Nurse, doctor, partner and Control Tower", "stethoscope"), ("Explore the roadmap", "All 21 modules in the proposal", "square.grid.2x2")]
+    ]
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                NavigationLink { PrivacyView() } label: {
+                    CareCard {
+                        HStack(spacing: 13) {
+                            Image("Patient").resizable().scaledToFill().frame(width: 52, height: 52).clipShape(Circle()).accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Lerato Molefe").font(.system(size: 16, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                                Text("View and edit your profile").font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(ThusoTheme.body.opacity(0.6))
+                        }
+                    }
+                }.buttonStyle(.plain)
+                CareCard {
+                    row("My family", "Manage your loved ones", "person.2") { FamilyView() }
+                    Divider().overlay(ThusoTheme.line)
+                    row("Care plans", "Ongoing care and subscriptions", "heart.text.square") { PlansView() }
+                    Divider().overlay(ThusoTheme.line)
+                    row("Payments", "Cards, history and refunds", "creditcard") { WalletView() }
+                }
+                CareCard {
+                    row("Notifications", "Visit updates and messages", "bell") { NotificationsView() }
+                    Divider().overlay(ThusoTheme.line)
+                    row("Privacy & settings", "Your data and app preferences", "slider.horizontal.3") { PrivacyView() }
+                    Divider().overlay(ThusoTheme.line)
+                    row("Language", "Read MyThuso your way", "globe") { LanguageView() }
+                }
+                CareCard {
+                    Button(action: firstRun) { MenuRow(title: "First-run & recovery", subtitle: "Sign-up, one-time code and lost access", symbol: "person.badge.plus") }.buttonStyle(.plain)
+                    Divider().overlay(ThusoTheme.line)
+                    row("System states", "Loading, error, offline and denied", "square.stack.3d.up") { SystemStatesView() }
+                    Divider().overlay(ThusoTheme.line)
+                    row("Explore the roadmap", "All 21 modules in the proposal", "square.grid.2x2") { RoadmapView() }
+                }
+                CareCard {
+                    row("Nurse workspace", "Visits, assessment and vetting", "cross.case") { WorkspaceView(role: "Nurse") }
+                    Divider().overlay(ThusoTheme.line)
+                    row("Doctor workspace", "Review queue and sign-off", "stethoscope") { WorkspaceView(role: "Doctor") }
+                    Divider().overlay(ThusoTheme.line)
+                    row("Partner workspace", "Pharmacy and laboratory orders", "pills") { FulfilmentQueueView() }
+                    Divider().overlay(ThusoTheme.line)
+                    row("Control Tower", "Dispatch, incidents and vetting", "antenna.radiowaves.left.and.right") { WorkspaceView(role: "Control Tower") }
+                }
+                CareCard {
+                    Button(action: firstRun) { MenuRow(title: "Log out", subtitle: "Returns to the first-run flow — this preview has no account", symbol: "rectangle.portrait.and.arrow.right", danger: true) }.buttonStyle(.plain)
+                }
+                Text("Native SwiftUI design preview. All data is fictional and held only in memory.")
+                    .font(.footnote).foregroundStyle(ThusoTheme.body).frame(maxWidth: .infinity)
+            }.padding(18)
+        }
+        .background(ThusoTheme.canvas)
+        .navigationTitle("More").navigationBarTitleDisplayMode(.large)
+    }
+    private func row<Destination: View>(_ title: String, _ subtitle: String, _ symbol: String, @ViewBuilder destination: @escaping () -> Destination) -> some View {
+        NavigationLink { destination() } label: { MenuRow(title: title, subtitle: subtitle, symbol: symbol) }.buttonStyle(.plain)
+    }
+}
+struct RoadmapView: View {
     private let features = ["Thuso Screen", "Thuso Wear", "Thuso Pharmacy", "Thuso Labs", "Thuso SOS", "Thuso Corner", "Thuso Work", "Thuso Locum", "Thuso Academy", "Thuso Money", "Thuso Cover", "Thuso Devices", "Thuso Kit", "Thuso AI", "Thuso Doctor"]
     var body: some View {
-        List {
-            Section("Your care") {
-                NavigationLink("My family") { FamilyView() }
-                NavigationLink("Care plans") { PlansView() }
-                NavigationLink("Thuso Wallet") { WalletView() }
-                NavigationLink("Privacy & settings") { PrivacyView() }
-                NavigationLink("Language") { LanguageView() }
-            }
-            Section("Design review") {
-                Button("First-run & recovery", action: firstRun)
-                NavigationLink("System states") { SystemStatesView() }
-            }
-            Section("Workspace previews") {
-                NavigationLink("Nurse") { WorkspaceView(role: "Nurse") }
-                NavigationLink("Doctor") { WorkspaceView(role: "Doctor") }
-                NavigationLink("Partner") { FulfilmentQueueView() }
-                NavigationLink("Control Tower") { WorkspaceView(role: "Control Tower") }
-            }
-            Section("Explore the roadmap") { ForEach(features, id: \.self) { feature in NavigationLink(feature) { FeatureDetail(title: feature) } } }
-            Section { Text("Native SwiftUI design preview. All data is fictional and held only in memory.").font(.caption).foregroundStyle(.secondary) }
-        }.navigationTitle("More MyThuso")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                CareHeading(eyebrow: "The MyThuso family", title: "More ways to be cared for.", subtitle: "Availability follows the proposal’s phased roadmap.")
+                CareCard {
+                    ForEach(Array(features.enumerated()), id: \.offset) { index, feature in
+                        NavigationLink { FeatureDetail(title: feature) } label: { MenuRow(title: feature, subtitle: "", symbol: "square.grid.2x2") }.buttonStyle(.plain)
+                        if index < features.count - 1 { Divider().overlay(ThusoTheme.line) }
+                    }
+                }
+            }.padding(18)
+        }
+        .background(ThusoTheme.canvas)
+        .navigationTitle("Roadmap").navigationBarTitleDisplayMode(.inline)
     }
 }
 struct WorkspaceView: View {

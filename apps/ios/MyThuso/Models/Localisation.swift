@@ -80,3 +80,52 @@ func validateSaId(_ value: String) -> (ok: Bool, message: String) {
     let year = yy > 25 ? 1900 + yy : 2000 + yy
     return (true, String(format: "Checks out. Date of birth %02d/%02d/%d.", day, month, year))
 }
+
+/// Hero banner copy. Kept beside the rest of the localisation so a slide cannot be added in one
+/// language and forgotten in the other three.
+struct HeroSlideCopy: Identifiable {
+    let id: String
+    let title: String
+    let body: String
+    let cta: String
+    let trust: [String]
+    let caption: String
+    let art: String
+    let banner: String
+    let symbols: [String]
+}
+func heroSlides(_ locale: ThusoLocale) -> [HeroSlideCopy] {
+    let art = ["Family", "Elder", "Nurse"]
+    let banners = ["BannerCareThatComesToYou", "BannerOneSafePlace", "BannerFeelBetter"]
+    let symbols = [["house", "checkmark.shield", "person.2"], ["checkmark.shield", "person.2", "sparkles"], ["checkmark.shield", "heart", "stethoscope"]]
+    let copy: [(String, String, String, [String], String)]
+    switch locale {
+    case .zulu:
+        copy = [
+            ("Ukunakekelwa\nokuza kuwe.", "Ukunakekelwa kwezempilo okwethembekile ekhaya, ngokuthinta nje.", "Thola usizo manje", ["Ekhaya", "Ukunakekelwa okwethembekile", "Kubantu obathandayo"], "Ukunakekelwa okufanayo. Eduze nekhaya."),
+            ("Impilo yakho.\nIndawo eyodwa ephephile.", "Ukuvakashelwa, amarekhodi nokusekelwa — konke ku-MyThuso.", "Vula i-Thuso Pass", ["Ukunakekelwa okwethembekile", "Kuwe nabathandekayo bakho", "Ikusasa elinempilo"], "Ukunakekelwa kuyasihlanganisa."),
+            ("Zizwe ungcono.\nEkhaya.", "Ukunakekelwa okuholwa umhlengikazi, kulethwa emnyango wakho.", "Bhukha umhlengikazi", ["Ochwepheshe abethembekile", "Ukunakekelwa okwakho", "Kuphephile futhi kulula"], "Ukunakekelwa okusezingeni, lapho ukhona.")
+        ]
+    case .sesotho:
+        copy = [
+            ("Tlhokomelo e tlang\nho wena.", "Tlhokomelo ya bophelo ya lehae e tshepahalang, ka ho tobetsa ha se kae.", "Fumana tlhokomelo hona joale", ["Lehae", "Tlhokomelo e tshepahalang", "Bakeng sa bao o ba ratang"], "Tlhokomelo e tshwanang. Haufi le lehae."),
+            ("Bophelo ba hao.\nSebaka se le seng se sireletsehileng.", "Diketelo, direkoto le tshehetso — tsohle ho MyThuso.", "Bula Thuso Pass", ["Tlhokomelo e tshepahalang", "Bakeng sa hao le ba lelapa", "Bokamoso bo phetseng hantle"], "Tlhokomelo ea re kopanya."),
+            ("Ikutlwe hantle.\nHae.", "Tlhokomelo e etelletsweng ke mooki, e tliswa monyako wa hao.", "Behela mooki", ["Ditsebi tse tshepahalang", "Tlhokomelo ya hao", "E bolokehile ebile e bonolo"], "Tlhokomelo e ntle, moo o leng teng.")
+        ]
+    case .afrikaans:
+        copy = [
+            ("Sorg wat na\njou toe kom.", "Betroubare tuisgesondheidsorg met net ’n paar tikke.", "Kry sorg nou", ["By die huis", "Betroubare sorg", "Vir die mense vir wie jy lief is"], "Dieselfde sorg. Nader aan die huis."),
+            ("Jou gesondheid.\nEen veilige plek.", "Besoeke, rekords en ondersteuning — alles in MyThuso.", "Open Thuso Pass", ["Betroubare sorg", "Vir jou en jou geliefdes", "Gesonder môres"], "Sorg verbind ons."),
+            ("Voel beter.\nTuis.", "Verpleegster-gelei sorg, tot by jou deur.", "Bespreek ’n verpleegster", ["Betroubare professionele", "Persoonlike sorg", "Veilig en gerieflik"], "Kwaliteitsorg, waar jy ook al is.")
+        ]
+    default:
+        copy = [
+            ("Care that\ncomes to you.", "Trusted home healthcare in just a few taps.", "Get care now", ["At home", "Trusted care", "For the people you love"], "Same care. Closer to home."),
+            ("Your health.\nOne safe place.", "Visits, records and support — all in MyThuso.", "Open Thuso Pass", ["Trusted care", "For you and your loved ones", "Healthier tomorrows"], "Care connects us."),
+            ("Feel better.\nRight at home.", "Nurse-led care, delivered to your door.", "Book a nurse", ["Trusted professionals", "Personalised care", "Safe & convenient"], "Quality care, where you are.")
+        ]
+    }
+    return copy.enumerated().map { index, item in
+        HeroSlideCopy(id: art[index], title: item.0, body: item.1, cta: item.2, trust: item.3, caption: item.4, art: art[index], banner: banners[index], symbols: symbols[index])
+    }
+}

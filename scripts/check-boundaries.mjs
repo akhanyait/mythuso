@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
@@ -55,4 +55,26 @@ const demoCodes = [['240924','sign-up verification code',Object.values(onboardin
                    ['482190','visit code',Object.values(clinicalSources)],
                    ['8001015009087','sample identity number',Object.values(onboardingSources)]];
 for(const [code,label,paths] of demoCodes) for(const f of paths) if(!read(f).includes(code)) throw new Error(`Demo ${label} ${code} is missing from ${f}`);
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales and demo codes are consistent across web, iOS and Android.`);
+/* The three apps share one illustration source. If a native bundle is missing an illustration, or
+   an SVG changed without re-running the renderer, the apps quietly stop looking like each other. */
+const illustrations = ['nurse', 'patient', 'family', 'elder'];
+for (const name of illustrations) {
+ const source = `packages/illustrations/${name}.svg`;
+ if (!existsSync(source)) throw new Error(`Missing illustration source ${source}`);
+ const derived = [`apps/ios/MyThuso/Assets.xcassets/${name[0].toUpperCase() + name.slice(1)}.imageset/${name}@3x.png`,
+                  `apps/android/app/src/main/res/drawable-xxhdpi/mythuso_${name}.png`];
+ for (const f of derived) {
+  if (!existsSync(f)) throw new Error(`Illustration ${name} has not been rendered for ${f}. Run: node scripts/render-illustrations.mjs`);
+  if (statSync(f).mtimeMs < statSync(source).mtimeMs) throw new Error(`${f} is older than ${source}. Run: node scripts/render-illustrations.mjs`);
+ }
+}
+if (!read('apps/web/src/components/Portraits.tsx').includes('packages/illustrations')) throw new Error('The web app must read the shared illustration sources, not its own copy');
+/* The landing banner is written out three times. A slide added in one app and forgotten in another
+   is exactly the kind of drift a design review will not catch. */
+const heroSources = { web: 'apps/web/src/lib/i18n.ts', ios: 'apps/ios/MyThuso/Models/Localisation.swift', android: 'apps/android/app/src/main/java/za/co/mythuso/model/Localisation.kt' };
+const heroCallsToAction = ['Get care now', 'Open Thuso Pass', 'Book a nurse', 'Thola usizo manje', 'Fumana tlhokomelo hona joale', 'Kry sorg nou'];
+for (const [platform, file] of Object.entries(heroSources)) {
+ const source = read(file);
+ for (const cta of heroCallsToAction) if (!source.includes(cta)) throw new Error(`Hero banner call to action "${cta}" is missing from ${platform} (${file})`);
+}
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android.`);

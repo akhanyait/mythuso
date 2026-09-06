@@ -2,6 +2,8 @@ package za.co.mythuso.ui
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -71,10 +73,23 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
         }
     }
 }
+/** A design-review control, not part of the product surface — so it stays collapsed until asked for. */
 @Composable fun StatePicker(title: String, state: LoadState, onChange: (LoadState) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        FlowRowChips(LoadState.entries.map { it.label }, setOf(state.label)) { label -> onChange(LoadState.entries.first { it.label == label }) }
+    var open by remember { mutableStateOf(false) }
+    Column(
+        Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(12.dp))
+            .border(1.dp, Line, RoundedCornerShape(12.dp)).clickable { open = !open }.padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, tint = BodyText, modifier = Modifier.size(18.dp))
+            Text("Preview states", style = MaterialTheme.typography.labelLarge, color = BodyText, modifier = Modifier.weight(1f))
+            if (state != LoadState.READY) StatusPill(state.label, "amber")
+        }
+        if (open) {
+            Text(title, style = MaterialTheme.typography.labelSmall, color = BodyText)
+            FlowRowChips(LoadState.entries.map { it.label }, setOf(state.label)) { label -> onChange(LoadState.entries.first { it.label == label }) }
+        }
     }
 }
 @Composable fun EmptyStateCard(title: String, message: String) {

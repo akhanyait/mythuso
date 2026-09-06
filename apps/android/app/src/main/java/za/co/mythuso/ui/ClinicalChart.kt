@@ -27,7 +27,7 @@ data class Reading(val label: String, val value: Double, val note: String = "—
  * The drawing carries a spoken summary and every value is also available as a real table,
  * because a reading a patient cannot read is not a reading.
  */
-@Composable fun ClinicalChart(title: String, unit: String, readings: List<Reading>, normal: ClosedFloatingPointRange<Double>? = null, decimals: Int = 0) {
+@Composable fun ClinicalChart(title: String, unit: String, readings: List<Reading>, normal: ClosedFloatingPointRange<Double>? = null, decimals: Int = 0, icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
     var showTable by remember { mutableStateOf(false) }
     fun format(value: Double) = "%.${decimals}f".format(value)
     val latest = readings.last()
@@ -38,7 +38,8 @@ data class Reading(val label: String, val value: Double, val note: String = "—
     val rangeNote = normal?.let { "Indicative reference range ${format(it.start)} to ${format(it.endInclusive)} $unit; the latest reading is ${if (inRange) "inside" else "outside"} that range." } ?: ""
     val summary = "$title. Latest sample reading ${format(latest.value)} $unit on ${latest.label}, $direction the first reading of ${format(first.value)} on ${first.label}. $rangeNote Fictional data."
     CareCard {
-        Row(verticalAlignment = Alignment.Top) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) { Icon(icon, null, tint = Teal, modifier = Modifier.size(17.dp)); Spacer(Modifier.width(8.dp)) }
             Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             Surface(color = if (inRange) Sage else Color(0xFFFAF0E6), shape = RoundedCornerShape(6.dp)) {
                 Text(

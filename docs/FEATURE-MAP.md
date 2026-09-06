@@ -20,7 +20,9 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Nurse onboarding and vetting | SANC registration, scope of practice, and seven vetting checks that gate dispatch | All three |
 | Accessible clinical charts | Every chart carries a spoken summary and the same values as a real table | Passport, doctor review |
 | System states | Loading, service error, offline, permission denied and empty, as shared components used by the real screens and collected in one gallery | All three |
-| Localisation | English, isiZulu, Sesotho and Afrikaans across the shell, navigation and primary actions | All three |
+| Localisation | English, isiZulu, Sesotho and Afrikaans across the shell, navigation, tab bar and primary actions | All three |
+| Shared design language | One token set, one illustration source and one set of shared components, implemented natively three times | All three |
+| Hero banner | Three auto-rotating slides with animated background texture, a figure that breaks the banner's top edge, pause control and a photography drop-in point | All three |
 
 ## Feature coverage
 

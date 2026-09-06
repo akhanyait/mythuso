@@ -42,6 +42,8 @@ class MainActivity : ComponentActivity() {
             else -> page = "Home"
         }
     }
+    val pages = tabs.map { it.first }
+    val go: (String) -> Unit = { target -> if (target in pages) { page = target; detail = null } else detail = target }
     if (onboarding) {
         Surface(color = Canvas, modifier = Modifier.fillMaxSize()) {
             Box(Modifier.systemBarsPadding()) { OnboardingScreen(store) { onboarding = false } }
@@ -52,7 +54,7 @@ class MainActivity : ComponentActivity() {
         containerColor = Canvas,
         topBar = {
             TopAppBar(
-                title = { if (detail == null && page == "Home") Image(painterResource(R.drawable.mythuso_logo), "MyThuso", modifier = Modifier.width(145.dp).height(52.dp)) else Text(if (detail != null) "MyThuso" else page) },
+                title = { if (detail == null && page == "Home") Image(painterResource(R.drawable.mythuso_logo), "MyThuso", modifier = Modifier.width(138.dp).height(50.dp)) else if (detail != null) Text("MyThuso") },
                 navigationIcon = { if (detail != null) IconButton(onClick = { detail = null }) { Icon(Icons.Outlined.ArrowBack, "Back") } },
                 actions = { IconButton(onClick = { detail = "Notifications" }) { Icon(Icons.Outlined.Notifications, "Notifications") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Canvas)
@@ -72,12 +74,12 @@ class MainActivity : ComponentActivity() {
         }
     ) { padding ->
         Box(Modifier.padding(padding)) {
-            if (detail != null) DetailScreen(detail!!, store, { detail = it }, { onboarding = true }) else when (page) {
-                "Home" -> HomeScreen(store, { page = "Book care" }, { detail = it }, { onboarding = true })
+            if (detail != null) DetailScreen(detail!!, store, go, { onboarding = true }) else when (page) {
+                "Home" -> HomeScreen(store, { page = "Book care" }, go, { onboarding = true })
                 "Book care" -> ServicesScreen(store)
-                "Visits" -> VisitsScreen(store) { detail = it }
-                "Passport" -> PassportScreen { detail = it }
-                else -> MoreScreen({ detail = it }, { onboarding = true })
+                "Visits" -> VisitsScreen(store, go)
+                "Passport" -> PassportScreen(go)
+                else -> MoreScreen(go, { onboarding = true })
             }
         }
     }

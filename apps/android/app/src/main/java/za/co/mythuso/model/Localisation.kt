@@ -72,3 +72,47 @@ fun validateSaId(value: String): Pair<Boolean, String> {
     val year = if (yy > 25) 1900 + yy else 2000 + yy
     return true to "Checks out. Date of birth %02d/%02d/%d.".format(day, month, year)
 }
+
+/**
+ * Hero banner copy. Kept beside the rest of the localisation so a slide cannot be added in one
+ * language and forgotten in the other three.
+ */
+data class HeroSlideCopy(
+    val id: String, val title: String, val body: String, val cta: String,
+    val trust: List<String>, val caption: String, val art: String, val banner: String, val symbols: List<String>
+)
+fun heroSlides(locale: ThusoLocale): List<HeroSlideCopy> {
+    val art = listOf("Family", "Elder", "Nurse")
+    val banners = listOf("care_that_comes_to_you", "one_safe_place", "feel_better")
+    val symbols = listOf(
+        listOf("house", "checkmark.shield", "person.2"),
+        listOf("checkmark.shield", "person.2", "sparkles"),
+        listOf("checkmark.shield", "heart", "stethoscope")
+    )
+    val copy: List<List<Any>> = when (locale) {
+        ThusoLocale.ZULU -> listOf(
+            listOf("Ukunakekelwa\nokuza kuwe.", "Ukunakekelwa kwezempilo okwethembekile ekhaya, ngokuthinta nje.", "Thola usizo manje", listOf("Ekhaya", "Ukunakekelwa okwethembekile", "Kubantu obathandayo"), "Ukunakekelwa okufanayo. Eduze nekhaya."),
+            listOf("Impilo yakho.\nIndawo eyodwa ephephile.", "Ukuvakashelwa, amarekhodi nokusekelwa — konke ku-MyThuso.", "Vula i-Thuso Pass", listOf("Ukunakekelwa okwethembekile", "Kuwe nabathandekayo bakho", "Ikusasa elinempilo"), "Ukunakekelwa kuyasihlanganisa."),
+            listOf("Zizwe ungcono.\nEkhaya.", "Ukunakekelwa okuholwa umhlengikazi, kulethwa emnyango wakho.", "Bhukha umhlengikazi", listOf("Ochwepheshe abethembekile", "Ukunakekelwa okwakho", "Kuphephile futhi kulula"), "Ukunakekelwa okusezingeni, lapho ukhona.")
+        )
+        ThusoLocale.SESOTHO -> listOf(
+            listOf("Tlhokomelo e tlang\nho wena.", "Tlhokomelo ya bophelo ya lehae e tshepahalang, ka ho tobetsa ha se kae.", "Fumana tlhokomelo hona joale", listOf("Lehae", "Tlhokomelo e tshepahalang", "Bakeng sa bao o ba ratang"), "Tlhokomelo e tshwanang. Haufi le lehae."),
+            listOf("Bophelo ba hao.\nSebaka se le seng se sireletsehileng.", "Diketelo, direkoto le tshehetso — tsohle ho MyThuso.", "Bula Thuso Pass", listOf("Tlhokomelo e tshepahalang", "Bakeng sa hao le ba lelapa", "Bokamoso bo phetseng hantle"), "Tlhokomelo ea re kopanya."),
+            listOf("Ikutlwe hantle.\nHae.", "Tlhokomelo e etelletsweng ke mooki, e tliswa monyako wa hao.", "Behela mooki", listOf("Ditsebi tse tshepahalang", "Tlhokomelo ya hao", "E bolokehile ebile e bonolo"), "Tlhokomelo e ntle, moo o leng teng.")
+        )
+        ThusoLocale.AFRIKAANS -> listOf(
+            listOf("Sorg wat na\njou toe kom.", "Betroubare tuisgesondheidsorg met net ’n paar tikke.", "Kry sorg nou", listOf("By die huis", "Betroubare sorg", "Vir die mense vir wie jy lief is"), "Dieselfde sorg. Nader aan die huis."),
+            listOf("Jou gesondheid.\nEen veilige plek.", "Besoeke, rekords en ondersteuning — alles in MyThuso.", "Open Thuso Pass", listOf("Betroubare sorg", "Vir jou en jou geliefdes", "Gesonder môres"), "Sorg verbind ons."),
+            listOf("Voel beter.\nTuis.", "Verpleegster-gelei sorg, tot by jou deur.", "Bespreek ’n verpleegster", listOf("Betroubare professionele", "Persoonlike sorg", "Veilig en gerieflik"), "Kwaliteitsorg, waar jy ook al is.")
+        )
+        else -> listOf(
+            listOf("Care that\ncomes to you.", "Trusted home healthcare in just a few taps.", "Get care now", listOf("At home", "Trusted care", "For the people you love"), "Same care. Closer to home."),
+            listOf("Your health.\nOne safe place.", "Visits, records and support — all in MyThuso.", "Open Thuso Pass", listOf("Trusted care", "For you and your loved ones", "Healthier tomorrows"), "Care connects us."),
+            listOf("Feel better.\nRight at home.", "Nurse-led care, delivered to your door.", "Book a nurse", listOf("Trusted professionals", "Personalised care", "Safe & convenient"), "Quality care, where you are.")
+        )
+    }
+    @Suppress("UNCHECKED_CAST")
+    return copy.mapIndexed { index, item ->
+        HeroSlideCopy(art[index], item[0] as String, item[1] as String, item[2] as String, item[3] as List<String>, item[4] as String, art[index], banners[index], symbols[index])
+    }
+}

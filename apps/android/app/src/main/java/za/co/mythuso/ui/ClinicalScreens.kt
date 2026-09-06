@@ -55,15 +55,15 @@ private val Flag = Color(0xFF9B6231)
     val captured = observations.filter { values[it.id].orEmpty().toDoubleOrNull() != null }
     val abnormal = captured.filter { flag(it) != null }
     ScreenColumn {
-        Text("Step ${stage + 1} of ${stages.size} · ${stages[stage]}", style = MaterialTheme.typography.labelMedium, color = Teal)
+        StepDots(stage + 1, stages.size, stages[stage])
         ReviewLine("Visit", "$reference · $patient")
         when (stage) {
             0 -> {
                 Text("Confirm you’re at the right door.", style = MaterialTheme.typography.titleMedium)
                 Note("Ask ${patient.substringBefore(' ')} for the six-digit code in the MyThuso app. In this preview the code is 482190.")
-                OutlinedTextField(otp, { otp = it.filter { c -> c.isDigit() }.take(6); otpError = "" }, label = { Text("Visit code") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    isError = otpError.isNotEmpty(), supportingText = { Text(otpError.ifEmpty { "The code changes for every visit and expires when the visit ends." }) })
+                Text("Visit code", style = MaterialTheme.typography.labelLarge, color = Forest)
+                CodeBoxes(otp, { otp = it; otpError = "" }, invalid = otpError.isNotEmpty(), label = "Visit code")
+                Note(otpError.ifEmpty { "The code changes for every visit and expires when the visit ends." })
                 Setting("I have seen the patient’s identity document, or a household member has confirmed identity.", identitySeen) { identitySeen = it }
                 Note("If the code fails, the visit does not start. The nurse contacts the Control Tower instead of proceeding.")
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

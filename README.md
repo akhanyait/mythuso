@@ -44,9 +44,25 @@ cd apps/android
 
 APK output: `apps/android/app/build/outputs/apk/debug/app-debug.apk`. The Gradle wrapper is included. This preview has no internet, location, camera, microphone, Bluetooth or health permissions.
 
+## Design
+
+The landing screen opens on an auto-rotating hero banner — three slides, each with its own call to action, trust marks and a person who rises above the top edge of the banner, over a softly animated background. It pauses on hover or focus, can be stopped outright, and does not rotate at all when the system asks for reduced motion.
+
+To use real photography, drop three files into `apps/web/public/banners/` — see the [README there](apps/web/public/banners/README.md) for names, framing and the release requirements. Until then each slide falls back to its illustration automatically.
+
+One mobile-first design language across all three apps: soft tinted icon tiles, white cards on a pale canvas, capsule status pills and a teal primary action, with a five-item bottom tab bar on phones and a sidebar on wide screens. Tokens live in `packages/design-tokens/tokens.json`.
+
+Illustrations have a single source in `packages/illustrations`. The web imports the SVGs directly; the native bundles hold bitmaps rendered from the same files:
+
+```sh
+node scripts/render-illustrations.mjs
+```
+
+`npm run check` fails if a native bitmap is missing or older than its SVG. Every illustration marks a photography slot — the preview uses no real patient or staff photos.
+
 ## Included UI
 
-- Patient dashboard, nine-service catalogue, booking review/confirmation and visits.
+- Patient home, nine-service catalogue, and a four-step booking flow with date and time selection, payment choice and review.
 - First run and account recovery: language, one-time code, South African ID check-digit validation, recovery setup and separated consent.
 - Health Passport with accessible trend charts — every chart is also a table — documents, limited-sharing preview and export.
 - Family profiles, guardian invitations with explicit scope, duration and verification, care plans, wallet, notifications and privacy choices.

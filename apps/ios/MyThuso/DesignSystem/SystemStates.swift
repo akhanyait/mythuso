@@ -72,15 +72,27 @@ struct StateBlock<Content: View>: View {
         }
     }
 }
+/// A design-review control, not part of the product surface — so it stays collapsed until asked for.
 struct StatePicker: View {
     let title: String
     @Binding var state: LoadState
+    @State private var open = false
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Picker(title, selection: $state) { ForEach(LoadState.allCases) { Text($0.rawValue).tag($0) } }
-                .pickerStyle(.segmented)
+        DisclosureGroup(isExpanded: $open) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title).font(.caption2).foregroundStyle(ThusoTheme.body)
+                Picker(title, selection: $state) { ForEach(LoadState.allCases) { Text($0.rawValue).tag($0) } }
+                    .pickerStyle(.segmented).labelsHidden()
+            }.padding(.top, 8)
+        } label: {
+            HStack(spacing: 8) {
+                Text("Preview states").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.body)
+                if state != .ready { StatusPill(text: state.rawValue, tone: "amber") }
+            }
         }
+        .padding(14)
+        .background(.white, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.line))
     }
 }
 struct EmptyStateCard: View {

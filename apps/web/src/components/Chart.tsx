@@ -1,10 +1,10 @@
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { Table2, TrendingDown, TrendingUp, Minus } from 'lucide-react';
 export type Reading = { label: string; value: number; note?: string };
-type Props = { title: string; unit: string; readings: Reading[]; normal?: [number, number]; format?: (n: number) => string };
+type Props = { title: string; unit: string; readings: Reading[]; normal?: [number, number]; format?: (n: number) => string; icon?: ReactNode };
 /* An accessible clinical chart. The drawing is decorative-with-a-summary: every value is also
    available as a real table, because a reading a patient cannot read is not a reading. */
-export function ClinicalChart({ title, unit, readings, normal, format = n => String(n) }: Props) {
+export function ClinicalChart({ title, unit, readings, normal, format = n => String(n), icon }: Props) {
  const [showTable, setShowTable] = useState(false);
  const tableId = useId();
  const values = readings.map(r => r.value);
@@ -25,7 +25,7 @@ export function ClinicalChart({ title, unit, readings, normal, format = n => Str
  const summary = `${title}. Latest sample reading ${format(latest.value)} ${unit} on ${latest.label}, ${direction} the first reading of ${format(first.value)} on ${first.label}. ${normal ? `Indicative reference range ${format(normal[0])} to ${format(normal[1])} ${unit}; the latest reading is ${inRange ? 'inside' : 'outside'} that range.` : ''} Fictional data.`;
  return <div className="panel chart-card">
   <div className="chart-head">
-   <span className="chart-title">{title}</span>
+   <span className="chart-title">{icon}{title}</span>
    <span className={`chart-flag ${inRange ? '' : 'watch'}`}>{inRange ? 'Within sample range' : 'Outside sample range'}</span>
   </div>
   <div className="chart-value"><strong>{format(latest.value)}</strong><small>{unit}</small><span className="chart-trend"><Trend size={14} aria-hidden="true"/>{delta === 0 ? 'No change' : `${delta > 0 ? '+' : ''}${format(delta)} since ${first.label}`}</span></div>

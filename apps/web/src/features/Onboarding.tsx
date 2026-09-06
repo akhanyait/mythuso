@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, BadgeCheck, Check, Fingerprint, KeyRound, LifeBuoy, MapPin, MessageSquare, Phone, ShieldCheck, Users } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { locales, type LocaleCode } from '../lib/i18n';
+import { CodeInput } from '../components/Steps';
 /* South African ID numbers carry a Luhn check digit. Validating it locally means we can show a
    real "that doesn't look right" state in the preview without sending anything anywhere. */
 export function validateSaId(value: string): { ok: boolean; reason?: string; birth?: string } {
@@ -33,8 +34,7 @@ export function Onboarding({ locale, setLocale, onDone, onSkip }: Props) {
  const [trusted, setTrusted] = useState('Nomsa Molefe · Mother');
  const [recoveryWord, setRecoveryWord] = useState('');
  const [consents, setConsents] = useState({ care: false, popia: false, updates: false });
- const codeRef = useRef<HTMLInputElement>(null);
- useEffect(() => { if (step !== 2) return; setSeconds(30); const t = setInterval(() => setSeconds(s => (s > 0 ? s - 1 : 0)), 1000); codeRef.current?.focus(); return () => clearInterval(t); }, [step]);
+ useEffect(() => { if (step !== 2) return; setSeconds(30); const t = setInterval(() => setSeconds(s => (s > 0 ? s - 1 : 0)), 1000); return () => clearInterval(t); }, [step]);
  const idCheck = validateSaId(idNumber);
  const phoneOk = /^0\d{9}$/.test(phone.replace(/\s/g, ''));
  if (recovering) return <RecoverAccess onBack={() => setRecovering(false)} onDone={onDone}/>;
@@ -65,7 +65,8 @@ export function Onboarding({ locale, setLocale, onDone, onSkip }: Props) {
     </> : step === 2 ? <>
      <h1>Check your messages.</h1>
      <p className="muted">We’ve sent a 6-digit code to <strong>+27 {phone.replace(/^0/, '')}</strong>. In this preview the code is <strong>240924</strong>.</p>
-     <label>Verification code<input ref={codeRef} inputMode="numeric" autoComplete="one-time-code" value={code} onChange={e => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setCodeError(''); }} className={codeError ? 'field-error' : ''} aria-invalid={!!codeError} aria-describedby="code-help"/></label>
+     <label>Verification code</label>
+     <CodeInput value={code} onChange={v => { setCode(v); setCodeError(''); }} label="Verification code" describedBy="code-help" invalid={!!codeError} autoFocus/>
      <p className="helper" id="code-help" role="status">{codeError || (seconds > 0 ? `You can ask for a new code in ${seconds}s.` : 'Didn’t get it? Ask for a new code.')}</p>
      <div className="button-row">
       <button className="secondary" disabled={seconds > 0} onClick={() => { setSeconds(30); setCode(''); }}><MessageSquare size={16}/>Resend</button>

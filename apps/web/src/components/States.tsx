@@ -35,8 +35,12 @@ export function EmptyState({ title, body, action, onAction }: { title: string; b
   {action && <button className="secondary" onClick={onAction}>{action}</button>}
  </div>;
 }
+/* A design-review control, not part of the product surface — so it stays collapsed until asked for. */
 export function StatePicker({ value, onChange, label }: { value: LoadState; onChange: (s: LoadState) => void; label: string }) {
- return <div className="state-picker"><span id={`${label}-lbl`} className="muted">{label}</span>
-  <div className="tabs" role="group" aria-labelledby={`${label}-lbl`}>{loadStates.map(s => <button key={s} className={value === s ? 'selected' : ''} aria-pressed={value === s} onClick={() => onChange(s)}>{stateLabels[s]}</button>)}</div>
- </div>;
+ return <details className="state-picker">
+  <summary>Preview states{value !== 'ready' && <span className="pill amber">{stateLabels[value]}</span>}</summary>
+  <div><span id={`${label}-lbl`} className="muted">{label}</span>
+   <div className="tabs" role="group" aria-labelledby={`${label}-lbl`}>{loadStates.map(s => <button key={s} className={value === s ? 'selected' : ''} aria-pressed={value === s} onClick={() => onChange(s)}>{stateLabels[s]}</button>)}</div>
+  </div>
+ </details>;
 }

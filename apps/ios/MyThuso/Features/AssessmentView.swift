@@ -45,7 +45,7 @@ struct VisitAssessmentView: View {
     var body: some View {
         Form {
             Section {
-                Text("Step \(stage + 1) of \(stages.count) · \(stages[stage])").font(.caption).foregroundStyle(ThusoTheme.teal)
+                StepDots(step: stage + 1, total: stages.count, label: stages[stage])
                 LabeledContent("Visit", value: "\(reference) · \(patient)")
             }
             switch stage {
@@ -61,7 +61,7 @@ struct VisitAssessmentView: View {
     @ViewBuilder private var identityStage: some View {
         Section("Confirm you’re at the right door") {
             Text("Ask \(patient.split(separator: " ").first ?? "") for the six-digit code in the MyThuso app. In this preview the code is 482190.").font(.caption).foregroundStyle(.secondary)
-            TextField("Visit code", text: $otp).keyboardType(.numberPad)
+            CodeBoxes(code: $otp, invalid: !otpError.isEmpty, label: "Visit code").listRowInsets(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
             if !otpError.isEmpty { Text(otpError).font(.caption).foregroundStyle(.red) }
             Toggle("I have seen the patient’s identity document, or a household member has confirmed identity.", isOn: $identitySeen)
         }
