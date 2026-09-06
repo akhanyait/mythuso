@@ -22,6 +22,31 @@ npx playwright install chromium
 npm test
 ```
 
+## The landing page
+
+`apps/web/landing.html` is a separate entry, so someone reading about MyThuso does not download the
+whole application to do it. In development it is at `/landing.html` with the app at `/`; in
+production nginx puts the public page at `/` and the app at `/app/`.
+
+It is deliberately explicit that MyThuso is being built rather than operating — a banner above the
+fold, a footer stating no visit can be booked and no payment taken, and a note that the people shown
+are illustrative and are not MyThuso nurses or patients.
+
+## Deploying
+
+```sh
+./deploy/deploy.sh                        # liqzar-server, mythuso.liqzar.co.za
+HOST=mythuso.co.za ./deploy/deploy.sh     # somewhere else
+```
+
+It adds `/var/www/mythuso` and one nginx site file, tests the whole nginx configuration before it
+reloads, and verifies with a `Host:` header against the server's own loopback — so a deployment can
+be confirmed before DNS points anywhere. It never edits another site's configuration.
+
+The identity service is **not** turned on by a deploy. It signs people in with one-time codes, and
+that must not be reachable over plain http. [deploy/README.md](deploy/README.md) has the order: DNS,
+then TLS, then an SMS provider, then the service.
+
 ## Run the identity service
 
 The app runs without a backend — that is what the design preview is. There is now also a real

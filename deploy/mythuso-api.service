@@ -1,0 +1,32 @@
+# Installed but deliberately not enabled. The identity service must not run until:
+#   1. DNS points at this host and certbot has issued a certificate, and
+#   2. MYTHUSO_SMS_PROVIDER and MYTHUSO_AUTH_PEPPER are set in /etc/mythuso/api.env.
+# In production the service itself refuses to start without those; this comment is the reminder of
+# why, not the enforcement.
+[Unit]
+Description=MyThuso identity service (holds identity only, no health information)
+After=network.target
+
+[Service]
+Type=simple
+User=mythuso
+Group=mythuso
+WorkingDirectory=/opt/mythuso/api
+EnvironmentFile=/etc/mythuso/api.env
+ExecStart=/usr/bin/node src/server.ts
+Restart=on-failure
+RestartSec=5
+
+# It needs a listening socket, a database file and nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+ReadWritePaths=/var/lib/mythuso
+
+[Install]
+WantedBy=multi-user.target
