@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
+  "name": "MyThuso",
+
+  // Pinned to a major version, so a Codespace does not quietly build on a
+  // different runtime than the Mac did.
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  // No postCreateCommand yet: there is no package.json in the repository, and
+  // an `npm ci` here would fail the container build on every create. Add it
+  // with the application scaffold.
+
+  "forwardPorts": [3000, 4000],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  },
+
+  // Codespaces bills by core-hour, so this is the knob that decides how far
+  // the free tier goes.
+  "hostRequirements": { "cpus": 2 }
+}

@@ -1,0 +1,16 @@
+node_modules/
+.next/
+dist/
+build/
+.env
+.env.local
+*.log
+.DS_Store
+coverage/
+.turbo/
+.expo/
+
+# The zip is a byte-for-byte duplicate of the loose files in Documentation/ —
+# same logo, icon, four concept renders and the proposal. Tracking both would
+# double the repository for nothing and leave two copies to drift apart.
+Documentation/*.zip
