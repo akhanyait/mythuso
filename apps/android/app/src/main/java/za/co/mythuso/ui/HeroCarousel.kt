@@ -107,11 +107,11 @@ import za.co.mythuso.model.heroSlides
         )
         Image(
             painterResource(banner), null,
-            Modifier.align(Alignment.TopEnd).width(184.dp).padding(top = 4.dp, end = 2.dp)
+            Modifier.align(Alignment.TopEnd).width(212.dp).padding(top = 6.dp)
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                 .drawWithContent {
                     drawContent()
-                    drawRect(Brush.verticalGradient(0.93f to Color.Black, 1f to Color.Transparent), blendMode = BlendMode.DstIn)
+                    drawRect(Brush.verticalGradient(0.87f to Color.Black, 1f to Color.Transparent), blendMode = BlendMode.DstIn)
                 },
             contentScale = ContentScale.FillWidth
         )
@@ -119,8 +119,8 @@ import za.co.mythuso.model.heroSlides
             Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 20.dp, end = 14.dp, bottom = 16.dp, top = 82.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Text(slide.title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Forest, lineHeight = 28.sp, modifier = Modifier.fillMaxWidth(0.56f))
-            Text(slide.body, fontSize = 12.5.sp, color = BodyText, lineHeight = 18.sp, modifier = Modifier.fillMaxWidth(0.56f).padding(top = 8.dp))
+            Text(slide.title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Forest, lineHeight = 28.sp, modifier = Modifier.fillMaxWidth(0.5f))
+            Text(slide.body, fontSize = 12.5.sp, color = BodyText, lineHeight = 18.sp, modifier = Modifier.fillMaxWidth(0.5f).padding(top = 8.dp))
             Button(onClick = onAction, shape = CircleShape, modifier = Modifier.padding(top = 13.dp)) {
                 Text(slide.cta, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.width(9.dp))

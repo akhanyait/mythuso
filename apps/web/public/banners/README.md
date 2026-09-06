@@ -32,9 +32,14 @@ Cut-outs are supplied for all three slides, so every platform runs at level 1 �
 does rise above the banner's top edge. iOS and Android ship only the cut-outs; the `.jpg` crops
 exist for the web's fallback chain alone.
 
-`prepare-banners.py` trims each cut-out to its alpha bounding box, so the subject's head sits at the
-very top of the frame. That trim is what makes the overhang work — an image with transparent padding
-above the head would simply float, with the padding taking up the overhang instead of the person.
+`prepare-banners.py` trims each cut-out to its alpha bounding box and does nothing else to it. That
+trim is what makes the overhang work — an image with transparent padding above the head would simply
+float, with the padding taking up the overhang instead of the person.
+
+Nothing is cropped into the subject. An earlier version narrowed them to a portrait aspect to buy
+room beside the copy; it cut through arms and shoulders and looked like a box. The layout is sized
+around the artwork instead, and the last few percent of the image dissolves into the card so the
+waist-height edge of the photograph does not float.
 
 If you replace one:
 

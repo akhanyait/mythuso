@@ -60,10 +60,10 @@ struct HeroCarousel: View {
                 .shadow(color: ThusoTheme.ink.opacity(0.08), radius: 22, y: 12)
                 .padding(.top, 62)
             Image(slide.banner).resizable().scaledToFit()
-                .frame(width: 176)
-                .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.07)], startPoint: .bottom, endPoint: .top))
-                .shadow(color: ThusoTheme.ink.opacity(0.16), radius: 16, y: 12)
-                .padding(.bottom, 122).padding(.trailing, 2)
+                .frame(width: 208)
+                .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.13)], startPoint: .bottom, endPoint: .top))
+                .shadow(color: ThusoTheme.ink.opacity(0.14), radius: 14, y: 10)
+                .padding(.bottom, 118).padding(.trailing, 0)
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {
@@ -90,7 +90,7 @@ struct HeroCarousel: View {
                     .background(.white.opacity(0.88), in: Capsule())
                     .padding(.top, 12)
             }
-            .frame(maxWidth: 214, alignment: .leading)
+            .frame(maxWidth: 200, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 22).padding(.trailing, 14).padding(.bottom, 16).padding(.top, 78)
         }

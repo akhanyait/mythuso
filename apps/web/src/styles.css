@@ -612,8 +612,8 @@ details.state-picker .tabs>button{min-height:34px;padding:7px 12px;font-size:11p
 .hero-track{display:flex;transition:transform .55s cubic-bezier(.4,0,.2,1);touch-action:pan-y}
 .hero-slide{position:relative;flex:0 0 100%;min-width:100%;padding-top:52px;display:flex;overflow-x:clip;overflow-y:visible}
 .hero-card{position:relative;z-index:1;flex:1;min-width:0;background:#ffffffa6;backdrop-filter:blur(16px);border:1px solid #ffffffcc;border-radius:24px;box-shadow:0 16px 38px #102d2614;padding:20px 18px 16px}
-.hero-slide-copy{max-width:54%}
-.hero-slide-copy h1{font-size:24px;line-height:1.13;letter-spacing:-.7px;color:var(--forest)}
+.hero-slide-copy{max-width:49%}
+.hero-slide-copy h1{font-size:23px;line-height:1.13;letter-spacing:-.7px;color:var(--forest)}
 .hero-slide-copy p{color:#4e6b62;margin:8px 0 14px;font-size:12.5px}
 .hero-slide-copy .primary{min-height:48px;padding:12px 18px;border-radius:999px;font-size:13.5px;box-shadow:0 8px 18px #0e7c6b33;white-space:nowrap}
 .hero-trust{list-style:none;margin:16px 0 0;padding:0;display:flex;gap:2px;position:relative;z-index:3;max-width:62%}
@@ -623,9 +623,8 @@ details.state-picker .tabs>button{min-height:34px;padding:7px 12px;font-size:11p
 .hero-caption{display:none;align-items:center;gap:12px;width:100%;position:relative;z-index:3;margin-top:16px;background:#fffffff2;border:1px solid #ffffff;border-radius:999px;padding:11px 14px;font-size:12.5px;font-weight:600;color:var(--forest);text-align:left;box-shadow:0 6px 16px #102d260f}
 .hero-caption>svg:last-child{margin-left:auto;color:var(--teal)}
 .hero-caption-mark{width:30px;height:30px;border-radius:50%;background:#e2f1ea;display:grid;place-items:center;color:var(--teal);flex-shrink:0;border-right:0}
-.hero-figure{position:absolute;right:-4px;bottom:74px;width:52%;max-width:186px;z-index:2;pointer-events:none}
-.hero-figure img{width:100%;height:auto;display:block}
-.hero-figure .hero-art{-webkit-mask-image:linear-gradient(to top,transparent 0,#000 7%);mask-image:linear-gradient(to top,transparent 0,#000 7%)}
+.hero-figure{position:absolute;right:-6px;bottom:92px;width:58%;max-width:206px;z-index:2;pointer-events:none}
+.hero-figure img{width:100%;height:auto;display:block;filter:drop-shadow(0 16px 26px #10241f24);-webkit-mask-image:linear-gradient(to top,transparent 0,#000 13%);mask-image:linear-gradient(to top,transparent 0,#000 13%)}
 .hero-figure .hero-photo{border-radius:20px}
 .hero-controls{display:flex;align-items:center;gap:12px;margin-top:14px;padding:0 4px}
 .hero-dots{display:flex;gap:7px;align-items:center}
@@ -672,7 +671,7 @@ details.state-picker .tabs>button{min-height:34px;padding:7px 12px;font-size:11p
  .hero-slide{padding-top:88px}
  .hero-card{padding:34px 36px 16px}
  .hero-slide-copy h1{font-size:40px}
- .hero-slide-copy{max-width:54%}
+ .hero-slide-copy{max-width:49%}
  .hero-figure{bottom:104px;width:40%;max-width:310px;right:20px}
 
  .hero-caption{max-width:60%}
