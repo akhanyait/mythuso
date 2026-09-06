@@ -9,7 +9,8 @@ Status: implemented UI preview, September 2026. The funding proposal is product 
 | Web | React 19, strict TypeScript, Vite | Fast private application UI, small deployment surface, no server rendering of clinical records. Feature-specific components can move behind an authenticated BFF later. |
 | iOS / iPadOS | Swift + SwiftUI; minimum iOS 17 | Native navigation, forms, accessibility and system sharing; direct future HealthKit, CoreBluetooth, Keychain and AVFoundation access. |
 | Android | Kotlin + Jetpack Compose + Material 3; minimum Android 8 / API 26 | Native controls, accessibility, system sharing and direct future Health Connect, Bluetooth and Keystore access. |
-| Backend, proposed | TypeScript/NestJS modular monolith, PostgreSQL, private object storage, managed queue | Clear domain boundaries and transactions without premature distributed service complexity. Not scaffolded or connected in this phase. |
+| Identity service, built | TypeScript on Node's own primitives — `node:http`, `node:crypto`, `node:sqlite` — with storage behind an interface | The first backend slice needs no framework and no dependencies, which means no supply chain to audit for an authentication service. Storage is one interface so PostgreSQL is a file change, not a rewrite. |
+| Rest of the backend, proposed | TypeScript modular monolith, PostgreSQL, private object storage, managed queue | Clear domain boundaries and transactions without premature distributed service complexity. Not scaffolded in this phase. |
 | Contracts, proposed | OpenAPI with generated Swift, Kotlin and TypeScript clients | Share schemas and error semantics; retain independent native presentation code. Version at API boundaries. |
 
 These are deliberate choices, not a promise of a permanently “best” or future-proof stack. Maintainability comes from boundaries, standards, tests, dependency updates and replaceable adapters. Native mobile has no web renderer or bundled web UI. Web is a separate application. Browsers/system identity sessions for future OAuth would be an explicit identity decision, never a WebView used to implement app features.
@@ -37,9 +38,40 @@ Only the owning module writes its records. Other modules use application interfa
 
 Use a transaction outbox for reliable events. External payments use provider references, signed webhooks, replay protection and idempotency keys. The wallet is an immutable double-entry ledger, never a mutable balance in the client. No money movement exists in this preview.
 
+## The identity service
+
+`apps/api` is the first backend slice, and it does one thing: it establishes who someone is. It
+holds a name and a mobile number. It holds no health information, and `scripts/check-boundaries.mjs`
+fails the build if a clinical table appears in it — because the moment one does, this service is
+handling special personal information and everything in `docs/PRIVACY-AND-SECURITY.md` applies.
+
+The web app reaches it through its own origin at `/api`, proxied in development and expected behind
+the same host in production. That is the back-end-for-front-end the trust-boundary section calls
+for: the session cookie stays first-party, `HttpOnly` and `SameSite=Strict`, the page's `connect-src`
+stays `'self'`, and there is no CORS configuration to get wrong.
+
+What it actually implements, rather than plans:
+
+- Sign-in by one-time code. No password exists, so none can be stored, reused or leaked.
+- Codes and session tokens are hashed with a server-side pepper. Reading the database yields neither
+  a working code nor a working session.
+- Codes expire in ten minutes and burn after five attempts; comparison is constant-time.
+- Rate limits per number and per address, so neither one number nor one address can be walked.
+- `/auth/start` answers identically for a known and an unknown number: an endpoint that says "no such
+  account" tells an attacker which numbers to keep.
+- Sessions have an idle window that slides and an absolute limit that does not.
+- An append-only audit row for every attempt, success, refusal and sign-out, with the address kept
+  and the user agent hashed.
+- Production refuses to start with a weak pepper, an `http` origin, no SMS provider, or the
+  development setting that returns codes in the response.
+
+Still required before real information: PostgreSQL rather than SQLite, an SMS provider, SA hosting,
+encryption at rest, key rotation, step-up authentication before records and export, and an
+Information Officer. The console's Compliance tab lists these as not built, because they are not.
+
 ## Session and the admin console
 
-The web app has a real session: signing out clears the role, closes every dialog and replaces the shell with a sign-in screen, and nothing about the account is reachable until you sign back in. Nothing is stored — a reload returns to the signed-in preview, the same memory-only rule that applies to every other piece of state here. That is deliberate: a session flag would be harmless to persist, but the guard that keeps browser storage out of this app is worth more than the convenience, and `scripts/check-boundaries.mjs` enforces it.
+The web app has a real session: signing out clears the role, closes every dialog and replaces the shell with a sign-in screen, and nothing about the account is reachable until you sign back in. With no identity service running, nothing is stored — a reload returns to the signed-in preview, the same memory-only rule that applies to every other piece of state here. With one running, the session is the service's cookie and survives a reload because it is real. That is deliberate: a session flag would be harmless to persist, but the guard that keeps browser storage out of this app is worth more than the convenience, and `scripts/check-boundaries.mjs` enforces it.
 
 The admin console is the proposal's Control Tower as a web-only back office — it is not a phone surface and is not built for the native apps. It reports against the funding plan rather than against nothing, gates dispatch behind a vetting pipeline, shows what a price change actually leaves the platform, and gates funding tranches behind milestones. Every action is in-memory and fictional. Its Compliance tab is deliberately a checklist of what is designed versus what is not built, not a status.
 

@@ -7,7 +7,7 @@ Authoritative starting points: [Information Regulator POPIA resources](https://i
 | Control | Preview now | Required before real information |
 |---|---|---|
 | Data minimisation | Fictional fixtures; memory-only state; no analytics | Purpose/field inventory, minimum collection, privacy impact assessment |
-| Identity | Sign-up preview with local check-digit validation of a fictional ID number, plus three account-recovery routes as designed states | OIDC, MFA where appropriate, Home Affairs verification through an accredited provider, clinician verification, guardian authority, rate limiting, device binding and an audited, reversible recovery process |
+| Identity | **Built** in `apps/api`: one-time-code sign-in, peppered hashes for codes and sessions, attempt burning, rate limits per number and per address, no account enumeration, sliding idle and hard absolute session limits, append-only auth audit, and production refusals for a weak pepper, an http origin or no SMS provider. Plus the sign-up preview with local check-digit validation and three account-recovery routes as designed states | OIDC, MFA where appropriate, Home Affairs verification through an accredited provider, clinician verification, guardian authority, rate limiting, device binding and an audited, reversible recovery process |
 | Authorisation | Navigation examples only | Server-side deny-by-default object/tenant/relationship checks; audited break-glass process |
 | Consent | Optional switches, sharing preview, sign-up consent separated into required and optional, and spoken visit consent that records refusal as a valid outcome | Versioned purposes, lawful basis, recipient/scope/expiry, proof, withdrawal and downstream propagation |
 | Family care | Guardian invitation preview in which scope, duration and identity verification are three separate decisions, revocable, with sensitive categories excluded from every scope | Verify guardianship and delegated authority with proof; no record access merely because someone pays; a record of the child's own views as they grow older |
@@ -20,6 +20,21 @@ Authoritative starting points: [Information Regulator POPIA resources](https://i
 | Devices | No device access. The permission-denied state is designed, and declining never blocks a visit | Applicable registration/exemption assessment, validated readings, signed firmware and secure pairing |
 | Incidents | Severity triage, immediate-action choice, handover note and demo log; a critical severity states that the form never precedes calling emergency services | Detection, containment, investigation, real paging, and notifications under applicable law; rehearsed playbooks and accountable owners |
 | Research and marketing | Off by default in preview | Separate purpose assessment; no assumption that pseudonymised health data is anonymous |
+
+## What the identity service does and does not hold
+
+`apps/api` holds a name and a mobile number. Under POPIA that is personal information; it is not the
+special personal information that health data is, and that distinction is the whole reason this
+slice could be built before the rest of the controls in this document exist. It is enforced rather
+than trusted: `scripts/check-boundaries.mjs` fails the build if a clinical table appears in the
+service, if the audit table is ever updated or deleted from, or if the service stops declaring what
+it holds.
+
+Before any health information reaches a server, the rest of this document applies in full —
+PostgreSQL with encryption at rest and key separation, SA hosting, step-up authentication before
+records, sharing and export, an append-only clinical access log distinct from the auth log, a
+retention schedule that distinguishes deletion from legally required clinical retention, an
+Information Officer, and a data protection impact assessment.
 
 ## Concrete preview protections
 

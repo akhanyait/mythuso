@@ -22,6 +22,29 @@ npx playwright install chromium
 npm test
 ```
 
+## Run the identity service
+
+The app runs without a backend — that is what the design preview is. There is now also a real
+identity service, and when it is answering the preview stops pretending: you have to sign in with a
+one-time code, and the session is an HttpOnly cookie the page cannot read.
+
+```sh
+npm run api          # http://127.0.0.1:8787, reached through the app's own /api proxy
+npm run test:live    # the browser sign-in loop end to end, against that service
+```
+
+It has no dependencies — `node:http`, `node:crypto` and `node:sqlite` — so there is no supply chain
+to audit. In development it prints the one-time code instead of sending an SMS; in production that
+is refused outright, along with a weak signing pepper, an `http` origin, or no SMS provider.
+
+**It holds a name and a mobile number, and nothing else.** That is personal information, not the
+special personal information that health data is, which is the only reason it can exist ahead of the
+controls in [Privacy and security](docs/PRIVACY-AND-SECURITY.md). `npm run check` fails if a
+clinical table appears in it.
+
+`npm test` runs the preview suite with no backend, plus the live sign-in test, which skips unless
+the service is up.
+
 ## Run iOS
 
 Open `apps/ios/MyThuso.xcodeproj` in Xcode, select the **MyThuso** scheme and an iOS 17+ simulator, and Run. Physical devices require your own signing team. The checked-in project needs no third-party package manager.

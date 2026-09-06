@@ -22,6 +22,7 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | System states | Loading, service error, offline, permission denied and empty, as shared components used by the real screens and collected in one gallery | All three |
 | Localisation | English, isiZulu, Sesotho and Afrikaans across the shell, navigation, tab bar and primary actions | All three |
 | Shared design language | One token set, one illustration source and one set of shared components, implemented natively three times | All three |
+| Identity service | **Built**: one-time-code sign-in over a first-party HttpOnly cookie, peppered hashes, attempt burning, rate limits, no account enumeration, sliding and absolute session limits, append-only auth audit, production refusals. Holds identity only — no health information | Web; native keeps its first-run route |
 | Admin console | Reporting against the funding plan, vetting pipeline gating dispatch, catalogue pricing with live platform margin, subscriptions and B2B, milestone-gated tranches, compliance checklist | Web only — a back office, not a phone surface |
 | Session and sign-out | Sign out from the profile menu or More; the shell and the account are unreachable until sign-in | Web; native keeps its first-run route |
 | Commercial model | The proposal's prices, nurse shares, subscriptions, B2B lines, screening packages, device costs, trajectory and seed round as checked data | Shared data; phase-one prices held in step with native |

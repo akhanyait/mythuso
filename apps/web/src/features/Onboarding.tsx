@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, BadgeCheck, Check, Fingerprint, KeyRound, LifeBu
 import { Pill } from '../components/UI';
 import { locales, type LocaleCode } from '../lib/i18n';
 import { LogIn, UserPlus } from 'lucide-react';
+import { startSignIn, verifyCode } from '../lib/auth';
 import { CodeInput } from '../components/Steps';
 /* South African ID numbers carry a Luhn check digit. Validating it locally means we can show a
    real "that doesn't look right" state in the preview without sending anything anywhere. */
@@ -138,9 +139,32 @@ function RecoverAccess({ onBack, onDone }: { onBack: () => void; onDone: () => v
 }
 
 /* Signing out is real: the shell is gone and nothing about the account is reachable until you come
-   back through here. Nothing is stored, so a reload returns to the signed-in preview — the same
-   memory-only rule that applies to every other piece of state in this app. */
-export function SignIn({ onSignIn, onCreate, onRecover }: { onSignIn: () => void; onCreate: () => void; onRecover: () => void }) {
+   back through here. With no identity service running this is the preview's own door — memory only,
+   like the rest of its state. With one running it is a real one-time code to a real number. */
+export function SignIn({ live, onSignIn, onCreate, onRecover }:
+ { live: boolean; onSignIn: (person?: { phone: string }) => void; onCreate: () => void; onRecover: () => void }) {
+ const [phone, setPhone] = useState('');
+ const [challenge, setChallenge] = useState<{ id: string; hint?: string } | null>(null);
+ const [code, setCode] = useState('');
+ const [busy, setBusy] = useState(false);
+ const [error, setError] = useState('');
+ const phoneOk = /^0\d{9}$/.test(phone.replace(/\s/g, ''));
+ const requestCode = async () => {
+  setBusy(true); setError('');
+  const started = await startSignIn(phone);
+  setBusy(false);
+  if (!started.ok) return setError(started.message);
+  setChallenge({ id: started.challengeId, hint: started.developmentCode });
+  setCode('');
+ };
+ const submitCode = async () => {
+  if (!challenge) return;
+  setBusy(true); setError('');
+  const verified = await verifyCode(challenge.id, code);
+  setBusy(false);
+  if (!verified.ok) return setError(verified.message);
+  onSignIn(verified.person);
+ };
  return <div className="onboarding">
   <div className="onboard-panel">
    <img src="/logo.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
@@ -149,13 +173,34 @@ export function SignIn({ onSignIn, onCreate, onRecover }: { onSignIn: () => void
    <div className="onboard-note"><ShieldCheck size={17}/>You are signed out. Nothing about the account is reachable until you sign in again.</div>
   </div>
   <div className="onboard-form"><div className="onboard-body">
-   <Pill>Design preview</Pill>
+   <Pill>{live ? 'Identity service connected' : 'Design preview'}</Pill>
    <h1>Sign in to MyThuso</h1>
-   <p className="muted">This preview has no accounts and no password. Continue as the fictional patient to carry on exploring.</p>
-   <button className="primary full" onClick={onSignIn}><LogIn size={17}/>Continue as Lerato Molefe</button>
-   <button className="secondary full" onClick={onCreate}><UserPlus size={16}/>Create an account</button>
-   <button className="text-button" onClick={onRecover}>I’ve lost access to my account</button>
-   <div className="privacy-note"><ShieldCheck size={19}/>Production sign-in uses a one-time code to a verified number, with step-up checks before records, sharing or export. No password is ever stored.</div>
+   {!live ? <>
+    <p className="muted">No identity service is running, so this preview has no accounts and no password. Continue as the fictional patient to carry on exploring.</p>
+    <button className="primary full" onClick={() => onSignIn()}><LogIn size={17}/>Continue as Lerato Molefe</button>
+    <button className="secondary full" onClick={onCreate}><UserPlus size={16}/>Create an account</button>
+    <button className="text-button" onClick={onRecover}>I’ve lost access to my account</button>
+   </> : !challenge ? <>
+    <p className="muted">We’ll send a one-time code. There is no password to remember, and none to lose.</p>
+    <label>Mobile number<div className="phone-field"><span>+27</span>
+     <input inputMode="numeric" autoFocus value={phone} aria-describedby="signin-help"
+      onChange={e => { setPhone(e.target.value.replace(/[^\d\s]/g, '').slice(0, 12)); setError(''); }} placeholder="082 000 0000"/>
+    </div></label>
+    <p className="helper" id="signin-help" role="status">{error || 'Standard network rates apply.'}</p>
+    <button className="primary full" disabled={!phoneOk || busy} onClick={requestCode}>{busy ? 'Sending…' : <>Send my code<ArrowRight size={17}/></>}</button>
+   </> : <>
+    <p className="muted">We’ve sent a 6-digit code to <strong>+27 {phone.replace(/^0/, '')}</strong>.{challenge.hint ? <> The service is in development mode, so the code is <strong>{challenge.hint}</strong>.</> : null}</p>
+    <label>Verification code</label>
+    <CodeInput value={code} onChange={v => { setCode(v); setError(''); }} label="Verification code" describedBy="code-help" invalid={!!error} autoFocus/>
+    <p className="helper" id="code-help" role="status">{error || 'The code lasts ten minutes and can be tried five times.'}</p>
+    <div className="button-row">
+     <button className="secondary" onClick={() => { setChallenge(null); setError(''); }}><ArrowLeft size={16}/>Change number</button>
+     <button className="primary" disabled={code.length < 6 || busy} onClick={submitCode}>{busy ? 'Checking…' : 'Verify'}</button>
+    </div>
+   </>}
+   <div className="privacy-note"><ShieldCheck size={19}/>{live
+    ? 'The session lives in a cookie this page cannot read, expires when you stop using it, and ends the moment you sign out. No password is stored because none exists.'
+    : 'Production sign-in uses a one-time code to a verified number, with step-up checks before records, sharing or export. No password is ever stored.'}</div>
   </div></div>
  </div>;
 }

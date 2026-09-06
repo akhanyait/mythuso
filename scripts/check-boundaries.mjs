@@ -102,4 +102,21 @@ for (const [platform, file] of Object.entries(heroSources)) {
  const source = read(file);
  for (const cta of heroCallsToAction) if (!source.includes(cta)) throw new Error(`Hero banner call to action "${cta}" is missing from ${platform} (${file})`);
 }
+/* The identity service holds a name and a mobile number. That is personal information, not the
+   special personal information that health data is, which is the only reason it can exist ahead of
+   the controls in docs/PRIVACY-AND-SECURITY.md. If a clinical table appears here, that reasoning
+   has quietly stopped being true. */
+if(existsSync('apps/api/src')) {
+ const clinical=/\b(observation|diagnos|prescription|medication|clinical|patient_record|vital|symptom|allerg)/i;
+ for(const f of files('apps/api/src')) {
+  const source=read(f);
+  for(const statement of source.match(/CREATE TABLE[^;]+/gi)??[]) {
+   if(clinical.test(statement)) throw new Error(`The identity service has grown a clinical table in ${f}. Health data is special personal information: work through docs/PRIVACY-AND-SECURITY.md before this ships.`);
+  }
+ }
+ if(!read('apps/api/src/config.ts').includes('holds no health information')) throw new Error('The identity service must state what it holds in apps/api/src/config.ts');
+ /* The audit trail is only worth having if nothing rewrites it. */
+ const store=read('apps/api/src/store.ts');
+ if(/UPDATE audit|DELETE FROM audit/i.test(store)) throw new Error('The audit table must stay append-only');
+}
 console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android.`);

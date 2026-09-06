@@ -16,6 +16,21 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: npm audit --audit-level=high
+  identity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check -w @mythuso/api
+      - run: npm run test -w @mythuso/api
+      # the sign-in loop end to end, through the app's own /api proxy
+      - run: npx playwright install --with-deps chromium
+      - run: npm run api & for i in $(seq 1 40); do curl -sf http://127.0.0.1:8787/health && break || sleep 0.5; done
+      - run: npm run test:live
   ios:
     runs-on: macos-latest
     steps:

@@ -1,7 +1,26 @@
 {
-  "name": "mythuso", "private": true, "version": "0.1.0", "type": "module",
-  "workspaces": ["apps/web"],
-  "engines": {"node": ">=22.12.0"},
-  "scripts": {"dev": "npm run dev -w @mythuso/web -- --host 0.0.0.0", "build": "npm run build -w @mythuso/web", "check": "npm run check -w @mythuso/web && node scripts/check-boundaries.mjs", "test": "playwright test", "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0"},
-  "devDependencies": {"@playwright/test": "^1.58.0"}
+  "name": "mythuso",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @mythuso/web -- --host 0.0.0.0",
+    "build": "npm run build -w @mythuso/web",
+    "check": "npm run check -w @mythuso/web && npm run check -w @mythuso/api && node scripts/check-boundaries.mjs",
+    "test": "npm run test -w @mythuso/api && playwright test",
+    "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0",
+    "api": "npm run dev -w @mythuso/api",
+    "test:live": "playwright test tests/live-identity.spec.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "@types/node": "^22.10.0"
+  }
 }
