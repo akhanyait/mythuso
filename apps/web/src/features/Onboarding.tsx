@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, BadgeCheck, Check, Fingerprint, KeyRound, LifeBuoy, MapPin, MessageSquare, Phone, ShieldCheck, Users } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { locales, type LocaleCode } from '../lib/i18n';
+import { LogIn, UserPlus } from 'lucide-react';
 import { CodeInput } from '../components/Steps';
 /* South African ID numbers carry a Luhn check digit. Validating it locally means we can show a
    real "that doesn't look right" state in the preview without sending anything anywhere. */
@@ -132,6 +133,29 @@ function RecoverAccess({ onBack, onDone }: { onBack: () => void; onDone: () => v
      <label key={id} className={`choice-row ${route === id ? 'selected' : ''}`}><input type="radio" name="route" checked={route === id} onChange={() => setRoute(id)}/><span className="service-icon"><Icon size={20}/></span><span><strong>{title}</strong><small>{body}</small><em>{wait}</em></span></label>)}</div>
     <div className="button-row"><button className="secondary" onClick={onBack}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={!route} onClick={() => setSubmitted(true)}>Start recovery<ArrowRight size={16}/></button></div>
    </>}
+  </div></div>
+ </div>;
+}
+
+/* Signing out is real: the shell is gone and nothing about the account is reachable until you come
+   back through here. Nothing is stored, so a reload returns to the signed-in preview — the same
+   memory-only rule that applies to every other piece of state in this app. */
+export function SignIn({ onSignIn, onCreate, onRecover }: { onSignIn: () => void; onCreate: () => void; onRecover: () => void }) {
+ return <div className="onboarding">
+  <div className="onboard-panel">
+   <img src="/logo.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
+   <h2>Welcome back.</h2>
+   <p className="muted">Your visits, your records and your family’s care are behind this screen.</p>
+   <div className="onboard-note"><ShieldCheck size={17}/>You are signed out. Nothing about the account is reachable until you sign in again.</div>
+  </div>
+  <div className="onboard-form"><div className="onboard-body">
+   <Pill>Design preview</Pill>
+   <h1>Sign in to MyThuso</h1>
+   <p className="muted">This preview has no accounts and no password. Continue as the fictional patient to carry on exploring.</p>
+   <button className="primary full" onClick={onSignIn}><LogIn size={17}/>Continue as Lerato Molefe</button>
+   <button className="secondary full" onClick={onCreate}><UserPlus size={16}/>Create an account</button>
+   <button className="text-button" onClick={onRecover}>I’ve lost access to my account</button>
+   <div className="privacy-note"><ShieldCheck size={19}/>Production sign-in uses a one-time code to a verified number, with step-up checks before records, sharing or export. No password is ever stored.</div>
   </div></div>
  </div>;
 }

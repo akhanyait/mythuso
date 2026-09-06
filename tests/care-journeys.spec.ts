@@ -34,7 +34,10 @@ test('booking requires acknowledgement and creates a demo visit', async ({page})
 test('services filter and empty state',async({page})=>{
   await page.goto('/');await navigate(page,'Book a nurse');
   await page.getByRole('button',{name:'Recovery',exact:true}).click();
-  await expect(page.locator('.catalog-grid .service-card')).toHaveCount(2);
+  await expect(page.locator('.catalog-grid .service-card')).toHaveCount(3);
+  // later-phase services are visible but not bookable
+  await expect(page.locator('.catalog-grid .service-card.later')).toHaveCount(1);
+  await expect(page.locator('.catalog-grid .service-card.later')).toContainText('Phase 3');
   await page.getByRole('textbox',{name:'Search services'}).fill('no-such-service');
   await expect(page.getByText('No services match your search. Try another name or category.')).toBeVisible();
 });

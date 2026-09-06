@@ -10,12 +10,25 @@ for(const f of files('apps/web/src').filter(f=>/\.(tsx?|css)$/.test(f))) {
  if(/\b(localStorage|sessionStorage|indexedDB)\b/.test(source)) throw new Error(`Preview must not persist patient data: ${f}`);
  if(/dangerouslySetInnerHTML|\beval\(/.test(source)) throw new Error(`Unsafe dynamic content in ${f}`);
 }
+/* The native apps carry the phase-one visit menu, which is what launches. Later-phase services are
+   web and admin only until they are actually built for a nurse to deliver, so only phase one is
+   held in step across the three apps. */
 const catalogue=JSON.parse(read('packages/catalog/services.json'));
 const nativeCatalogues=['apps/ios/MyThuso/Models/CareService.swift','apps/android/app/src/main/java/za/co/mythuso/model/CareModels.kt'];
 for(const f of nativeCatalogues) {
  const source=read(f);
- for(const s of catalogue) if(!source.includes(`"${s.id}"`)||!source.includes(`"${s.name}"`)||!source.includes(String(s.price))) throw new Error(`Native catalogue drift: ${s.id} in ${f}`);
+ for(const s of catalogue.filter(s=>s.phase===1)) if(!source.includes(`"${s.id}"`)||!source.includes(`"${s.name}"`)||!source.includes(String(s.price))) throw new Error(`Native catalogue drift: ${s.id} in ${f}`);
 }
+/* The commercial model is the proposal's, and the admin console reports against it. If the two
+   disagree the console is quietly misreporting, so the arithmetic is checked here. */
+const model=JSON.parse(read('packages/catalog/business-model.json'));
+const allocated=model.funding.allocation.reduce((total,line)=>total+line.amount,0);
+if(allocated!==model.funding.round) throw new Error(`Funding allocation totals R${allocated.toLocaleString()} against a round of R${model.funding.round.toLocaleString()}`);
+const gated=model.funding.milestones.reduce((total,m)=>total+(m.releases??0),0);
+if(gated!==model.funding.round) throw new Error(`Milestone tranches release R${gated.toLocaleString()} against a round of R${model.funding.round.toLocaleString()}`);
+for(const s of catalogue) if(s.nurseShare>=s.price) throw new Error(`Service ${s.id} pays the nurse R${s.nurseShare} out of R${s.price}, leaving the platform nothing`);
+const worked=model.unitEconomics.worked;
+if(worked.price-worked.nurseShare-worked.paymentCost!==worked.platformRetains) throw new Error('The worked unit-economics example does not add up');
 
 /* Clinical reference ranges, locales and demo verification codes are duplicated across three
    native codebases. Drift between them is a clinical-safety problem, not a cosmetic one, so it

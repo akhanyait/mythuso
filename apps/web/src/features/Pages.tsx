@@ -9,23 +9,26 @@ import { FulfilmentQueue } from './Orders';
 import { CardArt, FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
 import type { DemoVisit } from './Booking';
-export function Services({book,query=''}:{book:(s:Service)=>void;query?:string}) {
+export function Services({book,open,query=''}:{book:(s:Service)=>void;open:(s:string)=>void;query?:string}) {
  const [category,setCategory]=useState('All services');
  const [search,setSearch]=useState(query);
  const filtered=services.filter(s=>(category==='All services'||s.category===category)&&`${s.name} ${s.description}`.toLowerCase().includes(search.toLowerCase()));
  return <>
   <div className="page-intro"><div className="eyebrow">Care, on your terms</div><h1>Professional care at your door</h1><p>Choose a service and we’ll match you with the nearest qualified nurse.</p></div>
-  <div className="catalog-tools"><label className="search-box"><Search size={18}/><input aria-label="Search services" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find a service…"/></label><span className="helper">{filtered.length} services · Proposal prices</span></div>
+  <div className="catalog-tools"><label className="search-box"><Search size={18}/><input aria-label="Search services" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find a service…"/></label><span className="helper">{filtered.filter(s=>s.phase===1).length} bookable now · {filtered.length} in the catalogue</span></div>
   <div className="tabs" aria-label="Service categories">{['All services','Everyday care','Family health','Recovery','Tests & screening'].map(c=><button key={c} className={category===c?'selected':''} onClick={()=>setCategory(c)}>{c}</button>)}</div>
-  <div className="catalog-grid">{filtered.map((s,i)=><button className={`service-card tint-${i%4}`} key={s.id} onClick={()=>book(s)}>
-   <CardArt index={i}><ServiceIcon name={s.icon} size={30}/></CardArt>
-   <span className="service-icon"><ServiceIcon name={s.icon} size={21}/></span>
-   <h3>{s.name}</h3><p>{s.description}</p>
-   <div><strong>From {money(s.price)}</strong><span>{s.duration} min <ChevronRight size={16}/></span></div>
-  </button>)}</div>
+  <div className="catalog-grid">{filtered.map((s,i)=>{
+   const live=s.phase===1;
+   return <button className={`service-card tint-${i%4} ${live?'':'later'}`} key={s.id} onClick={()=>live?book(s):open(`${s.name} · Phase ${s.phase}`)}>
+    <CardArt index={i}><ServiceIcon name={s.icon} size={30}/></CardArt>
+    <span className="service-icon"><ServiceIcon name={s.icon} size={21}/></span>
+    <h3>{s.name}</h3><p>{s.description}</p>
+    <div>{live?<><strong>From {money(s.price)}</strong><span>{s.duration} min <ChevronRight size={16}/></span></>
+     :<><strong className="later-price">{money(s.price)} planned</strong><span>Phase {s.phase} <ChevronRight size={16}/></span></>}</div>
+   </button>;})}</div>
   {!filtered.length&&<EmptyNote>No services match your search. Try another name or category.</EmptyNote>}
   <button className="menu-row panel space-top" onClick={()=>book(services[0])}><span className="tile-icon"><CircleHelp size={19}/></span><span><strong>Not sure what you need?</strong><small>Chat to our care team</small></span><ChevronRight size={17}/></button>
-  <div className="privacy-note space-top"><ShieldCheck size={19}/>All clinical decisions require a registered clinician. Prescription services require a valid prescription.</div>
+  <div className="privacy-note space-top"><ShieldCheck size={19}/>Only phase-one services can be booked. Later-phase services are shown so the plan is visible, not because a nurse can be sent for one today.</div>
  </>}
 type VisitRow={service:Service;person:string;time:string;address:string;status:string;tone:string;date:[string,string,string]};
 export function Visits({visits,open,book}:{visits:DemoVisit[];open:(s:string)=>void;book:()=>void}) {
@@ -118,7 +121,7 @@ const menuGroups=[
  [['Care area','Rosebank, Johannesburg',MapPin,'@Your location'],['Notifications','Visit updates and messages',Bell,'@Notifications'],['Privacy & settings','Your data and app preferences',Settings2,'Privacy & settings'],['Language','Read MyThuso your way',Globe,'@Language']],
  [['Explore MyThuso','The full 21-module roadmap',LayoutGrid,'Explore MyThuso'],['Help & support','Chat, FAQs and emergency',CircleHelp,'@How can we help?'],['Preview workspaces','Nurse, doctor, partner and Control Tower',Stethoscope,'@Switch workspace']]
 ] as const;
-export function MoreHub({navigate,open,onOnboarding}:{navigate:(s:string)=>void;open:(s:string)=>void;onOnboarding:()=>void}){
+export function MoreHub({navigate,open,onSignOut}:{navigate:(s:string)=>void;open:(s:string)=>void;onSignOut:()=>void}){
  return <>
   <div className="page-intro"><h1>More</h1></div>
   <button className="profile-row" onClick={()=>open('Your profile')}><span className="avatar"><PatientPortrait/></span><span><strong>Lerato Molefe</strong><small>View and edit your profile</small></span><ChevronRight size={18}/></button>
@@ -126,7 +129,7 @@ export function MoreHub({navigate,open,onOnboarding}:{navigate:(s:string)=>void;
    <button className="menu-row" key={title} onClick={()=>target.startsWith('@')?open(target.slice(1)):navigate(target)}>
     <span className="tile-icon"><Icon size={19}/></span><span><strong>{title}</strong><small>{sub}</small></span><ChevronRight size={17}/>
    </button>)}</div>)}
-  <div className="menu-list danger"><button className="menu-row" onClick={onOnboarding}><span className="tile-icon"><LogOut size={19}/></span><span><strong>Log out</strong><small>Returns to the first-run flow — this preview has no account</small></span></button></div>
+  <div className="menu-list danger"><button className="menu-row" onClick={onSignOut}><span className="tile-icon"><LogOut size={19}/></span><span><strong>Log out</strong><small>Signs you out and returns to the sign-in screen</small></span></button></div>
   <div className="trust-footer"><span>MyThuso · Design preview</span><span>Help. Health. Home.</span></div>
  </>}
 export function SystemStates(){

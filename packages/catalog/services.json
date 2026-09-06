@@ -1,11 +1,17 @@
 [
- {"id":"vitals","name":"Vitals & chronic check","description":"A little check-in. A healthier you.","price":249,"duration":30,"category":"Everyday care","icon":"heart","phase":1},
- {"id":"wound","name":"Wound care","description":"Expert care, on your way to recovery.","price":299,"duration":40,"category":"Recovery","icon":"bandage","phase":1},
- {"id":"mother","name":"Mother & baby","description":"A caring hand for your new chapter.","price":349,"duration":45,"category":"Family health","icon":"baby","phase":1},
- {"id":"blood","name":"Blood tests","description":"Your sample collected comfortably at home.","price":299,"duration":25,"category":"Tests & screening","icon":"drop","phase":1},
- {"id":"injection","name":"Injection & vaccination","description":"Prescription-led care from a registered nurse.","price":249,"duration":20,"category":"Everyday care","icon":"syringe","phase":1},
- {"id":"planning","name":"Family planning","description":"Discreet support, on your schedule.","price":249,"duration":25,"category":"Family health","icon":"flower","phase":1},
- {"id":"postop","name":"Post-operative check","description":"Support through every step of recovery.","price":349,"duration":45,"category":"Recovery","icon":"shield","phase":1},
- {"id":"senior","name":"Elderly care","description":"Thoughtful, personal care for your loved ones.","price":399,"duration":60,"category":"Family health","icon":"people","phase":1},
- {"id":"certificate","name":"Sick-note visit","description":"A nurse assessment with doctor review.","price":249,"duration":30,"category":"Everyday care","icon":"file","phase":1}
+ {"id":"vitals","name":"Vitals & chronic check","description":"A little check-in. A healthier you.","price":249,"nurseShare":187,"duration":30,"category":"Everyday care","icon":"heart","phase":1},
+ {"id":"wound","name":"Wound care","description":"Expert care, on your way to recovery.","price":299,"nurseShare":224,"duration":40,"category":"Recovery","icon":"bandage","phase":1},
+ {"id":"mother","name":"Mother & baby","description":"A caring hand for your new chapter.","price":349,"nurseShare":262,"duration":45,"category":"Family health","icon":"baby","phase":1},
+ {"id":"blood","name":"Blood tests","description":"Your sample collected comfortably at home.","price":299,"nurseShare":224,"duration":25,"category":"Tests & screening","icon":"drop","phase":1},
+ {"id":"injection","name":"Injection & vaccination","description":"Prescription-led care from a registered nurse.","price":249,"nurseShare":187,"duration":20,"category":"Everyday care","icon":"syringe","phase":1},
+ {"id":"planning","name":"Family planning","description":"Discreet support, on your schedule.","price":249,"nurseShare":187,"duration":25,"category":"Family health","icon":"flower","phase":1},
+ {"id":"postop","name":"Post-operative check","description":"Support through every step of recovery.","price":349,"nurseShare":262,"duration":45,"category":"Recovery","icon":"shield","phase":1},
+ {"id":"senior","name":"Elderly care","description":"Thoughtful, personal care for your loved ones.","price":399,"nurseShare":299,"duration":60,"category":"Family health","icon":"people","phase":1},
+ {"id":"certificate","name":"Sick-note visit","description":"A nurse assessment with doctor review.","price":249,"nurseShare":187,"duration":30,"category":"Everyday care","icon":"file","phase":1},
+ {"id":"screening","name":"AI-assisted screening bundle","description":"ECG, vitals, urine and a doctor's review.","price":449,"nurseShare":300,"duration":50,"category":"Tests & screening","icon":"activity","phase":2},
+ {"id":"sos","name":"Thuso SOS urgent visit","description":"Under 45 minutes, with a doctor on video.","price":398,"nurseShare":249,"duration":45,"category":"Everyday care","icon":"siren","phase":2},
+ {"id":"mens","name":"Men's health check","description":"A private check-up, on your terms.","price":299,"nurseShare":224,"duration":35,"category":"Tests & screening","icon":"shield","phase":2},
+ {"id":"mental","name":"Mental-health check-in","description":"A nurse visit and a tele-counsellor.","price":349,"nurseShare":262,"duration":45,"category":"Everyday care","icon":"brain","phase":3},
+ {"id":"allied","name":"Allied health visit","description":"Physiotherapy, dietetics, OT or social work.","price":600,"nurseShare":450,"duration":60,"category":"Recovery","icon":"people","phase":3},
+ {"id":"carer","name":"Home carer (hourly)","description":"Non-nurse support, supervised by a registered nurse.","price":150,"nurseShare":113,"duration":60,"category":"Family health","icon":"people","phase":3}
 ]

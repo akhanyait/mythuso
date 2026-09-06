@@ -1,0 +1,79 @@
+{
+ "_note": "The commercial model from the MyThuso funding proposal (September 2026). Figures are the proposal's own indicative numbers, not trading results. The admin console reads this file so the preview and the proposal cannot drift apart.",
+ "unitEconomics": {
+  "worked": { "service": "Wound care", "price": 299, "nurseShare": 224, "paymentCost": 9, "platformRetains": 66 },
+  "platformShare": 0.25,
+  "doctorReviewFee": [35, 60]
+ },
+ "subscriptions": [
+  { "id": "chronic", "name": "Chronic Routine", "price": 199, "phase": 2, "includes": "Monthly visit, AI-screened vitals, doctor review, script collection, medicine delivery, adherence nudges" },
+  { "id": "planning", "name": "Family Planning Plan", "price": 99, "phase": 2, "includes": "Injection every 2–3 months, reminders, discreet booking" },
+  { "id": "mom", "name": "Thuso Mom", "price": 249, "phase": 3, "includes": "Antenatal visits, immunisation schedule, home visits for baby's first year" },
+  { "id": "senior", "name": "Thuso Senior (Gogo)", "price": 699, "phase": 3, "includes": "Weekly elderly visit, medication management, fall-risk check, family report" },
+  { "id": "recover", "name": "Thuso Recover", "price": null, "phase": 3, "includes": "Post-discharge visits for 2–6 weeks; sold to patients and hospitals" },
+  { "id": "alert", "name": "Thuso Alert", "price": 79, "phase": 4, "includes": "Panic button dispatching nearest nurse and ambulance partner" },
+  { "id": "cover", "name": "Thuso Cover", "price": 149, "phase": 4, "includes": "Insurer-backed visit allowance plus funeral cover" }
+ ],
+ "network": [
+  { "id": "pharmacy", "product": "Pharmacy fulfilment and adherence packs", "buyer": "Patients", "revenue": "8–15% of script value", "phase": 2 },
+  { "id": "labs", "product": "Laboratory tests", "buyer": "Patients, insurers", "revenue": "R50–R150 per test", "phase": 2 },
+  { "id": "devices", "product": "Devices sold or rented to homes", "buyer": "Patients", "revenue": "Margin plus rental", "phase": 3 },
+  { "id": "locum", "product": "Nurse locum marketplace", "buyer": "Hospitals, clinics, care homes", "revenue": "15–20% of shift value", "phase": 2 },
+  { "id": "employer", "product": "Employer wellness and vaccination drives", "buyer": "Employers", "revenue": "R120–R250 per employee per event", "phase": 3 },
+  { "id": "sicknote", "product": "Sick-note verification API", "buyer": "Employers", "revenue": "Per check or licence", "phase": 3 },
+  { "id": "discharge", "product": "Hospital discharge programme", "buyer": "Hospital groups", "revenue": "Per patient", "phase": 3 },
+  { "id": "school", "product": "School health screening", "buyer": "Schools", "revenue": "Per learner per year", "phase": 3 },
+  { "id": "estate", "product": "Estate and retirement-village concierge nurse", "buyer": "Body corporates", "revenue": "Monthly retainer", "phase": 3 },
+  { "id": "insurer", "product": "Insurer services: remote monitoring, claims verification", "buyer": "Insurers, schemes", "revenue": "Per member or per visit", "phase": 4 },
+  { "id": "government", "product": "Government and donor programmes", "buyer": "DoH, NGOs, donors", "revenue": "Contracted service plus dashboards", "phase": 4 },
+  { "id": "insights", "product": "Anonymised population-health insights", "buyer": "Insurers, government, research", "revenue": "Licence (POPIA-first)", "phase": 4 }
+ ],
+ "screening": [
+  { "id": "women", "name": "Women's Screen", "price": 699, "includes": "HPV self-sample, breast exam and scanner, BP, glucose, HIV, anaemia, PHQ-9" },
+  { "id": "men", "name": "Men's Screen", "price": 649, "includes": "PSA, FIT, BP, lipids, glucose, HIV, oral and skin check" },
+  { "id": "seniors", "name": "Senior Screen", "price": 799, "includes": "Cardiovascular, kidney, cognitive, fall risk, vision, hearing, FIT" },
+  { "id": "family", "name": "Family Screen", "price": 999, "includes": "Two adults and children: growth, immunisation, BP, glucose, HIV" },
+  { "id": "worker", "name": "Worker Screen", "price": 450, "includes": "Occupational panel per employee" },
+  { "id": "community", "name": "Community Screen", "price": null, "includes": "Sponsored Thuso Corner day: BP, glucose, HIV, cervical and breast sign-up" }
+ ],
+ "equipment": {
+  "nurseKit": 8000,
+  "areaKit": 160000,
+  "ownDevices": [
+   { "id": "pod", "name": "Thuso Pod", "detail": "Multi-check handheld, twelve checks in one visit", "targetBom": 1800, "toPilot": 1090000, "phase": 3 },
+   { "id": "band", "name": "Thuso Band", "detail": "Patient wearable with SOS and fall detection", "targetBom": 550, "toPilot": 420000, "phase": 3 },
+   { "id": "home", "name": "Thuso Home", "detail": "Household station with pill dispenser and video consults", "targetBom": 2400, "toPilot": 340000, "phase": 3 },
+   { "id": "lab", "name": "Thuso Lab", "detail": "Portable microfluidic analyser, eight results in twelve minutes", "targetBom": 9000, "toPilot": 1600000, "phase": 4 }
+  ],
+  "kitCostAfterOwnHardware": 3500
+ },
+ "trajectory": [
+  { "point": "Month 5 (launch)", "visitsPerDay": 30, "subscribers": 0, "revenue": 55000, "costs": 190000 },
+  { "point": "Month 9", "visitsPerDay": 100, "subscribers": 2000, "revenue": 360000, "costs": 280000 },
+  { "point": "Month 15", "visitsPerDay": 300, "subscribers": 6000, "revenue": 1150000, "costs": 520000 },
+  { "point": "Month 24 (Gauteng + Cape Town)", "visitsPerDay": 600, "subscribers": 14000, "revenue": 2600000, "costs": 1100000 },
+  { "point": "Year 3 (three cities)", "visitsPerDay": 1000, "subscribers": 20000, "revenue": 4000000, "costs": 1600000 }
+ ],
+ "funding": {
+  "round": 9700000,
+  "months": 18,
+  "allocation": [
+   { "category": "Clinical and medical leadership", "amount": 1200000 },
+   { "category": "Doctor review panel", "amount": 650000 },
+   { "category": "Technology and AI", "amount": 1650000 },
+   { "category": "Devices and test consumables", "amount": 2200000 },
+   { "category": "Thuso Devices — Pod, Band, Home to pilot", "amount": 1850000 },
+   { "category": "Operations and support", "amount": 700000 },
+   { "category": "Marketing and community activation", "amount": 650000 },
+   { "category": "Regulatory, legal, insurance", "amount": 420000 },
+   { "category": "Contingency", "amount": 380000 }
+  ],
+  "milestones": [
+   { "id": "M1", "target": "50 vetted RNs online, v1 live, 5 doctors on panel", "releases": 3000000 },
+   { "id": "M2", "target": "500 visits, zero unresolved incidents, 30 visits/day", "releases": null },
+   { "id": "M3", "target": "100 visits/day, 2,000 subscribers, AI bundle and Thuso Screen live", "releases": 3900000 },
+   { "id": "M4", "target": "200 visits/day, 4,000 subscribers, first B2B contracts, Pretoria open", "releases": null },
+   { "id": "M5", "target": "300 visits/day, 6,000 subscribers, 500 RNs, Cape Town open, Pod and Band pilots in the field", "releases": 2800000 }
+  ]
+ }
+}

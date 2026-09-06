@@ -21,7 +21,8 @@ Sources checked: [Apple SwiftUI](https://developer.apple.com/documentation/Swift
 - `apps/web/src/features`: dashboard, booking, patient screens, onboarding and recovery, clinical assessment and doctor review, pharmacy/laboratory orders, dispatch and incidents, guardian invitations, care-team previews. Shared UI primitives, the accessible chart and the system-state components live in `components`; catalogue and localisation in `lib`.
 - `apps/ios/MyThuso`: app composition root, `Features`, `DesignSystem`, `Models`. Native state is owned by an in-memory `PreviewStore` injected through the environment. The chart and system-state components sit in `DesignSystem` so feature screens cannot each invent their own error state.
 - `apps/android/app`: native composition root, `ui` and `model`; an in-memory preview store is injected into screens. `ui/SystemStates.kt`, `ui/ClinicalChart.kt` and `ui/Components.kt` are the shared primitives.
-- `packages/catalog/services.json`: nine phase-one service definitions used directly by web; matching native fixtures checked in CI.
+- `packages/catalog/services.json`: the visit menu with prices, nurse shares and the phase each service belongs to. Only phase one is held in step with the native fixtures, because only phase one is what launches; later-phase services are shown in the catalogue marked as not yet bookable.
+- `packages/catalog/business-model.json`: the proposal's commercial model — subscriptions, network and B2B lines, screening packages, kit and own-device costs, the indicative trajectory and the seed round with its milestone gates. The admin console reads this rather than restating the numbers, and `scripts/check-boundaries.mjs` fails the build if the funding allocation or the tranches stop summing to the round, or if a service pays the nurse more than the patient pays.
 - `packages/design-tokens/tokens.json`: reference palette, radii, spacing and motion specification. Native and CSS implementations currently map these manually; they are not generated packages yet.
 
 Clinical reference ranges, the locale set, the identity check-digit rule and the demo verification codes are duplicated across the three codebases rather than shared, because each app is genuinely native and there is no shared runtime. That duplication is a real risk — a reference range that differs between iOS and Android is a clinical-safety problem — so `scripts/check-boundaries.mjs` parses all three and fails the build on drift. When the backend arrives, these constants should come from a versioned contract rather than from three source files kept in step by a script.
@@ -35,6 +36,12 @@ Identity and access; patient/household/guardian authority; consent and privacy; 
 Only the owning module writes its records. Other modules use application interfaces or versioned events. Separate person identity from clinical record identifiers. Clinical observations carry patient, encounter, clinician/device, unit, timestamp, provenance and review state. AI outputs are separate from signed clinical decisions. Match a FHIR interoperability profile after partner discovery; do not build an unbounded generic FHIR server first.
 
 Use a transaction outbox for reliable events. External payments use provider references, signed webhooks, replay protection and idempotency keys. The wallet is an immutable double-entry ledger, never a mutable balance in the client. No money movement exists in this preview.
+
+## Session and the admin console
+
+The web app has a real session: signing out clears the role, closes every dialog and replaces the shell with a sign-in screen, and nothing about the account is reachable until you sign back in. Nothing is stored — a reload returns to the signed-in preview, the same memory-only rule that applies to every other piece of state here. That is deliberate: a session flag would be harmless to persist, but the guard that keeps browser storage out of this app is worth more than the convenience, and `scripts/check-boundaries.mjs` enforces it.
+
+The admin console is the proposal's Control Tower as a web-only back office — it is not a phone surface and is not built for the native apps. It reports against the funding plan rather than against nothing, gates dispatch behind a vetting pipeline, shows what a price change actually leaves the platform, and gates funding tranches behind milestones. Every action is in-memory and fictional. Its Compliance tab is deliberately a checklist of what is designed versus what is not built, not a status.
 
 ## Client/server trust boundary
 

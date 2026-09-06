@@ -71,6 +71,8 @@ node scripts/render-illustrations.mjs
 - Shared loading, service-error, offline, permission-denied and empty states, collected in a state gallery.
 - English, isiZulu, Sesotho and Afrikaans across the shell, navigation and primary actions.
 - Roadmap entries for all 21 platform modules in the proposal.
+- An **admin console** (the proposal's Control Tower): reporting against the funding plan, a nurse vetting pipeline that gates dispatch, dispatch and incidents, the doctor review queue with AI-versus-clinician agreement, a pricing catalogue that shows what the platform is left with after the nurse and payment costs, subscriptions and B2B lines, the seed round with milestone-gated tranches, and a compliance checklist that says plainly what is designed and what is not built.
+- A real session: **Log out** closes the account from the profile menu or the More hub, and nothing about it is reachable until you sign back in.
 
 The patient journey and the flows above are interactive on all three platforms. Later-phase modules remain navigation/detail previews. The precise scope, and what these flows deliberately refuse to do, is in [Feature map](docs/FEATURE-MAP.md).
 
@@ -87,11 +89,19 @@ CI checks web types/build/journeys, source boundaries, dependency advisories and
 | `apps/web` | Responsive React application |
 | `apps/ios` | Native SwiftUI Xcode application |
 | `apps/android` | Native Compose Android application |
-| `packages/catalog` | Shared service definitions |
+| `packages/catalog` | Service definitions and the commercial model from the proposal |
 | `packages/design-tokens` | Cross-platform design reference |
 | `docs` | Architecture, privacy controls and feature scope |
 | `tests` | Desktop and mobile browser journeys, including the clinical, guardian and dispatch flows |
 | `Documentation` | Original private proposal and brand assets |
+
+## The business case
+
+`packages/catalog/business-model.json` holds the proposal's commercial model — visit prices and nurse shares, subscriptions, network and B2B lines, screening packages, kit and own-device costs, the indicative trajectory, and the R9.7m seed round with its milestone gates. The admin console reads that file rather than repeating the numbers, and `npm run check` fails if the allocation or the tranches stop adding up to the round.
+
+Only phase-one services are bookable. Later-phase services appear in the catalogue marked with their phase, so the plan is visible without implying a nurse can be sent today.
+
+**This remains a preview with no backend.** There is no server, no stored record and no real account; approving a nurse approves nobody and releasing a tranche moves no money. What a working product additionally needs is listed in [Privacy and security](docs/PRIVACY-AND-SECURITY.md) and summarised in the console's Compliance tab.
 
 The proposal is confidential. No deployment or publication is included.
 
