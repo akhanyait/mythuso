@@ -45,7 +45,6 @@ private val tileTints = listOf(
 @Composable fun HomeScreen(store: PreviewStore, book: () -> Unit, open: (String) -> Unit, firstRun: () -> Unit) {
     var query by remember { mutableStateOf("") }
     ScreenColumn {
-        DemoBadge()
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text("${thuso(Phrase.GREETING, store.locale)}\u00A0👋", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = Ink)
             Text(thuso(Phrase.GREETING_SUB, store.locale), fontSize = 13.sp, color = BodyText)

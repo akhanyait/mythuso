@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import za.co.mythuso.model.Phrase
@@ -50,14 +52,17 @@ class MainActivity : ComponentActivity() {
         }
         return
     }
+    val onHome = page == "Home" && detail == null
+    Box(Modifier.fillMaxSize().background(Canvas)) {
+    if (onHome) Box(Modifier.fillMaxWidth().height(470.dp)) { HeroTexture() }
     Scaffold(
-        containerColor = Canvas,
+        containerColor = if (onHome) Color.Transparent else Canvas,
         topBar = {
             TopAppBar(
                 title = { if (detail == null && page == "Home") Image(painterResource(R.drawable.mythuso_logo), "MyThuso", modifier = Modifier.width(138.dp).height(50.dp)) else if (detail != null) Text("MyThuso") },
                 navigationIcon = { if (detail != null) IconButton(onClick = { detail = null }) { Icon(Icons.Outlined.ArrowBack, "Back") } },
                 actions = { IconButton(onClick = { detail = "Notifications" }) { Icon(Icons.Outlined.Notifications, "Notifications") } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Canvas)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
         bottomBar = {
@@ -82,5 +87,6 @@ class MainActivity : ComponentActivity() {
                 else -> MoreScreen(go, { onboarding = true })
             }
         }
+    }
     }
 }

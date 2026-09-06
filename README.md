@@ -46,7 +46,7 @@ APK output: `apps/android/app/build/outputs/apk/debug/app-debug.apk`. The Gradle
 
 ## Design
 
-The landing screen opens on an auto-rotating hero banner — three slides, each with its own call to action, trust marks and a person who rises above the top edge of the banner, over a softly animated background. It pauses on hover or focus, can be stopped outright, and does not rotate at all when the system asks for reduced motion.
+The landing screen is one green field behind the header, greeting and hero, with an auto-rotating banner — three slides, each with its own call to action, trust marks and a person who rises above the top edge of the banner, over a softly animated background. It pauses on hover or focus, can be stopped outright, and does not rotate at all when the system asks for reduced motion.
 
 The photography lives in `packages/banners` and is prepared by `python3 scripts/prepare-banners.py`, then distributed to all three apps by `node scripts/render-illustrations.mjs`. Each slide falls back from a cut-out to a plain photograph to an illustration, so the banner never breaks — see the [README there](apps/web/public/banners/README.md) for framing and the model-release requirements.
 

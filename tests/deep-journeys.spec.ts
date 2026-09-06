@@ -15,13 +15,15 @@ async function openStates(page: Page, dialog = false) {
   await root.locator('details.state-picker > summary').first().click();
 }
 async function switchRole(page: Page, role: string) {
-  await page.locator('.preview-line').getByRole('button', { name: 'Preview workspaces' }).click();
+  await page.locator('button.demo-pill').click();
+  await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
   await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText(role, { exact: true }) }).click();
   await expect(page.getByText(`${role.toUpperCase()} WORKSPACE · DEMO`)).toBeVisible();
 }
 test('sign-up refuses a bad code and a bad ID number, then completes', async ({ page }) => {
   await page.goto('/');
-  await page.locator('.preview-line').getByRole('button', { name: 'First-run flow' }).click();
+  await page.locator('button.demo-pill').click();
+  await page.getByRole('dialog').getByRole('button', { name: /^First-run flow/ }).click();
   await page.getByRole('radio', { name: 'isiZulu' }).check();
   await page.getByRole('button', { name: 'Create my account' }).click();
   await expect(page.getByRole('button', { name: 'Send my code' })).toBeDisabled();
@@ -54,7 +56,8 @@ test('sign-up refuses a bad code and a bad ID number, then completes', async ({ 
 });
 test('account recovery offers a route that does not need the lost phone', async ({ page }) => {
   await page.goto('/');
-  await page.locator('.preview-line').getByRole('button', { name: 'First-run flow' }).click();
+  await page.locator('button.demo-pill').click();
+  await page.getByRole('dialog').getByRole('button', { name: /^First-run flow/ }).click();
   await page.getByRole('button', { name: 'I’ve lost access to my account' }).click();
   await expect(page.getByRole('button', { name: 'Start recovery' })).toBeDisabled();
   await page.getByRole('radio', { name: /Ask my trusted contact/ }).check();
@@ -209,7 +212,8 @@ test('new surfaces do not overflow the viewport or throw', async ({ page }, test
   await switchRole(page, 'Control Tower');
   await expect(page.locator('.dispatch-map')).toBeVisible();
   await page.screenshot({ path: `test-results/dispatch-${testInfo.project.name}.png` });
-  await page.locator('.preview-line').getByRole('button', { name: 'First-run flow' }).click();
+  await page.locator('button.demo-pill').click();
+  await page.getByRole('dialog').getByRole('button', { name: /^First-run flow/ }).click();
   await expect(page.getByRole('heading', { name: 'Care that comes to you.' })).toBeVisible();
   await page.screenshot({ path: `test-results/onboarding-${testInfo.project.name}.png` });
   expect(await page.evaluate(() => (() => { const el = document.querySelector('main') ?? document.documentElement; return el.scrollWidth <= el.clientWidth; })())).toBe(true);

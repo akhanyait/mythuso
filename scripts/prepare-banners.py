@@ -24,7 +24,15 @@ FLAT_CROPS = [
     ('one-safe-place', (1075, 18, 1780, 620)),
     ('feel-better', (1045, 18, 1790, 648)),
 ]
-CUTOUT_ORDER = ['feel-better', 'care-that-comes-to-you', 'one-safe-place']
+# The hero puts the person beside a column of copy, so a wide crop either shrinks them out of the
+# design or covers the text. Each cut-out is narrowed to a portrait aspect after trimming; the
+# anchor says which part of the width to keep when both people matter (0 = left, 1 = right).
+CUTOUT_ORDER = [
+    ('feel-better', 0.50),
+    ('care-that-comes-to-you', 0.56),
+    ('one-safe-place', 0.52),
+]
+TARGET_ASPECT = 0.62
 
 os.makedirs('packages/banners', exist_ok=True)
 
@@ -34,10 +42,13 @@ for path, (name, box) in zip(FLAT, FLAT_CROPS):
     image.save(f'packages/banners/{name}.jpg', quality=86, optimize=True, progressive=True)
     print(f'{name}.jpg: {image.size[0]}x{image.size[1]}')
 
-for path, name in zip(CUTOUT, CUTOUT_ORDER):
+for path, (name, anchor) in zip(CUTOUT, CUTOUT_ORDER):
     image = Image.open(path).convert('RGBA')
-    bounds = image.getchannel('A').getbbox()          # trim the empty margin around the subject
-    image = image.crop(bounds)
+    image = image.crop(image.getchannel('A').getbbox())   # trim the empty margin around the subject
+    wanted = round(image.height * TARGET_ASPECT)
+    if image.width > wanted:
+        left = round((image.width - wanted) * anchor)
+        image = image.crop((left, 0, left + wanted, image.height))
     scale = 1100 / image.height
     image = image.resize((round(image.width * scale), 1100), Image.LANCZOS)
     image.save(f'packages/banners/{name}-cutout.png', optimize=True)

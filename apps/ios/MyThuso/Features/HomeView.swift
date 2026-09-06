@@ -8,9 +8,27 @@ struct HomeView: View {
     @State private var passport = false
     private let trust = [("checkmark.seal", "Verified nurses"), ("tag", "Fixed prices"), ("stethoscope", "Doctor-reviewed")]
     var body: some View {
+        ZStack(alignment: .top) {
+            // One green field behind the header, the greeting and the hero
+            HeroTexture().frame(height: 470).ignoresSafeArea(edges: .top).allowsHitTesting(false)
+            content
+        }
+        .background(ThusoTheme.canvas)
+        .navigationDestination(isPresented: $passport) { PassportView() }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Image("Brand").resizable().scaledToFit().frame(width: 118, height: 42).accessibilityLabel("MyThuso")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink { NotificationsView() } label: { Image(systemName: "bell") }.accessibilityLabel("Notifications")
+            }
+        }
+    }
+    private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                DemoBadge()
                 VStack(alignment: .leading, spacing: 6) {
                     Text("\(thuso(.greeting, store.locale)) 👋").font(.system(size: 25, weight: .bold)).foregroundStyle(ThusoTheme.ink)
                     Text(thuso(.greetingSub, store.locale)).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
@@ -70,18 +88,7 @@ struct HomeView: View {
             }
             .padding(18)
         }
-        .background(ThusoTheme.canvas)
-        .navigationDestination(isPresented: $passport) { PassportView() }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.canvas, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Image("Brand").resizable().scaledToFit().frame(width: 118, height: 42).accessibilityLabel("MyThuso")
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink { NotificationsView() } label: { Image(systemName: "bell") }.accessibilityLabel("Notifications")
-            }
-        }
+        .scrollContentBackground(.hidden)
     }
     private func tint(_ index: Int) -> (Color, Color) {
         [(ThusoTheme.teal, ThusoTheme.tealSoft),

@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -40,6 +41,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlinx.coroutines.delay
 import za.co.mythuso.R
 import za.co.mythuso.model.HeroSlideCopy
@@ -55,19 +58,15 @@ import za.co.mythuso.model.heroSlides
     val slides = heroSlides(store.locale)
     val pager = rememberPagerState(pageCount = { slides.size })
     var playing by remember { mutableStateOf(true) }
-    // "Remove animations" in Android accessibility settings zeroes the animator scale.
-    val resolver = LocalContext.current.contentResolver
-    val reduceMotion = remember(resolver) {
-        Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
-    }
+    val reduceMotion = prefersReducedMotion()
     LaunchedEffect(playing, reduceMotion, pager.currentPage) {
         if (!playing || reduceMotion) return@LaunchedEffect
         delay(6500)
         pager.animateScrollToPage((pager.currentPage + 1) % slides.size)
     }
     Column(Modifier.fillMaxWidth().semantics { contentDescription = "MyThuso highlights" }, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        HorizontalPager(pager, Modifier.fillMaxWidth().height(356.dp)) { page ->
-            SlideView(slides[page], page, reduceMotion) { onAction(page) }
+        HorizontalPager(pager, Modifier.fillMaxWidth().height(376.dp)) { page ->
+            SlideView(slides[page], page) { onAction(page) }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             slides.forEachIndexed { position, slide ->
@@ -93,33 +92,43 @@ import za.co.mythuso.model.heroSlides
         }
     }
 }
-@Composable private fun SlideView(slide: HeroSlideCopy, tone: Int, reduceMotion: Boolean, onAction: () -> Unit) {
+@Composable private fun SlideView(slide: HeroSlideCopy, tone: Int, onAction: () -> Unit) {
     val banner = when (slide.banner) {
         "care_that_comes_to_you" -> R.drawable.banner_care_that_comes_to_you
         "one_safe_place" -> R.drawable.banner_one_safe_place
         else -> R.drawable.banner_feel_better
     }
     Box(Modifier.fillMaxSize().padding(horizontal = 2.dp).clipToBounds()) {
-        Box(Modifier.fillMaxSize().padding(top = 40.dp).clip(RoundedCornerShape(18.dp))) { HeroTexture(tone, reduceMotion) }
+        @Suppress("UNUSED_EXPRESSION") tone
+        Box(
+            Modifier.fillMaxSize().padding(top = 66.dp).clip(RoundedCornerShape(24.dp))
+                .background(Color.White.copy(alpha = 0.66f))
+                .border(1.dp, Color.White.copy(alpha = 0.85f), RoundedCornerShape(24.dp))
+        )
         Image(
             painterResource(banner), null,
-            Modifier.align(Alignment.BottomEnd).height(356.dp).offset(x = 104.dp),
-            contentScale = ContentScale.Fit
+            Modifier.align(Alignment.TopEnd).width(184.dp).padding(top = 4.dp, end = 2.dp)
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .drawWithContent {
+                    drawContent()
+                    drawRect(Brush.verticalGradient(0.93f to Color.Black, 1f to Color.Transparent), blendMode = BlendMode.DstIn)
+                },
+            contentScale = ContentScale.FillWidth
         )
         Column(
-            Modifier.align(Alignment.BottomStart).widthIn(max = 218.dp).padding(start = 18.dp, end = 6.dp, bottom = 14.dp, top = 40.dp),
+            Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 20.dp, end = 14.dp, bottom = 16.dp, top = 82.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Text(slide.title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Forest, lineHeight = 28.sp)
-            Text(slide.body, fontSize = 12.5.sp, color = BodyText, lineHeight = 18.sp, modifier = Modifier.padding(top = 8.dp))
+            Text(slide.title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Forest, lineHeight = 28.sp, modifier = Modifier.fillMaxWidth(0.56f))
+            Text(slide.body, fontSize = 12.5.sp, color = BodyText, lineHeight = 18.sp, modifier = Modifier.fillMaxWidth(0.56f).padding(top = 8.dp))
             Button(onClick = onAction, shape = CircleShape, modifier = Modifier.padding(top = 13.dp)) {
                 Text(slide.cta, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.width(9.dp))
                 Icon(Icons.Outlined.ArrowForward, null, Modifier.size(16.dp))
             }
-            Row(Modifier.padding(top = 11.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 slide.trust.forEachIndexed { spot, label ->
-                    Column(Modifier.width(69.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Box(Modifier.size(32.dp).background(Color.White.copy(alpha = 0.78f), CircleShape), Alignment.Center) {
                             Icon(trustIcon(slide.symbols[spot]), null, tint = Teal, modifier = Modifier.size(15.dp))
                         }
@@ -134,6 +143,10 @@ import za.co.mythuso.model.heroSlides
         }
     }
 }
+private data class Bubble(
+    val x: Float, val y: Float, val radius: Float,
+    val travelX: Float, val travelY: Float, val frequency: Float, val phase: Float
+)
 private fun trustIcon(name: String) = when (name) {
     "house" -> Icons.Outlined.Home
     "person.2" -> Icons.Outlined.People
@@ -142,39 +155,59 @@ private fun trustIcon(name: String) = when (name) {
     "stethoscope" -> Icons.Outlined.MedicalServices
     else -> Icons.Outlined.VerifiedUser
 }
-@Composable private fun HeroTexture(tone: Int, reduceMotion: Boolean) {
+/** "Remove animations" in Android accessibility settings zeroes the animator scale. */
+@Composable fun prefersReducedMotion(): Boolean {
+    val resolver = LocalContext.current.contentResolver
+    return remember(resolver) {
+        Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    }
+}
+@Composable fun HeroTexture(tone: Int = 0, reduceMotion: Boolean = prefersReducedMotion()) {
     val plate = when (tone) {
         1 -> listOf(Color(0xFFF2F9F9), Color(0xFFDBEEF0))
         2 -> listOf(Color(0xFFF4FAF7), Color(0xFFDDEFE6))
         else -> listOf(Color(0xFFF3FAF8), Color(0xFFDFF0EC))
     }
     val transition = rememberInfiniteTransition(label = "hero")
-    val drift by transition.animateFloat(
-        -1f, 1f,
-        infiniteRepeatable(tween(13000, easing = LinearEasing), RepeatMode.Reverse), label = "drift"
+    // One slow clock; each bubble reads it at its own frequency and phase so nothing moves in step.
+    val phase by transition.animateFloat(
+        0f, (2 * Math.PI).toFloat(),
+        infiniteRepeatable(tween(22000, easing = LinearEasing), RepeatMode.Restart), label = "phase"
     )
-    val shift = if (reduceMotion) 0f else drift
+    val clock = if (reduceMotion) 0f else phase
+    // x, y and radius as a fraction of the plate, then travel, frequency and starting phase.
     val bubbles = listOf(
-        Triple(0.13f, 0.76f, 30f), Triple(0.30f, 0.20f, 17f), Triple(0.59f, 0.81f, 23f),
-        Triple(0.78f, 0.28f, 38f), Triple(0.44f, 0.53f, 11f), Triple(0.93f, 0.68f, 15f)
+        Bubble(0.13f, 0.76f, 30f, 17f, -24f, 1.0f, 0.0f),
+        Bubble(0.30f, 0.20f, 17f, -26f, 15f, 0.8f, 1.1f),
+        Bubble(0.59f, 0.81f, 23f, 14f, -18f, 1.3f, 2.2f),
+        Bubble(0.78f, 0.28f, 38f, 30f, 12f, 0.6f, 3.4f),
+        Bubble(0.44f, 0.53f, 11f, -20f, -22f, 1.6f, 4.1f),
+        Bubble(0.93f, 0.68f, 15f, -24f, 16f, 1.1f, 5.0f),
+        Bubble(0.05f, 0.34f, 13f, 22f, 20f, 0.9f, 2.7f),
+        Bubble(0.67f, 0.42f, 9f, -18f, -26f, 1.8f, 0.6f)
     )
     Canvas(Modifier.fillMaxSize()) {
         drawRect(Brush.linearGradient(plate, Offset.Zero, Offset(size.width, size.height)), Offset.Zero, Size(size.width, size.height))
         bubbles.forEachIndexed { position, bubble ->
-            val sway = shift * (7f + position * 2f)
+            val t = clock * bubble.frequency + bubble.phase
+            val breathe = 1f + 0.14f * sin(t * 1.3f)
             drawCircle(
                 Teal.copy(alpha = if (position % 3 == 0) 0.07f else 0.10f),
-                bubble.third * density,
-                Offset(bubble.first * size.width + sway, bubble.second * size.height - sway)
+                bubble.radius * density * breathe,
+                Offset(
+                    bubble.x * size.width + sin(t) * bubble.travelX * density,
+                    bubble.y * size.height + cos(t * 0.8f) * bubble.travelY * density
+                )
             )
         }
-        listOf(0.78f to 24f, 0.90f to -20f).forEach { (lift, travel) ->
+        listOf(Triple(0.78f, 40f, 1.0f), Triple(0.90f, -38f, 0.7f)).forEach { (lift, travel, speed) ->
+            val slide = sin(clock * speed) * travel * density
             val path = Path().apply {
-                moveTo(-30f + shift * travel, size.height * lift)
+                moveTo(-30f + slide, size.height * lift)
                 cubicTo(
-                    size.width * 0.32f + shift * travel, size.height * (lift - 0.22f),
-                    size.width * 0.62f + shift * travel, size.height * (lift + 0.10f),
-                    size.width + 30f + shift * travel, size.height * (lift - 0.30f)
+                    size.width * 0.32f + slide, size.height * (lift - 0.22f),
+                    size.width * 0.62f + slide, size.height * (lift + 0.10f),
+                    size.width + 30f + slide, size.height * (lift - 0.30f)
                 )
             }
             drawPath(path, Teal.copy(alpha = 0.16f), style = Stroke(width = 2.5f * density, cap = androidx.compose.ui.graphics.StrokeCap.Round))

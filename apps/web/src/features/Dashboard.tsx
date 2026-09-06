@@ -7,11 +7,14 @@ type Props = { navigate: (s: string) => void; book: (s: Service) => void; open: 
 export function Dashboard({ navigate, book, open, query, setQuery }: Props) {
  const t = useT();
  return <>
-  <div className="home-greeting">
-   <h1>{t('shell.greeting')} <span className="wave">👋</span></h1>
-   <p>{t('shell.greetingSub')}</p>
+  <div className="home-top">
+   <span className="home-script" aria-hidden="true">Better Care<br/>Brighter Days</span>
+   <div className="home-greeting">
+    <h1>{t('shell.greeting')} <span className="wave">👋</span></h1>
+    <p>{t('shell.greetingSub')}</p>
+   </div>
+   <HeroCarousel navigate={navigate}/>
   </div>
-  <HeroCarousel navigate={navigate}/>
   <form className="search-field" onSubmit={e => { e.preventDefault(); navigate('Book a nurse'); }}>
    <Search size={19}/>
    <input aria-label="Search for care" placeholder="What care do you need today?" value={query} onChange={e => setQuery(e.target.value)}/>

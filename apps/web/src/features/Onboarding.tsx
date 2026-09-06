@@ -40,7 +40,7 @@ export function Onboarding({ locale, setLocale, onDone, onSkip }: Props) {
  if (recovering) return <RecoverAccess onBack={() => setRecovering(false)} onDone={onDone}/>;
  return <div className="onboarding">
   <div className="onboard-panel">
-   <img src="/logo.png" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
+   <img src="/logo.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
    <ol className="onboard-steps" aria-label="Sign-up progress">{steps.map((s, i) => <li key={s} aria-current={i === step ? 'step' : undefined} className={i < step ? 'done' : i === step ? 'current' : ''}><b>{i < step ? <Check size={11}/> : i + 1}</b>{s}</li>)}</ol>
    <div className="onboard-note"><ShieldCheck size={17}/>Nothing you type here leaves your browser. This preview creates no account.</div>
   </div>
@@ -111,7 +111,7 @@ function RecoverAccess({ onBack, onDone }: { onBack: () => void; onDone: () => v
  const [submitted, setSubmitted] = useState(false);
  return <div className="onboarding">
   <div className="onboard-panel">
-   <img src="/logo.png" alt="MyThuso" className="onboard-brand"/>
+   <img src="/logo.svg" alt="MyThuso" className="onboard-brand"/>
    <h2>Getting you back in.</h2>
    <p className="muted">Losing a phone shouldn’t mean losing your health history. Pick the route that fits your situation.</p>
    <div className="onboard-note"><KeyRound size={17}/>Recovery never reveals your records to the person helping you.</div>

@@ -53,7 +53,8 @@ test('family addition, sharing revocation and export',async({page})=>{
 test('role workspaces and no horizontal overflow',async({page})=>{
   await page.goto('/');
   for(const role of ['Nurse','Doctor','Partner','Control Tower']) {
-    await page.locator('.preview-line').getByRole('button',{name:'Preview workspaces'}).click();
+    await page.locator('button.demo-pill').click();
+    await page.getByRole('dialog').getByRole('button',{name:/^Preview workspaces/}).click();
     await page.getByRole('dialog').getByRole('button').filter({has:page.getByText(role,{exact:true})}).click();
     await expect(page.getByText(`${role.toUpperCase()} WORKSPACE · DEMO`)).toBeVisible();
   }

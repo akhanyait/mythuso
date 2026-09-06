@@ -8,27 +8,29 @@ const targets = [
  { name: 'nurse', width: 188, height: 224 },
  { name: 'patient', width: 240, height: 240 },
  { name: 'family', width: 176, height: 220 },
- { name: 'elder', width: 208, height: 234 }
+ { name: 'elder', width: 208, height: 234 },
+ { name: 'logo', width: 520, height: 140, ios: 'Brand', android: 'mythuso_logo', web: true }
 ];
 const iosScales = [['', 1], ['@2x', 2], ['@3x', 3]];
 mkdirSync('apps/android/app/src/main/res/drawable-xxhdpi', { recursive: true });
 const browser = await chromium.launch();
-for (const { name, width, height } of targets) {
+for (const { name, width, height, ios, android, web } of targets) {
  const svg = readFileSync(`packages/illustrations/${name}.svg`, 'utf8');
- const dir = `apps/ios/MyThuso/Assets.xcassets/${name[0].toUpperCase() + name.slice(1)}.imageset`;
+ const dir = `apps/ios/MyThuso/Assets.xcassets/${ios ?? name[0].toUpperCase() + name.slice(1)}.imageset`;
  mkdirSync(dir, { recursive: true });
  for (const [suffix, scale] of iosScales) {
   const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: scale });
   await page.setContent(`<style>html,body{margin:0;background:transparent}svg{display:block;width:${width}px;height:${height}px}</style>${svg}`);
   const shot = await page.screenshot({ omitBackground: true });
   writeFileSync(`${dir}/${name}${suffix}.png`, shot);
-  if (scale === 3) writeFileSync(`apps/android/app/src/main/res/drawable-xxhdpi/mythuso_${name}.png`, shot);
+  if (scale === 3) writeFileSync(`apps/android/app/src/main/res/drawable-xxhdpi/${android ?? `mythuso_${name}`}.png`, shot);
   await page.close();
  }
  writeFileSync(`${dir}/Contents.json`, JSON.stringify({
   images: iosScales.map(([suffix, scale]) => ({ filename: `${name}${suffix}.png`, idiom: 'universal', scale: `${scale}x` })),
   info: { author: 'xcode', version: 1 }
  }, null, 1));
+ if (web) { mkdirSync('apps/web/public', { recursive: true }); copyFileSync(`packages/illustrations/${name}.svg`, `apps/web/public/${name}.svg`); }
  console.log(`rendered ${name}`);
 }
 /* Hero photography follows the same one-source rule: packages/banners is the original and every

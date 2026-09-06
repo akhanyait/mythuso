@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Heart, House, Pause, Play, ShieldCheck, Sparkles, Stethoscope, Users } from 'lucide-react';
+import { ArrowRight, ChevronRight, Heart, House, Leaf, Pause, Play, ShieldCheck, Sparkles, Stethoscope, Users } from 'lucide-react';
 import nurse from '../../../../packages/illustrations/nurse.svg';
 import family from '../../../../packages/illustrations/family.svg';
 import elder from '../../../../packages/illustrations/elder.svg';
@@ -10,22 +10,25 @@ const slides = [
  { id: 'pass', photo: 'one-safe-place', art: elder, trust: [ShieldCheck, Users, Sparkles], target: 'Health Passport' },
  { id: 'nurse', photo: 'feel-better', art: nurse, trust: [ShieldCheck, Heart, Stethoscope], target: 'Book a nurse' }
 ] as const;
-/* The background texture is decorative: soft drifting bubbles and two slow currents. It is
-   aria-hidden, uses only transform/opacity, and stops entirely under prefers-reduced-motion. */
-function Texture() {
- return <svg className="hero-texture" viewBox="0 0 400 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+/* Decoration: soft drifting bubbles and two slow currents behind the whole top of the screen.
+   aria-hidden, transform and opacity only, and stopped dead under prefers-reduced-motion. */
+export function Texture() {
+ return <svg className="hero-texture" viewBox="0 0 400 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
   <defs>
    <linearGradient id="hero-current" x1="0" y1="0" x2="1" y2="0">
     <stop offset="0%" stopColor="#0e7c6b" stopOpacity="0"/><stop offset="50%" stopColor="#0e7c6b" stopOpacity=".22"/><stop offset="100%" stopColor="#0e7c6b" stopOpacity="0"/>
    </linearGradient>
   </defs>
   <g className="hero-currents">
-   <path d="M-40 168C40 138 108 194 190 160s150-14 260-58" className="hero-line one"/>
-   <path d="M-40 196C50 174 120 212 210 186s150 4 250-40" className="hero-line two"/>
+   <path d="M-40 214C40 180 108 250 190 208s150-18 260-74" className="hero-line one"/>
+   <path d="M-40 258C50 232 120 276 210 244s150 6 250-52" className="hero-line two"/>
+   <path d="M-40 96C60 66 130 128 220 92s140-30 220-64" className="hero-line three"/>
   </g>
   <g className="hero-bubbles">
-   {[[52, 168, 30, 0], [118, 44, 17, 1], [236, 178, 23, 2], [312, 62, 38, 3], [176, 116, 11, 4], [372, 150, 15, 5], [16, 78, 13, 6]].map(([cx, cy, r, i]) =>
-    <circle key={i} cx={cx} cy={cy} r={r} className={`hero-bubble b${i}`}/>)}
+   {[[52, 232, 34], [118, 52, 20], [236, 248, 26], [318, 74, 44], [176, 156, 13], [372, 200, 17], [16, 104, 15], [268, 128, 11], [148, 274, 22], [352, 292, 15]].map(([cx, cy, r], i) =>
+    <circle key={i} cx={cx} cy={cy} r={r} className={`hero-bubble b${i % 9}`}/>)}
+   {[[86, 296, 8], [204, 306, 6], [292, 300, 10], [346, 292, 7]].map(([cx, cy, r], i) =>
+    <circle key={`r${i}`} cx={cx} cy={cy} r={r} className={`hero-rising r${i}`}/>)}
   </g>
  </svg>;
 }
@@ -35,8 +38,6 @@ export function HeroCarousel({ navigate }: Props) {
  const [index, setIndex] = useState(0);
  const [playing, setPlaying] = useState(true);
  const [paused, setPaused] = useState(false);
- // each slide prefers a cut-out that can break the banner's top edge, then a photograph
- // inside the banner, then the shared illustration. Whichever loads first wins.
  const [layer, setLayer] = useState<Record<string, 'cutout' | 'photo' | 'art'>>({});
  const drag = useRef<number | null>(null);
  const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -59,21 +60,25 @@ export function HeroCarousel({ navigate }: Props) {
     const key = `slide${i + 1}`;
     const shown = layer[slide.id] ?? 'cutout';
     return <article key={slide.id} className={`hero-slide tone-${i}`} aria-roledescription="slide" aria-label={`${i + 1} of ${slides.length}`} aria-hidden={i !== index} inert={i !== index}>
-     <div className="hero-plate"><Texture/></div>
-     <div className="hero-slide-copy">
-      <h1>{t(`${key}.title`).split('|').map((line, n) => <span key={line}>{n ? <br/> : null}{line}</span>)}</h1>
-      <p>{t(`${key}.body`)}</p>
-      <button className="primary" onClick={() => navigate(slide.target)} tabIndex={i === index ? undefined : -1}>{t(`${key}.cta`)}<ArrowRight size={17}/></button>
+     <div className="hero-card">
+      <div className="hero-slide-copy">
+       <h1>{t(`${key}.title`).split('|').map((line, n) => <span key={line}>{n ? <br/> : null}{line}</span>)}</h1>
+       <p>{t(`${key}.body`)}</p>
+       <button className="primary" onClick={() => navigate(slide.target)} tabIndex={i === index ? undefined : -1}>{t(`${key}.cta`)}<ArrowRight size={17}/></button>
+      </div>
       <ul className="hero-trust">
        {slide.trust.map((Icon, n) => <li key={n}><span><Icon size={16}/></span>{t(`${key}.trust${n + 1}`)}</li>)}
       </ul>
+      <button className="hero-caption" onClick={() => navigate(slide.target)} tabIndex={i === index ? undefined : -1}>
+       <span className="hero-caption-mark"><Leaf size={17}/></span>{t(`${key}.caption`)}<ChevronRight size={17}/>
+      </button>
      </div>
-     {shown === 'photo'
-      ? <div className="hero-photo-layer"><img src={`/banners/${slide.photo}.jpg`} alt="" className="hero-photo" onError={() => setLayer(l => ({ ...l, [slide.id]: 'art' }))}/></div>
-      : <div className="hero-figure"><img
-         src={shown === 'cutout' ? `/banners/${slide.photo}-cutout.png` : slide.art} alt="" className="hero-art"
-         onError={() => setLayer(l => ({ ...l, [slide.id]: shown === 'cutout' ? 'photo' : 'art' }))}/></div>}
-     {shown !== 'photo' && <span className="hero-caption">{t(`${key}.caption`)}</span>}
+     <div className="hero-figure">
+      <img
+       src={shown === 'cutout' ? `/banners/${slide.photo}-cutout.png` : shown === 'photo' ? `/banners/${slide.photo}.jpg` : slide.art}
+       alt="" className={shown === 'photo' ? 'hero-photo' : 'hero-art'}
+       onError={() => setLayer(l => ({ ...l, [slide.id]: shown === 'cutout' ? 'photo' : 'art' }))}/>
+     </div>
     </article>;
    })}
   </div>
