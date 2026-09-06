@@ -14,3 +14,13 @@ coverage/
 # same logo, icon, four concept renders and the proposal. Tracking both would
 # double the repository for nothing and leave two copies to drift apart.
 Documentation/*.zip
+
+# Local platform/tool state
+.gradle/
+local.properties
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.tsbuildinfo
+playwright-report/
+test-results/

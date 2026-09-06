@@ -1,62 +1,82 @@
 # MyThuso
 
-**Help. Health. Home.** — a nurse at your door, a doctor on the screen, your record in your pocket.
+**Help. Health. Home.** A UI-first foundation for home healthcare in South Africa.
 
-*Thuso* means *help* in Setswana and Sesotho.
+Three separate applications: **React/TypeScript web**, **SwiftUI iOS**, and **Kotlin/Jetpack Compose Android**. Mobile screens are fully native; no WebViews or web wrappers. This is a design preview with fictional data, not a functioning clinical platform.
 
-MyThuso is an on-demand primary-healthcare platform for South Africa. A SANC-registered
-nurse arrives at the patient's home in under an hour carrying a connected diagnostic kit.
-Vitals, ECG, blood glucose, wound and eye images and rapid tests are captured digitally,
-screened by AI, then reviewed and signed off by a doctor on a telehealth panel — clinic-grade
-care in the living room, from R249.
+## Run the web preview
 
-It is a marketplace, not a clinic. Nurses are independent partners who keep 75% of visit
-fees; doctors review cases remotely; pharmacies and laboratories fulfil orders through the
-platform.
+Requires Node 22.12 or newer.
 
-> The nurse is the hands, the AI is the filter, the doctor is the decision.
+```sh
+npm ci
+npm run dev
+```
 
-## Status
+Open the local URL printed by Vite (normally http://localhost:5173). Use **Preview workspaces** to review patient, nurse, doctor, pharmacy/laboratory partner and Control Tower designs, and **First-run flow** to review sign-up and account recovery. No sign-in is required for this fictional preview — the first-run flow is a design route you enter deliberately, not a gate.
 
-Pre-code. This repository currently holds the brand assets and the funding proposal that
-define what gets built. The application scaffold lands next.
+```sh
+npm run check
+npm run build
+npx playwright install chromium
+npm test
+```
 
-## Repository layout
+## Run iOS
 
-| Path             | Contents                                                          |
-| ---------------- | ----------------------------------------------------------------- |
-| `Documentation/` | Logo and app icon (SVG + PNG), the Pod / Band / Home / Lab concept renders, and the funding proposal |
-| `.devcontainer/` | Codespaces definition — Node 22 on Debian bookworm                |
+Open `apps/ios/MyThuso.xcodeproj` in Xcode, select the **MyThuso** scheme and an iOS 17+ simulator, and Run. Physical devices require your own signing team. The checked-in project needs no third-party package manager.
 
-## Platform modules
+```sh
+xcodebuild -project apps/ios/MyThuso.xcodeproj -scheme MyThuso \
+  -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+```
 
-The proposal defines the build in phases. Phase 1 is the minimum that makes a visit
-possible end to end:
+If Swift source files are added, regenerate the project with `python3 scripts/generate-xcode-project.py`.
 
-- **Thuso Nurse** — on-demand visits: injections, family planning, vitals and chronic
-  checks, wound care, blood draws, post-op, mother and baby, elderly care
-- **Thuso Doctor** — telehealth GP panel: reviews AI-flagged results, diagnoses,
-  prescribes, issues certificates
-- **Thuso Kit** — connected Bluetooth diagnostics carried by every nurse, syncing
-  straight into the patient record
-- **Thuso AI** — screening across vitals, ECG, images, audio and rapid tests; every
-  output reviewed by a doctor
-- **Control Tower** — live operations map, dispatch, vetting pipeline, incident queue,
-  doctor review queue
+## Run Android
 
-Later phases add the patient-owned **Thuso Pass** health passport, subscriptions,
-pharmacy and lab fulfilment, wearables, employer contracts and own 5G-connected hardware.
+Open `apps/android` in Android Studio, select a JDK 17+ Gradle runtime (Android Studio’s bundled JDK works), allow SDK 35 installation and run **app** on API 26+. Configure your SDK path through Android Studio or `ANDROID_HOME`; no developer-specific SDK path is committed.
 
-## Development
+```sh
+cd apps/android
+./gradlew :app:assembleDebug :app:lintDebug
+```
 
-Open in a Codespace, or clone and work locally. The devcontainer pins Node 22 so a
-Codespace does not quietly build on a different runtime than a laptop does.
+APK output: `apps/android/app/build/outputs/apk/debug/app-debug.apk`. The Gradle wrapper is included. This preview has no internet, location, camera, microphone, Bluetooth or health permissions.
 
-## Confidential
+## Included UI
 
-The funding proposal in `Documentation/` is confidential and unpublished. This repository
-is private and should stay that way.
+- Patient dashboard, nine-service catalogue, booking review/confirmation and visits.
+- First run and account recovery: language, one-time code, South African ID check-digit validation, recovery setup and separated consent.
+- Health Passport with accessible trend charts — every chart is also a table — documents, limited-sharing preview and export.
+- Family profiles, guardian invitations with explicit scope, duration and verification, care plans, wallet, notifications and privacy choices.
+- Nurse visit assessment: visit-code identity check, spoken consent, seven observations with indicative-range flagging, escalation and attributed sign-off.
+- Doctor clinical review, prescription and laboratory order detail with chain of custody, Control Tower dispatch and incident triage, and nurse onboarding and vetting.
+- Shared loading, service-error, offline, permission-denied and empty states, collected in a state gallery.
+- English, isiZulu, Sesotho and Afrikaans across the shell, navigation and primary actions.
+- Roadmap entries for all 21 platform modules in the proposal.
 
----
+The patient journey and the flows above are interactive on all three platforms. Later-phase modules remain navigation/detail previews. The precise scope, and what these flows deliberately refuse to do, is in [Feature map](docs/FEATURE-MAP.md).
+
+## Architecture and security
+
+[Architecture decisions](docs/ARCHITECTURE.md) explain the native stack, modular boundaries, planned backend, API contracts and integration gates. [Privacy and security](docs/PRIVACY-AND-SECURITY.md) separates implemented preview protections from POPIA, clinical and security work required before a pilot.
+
+CI checks web types/build/journeys, source boundaries, dependency advisories and native builds. The boundary check also fails the build if clinical reference ranges, locale sets or demo verification codes drift apart between web, iOS and Android. UI state resets on reload/restart. There is no authentication, real payment, dispatch, diagnosis, prescription or connected device. Security and POPIA compliance are not established merely by this UI.
+
+## Layout
+
+| Path | Contents |
+|---|---|
+| `apps/web` | Responsive React application |
+| `apps/ios` | Native SwiftUI Xcode application |
+| `apps/android` | Native Compose Android application |
+| `packages/catalog` | Shared service definitions |
+| `packages/design-tokens` | Cross-platform design reference |
+| `docs` | Architecture, privacy controls and feature scope |
+| `tests` | Desktop and mobile browser journeys, including the clinical, guardian and dispatch flows |
+| `Documentation` | Original private proposal and brand assets |
+
+The proposal is confidential. No deployment or publication is included.
 
 Akhanya IT Innovations (Pty) Ltd · Johannesburg

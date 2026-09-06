@@ -1,0 +1,7 @@
+{
+  "name": "mythuso", "private": true, "version": "0.1.0", "type": "module",
+  "workspaces": ["apps/web"],
+  "engines": {"node": ">=22.12.0"},
+  "scripts": {"dev": "npm run dev -w @mythuso/web -- --host 0.0.0.0", "build": "npm run build -w @mythuso/web", "check": "npm run check -w @mythuso/web && node scripts/check-boundaries.mjs", "test": "playwright test", "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0"},
+  "devDependencies": {"@playwright/test": "^1.58.0"}
+}

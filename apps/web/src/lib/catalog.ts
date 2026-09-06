@@ -1,0 +1,7 @@
+import catalog from '../../../../packages/catalog/services.json';
+export type Service = typeof catalog[number];
+export const services: Service[] = catalog;
+export const money = (n: number) => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(n);
+export const modules = [
+ ['Thuso Nurse','Home visits and nurse dispatch','Phase 1'],['Thuso Doctor','Telehealth and clinical review','Phase 1'],['Thuso Kit','Connected diagnostic capture','Phase 1'],['Thuso AI','Decision support with doctor sign-off','Phase 1–3'],['Thuso Pass','Health Passport and access sharing','Phase 2'],['Thuso Screen','Screening programmes and referrals','Phase 2–3'],['Thuso Wear','Apple Health and Health Connect','Phase 2'],['Thuso Pharmacy','Prescription fulfilment','Phase 2'],['Thuso Labs','Collection, tests and results','Phase 2'],['Thuso Routine','Subscriptions and ongoing care','Phase 2–3'],['Thuso Family','Household and sponsored care','Phase 2'],['Thuso Wallet','Credits, vouchers and sponsorship','Phase 2'],['Thuso SOS','Urgent care and escalation','Phase 2–4'],['Thuso Corner','Community screening locations','Phase 2'],['Thuso Work','Employer wellness programmes','Phase 3'],['Thuso Locum','Vetted nurse shift marketplace','Phase 2'],['Thuso Academy','Training and CPD','Phase 3'],['Thuso Money','Partner-provided nurse finance','Phase 3'],['Thuso Cover','Partner-provided insurance','Phase 4'],['Thuso Devices','Pod, Band, Home and Lab','Phase 3–4'],['Control Tower','Dispatch, vetting and quality','Phase 1']
+];
