@@ -37,3 +37,28 @@ test('every section the nav offers actually exists', async ({ page }) => {
 test('it does not scroll sideways on a phone', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+/* The page animates a lot. Two things have to stay true whatever the motion setting: no section is
+   ever left invisible, and a reader who asked for less motion gets none. */
+test('sections arrive as you reach them, and none of them can get stuck hidden', async ({ page }) => {
+  expect(await page.evaluate(() => document.documentElement.dataset.motion)).toBe('on');
+  const safety = page.getByRole('heading', { name: 'The parts we will not shortcut.' });
+  await safety.scrollIntoViewIfNeeded();
+  await expect(safety).toBeVisible();
+  // including everything the jump to that heading scrolled straight past, which an observer alone
+  // would have left invisible above the reader for the rest of the visit
+  await expect.poll(() => page.evaluate(() => [...document.querySelectorAll('[data-reveal]')]
+    .filter(el => el.getBoundingClientRect().top < innerHeight && getComputedStyle(el).opacity === '0').length))
+    .toBe(0);
+});
+test.describe('when the reader has asked for less motion', () => {
+  test.use({ reducedMotion: 'reduce' });
+  test('nothing moves, and the page is fully visible without it', async ({ page }) => {
+    // the reveal styles are keyed off this flag, so leaving it unset is what keeps the page visible
+    expect(await page.evaluate(() => document.documentElement.dataset.motion)).toBeUndefined();
+    await expect(page.getByRole('heading', { name: 'The parts we will not shortcut.' })).toBeVisible();
+    await expect(page.locator('.landing-strip > div').first()).toContainText('~50 million');
+    const moving = await page.evaluate(() => document.getAnimations()
+      .filter(a => a.playState === 'running').map(a => (a as CSSAnimation).animationName ?? 'transition'));
+    expect(moving).toEqual([]);
+  });
+});
