@@ -31,21 +31,23 @@ for (const { name, width, height } of targets) {
  }, null, 1));
  console.log(`rendered ${name}`);
 }
-/* Hero photography follows the same one-source rule: packages/banners is the original, and every
-   app bundle is copied from it. Cropped from the supplied banner artwork, which keeps its own
-   headline and call to action out of the image so the app can render and translate those itself. */
-const bannerDirs = ['apps/web/public/banners', 'apps/android/app/src/main/res/drawable-nodpi'];
-for (const dir of bannerDirs) mkdirSync(dir, { recursive: true });
+/* Hero photography follows the same one-source rule: packages/banners is the original and every
+   app bundle is copied from it. The cut-outs are what the design actually wants — a person on
+   transparency, free to rise above the banner's top edge — so those are the ones the native apps
+   carry. The flat .jpg crops stay for the web's fallback chain only. */
+mkdirSync('apps/web/public/banners', { recursive: true });
+mkdirSync('apps/android/app/src/main/res/drawable-nodpi', { recursive: true });
 if (existsSync('packages/banners')) {
- for (const file of readdirSync('packages/banners').filter(f => f.endsWith('.jpg'))) {
-  const name = file.replace('.jpg', '');
+ for (const file of readdirSync('packages/banners').filter(f => /\.(jpg|png)$/.test(f))) {
   copyFileSync(`packages/banners/${file}`, `apps/web/public/banners/${file}`);
-  copyFileSync(`packages/banners/${file}`, `apps/android/app/src/main/res/drawable-nodpi/banner_${name.replace(/-/g, '_')}.jpg`);
+  if (!file.endsWith('-cutout.png')) continue;             // native ships only the cut-outs
+  const name = file.replace('-cutout.png', '');
+  copyFileSync(`packages/banners/${file}`, `apps/android/app/src/main/res/drawable-nodpi/banner_${name.replace(/-/g, '_')}.png`);
   const set = `apps/ios/MyThuso/Assets.xcassets/Banner${name.split('-').map(p => p[0].toUpperCase() + p.slice(1)).join('')}.imageset`;
   mkdirSync(set, { recursive: true });
   copyFileSync(`packages/banners/${file}`, `${set}/${file}`);
-  writeFileSync(`${set}/Contents.json`, JSON.stringify({ images: [{ filename: file, idiom: 'universal', scale: '3x' }, { idiom: 'universal', scale: '1x' }, { idiom: 'universal', scale: '2x' }], info: { author: 'xcode', version: 1 } }, null, 1));
-  console.log(`copied banner ${name}`);
+  writeFileSync(`${set}/Contents.json`, JSON.stringify({ images: [{ idiom: 'universal', scale: '1x' }, { idiom: 'universal', scale: '2x' }, { filename: file, idiom: 'universal', scale: '3x' }], info: { author: 'xcode', version: 1 } }, null, 1));
+  console.log(`copied banner cut-out ${name}`);
  }
 }
 await browser.close();

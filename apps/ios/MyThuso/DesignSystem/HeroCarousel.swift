@@ -54,15 +54,15 @@ struct HeroCarousel: View {
     }
     private func slideView(_ slide: HeroSlideCopy, position: Int) -> some View {
         ZStack(alignment: .bottom) {
-            ZStack(alignment: .trailing) {
-                HeroTexture(tone: position)
-                Image(slide.banner).resizable().scaledToFill()
-                    .frame(width: 158).clipped()
-                    .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.3)], startPoint: .leading, endPoint: .trailing))
-                    .accessibilityHidden(true)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-            .padding(.top, 40)
+            HeroTexture(tone: position)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .padding(.top, 40)
+            Image(slide.banner).resizable().scaledToFit()
+                .frame(height: 300)
+                .shadow(color: ThusoTheme.ink.opacity(0.16), radius: 16, y: 12)
+                .offset(x: 80)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {
                 Text(slide.title).font(.system(size: 24, weight: .bold)).foregroundStyle(ThusoTheme.forest).fixedSize(horizontal: false, vertical: true)
                 Text(slide.body).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body).padding(.top, 8).fixedSize(horizontal: false, vertical: true)
@@ -82,6 +82,10 @@ struct HeroCarousel: View {
                         }.frame(width: 66)
                     }
                 }.padding(.top, 14)
+                Text(slide.caption).font(.system(size: 11, weight: .semibold)).foregroundStyle(ThusoTheme.tealDeep)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(.white.opacity(0.88), in: Capsule())
+                    .padding(.top, 12)
             }
             .frame(maxWidth: 206, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)

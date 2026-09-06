@@ -71,6 +71,18 @@ for (const name of illustrations) {
 if (!read('apps/web/src/components/Portraits.tsx').includes('packages/illustrations')) throw new Error('The web app must read the shared illustration sources, not its own copy');
 /* The landing banner is written out three times. A slide added in one app and forgotten in another
    is exactly the kind of drift a design review will not catch. */
+const heroCutouts = ['care-that-comes-to-you', 'one-safe-place', 'feel-better'];
+for (const name of heroCutouts) {
+ const source = `packages/banners/${name}-cutout.png`;
+ if (!existsSync(source)) throw new Error(`Missing hero cut-out ${source}. Run: python3 scripts/prepare-banners.py`);
+ const derived = [`apps/web/public/banners/${name}-cutout.png`,
+                  `apps/ios/MyThuso/Assets.xcassets/Banner${name.split('-').map(p => p[0].toUpperCase() + p.slice(1)).join('')}.imageset/${name}-cutout.png`,
+                  `apps/android/app/src/main/res/drawable-nodpi/banner_${name.replace(/-/g, '_')}.png`];
+ for (const f of derived) {
+  if (!existsSync(f)) throw new Error(`Hero cut-out ${name} has not been distributed to ${f}. Run: node scripts/render-illustrations.mjs`);
+  if (statSync(f).mtimeMs < statSync(source).mtimeMs) throw new Error(`${f} is older than ${source}. Run: node scripts/render-illustrations.mjs`);
+ }
+}
 const heroSources = { web: 'apps/web/src/lib/i18n.ts', ios: 'apps/ios/MyThuso/Models/Localisation.swift', android: 'apps/android/app/src/main/java/za/co/mythuso/model/Localisation.kt' };
 const heroCallsToAction = ['Get care now', 'Open Thuso Pass', 'Book a nurse', 'Thola usizo manje', 'Fumana tlhokomelo hona joale', 'Kry sorg nou'];
 for (const [platform, file] of Object.entries(heroSources)) {

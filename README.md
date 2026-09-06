@@ -48,7 +48,7 @@ APK output: `apps/android/app/build/outputs/apk/debug/app-debug.apk`. The Gradle
 
 The landing screen opens on an auto-rotating hero banner — three slides, each with its own call to action, trust marks and a person who rises above the top edge of the banner, over a softly animated background. It pauses on hover or focus, can be stopped outright, and does not rotate at all when the system asks for reduced motion.
 
-To use real photography, drop three files into `apps/web/public/banners/` — see the [README there](apps/web/public/banners/README.md) for names, framing and the release requirements. Until then each slide falls back to its illustration automatically.
+The photography lives in `packages/banners` and is prepared by `python3 scripts/prepare-banners.py`, then distributed to all three apps by `node scripts/render-illustrations.mjs`. Each slide falls back from a cut-out to a plain photograph to an illustration, so the banner never breaks — see the [README there](apps/web/public/banners/README.md) for framing and the model-release requirements.
 
 One mobile-first design language across all three apps: soft tinted icon tiles, white cards on a pale canvas, capsule status pills and a teal primary action, with a five-item bottom tab bar on phones and a sidebar on wide screens. Tokens live in `packages/design-tokens/tokens.json`.
 

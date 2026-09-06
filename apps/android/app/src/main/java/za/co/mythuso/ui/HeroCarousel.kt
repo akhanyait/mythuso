@@ -66,7 +66,7 @@ import za.co.mythuso.model.heroSlides
         pager.animateScrollToPage((pager.currentPage + 1) % slides.size)
     }
     Column(Modifier.fillMaxWidth().semantics { contentDescription = "MyThuso highlights" }, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        HorizontalPager(pager, Modifier.fillMaxWidth().height(340.dp)) { page ->
+        HorizontalPager(pager, Modifier.fillMaxWidth().height(356.dp)) { page ->
             SlideView(slides[page], page, reduceMotion) { onAction(page) }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -100,24 +100,14 @@ import za.co.mythuso.model.heroSlides
         else -> R.drawable.banner_feel_better
     }
     Box(Modifier.fillMaxSize().padding(horizontal = 2.dp).clipToBounds()) {
-        Box(Modifier.fillMaxSize().padding(top = 40.dp).clip(RoundedCornerShape(18.dp))) {
-            HeroTexture(tone, reduceMotion)
-            Image(
-                painterResource(banner), null,
-                Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(156.dp)
-                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                    .drawWithContent {
-                        drawContent()
-                        drawRect(
-                            Brush.horizontalGradient(0f to Color.Transparent, 0.3f to Color.Black),
-                            blendMode = BlendMode.DstIn
-                        )
-                    },
-                contentScale = ContentScale.Crop
-            )
-        }
+        Box(Modifier.fillMaxSize().padding(top = 40.dp).clip(RoundedCornerShape(18.dp))) { HeroTexture(tone, reduceMotion) }
+        Image(
+            painterResource(banner), null,
+            Modifier.align(Alignment.BottomEnd).height(356.dp).offset(x = 104.dp),
+            contentScale = ContentScale.Fit
+        )
         Column(
-            Modifier.align(Alignment.BottomStart).widthIn(max = 218.dp).padding(start = 18.dp, end = 6.dp, bottom = 14.dp, top = 44.dp),
+            Modifier.align(Alignment.BottomStart).widthIn(max = 218.dp).padding(start = 18.dp, end = 6.dp, bottom = 14.dp, top = 40.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             Text(slide.title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Forest, lineHeight = 28.sp)
@@ -137,6 +127,10 @@ import za.co.mythuso.model.heroSlides
                     }
                 }
             }
+            Text(
+                slide.caption, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = TealDeep,
+                modifier = Modifier.padding(top = 10.dp).background(Color.White.copy(alpha = 0.88f), CircleShape).padding(horizontal = 13.dp, vertical = 7.dp)
+            )
         }
     }
 }

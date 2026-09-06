@@ -28,13 +28,19 @@ Each slide tries three sources in order and uses the first that loads:
 | 2 | `one-safe-place` | Your health. One safe place. |
 | 3 | `feel-better` | Feel better. Right at home. |
 
-The supplied photographs are currently used at level 2, because they carry their own room
-backgrounds. To get the person breaking out over the banner's top edge with real photography rather
-than illustration, add a cut-out at level 1:
+Cut-outs are supplied for all three slides, so every platform runs at level 1 — the person really
+does rise above the banner's top edge. iOS and Android ship only the cut-outs; the `.jpg` crops
+exist for the web's fallback chain alone.
 
-- **Cut the person out onto transparency** and save as `<slide>-cutout.png`. A rectangular photo
-  will read as a pasted-in box once it crosses the banner's edge.
-- **Anchor the subject bottom-right**, roughly 1:1.2 portrait, at least 900px tall.
+`prepare-banners.py` trims each cut-out to its alpha bounding box, so the subject's head sits at the
+very top of the frame. That trim is what makes the overhang work — an image with transparent padding
+above the head would simply float, with the padding taking up the overhang instead of the person.
+
+If you replace one:
+
+- **Person on transparency**, PNG. A rectangular photo reads as a pasted-in box once it crosses the
+  banner's edge.
+- **Roughly 1:1.2 portrait**, at least 1100px tall after trimming.
 - The left ~55% of the banner is text. Keep the subject clear of it.
 
 Before any of these ship: written model releases for everyone pictured, and no implication that a
