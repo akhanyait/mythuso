@@ -64,7 +64,7 @@ struct ClinicalChart: View {
                     Text("Fictional data, not a medical record.").font(.caption2).foregroundStyle(ThusoTheme.faint).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
                 }
             } label: {
-                Text(showTable ? "Hide readings" : "Show readings as a table").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
+                Text(showTable ? "Hide readings" : "Show readings as a table").frame(minHeight: 44).contentShape(Rectangle()).font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
             }
         }
     }

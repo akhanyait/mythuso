@@ -57,7 +57,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                     Button(action: firstRun) {
                         Label("See the first-run and recovery flow", systemImage: "person.badge.plus").font(.footnote.weight(.semibold))
-                    }
+                    }.frame(minHeight: 44).contentShape(Rectangle())
                     .foregroundStyle(ThusoTheme.indigo).frame(minHeight: 44)
                     Text(thuso(.tagline, store.locale)).font(.caption).foregroundStyle(ThusoTheme.faint)
                 }
@@ -130,6 +130,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             CareSectionHeader(title: thuso(.nextVisit, store.locale)) {
                 NavigationLink("All visits") { VisitsView() }
+                    .frame(minHeight: 44).contentShape(Rectangle())
             }
             if let visit = store.visits.first {
                 NavigationLink { VisitDetailView(visit: visit) } label: { visitCard(visit) }.buttonStyle(.plain)
@@ -209,11 +210,12 @@ struct HomeView: View {
        filtered. The search used to call book() and throw the query away. */
     private var searchField: some View {
         HStack(spacing: ThusoSpacing.space12) {
-            Image(systemName: "magnifyingglass").foregroundStyle(ThusoTheme.body.opacity(0.7))
+            Image(systemName: "magnifyingglass").foregroundStyle(ThusoTheme.body.opacity(0.7)).accessibilityHidden(true)
             TextField("What care do you need today?", text: $store.careQuery).submitLabel(.search).onSubmit(book)
                 .accessibilityLabel("Search for care")
         }
         .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12).frame(minHeight: 48)
+        .contentShape(Rectangle())
         .background(ThusoTheme.surface, in: Capsule())
         .overlay(Capsule().stroke(ThusoTheme.line, lineWidth: 1))
     }
@@ -226,7 +228,7 @@ struct HomeView: View {
     private var shortcuts: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             CareSectionHeader(title: "Care you can book today") {
-                Button("See all care", action: book)
+                Button("See all care", action: book).frame(minHeight: 44).contentShape(Rectangle())
             }
             CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                 ForEach(Array(CareService.all.prefix(4).enumerated()), id: \.element) { index, service in
@@ -270,7 +272,7 @@ struct HomeView: View {
     private var results: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             CareSectionHeader(title: "Recent results") {
-                NavigationLink(thuso(.openPassport, store.locale)) { PassportView() }
+                NavigationLink(thuso(.openPassport, store.locale)) { PassportView() }.frame(minHeight: 44).contentShape(Rectangle())
             }
             CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                 ForEach(Array(sampleResults.enumerated()), id: \.offset) { index, result in
@@ -307,6 +309,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             CareSectionHeader(title: "Care plan") {
                 NavigationLink("Care plans") { PlansView() }
+                    .frame(minHeight: 44).contentShape(Rectangle())
             }
             NavigationLink { PlansView() } label: {
                 CareCard(padding: ThusoSpacing.space16, spacing: 0) {
@@ -319,7 +322,8 @@ struct HomeView: View {
     private var family: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             CareSectionHeader(title: "Your circle of care") {
-                NavigationLink("My family") { FamilyView() }
+                NavigationLink("My family") { FamilyView() }.frame(minHeight: 44).contentShape(Rectangle())
+                    .frame(minHeight: 44).contentShape(Rectangle())
             }
             CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                 ForEach(Array(store.family.enumerated()), id: \.offset) { index, member in

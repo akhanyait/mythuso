@@ -260,7 +260,7 @@ struct BookingView: View {
                 Image(systemName: "creditcard").font(.body).foregroundStyle(ThusoTheme.indigo).accessibilityHidden(true)
                 Text(payment == "Card" ? "•••• 4242" : payment).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Spacer()
-                Button("Change") { step = 2 }.font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
+                Button("Change") { step = 2 }.frame(minHeight: 44).contentShape(Rectangle()).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
             }
         }
         Toggle("I understand this is a UI preview using fictional information.", isOn: $consent).font(.footnote)

@@ -642,9 +642,14 @@ for(const id of ['emergency-services-first','routing-not-triage','target-is-a-ta
 /* Coverage is a claim about where a nurse can actually be sent, so it is held against the board
    that sends them. An area on this screen that the dispatch board has never heard of is a person
    waiting at a window. */
-const dispatchSource=read('apps/web/src/features/Dispatch.tsx');
+const geography=JSON.parse(read('packages/catalog/geography.json'));
+/* Against the contract now, not against a string in a React component. The zones used to be typed
+   into Dispatch.tsx and this grepped for them there, which meant the check passed or failed on how
+   somebody had punctuated a property — and stopped working the moment the board started reading
+   the same contract every platform reads. */
+const coveredZones=new Set(geography.zones.map(z=>z.name));
 for(const area of sos.coverage.areas) {
- if(!dispatchSource.includes(`name: '${area}'`)) throw new Error(`Thuso SOS claims to cover ${area}, which is not a zone on the dispatch board. A coverage list drawn optimistically is a person waiting at a window.`);
+ if(!coveredZones.has(area)) throw new Error(`Thuso SOS claims to cover ${area}, which is not a zone in packages/catalog/geography.json. A coverage list drawn optimistically is a person waiting at a window.`);
 }
 /* The order of the page is the feature: emergency services above anything MyThuso sells. Each of
    the three screens is read for where it renders the emergency block and where it first renders the
@@ -766,7 +771,6 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
    The privacy rules are not decoration. A home address beside a health service is not a location,
    it is a diagnosis with a doorstep, and the two checks that matter are that no coordinate is
    sharper than the contract declares and that no map can zoom close enough to pick out a house. */
-const geography=JSON.parse(read('packages/catalog/geography.json'));
 const decimalsOf=n=>{const [,fraction='']=String(n).split('.');return fraction.length;};
 for(const zone of geography.zones) {
  for(const [axis,value] of [['lat',zone.at.lat],['lng',zone.at.lng]]) {

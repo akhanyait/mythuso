@@ -5,8 +5,10 @@ import { StateBlock, StatePicker, type LoadState } from '../components/States';
 import { VettingApplication } from './Vetting';
 import { can, type VettingSubject } from '../lib/vetting';
 import { seededSubjects } from '../lib/vetting-fixtures';
-import { etaFromRoute, kmToBoxUnits, noEta, projectToSquare, provinceFor, routeUnavailable, straightLineEta,
- type Eta, type LatLng, type MapWindow, type RouteResult } from '../../../../packages/geo/index.ts';
+import { etaFromRoute, noEta, provinceFor, routeUnavailable, straightLineEta,
+ type Eta, type LatLng, type RouteResult } from '../../../../packages/geo/index.ts';
+import { LiveMap, type MapMarker } from '../map/LiveMap';
+import { coverage, mapWindow, suburbPin, zones } from '../lib/geography';
 type Job = { id: string; service: string; area: string; window: string; at: LatLng; priority: 'Routine' | 'Same day' | 'Urgent' };
 /* A nurse who is not sharing a position has none. That is a real state — a phone in a bag, location
    turned off between visits — and the board has to be able to say so rather than hold a number that
@@ -22,13 +24,7 @@ type Nurse = { id: string; name: string; area: string; at: LatLng | null; status
    The positions are fictional and deliberately blunt — three decimal places, about a hundred
    metres. The suburbs are real places; nobody lives at these points, and a preview has no business
    being precise about where a person is standing. */
-const mapWindow: MapWindow = { centre: { lat: -26.172, lng: 27.992 }, spanKm: 28 };
-const plot = (p: LatLng) => projectToSquare(p, mapWindow);
-const zones = [
- { name: 'Randburg', at: { lat: -26.094, lng: 27.999 }, radiusKm: 3.0 }, { name: 'Rosebank', at: { lat: -26.146, lng: 28.042 }, radiusKm: 2.4 },
- { name: 'Parktown', at: { lat: -26.184, lng: 28.040 }, radiusKm: 2.2 }, { name: 'Melville', at: { lat: -26.175, lng: 27.999 }, radiusKm: 2.2 },
- { name: 'Soweto', at: { lat: -26.249, lng: 27.908 }, radiusKm: 4.0 }
-].map(z => ({ ...z, point: plot(z.at), r: kmToBoxUnits(z.radiusKm, mapWindow) }));
+
 const initialJobs: Job[] = [
  { id: 'TH-2049', service: 'Wound care', area: 'Soweto', window: '11:00 – 12:00', at: { lat: -26.247, lng: 27.911 }, priority: 'Same day' },
  { id: 'TH-2051', service: 'Vitals & chronic check', area: 'Randburg', window: '13:00 – 14:00', at: { lat: -26.099, lng: 28.004 }, priority: 'Routine' },
@@ -41,7 +37,6 @@ const nurses: Nurse[] = [
  { id: 'N-133', name: 'Sister Refilwe Sithole', area: 'Randburg', at: null, status: 'Available', skills: ['Chronic care', 'Paediatric'] },
  { id: 'N-204', name: 'Sister Ayanda Dube', area: 'Soweto', at: { lat: -26.240, lng: 27.916 }, status: 'Available', skills: ['Elderly care', 'Chronic care'] }
 ];
-const located = nurses.flatMap(n => n.at ? [{ ...n, point: plot(n.at) }] : []);
 const unlocated = nurses.filter(n => n.status !== 'Off duty' && !n.at).length;
 const province = provinceFor(mapWindow.centre)?.name ?? 'South Africa';
 
@@ -100,21 +95,35 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
  const dispatchable = candidates.filter(c => c.decision.allowed && c.nurse.status === 'Available').length;
  const refused = candidates.filter(c => !c.decision.allowed).length;
  const estimating = candidates.filter(c => c.eta.minutes === null).length;
- const summary = `Demonstration dispatch map of northern Johannesburg, ${province}. ${initialJobs.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting${unlocated ? `, ${unlocated} not drawn because no position is being shared` : ''}. All positions are fictional.`;
+ /* The map and the list are the same information, so the marks are built here beside the counts
+    rather than inside the map. A visit is plotted at the centre of the suburb it is in and never at
+    the coordinate the job carries: a home address beside a health service is not a location, it is
+    a diagnosis with a doorstep, and the controller assigning this needs the suburb. The nurse going
+    there gets the address inside the visit, where it belongs. */
+ const markers: MapMarker[] = [
+  ...nurses.filter(n => n.status !== 'Off duty').map(n => ({
+   id: n.id,
+   at: n.at,
+   kind: (!gate(n.name).allowed ? 'nurse-blocked' : n.status === 'Available' ? 'nurse-free' : 'nurse-busy') as MapMarker['kind'],
+   label: `${n.name}, ${n.area} — ${!gate(n.name).allowed ? 'blocked by vetting' : n.status.toLowerCase()}`
+  })),
+  ...initialJobs.map(j => ({
+   id: j.id,
+   at: suburbPin(j.area) ?? null,
+   kind: (assigned[j.id] ? 'visit-assigned' : 'visit-waiting') as MapMarker['kind'],
+   label: `${j.id}, ${j.service} in ${j.area} — ${assigned[j.id] ? `assigned to ${assigned[j.id]}` : 'awaiting a nurse'}`,
+   selected: j.id === selected,
+   onSelect: () => setSelected(j.id)
+  }))
+ ];
+ const summary = `Demonstration dispatch map of ${coverage.city}, ${province}. ${initialJobs.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting${unlocated ? `, ${unlocated} not drawn because no position is being shared` : ''}. All positions are fictional.`;
  return <>
   <StatePicker label="Preview the dispatch feed state" value={state} onChange={setState}/>
   <StateBlock state={state} subject="The live dispatch feed" permission="location sharing from nurse devices" onRetry={() => setState('ready')}>
    <div className="dispatch-grid">
     <div className="panel map-panel">
      <div className="section-title"><h2>Live dispatch · Demo</h2><Pill><span className="status-dot"/>Fictional positions</Pill></div>
-     <svg className="dispatch-map" viewBox="0 0 100 100" role="img" aria-label={summary}>
-      <rect width="100" height="100" className="map-ground"/>
-      {[20, 40, 60, 80].map(n => <g key={n}><line x1="0" y1={n} x2="100" y2={n} className="map-grid"/><line x1={n} y1="0" x2={n} y2="100" className="map-grid"/></g>)}
-      {zones.map(z => <circle key={z.name} cx={z.point.x} cy={z.point.y} r={z.r} className="map-zone"/>)}
-      {located.map(n => <g key={n.id} className={`map-pin nurse ${!gate(n.name).allowed ? 'blocked' : n.status === 'Available' ? 'free' : 'busy'}`}><circle cx={n.point.x} cy={n.point.y} r="2.4"/><circle cx={n.point.x} cy={n.point.y} r="4.6" className="map-halo"/></g>)}
-      {initialJobs.map(j => { const p = plot(j.at); return <g key={j.id} className={`map-pin job ${j.id === selected ? 'selected' : ''} ${assigned[j.id] ? 'assigned' : ''}`}><rect x={p.x - 2.2} y={p.y - 2.2} width="4.4" height="4.4" rx="1.2"/>{j.id === selected && <circle cx={p.x} cy={p.y} r="7" className="map-focus"/>}</g>; })}
-      {zones.map(z => <text key={z.name} x={z.point.x} y={z.point.y - z.r + 4.4} className="map-label">{z.name}</text>)}
-     </svg>
+     <LiveMap markers={markers} summary={summary} height={340}/>
      <div className="map-key"><span><i className="key-free"/>Nurse available</span><span><i className="key-busy"/>Nurse on a visit</span><span><i className="key-blocked"/>Blocked by vetting</span><span><i className="key-job"/>Visit awaiting a nurse</span><span><i className="key-assigned"/>Assigned</span></div>
      <p className="helper">The map is a picture of the same information in the list beside it — every pin is projected from the coordinates the arrival estimates are measured from, so the two cannot drift apart. Everything can be dispatched from the list alone, with a keyboard.</p>
      {unlocated > 0 && <p className="helper">{unlocated === 1 ? 'One nurse has no pin, because that device is not sharing a position.' : `${unlocated} nurses have no pin, because those devices are not sharing a position.`} They are in the list with the reason given, and can still be assigned from it.</p>}

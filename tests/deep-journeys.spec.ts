@@ -257,7 +257,12 @@ test('new surfaces do not overflow the viewport or throw', async ({ page }, test
   await expect(page.locator('.chart-card').first()).toBeVisible();
   await page.screenshot({ path: `test-results/passport-charts-${testInfo.project.name}.png` });
   await switchRole(page, 'Control Tower');
-  await expect(page.locator('.dispatch-map')).toBeVisible();
+  // the board draws on real streets where a tile token exists and on the schematic where it does
+  // not; both are .livemap-canvas, and neither is what this journey is measuring
+  await expect(page.locator('.livemap-canvas')).toBeVisible();
+  // a visit is plotted at the centre of its suburb and never at its address, so the pin a
+  // controller reaches names the suburb rather than a street
+  await expect(page.locator('.map-pin.visit-waiting').first()).toBeVisible();
   await page.screenshot({ path: `test-results/dispatch-${testInfo.project.name}.png` });
   await page.locator('button.demo-pill').click();
   await page.getByRole('dialog').getByRole('button', { name: /^First-run flow/ }).click();

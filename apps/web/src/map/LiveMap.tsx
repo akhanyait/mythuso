@@ -182,10 +182,17 @@ function Schematic({ markers, summary }: { markers: MapMarker[]; summary: string
      const placement = place(marker.at);
      if (!placement.drawn) return null;
      const p = plot(placement.at);
+     /* A pin here is the same control it is on the tile map — a button, named, focusable, pressed
+        or not. Whether the build has a tile token is an operations detail, and an operator must not
+        find that the map stopped being usable with a keyboard because a key expired. */
      return (
       <g key={marker.id} className={`map-pin ${marker.kind}${marker.selected ? ' selected' : ''}`}>
        {marker.selected && <circle cx={p.x} cy={p.y} r="7" className="map-focus"/>}
-       <circle cx={p.x} cy={p.y} r="2.4"/>
+       {marker.onSelect
+        ? <circle cx={p.x} cy={p.y} r="2.4" role="button" tabIndex={0} aria-label={marker.label}
+                  aria-pressed={Boolean(marker.selected)} onClick={marker.onSelect}
+                  onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); marker.onSelect!(); } }}/>
+        : <circle cx={p.x} cy={p.y} r="2.4"><title>{marker.label}</title></circle>}
       </g>
      );
     })}

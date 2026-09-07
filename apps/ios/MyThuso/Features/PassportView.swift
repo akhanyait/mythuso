@@ -95,7 +95,7 @@ struct PassportView: View {
                     }
                 }
                 Spacer(minLength: 0)
-                Image("Patient").resizable().scaledToFill().frame(width: 76, height: 76)
+                Image("Patient").resizable().scaledToFill().frame(width: 76, height: 76).accessibilityHidden(true)
                     .clipShape(Circle()).overlay(Circle().stroke(.white.opacity(0.22), lineWidth: 2)).accessibilityHidden(true)
             }.padding(ThusoSpacing.space20)
         }
@@ -203,7 +203,7 @@ struct MoreView: View {
                 NavigationLink { PrivacyView() } label: {
                     CareCard(weight: .lead) {
                         HStack(spacing: ThusoSpacing.space12) {
-                            Image("Patient").resizable().scaledToFill().frame(width: 52, height: 52).clipShape(Circle()).accessibilityHidden(true)
+                            Image("Patient").resizable().scaledToFill().frame(width: 52, height: 52).accessibilityHidden(true).clipShape(Circle()).accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Lerato Molefe").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                                 Text("View and edit your profile").font(.footnote).foregroundStyle(ThusoTheme.body)

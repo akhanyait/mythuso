@@ -233,7 +233,7 @@ struct CodeBoxes: View {
    does not change. */
 struct DemoBadge: View {
     var body: some View {
-        Label("Design preview · Fictional data", systemImage: "info.circle")
+        Label("Design preview · Fictional data", systemImage: "info.circle").accessibilityElement(children: .combine)
             .font(.caption.weight(.medium))
             .foregroundStyle(ThusoTheme.indigoDeep)
             .fixedSize(horizontal: false, vertical: true)
