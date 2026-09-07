@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Activity, ArrowRight, ArrowUpRight, Bell, Bluetooth, Check, ChevronRight, CircleHelp, ClipboardPlus, Clock3, CreditCard, Download, Droplets, FileText, Globe, Heart, HeartHandshake, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Users, UserPlus, Wallet } from 'lucide-react';
+import { Activity, ArrowRight, ArrowUpRight, Bell, Bluetooth, Check, ChevronRight, CircleHelp, ClipboardPlus, Clock3, CreditCard, Download, Droplets, FileText, Globe, Heart, HeartHandshake, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Users, UserPlus, Wallet, Zap } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { ClinicalChart } from '../components/Chart';
 import { EmptyState, Skeleton, StateBlock, StatePicker, loadStates, stateLabels, type LoadState } from '../components/States';
 import { InvitationList, type Invitation } from './Guardian';
 import { DispatchBoard, IncidentBoard } from './Dispatch';
+import { HeroCarousel } from '../components/HeroCarousel';
 import { FulfilmentQueue } from './Orders';
 import { CardArt, FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
 import type { DemoVisit } from './Booking';
+import { isoIn, labels as schedulingLabels, shortDateOf, shortWhenText, visitEnds, weekdayOf } from '../lib/scheduling';
 export function Services({book,open,query=''}:{book:(s:Service)=>void;open:(s:string)=>void;query?:string}) {
  const [category,setCategory]=useState('All services');
  const [search,setSearch]=useState(query);
@@ -30,34 +32,43 @@ export function Services({book,open,query=''}:{book:(s:Service)=>void;open:(s:st
   <button className="menu-row panel space-top" onClick={()=>book(services[0])}><span className="tile-icon"><CircleHelp size={19}/></span><span><strong>Not sure what you need?</strong><small>Chat to our care team</small></span><ChevronRight size={17}/></button>
   <div className="privacy-note space-top"><ShieldCheck size={19}/>Only phase-one services can be booked. Later-phase services are shown so the plan is visible, not because a nurse can be sent for one today.</div>
  </>}
-type VisitRow={service:Service;person:string;time:string;address:string;status:string;tone:string;date:[string,string,string]};
+/* A row is built from a visit, not typed beside one. The date block and the time both come from
+   the same ISO date and start, so the weekday shown can never disagree with the day it names —
+   which it did, in three different places, before this. */
+type VisitRow={visit:DemoVisit;status:string;tone:string};
+const sample=(service:Service,person:string,address:string,dayOffset:number,start:string,status:string,tone:string):VisitRow=>({
+ visit:{service,person,address,kind:'scheduled',payment:'Card',status:'Confirmed',
+  date:isoIn(new Date(Date.now()+dayOffset*86_400_000)),start},
+ status,tone});
 export function Visits({visits,open,book}:{visits:DemoVisit[];open:(s:string)=>void;book:()=>void}) {
  const [tab,setTab]=useState('Upcoming');
  const [state,setState]=useState<LoadState>('ready');
- const upcoming:VisitRow[]=[...visits.map(v=>({...v,status:'Confirmed',tone:'',date:['THU','10','SEP'] as [string,string,string]})),
-  {service:services[0],person:'Lerato Molefe',time:'09:00 – 10:00',address:'Home visit · Sandton',status:'Confirmed',tone:'',date:['FRI','12','SEP']},
-  {service:services[1],person:'Lerato Molefe',time:'10:00 – 11:00',address:'Home visit · Sandton',status:'Pending',tone:'amber',date:['WED','24','SEP']},
-  {service:services[2],person:'Thabo Molefe',time:'14:00 – 15:00',address:'Home visit · Rivonia',status:'Scheduled',tone:'sky',date:['MON','6','OCT']}];
- const past:VisitRow[]=[{service:services[1],person:'Lerato Molefe',time:'10:00 – 10:40',address:'Home visit · Sandton',status:'Completed',tone:'',date:['THU','4','SEP']}];
- const cancelled:VisitRow[]=[{service:services[3],person:'Nomsa Molefe',time:'08:00 – 08:30',address:'Home visit · Soweto',status:'Cancelled',tone:'amber',date:['TUE','26','AUG']}];
+ /* What the person actually booked comes first, in the order they booked it. */
+ const upcoming:VisitRow[]=[...visits.map(v=>({visit:v,status:v.status,tone:v.kind==='asap'?'amber':''})),
+  sample(services[0],'Lerato Molefe','Home visit · Sandton',5,'09:00','Confirmed',''),
+  sample(services[1],'Lerato Molefe','Home visit · Sandton',17,'10:00','Pending','amber'),
+  sample(services[2],'Thabo Molefe','Home visit · Rivonia',29,'14:00','Scheduled','sky')];
+ const past:VisitRow[]=[sample(services[1],'Lerato Molefe','Home visit · Sandton',-3,'10:00','Completed','')];
+ const cancelled:VisitRow[]=[sample(services[3],'Nomsa Molefe','Home visit · Soweto',-12,'08:00','Cancelled','amber')];
  const rows=tab==='Upcoming'?upcoming:tab==='Past'?past:cancelled;
  return <>
   <div className="page-intro"><h1>Your visits</h1></div>
   <div className="underline-tabs" role="group" aria-label="Visit status">{['Upcoming','Past','Cancelled'].map(t=><button key={t} className={tab===t?'selected':''} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t}</button>)}</div>
   <StatePicker label="Preview how this list behaves when the network or service is unavailable" value={state} onChange={setState}/>
   <StateBlock state={state} subject="Your visit list" permission="notifications" onRetry={()=>setState('ready')}>
-   {rows.length?<div className="form-stack">{rows.map((v,i)=><div className="panel" key={i}>
+   {rows.length?<div className="form-stack">{rows.map(({visit:v,status,tone},i)=><div className="panel" key={i}>
     <div className="visit-row">
-     <span className="date-block"><span>{v.date[0]}</span><strong>{v.date[1]}</strong><span>{v.date[2]}</span></span>
+     {v.date?<span className="date-block"><span>{weekdayOf(v.date)}</span><strong>{shortDateOf(v.date).split(' ')[0]}</strong><span>{shortDateOf(v.date).split(' ')[1]}</span></span>
+      :<span className="date-block asap"><Zap size={17}/><span>Now</span></span>}
      <div className="visit-body">
-      <div><h3>{v.service.name}</h3><Pill tone={v.tone}>{v.status}</Pill></div>
-      <div className="visit-meta"><Clock3 size={14}/>{v.time}</div>
+      <div><h3>{v.service.name}</h3><Pill tone={tone}>{status}</Pill></div>
+      <div className="visit-meta"><Clock3 size={14}/>{v.start?`${v.start} – ${visitEnds(v)}`:schedulingLabels.asapPending}</div>
       <div className="visit-meta"><MapPin size={14}/>{v.address} · {v.person}</div>
      </div>
     </div>
     {i===0&&tab==='Upcoming'&&<>
      <div className="nurse-row"><span className="avatar nurse-avatar">SN</span><div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div></div>
-     <div className="visit-actions"><button className="secondary" onClick={()=>open('Reschedule visit')}>Reschedule</button><button className="primary" onClick={()=>open(`Visit: ${v.service.name} · ${v.time} · ${v.person} · ${v.address}`)}>View details</button></div>
+     <div className="visit-actions"><button className="secondary" onClick={()=>open('Reschedule visit')}>Reschedule</button><button className="primary" onClick={()=>open(`Visit: ${v.service.name} · ${shortWhenText(v)} · ${v.person} · ${v.address}`)}>View details</button></div>
     </>}
    </div>)}</div>
    :<EmptyState title={`No ${tab.toLowerCase()} visits`} body={tab==='Cancelled'?'Visits you cancel appear here with the reason and any refund.':'When you book a visit it appears here, with the nurse’s name and what to have ready.'} action="Book a nurse" onAction={book}/>}
@@ -109,8 +120,12 @@ export function Family({open,members,invitations,onRevoke}:{open:(s:string)=>voi
 export function Plans({open}:{open:(s:string)=>void}) {return <><PageHeading eyebrow="THUSO ROUTINE" title="A healthier rhythm." description="Care that keeps showing up. For every chapter of life."/><div className="catalog-grid">{[['Chronic Routine','199','Monthly check-ins, doctor review and adherence support.'],['Family Planning Plan','99','Scheduled injection visits and discreet reminders.'],['Thuso Mom','249','Support through pregnancy and baby’s first year.'],['Thuso Senior','699','Weekly visits, medication support and family reports.'],['Thuso Recover','Custom','A personal care plan for your recovery at home.']].map(([n,p,d],i)=><div className={`panel plan-card ${i===0?'featured':''}`} key={n}><span className="service-icon"><Heart size={24}/></span><Pill tone="plain">{i<2?'PHASE 2 PREVIEW':'PHASE 3 PREVIEW'}</Pill><h2>{n}</h2><p>{d}</p><strong className="plan-price">{p==='Custom'?p:`R${p}`}<small>{p==='Custom'?' pricing':' / month'}</small></strong><button className={i===0?'primary':'secondary'} onClick={()=>open(n)}>Explore plan<ArrowRight size={17}/></button></div>)}</div><p className="helper">Proposal prices and benefits are indicative. No subscriptions can be purchased in this preview.</p></>}
 export function Privacy({open}:{open:(s:string)=>void}) {const [choices,setChoices]=useState<Record<string,boolean>>({'Care reminders':true,'Wearable readings':false,'Product updates':false});return <><PageHeading eyebrow="YOUR PRIVACY MATTERS" title="Your data. Your choices." description="Clear choices about how your information is used."/><div className="two-column"><section className="panel"><SectionTitle title="Sharing preferences"/><p className="muted">Demo preferences reset when you reload. Clinical processing will have a separate purpose and lawful-basis explanation.</p>{Object.entries(choices).map(([k,v])=><div className="setting-row" key={k}><span><strong>{k}</strong><small>{k==='Care reminders'?'Visit and care-plan reminders':k==='Wearable readings'?'Optional health trends from your devices':'Optional news and offers'}</small></span><button role="switch" aria-checked={v} aria-label={k} className={`switch ${v?'on':''}`} onClick={()=>setChoices({...choices,[k]:!v})}><span/></button></div>)}</section><section className="panel"><SectionTitle title="You’re in control"/>{[['Who can see my records','Share my passport'],['Guardians and shared access','Invite a guardian'],['My consents, and how to withdraw them','Your consents'],['View access history','Access history'],['Request a correction','Request a correction'],['Request account deletion','Request account deletion'],['Information Officer','Contact privacy team']].map(([label,target])=><button className="record-row" key={label} onClick={()=>open(target)}><ShieldCheck size={19}/><span>{label}</span><ChevronRight size={16}/></button>)}</section></div><div className="privacy-note"><LockKeyhole size={19}/>This UI demonstrates privacy controls. Production POPIA compliance also requires governance, contracts, lawful processing and verified technical safeguards.</div></>}
 export function WalletPage({open}:{open:(s:string)=>void}){return <><PageHeading eyebrow="THUSO WALLET" title="A little care, set aside." description="Support your own care or give someone a helping hand."/><div className="wallet-hero"><Wallet size={30}/><span>Demo balance</span><h2>R500<span>.00</span></h2><div className="button-row"><button className="secondary" onClick={()=>open('Top up wallet')}><Plus size={17}/>Top up</button><button className="secondary" onClick={()=>open('Sponsor care')}><Users size={17}/>Sponsor care</button></div></div><SectionTitle title="Recent activity"/><div className="panel">{[['Family care credit','+ R500','8 September'],['Vitals & chronic check','− R249','28 August']].map(([n,p,d])=><div className="record-row" key={n}><Wallet size={20}/><span><strong>{n}</strong><small>{d} · Sample transaction</small></span><strong>{p}</strong></div>)}</div></>}
-export function Explore({open,onOnboarding}:{open:(s:string)=>void;onOnboarding:()=>void}){return <>
+export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOnboarding:()=>void;navigate:(s:string)=>void}){return <>
  <div className="page-intro"><div className="eyebrow">The MyThuso family</div><h1>More ways to be cared for.</h1><p>Explore the complete vision. Availability follows the proposal’s phased roadmap.</p></div>
+ {/* The highlights carousel lives here rather than on the home. Rotating promotion is what this
+     page is for; on a returning patient's home it stood between them and the thing they came to do,
+     and WCAG 2.2.2 is satisfied either way by the pause control it carries. */}
+ <HeroCarousel navigate={navigate}/>
  <div className="catalog-grid module-grid">
   <button className="panel module-card highlight" onClick={onOnboarding}><Pill tone="plain">Design review</Pill><h3>First-run &amp; recovery<ArrowUpRight size={17}/></h3><p>Sign-up, one-time code, identity, recovery setup and the lost-access routes.</p><small>Full-screen flow</small></button>
   <button className="panel module-card highlight" onClick={()=>open('System states')}><Pill tone="plain">Design review</Pill><h3>System states<ArrowUpRight size={17}/></h3><p>Loading, error, offline, permission-denied and empty states for every integration.</p><small>State gallery</small></button>
@@ -149,16 +164,48 @@ export function SystemStates(){
   <div className="privacy-note"><ShieldCheck size={19}/>An error state never blames the patient, never loses what they typed, and always says what happens next.</div>
  </div>;
 }
-export function Workspace({role,open}:{role:string;open:(s:string)=>void}) {
- const nurse=role==='Nurse';const doctor=role==='Doctor';const partner=role==='Partner';const tower=role==='Control Tower';
+/* A clinical workspace is not a shop. The nurse, doctor, partner and Control Tower each get their
+   own navigation from App.tsx; this renders the section that navigation asked for, and leads with
+   what the role has to act on rather than with a catalogue of things to buy. */
+/* A section's name is what a nurse would call it; the workflow behind it keeps the name the rest
+   of the app already knows it by. */
+export const sectionWorkflow: Record<string,string> = {
+ Vetting:'Nurse onboarding & vetting','Vetting queue':'Nurse vetting',Assessments:'Visit assessment',
+ Protocols:'Clinical protocols',Quality:'Quality & revenue',Results:'Laboratory order LAB-0023',
+ Collections:'Collection schedule'
+};
+export const roleExtras: Record<string,string[]> = {
+ Nurse:['Locum shifts','Academy'],
+ Doctor:['Clinical protocols','Referral pathway'],
+ Partner:['Prescription RX-0081','Laboratory order LAB-0023'],
+ 'Control Tower':['Nurse onboarding & vetting','Employer programmes']
+};
+export const roleSections: Record<string,string[]> = {
+ Nurse:['Schedule','Assessments','Thuso Kit','Earnings & payouts','Vetting'],
+ Doctor:['Review queue','Teleconsultation','Patient context','Protocols'],
+ Partner:['Orders','Collections','Results'],
+ 'Control Tower':['Dispatch','Incidents','Vetting queue','Quality']
+};
+export function Workspace({role,page,open}:{role:string;page:string;open:(s:string)=>void}) {
+ const nurse=role==='Nurse';const doctor=role==='Doctor';const partner=role==='Partner';
  const [available,setAvailable]=useState(true);
+ const section=roleSections[role]?.includes(page)?page:roleSections[role]?.[0]??'Schedule';
  const rows=nurse?['09:00 · Vitals & chronic check · Rosebank','11:30 · Wound care · Parktown','14:00 · Mother & baby · Melville']:doctor?['TH-2048 · Vitals assessment · Awaiting review','TH-2045 · Wound follow-up · Routine review','TH-2041 · Prescription request · Awaiting review']:[];
- return <><PageHeading eyebrow={`${role.toUpperCase()} WORKSPACE · DEMO`} title={nurse?'Good care starts with you.':doctor?'Expertise, where it matters.':partner?'Connected care, delivered.':'A clear view of care.'} description="Fictional workspace. Role switching is for design review, not authentication."/>
- <div className="metric-grid">{(nurse?[['Today’s visits','3'],['Demo earnings','R637'],['Kit readiness','8 / 8']]:doctor?[['Awaiting review','12'],['Priority reviews','2'],['Reviewed today','18']]:partner?[['Open orders','8'],['Scheduled collections','4'],['Ready for review','3']]:[['Active visits','24'],['Available nurses','18'],['Open incidents','3']]).map(([k,v])=><div className="panel metric" key={k}><span>{k}</span><strong>{v}</strong><small>Sample operational data</small></div>)}</div>
- <div className="section-title"><h2>{nurse?'Your visit schedule':doctor?'Clinical review queue':partner?'Fulfilment queue':'Dispatch overview'}</h2>{nurse&&<button className="secondary" onClick={()=>setAvailable(!available)}><span className={`status-dot ${available?'':'offline'}`}/>{available?'Available for visits':'Off duty'}</button>}</div>
- {tower?<DispatchBoard/>:partner?<FulfilmentQueue open={open}/>:<div className="panel">{rows.map(t=><button className="record-row" key={t} onClick={()=>open(doctor?`Doctor review: ${t.split(' · ')[0]}`:`${role} case: ${t}`)}><span className="service-icon">{doctor?<FileText size={22}/>:<Activity size={22}/>}</span><span><strong>{t}</strong><small>{doctor?'AI support only · Clinician sign-off required':'Demonstration record · No live actions'}</small></span><ChevronRight size={18}/></button>)}</div>}
- {nurse&&<><SectionTitle title="Start a visit"/><div className="panel"><button className="record-row" onClick={()=>open('Visit assessment')}><span className="service-icon"><ClipboardPlus size={22}/></span><span><strong>Visit assessment · TH-2048</strong><small>Identity check, consent, observations, findings and sign-off</small></span><ArrowRight size={18}/></button></div></>}
- {tower&&<><SectionTitle title="Open incidents"/><IncidentBoard open={open}/></>}
- <SectionTitle title="Your tools"/>
- <div className="catalog-grid">{(nurse?['Visit assessment','Nurse onboarding & vetting','Diagnostic kit','Weekly payouts','Locum shifts','Academy']:doctor?['Clinical protocols','Teleconsultation','Referral pathway']:partner?['Prescription RX-0081','Laboratory order LAB-0023','Collection schedule']:['Nurse onboarding & vetting','Incident INC-015','Quality & revenue','Employer programmes']).map(t=><button className="panel module-card" key={t} onClick={()=>open(t)}><ShieldCheck size={23}/><h3>{t}<ArrowUpRight size={17}/></h3><p>Explore the workflow preview</p></button>)}</div></>}
+ /* Urgency first: what is waiting, how long it has waited, and what to do about it. */
+ const metrics=nurse?[['Next visit','09:00','Rosebank · in 40 minutes'],['Today’s visits','3','One awaiting sign-off'],['This week so far','R 598','Pays Wednesday']]
+  :doctor?[['Awaiting review','12','Longest waiting 3 h 20 m'],['Priority reviews','2','Flagged out of range'],['Reviewed today','18','Median 4 m 10 s']]
+  :partner?[['Open orders','8','2 past their collection window'],['Scheduled collections','4','Next 11:15'],['Ready for release','3','Awaiting a clinician']]
+  :[['Active visits','24','3 running late'],['Available nurses','18','4 off duty'],['Open incidents','3','1 severity high']];
+ return <><PageHeading eyebrow={`${role.toUpperCase()} WORKSPACE · DEMO`} title={section} description="Fictional workspace. Role switching is for design review, not authentication."/>
+ <div className="metric-grid">{metrics.map(([k,v,note])=><div className="panel metric" key={k}><span>{k}</span><strong>{v}</strong><small>{note}</small></div>)}</div>
+ {section==='Schedule'||section==='Review queue'?<>
+  <div className="section-title"><h2>{nurse?'Your visit schedule':'Clinical review queue'}</h2>{nurse&&<button className="secondary" onClick={()=>setAvailable(!available)}><span className={`status-dot ${available?'':'offline'}`}/>{available?'Available for visits':'Off duty'}</button>}</div>
+  <div className="panel">{rows.map(t=><button className="record-row" key={t} onClick={()=>open(doctor?`Doctor review: ${t.split(' · ')[0]}`:`${role} case: ${t}`)}><span className="service-icon">{doctor?<FileText size={22}/>:<Activity size={22}/>}</span><span><strong>{t}</strong><small>{doctor?'AI support only · Clinician sign-off required':'Demonstration record · No live actions'}</small></span><ChevronRight size={18}/></button>)}</div>
+  {nurse&&<><SectionTitle title="Start a visit"/><div className="panel"><button className="record-row" onClick={()=>open('Visit assessment')}><span className="service-icon"><ClipboardPlus size={22}/></span><span><strong>Visit assessment · TH-2048</strong><small>Identity check, consent, observations, findings and sign-off</small></span><ArrowRight size={18}/></button></div></>}
+ </>:section==='Dispatch'?<DispatchBoard/>
+ :section==='Incidents'?<><SectionTitle title="Open incidents"/><IncidentBoard open={open}/></>
+ :section==='Orders'||section==='Collections'||section==='Results'?<FulfilmentQueue open={open}/>
+ :<div className="panel"><button className="record-row" onClick={()=>open(sectionWorkflow[section]??section)}><span className="service-icon"><ShieldCheck size={22}/></span><span><strong>{section}</strong><small>Open this workflow</small></span><ArrowRight size={18}/></button></div>}
+ <SectionTitle title="More tools"/>
+ <div className="catalog-grid">{(roleExtras[role]??[]).map(t=><button className="panel module-card" key={t} onClick={()=>open(t)}><ShieldCheck size={23}/><h3>{t}<ArrowUpRight size={17}/></h3><p>Explore the workflow preview</p></button>)}</div></>}
 export function Notifications(){return <div className="notification-list">{[[Check,'Your visit is confirmed','Sister Naledi is scheduled for Saturday, 09:00.'],[FileText,'Your visit summary is ready','A sample record has been added to your Passport.'],[Sparkles,'A little reminder','Explore regular check-ins with Thuso Routine.'],[Bell,'Someone asked for access','Kagiso asked to help with your bookings. Review what he would see.']].map(([Icon,title,body])=>{const I=Icon as typeof Bell;return <div className="record-row" key={String(title)}><I size={21}/><span><strong>{String(title)}</strong><small>{String(body)}</small></span></div>;})}<p className="helper">Sample notifications only.</p></div>}

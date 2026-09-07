@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { goSection } from './nav';
 /* Tab-bar labels are translated, so the phone path addresses tabs by position, not by text. */
 const tabOrder = ['Overview', 'Book a nurse', 'My visits', 'Health Passport', 'More'];
 const tab = (page: Page, index: number) => page.locator('.tabbar button').nth(index);
@@ -127,6 +128,7 @@ test('control tower assigns a nurse and logs an incident action', async ({ page 
   await candidate.getByRole('button', { name: 'Assign' }).click();
   await expect(candidate.getByRole('button', { name: 'Assigned' })).toBeVisible();
   await expect(page.getByText('Assigned to Sister Palesa Khumalo')).toBeVisible();
+  await goSection(page, 'Incidents');
   await page.getByRole('button', { name: /INC-015/ }).first().click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText(/pages the on-call clinical lead immediately/)).toBeVisible();
@@ -158,7 +160,8 @@ test('partner orders show chain of custody and every integration state', async (
 test('vetting refuses a malformed credential, and states the refusal it is under', async ({ page }) => {
   await page.goto('/');
   await switchRole(page, 'Nurse');
-  await page.getByRole('button', { name: /Nurse onboarding & vetting/ }).click();
+  await goSection(page, 'Vetting');
+  await page.locator('main').getByRole('button', { name: /Vetting/ }).click();
   const dialog = page.getByRole('dialog');
   // the credential the role hangs on is checked for the shape the issuing body actually uses
   await expect(dialog.getByRole('button', { name: 'Continue' })).toBeDisabled();
@@ -264,8 +267,19 @@ test('new surfaces do not overflow the viewport or throw', async ({ page }, test
   expect(errors).toEqual([]);
 });
 
+/* By position, not by name: this runs after the shell has been switched to isiZulu, where the
+   entry is called something else — which is the point of that journey. */
+async function openExplore(page: Page) {
+  const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
+  if (await sidebar.isVisible()) { await sidebar.getByRole('button').nth(7).click(); return; }
+  await page.locator('.tabbar button').nth(4).click();
+  await page.locator('main').getByRole('button').filter({ hasText: /Explore|Hlola/ }).first().click();
+}
 test('the hero rotates on its own, and can be stopped', async ({ page }) => {
+  // the carousel lives on Explore, not on the returning patient's home, where an auto-rotating
+  // promotion stood between them and the thing they opened the app to do
   await page.goto('/');
+  await openExplore(page);
   const hero = page.getByRole('region', { name: 'MyThuso highlights' });
   await expect(hero.getByRole('heading', { name: 'Care that comes to you.' })).toBeVisible();
   // only the current slide is exposed; the others are hidden from assistive technology
@@ -287,13 +301,16 @@ test('the hero rotates on its own, and can be stopped', async ({ page }) => {
 });
 test('the hero banner is translated with the rest of the shell', async ({ page }) => {
   await page.goto('/');
+  await openExplore(page);
   const settings = page.locator('button.settings-link').first();
   if (await settings.isVisible()) await settings.click();
   else { await tab(page, 4).click(); await page.getByRole('button', { name: /^Language Read MyThuso/ }).click(); }
   await page.getByRole('dialog').getByRole('radio', { name: 'isiZulu' }).check();
   await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
+  // the banner is on Explore; the greeting is on the home. Both are translated.
+  await openExplore(page);
+  await expect(page.getByRole('region', { name: 'MyThuso highlights' })).toContainText('Thola usizo manje');
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   await (await sidebar.isVisible() ? sidebar.getByRole('button').first() : tab(page, 0)).click();
-  await expect(page.getByRole('region', { name: 'MyThuso highlights' })).toContainText('Thola usizo manje');
   await expect(page.getByRole('heading', { name: 'Sawubona, Lerato' })).toBeVisible();
 });

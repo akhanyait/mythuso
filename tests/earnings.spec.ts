@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { goSection } from './nav';
 /* Nurse earnings and payouts.
  *
  * The landing page tells the public that a nurse keeps three quarters of every visit. These
@@ -10,8 +11,9 @@ const openEarnings = async (page: Page) => {
   await page.locator('button.demo-pill').click();
   await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
   await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText('Nurse', { exact: true }) }).click();
-  await page.getByRole('button', { name: /Weekly payouts/ }).click();
-  return page.getByRole('dialog');
+  // the nurse workspace navigates by its own sections now; "Weekly payouts" is "Earnings & payouts"
+  await goSection(page, 'Earnings & payouts');
+  return page.locator('main');
 };
 
 test('the split is the catalogue’s arithmetic, and the card fee is not the nurse’s', async ({ page }) => {

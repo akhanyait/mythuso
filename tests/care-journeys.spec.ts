@@ -18,17 +18,20 @@ test('booking requires acknowledgement and creates a demo visit', async ({page})
   const dialog=page.getByRole('dialog');
   await dialog.getByLabel('Who is this visit for?').selectOption('Nomsa Molefe');
   await dialog.getByRole('button',{name:'Continue'}).click();
-  await dialog.getByRole('button',{name:'Sat 13 Sep'}).click();
+  // the second day the app offers, whatever date that is today — the strip used to be hard-coded
+  await dialog.locator('.date-chip').nth(1).click();
   await dialog.getByRole('button',{name:'14:00',exact:true}).click();
   await dialog.getByRole('button',{name:'Continue'}).click();
   await dialog.getByRole('button',{name:'Continue'}).click();
   await expect(dialog.getByRole('button',{name:'Confirm & book'})).toBeDisabled();
-  await expect(dialog.getByText('Sat 13 Sep 2026')).toBeVisible();
+  await expect(dialog.locator('.review-line').first()).toContainText('2026');
   await dialog.getByRole('checkbox').check();
   await dialog.getByRole('button',{name:'Confirm & book'}).click();
   await expect(dialog.getByText('Your demo visit is booked.')).toBeVisible();
   await dialog.getByRole('button',{name:'View my visits'}).click();
-  await expect(page.locator('.panel').first()).toContainText('14:00 – 15:00');
+  // 14:30, not 15:00: a vitals check is thirty minutes in the catalogue, and the visit now ends
+  // its own duration after it starts rather than a flat hour later
+  await expect(page.locator('.panel').first()).toContainText('14:00 – 14:30');
   await expect(page.locator('.panel').first()).toContainText('Nomsa Molefe');
 });
 test('services filter and empty state',async({page})=>{
@@ -65,7 +68,10 @@ test('role workspaces and no horizontal overflow',async({page})=>{
 });
 test('dashboard renders without errors and fits the viewport',async({page},testInfo)=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/');await expect(page.getByRole('heading',{name:'Care that comes to you.'})).toBeVisible();
+  await page.goto('/');
+  // the home leads with the greeting and the four bookable services, not a rotating banner
+  await expect(page.getByRole('heading',{level:1})).toBeVisible();
+  await expect(page.locator('.shortcut-row')).toHaveCount(4);
   expect(await page.evaluate(()=>(()=>{const el=document.querySelector('main')??document.documentElement;return el.scrollWidth<=el.clientWidth;})())).toBe(true);
   await page.screenshot({path:`test-results/dashboard-${testInfo.project.name}.png`});
   expect(errors).toEqual([]);

@@ -1,0 +1,63 @@
+{
+ "_note": "When a visit happens, and how it is described. Read by the web app; generated into Swift and Kotlin by scripts/emit-scheduling.mjs. Not one date is written down here: the three apps compute the days they offer from the device's own clock in the timezone below, and derive the weekday from the date rather than carrying a label beside it. That is the whole reason this file exists — every platform previously carried a hand-typed strip of five days beginning 'Fri 12 Sep', which stopped being true the day after it was typed and disagreed with the date printed next to it.",
+
+ "timezone": "Africa/Johannesburg",
+ "timezoneNote": "South Africa has one timezone and does not observe daylight saving, so a visit time means the same thing everywhere MyThuso operates. It is still named rather than assumed, because a device set to another zone must not silently shift a nurse's arrival.",
+
+ "offer": {
+  "days": 5,
+  "firstDayOffset": 1,
+  "firstDayNote": "The strip starts tomorrow. Same-day care is a different thing with a different promise, and it is offered as that rather than as a date chip.",
+  "slots": ["08:00", "09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00"],
+  "slotNote": "Hourly, with the hour after twelve left out because a nurse eats. The visit's own duration decides when it ends, not the next chip along."
+ },
+
+ "kinds": [
+  {
+   "id": "scheduled",
+   "name": "At a time you choose",
+   "detail": "You pick the day and the hour, and the nurse arrives in that hour.",
+   "showsArrivalEstimate": false,
+   "confirmation": "Booked for the day and time you chose."
+  },
+  {
+   "id": "asap",
+   "name": "As soon as someone is free",
+   "detail": "We look for the nearest available nurse and tell you who is coming and when. If nobody is free, we say so rather than leaving you waiting.",
+   "showsArrivalEstimate": true,
+   "confirmation": "We are looking for a nurse now. You will be told who is coming before they set off."
+  }
+ ],
+
+ "rules": [
+  {
+   "id": "estimate-belongs-to-asap",
+   "title": "An arrival estimate is not a description of an appointment",
+   "sentence": "An arrival estimate answers “when will somebody get here”, which is only a question when you have asked for care now. Printing one beside a visit you booked for Thursday at ten tells you nothing and reads like a contradiction."
+  },
+  {
+   "id": "weekday-from-date",
+   "title": "The weekday is worked out from the date",
+   "sentence": "A day is shown as the weekday its date actually falls on, computed on the device. A label typed beside a date is a label that will one day disagree with it, and the person who notices will be the one standing at the wrong door."
+  },
+  {
+   "id": "duration-decides-the-end",
+   "title": "The visit's own length decides when it ends",
+   "sentence": "A visit ends its own duration after it starts, from the service catalogue. An hour is not the answer for every visit and pretending otherwise misstates how long somebody has to be at home."
+  },
+  {
+   "id": "everything-survives-the-booking",
+   "title": "What you chose is what is booked",
+   "sentence": "The patient, the service, the date, the time, the address and how you meant to pay all travel from the booking into the visit. A confirmation that quietly drops one of them is a confirmation of something you did not choose."
+  }
+ ],
+
+ "labels": {
+  "chooseWhen": "When would you like the visit?",
+  "scheduledHeading": "Choose a date and time",
+  "noUpcoming": "Nothing booked yet",
+  "noUpcomingDetail": "When you book a visit it will show here, with who is coming and when.",
+  "asapPending": "Looking for a nurse",
+  "changeDate": "Change the date or time"
+ }
+}

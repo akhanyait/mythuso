@@ -4,7 +4,6 @@ struct HomeView: View {
     let book: () -> Void
     let firstRun: () -> Void
     @EnvironmentObject private var store: PreviewStore
-    @State private var query = ""
     @State private var passport = false
     private let trust = [("checkmark.seal", "Verified nurses"), ("tag", "Fixed prices"), ("stethoscope", "Doctor-reviewed")]
     var body: some View {
@@ -58,10 +57,10 @@ struct HomeView: View {
                                 TileIcon(symbol: visit.service.symbol)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(visit.service.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                                    Text(visit.time).font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                                    Text(visit.shortWhenText).font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
                                 }
                                 Spacer(minLength: 6)
-                                StatusPill(text: "Confirmed")
+                                StatusPill(text: visit.status, tone: visit.isScheduled ? "teal" : "amber")
                             }
                             Divider().overlay(ThusoTheme.line)
                             HStack(spacing: 11) {
@@ -99,7 +98,8 @@ struct HomeView: View {
     private var searchField: some View {
         HStack(spacing: 11) {
             Image(systemName: "magnifyingglass").foregroundStyle(ThusoTheme.body.opacity(0.7))
-            TextField("What care do you need today?", text: $query).submitLabel(.search).onSubmit(book)
+            TextField("What care do you need today?", text: $store.careQuery).submitLabel(.search).onSubmit(book)
+                .accessibilityLabel("Search for care")
         }
         .padding(.horizontal, 18).padding(.vertical, 12).frame(minHeight: 52)
         .background(.white, in: Capsule())

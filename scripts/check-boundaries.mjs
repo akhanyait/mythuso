@@ -24,7 +24,13 @@ const catalogue=JSON.parse(read('packages/catalog/services.json'));
 const nativeCatalogues=['apps/ios/MyThuso/Models/CareService.swift','apps/android/app/src/main/java/za/co/mythuso/model/CareModels.kt'];
 for(const f of nativeCatalogues) {
  const source=read(f);
- for(const s of catalogue.filter(s=>s.phase===1)) if(!source.includes(`"${s.id}"`)||!source.includes(`"${s.name}"`)||!source.includes(String(s.price))) throw new Error(`Native catalogue drift: ${s.id} in ${f}`);
+ for(const s of catalogue.filter(s=>s.phase===1)) {
+  if(!source.includes(`"${s.id}"`)||!source.includes(`"${s.name}"`)||!source.includes(String(s.price))) throw new Error(`Native catalogue drift: ${s.id} in ${f}`);
+  /* A visit's duration decides when it ends, on every platform. It used to exist only in the web
+     catalogue, so both native apps ended every visit an hour after it started whatever it was. */
+  const line=source.split('\n').find(l=>l.includes(`"${s.id}"`));
+  if(!line||!new RegExp(`\\b${s.duration}\\b`).test(line)) throw new Error(`Native catalogue drift: ${s.id} does not carry its ${s.duration}-minute duration in ${f}`);
+ }
 }
 /* The commercial model is the proposal's, and the admin console reports against it. If the two
    disagree the console is quietly misreporting, so the arithmetic is checked here. */

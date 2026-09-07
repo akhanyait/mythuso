@@ -5,19 +5,20 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
-data class CareService(val id: String, val name: String, val detail: String, val price: Int)
+/* `duration` is minutes. The visit's own length decides when it ends; an hour is not the
+   answer for every service, and pretending otherwise misstates how long somebody has to be home. */
+data class CareService(val id: String, val name: String, val detail: String, val price: Int, val duration: Int)
 val services = listOf(
-    CareService("vitals", "Vitals & chronic check", "A little check-in. A healthier you.", 249),
-    CareService("wound", "Wound care", "Expert care for your recovery.", 299),
-    CareService("mother", "Mother & baby", "A caring hand for your new chapter.", 349),
-    CareService("blood", "Blood tests", "Sample collection at home.", 299),
-    CareService("injection", "Injection & vaccination", "On a valid prescription.", 249),
-    CareService("planning", "Family planning", "Discreet care on your schedule.", 249),
-    CareService("postop", "Post-operative check", "Support after your procedure.", 349),
-    CareService("senior", "Elderly care", "A thoughtful one-hour visit.", 399),
-    CareService("certificate", "Sick-note visit", "Assessment with doctor review.", 249)
+    CareService("vitals", "Vitals & chronic check", "A little check-in. A healthier you.", 249, 30),
+    CareService("wound", "Wound care", "Expert care for your recovery.", 299, 40),
+    CareService("mother", "Mother & baby", "A caring hand for your new chapter.", 349, 45),
+    CareService("blood", "Blood tests", "Sample collection at home.", 299, 25),
+    CareService("injection", "Injection & vaccination", "On a valid prescription.", 249, 20),
+    CareService("planning", "Family planning", "Discreet care on your schedule.", 249, 25),
+    CareService("postop", "Post-operative check", "Support after your procedure.", 349, 45),
+    CareService("senior", "Elderly care", "A thoughtful one-hour visit.", 399, 60),
+    CareService("certificate", "Sick-note visit", "Assessment with doctor review.", 249, 30)
 )
-data class DemoVisit(val service: CareService, val person: String, val time: String)
 data class GuardianInvitation(val id: String, val name: String, val relationship: String, val scope: String, val expires: String, val status: String)
 /**
  * Everything the preview holds. All of it is in memory and lost on restart, with one deliberate
@@ -26,7 +27,12 @@ data class GuardianInvitation(val id: String, val name: String, val relationship
  * has been captured survives a crash, a restart and a sign-out.
  */
 class PreviewStore(book: CaptureBook = MemoryBook()) {
-    val visits = mutableStateListOf(DemoVisit(services[0], "Lerato Molefe", "12 September · 09:00"))
+    /* Seeded with a real date rather than the string "12 September · 09:00", which stopped being
+       true the day after somebody typed it. */
+    val visits = mutableStateListOf(BookedVisit(services[0], "Lerato Molefe", "Home visit · Sandton",
+        "scheduled", Scheduling.today().plusDays(5), "09:00", "Card"))
+    /* What somebody typed on the home screen, so the catalogue it hands off to can apply it. */
+    var careQuery by mutableStateOf("")
     val family = mutableStateListOf("Nomsa Molefe", "Thabo Molefe")
     val invitations = mutableStateListOf(
         GuardianInvitation("INV-0031", "Nomsa Molefe", "Mother", "Visit summaries only", "Until I revoke it", "Active"),

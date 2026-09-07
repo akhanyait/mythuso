@@ -12,17 +12,19 @@ enum ThusoTheme {
     static let forest = Color(red: 0.071, green: 0.227, blue: 0.196)     // #123A32
     static let ink = Color(red: 0.063, green: 0.141, blue: 0.122)        // #10241F
     static let body = Color(red: 0.357, green: 0.420, blue: 0.400)       // #5B6B66
-    static let faint = Color(red: 0.541, green: 0.604, blue: 0.580)      // #8A9A94
+    static let faint = Color(red: 0.373, green: 0.439, blue: 0.416)      // #5F706A
     static let line = Color(red: 0.906, green: 0.933, blue: 0.922)       // #E7EEEB
     static let canvas = Color(red: 0.957, green: 0.973, blue: 0.969)     // #F4F8F7
     static let surface = Color(red: 1.000, green: 1.000, blue: 1.000)    // #FFFFFF
-    static let amber = Color(red: 0.690, green: 0.478, blue: 0.129)      // #B07A21
+    static let amber = Color(red: 0.541, green: 0.369, blue: 0.071)      // #8A5E12
     static let amberSoft = Color(red: 0.984, green: 0.941, blue: 0.863)  // #FBF0DC
     static let sky = Color(red: 0.235, green: 0.431, blue: 0.624)        // #3C6E9F
     static let skySoft = Color(red: 0.906, green: 0.941, blue: 0.980)    // #E7F0FA
-    static let danger = Color(red: 0.761, green: 0.290, blue: 0.243)     // #C24A3E
+    static let danger = Color(red: 0.651, green: 0.224, blue: 0.180)     // #A6392E
     static let dangerSoft = Color(red: 0.984, green: 0.929, blue: 0.922) // #FBEDEB
     static let gold = Color(red: 0.878, green: 0.663, blue: 0.247)       // #E0A93F
+    static let focus = Color(red: 0.878, green: 0.663, blue: 0.247)      // #E0A93F
+    static let focusEdge = Color(red: 0.063, green: 0.141, blue: 0.122)  // #10241F
 }
 enum ThusoRadius {
     static let card: CGFloat = 18

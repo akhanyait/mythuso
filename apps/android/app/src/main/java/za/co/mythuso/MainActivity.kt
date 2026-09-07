@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import za.co.mythuso.model.CareService
 import za.co.mythuso.model.FileBook
 import za.co.mythuso.model.Phrase
 import za.co.mythuso.model.PreviewStore
@@ -35,6 +36,9 @@ class MainActivity : ComponentActivity() {
     val context = LocalContext.current
     val store = remember(context) { PreviewStore(FileBook(context.filesDir)) }
     var page by remember { mutableStateOf("Home") }
+    /* The service a home shortcut chose, handed to the catalogue once and then cleared, so going
+       back to Book care later does not reopen a booking nobody asked for. */
+    var pendingService by remember { mutableStateOf<CareService?>(null) }
     var detail by remember { mutableStateOf<String?>(null) }
     var onboarding by remember { mutableStateOf(false) }
     val tabs = listOf(
@@ -87,8 +91,10 @@ class MainActivity : ComponentActivity() {
     ) { padding ->
         Box(Modifier.padding(padding)) {
             if (detail != null) DetailScreen(detail!!, store, go, { onboarding = true }) else when (page) {
-                "Home" -> HomeScreen(store, { page = "Book care" }, go, { onboarding = true })
-                "Book care" -> ServicesScreen(store)
+                /* A shortcut carries the service it names into the catalogue, which opens straight
+                   into that service's booking. Passing nothing means "show me everything". */
+                "Home" -> HomeScreen(store, { service -> pendingService = service; page = "Book care" }, go, { onboarding = true })
+                "Book care" -> ServicesScreen(store, pendingService) { pendingService = null }
                 "Visits" -> VisitsScreen(store, go)
                 "Passport" -> PassportScreen(go)
                 else -> MoreScreen(go, { onboarding = true })

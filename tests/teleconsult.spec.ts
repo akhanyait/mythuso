@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
+import { goSection } from './nav';
 /* The teleconsultation call.
  *
  * These journeys check the four things that make this a design rather than a video window: that
@@ -12,8 +13,8 @@ const openCall = async (page: Page) => {
   await page.locator('button.demo-pill').click();
   await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
   await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText('Doctor', { exact: true }) }).click();
-  await page.getByRole('button', { name: /Teleconsultation/ }).click();
-  return page.getByRole('dialog');
+  await goSection(page, 'Teleconsultation');
+  return page.locator('main');
 };
 /* Through the roster and the identity check into the call itself, which is where most of the
    interesting states live. */
