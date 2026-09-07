@@ -45,6 +45,7 @@ type CatalogueRecord = {
 const RECORDS = new Map<string, CatalogueRecord>(
  (records.records as readonly CatalogueRecord[]).map(record => [record.id, record] as const)
 );
+
 const AREA_NAMES = new Map(records.areas.map(area => [area.id, area.name] as const));
 /* Ordered as records.json orders it: routine, then clinical, then protected. The ceiling below is
    an index into this list rather than a rank typed out here, so re-ordering the catalogue re-orders
@@ -115,10 +116,20 @@ const PURPOSE_RULES: Record<Purpose, PurposeRule> = {
   ceiling: 'routine',
   why: 'A service code and an amount. Finance never sees why the service was needed, and the ceiling says so rather than the invoice template saying so.'
  },
+ vetting: {
+  capabilities: ['review-vetting'],
+  areas: ['care-network'],
+  ceiling: 'routine',
+  why: 'Deciding whether a party may be dispatched, and reading the certificate the decision was taken against. It reaches the workforce evidence and nothing about a patient: a reviewer opening a SANC certificate has no business in a record.'
+ },
  'subject-access': {
   /* Including view-billing, because a person asking for their own record is asking for what was
-     charged as well as what was found. Section 23 does not stop at the clinical pages. */
-  capabilities: ['view-patient-summary', 'view-clinical-record', 'view-results', 'view-protected-record', 'view-billing'],
+     charged as well as what was found. Section 23 does not stop at the clinical pages. And
+     review-vetting, because a nurse's own police clearance is her personal information before it is
+     the platform's evidence. The capability list here only decides which records the purpose can
+     reach; what satisfies the capability stage for a data subject is their identity, never a grant,
+     so naming it does not hand anybody the power to decide a vetting case. */
+  capabilities: ['view-patient-summary', 'view-clinical-record', 'view-results', 'view-protected-record', 'view-billing', 'review-vetting'],
   areas: ['patients', 'clinical', 'care-network', 'operations', 'finance', 'governance'],
   ceiling: 'protected',
   why: 'The person reading their own record. Section 23 is a right, so the limit is identity, not scope.'
@@ -273,7 +284,13 @@ export type GateDependencies = {
 
 /* Each stage names itself in blockedBy, first element, so a refusal can be counted and charted
    without anybody parsing the sentence a person reads. */
-type Stage = 'break-glass' | 'capability' | 'vetting-standing' | 'purpose' | 'protected-category' | 'reveal';
+type Stage = 'break-glass' | 'capability' | 'vetting-standing' | 'purpose' | 'protected-category' | 'reveal' | 'seal';
+
+/* Reading and writing are decided by the same five stages and differ in two places only: what the
+   audit entry is called afterwards, and that nothing is ever sealed through the emergency route. The
+   distinction is a parameter rather than a second copy of the decision, because a second copy is
+   where the two quietly stop agreeing. */
+type Intent = 'read' | 'write';
 
 export class AccessGate implements Gate {
  /* Written out rather than constructor parameter properties: Node runs these files by stripping
@@ -303,6 +320,38 @@ export class AccessGate implements Gate {
   * yes, and spend it on an expensive one. reveal() asks again, every time.
   */
  access(request: AccessRequest): AccessOutcome {
+  return this.#decide(request, 'read');
+ }
+
+ /**
+  * The only route in, as reveal() is the only route out.
+  *
+  * A sealed value that some other module produced is a value the gate never decided about and never
+  * wrote down, and a module that can seal can choose its own binding — which is how a certificate
+  * ends up sealed against the wrong party and opening for them ever afterwards. So the binding is
+  * built here, from the same request the decision was taken on, exactly as reveal() builds it.
+  *
+  * The refusals are the read refusals, with two differences. Break-glass cannot write: the emergency
+  * route exists so that somebody unconscious can be helped, and nothing about that involves adding a
+  * document. And the capability has to be one records.json says *opens* the record — which is
+  * `writtenBy` where the catalogue has been given it, and `gatedBy` where it has not. Fail closed:
+  * the catalogue gets the field, and the write passes.
+  */
+ protect(request: AccessRequest, plaintext: string | Buffer): { ok: true; sealed: Sealed } | { ok: false; reason: string } {
+  if (!request.field?.trim()) {
+   const reason = 'Sealing a value has to name the field being sealed. Without it there is no binding, and a value with no binding is one that can be moved into somebody else\'s record.';
+   this.#refuse(request, 'seal', reason, []);
+   return { ok: false, reason };
+  }
+  const outcome = this.#decide(request, 'write');
+  if (!outcome.allowed) return { ok: false, reason: outcome.reason };
+  return { ok: true, sealed: this.#crypto.seal(plaintext, {
+   recordType: request.recordType, recordId: request.recordId,
+   field: request.field, subjectId: request.subjectId
+  }) };
+ }
+
+ #decide(request: AccessRequest, intent: Intent): AccessOutcome {
   const record = RECORDS.get(request.recordType);
   const role = ROLES.get(request.actorRole);
   const rule = PURPOSE_RULES[request.purpose] as PurposeRule | undefined;
@@ -323,6 +372,12 @@ export class AccessGate implements Gate {
      a label on it — so it is refused before it is allowed to override anything. */
   if (breakGlass && !request.reason?.trim()) {
    return this.#refuse(request, 'break-glass', 'Break-glass needs a reason, typed at the time, by the person breaking it. A break-glass with no reason is a back door with a label on it.', []);
+  }
+  /* Break-glass reads. It does not write. The emergency route is a way to help somebody unconscious,
+     and nothing about that involves adding a document to their record under an override nobody
+     reviewed until afterwards. */
+  if (breakGlass && intent === 'write') {
+   return this.#refuse(request, 'break-glass', 'Break-glass is a way to read what is already there. Nothing is ever written through it, because a record created under an override is a record with no accountable author.', []);
   }
 
   /* 1. Capability. Two questions: does this capability open this kind of record, and does this role
@@ -389,7 +444,7 @@ export class AccessGate implements Gate {
   /* Allowed. The entry is written before the caller is told, so there is no window in which an
      access happened and the log had not heard about it yet. */
   const link = this.#audit.append({
-   event: breakGlass ? 'access.break-glass' : 'access.allowed',
+   event: breakGlass ? 'access.break-glass' : intent === 'write' ? 'record.sealed' : 'access.allowed',
    actorId: request.actorId, actorRole: request.actorRole, capability: request.capability,
    purpose: request.purpose, recordType: request.recordType, recordId: request.recordId,
    subjectId: request.subjectId, field: request.field, allowed: true, broke: breakGlass,
@@ -468,7 +523,7 @@ export class AccessGate implements Gate {
  #refuse(request: AccessRequest, stage: Stage, reason: string, named: string[]): { allowed: false; reason: string; auditId: string; blockedBy: string[] } {
   const blockedBy = [stage, ...named];
   const link = this.#audit.append({
-   event: stage === 'reveal' ? 'reveal.refused' : request.purpose === 'emergency' ? 'access.break-glass.refused' : 'access.refused',
+   event: stage === 'reveal' ? 'reveal.refused' : stage === 'seal' ? 'seal.refused' : request.purpose === 'emergency' ? 'access.break-glass.refused' : 'access.refused',
    actorId: request.actorId, actorRole: request.actorRole, capability: request.capability,
    purpose: request.purpose, recordType: request.recordType, recordId: request.recordId,
    subjectId: request.subjectId, field: request.field, allowed: false,

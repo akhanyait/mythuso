@@ -103,7 +103,7 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
     {captured.map(o => <div className="review-line" key={o.id}><span>{o.label}</span><strong className={o.flag === 'normal' ? '' : 'flagged'}>{o.value} {o.unit}{o.flag !== 'normal' && ' ⚠'}</strong></div>)}
     <div className="review-line"><span>Symptoms</span><strong>{symptoms.length ? symptoms.join(', ') : 'None recorded'}</strong></div>
     <div className="review-line"><span>Next step</span><strong>{escalation}</strong></div>
-    <div className="review-line"><span>Recorded by</span><strong>Sister Naledi Mokoena · SANC 0000000 (demo)</strong></div>
+    <div className="review-line"><span>Recorded by</span><strong>{signingNurse.name} · {signingNurse.reference}</strong></div>
     <div className="privacy-note"><UserCheck size={19}/>A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.</div>
     <div className="button-row"><button className="secondary" onClick={() => setStage(3)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setSigned(true)}><Check size={16}/>Sign demo assessment</button></div>
    </>}
@@ -113,6 +113,10 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
 /* Signing is where vetting has to bite rather than warn. A doctor whose HPCSA registration has
    lapsed is not asked to be careful — the queue refuses the signature, and says which check refused
    it. The switcher exists so both answers can actually be seen in a design review. */
+/* The sign-off carries a registration number, so it carries the real one from the vetting record
+   rather than a placeholder. A demo number in an attribution line is the one place a preview should
+   not be fictional twice over: the reader is being shown what accountability looks like. */
+const signingNurse = subjectsByRole('nurse').find(n => n.id === 'N-205')!;
 const doctors = subjectsByRole('doctor');
 export function DoctorReview({ reference = 'TH-2048', onClose }: { reference?: string; onClose: () => void }) {
  const [decision, setDecision] = useState('');

@@ -159,6 +159,10 @@ import za.co.mythuso.model.PreviewStore
             MenuRow("Explore the roadmap", "All 21 modules in the proposal", Icons.Outlined.GridView) { open("Roadmap") }
             HorizontalDivider(color = Line)
             MenuRow("Vetting & verification", "Every party MyThuso vets, and what each is refused until it passes", Icons.Outlined.VerifiedUser) { open("Vetting pipeline") }
+            HorizontalDivider(color = Line)
+            MenuRow("Patient file", "The clinician-facing record, and what each viewer is refused", Icons.Outlined.FolderShared) { open("Patient file") }
+            HorizontalDivider(color = Line)
+            MenuRow("Consultation record", "One structure for every encounter, in long form or SOAP", Icons.Outlined.EditNote) { open("Consultation record") }
         }
         CareCard {
             listOf("Nurse" to "Visits, assessment and vetting", "Doctor" to "Review queue and sign-off",
@@ -196,7 +200,12 @@ import za.co.mythuso.model.PreviewStore
         title == "Roadmap" -> RoadmapScreen(open)
         title == "First-run & recovery" -> firstRun()
         title == "Invite a guardian" -> InviteGuardianScreen(store) { open("My family") }
-        title == "Visit assessment" -> VisitAssessmentScreen(close = { open("Nurse workspace") })
+        title == "Visit assessment" -> VisitAssessmentScreen(store, close = { open("Nurse workspace") })
+        /* The clinician-facing file and the encounter that writes into it. They are one route each
+           because both are read about somebody else: the Passport is the patient's own view, and
+           putting them behind the same door would blur whose record is whose. */
+        title == "Patient file" -> PatientFileScreen(store, open)
+        title == "Consultation record" -> ConsultationRecordScreen(store)
         /* Vetting is reachable from every workspace, because every workspace is somebody who was
            vetted to be there. The routes carry the party, not a copy of their record. */
         title == "Nurse onboarding & vetting" -> VettingApplicationScreen(store, "nurse", open) { open("Nurse workspace") }
@@ -302,8 +311,8 @@ import za.co.mythuso.model.PreviewStore
         CareCard {
             Text("Your tools", style = MaterialTheme.typography.titleMedium)
             val tools = when {
-                nurse -> listOf("Visit assessment", "Nurse onboarding & vetting", "Vetting: N-205", "Apply for vetting: locum", "Diagnostic kit", "Weekly payouts", "Locum shifts", "Academy")
-                doctor -> listOf("Apply for vetting: doctor", "Vetting: D-401", "Clinical protocols", "Teleconsultation", "Referral pathway")
+                nurse -> listOf("Visit assessment", "Patient file", "Consultation record", "Nurse onboarding & vetting", "Vetting: N-205", "Apply for vetting: locum", "Diagnostic kit", "Weekly payouts", "Locum shifts", "Academy")
+                doctor -> listOf("Patient file", "Consultation record", "Apply for vetting: doctor", "Vetting: D-401", "Clinical protocols", "Teleconsultation", "Referral pathway")
                 else -> listOf("Vetting pipeline", "Vetting: O-802", "Vetting: A-902", "Vetting decision log", "Apply for vetting", "Incident INC-015", "Quality & revenue", "Employer programmes")
             }
             /* A route reads as a route. The workspace names the party it opens rather than its

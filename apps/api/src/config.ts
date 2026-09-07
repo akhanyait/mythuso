@@ -1,13 +1,19 @@
 /**
  * Configuration, and the refusals that go with it.
  *
- * This service holds identity only — a mobile number, a name if one was given, and for an account
- * that has set one up, the sealed secret its authenticator app shares with it. It is written out
- * table by table, in the words a person would use, in personalData.ts.
+ * This service holds two things. Identity: a mobile number, a name if one was given, and for an
+ * account that has set one up, the sealed secret its authenticator app shares with it. And workforce
+ * vetting: for a nurse, courier, pharmacy, laboratory or site that MyThuso vets, the certificates
+ * and clearances their checks were verified against, sealed by the protection module and opened only
+ * through the gate. Both are written out table by table, in the words a person would use, in
+ * personalData.ts.
  *
  * It holds no health information, which is why it can exist before the POPIA controls that special
- * personal information requires. The moment a clinical record lands here,
- * docs/PRIVACY-AND-SECURITY.md applies in full.
+ * personal information requires. A police clearance is not a clinical finding and a SANC certificate
+ * is not a diagnosis — they are information about the people who give care, not about the people who
+ * receive it — so adding the vetting module did not change that sentence and was not allowed to. The
+ * moment a clinical record lands here, docs/PRIVACY-AND-SECURITY.md applies in full, and
+ * scripts/check-boundaries.mjs fails the build rather than letting one arrive quietly.
  */
 import { parseKey } from './sensitive.ts';
 

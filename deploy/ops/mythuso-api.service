@@ -7,7 +7,7 @@
 # It lives in deploy/ops/ so that the deploy installs it, rather than somebody scp-ing it once and
 # the file on the box quietly outliving the repository.
 [Unit]
-Description=MyThuso identity service (holds identity only, no health information)
+Description=MyThuso backend: identity and workforce vetting (holds no health information)
 After=network.target
 # Restart= brings a dead process back. It says nothing when the process comes back and fails again,
 # and nothing at all when systemd finally gives up.

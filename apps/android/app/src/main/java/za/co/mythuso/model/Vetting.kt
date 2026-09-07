@@ -184,10 +184,20 @@ fun summarise(subject: VettingSubject): VettingSummary {
    This is the whole point of the module: not a list of documents, but a refusal with a reason
    attached to it that other screens can ask about before they offer an action. */
 data class VettingDecision(val allowed: Boolean, val reason: String?, val blockedBy: List<VettingCheck>)
+/* Role names are written for people, so “Internal admin staff” is plural and “Employer” takes “an”.
+   A refusal that reads “A internal admin staff is never granted this” is a refusal nobody trusts.
+   The name is used as written: lowercasing it would turn “Thuso Corner site” into “thuso corner
+   site”, and a refusal that misspells the reader's own role is not trusted either. */
+fun neverGranted(role: VettingRole?): String {
+    if (role == null) return "This party is never granted that."
+    if (role.name.endsWith("staff", ignoreCase = true)) return "${role.name} are never granted this."
+    val article = if (role.name.firstOrNull()?.uppercaseChar() in listOf('A', 'E', 'I', 'O', 'U')) "An" else "A"
+    return "$article ${role.name} is never granted this."
+}
 fun can(subject: VettingSubject, capabilityId: String): VettingDecision {
     val role = vettingRoleById(subject.roleId)
     val grant = role?.grants?.firstOrNull { it.capability == capabilityId }
-        ?: return VettingDecision(false, "A ${role?.name?.lowercase() ?: "party"} is never granted this.", emptyList())
+        ?: return VettingDecision(false, neverGranted(role), emptyList())
     val summary = summarise(subject)
     if (subject.declined) return VettingDecision(false, subject.declinedReason ?: grant.refusal, summary.blocking)
     if (subject.suspended) return VettingDecision(false, subject.suspendedReason ?: grant.refusal, summary.blocking)

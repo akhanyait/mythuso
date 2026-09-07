@@ -23,6 +23,11 @@ enum ThusoString: String {
        rest of the shell. The checks, authorities and refusals stay in English: a mistranslated
        credential requirement is a safety problem, not a polish problem. */
     case vetting, vettingQueue, vettingStatus, vettingApply, vettingRenewals, vettingRefused
+    /* The patient file and the consultation record reach every clinical workspace, so the way in
+       is localised with the rest of the shell. What is inside them — the record types, the
+       refusal sentences, the clinical sections — stays in English for the same reason the
+       credential requirements do. */
+    case patientFile, consultationRecord, viewingAs, openFileOf
 }
 private let table: [ThusoLocale: [ThusoString: String]] = [
     .english: [
@@ -35,7 +40,9 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .language: "Language", .previewBadge: "Design preview · Fictional data",
         .vetting: "Vetting", .vettingQueue: "Vetting queue", .vettingStatus: "Vetting status",
         .vettingApply: "Apply to join", .vettingRenewals: "Renewals due",
-        .vettingRefused: "What is refused until this passes"
+        .vettingRefused: "What is refused until this passes",
+        .patientFile: "Patient file", .consultationRecord: "Consultation record",
+        .viewingAs: "Viewing as", .openFileOf: "Open the file of"
     ],
     .zulu: [
         .home: "Ikhaya", .bookCare: "Bhukha", .visits: "Ukuvakashelwa", .passport: "Iphasiphothi", .more: "Okuningi",
@@ -47,7 +54,9 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .language: "Ulimi", .previewBadge: "Isibonelo sedizayini · Idatha eqanjiwe",
         .vetting: "Ukuqinisekiswa", .vettingQueue: "Ulayini wokuqinisekiswa", .vettingStatus: "Isimo sokuqinisekiswa",
         .vettingApply: "Faka isicelo", .vettingRenewals: "Ukuvuselelwa okudingekayo",
-        .vettingRefused: "Okwenqatshelwe uze uphase"
+        .vettingRefused: "Okwenqatshelwe uze uphase",
+        .patientFile: "Ifayela lesiguli", .consultationRecord: "Irekhodi lokubonana nodokotela",
+        .viewingAs: "Ubuka njenge", .openFileOf: "Vula ifayela lika"
     ],
     .sesotho: [
         .home: "Lehae", .bookCare: "Behela", .visits: "Diketelo", .passport: "Phasepoto", .more: "Tse ding",
@@ -59,7 +68,9 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .language: "Puo", .previewBadge: "Ponelopele ya moralo · Datha ya boiqapelo",
         .vetting: "Netefatso", .vettingQueue: "Mola wa netefatso", .vettingStatus: "Boemo ba netefatso",
         .vettingApply: "Etsa kopo", .vettingRenewals: "Dintjhafatso tse tlang",
-        .vettingRefused: "Se hannweng ho fihlela sena se feta"
+        .vettingRefused: "Se hannweng ho fihlela sena se feta",
+        .patientFile: "Faele ya mokudi", .consultationRecord: "Tlaleho ya ho bonana le ngaka",
+        .viewingAs: "O shebella jwaloka", .openFileOf: "Bula faele ya"
     ],
     .afrikaans: [
         .home: "Tuis", .bookCare: "Bespreek", .visits: "Besoeke", .passport: "Paspoort", .more: "Meer",
@@ -71,7 +82,9 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .language: "Taal", .previewBadge: "Ontwerpvoorskou · Fiktiewe data",
         .vetting: "Keuring", .vettingQueue: "Keuringstou", .vettingStatus: "Keuringstatus",
         .vettingApply: "Doen aansoek", .vettingRenewals: "Hernuwings wat verval",
-        .vettingRefused: "Wat geweier word totdat dit slaag"
+        .vettingRefused: "Wat geweier word totdat dit slaag",
+        .patientFile: "Pasiëntlêer", .consultationRecord: "Konsultasierekord",
+        .viewingAs: "Besigtig as", .openFileOf: "Open die lêer van"
     ]
 ]
 func thuso(_ key: ThusoString, _ locale: ThusoLocale) -> String {

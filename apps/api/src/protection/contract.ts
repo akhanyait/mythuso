@@ -80,6 +80,7 @@ export type Purpose =
  | 'dispensing'
  | 'diagnostics'
  | 'dispatch'
+ | 'vetting'            // deciding whether a party may be dispatched, and reading the evidence for it
  | 'billing'
  | 'subject-access'     // the patient reading their own record
  | 'audit'
@@ -109,6 +110,10 @@ export interface Gate {
  /** Reveal is the only route to plaintext. It calls access() itself; there is no way to open a
      sealed value while skipping the gate, because the crypto is not exported past this module. */
  reveal(request: AccessRequest, sealed: Sealed): { ok: true; value: Buffer } | { ok: false; reason: string };
+ /** And the only route in. The binding is built from the request rather than supplied, so a caller
+     cannot seal a document against a record it does not have the authority to write to — which is
+     the write-side of the same hole reveal() closes on the read side. */
+ protect(request: AccessRequest, plaintext: string | Buffer): { ok: true; sealed: Sealed } | { ok: false; reason: string };
 }
 
 /* ---- Tamper-evident audit --------------------------------------------------------------------

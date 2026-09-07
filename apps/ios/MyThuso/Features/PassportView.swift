@@ -190,6 +190,10 @@ struct MoreView: View {
                     Divider().overlay(ThusoTheme.line)
                     row("Vetting", "Every party that must be vetted, and what each is refused", "checkmark.shield") { VettingDirectoryView() }
                     Divider().overlay(ThusoTheme.line)
+                    row(thuso(.patientFile, store.locale), "Eight tabs, gated on vetting — the same file four different ways", "folder.badge.person.crop") { PatientFileView() }
+                    Divider().overlay(ThusoTheme.line)
+                    row(thuso(.consultationRecord, store.locale), "One structure for every encounter, in long form or SOAP", "square.and.pencil") { ConsultationRecordView() }
+                    Divider().overlay(ThusoTheme.line)
                     row("System states", "Loading, error, offline and denied", "square.stack.3d.up") { SystemStatesView() }
                     Divider().overlay(ThusoTheme.line)
                     row("Explore the roadmap", "All 21 modules in the proposal", "square.grid.2x2") { RoadmapView() }
@@ -271,6 +275,12 @@ struct WorkspaceView: View {
                         NavigationLink(item) { DoctorReviewView(reference: String(item.prefix(7))) }
                     }
                 }
+                /* A doctor's queue and a doctor's record are the same authority asked twice, so the
+                   file opens as this doctor rather than as an anonymous reader. */
+                Section("Patient records") {
+                    NavigationLink("Patient file") { PatientFileView(viewerId: "D-401") }
+                    NavigationLink("Consultation record") { ConsultationRecordView(writerId: "D-401") }
+                }
                 Section("Your vetting") {
                     NavigationLink("My registration and cover") { VettingStatusView(subjectId: "D-401") }
                     NavigationLink("Apply to join as a doctor") { VettingApplyView(roleId: "doctor") }
@@ -285,6 +295,10 @@ struct WorkspaceView: View {
                 Section("Today’s work") {
                     NavigationLink("TH-2048 · Vitals assessment · Rosebank") { VisitAssessmentView() }
                     ForEach(["11:30 · Wound care · Parktown", "14:00 · Mother & baby · Melville"], id: \.self) { item in NavigationLink(item) { FeatureDetail(title: item) } }
+                }
+                Section("Patient records") {
+                    NavigationLink("Patient file") { PatientFileView(viewerId: "N-201") }
+                    NavigationLink("Consultation record") { ConsultationRecordView(writerId: "N-205") }
                 }
                 Section("Your vetting") {
                     NavigationLink("My vetting status") { VettingStatusView(subjectId: "N-205") }

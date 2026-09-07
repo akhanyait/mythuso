@@ -19,14 +19,15 @@ whether to trust the platform with health information, the section you want is
 | The identity service's own key, sealing a name and a second-factor secret | **Built.** `apps/api/src/sensitive.ts`: AES-256-GCM, a random IV per value, an `MT1\0` envelope so values written before it existed still read back, `MYTHUSO_ENCRYPTION_KEY` validated at start-up, and a production write refused rather than stored in the clear. One key, no versions |
 | The protection module's key hierarchy: root keys, HKDF per purpose and version, a data key per value | **Built.** `apps/api/src/protection/crypto.ts`: `MYTHUSO_PROTECTION_KEYS`, an `MT2\0` envelope, and refusals for a missing key, a duplicate version, two versions holding the same material, a wrong length, and a current version this server does not hold |
 | Envelope encryption and re-wrapping | **Built.** `rotateSealedBytes` unwraps and re-wraps a data key and never touches a ciphertext |
-| Rotation as an operation somebody performs | **Not built as tooling.** The primitive exists; the pass that walks the tables, the counter that says how many rows are still on the old version, and the command that runs it do not. The procedure below is written against the primitive, and where it says "run the re-wrap pass" there is nothing yet to run |
-| The protection module wired into the service | **Not yet.** `apps/api/src/config.ts` does not read `MYTHUSO_PROTECTION_KEYS` and `apps/api/src/server.ts` exposes nothing from the module. Until it does, none of these keys are in use by anything |
+| Rotation as an operation somebody performs | **Built.** `apps/api/src/protection/rotation.ts` and `npm run rotate -w @mythuso/api`: a `key_version` column beside each sealed blob, indexed, so "how much is left" selects rather than scans; batches in their own transactions; a dry run that decodes every envelope it would rewrite and writes none of them; and `--limit` so stopping is a decision. There is no cursor and nothing is remembered between runs, which is what makes it resumable and idempotent |
+| Sealed values for it to rotate | **Built.** `apps/api/src/vetting/` holds the workforce evidence — certificates, clearances, identity documents — every one of them sealed through the gate and registered with the rotation by the module that owns the table |
+| The protection module wired into the service | **Built.** `apps/api/src/config.ts` reads and validates `MYTHUSO_PROTECTION_KEYS`, `apps/api/src/server.ts` constructs the module, the gate decides every read of vetting evidence and the subject-access route, and `GET /health/audit` answers with `verify()`'s own shape |
 | A second copy of a key | **Not built and nothing can build it for you.** It is a ceremony: [the key ceremony](#the-key-ceremony) |
 | The keys checked at deploy time | **Built.** `deploy/deploy.sh` refuses to finish if the service is enabled and a key is missing, malformed, placeholder text, duplicated, shared between the two secrets, or present under the web root or the backups — and it never prints one. [deploy/README.md](../deploy/README.md#what-the-deploy-checks-about-the-keys) lists what it asks |
 | Audit chain integrity watched | **Built on this side** — `deploy/ops/mythuso-healthcheck.sh` asks every five minutes. It needs an endpoint the service does not have yet; see [what this assumes](#what-this-assumes-about-code-that-is-not-merged-yet) |
 
-Everywhere below, a paragraph about a rotation *pass* is describing an operation with no tooling
-yet. Where a command exists today it is shown as a command.
+Every step of the rotation procedure below now has something to run. Where a command exists it is
+shown as a command.
 
 ## The key hierarchy
 
@@ -219,10 +220,19 @@ typo into the only copy of a key.
 
 Rotating `MYTHUSO_ENCRYPTION_KEY` is **not built**: the identity service has one key and no
 re-sealing migration, exactly as `docs/PRIVACY-AND-SECURITY.md` says. Everything below is about
-`MYTHUSO_PROTECTION_KEYS`, where the key ring, the versions and `rotateSealedBytes` do exist — and
-where the pass that walks the tables, and the count of rows still on the old version, **do not**.
-Step 4 below is currently a step with nothing to run. The procedure is written first on purpose: a
-rotation designed during an incident is a rotation performed badly.
+`MYTHUSO_PROTECTION_KEYS`, where the key ring, the versions, `rotateSealedBytes`, the pass that walks
+the tables and the count of rows still on the old version all exist. The procedure was written before
+the tooling, on purpose — a rotation designed during an incident is a rotation performed badly — and
+the tooling was then built to fit the procedure rather than the other way round.
+
+One thing the procedure did not know about itself, found by building step 5 and watching step 6 fail:
+the audit chain used to be keyed under whichever version was *current*, so step 4 — one reversible
+line, meant to change nothing — made every entry ever written stop verifying, and the health check
+that asks every five minutes would have reported a tampered log on the evening of a routine
+rotation. An audit entry can never be re-chained, because rewriting the log under a new key is
+exactly the operation the chain exists to make impossible. The audit key is therefore pinned to the
+oldest version in the ring, the way the blind index already was and for the same reason. That is a
+second, independent argument for step 7's rule that a retired key is never actually deleted.
 
 **When, on a schedule.** Once a year, in the first working week of March, because that is beside the
 financial year end and therefore on a calendar somebody already reads. A rotation date that lives
@@ -301,13 +311,31 @@ them ever displays a key.
 
    New writes seal under version 2. Everything already written still opens, because version 1 is
    still in the ring. This is reversible in one line.
-5. **Re-wrap.** Run the re-wrap pass over each table holding sealed values. It rewrites sixty bytes
-   per value and leaves the ciphertext alone, so it is interruptible and resumable and can be run in
-   batches over several evenings against a live service. **This tooling does not exist yet** —
-   `rotateSealedBytes` is the primitive it would be built on.
-6. **Verify.** Three things, in this order: no value is still wrapped under version 1; the audit
-   chain still verifies from its origin; and a person opens one record of each record type by hand
-   and reads it. The third is what catches a re-wrap that "worked" against an empty table.
+5. **Re-wrap.** The pass walks every table holding sealed values, rewrites sixty bytes per value and
+   leaves the ciphertext alone. Rehearse it first; it writes nothing without `--commit`.
+
+   ```sh
+   cd /opt/mythuso/api
+   npm run rotate                                  # what it would do, and how much is left
+   npm run rotate -- --commit --batch 100          # do it
+   npm run rotate -- --commit --limit 2000         # or do a measured amount of it
+   ```
+
+   It is interruptible, resumable and idempotent, and it holds no cursor: each batch asks the
+   database which values are not yet on the current version, so stopping loses nothing and running it
+   again picks up exactly what was missed. `--limit` exists so that stopping is a decision rather
+   than an interruption. It never opens a payload, so the person running it at two in the morning is
+   not a person who could read a record while they were there.
+6. **Verify.** Three things, in this order.
+
+   ```sh
+   npm run rotate     # "still on an old key: 0", and the audit chain's own verdict beneath it
+   ```
+
+   The dry run answers the first two: no value is still wrapped under version 1, and the audit chain
+   verifies from its origin. The third is not a command — a person opens one record of each record
+   type by hand and reads it — and it is the one that catches a re-wrap that "worked" against an
+   empty table, which is why the pass reports how many values it saw as well as how many it changed.
 7. **Wait, then retire version 1.** It must stay in `MYTHUSO_PROTECTION_KEYS` until every backup
    archive sealed under it has aged out — the archives keep fourteen days and erasure runs on a
    seven-day grace, so **at least twenty-one days**, and there is no hurry at all. An archive whose
@@ -579,25 +607,29 @@ and every one-time code, and the mail relay sees the body of every alert, which 
 
 ## What this assumes about code that is not merged yet
 
-The module landed while this was being written, so most of it is now description rather than
-assumption. Three things are still assumptions, and each is a place where the code and this document
-could disagree:
+Nothing, any more. All three assumptions this section carried have landed, and what replaces them is
+description:
 
-- **The audit chain's `verify()` becomes reachable from the loopback as `GET /health/audit`,**
-  answering with the shape `AuditChain.verify()` already returns — `{"intact":true,"length":N,"head":"…"}`
-  or `{"intact":false,"brokenAt":"…","length":N}` — and with no record content in it.
-  `apps/api/src/server.ts` has no such route today. `deploy/ops/mythuso-healthcheck.sh` treats a 404
-  as "not built yet" and reports it as a note, so it is safe to install before the route exists; when
-  the route appears under a different path or shape, that one `curl` line is what needs changing.
-- **`apps/api/src/config.ts` will read `MYTHUSO_PROTECTION_KEYS`** and hand it to
-  `parseRootKeys`, so that a malformed key ring is a service that refuses to start. It does not read
-  it yet, and until it does the deploy's check is the only thing on the server that looks at those
-  keys at all. The deploy decides whether to *require* them by grepping the deployed source for the
-  variable name, so it starts requiring them on the deploy after that wiring lands, with nothing to
-  remember.
-- **The rotation pass, and the count of values still on an old version,** get built. The primitive
-  (`rotateSealedBytes`) exists; the operation does not. Step 5 of [rotation](#rotation) is a step
-  with nothing to run, and step 6's first check has nothing to answer it.
+- **`GET /health/audit`** exists in `apps/api/src/server.ts` and answers with `AuditChain.verify()`'s
+  own shape — `{"configured":true,"intact":true,"length":N,"head":"…"}` or
+  `{"configured":true,"intact":false,"brokenAt":"…","length":N}` — and with no record content in it.
+  With no keys configured it answers `{"configured":false}` rather than pretending to a verdict.
+  `deploy/ops/mythuso-healthcheck.sh` reads it as written.
+- **`apps/api/src/config.ts` reads `MYTHUSO_PROTECTION_KEYS`** and hands it to `parseRootKeys` at
+  start-up, so a malformed key ring is a service that refuses to start rather than one that turns out
+  hours later to hold nothing it can read. The deploy decides whether to *require* the keys by
+  grepping the deployed source for the variable name, so it now requires them.
+- **The rotation pass and the count of values still on an old version** are
+  `apps/api/src/protection/rotation.ts`, run by `npm run rotate`. Steps 5 and 6 of
+  [rotation](#rotation) both have commands, and the count is an indexed `key_version` column rather
+  than a scan.
+
+One assumption is worth adding in their place, because it is the shape of the next disagreement:
+**every module that owns a table of sealed values registers it with the rotation.** The vetting
+module does — `SEALED_COLUMNS` in `apps/api/src/vetting/store.ts`, handed to `createProtectionModule`
+at composition. A module that seals something and forgets to register it is a table the rotation
+silently skips, and the way that is discovered is on the day somebody destroys an old key. There is
+no check for it yet, and there should be.
 
 ## Verified, and not
 
@@ -606,9 +638,16 @@ branch of the deploy's key check and the health check's audit-chain check was ex
 fixtures on a workstation — a stand-in `api.env` for each fault, and a local HTTP server returning
 each `verify()` shape.
 
+The rotation was exercised end to end on a workstation rather than only in tests: a database seeded
+with real sealed documents, a second key added and made current, a dry run, a limited commit leaving
+the table on two versions at once, every document still opening in that state, a resumed run
+finishing it, and the audit chain verifying before and after. That is where the audit-key defect
+described in [rotation](#rotation) was found — it passed every unit test and failed the first time a
+person read the command's output.
+
 None of it has been run against the server. No deploy was performed, no key was generated on the
 box, no unit was installed or reloaded, `systemd-analyze verify` was not available to check the unit
-file, and `/health/audit` has not been called because it does not exist yet. The systemd directives
+file, and `/health/audit` has been called only on a workstation. The systemd directives
 added to `mythuso-api.service` are therefore unverified in place: they will take effect only after a
 deploy installs the unit and somebody runs `systemctl restart mythuso-api`, which the deploy says
 out loud when the unit has changed under a running service. And the key ceremony has not been

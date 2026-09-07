@@ -408,7 +408,7 @@ function Referrals({ patient, viewer }: { patient: PatientRecord; viewer: Vettin
    <Pill tone={r.status.startsWith('Accepted') ? '' : 'sky'}>{r.status}</Pill>
   </div>)}</div> : <EmptyNote>No referral in this file is open to this viewer.</EmptyNote>}
   <ProtectedLine viewer={viewer} what="referral"/>
-  <p className="helper"><Send size={14}/>records.json gates referrals on “refer-patient” — the capability to make one. The contract does not yet separate reading a referral from writing it, so a nurse who may not refer also may not read one. That is the contract's shape, written down rather than quietly widened here.</p>
+  <p className="helper"><Send size={14}/>Reading a referral and making one are different acts: the record opens on “view-clinical-record”, and “refer-patient” writes it. A nurse who may not refer still has to know her patient was referred.</p>
  </>;
 }
 

@@ -94,16 +94,16 @@ export function canOpen(subject: VettingSubject, item: Sensitive): Decision {
 
 /* ---- The eight tabs ---------------------------------------------------------------------
    Keyed off the contract's navigation array rather than a second list of names, so a tab cannot
-   be renamed here and stay Overview there. Referrals is gated on refer-patient because that is
-   what records.json says; the contract does not yet separate reading a referral from writing one,
-   and the tab says so rather than quietly widening it. */
+   be renamed here and stay Overview there. Referrals opens on view-clinical-record because that is
+   what records.json says: reading a referral and making one are different acts, and a nurse who may
+   not refer still has to know her patient was referred. `refer-patient` is the write. */
 const tabGates: Record<string, string[]> = {
  Overview: ['view-patient-summary'],
  Timeline: ['view-clinical-record'],
  Consultations: ['view-clinical-record'],
  Medication: ['view-clinical-record', 'dispense'],
  Results: ['view-results'],
- Referrals: ['refer-patient'],
+ Referrals: ['view-clinical-record'],
  Documents: ['view-clinical-record'],
  Billing: ['view-billing']
 };

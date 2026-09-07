@@ -285,10 +285,20 @@ struct VettingDecision {
     let reason: String?
     let blockedBy: [VettingCheck]
 }
+/* Role names are written for people, so "Internal admin staff" is plural and "Employer" takes "an",
+   and lowercasing the whole name turns "Thuso Corner site" into "thuso corner site". A refusal that
+   misspells the reader's own role is a refusal nobody trusts. Web and Android say it this way too. */
+func neverGranted(_ role: VettedRole?) -> String {
+    guard let role else { return "This party is never granted that." }
+    if role.name.hasSuffix("staff") { return "\(role.name) are never granted this." }
+    let article = "AEIOU".contains(role.name.uppercased().first ?? " ") ? "An" : "A"
+    return "\(article) \(role.name) is never granted this."
+}
+
 func can(_ subject: VettingSubject, _ capabilityId: String) -> VettingDecision {
     let role = subject.role
     guard let grant = role?.grants.first(where: { $0.capability == capabilityId }) else {
-        return VettingDecision(allowed: false, reason: "A \((role?.name ?? "party").lowercased()) is never granted this.", blockedBy: [])
+        return VettingDecision(allowed: false, reason: neverGranted(role), blockedBy: [])
     }
     let summary = summarise(subject)
     if subject.declined {

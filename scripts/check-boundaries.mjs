@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { emitTokens } from './emit-tokens.mjs';
 import { emitVetting } from './emit-vetting.mjs';
+import { emitRecords } from './emit-records.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -66,6 +67,11 @@ const onboardingSources = {
 };
 const idValidators = ['apps/web/src/features/Onboarding.tsx','apps/ios/MyThuso/Models/Localisation.swift','apps/android/app/src/main/java/za/co/mythuso/model/Localisation.kt'];
 for(const file of idValidators) if(!/check digit/.test(read(file))) throw new Error(`Identity-number check-digit validation is missing from ${file}`);
+/* An attribution line is where a reader is being shown what accountability looks like. A placeholder
+   registration number there is the one place a preview should not be fictional twice over. */
+for(const [platform,file] of Object.entries(clinicalSources)) {
+ if(/SANC 0{4,}/.test(read(file))) throw new Error(`A placeholder registration number is back in the ${platform} sign-off (${file}). Read it from the vetting record.`);
+}
 const demoCodes = [['240924','sign-up verification code',Object.values(onboardingSources)],
                    ['482190','visit code',Object.values(clinicalSources)],
                    ['8001015009087','sample identity number',Object.values(onboardingSources)]];
@@ -130,16 +136,18 @@ if(existsSync('apps/api/src')) {
  const store=read('apps/api/src/store.ts');
  if(/UPDATE audit|DELETE FROM audit/i.test(store)) throw new Error('The audit table must stay append-only');
 }
-/* Two things the three apps share are no longer written out three times by hand: the design tokens
-   and the vetting table are generated into CSS, Swift and Kotlin by scripts/emit-tokens.mjs and
-   scripts/emit-vetting.mjs. Drift can no longer be typed in, but a generated file can still be
-   stale, or edited by somebody who did not read the header. Both are the same failure, so both are
-   caught the same way: ask the emitter what the file should say and compare it with what is there.
-   The modification time is looked at first only because "regenerate" is a more useful thing to be
-   told than a diff — it is the same rule the illustrations and banners below are held to. */
+/* Three things the apps share are no longer written out by hand in each of them: the design tokens,
+   the vetting table and the record contract are generated into CSS, Swift and Kotlin by
+   scripts/emit-tokens.mjs, scripts/emit-vetting.mjs and scripts/emit-records.mjs. Drift can no
+   longer be typed in, but a generated file can still be stale, or edited by somebody who did not
+   read the header. Both are the same failure, so both are caught the same way: ask the emitter what
+   the file should say and compare it with what is there. The modification time is looked at first
+   only because "regenerate" is a more useful thing to be told than a diff — it is the same rule the
+   illustrations and banners below are held to. */
 const generated = [
  { source: 'packages/design-tokens/tokens.json', command: 'npm run tokens', files: emitTokens() },
- { source: 'packages/catalog/vetting.json', command: 'npm run vetting', files: emitVetting() }
+ { source: 'packages/catalog/vetting.json', command: 'npm run vetting', files: emitVetting() },
+ { source: 'packages/catalog/records.json', command: 'npm run records', files: emitRecords() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -203,7 +211,11 @@ for(const [platform,file] of Object.entries(nativeVetting)) {
     would leave two, and two is where drift comes from. */
  if(/(static let (capabilities|authorities|roles|scopes)\b|val vetting(Capabilities|Authorities|Roles|Scopes)\s*[:=])/.test(source)) throw new Error(`${file} declares a vetting table of its own. That table is generated into VettingData — the app should read that one.`);
 }
+/* Read only so the line below can say how much was generated. Nothing about the contract is checked
+   against a native file any more: there is one copy of it and a generator between it and the two
+   apps, which is the whole point of the block above. */
+const records=JSON.parse(read('packages/catalog/records.json'));
 const webVetting=read('apps/web/src/lib/vetting.ts');
 if(!webVetting.includes('EXPIRY_WARNING_DAYS = 45')) throw new Error('The 45-day renewal warning has moved in apps/web/src/lib/vetting.ts');
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens and the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — are generated into CSS, Swift and Kotlin, and every generated file matches its source.`);
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source.`);

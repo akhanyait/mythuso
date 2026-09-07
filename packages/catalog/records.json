@@ -236,9 +236,10 @@
    "fhir": "MedicationRequest",
    "sensitivity": "clinical",
    "gatedBy": [
-    "view-clinical-record"
+    "view-clinical-record",
+    "dispense"
    ],
-   "summary": "Medicine, dose, frequency, repeats and the prescribing clinician's registration."
+   "summary": "Medicine, dose, frequency, repeats and the prescribing clinician's registration. A pharmacy opens this on its dispensing licence: vetting.json promises it sees the prescription and the allergies that bear on filling it, and a Medication tab that opens on nothing was that promise unkept."
   },
   {
    "id": "medication-catalogue",
@@ -352,6 +353,20 @@
     "view-clinical-record"
    ],
    "summary": "Everyone currently authorised for this patient, and since when."
+  },
+  {
+   "id": "vetting-evidence",
+   "name": "Vetting evidence",
+   "area": "care-network",
+   "fhir": "DocumentReference | VerificationResult",
+   "sensitivity": "routine",
+   "gatedBy": [
+    "review-vetting"
+   ],
+   "summary": "A registration certificate, a police clearance, a schedule of cover — the document a reviewer actually looked at, sealed, versioned, and hashed so a substitution shows. Routine by this catalogue's own definition: a police clearance carries no clinical finding. Marking it clinical to buy a higher ceiling would drag it into reach of the treatment and dispensing purposes, which have no business with it; what keeps it narrow is review-vetting, held by one role in the whole catalogue.",
+   "writtenBy": [
+    "review-vetting"
+   ]
   },
   {
    "id": "appointment",

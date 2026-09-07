@@ -7,7 +7,8 @@ import { Identity, type Caller, type PublicPerson } from './identity.ts';
 import { TwoFactor } from './twoFactor.ts';
 import { Erasure } from './erasure.ts';
 import { decideStepUp, SECOND_FACTOR_CAPABILITIES, SECOND_FACTOR_REASONS, type StepUpAction } from './stepUp.ts';
-import { HOLDINGS, RESPONSE_DAYS, SCOPE_STATEMENT, dueBy, erasureSummary } from './personalData.ts';
+import { RESPONSE_DAYS, SCOPE_STATEMENT, clinicalRetentionRules } from './personalData.ts';
+import { SEALED_COLUMNS, VettingVault, openVettingStore, vettingSource } from './vetting/index.ts';
 
 const COOKIE = 'mythuso_session';
 type Handler = (req: IncomingMessage, res: ServerResponse, body: Record<string, unknown>, caller: Caller) => void;
@@ -59,8 +60,30 @@ const asString = (value: unknown): string => typeof value === 'string' ? value :
 export function createApp(config: Config, store: Store, now = () => Date.now()) {
   const twoFactor = new TwoFactor(store, config, now);
   const identity = new Identity(store, config, now, twoFactor);
-  const erasure = new Erasure(store, now);
   const routes = new Map<string, Handler>();
+
+  /* The vetting module's own tables, in the same database and owned by that module. The store is
+     opened before the protection module because the gate reads a party's standing out of it: a
+     nurse whose police clearance ran out last night is refused this morning by arithmetic, and that
+     only works if the gate is asking the register rather than a stub that answers "nobody". */
+  const vettingStore = openVettingStore(store.database);
+
+  /* The data protection module, if it is configured. The identity service holds no clinical record,
+     so the gate has little to guard here yet — but the subject-access route below is a real read of
+     a real person's information, and every vetting document is a real sealed value, so the
+     chokepoint is exercised on every deployment rather than proved once in a test and left. */
+  const protection = createProtectionModule(config, store.database, {
+    vetting: vettingSource(vettingStore),
+    /* Nobody has released a protected category to anybody: there are none in this service to
+       release. An unknown release refuses, which is the correct answer. */
+    releases: { find: () => null },
+    sealedColumns: SEALED_COLUMNS,
+    now
+  });
+  const vetting = protection ? new VettingVault({ gate: protection.gate, audit: protection.audit, store: vettingStore, now }) : null;
+  /* What an erasure cannot reach, asked rather than assumed. With no protection keys there is no
+     vault, so there is nothing it could be holding and nothing to say about it. */
+  const erasure = new Erasure(store, now, vetting ? [{ retainedFor: personId => vetting.retainedFor(personId) }] : []);
 
   /* Every route below this line is about somebody's own account, so each one starts by resolving
      the cookie rather than trusting an id in the body. */
@@ -184,17 +207,6 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     send(res, 200, { ...twoFactor.state(person.id) });
   });
 
-  /* The data protection module, if it is configured. The identity service holds no clinical record,
-     so the gate has little to guard here yet — but the subject-access route below is a real read of
-     a real person's information, and routing it through the gate now means the chokepoint is
-     exercised on every deployment rather than proved once in a test and left. */
-  const protection = createProtectionModule(config, store.database, {
-    /* Nobody in this service is a vetted party — it holds identity, not a workforce. An unknown
-       actor refuses, which is the correct answer to every question except a person's own. */
-    vetting: { find: () => null },
-    releases: { find: () => null }
-  });
-
   /* The section 24 answer, as data. An operator can read it, and so can the person it is about. */
   routes.set('GET /account/data', (req, res) => {
     const person = signedIn(req, res);
@@ -207,9 +219,20 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
       if (!outcome.allowed) return send(res, 403, { error: outcome.reason, audit: outcome.auditId });
       res.setHeader('x-mythuso-audit', outcome.auditId);
     }
+    /* The plan, rather than the register: it is per person, so a nurse is told about her
+       certificates and somebody who only uses MyThuso for their own care is not told about
+       certificates they have never submitted. */
+    const plan = erasure.plan(now(), person.id);
     send(res, 200, {
-      holds: SCOPE_STATEMENT, holdings: HOLDINGS, summary: erasureSummary(),
-      responseDays: RESPONSE_DAYS, respondBy: dueBy(now())
+      holds: SCOPE_STATEMENT, holdings: plan.holdings, summary: plan.summary,
+      retained: plan.retained.map(entry => ({
+        label: entry.holding.label, basis: entry.basis.name, authority: entry.basis.authority,
+        conflictsWithErasure: entry.basis.conflictsWithErasure, disposalOn: entry.disposalOn
+      })),
+      /* Named even though nothing here is held on them, because "no clinical record exists" and
+         "erasure would reach a clinical record" are different statements and only one is true. */
+      clinicalRetention: clinicalRetentionRules().map(basis => ({ name: basis.name, authority: basis.authority, rule: basis.rule, note: basis.note })),
+      responseDays: RESPONSE_DAYS, respondBy: plan.respondBy
     });
   });
 
@@ -231,7 +254,10 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     send(res, 200, { ok: true }, { 'set-cookie': clearCookie(config) });
   });
 
-  routes.set('GET /health', (_req, res) => send(res, 200, { ok: true, environment: config.environment, holds: 'identity only' }));
+  /* What it holds, said in one phrase by the thing that is actually running rather than only by a
+     document. It is no longer "identity only" — the vetting module holds workforce evidence — and it
+     is still no health information, which is the half that decides which controls apply. */
+  routes.set('GET /health', (_req, res) => send(res, 200, { ok: true, environment: config.environment, holds: 'identity and workforce vetting, no health information' }));
   /* The audit chain's own integrity, for the health check that runs every five minutes. It returns
      whether the chain follows and where it stops following — never an entry, and never a value. */
   routes.set('GET /health/audit', (_req, res) => {
@@ -275,7 +301,7 @@ export function start(config = loadConfig()) {
   const store = openStore(config.databasePath);
   const server = createServer(createApp(config, store));
   server.listen(config.port, () => {
-    console.log(`MyThuso identity service on :${config.port} (${config.environment}) — holds identity only, no health information`);
+    console.log(`MyThuso identity and vetting service on :${config.port} (${config.environment}) — holds no health information`);
     if (config.returnCodesInResponse) console.log('Development mode: one-time codes are returned in the response. This is refused in production.');
   });
   return { server, store };

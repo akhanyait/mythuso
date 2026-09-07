@@ -24,3 +24,6 @@ DerivedData/
 *.tsbuildinfo
 playwright-report/
 test-results/
+
+# Word and PowerPoint lock files, created whenever the proposal is open
+~$*

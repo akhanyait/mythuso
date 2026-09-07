@@ -32,7 +32,7 @@ async function signIn() {
 describe('the endpoint surface', () => {
   test('health says what the service holds', async () => {
     const body = await (await call('/health')).json();
-    assert.deepEqual(body, { ok: true, environment: 'development', holds: 'identity only' });
+    assert.deepEqual(body, { ok: true, environment: 'development', holds: 'identity and workforce vetting, no health information' });
   });
   test('an unknown route is a 404, not a stack trace', async () => {
     const response = await call('/admin/secrets');

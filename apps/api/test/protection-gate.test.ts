@@ -458,3 +458,101 @@ describe('reveal', () => {
   assert.deepEqual(Object.keys(outcome).sort(), ['allowed', 'auditId', 'broke'], 'the outcome carries a decision, not key material');
  });
 });
+
+/* ---- protect: the only route in ------------------------------------------------------------- */
+describe('protect', () => {
+ const vetting = (over: Partial<AccessRequest> = {}): AccessRequest => ask({
+  actorId: 'admin-1', actorRole: 'admin', capability: 'review-vetting', purpose: 'vetting',
+  recordType: 'vetting-evidence', recordId: 'E-1', subjectId: 'nurse-1', field: 'document.v1', ...over
+ });
+
+ test('seals against the binding the gate decided about, not one the caller supplied', () => {
+  /* The write-side of what reveal() closes on the read side. A caller passes a request and bytes,
+     never a binding, so a document cannot be sealed against a record the caller has no authority
+     over and then opened there ever afterwards. */
+  const { gate } = harness();
+  const sealed = gate.protect(vetting(), 'a certificate');
+  assert.ok(sealed.ok);
+  assert.deepEqual(sealed.sealed.binding, {
+   recordType: 'vetting-evidence', recordId: 'E-1', field: 'document.v1', subjectId: 'nurse-1'
+  });
+ });
+
+ test('refuses everything a read would refuse, and writes the refusal down', () => {
+  const { gate, chain } = harness();
+  const wrongRole = gate.protect(vetting({ actorId: 'nurse-1', actorRole: 'nurse' }), 'x');
+  assert.equal(wrongRole.ok, false);
+  assert.ok(!wrongRole.ok && /never granted/.test(wrongRole.reason));
+
+  const unvetted = gate.protect(vetting({ actorId: 'ghost' }), 'x');
+  assert.equal(unvetted.ok, false);
+
+  const noField = gate.protect(vetting({ field: undefined }), 'x');
+  assert.equal(noField.ok, false);
+  assert.ok(!noField.ok && /has to name the field/.test(noField.reason));
+  assert.ok(chain.verify().intact);
+  assert.equal(chain.verify().length, 3, 'three refusals, three entries');
+ });
+
+ test('break-glass reads and never writes', () => {
+  /* An override nobody reviewed until afterwards is not a way to add a record to somebody's file. */
+  const { gate } = harness();
+  const outcome = gate.protect(vetting({ purpose: 'emergency', reason: 'Unresponsive.' }), 'x');
+  assert.equal(outcome.ok, false);
+  assert.ok(!outcome.ok && /a record with no accountable author/.test(outcome.reason));
+ });
+
+ test('a seal is its own event in the log, not another read', () => {
+  const store = memoryAuditStore();
+  const chain = new HashChainAudit(store, randomBytes(32), () => NOW);
+  const gate = new AccessGate({
+   crypto: fakeCrypto(), audit: chain, now: () => NOW,
+   vetting: { find: actorId => ({ actorId, roleId: 'admin', records: cleared('admin') }) },
+   releases: { find: () => null }
+  });
+  gate.protect(vetting(), 'a certificate');
+  gate.access(vetting());
+  assert.equal(store.rows[0]!.event, 'record.sealed');
+  assert.equal(store.rows[1]!.event, 'access.allowed');
+  assert.ok(!JSON.stringify(store.rows).includes('a certificate'), 'the log names the field, never the value');
+ });
+});
+
+/* ---- The workforce record type -------------------------------------------------------------- */
+describe('vetting evidence in the catalogue', () => {
+ test('only the vetting and subject-access purposes reach it', () => {
+  for (const [purpose, reachable] of Object.entries(purposeMatrix)) {
+   assert.equal(reachable.has('vetting-evidence'), purpose === 'vetting' || purpose === 'subject-access',
+    `${purpose} and a nurse's police clearance`);
+  }
+  assert.deepEqual([...purposeMatrix.vetting], ['vetting-evidence'],
+   'a vetting purpose reaches the evidence and nothing about a patient');
+ });
+
+ test('a dispatcher with a patient summary capability cannot reach it', () => {
+  /* It lives in the care-network area, which dispatch does reach — the capability is what keeps it
+     out, and that is the narrower limit of the two. */
+  const { gate } = harness();
+  const outcome = gate.access(ask({
+   actorId: 'operator-1', actorRole: 'operator', capability: 'view-patient-summary',
+   purpose: 'dispatch', recordType: 'vetting-evidence', recordId: 'E-1', subjectId: 'nurse-1', field: 'document.v1'
+  }));
+  assert.equal(outcome.allowed, false);
+  assert.equal(outcome.blockedBy[0], 'capability');
+ });
+
+ test('the nurse it is about reads it as herself, and a purpose is still required', () => {
+  const { gate } = harness();
+  const hers = gate.access(ask({
+   actorId: 'nurse-1', actorRole: 'nurse', capability: 'review-vetting', purpose: 'subject-access',
+   recordType: 'vetting-evidence', recordId: 'E-1', subjectId: 'nurse-1', field: 'document.v1'
+  }));
+  assert.ok(hers.allowed);
+  const somebodyElses = gate.access(ask({
+   actorId: 'nurse-1', actorRole: 'nurse', capability: 'review-vetting', purpose: 'subject-access',
+   recordType: 'vetting-evidence', recordId: 'E-2', subjectId: 'nurse-2', field: 'document.v1'
+  }));
+  assert.equal(somebodyElses.allowed, false);
+  assert.ok(!somebodyElses.allowed && /reading somebody else's is a different request/i.test(somebodyElses.reason));
+ });
+});

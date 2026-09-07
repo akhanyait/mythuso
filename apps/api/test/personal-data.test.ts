@@ -12,7 +12,9 @@ import { TwoFactor } from '../src/twoFactor.ts';
 import { totp } from '../src/totp.ts';
 import { Erasure, GRACE_DAYS, isTombstone, tombstone } from '../src/erasure.ts';
 import { sweep, print } from '../src/retention.ts';
-import { daysRemaining, dueBy, erasureSummary, HOLDINGS, RESPONSE_DAYS, SCOPE_STATEMENT, holdings } from '../src/personalData.ts';
+import { basisById, clinicalRetentionRules, daysRemaining, disposalDate, dueBy, erasureSummary, HOLDINGS, RESPONSE_DAYS, RETENTION_BASES, SCOPE_STATEMENT, holdings, retainedHoldings } from '../src/personalData.ts';
+import { createProtectionModule } from '../src/protection/index.ts';
+import { openVettingStore } from '../src/vetting/index.ts';
 
 const config = loadConfig({
   MYTHUSO_ENV: 'development', MYTHUSO_AUTH_PEPPER: 'p'.repeat(40),
@@ -51,9 +53,17 @@ describe('the holdings register', () => {
   test('it names every table the service actually has, and none it does not', () => {
     /* A register is only worth anything if it is checked against the schema. Listing a table that
        does not exist promises to delete something that was never there; missing one quietly holds
-       information nobody was told about. */
+       information nobody was told about.
+
+       Every module that owns tables in this database gets to create them first, which is the point:
+       identity is no longer the only one, and a register checked against identity's schema alone
+       would have stopped noticing the moment the second module landed. */
     const path = join(mkdtempSync(join(tmpdir(), 'mythuso-')), 'identity.db');
     const store = openStore(path);
+    openVettingStore(store.database);
+    createProtectionModule({ environment: 'development', protectionKeys: `1:${randomBytes(32).toString('hex')}` }, store.database, {
+      vetting: { find: () => null }, releases: { find: () => null }
+    });
     store.close();
     const database = new DatabaseSync(path);
     const actual = (database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as unknown as { name: string }[])
@@ -70,10 +80,54 @@ describe('the holdings register', () => {
     }
   });
   test('anything kept is kept with a ground, which is what POPIA asks for', () => {
-    const summary = erasureSummary();
+    /* Asked as a vetted party, because that is the person with the most kept from them. */
+    const summary = erasureSummary({ vetted: true });
     assert.match(summary, /POPIA requires a ground/);
     for (const kept of holdings('retain')) assert.ok(summary.includes(kept.because), kept.label);
     assert.equal(holdings('erase').length + holdings('anonymise').length + holdings('retain').length, HOLDINGS.length);
+  });
+  test('every holding is kept on a ground that is actually in the register', () => {
+    /* A holding whose basis nobody wrote down is a holding nobody can justify, and the place that
+       shows up is a subject access request rather than a test. */
+    for (const holding of HOLDINGS) {
+      const basis = basisById(holding.basis);
+      assert.ok(basis, `${holding.table} names retention basis "${holding.basis}", which does not exist`);
+      assert.ok(basis.authority.length > 20, `${basis.id} does not name the instrument it rests on`);
+      assert.ok(basis.note.length > 20, `${basis.id} does not say which part of it is MyThuso's own choice`);
+    }
+  });
+  test('the clinical retention rules are written down and hold nothing at all', () => {
+    /* Both halves matter. "No clinical record exists here" and "erasure would reach a clinical
+       record" are different statements, and only the first one is true. */
+    const clinical = RETENTION_BASES.filter(basis => !basis.inUse);
+    assert.ok(clinical.length >= 3);
+    for (const basis of clinical) {
+      assert.ok(basis.conflictsWithErasure, `${basis.id} is a retention rule that does not pull against section 24, which would make it a strange thing to list`);
+      assert.ok(!HOLDINGS.some(holding => holding.basis === basis.id), `${basis.id} is marked as holding nothing and something is held on it`);
+    }
+    const sixYears = RETENTION_BASES.find(basis => basis.id === 'health-record')!;
+    assert.equal(sixYears.years, 6);
+    assert.equal(sixYears.anchor, 'last-entry', 'six years from the last entry, not from the visit and not from the request');
+    assert.equal(RETENTION_BASES.find(basis => basis.id === 'health-record-minor')!.anchor, 'age-of-majority');
+    assert.equal(RETENTION_BASES.find(basis => basis.id === 'health-record-extended')!.years, null,
+      'a period that differs by regulation is left null rather than guessed at');
+  });
+  test('a disposal date is derived where it can be, and refused where it cannot', () => {
+    const at = Date.UTC(2026, 8, 1);
+    const proof = basisById('proof-of-request')!;
+    const disposal = disposalDate(proof, at)!;
+    assert.ok(disposal > at + 1000 * DAY && disposal < at + 1100 * DAY, 'three years from the request');
+    /* The three honest nulls: no period, no anchor this service can compute, and no end at all. */
+    assert.equal(disposalDate(basisById('health-record-minor')!, at), null);
+    assert.equal(disposalDate(basisById('health-record')!, null), null, 'no last entry means no date, rather than today plus six years');
+    assert.equal(disposalDate(basisById('audit-integrity')!, at), null);
+  });
+  test('a patient is not told about certificates they have never submitted', () => {
+    const at = Date.UTC(2026, 8, 1);
+    const patient = retainedHoldings({ requestedAt: at }, { vetted: false });
+    assert.ok(!patient.some(entry => entry.holding.table.startsWith('vetting_')));
+    const nurse = retainedHoldings({ requestedAt: at, partyInactiveAt: at }, { vetted: true });
+    assert.ok(nurse.some(entry => entry.holding.table === 'vetting_evidence_versions'));
   });
   test('the response clock runs from when the request arrived', () => {
     const received = Date.UTC(2026, 8, 1);
@@ -81,6 +135,51 @@ describe('the holdings register', () => {
     assert.equal(dueBy(received), received + 30 * DAY);
     assert.equal(daysRemaining(dueBy(received), received), 30);
     assert.equal(daysRemaining(dueBy(received), received + 31 * DAY), -1, 'late is a negative number, not a zero');
+  });
+});
+
+describe('an erasure that cannot erase everything', () => {
+  test('says so, names the ground, and gives the date it stops applying', () => {
+    const h = harness();
+    const person = h.signIn().person;
+    /* Standing in for the vetting vault: something in the platform holds evidence it may not delete.
+       erasure.ts is told rather than knowing, which is why it holds no opinion about vetting. */
+    const erasure = new Erasure(h.store, h.now, [{
+      retainedFor: () => [{
+        what: 'The vetting evidence held about you as a Registered nurse',
+        because: 'MyThuso has to be able to show who was cleared to attend a visit, on what evidence, and who agreed to it.'
+      }]
+    }]);
+    const plan = erasure.request(person.id, caller);
+    assert.equal(plan.alsoRetained.length, 1);
+    assert.match(plan.summary, /vetting evidence held about you/);
+    /* The word that has to be in it. A partial refusal described only as "kept" is a refusal the
+       person never realises they could take anywhere. */
+    assert.match(plan.summary, /partial refusal of your request/);
+    assert.match(plan.summary, /Information Regulator/);
+    assert.match(plan.summary, /section 24/);
+    assert.match(plan.summary, /section 14/);
+    const evidence = plan.retained.find(entry => entry.holding.table === 'vetting_evidence_versions');
+    assert.ok(evidence, 'a nurse is told about the certificates, in the register as well as in the prose');
+    assert.equal(evidence.basis.conflictsWithErasure, true);
+    assert.ok(evidence.disposalOn && evidence.disposalOn > plan.requestedAt, 'a ground that never ends is not a ground, it is a keep');
+    assert.match(plan.summary, /disposed of on or after/);
+  });
+  test('a patient with nothing held against them gets no refusal paragraph at all', () => {
+    const h = harness();
+    const person = h.signIn().person;
+    const plan = h.erasure.plan(h.now(), person.id);
+    assert.equal(plan.alsoRetained.length, 0);
+    assert.ok(!plan.holdings.some(holding => holding.table.startsWith('vetting_')));
+    /* The audit log is still kept, and still says so — that one has never been reachable. */
+    assert.match(plan.summary, /partial refusal of your request/);
+    assert.match(plan.summary, /security log/);
+  });
+  test('the clinical retention rules are offered even though nothing here is held on them', () => {
+    const clinical = clinicalRetentionRules();
+    assert.ok(clinical.some(basis => /six years/i.test(basis.name)));
+    assert.ok(clinical.some(basis => /twenty-one/i.test(basis.name)));
+    assert.ok(clinical.every(basis => !basis.inUse));
   });
 });
 

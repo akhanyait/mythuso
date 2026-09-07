@@ -9,8 +9,8 @@ Status: implemented UI preview, September 2026. The funding proposal is product 
 | Web | React 19, strict TypeScript, Vite | Fast private application UI, small deployment surface, no server rendering of clinical records. Feature-specific components can move behind an authenticated BFF later. |
 | iOS / iPadOS | Swift + SwiftUI; minimum iOS 17 | Native navigation, forms, accessibility and system sharing; direct future HealthKit, CoreBluetooth, Keychain and AVFoundation access. |
 | Android | Kotlin + Jetpack Compose + Material 3; minimum Android 8 / API 26 | Native controls, accessibility, system sharing and direct future Health Connect, Bluetooth and Keystore access. |
-| Identity service, built | TypeScript on Node's own primitives — `node:http`, `node:crypto`, `node:sqlite` — with storage behind an interface | The first backend slice needs no framework and no dependencies, which means no supply chain to audit for an authentication service. Storage is one interface so PostgreSQL is a file change, not a rewrite. |
-| Rest of the backend, proposed | TypeScript modular monolith, PostgreSQL, private object storage, managed queue | Clear domain boundaries and transactions without premature distributed service complexity. Not scaffolded in this phase. |
+| Backend, built: identity, data protection and workforce vetting | TypeScript on Node's own primitives — `node:http`, `node:crypto`, `node:sqlite` — with storage behind an interface, as three modules in one process | The first backend slices need no framework and no dependencies, which means no supply chain to audit for the two things most worth not having one for: authentication, and the vault that holds a nurse's police clearance. Storage is one interface per module so PostgreSQL is a file change, not a rewrite. `apps/api/package.json` has no `dependencies` key at all. |
+| Rest of the backend, proposed | TypeScript modular monolith, PostgreSQL, private object storage, managed queue | Clear domain boundaries and transactions without premature distributed service complexity. Two of the modules below now exist; the rest are not scaffolded in this phase. |
 | Contracts, proposed | OpenAPI with generated Swift, Kotlin and TypeScript clients | Share schemas and error semantics; retain independent native presentation code. Version at API boundaries. |
 
 These are deliberate choices, not a promise of a permanently “best” or future-proof stack. Maintainability comes from boundaries, standards, tests, dependency updates and replaceable adapters. Native mobile has no web renderer or bundled web UI. Web is a separate application. Browsers/system identity sessions for future OAuth would be an explicit identity decision, never a WebView used to implement app features.
@@ -23,7 +23,8 @@ Sources checked: [Apple SwiftUI](https://developer.apple.com/documentation/Swift
 - `apps/ios/MyThuso`: app composition root, `Features`, `DesignSystem`, `Models`. Native state is owned by an in-memory `PreviewStore` injected through the environment. The chart and system-state components sit in `DesignSystem` so feature screens cannot each invent their own error state.
 - `apps/android/app`: native composition root, `ui` and `model`; an in-memory preview store is injected into screens. `ui/SystemStates.kt`, `ui/ClinicalChart.kt` and `ui/Components.kt` are the shared primitives.
 - `packages/catalog/services.json`: the visit menu with prices, nurse shares and the phase each service belongs to. Only phase one is held in step with the native fixtures, because only phase one is what launches; later-phase services are shown in the catalogue marked as not yet bookable.
-- `packages/catalog/vetting.json`: twelve vetted roles, seventy checks, thirteen capabilities, twelve issuing authorities with the credential format each one uses, and every refusal sentence. The web reads the file directly; `scripts/emit-vetting.mjs` writes the same table out as `apps/ios/MyThuso/Models/VettingData.swift` and `apps/android/app/src/main/java/za/co/mythuso/model/VettingData.kt`. Only the tables are generated — the credential validators, the lifecycle arithmetic, the second-reviewer rule and the fixtures stay hand-written beside them, because they are decisions rather than data.
+- `packages/catalog/vetting.json`: twelve vetted roles, seventy checks, thirteen capabilities, twelve issuing authorities with the credential format each one uses, and every refusal sentence. The web reads the file directly, and so do `apps/api/src/protection/gate.ts` and `apps/api/src/vetting/` — the server never restates a check, a risk level or a refusal sentence, so a check added to the catalogue is a check the vault owes the moment it is added. `scripts/emit-vetting.mjs` writes the same table out as `apps/ios/MyThuso/Models/VettingData.swift` and `apps/android/app/src/main/java/za/co/mythuso/model/VettingData.kt`. Only the tables are generated — the credential validators, the lifecycle arithmetic, the second-reviewer rule and the fixtures stay hand-written beside them, because they are decisions rather than data.
+- `apps/api/src`: `identity.ts`, `twoFactor.ts` and `store.ts` for identity; `protection/` for the gate, the envelopes, the audit chain and the key rotation; `vetting/` for the evidence vault. Each module owns its own tables and creates them itself, and `personalData.ts` is the register that says what all of them hold, in the words that go to the data subject. The one record type the gate needs that `packages/catalog/records.json` does not yet carry — vetting evidence, which is workforce data rather than part of the patient record — is declared in `gate.ts` with a comment naming the catalogue as its intended home.
 - `packages/catalog/business-model.json`: the proposal's commercial model — subscriptions, network and B2B lines, screening packages, kit and own-device costs, the indicative trajectory and the seed round with its milestone gates. The admin console reads this rather than restating the numbers, and `scripts/check-boundaries.mjs` fails the build if the funding allocation or the tranches stop summing to the round, or if a service pays the nurse more than the patient pays.
 - `packages/design-tokens/tokens.json`: the palette, radii, spacing scale, shadows, type stacks and motion specification. It is the source rather than a reference: `scripts/emit-tokens.mjs` writes it out as `apps/web/src/tokens.generated.css`, `apps/ios/MyThuso/DesignSystem/Tokens.swift` and `apps/android/app/src/main/java/za/co/mythuso/ui/Tokens.kt`, so a colour is converted from hex once, by a machine, rather than three times by hand.
 
@@ -35,19 +36,35 @@ These are source-level boundaries in the preview, not independent compiled featu
 
 ## Planned domain modules
 
-Identity and access; patient/household/guardian authority; consent and privacy; service catalogue; bookings and dispatch; clinical encounters; devices and observations; doctor review; Health Passport and documents; pharmacy/lab orders; subscriptions; wallet and payment ledger; workforce vetting and earnings; partner programmes; notifications; incidents; audit.
+Identity and access; patient/household/guardian authority; consent and privacy; service catalogue; bookings and dispatch; clinical encounters; devices and observations; doctor review; Health Passport and documents; pharmacy/lab orders; subscriptions; wallet and payment ledger; workforce vetting and earnings; partner programmes; notifications; incidents; audit. Two of these are built — identity and access, and the vetting half of workforce vetting and earnings — plus the data protection chokepoint they both go through, which is not a domain of its own.
 
 Only the owning module writes its records. Other modules use application interfaces or versioned events. Separate person identity from clinical record identifiers. Clinical observations carry patient, encounter, clinician/device, unit, timestamp, provenance and review state. AI outputs are separate from signed clinical decisions. Match a FHIR interoperability profile after partner discovery; do not build an unbounded generic FHIR server first.
 
 Use a transaction outbox for reliable events. External payments use provider references, signed webhooks, replay protection and idempotency keys. The wallet is an immutable double-entry ledger, never a mutable balance in the client. No money movement exists in this preview.
 
-## The identity service
+## The backend, so far
 
-`apps/api` is the first backend slice, and it does one thing: it establishes who someone is. It
-holds a mobile number, a name if one was given, and the encrypted second-factor secret of an account
-that has set one up. It holds no health information, and `scripts/check-boundaries.mjs`
-fails the build if a clinical table appears in it — because the moment one does, this service is
-handling special personal information and everything in `docs/PRIVACY-AND-SECURITY.md` applies.
+`apps/api` is the backend, and it is the modular monolith this document describes rather than a
+single service that grew. Three modules share one process and one database and own their own tables:
+
+- **Identity** (`src/identity.ts`, `src/twoFactor.ts`, `src/store.ts`) establishes who someone is. A
+  mobile number, a name if one was given, and the encrypted second-factor secret of an account that
+  has set one up.
+- **Data protection** (`src/protection/`) is not a domain module: it is the chokepoint the others go
+  through. It seals values, decides who may read one, writes the tamper-evident log, and — since the
+  rotation landed — re-wraps every sealed value in the database under a new key version. Nothing
+  outside that directory may import its crypto, and the boundary check fails the build if anything
+  tries.
+- **Workforce vetting** (`src/vetting/`) holds the evidence behind the twelve vetted parties: a party,
+  one evidence record per check the catalogue says their role owes, a version per document submitted,
+  and the renewal milestones that make a warning survive a night the sweep did not run. Every document
+  is sealed through the gate and every read is decided by it. This is the module that turns
+  `packages/catalog/vetting.json` from a description of a control into one.
+
+It holds no health information, and `scripts/check-boundaries.mjs` fails the build if a clinical
+table appears in it — because the moment one does, this service is handling special personal
+information and everything in `docs/PRIVACY-AND-SECURITY.md` applies. Vetting evidence is workforce
+data, not clinical data, and adding it did not lift that guard or go near it.
 
 The web app reaches it through its own origin at `/api`, proxied in development and expected behind
 the same host in production. That is the back-end-for-front-end the trust-boundary section calls
@@ -69,9 +86,28 @@ What it actually implements, rather than plans:
 - Production refuses to start with a weak pepper, an `http` origin, no SMS provider, or the
   development setting that returns codes in the response.
 
+What the vetting module implements, rather than plans:
+
+- Evidence records and versions. A renewal adds a version and moves the dates; it never replaces one,
+  because "what did we hold on the day we sent her" is a question asked after something goes wrong.
+- Every document sealed through the protection module, bound to the record *and the version* it
+  belongs to, so version 1's bytes cannot open as version 2's.
+- A SHA-256 of each submitted file, stored in the clear beside it. Deliberately unkeyed: a nurse
+  holding her own PDF can check what the platform says it holds without the platform's cooperation.
+- Expiry resolved on every read, matching `apps/web/src/lib/vetting.ts` exactly — past expiry is
+  lapsed, within forty-five days is expiring and still passes. The number is imported from the gate
+  rather than repeated, so there is no fifth copy of it.
+- The second-reviewer rule, on the server: a different person, never the party themselves, never on a
+  standard-risk check, and dropped when a new document arrives.
+- The gate's vetting source reading standing out of these records, so a lapsed clearance withdraws a
+  capability by arithmetic rather than by anybody noticing.
+
 Still required before real information: PostgreSQL rather than SQLite, an SMS provider, SA hosting,
-encryption at rest, key rotation, step-up authentication before records and export, and an
-Information Officer. The console's Compliance tab lists these as not built, because they are not.
+step-up authentication before records and export, verification against the issuing authorities —
+SANC, HPCSA, SAPS, an accredited Home Affairs provider — which nothing here does, and an Information
+Officer. Encryption at rest and key rotation have moved off this list: the protection module seals
+what it holds and `npm run rotate -w @mythuso/api` re-wraps it. The console's Compliance tab lists
+the rest as not built, because they are not.
 
 ## Session and the admin console
 

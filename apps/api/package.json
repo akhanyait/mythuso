@@ -3,12 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Identity and session service. Holds no health information.",
+  "description": "Identity and workforce vetting service. Holds no health information.",
   "scripts": {
     "dev": "node --watch src/server.ts",
     "start": "node src/server.ts",
     "check": "tsc -b",
     "test": "node --test \"test/**/*.test.ts\"",
-    "sweep": "node src/retention.ts"
+    "sweep": "node src/retention.ts",
+    "rotate": "node src/rotate.ts"
   }
 }

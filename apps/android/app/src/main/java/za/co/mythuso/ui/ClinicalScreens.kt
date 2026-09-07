@@ -35,7 +35,12 @@ val observations = listOf(
 )
 private val Flag = Color(0xFF9B6231)
 
-@Composable fun VisitAssessmentScreen(reference: String = "TH-2048", patient: String = "Lerato Molefe", close: () -> Unit) {
+@Composable fun VisitAssessmentScreen(store: PreviewStore, reference: String = "TH-2048", patient: String = "Lerato Molefe", close: () -> Unit) {
+    /* The signature carries the registration it was made under, read from the same vetting record
+       dispatch asks before it offers the visit rather than a number typed into this screen. An
+       attribution line is where a reader is shown what accountability looks like, and it is the one
+       place a preview should not be fictional twice over. */
+    val nurse = store.vetting.byName("Sister Naledi Mokoena")
     var stage by remember { mutableIntStateOf(0) }
     var otp by remember { mutableStateOf("") }
     var otpError by remember { mutableStateOf("") }
@@ -147,7 +152,7 @@ private val Flag = Color(0xFF9B6231)
                         captured.forEach { ReviewLine(it.label, "${values[it.id]} ${it.unit}${if (flag(it) != null) " ⚠" else ""}") }
                         ReviewLine("Symptoms", if (symptoms.isEmpty()) "None recorded" else symptoms.sorted().joinToString(", "))
                         ReviewLine("Next step", escalation)
-                        ReviewLine("Recorded by", "Sister Naledi Mokoena · SANC 0000000 (demo)")
+                        ReviewLine("Recorded by", "Sister Naledi Mokoena · ${nurse?.reference ?: "SANC registration"} (demo)")
                     }
                     Note("A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.")
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
