@@ -95,24 +95,24 @@ struct DispatchMap: View {
         GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height)
             ZStack {
-                RoundedRectangle(cornerRadius: 12).fill(Color(red: 0.945, green: 0.965, blue: 0.949))
+                RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).fill(ThusoTheme.canvas)
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
-                        Circle().fill(Color(red: 0.875, green: 0.933, blue: 0.894))
+                        Circle().fill(ThusoTheme.indigoSoft)
                             .frame(width: zone.radius * 2 * size, height: zone.radius * 2 * size)
                             .position(x: point.x * size, y: point.y * size)
                     }
                 }
                 ForEach(Dispatch.nurses) { nurse in
                     if let point = Dispatch.plot(nurse.position) {
-                        Circle().fill(nurse.status == "Available" ? Color(red: 0.184, green: 0.612, blue: 0.490) : Color(white: 0.66))
+                        Circle().fill(nurse.status == "Available" ? ThusoTheme.tealInk : ThusoTheme.faint)
                             .frame(width: 10, height: 10).position(x: point.x * size, y: point.y * size)
                     }
                 }
                 ForEach(Dispatch.jobs) { job in
                     if let point = Dispatch.plot(job.position) {
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(assigned[job.id] != nil ? Color(red: 0.184, green: 0.612, blue: 0.490) : Color(red: 0.851, green: 0.604, blue: 0.271))
+                            .fill(assigned[job.id] != nil ? ThusoTheme.tealInk : ThusoTheme.mangoInk)
                             .frame(width: 12, height: 12)
                             .overlay { if job.id == selected { Circle().stroke(ThusoTheme.slate, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 26, height: 26) } }
                             .position(x: point.x * size, y: point.y * size)
@@ -194,9 +194,9 @@ struct DispatchBoardView: View {
                     DispatchMap(selected: selected, assigned: assigned, summary: mapSummary)
                         .listRowInsets(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
                     HStack(spacing: 14) {
-                        Label("Available", systemImage: "circle.fill").foregroundStyle(Color(red: 0.184, green: 0.612, blue: 0.490))
+                        Label("Available", systemImage: "circle.fill").foregroundStyle(ThusoTheme.tealInk)
                         Label("On a visit", systemImage: "circle.fill").foregroundStyle(Color(white: 0.66))
-                        Label("Visit", systemImage: "square.fill").foregroundStyle(Color(red: 0.851, green: 0.604, blue: 0.271))
+                        Label("Visit", systemImage: "square.fill").foregroundStyle(ThusoTheme.mangoInk)
                     }.font(.caption2)
                 }
                 Section("Awaiting assignment") {

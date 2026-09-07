@@ -1,26 +1,34 @@
 import SwiftUI
 
-/// The landing banner. It rotates on its own, stops on request (WCAG 2.2.2) and never rotates at
-/// all when the system asks for reduced motion. The person rises above the plate; the drifting
-/// bubbles and currents behind them are decoration and are hidden from VoiceOver.
+/* The rotating banner on the roadmap screen.
+ *
+ * It rotates on its own, stops on request (WCAG 2.2.2) and never rotates at all when the system
+ * asks for reduced motion. What changed is the composition, not the behaviour.
+ *
+ * Each slide used to be a 200-point column of text laid over a photograph inside a 366-point box,
+ * with the headline, the body, a button, three trust marks and a caption all fighting for that
+ * column. It read as a poster rather than as part of an application, and at the larger text sizes
+ * the fixed column and the fixed box argued until something lost. A slide is now a card: the
+ * photograph is a band across the top, the words sit under it in the ordinary reading order, and
+ * the card is as tall as its contents need. The page control below is the only fixed thing left. */
 struct HeroCarousel: View {
     let onAction: (Int) -> Void
     @EnvironmentObject private var store: PreviewStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var index = 0
     @State private var playing = true
     private let rotate = Timer.publish(every: 6.5, on: .main, in: .common).autoconnect()
     private var slides: [HeroSlideCopy] { heroSlides(store.locale) }
-    /* The one fixed height on this screen that has text under it. A TabView in page style needs a
-       height, and 366 was the height the design was drawn at — at the largest Dynamic Type sizes the
-       headline, the body, three trust items and a call to action do not fit in 366 points, and what
-       happens then is that the call to action is clipped off the bottom without a scroll bar to say
-       so. @ScaledMetric grows it with the reader's text size, which is the only honest way to keep a
-       fixed height at all. */
-    @ScaledMetric(relativeTo: .body) private var slideHeight: CGFloat = 366
+    /* A TabView in page style needs a height, and this is the only one left in the component. It
+       grows with the reader's text size, and the photograph band is dropped entirely at the
+       accessibility sizes so the words get the whole card rather than two thirds of it. */
+    @ScaledMetric(relativeTo: .body) private var slideHeight: CGFloat = 336
+    private var showsPhoto: Bool { !typeSize.isAccessibilitySize }
     private var rotating: Bool { playing && !reduceMotion }
+
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             TabView(selection: $index) {
                 ForEach(Array(slides.enumerated()), id: \.element.id) { position, slide in
                     slideView(slide, position: position).tag(position)
@@ -32,130 +40,143 @@ struct HeroCarousel: View {
                 guard rotating else { return }
                 withAnimation(.easeInOut(duration: 0.45)) { index = (index + 1) % slides.count }
             }
-            HStack(spacing: 8) {
-                ForEach(0..<slides.count, id: \.self) { position in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.35)) { index = position }
-                        playing = false
-                    } label: {
-                        Capsule().fill(position == index ? ThusoTheme.indigo : ThusoTheme.line)
-                            .frame(width: position == index ? 24 : 8, height: 8)
-                    }
-                    .accessibilityLabel("Highlight \(position + 1) of \(slides.count): \(slides[position].title.replacingOccurrences(of: "\n", with: " "))")
-                    .accessibilityAddTraits(position == index ? [.isSelected] : [])
-                }
-                Spacer()
-                if !reduceMotion {
-                    Button { playing.toggle() } label: {
-                        Image(systemName: playing ? "pause.fill" : "play.fill").font(.caption2.weight(.bold))
-                            .foregroundStyle(ThusoTheme.body).frame(width: 32, height: 32)
-                            .background(.white, in: Circle()).overlay(Circle().stroke(ThusoTheme.line, lineWidth: 1))
-                    }
-                    .accessibilityLabel(playing ? "Pause the highlights" : "Play the highlights")
-                }
-            }
-            .padding(.horizontal, 4)
+            pageControl
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("MyThuso highlights")
     }
-    private func slideView(_ slide: HeroSlideCopy, position: Int) -> some View {
-        ZStack(alignment: .bottom) {
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.white.opacity(0.66))
-                .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.85), lineWidth: 1))
-                .shadow(color: ThusoTheme.ink.opacity(0.08), radius: 22, y: 12)
-                .padding(.top, 62)
-            Image(slide.banner).resizable().scaledToFit()
-                .frame(width: 208)
-                .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.13)], startPoint: .bottom, endPoint: .top))
-                .shadow(color: ThusoTheme.ink.opacity(0.14), radius: 14, y: 10)
-                .padding(.bottom, 118).padding(.trailing, 0)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(slide.title).font(.title2.weight(.bold)).foregroundStyle(ThusoTheme.slate).fixedSize(horizontal: false, vertical: true)
-                Text(slide.body).font(.caption).foregroundStyle(ThusoTheme.body).padding(.top, 8).fixedSize(horizontal: false, vertical: true)
-                Button { onAction(position) } label: {
-                    HStack(spacing: 9) { Text(slide.cta).font(.subheadline.weight(.semibold)); Image(systemName: "arrow.right").font(.footnote.weight(.semibold)) }
-                        .padding(.horizontal, 20).padding(.vertical, 13)
-                        .background(ThusoTheme.indigo, in: Capsule()).foregroundStyle(.white)
+
+    private var pageControl: some View {
+        HStack(spacing: ThusoSpacing.space8) {
+            ForEach(0..<slides.count, id: \.self) { position in
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) { index = position }
+                    playing = false
+                } label: {
+                    Capsule().fill(position == index ? ThusoTheme.indigo : ThusoTheme.line)
+                        .frame(width: position == index ? 22 : 6, height: 6)
+                        .frame(width: 30, height: 44)
+                        .contentShape(Rectangle())
                 }
-                .padding(.top, 15)
-                HStack(alignment: .top, spacing: 2) {
-                    ForEach(Array(slide.trust.enumerated()), id: \.offset) { spot, label in
-                        VStack(spacing: 6) {
-                            Image(systemName: slide.symbols[spot]).font(.subheadline).foregroundStyle(ThusoTheme.indigo)
-                                .frame(width: 32, height: 32).background(.white.opacity(0.78), in: Circle())
-                            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(Color(red: 0.26, green: 0.40, blue: 0.36))
-                                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                        }.frame(maxWidth: .infinity)
-                    }
-                }.padding(.top, 14)
-                Text(slide.caption).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.indigoDeep)
-                    .padding(.horizontal, 14).padding(.vertical, 8)
-                    .background(.white.opacity(0.88), in: Capsule())
-                    .padding(.top, 12)
+                .accessibilityLabel("Highlight \(position + 1) of \(slides.count): \(slides[position].title.replacingOccurrences(of: "\n", with: " "))")
+                .accessibilityAddTraits(position == index ? [.isSelected] : [])
             }
-            .frame(maxWidth: 200, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.leading, 22).padding(.trailing, 14).padding(.bottom, 16).padding(.top, 78)
+            Spacer(minLength: 0)
+            /* Reduce Motion already stops the rotation, so the control that stops it is redundant
+               there and is not shown. Everywhere else it is required. */
+            if !reduceMotion {
+                Button { playing.toggle() } label: {
+                    Image(systemName: playing ? "pause.fill" : "play.fill").font(.caption.weight(.semibold))
+                        .foregroundStyle(ThusoTheme.slate).frame(width: 32, height: 32)
+                        .background(ThusoTheme.surface, in: Circle())
+                        .overlay(Circle().stroke(ThusoTheme.line, lineWidth: 1))
+                        .frame(width: 44, height: 44).contentShape(Rectangle())
+                }
+                .accessibilityLabel(playing ? "Pause the highlights" : "Play the highlights")
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: 366)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func slideView(_ slide: HeroSlideCopy, position: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if showsPhoto {
+                /* A band, not a cut-out floating over a plate. The photograph is a masked cut-out,
+                   so it stands on a tinted ground of the brand's own indigo and is cropped by the
+                   band rather than by a hand-placed offset. */
+                ZStack(alignment: .bottom) {
+                    LinearGradient(colors: [ThusoTheme.indigoSoft, ThusoTheme.surface], startPoint: .top, endPoint: .bottom)
+                    Image(slide.banner).resizable().scaledToFit().frame(height: 150)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.trailing, ThusoSpacing.space20)
+                }
+                .frame(height: 132).clipped()
+                .accessibilityHidden(true)
+            }
+            VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+                Text(slide.title.replacingOccurrences(of: "\n", with: " "))
+                    .font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(slide.body).font(.footnote).foregroundStyle(ThusoTheme.body)
+                    .fixedSize(horizontal: false, vertical: true)
+                trustRow(slide)
+                Button { onAction(position) } label: {
+                    HStack(spacing: ThusoSpacing.space8) {
+                        Text(slide.cta)
+                        Image(systemName: "arrow.right").font(.footnote.weight(.semibold))
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
+                    .frame(minHeight: 44)
+                    .background(ThusoTheme.indigo, in: Capsule()).foregroundStyle(.white)
+                }
+                .padding(.top, ThusoSpacing.space4)
+                Text(slide.caption).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.indigoDeep)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(ThusoSpacing.space16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 0)
+        }
+        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .shadow(color: ThusoTheme.lift, radius: 10, y: 3)
         .padding(.horizontal, 2)
     }
-}
-struct HeroTexture: View {
-    var tone: Int = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var drift = false
-    private var plate: [Color] {
-        switch tone {
-        case 1: return [Color(red: 0.949, green: 0.976, blue: 0.976), Color(red: 0.859, green: 0.933, blue: 0.941)]
-        case 2: return [Color(red: 0.957, green: 0.980, blue: 0.969), Color(red: 0.867, green: 0.937, blue: 0.902)]
-        default: return [Color(red: 0.953, green: 0.980, blue: 0.973), Color(red: 0.874, green: 0.941, blue: 0.925)]
-        }
-    }
-    // x, y and radius as a fraction of the plate, then how far and how fast each one drifts.
-    private let bubbles: [(x: CGFloat, y: CGFloat, r: CGFloat, dx: CGFloat, dy: CGFloat, scale: CGFloat, seconds: Double)] = [
-        (0.13, 0.76, 30, 17, -24, 1.12, 9),
-        (0.30, 0.20, 17, -26, 15, 0.86, 12),
-        (0.59, 0.81, 23, 14, -18, 1.10, 14),
-        (0.78, 0.28, 38, 30, 12, 1.16, 16),
-        (0.44, 0.53, 11, -20, -22, 0.88, 7),
-        (0.93, 0.68, 15, -24, 16, 1.14, 11),
-        (0.05, 0.34, 13, 22, 20, 0.90, 13),
-        (0.67, 0.42, 9, -18, -26, 1.18, 8)
-    ]
-    var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                LinearGradient(colors: plate, startPoint: .topLeading, endPoint: .bottomTrailing)
-                ForEach(Array(bubbles.enumerated()), id: \.offset) { position, bubble in
-                    Circle().fill(ThusoTheme.indigo.opacity(position % 3 == 0 ? 0.07 : 0.10))
-                        .frame(width: bubble.r * 2, height: bubble.r * 2)
-                        .scaleEffect(drift ? bubble.scale : 2 - bubble.scale)
-                        .position(x: bubble.x * geo.size.width, y: bubble.y * geo.size.height)
-                        .offset(x: drift ? bubble.dx : -bubble.dx, y: drift ? bubble.dy : -bubble.dy)
-                        .animation(reduceMotion ? nil : .easeInOut(duration: bubble.seconds).repeatForever(autoreverses: true).delay(Double(position) * 0.35), value: drift)
+
+    /* Three trust marks, side by side while they fit and stacked when they do not. They used to be
+       three columns of a fixed HStack, so at the larger text sizes each label wrapped to five words
+       in a 60-point column. */
+    private func trustRow(_ slide: HeroSlideCopy) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: ThusoSpacing.space12) {
+                ForEach(Array(slide.trust.enumerated()), id: \.offset) { spot, label in
+                    trustMark(slide.symbols[spot], label).frame(maxWidth: .infinity, alignment: .leading)
                 }
-                current(geo, lift: 0.78).offset(x: drift ? 40 : -40)
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 11).repeatForever(autoreverses: true), value: drift)
-                current(geo, lift: 0.90).offset(x: drift ? -38 : 38)
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 15).repeatForever(autoreverses: true), value: drift)
+            }
+            VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
+                ForEach(Array(slide.trust.enumerated()), id: \.offset) { spot, label in
+                    trustMark(slide.symbols[spot], label)
+                }
             }
         }
-        .onAppear { if !reduceMotion { drift = true } }
-        .accessibilityHidden(true)
+        .accessibilityElement(children: .combine)
     }
-    private func current(_ geo: GeometryProxy, lift: CGFloat) -> some View {
-        Path { path in
-            let width = geo.size.width, height = geo.size.height
-            path.move(to: CGPoint(x: -30, y: height * lift))
-            path.addCurve(to: CGPoint(x: width + 30, y: height * (lift - 0.30)),
-                          control1: CGPoint(x: width * 0.32, y: height * (lift - 0.22)),
-                          control2: CGPoint(x: width * 0.62, y: height * (lift + 0.10)))
+
+    private func trustMark(_ symbol: String, _ label: String) -> some View {
+        Label {
+            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.slate)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: symbol).font(.caption2).foregroundStyle(ThusoTheme.tealInk)
         }
-        .stroke(ThusoTheme.indigo.opacity(0.16), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+        .labelStyle(.titleAndIcon)
+    }
+}
+
+/* The band of brand behind a screen's greeting.
+ *
+ * This was the last of the old palette left standing: a mint-green plate with eight indigo bubbles
+ * drifting across it forever and two wave-shaped strokes sliding the other way. It was drawn when
+ * the interface was mint and rounded, and it is the single thing that made a health record look
+ * like a children's app. What a greeting needs behind it is a ground, not a scene — so it is now
+ * one wash of the brand's own indigo settling into the canvas, with nothing moving on it. Removing
+ * the animation also stops an infinite repeatForever running under every visit to the home screen.
+ *
+ * `tone` still selects a variation, so a screen can be told apart from the one before it without
+ * any of them shouting. */
+struct HeroTexture: View {
+    var tone: Int = 0
+    private var top: Color {
+        switch tone {
+        case 1: return ThusoTheme.tealSoft
+        case 2: return ThusoTheme.mangoSoft
+        default: return ThusoTheme.indigoSoft
+        }
+    }
+    var body: some View {
+        LinearGradient(colors: [top, ThusoTheme.canvas], startPoint: .top, endPoint: .bottom)
+            .accessibilityHidden(true)
     }
 }

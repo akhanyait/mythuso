@@ -113,7 +113,7 @@ struct LabOrderView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack { Text(row.0).font(.subheadline); Spacer(); Text(row.1).font(.subheadline.weight(.semibold)) }
                             HStack { Text("Reference \(row.2)").font(.caption2).foregroundStyle(.secondary); Spacer()
-                                Text(row.3.isEmpty ? "Within range" : row.3).font(.caption2).foregroundStyle(row.3.isEmpty ? .secondary : Color(red: 0.64, green: 0.33, blue: 0.18)) }
+                                Text(row.3.isEmpty ? "Within range" : row.3).font(.caption2).foregroundStyle(row.3.isEmpty ? AnyShapeStyle(.secondary) : AnyShapeStyle(ThusoTheme.mangoInk)) }
                         }
                         .padding(.vertical, 2)
                         .accessibilityElement(children: .combine)

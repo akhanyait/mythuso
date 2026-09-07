@@ -338,12 +338,12 @@ struct VisitsView: View {
     }
     private var promo: some View {
         ZStack(alignment: .bottomTrailing) {
-            LinearGradient(colors: [Color(red: 0.071, green: 0.337, blue: 0.294), ThusoTheme.indigo], startPoint: .topLeading, endPoint: .bottomTrailing)
+            LinearGradient(colors: [ThusoTheme.indigoDeep, ThusoTheme.indigo], startPoint: .topLeading, endPoint: .bottomTrailing)
             Image("Family").resizable().scaledToFit().frame(height: 150).accessibilityHidden(true)
                 .frame(maxWidth: .infinity, alignment: .trailing)
             VStack(alignment: .leading, spacing: 9) {
                 Text("Care that fits\nyour life.").font(.title2.weight(.bold)).foregroundStyle(.white)
-                Text("Easy booking. Trusted professionals.").font(.footnote).foregroundStyle(Color(red: 0.788, green: 0.902, blue: 0.867))
+                Text("Easy booking. Trusted professionals.").font(.footnote).foregroundStyle(.white.opacity(0.78))
                 NavigationLink { ServicesView() } label: {
                     Label("Book another visit", systemImage: "arrow.right").font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 18).padding(.vertical, 13)

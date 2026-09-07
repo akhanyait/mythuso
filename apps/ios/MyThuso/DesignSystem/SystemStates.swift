@@ -6,29 +6,43 @@ enum LoadState: String, CaseIterable, Identifiable {
     case ready = "Loaded", loading = "Loading", error = "Service error", offline = "Offline", denied = "Permission denied"
     var id: String { rawValue }
 }
+
+/* A placeholder for content that has not arrived. It is a redacted shape of the rows underneath,
+   not a spinner, so the screen does not jump when the real rows replace it. The pulse respects
+   Reduce Motion: with it on, the placeholder simply sits there at its resting opacity. */
 struct SkeletonRows: View {
     var rows = 3
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shimmer = false
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             ForEach(0..<rows, id: \.self) { index in
-                HStack(spacing: 14) {
-                    RoundedRectangle(cornerRadius: 12).fill(.gray.opacity(0.12)).frame(width: 44, height: 44)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Capsule().fill(.gray.opacity(0.12)).frame(width: 190 - CGFloat(index) * 26, height: 9)
-                        Capsule().fill(.gray.opacity(0.1)).frame(width: 120 - CGFloat(index) * 18, height: 9)
+                HStack(spacing: ThusoSpacing.space12) {
+                    RoundedRectangle(cornerRadius: ThusoRadius.tile, style: .continuous)
+                        .fill(ThusoTheme.line).frame(width: 40, height: 40)
+                    VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+                        Capsule().fill(ThusoTheme.line).frame(width: 190 - CGFloat(index) * 26, height: 9)
+                        Capsule().fill(ThusoTheme.line.opacity(0.7)).frame(width: 120 - CGFloat(index) * 18, height: 9)
                     }
-                    Spacer()
+                    Spacer(minLength: 0)
                 }
             }
         }
         .opacity(shimmer ? 0.55 : 1)
-        .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: shimmer)
-        .onAppear { shimmer = true }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: shimmer)
+        .onAppear { if !reduceMotion { shimmer = true } }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Loading care information")
     }
 }
+
+/* The four states that are not "here is your content".
+ *
+ * These were hand-built out of a card, a Label and a bordered button. iOS 17 has the shape of this
+ * exact thing — ContentUnavailableView — and it already gets the typography, the metrics, the
+ * centring, Dynamic Type and the VoiceOver grouping right, at every text size, for free. The
+ * sentences below are unchanged: they are what the app promises about what has and has not
+ * happened to a person's information, and they are the reason this component exists. */
 struct StateBlock<Content: View>: View {
     let state: LoadState
     let subject: String
@@ -61,17 +75,23 @@ struct StateBlock<Content: View>: View {
         case .ready: content
         case .loading: SkeletonRows()
         default:
-            CareCard {
-                Label(heading, systemImage: symbol).font(.headline).foregroundStyle(ThusoTheme.ink)
-                Text(body_).font(.subheadline).foregroundStyle(.secondary)
+            ContentUnavailableView {
+                Label(heading, systemImage: symbol)
+            } description: {
+                Text(body_)
+            } actions: {
                 if let retry {
-                    Button(state == .denied ? "Review permission" : "Try again", action: retry).buttonStyle(.bordered)
+                    Button(state == .denied ? "Review permission" : "Try again", action: retry)
+                        .buttonStyle(.borderedProminent).tint(ThusoTheme.indigo)
                 }
             }
-            .accessibilityElement(children: .combine)
+            .padding(.vertical, ThusoSpacing.space8)
+            .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
         }
     }
 }
+
 /// A design-review control, not part of the product surface — so it stays collapsed until asked for.
 struct StatePicker: View {
     let title: String
@@ -79,29 +99,37 @@ struct StatePicker: View {
     @State private var open = false
     var body: some View {
         DisclosureGroup(isExpanded: $open) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                 Text(title).font(.caption2).foregroundStyle(ThusoTheme.body)
                 Picker(title, selection: $state) { ForEach(LoadState.allCases) { Text($0.rawValue).tag($0) } }
                     .pickerStyle(.segmented).labelsHidden()
-            }.padding(.top, 8)
+            }.padding(.top, ThusoSpacing.space8)
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: ThusoSpacing.space8) {
                 Text("Preview states").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.body)
                 if state != .ready { StatusPill(text: state.rawValue, tone: "amber") }
             }
         }
-        .padding(14)
-        .background(.white, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.line))
+        .padding(ThusoSpacing.space12)
+        .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous)
+            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.line))
     }
 }
+
+/// Nothing here yet, said in the platform's own words rather than in a card pretending to be one.
 struct EmptyStateCard: View {
     let title: String
     let message: String
+    var symbol = "tray"
     var body: some View {
-        CareCard {
-            Label(title, systemImage: "tray").font(.headline)
-            Text(message).font(.subheadline).foregroundStyle(.secondary)
+        ContentUnavailableView {
+            Label(title, systemImage: symbol)
+        } description: {
+            Text(message)
         }
+        .padding(.vertical, ThusoSpacing.space8)
+        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
     }
 }

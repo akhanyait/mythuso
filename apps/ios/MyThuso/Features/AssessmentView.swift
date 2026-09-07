@@ -248,7 +248,7 @@ struct VisitAssessmentView: View {
                     .keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(width: 92)
             }
             Text(flag(observation) ?? "Indicative range \(observation.range.lowerBound.formatted())–\(observation.range.upperBound.formatted()) \(observation.unit)")
-                .font(.caption2).foregroundStyle(flag(observation) == nil ? .secondary : Color(red: 0.61, green: 0.38, blue: 0.19))
+                .font(.caption2).foregroundStyle(flag(observation) == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(ThusoTheme.mangoInk))
             HStack(spacing: 8) {
                 if let provenance {
                     ProvenanceMark(provenance: provenance)

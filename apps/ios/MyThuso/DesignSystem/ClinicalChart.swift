@@ -16,6 +16,10 @@ struct ClinicalChart: View {
     var decimals = 0
     var symbol: String? = nil
     @State private var showTable = false
+    @Environment(\.dynamicTypeSize) private var typeSize
+    /* The plot is a drawing, not text, so it does not grow on its own — and a 74-point plot under a
+       headline that has tripled in height reads as an afterthought. It grows with the reader. */
+    @ScaledMetric(relativeTo: .body) private var plotHeight: CGFloat = 76
     private func format(_ value: Double) -> String { String(format: "%.\(decimals)f", value) }
     private var latest: Reading { readings.last! }
     private var first: Reading { readings.first! }
@@ -28,25 +32,23 @@ struct ClinicalChart: View {
     }
     var body: some View {
         CareCard {
-            HStack(alignment: .top) {
-                if let symbol { Image(systemName: symbol).font(.subheadline).foregroundStyle(ThusoTheme.indigo) }
-                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                Spacer()
-                Text(inRange ? "Within sample range" : "Outside sample range")
-                    .font(.caption2.weight(.semibold))
-                    .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(inRange ? ThusoTheme.sage : Color(red: 0.98, green: 0.94, blue: 0.90), in: Capsule())
-                    .foregroundStyle(inRange ? ThusoTheme.slate : Color(red: 0.59, green: 0.33, blue: 0.17))
+            /* Title and standing, side by side until the words need the width; then the standing
+               drops under the title rather than squeezing it to three characters. */
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) { chartTitle; Spacer(minLength: ThusoSpacing.space8); standing }
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) { chartTitle; standing }
             }
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space4) {
                 Text(format(latest.value)).font(.system(.largeTitle, design: .rounded, weight: .semibold))
-                Text(unit).font(.caption).foregroundStyle(.secondary)
-                Spacer()
+                    .foregroundStyle(ThusoTheme.ink)
+                Text(unit).font(.footnote).foregroundStyle(ThusoTheme.body)
+                Spacer(minLength: ThusoSpacing.space8)
                 Text(latest.value == first.value ? "No change" : "\(latest.value > first.value ? "+" : "")\(format(latest.value - first.value)) since \(first.label)")
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(ThusoTheme.body).multilineTextAlignment(.trailing)
             }
-            plot.frame(height: 74).accessibilityElement().accessibilityLabel(summary)
-            HStack { Text(first.label); Spacer(); Text(latest.label) }.font(.caption2).foregroundStyle(.secondary)
+            .accessibilityElement(children: .combine)
+            plot.frame(height: plotHeight).accessibilityElement().accessibilityLabel(summary)
+            HStack { Text(first.label); Spacer(); Text(latest.label) }.font(.caption2).foregroundStyle(ThusoTheme.faint)
             DisclosureGroup(isExpanded: $showTable) {
                 VStack(spacing: 0) {
                     ForEach(readings) { reading in
@@ -55,17 +57,26 @@ struct ClinicalChart: View {
                             Text("\(format(reading.value)) \(unit)").frame(maxWidth: .infinity, alignment: .leading)
                             Text(reading.note).frame(maxWidth: .infinity, alignment: .leading).foregroundStyle(.secondary)
                         }
-                        .font(.caption).padding(.vertical, 9)
+                        .font(.caption).padding(.vertical, ThusoSpacing.space8)
                         .accessibilityElement(children: .combine)
                         Divider()
                     }
-                    Text("Fictional data, not a medical record.").font(.caption2).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8)
+                    Text("Fictional data, not a medical record.").font(.caption2).foregroundStyle(ThusoTheme.faint).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
                 }
             } label: {
                 Text(showTable ? "Hide readings" : "Show readings as a table").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
             }
         }
     }
+    private var chartTitle: some View {
+        Label {
+            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            if let symbol { Image(systemName: symbol).foregroundStyle(ThusoTheme.indigo) }
+        }
+    }
+    private var standing: some View { StatusPill(text: inRange ? "Within sample range" : "Outside sample range", tone: inRange ? "teal" : "amber") }
     private var plot: some View {
         GeometryReader { geo in
             let values = readings.map(\.value)
@@ -80,7 +91,7 @@ struct ClinicalChart: View {
             ZStack {
                 if let normal {
                     let top = point(0, normal.upperBound).y, bottom = point(0, normal.lowerBound).y
-                    Rectangle().fill(Color(white: 0.95)).frame(height: max(bottom - top, 1)).position(x: geo.size.width / 2, y: (top + bottom) / 2)
+                    Rectangle().fill(ThusoTheme.teal.opacity(0.12)).frame(height: max(bottom - top, 1)).position(x: geo.size.width / 2, y: (top + bottom) / 2)
                 }
                 Path { path in
                     for (index, reading) in readings.enumerated() {
