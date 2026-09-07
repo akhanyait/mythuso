@@ -33,7 +33,10 @@ test('kit surface: pair, capture, queue, all four conflicts', async ({ page }) =
   await expect(d.getByRole('button', { name: /^Send/ })).toBeDisabled();
   await d.getByRole('button', { name: 'Connection: off' }).click();
   await d.getByRole('button', { name: /^Send/ }).click();
-  await expect(d.getByText('Two readings, one observation').first()).toBeVisible({ timeout: 5000 });
+  // in flight first: the send settles on a timer, and asserting the outcome without waiting for the
+  // state in between raced the timer under a loaded machine
+  await expect(d.getByText('Sending').first()).toBeVisible({ timeout: 5000 });
+  await expect(d.getByText('Two readings, one observation').first()).toBeVisible({ timeout: 8000 });
   await expect(d.getByText(/The capturer.s standing lapsed/)).toBeVisible();
   await expect(d.getByText(/The instrument's own clock is|The instrument’s own clock is/).first()).toBeVisible();
   // duplicate: choose one, other superseded

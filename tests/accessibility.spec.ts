@@ -116,7 +116,9 @@ const openLanguageAndAccess = async (page: Page) => {
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (!(await sidebar.isVisible())) await page.locator('.tabbar button').nth(4).click();
   await page.getByRole('button', { name: /^Language & access/ }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Twelve official languages');
+  // by name, not "the h1": the shell renders a decorative empty h1 on some routes, and asserting
+  // about whichever heading is first made this fail intermittently with an empty string
+  await expect(page.getByRole('heading', { name: /Twelve official languages/ })).toBeVisible();
 };
 
 test.describe('at a 320px viewport', () => {

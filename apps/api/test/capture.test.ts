@@ -460,9 +460,14 @@ describe('everything lands in the hash chain, and none of it is a reading', () =
   const h = harness();
   const secret = 'systolic 182 diastolic 118';
   h.intake.receive(batch({ entries: [entry({ payload: Buffer.from(secret) })] }));
-  const written = JSON.stringify(h.chain());
+  /* The digests are hex, so a three-digit run turns up inside one often enough that searching the
+     raw JSON for "182" failed this test at random — which is worse than not having the test. What
+     is searched is everything the chain wrote except its own digests, which is the only place a
+     leaked reading could actually be read. */
+  const written = JSON.stringify(h.chain(), (_key, value) =>
+   typeof value === 'string' && /^[0-9a-f]{32,}$/.test(value) ? '<digest>' : value);
   assert.ok(!written.includes(secret));
-  assert.ok(!written.includes('182'));
+  assert.ok(!written.includes('182'), `a reading leaked into the chain: ${written}`);
   /* Not left to whoever writes the next caller: the chain refuses a field it does not know. */
   assert.throws(() => h.protection.audit.append({ event: 'capture.accepted', payload: secret }),
    /may not carry "payload"/);
