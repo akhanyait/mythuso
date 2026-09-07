@@ -56,7 +56,10 @@ function Overview({ vetting }: { vetting: VettingState }) {
   </div>
   <SectionTitle title="Against the funding plan"/>
   <div className="panel">
-   <table className="result-table">
+   {/* Every column after the first is a figure, and the point of the table is reading one down
+       against the one under it. Left-aligned they could not be: 30, 100, 300, 600, 1000 all began
+       at the same pixel and ended five apart. */}
+   <table className="result-table figures">
     <caption>The proposal's indicative trajectory. Reported figures are fictional.</caption>
     <thead><tr><th scope="col">Point</th><th scope="col">Visits/day</th><th scope="col">Subscribers</th><th scope="col">Revenue</th><th scope="col">Net</th></tr></thead>
     <tbody>{businessModel.trajectory.map(row => <tr key={row.point}>

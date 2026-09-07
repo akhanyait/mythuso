@@ -47,7 +47,41 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
    </div>
   </header>
 
+  {/* The order this file already argued for — who and where, what is already arranged, how to
+      arrange the next thing, then the rest — was only true on a wide screen. On a phone the whole
+      of the second column came after the whole of the first, so "your next visit" sat about
+      fourteen hundred pixels below a greeting that had just asked who the visit was for. The
+      appointment is its own area now: top right beside the care column on a wide screen, directly
+      under the greeting on a narrow one. */}
   <div className="home-columns">
+   <section className={`home-appointment${next ? '' : ' is-empty'}`}>
+    <SectionTitle title={t('shell.nextVisit')} action={t('cta.allVisits')} onClick={() => navigate('My visits')}/>
+    {next ? <button className="visit-card" onClick={() => open(`Visit: ${next.service.name} · ${shortWhenText(next)} · ${next.person} · ${next.address}`)}>
+     <div className="visit-top">
+      <span className="service-icon"><ServiceIcon name={next.service.icon}/></span>
+      <div>
+       <strong>{next.service.name}</strong>
+       <small>{next.kind === 'asap' ? scheduling.asapPending : `${shortWhenText(next)} – ${visitEnds(next)}`}</small>
+      </div>
+      <Pill tone={next.kind === 'asap' ? 'amber' : ''}>{next.status}</Pill>
+     </div>
+     <div className="visit-meta-row">
+      {next.kind === 'asap' ? <span><Zap size={14}/>Looking for the nearest nurse</span> : <span><Clock3 size={14}/>{next.service.duration} minutes</span>}
+      <span><MapPin size={14}/>{next.address}</span>
+     </div>
+     <div className="nurse-row">
+      <span className="avatar nurse-avatar">SN</span>
+      <div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div>
+      <ChevronRight size={18}/>
+     </div>
+    </button> : <div className="panel empty-visit">
+     <span className="tile-icon"><CalendarPlus size={21}/></span>
+     <strong>{scheduling.noUpcoming}</strong>
+     <p>{scheduling.noUpcomingDetail}</p>
+     <button className="secondary full" onClick={() => navigate('Book a nurse')}>{t('nav.Book a nurse')}<ArrowRight size={16}/></button>
+    </div>}
+   </section>
+
    <div className="home-main">
     <form className="search-field" role="search" onSubmit={e => { e.preventDefault(); navigate('Book a nurse'); }}>
      <Search size={19}/>
@@ -58,10 +92,11 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
      <Stethoscope size={19}/>{t('nav.Book a nurse')}<ArrowRight size={17}/>
     </button>
 
-    {/* The action reuses a translated key rather than introducing an English-only one: every locale
-        in packages/catalog/locales.json must carry every key, and adding one I cannot translate
-        into eleven languages would either fail the build or ship a lie about what is translated. */}
-    <SectionTitle title="Care you can book today" action={t('nav.Book a nurse')} onClick={() => navigate('Book a nurse')}/>
+    {/* No action on this heading. It carried a "Book a nurse" link directly beneath a full-width
+        "Book a nurse" button, going to the same screen — three ways to say the same thing inside
+        one hundred and twenty pixels, which is how a screen ends up feeling busy without carrying
+        anything more. Every row underneath opens booking anyway. */}
+    <SectionTitle title="Care you can book today"/>
     {/* One row per service: one icon, the name, what it is, the price and how long it takes.
         A grid of two made the names wrap to three lines on a narrow phone. */}
     <div className="shortcut-list">
@@ -98,32 +133,6 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
    </div>
 
    <aside className="home-side">
-    <SectionTitle title={t('shell.nextVisit')} action={t('cta.allVisits')} onClick={() => navigate('My visits')}/>
-    {next ? <button className="visit-card" onClick={() => open(`Visit: ${next.service.name} · ${shortWhenText(next)} · ${next.person} · ${next.address}`)}>
-     <div className="visit-top">
-      <span className="service-icon"><ServiceIcon name={next.service.icon}/></span>
-      <div>
-       <strong>{next.service.name}</strong>
-       <small>{next.kind === 'asap' ? scheduling.asapPending : `${shortWhenText(next)} – ${visitEnds(next)}`}</small>
-      </div>
-      <Pill tone={next.kind === 'asap' ? 'amber' : ''}>{next.status}</Pill>
-     </div>
-     <div className="visit-meta-row">
-      {next.kind === 'asap' ? <span><Zap size={14}/>Looking for the nearest nurse</span> : <span><Clock3 size={14}/>{next.service.duration} minutes</span>}
-      <span><MapPin size={14}/>{next.address}</span>
-     </div>
-     <div className="nurse-row">
-      <span className="avatar nurse-avatar">SN</span>
-      <div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div>
-      <ChevronRight size={18}/>
-     </div>
-    </button> : <div className="panel empty-visit">
-     <span className="tile-icon"><CalendarPlus size={21}/></span>
-     <strong>{scheduling.noUpcoming}</strong>
-     <p>{scheduling.noUpcomingDetail}</p>
-     <button className="secondary full" onClick={() => navigate('Book a nurse')}>{t('nav.Book a nurse')}<ArrowRight size={16}/></button>
-    </div>}
-
     <SectionTitle title="Care plan" action="Care plans" onClick={() => navigate('Care plans')}/>
     <button className="panel reminder-row" onClick={() => navigate('Care plans')}>
      <span className="tile-icon amber"><Clock3 size={20}/></span>

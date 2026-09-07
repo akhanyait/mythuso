@@ -7,28 +7,53 @@ import { InvitationList, type Invitation } from './Guardian';
 import { DispatchBoard, IncidentBoard } from './Dispatch';
 import { HeroCarousel } from '../components/HeroCarousel';
 import { FulfilmentQueue } from './Orders';
-import { CardArt, FamilyScene, PatientPortrait } from '../components/Portraits';
+import { FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
 import type { DemoVisit } from './Booking';
 import { isoIn, labels as schedulingLabels, shortDateOf, shortWhenText, visitEnds, weekdayOf } from '../lib/scheduling';
 import { holdStatus } from '../lib/interpreting';
+/* One service, one card, one symbol.
+ *
+ * Each card used to carry the service's icon twice — once in a tinted tile at the top left and
+ * again, three times the size, inside a pastel corner block whose colour came from the card's
+ * index in the array. Four colours rotating across fifteen cards is not a code a reader can learn;
+ * it is decoration that looks like one, and on a health catalogue it is exactly what makes a
+ * serious product read as a toy. The corner block is gone and the tile is the only mark.
+ *
+ * The footer is a row of two columns rather than whatever fitted: what it costs, and how long it
+ * takes. Both are the same two facts on every card, in the same two places, so a person comparing
+ * four services reads down a column instead of hunting each card. */
+function ServiceCard({service,onOpen}:{service:Service;onOpen:()=>void}) {
+ const live=service.phase===1;
+ return <button className={`service-card${live?'':' later'}`} onClick={onOpen}>
+  <span className="service-icon"><ServiceIcon name={service.icon} size={21}/></span>
+  <h3>{service.name}</h3>
+  <p>{service.description}</p>
+  <div>{live
+   ?<><strong>From {money(service.price)}</strong><span>{service.duration} min<ChevronRight size={16}/></span></>
+   :<><strong className="later-price">{money(service.price)} planned</strong><span>Phase {service.phase}<ChevronRight size={16}/></span></>}</div>
+ </button>;
+}
 export function Services({book,open,query=''}:{book:(s:Service)=>void;open:(s:string)=>void;query?:string}) {
  const [category,setCategory]=useState('All services');
  const [search,setSearch]=useState(query);
  const filtered=services.filter(s=>(category==='All services'||s.category===category)&&`${s.name} ${s.description}`.toLowerCase().includes(search.toLowerCase()));
+ const bookable=filtered.filter(s=>s.phase===1);
+ const planned=filtered.filter(s=>s.phase!==1);
  return <>
   <div className="page-intro"><div className="eyebrow">Care, on your terms</div><h1>Professional care at your door</h1><p>Choose a service and we’ll match you with the nearest qualified nurse.</p></div>
   <div className="catalog-tools"><label className="search-box"><Search size={18}/><input aria-label="Search services" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find a service…"/></label><span className="helper">{filtered.filter(s=>s.phase===1).length} bookable now · {filtered.length} in the catalogue</span></div>
   <div className="tabs" aria-label="Service categories">{['All services','Everyday care','Family health','Recovery','Tests & screening'].map(c=><button key={c} className={category===c?'selected':''} onClick={()=>setCategory(c)}>{c}</button>)}</div>
-  <div className="catalog-grid">{filtered.map((s,i)=>{
-   const live=s.phase===1;
-   return <button className={`service-card tint-${i%4} ${live?'':'later'}`} key={s.id} onClick={()=>live?book(s):open(`${s.name} · Phase ${s.phase}`)}>
-    <CardArt index={i}><ServiceIcon name={s.icon} size={30}/></CardArt>
-    <span className="service-icon"><ServiceIcon name={s.icon} size={21}/></span>
-    <h3>{s.name}</h3><p>{s.description}</p>
-    <div>{live?<><strong>From {money(s.price)}</strong><span>{s.duration} min <ChevronRight size={16}/></span></>
-     :<><strong className="later-price">{money(s.price)} planned</strong><span>Phase {s.phase} <ChevronRight size={16}/></span></>}</div>
-   </button>;})}</div>
+  {/* Bookable and planned are two groups, not one grid with a quieter twelfth card. The only
+      difference used to be a word in the footer — "R 449 planned · Phase 2" — set at the same
+      weight, in the same white card, in the same grid, so the answer to "what can I actually get
+      today" was there to be read rather than seen. It is a heading now, and the planned cards are
+      drawn as what they are: a plan, on the page's own ground, without the surface a live card
+      sits on. */}
+  {bookable.length>0&&<><SectionTitle title={`Bookable now · ${bookable.length}`}/>
+   <div className="catalog-grid">{bookable.map(s=><ServiceCard key={s.id} service={s} onOpen={()=>book(s)}/>)}</div></>}
+  {planned.length>0&&<><SectionTitle title={`In the plan · ${planned.length}`}/>
+   <div className="catalog-grid">{planned.map(s=><ServiceCard key={s.id} service={s} onOpen={()=>open(`${s.name} · Phase ${s.phase}`)}/>)}</div></>}
   {!filtered.length&&<EmptyNote>No services match your search. Try another name or category.</EmptyNote>}
   <button className="menu-row panel space-top" onClick={()=>book(services[0])}><span className="tile-icon"><CircleHelp size={19}/></span><span><strong>Not sure what you need?</strong><small>Chat to our care team</small></span><ChevronRight size={17}/></button>
   <div className="privacy-note space-top"><ShieldCheck size={19}/>Only phase-one services can be booked. Later-phase services are shown so the plan is visible, not because a nurse can be sent for one today.</div>
@@ -76,24 +101,35 @@ export function Visits({visits,open,book}:{visits:DemoVisit[];open:(s:string)=>v
    </div>)}</div>
    :<EmptyState title={`No ${tab.toLowerCase()} visits`} body={tab==='Cancelled'?'Visits you cancel appear here with the reason and any refund.':'When you book a visit it appears here, with the nurse’s name and what to have ready.'} action="Book a nurse" onAction={book}/>}
   </StateBlock>
-  <section className="promo-dark">
+  {/* Not under a failure. A banner selling another visit, directly beneath "we couldn't load this
+      just now", is the app talking over the person it has just let down. It belongs to the state
+      where the list actually loaded. */}
+  {state==='ready'&&<section className="promo-dark">
    <h2>Care that fits your life.</h2>
    <p>Easy booking. Trusted professionals. Better health, at home.</p>
    <button onClick={book}>Book another visit<ArrowRight size={16}/></button>
    <div className="promo-art"><FamilyScene/></div>
-  </section>
+  </section>}
  </>}
 export function PageHeading({eyebrow,title,description}:{eyebrow:string;title:string;description:string}) {return <div className="page-intro"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div></div>;}
 export function Passport({open}:{open:(s:string)=>void}) {
  const [tab,setTab]=useState('Overview');
  const [deviceState,setDeviceState]=useState<LoadState>('denied');
  return <>
-  <div className="page-intro"><h1>Health Passport</h1></div>
+  <div className="page-intro"><h1>Health Passport</h1><p>Your health. Your story. Every visit, reading and result, in one place.</p></div>
+  {/* A credential, composed as one. The largest thing on it used to be the slogan and the smallest
+      was the holder's name, with a cartoon face where the photograph goes — which is the single
+      element on the patient side that most made this look like a mock-up of a health app rather
+      than one. The name leads, the reference number is a labelled field set in tabular figures so
+      it can be read out over a phone, and the face is the same monogram the rest of the app uses
+      for this person. The slogan keeps its words, in the page heading, where a slogan belongs. */}
   <section className="passport-hero">
-   <Pill tone="light">Thuso Pass</Pill>
-   <h2>Your health.<br/>Your story.</h2>
-   <p><strong>Lerato Molefe</strong>ID: TH-2048-3920</p>
-   <span className="passport-portrait"><PatientPortrait/></span>
+   <span className="passport-portrait" aria-hidden="true">LM</span>
+   <div className="passport-identity">
+    <Pill tone="light">Thuso Pass</Pill>
+    <h2>Lerato Molefe</h2>
+    <dl><div><dt>Passport ID</dt><dd>TH-2048-3920</dd></div><div><dt>Record</dt><dd>Fictional preview</dd></div></dl>
+   </div>
   </section>
   <div className="underline-tabs" role="group" aria-label="Passport sections">{['Overview','Records','Medications','More'].map(t=><button key={t} className={tab===t?'selected':''} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t}</button>)}</div>
   {tab==='Overview'?<>
@@ -161,7 +197,13 @@ export function Family({open,members,invitations,onRevoke}:{open:(s:string)=>voi
    marks it without promising it. One column on a phone — at two-up the names wrapped to two lines
    and the buttons landed at five different heights. */
 const plans=[['Chronic Routine','199','Monthly check-ins, doctor review and adherence support.'],['Family Planning Plan','99','Scheduled injection visits and discreet reminders.'],['Thuso Mom','249','Support through pregnancy and baby’s first year.'],['Thuso Senior','699','Weekly visits, medication support and family reports.'],['Thuso Recover','Custom','A personal care plan for your recovery at home.']] as const;
-export function Plans({open}:{open:(s:string)=>void}) {return <><PageHeading eyebrow="THUSO ROUTINE" title="A healthier rhythm." description="Care that keeps showing up. For every chapter of life."/><div className="catalog-grid plan-grid">{plans.map(([n,p,d],i)=><div className={`panel plan-card ${i===0?'featured':''}`} key={n}><span className="service-icon"><Heart size={20}/></span><Pill tone="plain">{i<2?'PHASE 2 PREVIEW':'PHASE 3 PREVIEW'}</Pill><h2>{n}</h2><p>{d}</p><strong className="plan-price">{p==='Custom'?p:`R${p}`}<small>{p==='Custom'?' pricing':' / month'}</small></strong><button className="secondary" onClick={()=>open(n)}>Explore plan<ArrowRight size={17}/></button></div>)}</div><p className="helper"><ShieldCheck size={14}/>Proposal prices and benefits are indicative. No subscription can be purchased in this preview, and no plan is active on this account.</p></>}
+/* Five plans, and the reader is comparing two things across them: what it includes and what it
+   costs a month. Both used to land wherever the description happened to end, so R199 on the first
+   card sat twenty pixels below R249 on the third and the prices could not be read as a column. The
+   card is a fixed set of rows now — phase, name, description, price, action — and each row starts
+   on the same line across all five. The heart tile is gone with them: it was the same glyph five
+   times, which told a reader nothing except that somebody had a spare icon. */
+export function Plans({open}:{open:(s:string)=>void}) {return <><PageHeading eyebrow="THUSO ROUTINE" title="A healthier rhythm." description="Care that keeps showing up. For every chapter of life."/><div className="catalog-grid plan-grid">{plans.map(([n,p,d],i)=><div className={`panel plan-card ${i===0?'featured':''}`} key={n}><Pill tone="plain">{i<2?'PHASE 2 PREVIEW':'PHASE 3 PREVIEW'}</Pill><h2>{n}</h2><p>{d}</p><strong className="plan-price">{p==='Custom'?p:`R${p}`}<small>{p==='Custom'?' pricing':' / month'}</small></strong><button className="secondary" onClick={()=>open(n)}>Explore plan<ArrowRight size={17}/></button></div>)}</div><p className="helper"><ShieldCheck size={14}/>Proposal prices and benefits are indicative. No subscription can be purchased in this preview, and no plan is active on this account.</p></>}
 /* Seven rights, seven identical shields. The icon was the same on every row, so it carried no
    information at all and the list had to be read word by word to be used. Each row now has the
    icon of the thing it does and a line saying what is behind it, in the settings-row pattern the
@@ -238,6 +280,16 @@ export const sectionWorkflow: Record<string,string> = {
  Protocols:'Clinical protocols',Quality:'Quality & revenue',Results:'Laboratory order LAB-0023',
  Collections:'Collection schedule'
 };
+/* What each of those doors is for, in one sentence. "Open this workflow" told a reader nothing they
+   could not see from the heading, which is the definition of a wasted line on a screen that has
+   only three. */
+export const sectionDoor: Record<string,string> = {
+ Vetting:'The six checks a nurse clears before a visit can be sent to her, what each one expires on, and what stops the moment one lapses.',
+ 'Vetting queue':'Every applicant, the state of each check, and the decision that either clears somebody for dispatch or refuses it in writing.',
+ Assessments:'A visit from the doorstep: identity, consent, observations, findings and a sign-off that a nurse may not give herself.',
+ Protocols:'The reference a doctor reviews against, and the line at which decision support stops and a registered doctor starts.',
+ Quality:'Complaints, incidents, arrival times and the revenue they move — the numbers a board asks for before it asks for anything else.'
+};
 export const roleExtras: Record<string,string[]> = {
  Nurse:['Locum shifts','Academy'],
  Doctor:['Clinical protocols','Referral pathway'],
@@ -254,22 +306,54 @@ export function Workspace({role,page,open}:{role:string;page:string;open:(s:stri
  const nurse=role==='Nurse';const doctor=role==='Doctor';const partner=role==='Partner';
  const [available,setAvailable]=useState(true);
  const section=roleSections[role]?.includes(page)?page:roleSections[role]?.[0]??'Schedule';
- const rows=nurse?['09:00 · Vitals & chronic check · Rosebank','11:30 · Wound care · Parktown','14:00 · Mother & baby · Melville']:doctor?['TH-2048 · Vitals assessment · Awaiting review','TH-2045 · Wound follow-up · Routine review','TH-2041 · Prescription request · Awaiting review']:[];
+ /* Three columns rather than one bold string with two middle dots in it. A reference, what the case
+    is, and what state it is in are three different questions, and a reader scanning a queue answers
+    the third one first — so it is a badge in its own column at the end of the row, aligned down the
+    list, instead of the last few words of a sentence. */
+ const rows:readonly (readonly [string,string,string,string])[]=nurse
+  ?[['09:00','Vitals & chronic check','Rosebank',''],['11:30','Wound care','Parktown',''],['14:00','Mother & baby','Melville','']]
+  :doctor?[['TH-2048','Vitals assessment','Awaiting review','amber'],['TH-2045','Wound follow-up','Routine review',''],['TH-2041','Prescription request','Awaiting review','amber']]:[];
  /* Urgency first: what is waiting, how long it has waited, and what to do about it. */
  const metrics=nurse?[['Next visit','09:00','Rosebank · in 40 minutes'],['Today’s visits','3','One awaiting sign-off'],['This week so far','R 598','Pays Wednesday']]
   :doctor?[['Awaiting review','12','Longest waiting 3 h 20 m'],['Priority reviews','2','Flagged out of range'],['Reviewed today','18','Median 4 m 10 s']]
   :partner?[['Open orders','8','2 past their collection window'],['Scheduled collections','4','Next 11:15'],['Ready for release','3','Awaiting a clinician']]
   :[['Active visits','24','3 running late'],['Available nurses','18','4 off duty'],['Open incidents','3','1 severity high']];
+ /* The strip counts the work in front of this role today. On the four sections that are a door into
+    a workflow rather than a board — vetting, assessments, protocols, quality — it counted something
+    else entirely: a nurse opening Vetting was shown her next visit, today's visits and this week's
+    earnings, three numbers with nothing to do with the screen under them, above a single row
+    reading "Vetting · Open this workflow". A screen with nothing to say says so instead. */
+ const board=['Schedule','Review queue','Dispatch','Incidents','Orders','Collections','Results'].includes(section);
  return <><PageHeading eyebrow={`${role.toUpperCase()} WORKSPACE · DEMO`} title={section} description="Fictional workspace. Role switching is for design review, not authentication."/>
- <div className="metric-grid">{metrics.map(([k,v,note])=><div className="panel metric" key={k}><span>{k}</span><strong>{v}</strong><small>{note}</small></div>)}</div>
+ {board&&<div className="metric-grid">{metrics.map(([k,v,note])=><div className="panel metric" key={k}><span>{k}</span><strong>{v}</strong><small>{note}</small></div>)}</div>}
  {section==='Schedule'||section==='Review queue'?<>
   <div className="section-title"><h2>{nurse?'Your visit schedule':'Clinical review queue'}</h2>{nurse&&<button className="secondary" onClick={()=>setAvailable(!available)}><span className={`status-dot ${available?'':'offline'}`}/>{available?'Available for visits':'Off duty'}</button>}</div>
-  <div className="panel">{rows.map(t=><button className="record-row" key={t} onClick={()=>open(doctor?`Doctor review: ${t.split(' · ')[0]}`:`${role} case: ${t}`)}><span className="service-icon">{doctor?<FileText size={22}/>:<Activity size={22}/>}</span><span><strong>{t}</strong><small>{doctor?'AI support only · Clinician sign-off required':'Demonstration record · No live actions'}</small></span><ChevronRight size={18}/></button>)}</div>
+  <div className="panel queue">{rows.map(([ref,what,where,tone])=><button className="queue-row" key={ref} onClick={()=>open(doctor?`Doctor review: ${ref}`:`${role} case: ${ref} · ${what} · ${where}`)}>
+   <span className="service-icon">{doctor?<FileText size={22}/>:<Activity size={22}/>}</span>
+   <span className="queue-ref">{ref}</span>
+   <span className="queue-what"><strong>{what}</strong><small>{doctor?'AI support only · Clinician sign-off required':'Demonstration record · No live actions'}</small></span>
+   {doctor?<Pill tone={tone}>{where}</Pill>:<span className="queue-where"><MapPin size={14}/>{where}</span>}
+   <ChevronRight size={18}/></button>)}</div>
+  {/* The strip above says twelve are awaiting review and the list under it holds three. Both are
+      fictional, and a screen that shows a count next to a list it is not the count of should say
+      so rather than leave a reader to work out which of the two is lying. */}
+  <p className="helper">{rows.length} demonstration {rows.length===1?'case':'cases'}. The counts above are fictional and are not a total of this list.</p>
   {nurse&&<><SectionTitle title="Start a visit"/><div className="panel"><button className="record-row" onClick={()=>open('Visit assessment')}><span className="service-icon"><ClipboardPlus size={22}/></span><span><strong>Visit assessment · TH-2048</strong><small>Identity check, consent, observations, findings and sign-off</small></span><ArrowRight size={18}/></button></div></>}
  </>:section==='Dispatch'?<DispatchBoard/>
  :section==='Incidents'?<><SectionTitle title="Open incidents"/><IncidentBoard open={open}/></>
  :section==='Orders'||section==='Collections'||section==='Results'?<FulfilmentQueue open={open}/>
- :<div className="panel"><button className="record-row" onClick={()=>open(sectionWorkflow[section]??section)}><span className="service-icon"><ShieldCheck size={22}/></span><span><strong>{section}</strong><small>Open this workflow</small></span><ArrowRight size={18}/></button></div>}
+ :<div className="panel workflow-door">
+  <span className="tile-icon"><ShieldCheck size={22}/></span>
+  <h2>{section}</h2>
+  <p>{sectionDoor[section]??'This workflow is drawn but not yet a screen of its own.'}</p>
+  {/* The section keeps its own capitalisation: these are the names of screens, and "open vetting"
+      reads as an instruction to vet somebody rather than as the name of the thing behind the door. */}
+  <button className="primary" onClick={()=>open(sectionWorkflow[section]??section)}>Open {section}<ArrowRight size={17}/></button>
+  <p className="helper">It opens as a preview dialog. Nothing in it reaches a nurse, a patient, a device or a record.</p>
+ </div>}
+ {/* Secondary by construction. These were two cards with the same shield on them, the same white
+     surface and the same shadow as the queue above — so a screen whose entire purpose is the queue
+     ended on two equally-weighted boxes. A list of links is what they are. */}
  <SectionTitle title="More tools"/>
- <div className="catalog-grid">{(roleExtras[role]??[]).map(t=><button className="panel module-card" key={t} onClick={()=>open(t)}><ShieldCheck size={23}/><h3>{t}<ArrowUpRight size={17}/></h3><p>Explore the workflow preview</p></button>)}</div></>}
+ <div className="tool-links">{(roleExtras[role]??[]).map(t=><button className="tool-link" key={t} onClick={()=>open(t)}>{t}<ArrowUpRight size={16}/></button>)}</div></>}
 export function Notifications(){return <div className="notification-list">{[[Check,'Your visit is confirmed','Sister Naledi is scheduled for Saturday, 09:00.'],[FileText,'Your visit summary is ready','A sample record has been added to your Passport.'],[Sparkles,'A little reminder','Explore regular check-ins with Thuso Routine.'],[Bell,'Someone asked for access','Kagiso asked to help with your bookings. Review what he would see.']].map(([Icon,title,body])=>{const I=Icon as typeof Bell;return <div className="record-row" key={String(title)}><I size={21}/><span><strong>{String(title)}</strong><small>{String(body)}</small></span></div>;})}<p className="helper">Sample notifications only.</p></div>}

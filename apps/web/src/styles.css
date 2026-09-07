@@ -1598,3 +1598,430 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
 .interp-cancel .helper,.interp-booking .helper{line-height:1.65}
 .interp-held .review-line{width:100%;margin-top:8px}
 .interp-held .helper{text-align:left}
+
+/* ---- Composition: hierarchy, rhythm and alignment -------------------------------------------
+   The palette, the radii and the type scale were rebuilt to the brand. The screens were not: they
+   were composed when everything was mint green and rounded, and what survived that change was a
+   habit rather than a design — every block a white rounded card with a shadow, every card the same
+   weight, padding chosen a card at a time, and a tinted tile on all of them so the tint stopped
+   meaning anything.
+
+   Four decisions, applied everywhere below.
+
+   A rhythm, held. Sections are separated by --space-32 and a heading sits --space-12 above what it
+   names. That is the whole vertical system; nothing here invents a third gap.
+
+   One thing dominates. On a screen with a queue, the queue is the widest and highest-contrast
+   object, and the numbers above it are a strip rather than three cards competing with it.
+
+   Numbers line up. Anything a person compares down a column is tabular and right-aligned, so the
+   comparison is done by the eye rather than by reading each figure twice.
+
+   The accents are spent, not spread. Teal and mango are worth what they are worth because they are
+   rare: a status that has changed, a figure that is being withheld, a position on a map. A tint
+   applied by rotation — every fourth card peach — is decoration wearing the clothes of meaning. */
+
+/* ---- The top bar ---- */
+/* Wrapped on a phone so the disclosure gets a row of its own rather than crushing the controls
+   beside it. See the comment on the button in App.tsx for why it is the disclosure that moves and
+   not the profile control. */
+.topbar{flex-wrap:wrap;row-gap:var(--space-8);padding-bottom:var(--space-12)}
+.topbar .brand{order:0}
+.breadcrumb{order:1}
+.topbar-actions{order:2}
+.topbar .demo-pill{order:3;flex:1 0 100%;justify-content:flex-start;border-radius:var(--r-control);background:var(--surface);border:1px solid var(--line);color:var(--indigo-deep);box-shadow:none;white-space:normal;text-align:left;line-height:1.4}
+@media(min-width:700px){
+ .topbar{flex-wrap:nowrap;row-gap:0}
+ /* One auto margin in the row, not two: with the breadcrumb pushing right and the actions pushing
+    left, the free space divided between them and left the disclosure stranded mid-bar. */
+ .topbar .demo-pill{order:2;flex:0 0 auto;border-radius:var(--r-pill);white-space:nowrap;margin-left:auto}
+ .topbar-actions{order:3;margin-left:0}
+}
+/* The dot beside the disclosure was the same green as a service being up. It sits on a sentence
+   saying nothing here is running, so it carries the colour this design gives to "not yet". */
+.demo-pill>.status-dot{background:var(--mango)}
+
+/* ---- Rhythm ----
+   One rule instead of the six adjacency pairs that used to guess at it, and which missed every
+   case where a paragraph rather than a card sat above a heading — the earnings screen ran "Where
+   the money goes" hard against the sentence above it. */
+.section-title{margin:var(--space-32) 0 var(--space-12);align-items:baseline}
+.state-block+.section-title,.chart-grid+.section-title,.shortcut-list+.section-title,
+.panel+.section-title,.catalog-grid+.section-title,.helper+.section-title{margin-top:var(--space-32)}
+.section-title:first-child,.page-intro+.section-title,.underline-tabs+.section-title,
+.tabs+.section-title,.metric-grid+.section-title{margin-top:0}
+.page-intro{margin-bottom:var(--space-24)}
+.page-intro p{margin-top:var(--space-8)}
+.space-top{margin-top:var(--space-20)}
+main{padding-bottom:var(--space-40)}
+
+/* A measure. Body copy set across 1120 pixels is not read, it is scanned and lost — the eye cannot
+   find the start of the next line. Sixty-eight characters is the widest a line gets here, whatever
+   the screen does. Headings and tabular data are exempt: they are not read line by line. */
+.page-intro p,p.muted,p.helper,.earn-rule,.privacy-note,.empty-note,.prog-reconcile{max-width:68ch}
+/* A helper is a sentence, so it is set as one. As a flex row it wrapped its own icon onto a line of
+   its own the moment the measure above bit, and a symbol alone above a paragraph reads as a
+   heading for it. */
+p.helper{display:block}
+p.helper>svg{vertical-align:-2px;margin-right:var(--space-8)}
+
+/* ---- Numbers ----
+   A figure that is compared with the figure under it is tabular. Anything else asks the reader to
+   do the alignment themselves. */
+.admin-table td,.chart-table td,.result-table td,.prog-table td{font-variant-numeric:tabular-nums}
+/* Four tables carry `admin-table` on its own — the earnings ledger, the interpreter roster, the
+   programme statement and the consultation index — and that class set a table-layout and nothing
+   else, so all four were drawn with the browser's defaults: centred headings, no rules, and a
+   reference sitting on a different line from the row it belongs to. They get the table the results
+   and the charts already had. Written with :where() so every rule any of those four adds on top of
+   it still wins, which is what keeps a suppressed programme row amber. */
+:where(.admin-table){width:100%;border-collapse:collapse;font-size:13px;margin-top:var(--space-12)}
+:where(.admin-table) caption{text-align:left;font-size:13px;color:var(--faint);padding-bottom:var(--space-8);line-height:1.6}
+:where(.admin-table) th,:where(.admin-table) td{text-align:left;vertical-align:top;padding:10px 8px;border-bottom:1px solid var(--line);font-weight:400;color:var(--body)}
+:where(.admin-table) thead th{font-size:13px;letter-spacing:.4px;color:var(--faint);font-weight:700;text-transform:uppercase;vertical-align:bottom}
+:where(.admin-table) tfoot td,:where(.admin-table) tfoot th{border-bottom:0}
+.metric>strong,.disp-box strong,.prog-floor-grid strong,.plan-price,.shortcut-meta strong{font-variant-numeric:tabular-nums}
+/* A table whose every column but the first is a figure. Marked on the table rather than guessed at
+   per cell, because a table where only some numeric columns are aligned is worse than one where
+   none is. */
+.figures td,.figures thead th:not(:first-child){text-align:right}
+
+/* ---- The stat strip ----
+   Three numbers used to be three full-width cards. On a 1440px desktop they were three 380px
+   panels carrying 28px of number, the same weight as the queue underneath — and on a 390px phone
+   they stacked into four hundred pixels of card before anything a person came for. They are one
+   object now: a strip on a wide screen, a divided list on a narrow one, and in both cases quieter
+   than whatever follows. The `.panel.metric` classes stay because the specs read them. */
+.metric-grid{display:grid;gap:0;margin-bottom:var(--space-24);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow);overflow:hidden}
+.metric-grid>.panel.metric{border:0;border-radius:0;box-shadow:none;background:none;padding:var(--space-16) var(--space-20);gap:var(--space-4)}
+.metric-grid>.panel.metric>span{font-size:13px;color:var(--body)}
+.metric-grid>.panel.metric>strong{font-size:24px;letter-spacing:-.6px;line-height:1.15}
+.metric-grid>.panel.metric>small{font-size:13px;color:var(--faint);line-height:1.45}
+@media(max-width:699px){
+ .metric-grid>.panel.metric{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"label value" "note value";align-items:baseline;column-gap:var(--space-16);row-gap:2px;padding:var(--space-12) var(--space-16)}
+ .metric-grid>.panel.metric>span{grid-area:label}
+ .metric-grid>.panel.metric>strong{grid-area:value;font-size:22px;justify-self:end;align-self:center}
+ .metric-grid>.panel.metric>small{grid-area:note}
+ .metric-grid>.panel.metric+.panel.metric{border-top:1px solid var(--line)}
+}
+@media(min-width:700px){
+ .metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .metric-grid>.panel.metric+.panel.metric{border-left:1px solid var(--line)}
+ .metric-grid>.panel.metric>strong{font-size:28px}
+ /* Six of them is two rows rather than one long strip, so the second row starts a column again. */
+ .metric-grid>.panel.metric:nth-child(n+4){border-top:1px solid var(--line)}
+ .metric-grid>.panel.metric:nth-child(4){border-left:0}
+}
+
+/* ---- Accents, spent rather than spread ----
+   The catalogue rotated four pastel tints across the service icons — every fourth card peach, then
+   pink, then blue — which is a colour system that encodes the order of an array. One tile colour;
+   the tinted ones that survive are the ones that mean something. */
+.tint-1 .service-icon,.tint-2 .service-icon,.tint-3 .service-icon,
+.tint-1 .tile-icon,.tint-2 .tile-icon,.tint-3 .tile-icon{background:var(--indigo-soft);color:var(--indigo)}
+
+/* ---- Motion ----
+   Functional only, and on the one duration the token file declares. A row lifting under the
+   pointer says it is pressable; nothing here animates in order to be noticed. */
+.shortcut-row,.service-card,.quick-tile,.result-row,.record-row,.context-chip,.menu-row,
+.switch,.switch::before,.switch>span,button{transition-duration:var(--motion-duration)}
+
+/* ---- The service catalogue ----
+   Fifteen cards on one grid, and the reader's first question is which of them a nurse can be sent
+   for today. That used to be answered by four words in the footer of an otherwise identical card.
+   Two groups under two headings answer it before anything is read, and the planned cards are drawn
+   without the surface a live one sits on — the page's own ground, a dashed edge, no shadow — so
+   the difference survives at arm's length and in greyscale, not only in the sentence. */
+.service-card{display:grid;grid-template-rows:auto auto 1fr auto;gap:var(--space-8);padding:var(--space-16);row-gap:var(--space-8)}
+.service-card .service-icon{margin-bottom:var(--space-4)}
+.service-card h3{font-size:15px;line-height:1.3;max-width:none;margin:0}
+.service-card p{display:block;font-size:13px;color:var(--body);line-height:1.5}
+.service-card>div{display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-8);width:100%;margin-top:var(--space-4);padding-top:var(--space-12);border-top:1px solid var(--line);font-size:13px}
+.service-card>div>strong{font-size:14px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
+.service-card>div>span{display:inline-flex;align-items:center;gap:var(--space-4);color:var(--faint);white-space:nowrap}
+.service-card.later{background:none;border-style:dashed;box-shadow:none}
+.service-card.later .service-icon{background:var(--surface);border:1px solid var(--line);color:var(--faint)}
+.service-card.later h3,.service-card.later>div>strong{color:var(--slate)}
+.service-card.later:hover{box-shadow:none;border-color:var(--indigo);transform:none}
+.later-price{font-weight:600}
+.catalog-tools{margin-bottom:var(--space-16);gap:var(--space-16)}
+.catalog-tools .helper{flex:0 0 auto;color:var(--faint)}
+.tabs{margin:0 0 var(--space-24)}
+/* Five category chips wrapped onto three lines at 390px — a third of the screen spent on a filter,
+   above the thing being filtered. One line that scrolls, which is what the passport's and the
+   visits' tab strips already do on the same phone. */
+@media(max-width:640px){
+ .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:var(--space-4)}
+ .tabs::-webkit-scrollbar{display:none}
+ .tabs>button{flex:0 0 auto}
+}
+/* At a phone width a two-up grid of cards gives each service about a hundred and sixty pixels:
+   "Injection & vaccination" over three lines, and "From R 249" and "20 min" unable to share the
+   footer. One service to a row instead — the same row the home uses for the same four services,
+   so a patient meets one shape for a service and not two. */
+@media(max-width:560px){
+ .catalog-grid{grid-template-columns:minmax(0,1fr)}
+ .service-card{grid-template-columns:44px minmax(0,1fr);grid-template-rows:auto auto auto;grid-template-areas:"icon name" "icon desc" "meta meta";column-gap:var(--space-12);row-gap:var(--space-4)}
+ .service-card .service-icon{grid-area:icon;margin-bottom:0}
+ .service-card h3{grid-area:name}
+ .service-card p{grid-area:desc}
+ .service-card>div{grid-area:meta;margin-top:var(--space-8)}
+}
+
+/* ---- A queue ----
+   The thing the workspace exists for, so it is the widest and quietest-framed object on the screen
+   and everything above it is a strip. Three columns that line up down the list: the reference in
+   tabular figures, what the case is, and the state it is in. */
+.queue{padding:var(--space-4) var(--space-8)}
+.queue-row{display:grid;grid-template-columns:44px 88px minmax(0,1fr) auto auto;align-items:center;gap:var(--space-16);width:100%;text-align:left;padding:var(--space-12);border-radius:var(--r-tile);min-height:64px;color:var(--body)}
+.queue-row+.queue-row{box-shadow:0 -1px 0 var(--line)}
+.queue-row:hover{background:var(--canvas);box-shadow:none}
+.queue-row:hover+.queue-row{box-shadow:none}
+.queue-ref{font-size:14px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.queue-what strong{display:block;font-size:14px;font-weight:600;color:var(--ink)}
+.queue-what small{display:block;font-size:13px;color:var(--faint);margin-top:3px}
+.queue-where{display:inline-flex;align-items:center;gap:var(--space-8);font-size:13px;color:var(--body);white-space:nowrap}
+.queue-where svg{color:var(--faint)}
+.queue-row>svg:last-child{color:var(--faint)}
+@media(max-width:640px){
+ .queue-row{grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"icon ref go" "icon what what" ". state state";row-gap:var(--space-8);column-gap:var(--space-12);align-items:start}
+ .queue-row>.service-icon{grid-area:icon;align-self:center}
+ .queue-ref{grid-area:ref}
+ .queue-what{grid-area:what}
+ .queue-row>.pill,.queue-where{grid-area:state;justify-self:start}
+ .queue-row>svg:last-child{grid-area:go;align-self:center}
+}
+
+/* Secondary actions read as secondary: a row of links on the page's own ground, not two more
+   cards with the same shadow as the queue they sit under. */
+.tool-links{display:flex;flex-wrap:wrap;gap:var(--space-8)}
+.tool-link{display:inline-flex;align-items:center;gap:var(--space-8);min-height:44px;padding:var(--space-8) var(--space-16);border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);font-size:13px;font-weight:600;color:var(--slate)}
+.tool-link:hover{border-color:var(--indigo);color:var(--indigo-deep);background:var(--indigo-soft)}
+.tool-link svg{color:var(--indigo)}
+
+/* A door into a workflow, which is a screen with one thing on it. Given the shape of an empty
+   state rather than the shape of a list with one row in it — a symbol, what is behind the door,
+   the way through, and the sentence saying what the preview will not do once you are through. */
+.workflow-door{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-12);padding:var(--space-32);max-width:640px}
+.workflow-door h2{font-size:20px;letter-spacing:-.3px}
+.workflow-door p{font-size:14px;color:var(--body);line-height:1.6;max-width:56ch}
+.workflow-door .primary{margin-top:var(--space-4)}
+.workflow-door .helper{color:var(--faint)}
+
+/* Two panels side by side stretched to the taller of them, so the shorter one ended in a hundred
+   and fifty pixels of white nobody put there. */
+.two-column,.vetting-grid,.dispatch-grid,.disp-columns{align-items:start}
+
+/* ---- Loading, empty, error, offline, refused ----
+   Where an app looks cheap. These five were drawn in the old mint palette — a dashed #d6e2dd edge,
+   a shimmer between two greens — and they are the states most likely to be the first thing a person
+   sees on a slow morning, so they are drawn in the palette the rest of the product uses.
+
+   The skeleton keeps the shape of the row it is standing in for rather than being three grey bars:
+   a tile the size of the icon that will arrive, a title line and a shorter second line. A loading
+   state that does not match what loads is a flash of one layout followed by another. */
+.state-block{border:1px dashed var(--line);padding:var(--space-20);gap:var(--space-16)}
+.state-block h3{font-size:15px;margin-bottom:var(--space-4)}
+.state-block p{max-width:60ch}
+.state-block.error{border-color:var(--danger);border-style:solid}
+.state-block.denied{border-color:var(--mango-ink)}
+.state-block.offline{border-color:var(--info)}
+.skeleton{gap:var(--space-16);padding:var(--space-4) 0}
+.skeleton-icon{background:var(--canvas);border:1px solid var(--line)}
+.skeleton-lines i{height:11px;border-radius:var(--r-tile);background:linear-gradient(90deg,var(--canvas),var(--line),var(--canvas));background-size:200% 100%;animation:shimmer 1.4s linear infinite}
+/* "Try again" stretched to eleven hundred pixels. A recovery action is one button, not a bar. */
+@media(min-width:560px){.state-block>button{width:auto;flex:0 0 auto;margin-top:0;align-self:center}}
+details.state-picker{border-color:var(--line);background:var(--surface)}
+details.state-picker>summary{color:var(--faint)}
+
+/* ---- Sign-up: the step list, and eleven languages ----
+   The step you are on was unreadable. On a phone the list is six four-pixel bars and the current
+   one is filled with indigo; from 1000px the same list becomes text, and the rule that filled the
+   bar outranked the rule that turned the background off — so "1 Welcome" was slate text on a solid
+   indigo block. The two states are separated here rather than left to specificity.
+
+   The rest is palette: the labels were teal-ink from the mint system, which made a numbered list of
+   plain steps look like eleven links. */
+@media(min-width:1000px){
+ .onboard-steps li.current,.onboard-steps li.done{background:none}
+ .onboard-steps li{color:var(--body)}
+ .onboard-steps li b{background:var(--surface);color:var(--body)}
+ .onboard-steps li.done b{background:var(--indigo-soft);color:var(--indigo-deep)}
+ .onboard-steps li.current{color:var(--ink);font-weight:650}
+ .onboard-steps li.current b{background:var(--indigo);color:var(--surface)}
+}
+/* Eleven options in one column ran the choice five hundred pixels down a screen with room for two.
+   Below that width they stay stacked: at 390px two columns is two truncated language names. */
+@media(min-width:700px){.onboard-body .locale-choice{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .onboard-body{max-width:640px}}
+/* Centred on the cross axis, not on both. Vertically centring six steps of a form means the
+   headline starts five hundred pixels down on the first step and at the top on the fourth, so the
+   thing you read first moves every time you press Continue. */
+@media(min-width:1000px){.onboard-form{place-items:start center;padding-top:var(--space-40)}}
+
+/* ---- The passport credential ---- */
+.passport-hero{display:flex;align-items:center;gap:var(--space-20);padding:var(--space-24) var(--space-24);background:linear-gradient(135deg,var(--indigo-deep),var(--indigo));min-height:0;margin-bottom:var(--space-24)}
+.passport-identity{min-width:0}
+.passport-hero h2{font-size:24px;color:var(--surface);margin:var(--space-12) 0 var(--space-16);max-width:none;letter-spacing:-.5px}
+.passport-hero dl{display:flex;flex-wrap:wrap;gap:var(--space-8) var(--space-32);margin:0}
+.passport-hero dt{font-size:13px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--accent-soft)}
+.passport-hero dd{margin:3px 0 0;font-size:15px;font-weight:600;color:var(--surface);font-variant-numeric:tabular-nums}
+/* The monogram this person carries everywhere else in the app, at the size a credential photograph
+   would be. It replaced an illustrated face: a drawn character on the one screen that claims to be
+   a health record is the difference between a product and a mock-up of one. */
+.passport-portrait{position:static;transform:none;width:72px;height:72px;display:grid;place-items:center;font-size:22px;font-weight:700;letter-spacing:.5px;color:var(--surface);background:#ffffff26;border:2px solid #ffffff59}
+@media(min-width:700px){
+ .passport-hero{padding:var(--space-32);gap:var(--space-24)}
+ .passport-hero h2{font-size:28px}
+ .passport-portrait{width:84px;height:84px;font-size:24px}
+}
+
+/* ---- Care plans, as a column ----
+   Five cards whose phase, name, description, price and action each start on the same line across
+   the row, so the prices can be read down a column. Before this the price followed the description
+   and a two-line description pushed it twenty pixels below its neighbours. */
+.plan-card{display:grid;grid-template-rows:auto auto 1fr auto auto;gap:var(--space-12);align-content:start;padding:var(--space-20)}
+.plan-card h2{font-size:18px;margin:0}
+.plan-card p{font-size:13px;color:var(--body);line-height:1.55;margin:0}
+.plan-price{font-size:24px;padding-top:var(--space-12);border-top:1px solid var(--line);width:100%}
+.plan-card.featured .plan-price{border-top-color:var(--accent-soft)}
+.plan-card button{margin-top:0}
+
+/* ---- The clinical header's chips ----
+   Four tinted panels of which three carried the same tint told a reader that four things were
+   equally worth noticing. One of them is: an allergy that causes facial swelling. The rest are
+   facts. Only the toned chips — amber and danger, both set from the record rather than from
+   position — keep a colour; the plain ones sit on the neutral ground, which is what makes the
+   coloured one register at all. */
+.pf-chip{background:var(--canvas)}
+.pf-chip>span{color:var(--faint);opacity:1}
+
+/* ---- The dispatch map ----
+   Five saturated teal discs the size of a fist, each with a two-pixel teal edge, under pins drawn
+   in the same teal. The zones are the least important thing on the map — they say roughly where
+   Randburg is — and they were the loudest, which left the five states that actually decide a
+   dispatch competing with the background for the same colour. The zones are ground now: a faint
+   neutral wash with a hairline. Every saturated mark left on the map is a state in the key.
+
+   Colours here come from the palette rather than from the five hand-mixed hexes this map was drawn
+   with, so a nurse who is available is the same teal as every other "available" in the product and
+   one who is blocked by vetting is the same danger red as every other refusal. */
+.map-zone{fill:var(--indigo);fill-opacity:.05;stroke:var(--line);stroke-width:.35}
+.map-label{fill:var(--faint)}
+.map-pin.nurse.free circle:first-child{fill:var(--teal-ink)}
+.map-pin.nurse.busy circle:first-child{fill:var(--faint)}
+.map-pin.nurse.blocked circle:first-child{fill:var(--danger)}
+.map-pin.nurse.blocked .map-halo{stroke:var(--danger)}
+.map-halo{stroke:var(--teal-ink)}
+.map-pin.nurse.busy .map-halo{stroke:var(--faint)}
+.map-pin.job rect{fill:var(--mango-ink)}
+.map-pin.job.assigned rect{fill:var(--teal-ink)}
+.key-free{background:var(--teal-ink)}
+.key-busy{background:var(--faint)}
+.key-blocked{background:var(--danger)}
+.key-job{background:var(--mango-ink)}
+.key-assigned{background:var(--teal-ink)}
+/* Square, and half of a 1440px screen is a 560px square of mostly empty grid. It is a locator, not
+   the screen. */
+.dispatch-map{max-width:420px;margin:0 auto}
+/* The map and the list were given half the screen each. The screen's own copy says the map is a
+   picture of the list and that everything can be dispatched from the list alone with a keyboard —
+   so the list is the screen, and the map is sized to what it draws. */
+@media(min-width:1000px){.dispatch-grid{grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:var(--space-20)}}
+.map-key{gap:var(--space-8) var(--space-16);margin-top:var(--space-4)}
+.map-panel .helper{max-width:none}
+
+/* ---- A column, not a field ----
+   Four workspace screens are one long column of reasoning: what a nurse is paid, what a pharmacist
+   may substitute, what an employer is sent, and who can interpret. Stretched to 1400 pixels each
+   of them put a figure at one edge of the screen and its label at the other, and a paragraph ran
+   past the width an eye can track. They are set in a column instead — wide enough for a four-column
+   ledger and a three-up grid, narrow enough that a row can be read across without losing the line. */
+.earnings,.dispensing,.programmes,.interpreting,.teleconsult,.kit-surface,.sos,.consent-centre,.access-log{max-width:1080px}
+/* A row of label-left, value-right across eleven hundred pixels is a leader line without the dots:
+   the eye leaves "The instrument's clock said" and has eight hundred pixels of nothing before it
+   reaches 22:33. Same rows, half the distance. */
+.kit-surface .review-line,.consent-centre .review-line,.access-log .review-line{max-width:720px}
+/* A full-width bar is a primary action. This one looks for Bluetooth instruments that are not
+   there, and says so in the notice directly above it. */
+.kit>.secondary.full{width:auto;align-self:flex-start;min-width:260px}
+/* The teleconsultation's refusals are the longest prose in the product and the ones most likely to
+   be read word for word. Ninety characters to a line is where an eye starts landing on the wrong
+   one coming back. */
+.teleconsult .tc-refusal p,.teleconsult>p,.tc-consent .helper,.tc-out-note{max-width:76ch}
+/* A refusal set on the canvas, in the canvas colour, is a paragraph. These are the sentences the
+   contract exists to make unmissable, so they get a surface to sit on and an edge in the colour
+   every other refusal in the product uses. Not a filled red panel: there are seven of them on this
+   screen and a wall of red is read as decoration within two of them. */
+.tc-refusal{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--danger);border-radius:var(--r-tile);padding:var(--space-16)}
+.earn-week>button{padding:var(--space-16) var(--space-20)}
+.earn-split label select{max-width:360px}
+/* The sentence explaining the two nurses belongs under them, not beside them. As a flex item it
+   was allowed to share their line as soon as the measure gave it a width that fitted. */
+.earn-preview-switch{display:grid;grid-template-columns:repeat(2,max-content);justify-content:start;gap:var(--space-8)}
+.earn-preview-switch .helper{grid-column:1/-1;margin-top:var(--space-4)}
+
+/* ---- The patient home, in three areas ----
+   Care, the appointment, and everything else. On a wide screen the appointment sits top right and
+   the care column runs the length of the page; on a phone all three stack in the order the home
+   was designed around — greeting, what is already arranged, how to arrange the next thing, the
+   rest — which the two-column markup only ever delivered on a wide screen. */
+.home-appointment{min-width:0}
+.home-columns{gap:var(--space-32) var(--space-24)}
+/* Nothing arranged is a different screen from something arranged. With a visit booked, the visit is
+   what a returning patient opened the app for and it leads; with none, the thing they need is the
+   way to book one, so the empty card drops below the booking column rather than standing at the
+   top of the screen asking to be scrolled past. */
+@media(max-width:999px){
+ .home-appointment.is-empty{order:2}
+ .home-main{order:1}
+ .home-side{order:3}
+}
+@media(min-width:1000px){
+ /* max-content on the first row, or the care column — which spans both — divides its own height
+    between them and leaves a hole under the appointment card. */
+ .home-columns{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);grid-template-rows:max-content auto;grid-template-areas:"main appointment" "main side";align-content:start}
+ .home-main{grid-area:main}
+ .home-appointment{grid-area:appointment}
+ .home-side{grid-area:side}
+}
+/* The top bar carries the care area from 700px up, and the home carried it again directly beneath —
+   the same control, opening the same dialog, twice within forty pixels. Two ways to do one thing is
+   not generosity; it is a reader working out which of them is the real one. Below 700px the top bar
+   drops it and the home's chip is the only one, so this hides it exactly where the other exists. */
+@media(min-width:700px){.home-context .context-chip:first-child{display:none}}
+
+/* ---- Substitution: three classes, one column ----
+   Each class was its own two-column grid with an `auto` label column, so the three label columns
+   sized themselves independently and the three explanations began at three different left edges —
+   375, 419 and 379 pixels in. They are three answers to one question and they are read down, so
+   they share a column width. */
+@media(min-width:700px){.disp-class{grid-template-columns:176px minmax(0,1fr);column-gap:var(--space-20)}}
+@media(max-width:699px){.disp-class{grid-template-columns:minmax(0,1fr)}}
+/* The bullets in "never" and "may change" were pale mint on white and effectively invisible, which
+   left two lists of hanging indents with nothing marking the items. */
+.disp-columns li:before{background:var(--faint)}
+.disp-telling .disp-columns li:before{background:var(--indigo)}
+
+/* ---- Where a reading came from ----
+   Five observations across a desktop row left each card about a hundred and fifty pixels wide, and
+   the provenance chip inside it — the instrument, by name and serial — broke over three lines
+   inside a shape with a 999px radius. A lozenge three lines tall is not a chip.
+
+   Three per row instead of five, so the chip has the width its own rule already assumed, and where
+   it still cannot fit it wraps as a labelled line rather than pretending to be a pill. The rule the
+   provenance palette carries is untouched: all four origins keep one weight, one border and one
+   text colour, and only the icon tint says which. */
+@media(min-width:700px){.pf-vitals{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-12)}}
+@media(min-width:1200px){.pf-vitals{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.pf-vitals .prov{white-space:normal;border-radius:var(--r-tile);align-items:flex-start;padding:var(--space-8)}
+.pf-vitals .prov em{white-space:normal;overflow:visible;text-overflow:clip}
+/* Where you are and who it is for: two facts, one line. They were two chips on two lines because a
+   suburb and a name will not both fit unless each is allowed to end in an ellipsis. */
+@media(max-width:640px){
+ .home-context{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;gap:var(--space-8)}
+ .home-head{gap:var(--space-16)}
+}
+/* The split's own numbers: three figures a nurse compares against each other, so they sit together
+   rather than at three corners of the panel. */
+@media(min-width:700px){.earn-legend{grid-template-columns:repeat(3,minmax(0,220px));gap:var(--space-24)}}
