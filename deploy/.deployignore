@@ -1,0 +1,49 @@
+# What may never be rsynced to the server.
+#
+# Passed to every rsync in deploy/deploy.sh with --exclude-from, and to the identity-service
+# rsync in deploy/README.md. It lives in deploy/ rather than the repository root because
+# deploying is the only thing that reads it, and a root dotfile invites being edited by
+# somebody solving an unrelated problem.
+#
+# Two incidents on this box, both BidZA's and both cheap to inherit:
+#
+#   A developer's .env.local was synced to production and baked a localhost URL into the client
+#   bundle, while --delete removed the server's own .env.production in the same pass. The pattern
+#   was .env at the time. It is every env file now, and it must not be narrowed again: the server's
+#   configuration is the server's, and ours has no business overwriting or deleting it.
+.env
+.env.*
+*.env
+
+# The proposal is confidential and no deployment or publication is authorised. It has no reason to
+# be anywhere near a web root, and the only reliable way to keep it out is to never sync it.
+Documentation/
+
+# Anything shaped like a credential. None of these belong in a build output; if one appears there,
+# the exclusion is the second line of defence and the scan in deploy.sh is the first.
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa*
+*.sqlite
+*.db
+*.db-wal
+*.db-shm
+
+# Build and tool state. dist/ is what we publish, so it is not excluded here — the exclusions are
+# relative to whatever directory is being synced, and we sync dist/ itself.
+node_modules/
+.git/
+.github/
+.DS_Store
+*.log
+*.tsbuildinfo
+coverage/
+test-results/
+playwright-report/
+.gradle/
+DerivedData/
+xcuserdata/

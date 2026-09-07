@@ -1,7 +1,12 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { createHash } from 'node:crypto';
 import { loadConfig, limits, type Config } from './config.ts';
 import { openStore, type Store } from './store.ts';
-import { Identity, type Caller } from './identity.ts';
+import { Identity, type Caller, type PublicPerson } from './identity.ts';
+import { TwoFactor } from './twoFactor.ts';
+import { Erasure } from './erasure.ts';
+import { decideStepUp, SECOND_FACTOR_CAPABILITIES, SECOND_FACTOR_REASONS, type StepUpAction } from './stepUp.ts';
+import { HOLDINGS, RESPONSE_DAYS, SCOPE_STATEMENT, dueBy, erasureSummary } from './personalData.ts';
 
 const COOKIE = 'mythuso_session';
 type Handler = (req: IncomingMessage, res: ServerResponse, body: Record<string, unknown>, caller: Caller) => void;
@@ -51,8 +56,47 @@ async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> 
 const asString = (value: unknown): string => typeof value === 'string' ? value : '';
 
 export function createApp(config: Config, store: Store, now = () => Date.now()) {
-  const identity = new Identity(store, config, now);
+  const twoFactor = new TwoFactor(store, config, now);
+  const identity = new Identity(store, config, now, twoFactor);
+  const erasure = new Erasure(store, now);
   const routes = new Map<string, Handler>();
+
+  /* Every route below this line is about somebody's own account, so each one starts by resolving
+     the cookie rather than trusting an id in the body. */
+  const signedIn = (req: IncomingMessage, res: ServerResponse): PublicPerson | null => {
+    const resolved = identity.resolve(readCookie(req.headers.cookie, COOKIE));
+    if (!resolved) { send(res, 401, { error: 'no-session' }); return null; }
+    return resolved.person;
+  };
+
+  /**
+   * The rule from the incident report, in the one place it can be got wrong.
+   *
+   * A demand is only ever made where a second factor exists to answer it. An account with none
+   * enrolled passes straight through — it has already proved possession of its mobile number, and
+   * asking it for something it cannot produce would not be strict, it would be a locked-out person
+   * with a support ticket. What comes back for that account is a nudge to enrol, never a refusal.
+   */
+  const stepUp = (personId: string, action: StepUpAction, code: string, caller: Caller, res: ServerResponse): boolean => {
+    const decision = decideStepUp({ action, enrolled: twoFactor.confirmed(personId) });
+    if (!decision.demand) return true;
+    /* Six digits is a million, and a session sitting in front of this endpoint could otherwise
+       work through them. The refusals are counted out of the audit log, which is already written
+       and already append-only. The window expires by itself, so nobody has to ring an operator to
+       be let back in — a lockout with no way out is the failure this whole file is written around. */
+    const since = now() - limits.rateWindowSeconds * 1000;
+    if (store.countAuditEvents('auth.step-up.refused', personId, since) >= limits.maxSecondFactorAttempts) {
+      return send(res, 429, { error: 'too-many-attempts', message: 'Too many codes have been tried. Wait fifteen minutes and try again.' }), false;
+    }
+    const checked = twoFactor.check(personId, code);
+    if (checked.ok) return true;
+    store.appendAudit({
+      at: now(), event: 'auth.step-up.refused', personId, phone: null, detail: action,
+      address: caller.address, agentHash: createHash('sha256').update(caller.agent).digest('hex').slice(0, 16)
+    });
+    send(res, 401, { error: 'second-factor-required', message: code ? checked.message : decision.because });
+    return false;
+  };
 
   routes.set('POST /auth/start', (_req, res, body, caller) => {
     const result = identity.start(asString(body.phone), caller);
@@ -67,13 +111,99 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
       const status = result.reason === 'too-many-attempts' ? 429 : 400;
       return send(res, status, { error: result.reason });
     }
+    /* No cookie on this branch, deliberately. The challenge token is not a session and is not
+       stored like one: it goes in the body, lives ten minutes, and buys exactly one more request. */
+    if (result.step === 'second-factor') {
+      return send(res, 200, { secondFactorRequired: true, challengeToken: result.challengeToken, expiresAt: result.expiresAt });
+    }
+    send(res, 200, { person: result.person, expiresAt: result.expiresAt }, { 'set-cookie': sessionCookie(result.token, config) });
+  });
+
+  routes.set('POST /auth/second-factor', (_req, res, body, caller) => {
+    const result = identity.completeSecondFactor(asString(body.challengeToken), asString(body.code), caller);
+    if (!result.ok) {
+      const status = result.reason === 'too-many-attempts' ? 429 : 401;
+      return send(res, status, { error: result.reason, message: result.message });
+    }
     send(res, 200, { person: result.person, expiresAt: result.expiresAt }, { 'set-cookie': sessionCookie(result.token, config) });
   });
 
   routes.set('GET /auth/session', (req, res) => {
     const resolved = identity.resolve(readCookie(req.headers.cookie, COOKIE));
     if (!resolved) return send(res, 401, { error: 'no-session' });
-    send(res, 200, { person: resolved.person });
+    const pending = erasure.pending(resolved.person.id);
+    send(res, 200, {
+      person: resolved.person,
+      secondFactor: twoFactor.state(resolved.person.id),
+      ...(pending ? { erasure: { requestedAt: pending.requestedAt, eraseAfter: pending.eraseAfter } } : {})
+    });
+  });
+
+  routes.set('POST /account/name', (req, res, body, caller) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    const result = identity.setName(person.id, typeof body.name === 'string' ? body.name : null, caller);
+    if (!result.ok) return send(res, result.reason === 'encryption-unavailable' ? 503 : 400, { error: result.reason, message: result.message });
+    send(res, 200, { person: result.person });
+  });
+
+  routes.set('GET /account/second-factor', (req, res) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    send(res, 200, {
+      ...twoFactor.state(person.id),
+      /* Said the same way to everyone, whether or not it applies to them yet: which work carries a
+         second factor is a property of the work, not a setting on the account. */
+      requiredFor: SECOND_FACTOR_CAPABILITIES.map(capability => ({ capability, because: SECOND_FACTOR_REASONS[capability] }))
+    });
+  });
+
+  routes.set('POST /account/second-factor/begin', (req, res) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    const result = twoFactor.begin(person.id, person.phone);
+    if (!result.ok) return send(res, result.reason === 'encryption-unavailable' ? 503 : 409, { error: result.reason, message: result.message });
+    /* Handed over once, and it does nothing until a code comes back from it. */
+    send(res, 200, { secret: result.secret, uri: result.uri });
+  });
+
+  routes.set('POST /account/second-factor/confirm', (req, res, body) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    const result = twoFactor.confirm(person.id, asString(body.code));
+    if (!result.ok) return send(res, result.reason === 'encryption-unavailable' ? 503 : 400, { error: result.reason, message: result.message });
+    send(res, 200, { recoveryCodes: result.recoveryCodes, shownOnce: true });
+  });
+
+  routes.set('POST /account/second-factor/disable', (req, res, body, caller) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    if (!stepUp(person.id, 'second-factor.disable', asString(body.code), caller, res)) return;
+    twoFactor.remove(person.id);
+    send(res, 200, { ...twoFactor.state(person.id) });
+  });
+
+  /* The section 24 answer, as data. An operator can read it, and so can the person it is about. */
+  routes.set('GET /account/data', (req, res) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    send(res, 200, {
+      holds: SCOPE_STATEMENT, holdings: HOLDINGS, summary: erasureSummary(),
+      responseDays: RESPONSE_DAYS, respondBy: dueBy(now())
+    });
+  });
+
+  routes.set('POST /account/erasure', (req, res, body, caller) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    if (!stepUp(person.id, 'account.erasure', asString(body.code), caller, res)) return;
+    send(res, 200, erasure.request(person.id, caller));
+  });
+
+  routes.set('POST /account/erasure/cancel', (req, res, _body, caller) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    send(res, 200, { cancelled: erasure.cancel(person.id, caller) });
   });
 
   routes.set('POST /auth/logout', (req, res, _body, caller) => {

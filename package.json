@@ -13,6 +13,9 @@
   "scripts": {
     "dev": "npm run dev -w @mythuso/web -- --host 0.0.0.0",
     "build": "npm run build -w @mythuso/web",
+    "tokens": "node scripts/emit-tokens.mjs",
+    "vetting": "node scripts/emit-vetting.mjs",
+    "generate": "npm run tokens && npm run vetting",
     "check": "npm run check -w @mythuso/web && npm run check -w @mythuso/api && node scripts/check-boundaries.mjs",
     "test": "npm run test -w @mythuso/api && playwright test",
     "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0",

@@ -1,13 +1,22 @@
 import { createHmac, createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import { limits, type Config } from './config.ts';
+import { DecryptionFailed, EncryptionUnavailable, open, seal, type Stored } from './sensitive.ts';
+import { TwoFactor } from './twoFactor.ts';
 import type { AuditEvent, Person, Store } from './store.ts';
 
 export type StartResult =
   | { ok: true; challengeId: string; expiresAt: number; code?: string }
   | { ok: false; reason: 'invalid-phone' | 'rate-limited'; retryAfter?: number };
+/* Two ways to succeed, and they are not the same thing. An account with no second factor is signed
+   in. An account that carries one has proved possession of the mobile number and nothing more, so
+   it gets a challenge with a short life and no session behind it. */
 export type VerifyResult =
-  | { ok: true; token: string; expiresAt: number; person: PublicPerson }
+  | { ok: true; step: 'signed-in'; token: string; expiresAt: number; person: PublicPerson }
+  | { ok: true; step: 'second-factor'; challengeToken: string; expiresAt: number }
   | { ok: false; reason: 'unknown-challenge' | 'expired' | 'too-many-attempts' | 'wrong-code' };
+export type SecondFactorResult =
+  | { ok: true; token: string; expiresAt: number; person: PublicPerson }
+  | { ok: false; reason: string; message: string };
 export type PublicPerson = { id: string; phone: string; name: string | null };
 export type Caller = { address: string; agent: string };
 
@@ -19,7 +28,6 @@ export function normalisePhone(input: string): string | null {
   if (local === null || !/^[6-8]\d{8}$/.test(local)) return null;
   return `+27${local}`;
 }
-const publicPerson = (p: Person): PublicPerson => ({ id: p.id, phone: p.phone, name: p.name });
 
 export class Identity {
   /* Written out rather than using constructor parameter properties: Node runs these files by
@@ -27,10 +35,40 @@ export class Identity {
   readonly #store: Store;
   readonly #config: Config;
   readonly #now: () => number;
-  constructor(store: Store, config: Config, now: () => number = () => Date.now()) {
+  readonly #twoFactor: TwoFactor;
+  constructor(store: Store, config: Config, now: () => number = () => Date.now(), twoFactor?: TwoFactor) {
     this.#store = store;
     this.#config = config;
     this.#now = now;
+    this.#twoFactor = twoFactor ?? new TwoFactor(store, config, now);
+  }
+
+  /* The name is sealed at rest, so it is opened on the way out rather than read straight off the
+     row. If it cannot be opened — a key that was replaced, or bytes that were edited in the file —
+     the person is still signed in and still holds their account. Refusing a session over a display
+     name would lock somebody out of everything to protect the one thing that matters least, and the
+     failure is loud in the log rather than silent in the response. */
+  #publicPerson(person: Person): PublicPerson {
+    let name: string | null = null;
+    try { name = open(person.name, this.#config); }
+    catch (error) {
+      if (!(error instanceof EncryptionUnavailable || error instanceof DecryptionFailed)) throw error;
+      console.error(`[security] the stored name for person ${person.id} could not be read: ${error.message}`);
+    }
+    return { id: person.id, phone: person.phone, name };
+  }
+
+  /* One place mints a session, and both ways in go through it: the sign-in that owes nothing more,
+     and the one that has just answered its second factor. */
+  #startSession(person: Person): { token: string; expiresAt: number; person: PublicPerson } {
+    const token = randomBytes(32).toString('base64url');
+    const createdAt = this.#now();
+    const expiresAt = createdAt + limits.sessionIdleSeconds * 1000;
+    this.#store.createSession({
+      id: randomUUID(), tokenHash: this.#hashToken(token), personId: person.id,
+      createdAt, lastSeenAt: createdAt, expiresAt, revokedAt: null
+    });
+    return { token, expiresAt, person: this.#publicPerson(person) };
   }
 
   /* The code is short-lived and attempt-limited, so the hash does not need to be slow — brute force
@@ -108,14 +146,60 @@ export class Identity {
       this.#store.createPerson(person);
       this.#audit({ event: 'person.created', personId: person.id, phone: person.phone }, caller);
     }
-    const token = randomBytes(32).toString('base64url');
-    const createdAt = this.#now();
-    this.#store.createSession({
-      id: randomUUID(), tokenHash: this.#hashToken(token), personId: person.id,
-      createdAt, lastSeenAt: createdAt, expiresAt: createdAt + limits.sessionIdleSeconds * 1000, revokedAt: null
-    });
+    /* The one-time code proves possession of the number, and a number can be moved to somebody
+       else's SIM. Where a second factor is in force, that is where the sign-in stops. */
+    if (this.#twoFactor.confirmed(person.id)) {
+      const issued = this.#twoFactor.issueChallenge(person.id);
+      this.#audit({ event: 'auth.verify.second-factor', personId: person.id, phone: person.phone }, caller);
+      return { ok: true, step: 'second-factor', challengeToken: issued.token, expiresAt: issued.expiresAt };
+    }
+    const session = this.#startSession(person);
     this.#audit({ event: 'auth.verify.success', personId: person.id, phone: person.phone }, caller);
-    return { ok: true, token, expiresAt: createdAt + limits.sessionIdleSeconds * 1000, person: publicPerson(person) };
+    return { ok: true, step: 'signed-in', ...session };
+  }
+
+  /**
+   * Answer the second factor and get the session.
+   *
+   * The challenge is spent by TwoFactor before this mints anything, so a token that has already
+   * been answered cannot be answered again.
+   */
+  completeSecondFactor(challengeToken: string, code: string, caller: Caller): SecondFactorResult {
+    const answered = this.#twoFactor.answerChallenge(challengeToken, code);
+    if (!answered.ok) {
+      this.#audit({ event: 'auth.second-factor.refused', detail: answered.reason }, caller);
+      return answered;
+    }
+    const person = this.#store.findPersonById(answered.personId);
+    if (!person) return { ok: false, reason: 'unknown-challenge', message: 'That sign-in is no longer open. Start again.' };
+    const session = this.#startSession(person);
+    this.#audit({
+      event: 'auth.second-factor.success', personId: person.id, phone: person.phone,
+      detail: answered.usedRecoveryCode ? 'answered with a recovery code' : null
+    }, caller);
+    return { ok: true, ...session };
+  }
+
+  /**
+   * Set or clear the name.
+   *
+   * The only field this service holds that a person types in, and the reason encryption at rest has
+   * something to protect beyond the second-factor secret. In production a server with no key
+   * refuses the write rather than storing the name in the clear and saying nothing.
+   */
+  setName(personId: string, name: string | null, caller?: Caller): { ok: true; person: PublicPerson } | { ok: false; reason: string; message: string } {
+    const person = this.#store.findPersonById(personId);
+    if (!person) return { ok: false, reason: 'unknown-person', message: 'That account no longer exists.' };
+    const trimmed = (name ?? '').trim().slice(0, 120);
+    let stored: Stored | null = null;
+    try { stored = trimmed ? seal(trimmed, this.#config, { label: 'a name' }) : null; }
+    catch (error) {
+      if (!(error instanceof EncryptionUnavailable)) throw error;
+      return { ok: false, reason: 'encryption-unavailable', message: error.message };
+    }
+    this.#store.setPersonName(personId, stored);
+    this.#audit({ event: 'person.name.set', personId }, caller);
+    return { ok: true, person: this.#publicPerson({ ...person, name: stored }) };
   }
 
   /** Resolve a cookie to a person, sliding the idle window but never past the absolute limit. */
@@ -133,7 +217,7 @@ export class Identity {
     const person = this.#store.findPersonById(session.personId);
     if (!person) return null;
     this.#store.touchSession(session.id, now, now + limits.sessionIdleSeconds * 1000);
-    return { person: publicPerson(person), sessionId: session.id };
+    return { person: this.#publicPerson(person), sessionId: session.id };
   }
 
   logout(token: string | null, caller: Caller): boolean {

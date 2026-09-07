@@ -1,20 +1,10 @@
 import SwiftUI
 
-enum ThusoTheme {
-    static let teal = Color(red: 0.055, green: 0.486, blue: 0.420)      // #0E7C6B
-    static let tealDeep = Color(red: 0.039, green: 0.388, blue: 0.341)  // #0A6357
-    static let tealSoft = Color(red: 0.894, green: 0.949, blue: 0.929)  // #E4F2ED
-    static let mint = Color(red: 0.827, green: 0.922, blue: 0.882)      // #D3EBE1
-    static let forest = Color(red: 0.071, green: 0.227, blue: 0.196)    // #123A32
-    static let ink = Color(red: 0.063, green: 0.141, blue: 0.122)       // #10241F
-    static let body = Color(red: 0.357, green: 0.420, blue: 0.400)      // #5B6B66
-    static let line = Color(red: 0.906, green: 0.933, blue: 0.922)      // #E7EEEB
-    static let canvas = Color(red: 0.957, green: 0.973, blue: 0.969)    // #F4F8F7
-    static let amber = Color(red: 0.690, green: 0.478, blue: 0.129)     // #B07A21
-    static let amberSoft = Color(red: 0.984, green: 0.941, blue: 0.863) // #FBF0DC
-    static let sky = Color(red: 0.235, green: 0.431, blue: 0.624)       // #3C6E9F
-    static let skySoft = Color(red: 0.906, green: 0.941, blue: 0.980)   // #E7F0FA
-    static let danger = Color(red: 0.761, green: 0.290, blue: 0.243)    // #C24A3E
+/* The palette itself is generated into DesignSystem/Tokens.swift from
+   packages/design-tokens/tokens.json, so a colour is converted from hex once, by a machine, rather
+   than three times by hand. Only the alias below is a design decision rather than a token: sage is
+   what the clinical chart calls the soft teal it fills an in-range reading with. */
+extension ThusoTheme {
     static let sage = tealSoft
 }
 struct CareCard<Content: View>: View {

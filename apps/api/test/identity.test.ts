@@ -15,7 +15,11 @@ function harness() {
 async function signIn(h: ReturnType<typeof harness>, phone = '0821234567') {
   const started = h.identity.start(phone, caller);
   assert.ok(started.ok && started.code);
-  return h.identity.verify(started.challengeId, started.code!, caller);
+  const verified = h.identity.verify(started.challengeId, started.code!, caller);
+  /* Every account in this file signs in with the one-time code alone. The accounts that owe a
+     second factor are exercised in two-factor.test.ts, where the challenge is the point. */
+  assert.ok(verified.ok && verified.step === 'signed-in');
+  return verified;
 }
 
 describe('phone numbers', () => {
@@ -153,7 +157,7 @@ describe('what is written down', () => {
     assert.notEqual(stored.codeHash, started.code);
     assert.ok(!stored.codeHash.includes(started.code!), 'the code must not be recoverable from the row');
     const verified = h.identity.verify(started.challengeId, started.code!, caller);
-    assert.ok(verified.ok);
+    assert.ok(verified.ok && verified.step === 'signed-in');
     assert.equal(h.store.findSessionByTokenHash(verified.token), null, 'the raw token is not a key into the table');
   });
   test('every step leaves an audit trail', async () => {

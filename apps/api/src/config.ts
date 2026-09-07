@@ -1,10 +1,16 @@
 /**
  * Configuration, and the refusals that go with it.
  *
- * This service holds identity only — a name and a mobile number. It holds no health information,
- * which is why it can exist before the POPIA controls that special personal information requires.
- * The moment a clinical record lands here, docs/PRIVACY-AND-SECURITY.md applies in full.
+ * This service holds identity only — a mobile number, a name if one was given, and for an account
+ * that has set one up, the sealed secret its authenticator app shares with it. It is written out
+ * table by table, in the words a person would use, in personalData.ts.
+ *
+ * It holds no health information, which is why it can exist before the POPIA controls that special
+ * personal information requires. The moment a clinical record lands here,
+ * docs/PRIVACY-AND-SECURITY.md applies in full.
  */
+import { parseKey } from './sensitive.ts';
+
 export type Config = {
   environment: 'development' | 'production';
   port: number;
@@ -13,6 +19,7 @@ export type Config = {
   databasePath: string;
   returnCodesInResponse: boolean;
   cookieSecure: boolean;
+  encryptionKey: string;
 };
 export class ConfigError extends Error {}
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -34,6 +41,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (production && !env.MYTHUSO_SMS_PROVIDER) {
     throw new ConfigError('MYTHUSO_SMS_PROVIDER must be configured in production so codes can actually be delivered');
   }
+  /* The key that seals a name and a second-factor secret at rest. A malformed one is refused here
+     rather than at the first write, so a typo in the environment is a service that will not start
+     instead of a service that turns out to hold nothing it can read. Its absence is allowed even in
+     production: the service still signs people in, and it is the writes that are refused — see
+     sensitive.ts, which is where the refusal lives. */
+  const encryptionKey = (env.MYTHUSO_ENCRYPTION_KEY ?? '').trim();
+  if (encryptionKey) {
+    try { parseKey(encryptionKey); }
+    catch (error) { throw new ConfigError(error instanceof Error ? error.message : 'MYTHUSO_ENCRYPTION_KEY is not a 32-byte key'); }
+  }
   const allowedOrigins = (env.MYTHUSO_ALLOWED_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
     .split(',').map(o => o.trim()).filter(Boolean);
   if (production && allowedOrigins.some(o => o.startsWith('http://'))) {
@@ -46,7 +63,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     allowedOrigins,
     databasePath: env.MYTHUSO_DB ?? ':memory:',
     returnCodesInResponse: returnCodesInResponse || !production,
-    cookieSecure: production
+    cookieSecure: production,
+    encryptionKey
   };
 }
 export const limits = {
@@ -57,5 +75,18 @@ export const limits = {
   startsPerAddressPerWindow: 20,
   rateWindowSeconds: 15 * 60,
   sessionIdleSeconds: 30 * 60,
-  sessionAbsoluteSeconds: 12 * 60 * 60
+  sessionAbsoluteSeconds: 12 * 60 * 60,
+  /* A half-finished sign-in — the one-time code accepted, the authenticator code still owed. Short,
+     because it is one sign-in rather than a session. */
+  secondFactorChallengeSeconds: 10 * 60,
+  maxSecondFactorAttempts: 6,
+  recoveryCodeCount: 10,
+  /* Seven days between asking to be erased and being erased. Long enough for somebody who did not
+     mean it, or whose phone was taken, to stop it; short enough that "when is it gone" is answered
+     in a week. */
+  erasureGraceDays: 7,
+  /* How long spent sign-in material is kept before the sweep clears it. A consumed one-time code
+     and the address that asked for it have done their work within a day. */
+  spentCodeRetentionDays: 1,
+  endedSessionRetentionDays: 30
 };

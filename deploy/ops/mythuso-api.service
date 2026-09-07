@@ -3,9 +3,15 @@
 #   2. MYTHUSO_SMS_PROVIDER and MYTHUSO_AUTH_PEPPER are set in /etc/mythuso/api.env.
 # In production the service itself refuses to start without those; this comment is the reminder of
 # why, not the enforcement.
+#
+# It lives in deploy/ops/ so that the deploy installs it, rather than somebody scp-ing it once and
+# the file on the box quietly outliving the repository.
 [Unit]
 Description=MyThuso identity service (holds identity only, no health information)
 After=network.target
+# Restart= brings a dead process back. It says nothing when the process comes back and fails again,
+# and nothing at all when systemd finally gives up.
+OnFailure=mythuso-alert@%n.service
 
 [Service]
 Type=simple

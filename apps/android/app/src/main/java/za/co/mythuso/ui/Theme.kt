@@ -35,20 +35,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-val Teal = Color(0xFF0E7C6B)
-val TealDeep = Color(0xFF0A6357)
-val TealSoft = Color(0xFFE4F2ED)
-val Mint = Color(0xFFD3EBE1)
-val Forest = Color(0xFF123A32)
-val Ink = Color(0xFF10241F)
-val BodyText = Color(0xFF5B6B66)
-val Line = Color(0xFFE7EEEB)
-val Canvas = Color(0xFFF4F8F7)
-val Amber = Color(0xFFB07A21)
-val AmberSoft = Color(0xFFFBF0DC)
-val Sky = Color(0xFF3C6E9F)
-val SkySoft = Color(0xFFE7F0FA)
-val Danger = Color(0xFFC24A3E)
+/* The palette itself is generated into Tokens.kt from packages/design-tokens/tokens.json, so a
+   colour is converted from hex once, by a machine, rather than three times by hand. Only the alias
+   below is a design decision rather than a token: sage is what the clinical chart calls the soft
+   teal it fills an in-range reading with. */
 val Sage = TealSoft
 
 @Composable fun ThusoTheme(content: @Composable () -> Unit) {

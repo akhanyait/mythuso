@@ -1,0 +1,14 @@
+[Unit]
+Description=Check MyThuso is answering, every five minutes
+
+[Timer]
+# Five minutes is the interval, and the script alerts on the second consecutive failure — so the
+# worst case between something breaking and somebody being told is about ten minutes, and a single
+# blip costs nobody a 3am email.
+OnBootSec=3min
+OnUnitActiveSec=5min
+# Every timer on this box firing on the same second is five sites competing for one disk.
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

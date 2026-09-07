@@ -1,0 +1,29 @@
+[Unit]
+Description=MyThuso nightly identity-database backup (SQLite snapshot, restore-tested)
+After=network-online.target
+# A backup that fails and stays failed is the failure mode this whole timer exists to prevent, so
+# it is the one thing here that must never fail quietly.
+OnFailure=mythuso-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/mythuso/ops/mythuso-backup.sh
+StandardOutput=journal
+StandardError=journal
+
+# Runs as root: it reads a database owned by the mythuso user and hands the WAL sidecars back to
+# that user afterwards. It is confined to the two directories it has business in.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+# The '-' means "if this does not exist, ignore it": ProtectSystem=strict otherwise fails the unit
+# with a mount-namespace error on a box where the deploy has not yet made the directory, and that
+# error tells nobody what is actually wrong.
+ReadWritePaths=-/var/backups/mythuso -/var/lib/mythuso -/var/log/mythuso
+
+# A backup still running when the next one starts is a backup that has hung.
+TimeoutStartSec=30m

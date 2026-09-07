@@ -1,0 +1,13 @@
+[Unit]
+Description=Back up the MyThuso identity database nightly
+
+[Timer]
+# 02:40 SAST — after BidZA's backup at 01:10 has finished with the disk, and before anybody is
+# awake to sign in. The two must not overlap: they share one spindle and one 99GB volume.
+OnCalendar=*-*-* 02:40:00
+# A server that was off at 02:40 must still take last night's backup when it comes back, rather
+# than skipping a day silently.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

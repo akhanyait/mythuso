@@ -23,10 +23,13 @@ Sources checked: [Apple SwiftUI](https://developer.apple.com/documentation/Swift
 - `apps/ios/MyThuso`: app composition root, `Features`, `DesignSystem`, `Models`. Native state is owned by an in-memory `PreviewStore` injected through the environment. The chart and system-state components sit in `DesignSystem` so feature screens cannot each invent their own error state.
 - `apps/android/app`: native composition root, `ui` and `model`; an in-memory preview store is injected into screens. `ui/SystemStates.kt`, `ui/ClinicalChart.kt` and `ui/Components.kt` are the shared primitives.
 - `packages/catalog/services.json`: the visit menu with prices, nurse shares and the phase each service belongs to. Only phase one is held in step with the native fixtures, because only phase one is what launches; later-phase services are shown in the catalogue marked as not yet bookable.
+- `packages/catalog/vetting.json`: twelve vetted roles, seventy checks, thirteen capabilities, twelve issuing authorities with the credential format each one uses, and every refusal sentence. The web reads the file directly; `scripts/emit-vetting.mjs` writes the same table out as `apps/ios/MyThuso/Models/VettingData.swift` and `apps/android/app/src/main/java/za/co/mythuso/model/VettingData.kt`. Only the tables are generated — the credential validators, the lifecycle arithmetic, the second-reviewer rule and the fixtures stay hand-written beside them, because they are decisions rather than data.
 - `packages/catalog/business-model.json`: the proposal's commercial model — subscriptions, network and B2B lines, screening packages, kit and own-device costs, the indicative trajectory and the seed round with its milestone gates. The admin console reads this rather than restating the numbers, and `scripts/check-boundaries.mjs` fails the build if the funding allocation or the tranches stop summing to the round, or if a service pays the nurse more than the patient pays.
-- `packages/design-tokens/tokens.json`: reference palette, radii, spacing and motion specification. Native and CSS implementations currently map these manually; they are not generated packages yet.
+- `packages/design-tokens/tokens.json`: the palette, radii, spacing scale, shadows, type stacks and motion specification. It is the source rather than a reference: `scripts/emit-tokens.mjs` writes it out as `apps/web/src/tokens.generated.css`, `apps/ios/MyThuso/DesignSystem/Tokens.swift` and `apps/android/app/src/main/java/za/co/mythuso/ui/Tokens.kt`, so a colour is converted from hex once, by a machine, rather than three times by hand.
 
-Clinical reference ranges, the locale set, the identity check-digit rule and the demo verification codes are duplicated across the three codebases rather than shared, because each app is genuinely native and there is no shared runtime. That duplication is a real risk — a reference range that differs between iOS and Android is a clinical-safety problem — so `scripts/check-boundaries.mjs` parses all three and fails the build on drift. When the backend arrives, these constants should come from a versioned contract rather than from three source files kept in step by a script.
+Clinical reference ranges, the locale set, the identity check-digit rule and the demo verification codes are still duplicated across the three codebases rather than shared, because each app is genuinely native and there is no shared runtime. That duplication is a real risk — a reference range that differs between iOS and Android is a clinical-safety problem — so `scripts/check-boundaries.mjs` parses all three and fails the build on drift.
+
+The design tokens and the vetting table used to be duplicated the same way, and are not any more: they are generated. Comparing hand-written copies can only ever notice drift after somebody has introduced it; generating the copies means the drift has nowhere to come from. Nothing about that makes the apps less native — what the emitters produce is ordinary SwiftUI and Compose source, compiled into the binaries, parsing no JSON at runtime. `scripts/check-boundaries.mjs` asks each emitter what its files should contain and fails the build if what is on disk is missing, older than its source, or different from it, so a forgotten regeneration and a hand-edit of a generated file are the same failure with the same fix. The remaining duplicated constants should follow the same route, or come from a versioned contract, when the backend arrives.
 
 These are source-level boundaries in the preview, not independent compiled feature modules. Split native domain/design-system/features into Swift packages and Gradle library modules when repositories and API adapters arrive. Split the web `Pages` collection into domain packages at that point. Avoid a generic shared mobile UI abstraction that erases platform behaviour.
 
@@ -41,7 +44,8 @@ Use a transaction outbox for reliable events. External payments use provider ref
 ## The identity service
 
 `apps/api` is the first backend slice, and it does one thing: it establishes who someone is. It
-holds a name and a mobile number. It holds no health information, and `scripts/check-boundaries.mjs`
+holds a mobile number, a name if one was given, and the encrypted second-factor secret of an account
+that has set one up. It holds no health information, and `scripts/check-boundaries.mjs`
 fails the build if a clinical table appears in it — because the moment one does, this service is
 handling special personal information and everything in `docs/PRIVACY-AND-SECURITY.md` applies.
 
@@ -97,7 +101,7 @@ No health, Bluetooth, location, camera or microphone permission is requested by 
 
 ## Delivery gates
 
-Implemented now: strict web type checking, production bundle build, native compile workflows, no-WebView source check, no web patient-storage/dynamic HTML check, catalogue consistency check, desktop/mobile journey tests, npm high/critical advisory gate. These are baseline checks, not a security certification.
+Implemented now: strict web type checking, production bundle build, native compile workflows, no-WebView source check, no web patient-storage/dynamic HTML check, catalogue consistency check, a generated-artefact check that fails if a token or vetting file is stale or has been edited by hand, desktop/mobile journey tests, npm high/critical advisory gate. These are baseline checks, not a security certification.
 
 Before backend integration: threat model, data-flow inventory, access policy tests (including cross-patient/tenant negatives), secret scanning, SAST/SCA, migration rollback drills, API contract tests, upload malware scanning and content limits, rate limits and abuse controls.
 
@@ -105,7 +109,7 @@ Before any pilot: independent penetration test, information/clinical governance 
 
 ## Design choices
 
-The interface follows a single mobile-first design language, defined in `packages/design-tokens/tokens.json` and implemented three times — CSS custom properties, a SwiftUI `ThusoTheme`, and a Compose `ThusoTheme`. Its repeating units are a soft tinted icon tile, an 18px white card on a pale canvas, a capsule status pill, and a teal primary action. Phones get a five-item bottom tab bar; from 1000px the web widens into a sidebar rather than stretching the phone layout. Long flows share one pattern: `Step N of M`, a label, and a dot indicator, with one box per digit wherever a code is entered.
+The interface follows a single mobile-first design language, defined in `packages/design-tokens/tokens.json` and emitted three times — CSS custom properties, a SwiftUI `ThusoTheme`, and Compose colour values — by `scripts/emit-tokens.mjs`. Each platform still spends those tokens in its own way; only the numbers are shared. Its repeating units are a soft tinted icon tile, an 18px white card on a pale canvas, a capsule status pill, and a teal primary action. Phones get a five-item bottom tab bar; from 1000px the web widens into a sidebar rather than stretching the phone layout. Long flows share one pattern: `Step N of M`, a label, and a dot indicator, with one box per digit wherever a code is entered.
 
 The web shell is a fixed-height app shell with its own scrolling region rather than a scrolling document, so the header and tab bar behave the way they do on the native apps.
 

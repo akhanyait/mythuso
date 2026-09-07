@@ -1,5 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { emitTokens } from './emit-tokens.mjs';
+import { emitVetting } from './emit-vetting.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -119,6 +121,25 @@ if(existsSync('apps/api/src')) {
  const store=read('apps/api/src/store.ts');
  if(/UPDATE audit|DELETE FROM audit/i.test(store)) throw new Error('The audit table must stay append-only');
 }
+/* Two things the three apps share are no longer written out three times by hand: the design tokens
+   and the vetting table are generated into CSS, Swift and Kotlin by scripts/emit-tokens.mjs and
+   scripts/emit-vetting.mjs. Drift can no longer be typed in, but a generated file can still be
+   stale, or edited by somebody who did not read the header. Both are the same failure, so both are
+   caught the same way: ask the emitter what the file should say and compare it with what is there.
+   The modification time is looked at first only because "regenerate" is a more useful thing to be
+   told than a diff — it is the same rule the illustrations and banners below are held to. */
+const generated = [
+ { source: 'packages/design-tokens/tokens.json', command: 'npm run tokens', files: emitTokens() },
+ { source: 'packages/catalog/vetting.json', command: 'npm run vetting', files: emitVetting() }
+];
+for(const {source,command,files} of generated) {
+ for(const file of files) {
+  if(!existsSync(file.path)) throw new Error(`${file.path} has not been generated from ${source}. Run: ${command}`);
+  if(statSync(file.path).mtimeMs<statSync(source).mtimeMs) throw new Error(`${file.path} is older than ${source}. Run: ${command}`);
+  if(read(file.path)!==file.content) throw new Error(`${file.path} is not what ${source} generates. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: ${command}`);
+ }
+}
+
 /* Vetting is the gate the whole marketplace rests on, and it is described once, as data, in
    packages/catalog/vetting.json. A grant that points at a capability nobody defined, or a check
    issued by an authority that is not listed, is a hole in that gate rather than a typo. */
@@ -155,49 +176,25 @@ for(const role of vetting.roles) {
 /* Every capability must be reachable by someone, or the matrix is describing a gate around nothing. */
 for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants.some(g=>g.capability===capability.id))) throw new Error(`Capability ${capability.id} is granted to nobody`);
 
-/* The vetting table is written out three times, because each app is genuinely native and reads no
-   JSON at runtime. A refusal sentence that says one thing on iOS and another on Android is the same
-   class of problem as a reference range that differs between them: the gate is only as good as the
-   agreement between the three descriptions of it. Patterns are compared as regexes rather than as
-   source text, because Swift writes them raw and Kotlin escapes them. */
+/* What is left to check about the native vetting models is what is still written by hand. The
+   tables themselves are generated above, so a refusal sentence cannot say one thing on iOS and
+   another on Android — there is only one sentence and one writer of it. The lifecycle is a
+   different matter: the 45-day renewal warning is arithmetic, it lives in three hand-written
+   files, and a nurse warned at 45 days on one phone and 30 on another is warned too late on one
+   of them. */
 const nativeVetting = {
  ios: 'apps/ios/MyThuso/Models/Vetting.swift',
  android: 'apps/android/app/src/main/java/za/co/mythuso/model/Vetting.kt'
 };
-const holdsPattern = (source, pattern) => source.includes(pattern) || source.includes(pattern.replace(/\\/g, '\\\\'));
 for(const [platform,file] of Object.entries(nativeVetting)) {
  if(!existsSync(file)) throw new Error(`The ${platform} app has no vetting model (${file}). Vetting is not optional on one platform.`);
  const source=read(file);
- const held=id=>source.includes(`"${id}"`);
- for(const capability of vetting.capabilities) if(!held(capability.id)) throw new Error(`Capability ${capability.id} is missing from ${platform} (${file})`);
- for(const authority of vetting.authorities) {
-  if(!held(authority.id)) throw new Error(`Issuing authority ${authority.id} is missing from ${platform} (${file})`);
-  if(authority.pattern&&authority.pattern!=='sa-id'&&!holdsPattern(source,authority.pattern)) throw new Error(`Credential format drift for ${authority.id} in ${platform}: ${file} does not hold ${authority.pattern}`);
-  if(authority.hint&&!source.includes(authority.hint)) throw new Error(`The ${authority.id} entry hint differs in ${platform} (${file})`);
- }
- for(const role of vetting.roles) {
-  if(!held(role.id)) throw new Error(`Vetted role ${role.id} is missing from ${platform} (${file})`);
-  /* The refusal is the part a person actually reads when they are turned away. It is checked
-     word for word. */
-  for(const grant of role.grants) if(!source.includes(grant.refusal)) throw new Error(`Refusal copy drift: ${platform} does not say what ${role.id} is refused for ${grant.capability}`);
-  /* A scope of practice that differs between the three apps is a nurse offered work on one phone
-     that she is refused on another. */
-  if(role.scope) {
-   if(!source.includes(role.scope.label)) throw new Error(`Scope label drift for ${role.id} in ${platform} (${file})`);
-   if(!source.includes(role.scope.note)) throw new Error(`Scope note drift for ${role.id} in ${platform} (${file})`);
-   for(const option of role.scope.options) if(!source.includes(`"${option}"`)) throw new Error(`Scope option "${option}" is missing from ${role.id} in ${platform} (${file})`);
-  } 
-  for(const check of role.checks) {
-   if(!held(check.id)) throw new Error(`Check ${role.id}/${check.id} is missing from ${platform} (${file})`);
-   if(!source.includes(check.detail)) throw new Error(`Check ${role.id}/${check.id} is described differently in ${platform} (${file})`);
-   if(!source.includes(check.evidence)) throw new Error(`Check ${role.id}/${check.id} asks for different evidence in ${platform} (${file})`);
-  }
- }
- /* A renewal warning that fires at 45 days on one phone and 30 on another is a nurse who is warned
-    too late on one of them. */
  if(!/(?<![\d.])45(?![\d.])/.test(source)) throw new Error(`The 45-day renewal warning is missing from ${platform} (${file})`);
+ /* A generated table is only worth having if it is the only one. Pasting the roles back in here
+    would leave two, and two is where drift comes from. */
+ if(/(static let (capabilities|authorities|roles|scopes)\b|val vetting(Capabilities|Authorities|Roles|Scopes)\s*[:=])/.test(source)) throw new Error(`${file} declares a vetting table of its own. That table is generated into VettingData — the app should read that one.`);
 }
 const webVetting=read('apps/web/src/lib/vetting.ts');
 if(!webVetting.includes('EXPIRY_WARNING_DAYS = 45')) throw new Error('The 45-day renewal warning has moved in apps/web/src/lib/vetting.ts');
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Vetting: ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence agree across web, iOS and Android.`);
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens and the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — are generated into CSS, Swift and Kotlin, and every generated file matches its source.`);

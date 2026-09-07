@@ -1,0 +1,15 @@
+# Instantiated by OnFailure= on the units above, which passes the failed unit's name as %i.
+[Unit]
+Description=Tell somebody that %i failed
+
+[Service]
+Type=oneshot
+ExecStart=/opt/mythuso/ops/mythuso-alert.sh %i
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+# The '-' means "if this does not exist, ignore it": ProtectSystem=strict otherwise fails the unit
+# with a mount-namespace error on a box where the deploy has not yet made the directory, and that
+# error tells nobody what is actually wrong.
+ReadWritePaths=-/var/log/mythuso

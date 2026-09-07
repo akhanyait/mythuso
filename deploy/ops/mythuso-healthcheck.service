@@ -1,0 +1,25 @@
+# One run of the health check. The timer beside this file is what schedules it.
+[Unit]
+Description=MyThuso health check (public page, TLS, identity service, disk, backups)
+# A health check that itself fails — a missing script, an unreadable state directory — is an outage
+# nobody is being told about, so its own failure is alerted too.
+OnFailure=mythuso-alert@%n.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/mythuso/ops/mythuso-healthcheck.sh
+# Exit 1 is how the script reports "unhealthy", and it handles its own alerting after two
+# consecutive failures. Treating that as a unit failure would alert on the first one through
+# OnFailure= as well, which is the crying-wolf the check is written to avoid.
+SuccessExitStatus=0 1
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+# The '-' means "if this does not exist, ignore it": ProtectSystem=strict otherwise fails the unit
+# with a mount-namespace error on a box where the deploy has not yet made the directory, and that
+# error tells nobody what is actually wrong.
+ReadWritePaths=-/var/lib/mythuso -/var/log/mythuso

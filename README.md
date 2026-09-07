@@ -39,9 +39,21 @@ are illustrative and are not MyThuso nurses or patients.
 HOST=mythuso.co.za ./deploy/deploy.sh     # somewhere else
 ```
 
-It adds `/var/www/mythuso` and one nginx site file, tests the whole nginx configuration before it
-reloads, and verifies with a `Host:` header against the server's own loopback — so a deployment can
-be confirmed before DNS points anywhere. It never edits another site's configuration.
+It adds `/var/www/mythuso`, one nginx site file and `/opt/mythuso/ops`, tests the whole nginx
+configuration before it reloads, and verifies with a `Host:` header against the server's own
+loopback — so a deployment can be confirmed before DNS points anywhere. It never edits another
+site's configuration.
+
+That server also serves agcafrica.com, artisanza.co.za, bidza.co.za, liqzar.co.za and
+skillsonwheels.co.za, and none of them are ours to break. So the deploy records what each of them
+answers **before it touches anything** and asks them again at the end, and fails if any of them
+changed: a deploy that breaks a neighbour should be caught by the deploy, not by that neighbour's
+owner. Nothing that looks like a credential, and nothing from `Documentation/`, can be synced.
+
+`deploy/ops/` holds a health check every five minutes — the public page, TLS expiry, the identity
+service, disk and backup freshness, alerting only after two consecutive failures — and a nightly
+backup of the identity database that is restored and queried before it is called a backup. Both are
+installed by every deploy and enabled by hand, once.
 
 The identity service is **not** turned on by a deploy. It signs people in with one-time codes, and
 that must not be reachable over plain http. [deploy/README.md](deploy/README.md) has the order: DNS,
@@ -62,7 +74,8 @@ It has no dependencies — `node:http`, `node:crypto` and `node:sqlite` — so t
 to audit. In development it prints the one-time code instead of sending an SMS; in production that
 is refused outright, along with a weak signing pepper, an `http` origin, or no SMS provider.
 
-**It holds a name and a mobile number, and nothing else.** That is personal information, not the
+**It holds a mobile number, a name if one was given, and — for an account that has set one up — the
+encrypted secret its authenticator app shares with it.** That is personal information, not the
 special personal information that health data is, which is the only reason it can exist ahead of the
 controls in [Privacy and security](docs/PRIVACY-AND-SECURITY.md). `npm run check` fails if a
 clinical table appears in it.
@@ -129,7 +142,7 @@ The patient journey and the flows above are interactive on all three platforms. 
 
 [Architecture decisions](docs/ARCHITECTURE.md) explain the native stack, modular boundaries, planned backend, API contracts and integration gates. [Privacy and security](docs/PRIVACY-AND-SECURITY.md) separates implemented preview protections from POPIA, clinical and security work required before a pilot.
 
-CI checks web types/build/journeys, source boundaries, dependency advisories and native builds. The boundary check also fails the build if clinical reference ranges, locale sets, demo verification codes or the vetting table — twelve roles, seventy checks, every credential format, every scope of practice and every refusal sentence — drift apart between web, iOS and Android. UI state resets on reload/restart. There is no authentication, real payment, dispatch, diagnosis, prescription or connected device, and no credential is verified with any issuing body — the formats are real, the numbers are fictional, and nothing is sent anywhere. Security and POPIA compliance are not established merely by this UI.
+CI checks web types/build/journeys, source boundaries, dependency advisories and native builds. Design tokens and the vetting table are not written out three times: `npm run generate` emits them into CSS, Swift and Kotlin, and the boundary check re-runs the generators and byte-compares, so a refusal sentence cannot say one thing on iOS and another on Android. What is still written by hand — clinical reference ranges, locale sets, demo verification codes — is checked for drift the older way. UI state resets on reload/restart. There is no authentication, real payment, dispatch, diagnosis, prescription or connected device, and no credential is verified with any issuing body — the formats are real, the numbers are fictional, and nothing is sent anywhere. Security and POPIA compliance are not established merely by this UI.
 
 ## Layout
 
