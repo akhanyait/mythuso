@@ -27,6 +27,7 @@ whether to trust the platform with health information, the section you want is
 | The first two reviewers, and who cleared them | **Made small rather than closed.** `apps/api/src/vetting` still has a bootstrap, because somebody has to clear the first reviewer. It now takes a signed, single-use, fifteen-minute authorisation minted at a console, it names the parties and the two people deciding, every step of it is a distinct entry in the audit chain, and every check it decided is marked as standing on it until a real reviewer decides it again. What it is not is closed: see [the bootstrap ceremony](#the-bootstrap-ceremony) |
 | The keys checked at deploy time | **Built.** `deploy/deploy.sh` refuses to finish if the service is enabled and a key is missing, malformed, placeholder text, duplicated, shared between the two secrets, or present under the web root or the backups — and it never prints one. [deploy/README.md](../deploy/README.md#what-the-deploy-checks-about-the-keys) lists what it asks |
 | Audit chain integrity watched | **Built on this side** — `deploy/ops/mythuso-healthcheck.sh` asks every five minutes. It needs an endpoint the service does not have yet; see [what this assumes](#what-this-assumes-about-code-that-is-not-merged-yet) |
+| A log owned by a module with no key, made tamper-evident anyway | **Built.** `apps/api/src/protection/seal.ts`: the consent module's `record_access_log` — who opened whose record — hashes its own rows into a plain SHA-256 chain and hands the *head* of it across the boundary to be committed into the gate's keyed chain. What crosses is a `LogSeal` with two methods, "commit this head" and nothing else; the key never leaves the protection module and a boundary check fails the build if the consent module so much as imports the chain. `GET /health/access-log` runs the verification. The seal is periodic, so entries appended since the last one are in a stated window rather than a covered one |
 
 Every step of the rotation procedure below now has something to run. Where a command exists it is
 shown as a command.
@@ -370,6 +371,11 @@ exactly the operation the chain exists to make impossible. The audit key is ther
 oldest version in the ring, the way the blind index already was and for the same reason. That is a
 second, independent argument for step 7's rule that a retired key is never actually deleted.
 
+The seals the access log rests on inherit that pinning rather than needing a rule of their own: a
+seal is an ordinary entry in the same chain, written with the same key. So a rotation does not
+invalidate a seal, and removing the oldest root key from the environment would take the access log's
+integrity down with the audit chain's — one more reason old versions are kept for ever.
+
 **When, on a schedule.** Once a year, in the first working week of March, because that is beside the
 financial year end and therefore on a calendar somebody already reads. A rotation date that lives
 only in a document is a rotation that happens in year one.
@@ -674,7 +680,7 @@ what it does not touch at all. The third column is the important one.
 | Database read without the key | The sealed values. This is the case the module is genuinely good at | Reads that went through the gate; a direct file read leaves no trace | Which people exist, who saw whom and when, and — through the blind index — which sealed values are probably equal to each other |
 | A compromised application process | **Nothing.** The process holds the key in memory by necessity | Only what the intruder chose to do through the gate | Everything. Code execution in the service is equivalent to holding the key |
 | An insider with legitimate access | Nothing, by design — they are permitted to read | Every reveal: who, which capability, which purpose, whose record, when. Break-glass is loud | What they do afterwards: a screenshot, a photograph, a memory |
-| A malicious operator with database write access | Nothing. Root can read the key file and write any row | An edited or deleted audit row breaks the hash chain, and the health check now also catches a chain that was recomputed shorter | A determined operator who recomputes the chain forward and has the key |
+| A malicious operator with database write access | Nothing. Root can read the key file and write any row | An edited or deleted audit row breaks the hash chain, and the health check now also catches a chain that was recomputed shorter. **And the same is now true of `record_access_log`**, which is not keyed and used only to be append-only: a row edited, removed or reordered there stops matching a head sealed into the keyed chain | A determined operator who recomputes the chain forward and has the key. And, on the access log, a row appended inside the window since the last seal |
 | A lost or leaked root key | Nothing | Nothing, unless the leak is noticed by other means | Everything sealed under it, in the database and in every archive |
 | A neighbouring site on the same box | File permissions, not the module | Nothing | A neighbour compromise that escalates to root |
 | The hosting provider | Nothing | Nothing | The disk, the hypervisor, and a snapshot of running memory containing the key |
@@ -741,7 +747,9 @@ and every one-time code, and the mail relay sees the body of every alert, which 
 | A second, independent signer for a bootstrap authorisation | **Would matter, and there is nothing to hold one.** The authorisation that opens the founding ceremony is signed from the key ring the service itself holds, so root can mint one. A signer on a second machine — or a printed one-time value held by the Information Officer alone — would make a bootstrap need two people who cannot be the same person, which is the rule the platform enforces on everybody else. Revisit alongside the HSM question, not before |
 | An as-at history of a party's vetting standing | **Matters for one thing, and that thing is now built on top of it.** `vetting_evidence` is updated in place, so a party's standing at a past moment can only be *reconstructed* — today's rows re-resolved against that date. Offline capture needs exactly that question answered for the nurse whose clearance lapsed between capture and sync, and it says in the conflict's own words that the answer is a reconstruction. It is right where only the calendar changed and wrong where a document was resubmitted or a decision retaken since. A history table, or an append-only decision log the standing is replayed from, is the fix; neither exists |
 | Logging of reads of the key file | Nothing records who read `/etc/mythuso/api.env`. `auditd` would, cheaply. Not built, and worth doing before there are two people with root |
-| Publishing the audit head hash off the machine | The change that would make the audit chain evidence against a determined operator. Not built; see the threat model |
+| Publishing the audit head hash off the machine | The change that would make the audit chain evidence against a determined operator. Not built; see the threat model. It is now worth more than it was: the access log's integrity rests on seals inside that chain, so publishing the head would put both logs beyond an operator who holds the key rather than only one |
+| Closing the seal window on the access log | **Narrowed, not closed, and the number is stated rather than implied.** `record_access_log` is sealed into the audit chain every fifty entries or five minutes, whichever comes first, and on the first append after a restart. A row forged into the current window is not detected. Sealing on every write would close it and double the chain; a seal written before the response is returned would close it for granted reads only. Neither is built, and the verification reports the size of the window on every call so it cannot be forgotten |
+| Backfilling links onto access-log rows written before they existed | **Correctly absent.** Those rows read as vouched for by nothing and are counted as such. Hashing them now would produce a chain that certifies whatever it found, which is worse than a count of rows nothing vouches for |
 | Encrypted, off-site backups | Not built, deliberately and visibly, and the clinical-table refusal is what holds the position together. See [backups](#backups-and-the-refusal-that-keeps-them-honest) |
 | Re-encryption after a compromise | **Matters, and is the gap most likely to be mistaken for covered.** Rotation re-wraps data keys; it does not replace them. A data key recovered from a disclosed root key opens its record for ever, so a compromise needs every affected value opened and sealed again. Nothing does that |
 | Re-enrolment of second factors after a compromise | No mechanism exists. Today it would be done by hand, account by account |
@@ -771,14 +779,26 @@ description:
   [rotation](#rotation) both have commands, and the count is an indexed `key_version` column rather
   than a scan.
 
+- **`GET /health/access-log`** exists beside it and answers with the access log's own verdict —
+  `{"configured":true,"intact":true,"logId":"record_access_log","length":N,"head":"…","seals":N,
+  "sealedThrough":N,"unsealed":N,"unchained":N}`, or `{"configured":true,"intact":false,"because":"…",
+  "brokenAt":"…"}` — counts and a verdict, never an entry, an actor or a subject. It reports the
+  broken audit chain first where there is one, because until that is explained nothing sealed into it
+  means anything. It does not seal before it verifies, and a boundary check holds that.
+
 **What the health check should be taught to ask, and has not been.** `/health/audit` now answers with
-the bootstrap counts, and `deploy/ops/mythuso-healthcheck.sh` ignores them. Two lines are owed there,
-both of them the same shape as the audit-length ratchet already in that file:
+the bootstrap counts, and `deploy/ops/mythuso-healthcheck.sh` ignores them. `/health/access-log` it
+does not ask at all. Three lines are owed there, all of them the same shape as the audit-length
+ratchet already in that file:
 
 - **Ratchet `ceremonies`.** Remember it in `/var/lib/mythuso/health/bootstrap-ceremonies` and alert
   when it goes *up* on a running server. The founding ceremonies happen once, during installation; a
   new one appearing afterwards is either an operator seeding a reviewer without telling anybody, or
   somebody who reached the key ring. It deserves the same paging as a broken chain.
+- **Ask `/health/access-log` and page on `intact:false`,** exactly as it pages on a broken audit
+  chain — it is the same class of event seen from the other end, and the `because` sentence is
+  written to be the body of the alert. Note `unsealed` alongside it: a number that stays high on a
+  quiet server means the cadence is not firing, and a window nobody is watching is not a window.
 - **Note `restingOnBootstrap` when it is not zero,** as a note rather than an alert — it is a normal
   state for a new platform and an abnormal one for a platform a year old. A note is what keeps the
   question in front of somebody without training them to ignore the file.

@@ -30,26 +30,36 @@
  * ── The one thing this module cannot do ──────────────────────────────────────────────────────
  *
  * Nothing here opens a sealed value or decides an access on its own. `RecordAccessLog` holds a
- * `Gate` and nothing else from the protection module — no key ring, no crypto — exactly as the
- * vetting and intake modules do. The gate decides; this records what was decided, in the words the
- * data subject reads, and cross-references the gate's own tamper-evident chain entry by id.
+ * `Gate` and a `LogSeal` and nothing else from the protection module — no key ring, no crypto —
+ * exactly as the vetting and intake modules do. The gate decides; this records what was decided, in
+ * the words the data subject reads, and cross-references the gate's own tamper-evident chain entry
+ * by id.
+ *
+ * The seal is the narrower of the two, and it is what makes the log evidence rather than a table:
+ * this module hashes its own rows into a chain it could recompute and anybody else could too, and
+ * hands the head of it to a module that has the key to commit it somewhere neither of them can
+ * rewrite. "Commit this head" is the entire capability. It cannot write an access entry, cannot read
+ * one, and cannot make a tampered log verify. See apps/api/src/protection/seal.ts.
  *
  * And it holds no clinical information. The log says that a record was opened and by whom; it has
  * no column that could hold what was in it, and `scripts/check-boundaries.mjs` fails the build if
  * one appears.
  */
 import { randomUUID } from 'node:crypto';
-import type { AccessRequest, Gate, Purpose } from '../protection/index.ts';
+import type { AccessRequest, Gate, LogSeal, Purpose } from '../protection/index.ts';
 import {
  ACCESS_BASES, PURPOSES, RULES, basisById, currentVersion, isLawfulBasis, isRoute,
  purposeById, requiredPurposes, verifyProof, versionOf, wordingHash,
  type ConsentPurpose, type ConsentVersion, type Decision, type RetainedStatement
 } from './contract.ts';
 import { decisionId, type AccessOutcome, type AccessRow, type ConsentStore, type DecisionRow } from './store.ts';
+import { type AccessLink } from './integrity.ts';
 
 export * from './contract.ts';
 export { openConsentStore } from './store.ts';
-export type { AccessOutcome, AccessRow, ConsentStore, DecisionRow } from './store.ts';
+export type { AccessOutcome, AccessRow, ConsentStore, DecisionRow, NewAccessRow } from './store.ts';
+export { ACCESS_GENESIS, accessDigest, accessLinks } from './integrity.ts';
+export type { AccessLink } from './integrity.ts';
 
 /** An answer, shaped the way the vetting and intake modules shape one. */
 export type Refusal = { ok: false; reason: string };
@@ -321,20 +331,34 @@ export type AccessAttempt = {
  reason?: string;
 };
 
-export type AccessDeps = { gate: Gate; store: ConsentStore; consent: ConsentRegister; now?: () => number };
+export type AccessDeps = {
+ gate: Gate; store: ConsentStore; consent: ConsentRegister; now?: () => number;
+ /* Required, not optional. A log whose head nothing commits to is a log anybody with the database
+    file can rewrite quietly, and making the seal something a caller could forget to pass would mean
+    exactly one caller forgetting. It is a `LogSeal` and never the chain: this module can ask for its
+    own head to be committed and has no other way to reach the chain, which is the whole reason the
+    boundary survives this. See apps/api/src/protection/seal.ts. */
+ seal: LogSeal;
+};
 
 /** How many entries a person's own log hands back in one read. */
 export const ACCESS_LOG_PAGE = 200;
+
+/** What the log is called in a seal. One value, because a seal that named it differently after a
+    rename would be a seal the verifier could no longer find. */
+export const ACCESS_LOG_ID = 'record_access_log';
 
 export class RecordAccessLog {
  readonly #gate: Gate;
  readonly #store: ConsentStore;
  readonly #consent: ConsentRegister;
+ readonly #seal: LogSeal;
  readonly #now: () => number;
  constructor(deps: AccessDeps) {
   this.#gate = deps.gate;
   this.#store = deps.store;
   this.#consent = deps.consent;
+  this.#seal = deps.seal;
   this.#now = deps.now ?? (() => Date.now());
  }
 
@@ -400,6 +424,19 @@ export class RecordAccessLog {
  /** Everything, in order. For a test and for an operator; there is no route to it. */
  all(): AccessRow[] { return this.#store.allAccesses(); }
 
+ /** Every entry as a link, recomputed from the row as it stands on disk. What the verifier walks. */
+ links(): AccessLink[] { return this.#store.accessLinks(); }
+
+ /**
+  * Commit the log's head into the gate's chain now, whatever the cadence says.
+  *
+  * Called at a point where the window matters more than the cost of an entry — before a shutdown,
+  * or by an operator about to take a copy of the database. It is deliberately *not* called by the
+  * verification route: sealing a log and then verifying it would seal whatever it found, which is a
+  * verifier that certifies the tampering it was asked to look for.
+  */
+ sealNow(): void { this.#seal.sealNow(ACCESS_LOG_ID, this.#store.accessHead()); }
+
  /** What an erasure runs into here. The log is the evidence, so it is the thing that cannot go. */
  retainedFor(subjectId: string): { what: string; because: string }[] {
   if (!this.#store.accessesFor(subjectId, 1).length) return [];
@@ -431,7 +468,7 @@ export class RecordAccessLog {
 
  #write(attempt: AccessAttempt, outcome: AccessOutcome, refusedBy: string | null, reason: string | null, consentPurpose: string | null, auditId: string | null): AccessRow {
   const version = consentPurpose ? this.#consent.standingFor(attempt.subjectId, consentPurpose).heldVersion : null;
-  return this.#store.recordAccess({
+  const entry = this.#store.recordAccess({
    id: randomUUID(), at: this.#now(),
    actorId: attempt.actorId || 'unstated', actorRole: attempt.actorRole || 'unstated',
    actorLabel: attempt.actorLabel ?? null,
@@ -443,6 +480,11 @@ export class RecordAccessLog {
    consentPurpose, consentVersion: version,
    auditId
   });
+  /* One writer, so there is no branch that appends an entry without offering the new head to be
+     sealed. The head is passed as a function because most appends are nowhere near due and a query
+     per write would be paid on every refusal as well as every grant. */
+  this.#seal.appended(ACCESS_LOG_ID, () => this.#store.accessHead(), this.#now());
+  return entry;
  }
 }
 

@@ -10,6 +10,7 @@ import { createProtection, parseRootKeys } from './crypto.ts';
 import { createBootstrapAuthority } from './bootstrap.ts';
 import { AccessGate, type ReleaseRegister, type VettingSource } from './gate.ts';
 import { HashChainAudit, sqliteAuditStore, type Database } from './audit.ts';
+import { createLogSeal, type LogLink, type LogSeal, type SealedLogVerdict } from './seal.ts';
 import { createRotation, type SealedColumn } from './rotation.ts';
 export type { AccessRequest, AccessOutcome, Gate, AuditChain, AuditLink, Purpose, Binding, Sealed, KeyVersion } from './contract.ts';
 export type { Database } from './audit.ts';
@@ -21,6 +22,11 @@ export type { Database } from './audit.ts';
 export { EXPIRY_WARNING_DAYS, resolveState, standingOf, neverGranted } from './gate.ts';
 export type { CheckState, CheckRecord, ActorVetting, VettingSource, ReleaseRegister, Standing } from './gate.ts';
 export type { SealedColumn, Rotation, RotationReport, RotationStanding, ColumnStanding } from './rotation.ts';
+/* The seal, and only the seal. A module outside this directory gets a `LogSeal` — commit my head,
+   and nothing else — which is what lets a log this module does not own rest on a key it has never
+   held. See seal.ts for what that is worth and for the window it leaves. */
+export { SEAL_EVENT, SEAL_EVERY, SEAL_AFTER_MS } from './seal.ts';
+export type { LogSeal, LogHead, LogLink, SealedLogVerdict, SealRecord } from './seal.ts';
 export { printRotation } from './rotation.ts';
 
 /* The one authorisation in the service that is produced by a person at a console rather than by a
@@ -56,6 +62,9 @@ export function createProtectionModule(config: ProtectionConfig, db: Database, s
     has to be told about a new table in a file belonging to somebody else is a rotation that quietly
     skips it, and a skipped table is one nobody notices until the old key is destroyed. */
  sealedColumns?: readonly SealedColumn[];
+ /* How often a sealed log is fenced. Injected only so a test can watch the window open and close;
+    the defaults in seal.ts are what runs. */
+ seal?: { every?: number; afterMs?: number };
 }) {
  if (!config.protectionKeys) return null;
  const { keys, records } = createProtection(config);
@@ -75,7 +84,11 @@ export function createProtectionModule(config: ProtectionConfig, db: Database, s
     Old versions are kept for ever, which is what makes that safe, and which is why a rotation here
     retires nothing. */
  const auditVersion = Math.min(...keys.versions);
- const audit = new HashChainAudit(sqliteAuditStore(db), keys.derive('audit', auditVersion), sources.now);
+ /* One store, handed to both: the chain appends through it and the sealer reads the seals back out
+    of it. Two stores over the same table would work and would be a second place to get the ordering
+    wrong. */
+ const auditStore = sqliteAuditStore(db);
+ const audit = new HashChainAudit(auditStore, keys.derive('audit', auditVersion), sources.now);
  const gate = new AccessGate({ crypto: records, audit, vetting: sources.vetting, releases: sources.releases, now: sources.now });
  /* The rotation gets the ring, not the record crypto: it re-wraps data keys and never opens a
     payload, so the job that rotates the database is not a job that can read the database. */
@@ -84,6 +97,17 @@ export function createProtectionModule(config: ProtectionConfig, db: Database, s
     purpose and exposes no way to reach it, which is what lets the vetting module check an operator's
     authorisation without becoming a module that can open a sealed value. */
  const bootstrap = createBootstrapAuthority(keys);
- return { gate, audit, rotation, bootstrap, keyVersions: keys.versions, currentKeyVersion: keys.current };
+ /* The sealer. It is built here for the same reason the bootstrap verifier is: assembling it needs
+    the chain, and the chain needs the key. What is handed out is `logSeal` — two methods, neither of
+    which can write an access entry — and `verifySealedLog`, which needs the key to be worth running
+    and so cannot live on the other side either. */
+ const seal = createLogSeal({ audit, store: auditStore, now: sources.now, ...(sources.seal ?? {}) });
+ const logSeal: LogSeal = { appended: seal.appended, sealNow: seal.sealNow };
+ return {
+  gate, audit, rotation, bootstrap, logSeal,
+  sealsFor: (logId: string) => seal.sealsFor(logId),
+  verifySealedLog: (logId: string, links: readonly LogLink[]): SealedLogVerdict => seal.verify(logId, links),
+  keyVersions: keys.versions, currentKeyVersion: keys.current
+ };
 }
 export type ProtectionModule = NonNullable<ReturnType<typeof createProtectionModule>>;

@@ -17,7 +17,7 @@ import { randomBytes } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import vetting from '../../../packages/catalog/vetting.json' with { type: 'json' };
 import { ConfigError, loadConfig } from '../src/config.ts';
-import { createProtectionModule, type ActorVetting, type CheckRecord } from '../src/protection/index.ts';
+import { SEAL_EVENT, createProtectionModule, type ActorVetting, type CheckRecord } from '../src/protection/index.ts';
 import { HOLDINGS, RETENTION_BASES } from '../src/personalData.ts';
 import {
  ACCESS_BASES, ConsentRegister, LAWFUL_BASES, PURPOSES, RULES, RecordAccessLog, ROUTES,
@@ -56,7 +56,7 @@ function harness(options: { actors?: ActorVetting[] } = {}) {
  )!;
  const store: ConsentStore = openConsentStore(db);
  const consent = new ConsentRegister({ store, now });
- const log = new RecordAccessLog({ gate: protection.gate, store, consent, now });
+ const log = new RecordAccessLog({ gate: protection.gate, store, consent, now, seal: protection.logSeal });
  return {
   db, store, consent, log, actors, protection, now,
   at: (ms: number) => { clock = ms; },
@@ -65,7 +65,11 @@ function harness(options: { actors?: ActorVetting[] } = {}) {
      chose to hand back. */
   rows: () => db.prepare('SELECT * FROM record_access_log ORDER BY seq').all() as unknown as Record<string, unknown>[],
   decisions: () => db.prepare('SELECT * FROM consent_decisions ORDER BY seq').all() as unknown as Record<string, unknown>[],
-  chain: () => db.prepare('SELECT * FROM protected_access_log ORDER BY seq').all() as unknown as Record<string, unknown>[]
+  chain: () => db.prepare('SELECT * FROM protected_access_log ORDER BY seq').all() as unknown as Record<string, unknown>[],
+  /* The chain holds two kinds of entry now: the gate's decisions, and the seals that commit the
+     access log's head into it. Anything asking "did this reach the gate" has to say which. */
+  decided: () => db.prepare(`SELECT * FROM protected_access_log WHERE event IS NOT '${SEAL_EVENT}' ORDER BY seq`).all() as unknown as Record<string, unknown>[],
+  seals: () => db.prepare(`SELECT * FROM protected_access_log WHERE event = '${SEAL_EVENT}' ORDER BY seq`).all() as unknown as Record<string, unknown>[]
  };
 }
 
@@ -468,12 +472,16 @@ describe('the log of who opened a record', () => {
 
  test('a read with no lawful basis is refused before the gate is even asked', () => {
   const h = consented();
-  const chainBefore = h.chain().length;
+  const chainBefore = h.decided().length;
   const refused = h.log.open(read({ lawfulBasis: 'because-i-am-a-nurse' }));
   assert.equal(refused.ok, false);
   assert.match((refused as { reason: string }).reason, /POPIA section 11 exists to stop/);
   assert.equal(h.rows()[0]!.refused_by, 'lawful-basis');
-  assert.equal(h.chain().length, chainBefore, 'nothing was put to the gate, so nothing decided it');
+  assert.equal(h.decided().length, chainBefore, 'nothing was put to the gate, so nothing decided it');
+  /* And the entry is still anchored, which is the whole of the change: a refusal that never reached
+     the gate used to carry a null audit id and nothing on the other side to line it up against. */
+  assert.equal(h.rows()[0]!.audit_id, null);
+  assert.ok(h.seals().length, 'the head of the log was sealed even though the gate was never asked');
  });
 
  test('a direct-marketing consent is not a basis for opening a record', () => {

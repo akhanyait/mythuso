@@ -63,7 +63,15 @@ const FIELDS = {
  allowed: 'bool',
  broke: 'bool',        // this went through the break-glass route
  reason: 'text',       // the refusal sentence, or the reason typed to break the glass
- blockedBy: 'list'     // the stage that refused, then whatever it named
+ blockedBy: 'list',    // the stage that refused, then whatever it named
+ /* And the two an access entry never carries, because they belong to a different kind of entry: a
+    seal. `seal.ts` commits the head of a log this module does not own — the consent module's record
+    of who opened whose record — into this chain, so that log's integrity can rest on a key the
+    module holding it has never seen. `sealHead` is a `hash` rather than a `text` on purpose: the
+    one way to widen an audit entry into a copy of a record is a free-text field nobody constrained,
+    and a field that will hold nothing but sixty-four hex characters cannot hold a reading. */
+ sealOf: 'text',       // which log was sealed
+ sealHead: 'hash'      // what its last entry hashed to, and nothing else
 } as const;
 type FieldName = keyof typeof FIELDS;
 const FIELD_NAMES = Object.keys(FIELDS) as FieldName[];
@@ -76,6 +84,7 @@ export type AuditEntry = {
  event?: string; actorId?: string; actorRole?: string; capability?: string; purpose?: string;
  recordType?: string; recordId?: string; subjectId?: string; field?: string;
  allowed?: boolean; broke?: boolean; reason?: string; blockedBy?: string[];
+ sealOf?: string; sealHead?: string;
 };
 /** One row: the entry, its identity, and its place in the chain. */
 export type AuditRow = AuditEntry & AuditLink;
@@ -122,6 +131,11 @@ function accept(entry: Record<string, unknown>): AuditEntry {
   }
   if (kind === 'bool' && typeof value !== 'boolean') throw new AuditEntryRefused(`Audit field "${key}" must be true or false.`);
   if (kind === 'text' && typeof value !== 'string') throw new AuditEntryRefused(`Audit field "${key}" must be text.`);
+  /* The narrowest field in the vocabulary, and the refusal is the point of it: sixty-four lowercase
+     hex characters is a digest and cannot be anything a person wrote down. */
+  if (kind === 'hash' && !(typeof value === 'string' && /^[0-9a-f]{64}$/.test(value))) {
+   throw new AuditEntryRefused(`Audit field "${key}" must be a SHA-256 digest: sixty-four lowercase hex characters. It is the only shape a seal has, and a field that accepted anything else would be a place a record could be copied into.`);
+  }
   if (kind === 'list' && !(Array.isArray(value) && value.every(item => typeof item === 'string'))) throw new AuditEntryRefused(`Audit field "${key}" must be a list of text.`);
   clean[key] = value;
  }
@@ -209,6 +223,7 @@ CREATE TABLE IF NOT EXISTS protected_access_log (
  id TEXT PRIMARY KEY, at TEXT NOT NULL, event TEXT, actor_id TEXT, actor_role TEXT,
  capability TEXT, purpose TEXT, record_type TEXT, record_id TEXT, subject_id TEXT,
  field TEXT, allowed INTEGER, broke INTEGER, reason TEXT, blocked_by TEXT,
+ seal_of TEXT, seal_head TEXT,
  previous_hash TEXT NOT NULL, hash TEXT NOT NULL, seq INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS protected_access_log_seq ON protected_access_log (seq);
 CREATE INDEX IF NOT EXISTS protected_access_log_subject ON protected_access_log (subject_id, at);
@@ -223,10 +238,18 @@ CREATE INDEX IF NOT EXISTS protected_access_log_subject ON protected_access_log 
  */
 export function sqliteAuditStore(db: Database): AuditStore {
  db.exec(SCHEMA);
+ /* An existing chain gains the two seal columns on the next start, the way vetting/store.ts adds a
+    column it did not used to have. Nothing is backfilled: entries written before seals existed are
+    access entries and never were seals, so null is the truthful value and the hash over them is
+    unchanged — which matters more here than anywhere else in this service, because a migration that
+    altered an entry would break every hash after it and read exactly like tampering. */
+ const columns = new Set((db.prepare('PRAGMA table_info(protected_access_log)').all() as { name: string }[]).map(column => column.name));
+ if (!columns.has('seal_of')) db.exec('ALTER TABLE protected_access_log ADD COLUMN seal_of TEXT');
+ if (!columns.has('seal_head')) db.exec('ALTER TABLE protected_access_log ADD COLUMN seal_head TEXT');
  const insert = db.prepare(`INSERT INTO protected_access_log
   (id, at, event, actor_id, actor_role, capability, purpose, record_type, record_id, subject_id,
-   field, allowed, broke, reason, blocked_by, previous_hash, hash, seq)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+   field, allowed, broke, reason, blocked_by, seal_of, seal_head, previous_hash, hash, seq)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
  const selectAll = db.prepare('SELECT * FROM protected_access_log ORDER BY seq');
  const selectLast = db.prepare('SELECT * FROM protected_access_log ORDER BY seq DESC LIMIT 1');
  const highest = db.prepare('SELECT MAX(seq) AS seq FROM protected_access_log');
@@ -258,7 +281,8 @@ export function sqliteAuditStore(db: Database): AuditStore {
    };
    insert.run(row.id, row.at, cell('event'), cell('actorId'), cell('actorRole'), cell('capability'),
     cell('purpose'), cell('recordType'), cell('recordId'), cell('subjectId'), cell('field'),
-    cell('allowed'), cell('broke'), cell('reason'), cell('blockedBy'), row.previousHash, row.hash, next);
+    cell('allowed'), cell('broke'), cell('reason'), cell('blockedBy'), cell('sealOf'), cell('sealHead'),
+    row.previousHash, row.hash, next);
   },
   all() { return selectAll.all().map(toRow); },
   last() { const rows = selectLast.all(); return rows.length ? toRow(rows[0]) : null; }

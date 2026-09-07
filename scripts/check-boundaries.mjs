@@ -9,6 +9,7 @@ import { emitTeleconsult } from './emit-teleconsult.mjs';
 import { emitLocales } from './emit-locales.mjs';
 import { emitDispensing } from './emit-dispensing.mjs';
 import { emitProgrammes } from './emit-programmes.mjs';
+import { clinicalIdentifiers, tablesIn } from './clinical-tables.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -324,11 +325,38 @@ if (localeContract.keys.filter(k => /^slide\d+\.title$/.test(k.id)).length !== h
    the controls in docs/PRIVACY-AND-SECURITY.md. If a clinical table appears here, that reasoning
    has quietly stopped being true. */
 if(existsSync('apps/api/src')) {
- const clinical=/\b(observation|diagnos|prescription|medication|clinical|patient_record|vital|symptom|allerg)/i;
+ /* The word list has not moved. What has moved is what it is held against: scripts/clinical-tables.mjs
+    reads the table name and every column name out of the statement and tests those, instead of
+    grepping the whole `CREATE TABLE …;` text. The old form ran to the next semicolon in the *file*,
+    so it scanned the prose underneath a schema, and it could not tell a table of clinical data from
+    a table about access to clinical records — which is why the log of who opened whose record is
+    called record_access_log rather than the name it should have had.
+
+    Proved both ways before it is trusted, in the same spirit as breaking a source to watch a check
+    fire: a schema that must still fail, and one that must now pass. Cheap, and it means a refactor
+    of the parser that quietly stopped refusing anything cannot reach the tree. */
+ const mustFail = [
+  ['a column holding a reading', 'CREATE TABLE record_access_log (id TEXT PRIMARY KEY, observation TEXT)'],
+  ['a table of readings', 'CREATE TABLE IF NOT EXISTS vitals (id TEXT PRIMARY KEY, taken_at INTEGER)'],
+  ['a reading behind a quoted name', 'CREATE TABLE notes ("id" TEXT, "clinical_finding" TEXT)'],
+  ['a date a reading was taken', 'CREATE TABLE x (id TEXT, observation_at INTEGER)'],
+  ['a name that only reads as innocent', 'CREATE TABLE patient_records (id TEXT, body TEXT)']
+ ];
+ for(const [what,schema] of mustFail) {
+  if(!clinicalIdentifiers(schema).length) throw new Error(`scripts/clinical-tables.mjs has stopped refusing ${what}: ${schema}`);
+ }
+ const mustPass = [
+  ['a log about access to clinical records', 'CREATE TABLE clinical_access_log (id TEXT PRIMARY KEY, observation_id TEXT, record_type TEXT, seq INTEGER)'],
+  ['prose beside a schema', '/* a CREATE TABLE will not add one, and the medication column stays where it is. */'],
+  ['a default containing a bracket', "CREATE TABLE t (id TEXT, label TEXT NOT NULL DEFAULT '(none)')"]
+ ];
+ for(const [what,schema] of mustPass) {
+  const found = clinicalIdentifiers(schema);
+  if(found.length) throw new Error(`scripts/clinical-tables.mjs refuses ${what} over "${found[0].identifier}", which is a name rather than a place a value could go: ${schema}`);
+ }
  for(const f of files('apps/api/src')) {
-  const source=read(f);
-  for(const statement of source.match(/CREATE TABLE[^;]+/gi)??[]) {
-   if(clinical.test(statement)) throw new Error(`The identity service has grown a clinical table in ${f}. Health data is special personal information: work through docs/PRIVACY-AND-SECURITY.md before this ships.`);
+  for(const found of clinicalIdentifiers(read(f))) {
+   throw new Error(`The identity service has grown a clinical ${found.kind} in ${f}: ${found.kind === 'table' ? found.identifier : `${found.table}.${found.identifier}`}. Health data is special personal information: work through docs/PRIVACY-AND-SECURITY.md before this ships.`);
   }
  }
  if(!read('apps/api/src/config.ts').includes('holds no health information')) throw new Error('The identity service must state what it holds in apps/api/src/config.ts');
@@ -838,6 +866,43 @@ for(const forbidden of consent.accessLog.forbiddenColumns) {
  }
 }
 
+/* The access log's own links, and the seal that makes them worth something.
+
+   A plain SHA-256 chain in a table anybody can recompute proves nothing on its own — the value is
+   entirely in the head of it being committed into the gate's keyed chain, which is on the other side
+   of the protection boundary. So both halves are held here: the columns must exist, the seal must be
+   something a caller cannot forget to pass, and the consent module must still be unable to reach the
+   chain except through the two-method capability it is handed. */
+for(const column of ['previous_hash', 'hash']) {
+ if(!new RegExp(`\\b${column}\\s+TEXT`, 'i').test(accessSchema)) throw new Error(`record_access_log has lost its "${column}" column. Without the links the log is append-only and nothing more, and a row edited behind the service's back reads exactly like a row it wrote.`);
+}
+/* Read out of the statement rather than grepped for, using the same parser as the clinical check
+   above: the `ALTER TABLE … ADD COLUMN seal_of TEXT` that upgrades an existing database would
+   satisfy a grep while the schema a fresh one is created from had lost the column. */
+const chainColumns = new Set((tablesIn(read('apps/api/src/protection/audit.ts')).find(t => t.name === 'protected_access_log')?.columns ?? []).map(c => c.toLowerCase()));
+for(const column of ['seal_of', 'seal_head']) {
+ if(!chainColumns.has(column)) throw new Error(`protected_access_log has lost its "${column}" column, so there is nowhere to commit the access log's head and its integrity rests on a digest anybody can recompute.`);
+}
+/* Not optional. A log whose head nothing commits to is a log anybody with the database file can
+   rewrite quietly, and a dependency a caller may omit is one a caller will omit. */
+if(!/\n seal: LogSeal;/.test(read('apps/api/src/consent/index.ts'))) throw new Error('RecordAccessLog must take a LogSeal it cannot be constructed without. See apps/api/src/protection/seal.ts.');
+/* The boundary the whole arrangement rests on. The consent module may hold the seal; it may not
+   hold the chain, because a module that can append to the chain can forge the seals it is supposed
+   to be evidence against. */
+for(const f of files('apps/api/src/consent')) {
+ const source=read(f);
+ /* The import, not the phrase — these files talk about the chain at length in their comments, and a
+    check a comment can trip is the mistake the clinical-table check above was just cured of. */
+ if(/from\s+['"][^'"]*protection\/(audit|crypto)/.test(source)) throw new Error(`${f} imports the audit chain or the crypto directly. The consent module is handed a LogSeal — commit this head, and nothing else — precisely so it cannot write into the chain its own log is sealed against.`);
+ if(/import[^;]*\b(HashChainAudit|AuditChain)\b[^;]*from/.test(source)) throw new Error(`${f} imports the audit chain. It is given a LogSeal instead, and that is what keeps the key on the other side of the wall.`);
+}
+/* And a verification that sealed first would commit whatever it found, which is a verifier
+   certifying the tampering it was asked to look for. */
+const accessLogRoute = (read('apps/api/src/server.ts').match(/GET \/health\/access-log'[\s\S]*?\n  \}\);/) ?? [])[0];
+if(!accessLogRoute) throw new Error('The service no longer offers GET /health/access-log, so nothing running verifies the log of who opened what');
+if(/sealNow/.test(accessLogRoute)) throw new Error('GET /health/access-log seals before it verifies. A verifier that seals what it is looking at certifies the tampering it was asked to find.');
+
+
 /* Substitution and chronic authorisation.
 
    Two routine events — a pharmacist hands over something other than what was written, and a repeat
@@ -1110,4 +1175,4 @@ for(const f of ['apps/ios/MyThuso/Models/ProgrammesData.swift','apps/android/app
  }
 }
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}.`);
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}.`);

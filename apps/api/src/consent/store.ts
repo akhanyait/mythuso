@@ -28,13 +28,20 @@
  *
  * It is not a second copy of the chain: it is the projection of the same decision that the data
  * subject is entitled to read, and it carries `audit_id` — the identifier of the chain entry the
- * gate wrote for that very decision. So the two can be compared, and a row edited or removed here is
- * a row that no longer lines up with a chain that is keyed by material this module has never held.
+ * gate wrote for that very decision, so the two can be read side by side.
  *
- * That last clause is the honest limit and the reason this table is not chained itself: chaining it
- * would mean this module holding a key derived from the ring, and a module that can compute the
- * chain is a module that can forge it. Only the protection module holds key material, and
- * `scripts/check-boundaries.mjs` keeps that true.
+ * That used to be the whole of the answer, and it was not enough. An id correlates two rows; it does
+ * not detect one of them being rewritten, because a pointer survives the row it points from being
+ * altered — and the entries most worth altering are the ones refused before the gate was ever
+ * consulted, which carry no id at all. So each row now also carries `previous_hash` and `hash`, a
+ * plain SHA-256 chain over its own contents, and the *head* of that chain is committed into the
+ * gate's keyed chain by `apps/api/src/protection/seal.ts`.
+ *
+ * The division is the point. A plain digest chain proves nothing by itself — anybody can recompute
+ * it — and this module still holds no key, still cannot compute an HMAC, and is handed a `LogSeal`
+ * whose whole vocabulary is "commit this head". It cannot write an access entry into the chain and
+ * it cannot forge a seal. What it can do is produce a head that stops matching the moment a row is
+ * touched. See `integrity.ts` for the digest and `protection/seal.ts` for the key and the window.
  *
  * ── What is not in here ──────────────────────────────────────────────────────────────────────
  *
@@ -46,6 +53,7 @@
  * and a test can hand it anything answering the same two calls.
  */
 import { randomUUID } from 'node:crypto';
+import { ACCESS_GENESIS, accessDigest, accessLinks, type AccessLink } from './integrity.ts';
 import type { Decision, PurposeKind } from './contract.ts';
 
 type SqlValue = string | number | bigint | Uint8Array | null;
@@ -74,7 +82,8 @@ CREATE TABLE IF NOT EXISTS record_access_log (
  capability TEXT NOT NULL, processing_purpose TEXT NOT NULL, lawful_basis TEXT NOT NULL,
  record_type TEXT NOT NULL, record_id TEXT NOT NULL, subject_id TEXT NOT NULL,
  outcome TEXT NOT NULL, refused_by TEXT, reason TEXT,
- consent_purpose TEXT, consent_version INTEGER, audit_id TEXT);
+ consent_purpose TEXT, consent_version INTEGER, audit_id TEXT,
+ previous_hash TEXT NOT NULL DEFAULT '', hash TEXT NOT NULL DEFAULT '');
 CREATE INDEX IF NOT EXISTS record_access_log_subject ON record_access_log (subject_id, seq);
 CREATE INDEX IF NOT EXISTS record_access_log_actor ON record_access_log (actor_id, seq);
 `;
@@ -125,7 +134,15 @@ export type AccessRow = {
  consentVersion: number | null;
  /** The gate's own chain entry for the same decision, so the two can be compared. */
  auditId: string | null;
+ /* The row's place in the log's own links. Computed by the store on the way in and never by a
+    caller, which is the only reason they mean anything: a hash a caller supplies is a hash the
+    caller chose. See integrity.ts for what they are worth without the seal, which is nothing. */
+ previousHash: string;
+ hash: string;
 };
+
+/** What a caller supplies. The sequence and the links are the store's to work out, not theirs. */
+export type NewAccessRow = Omit<AccessRow, 'seq' | 'previousHash' | 'hash'>;
 
 export type ConsentStore = {
  /** Appends a decision. There is no way to change one that is already there. */
@@ -139,7 +156,11 @@ export type ConsentStore = {
  countDecisions(): number;
 
  /** Appends an access entry, granted or refused. */
- recordAccess(row: Omit<AccessRow, 'seq'>): AccessRow;
+ recordAccess(row: NewAccessRow): AccessRow;
+ /** The log's head: how many entries it holds and what the last one hashes to. One query. */
+ accessHead(): { length: number; head: string };
+ /** Every entry as a link, each recomputed from the row as it stands on disk. For the verifier. */
+ accessLinks(): AccessLink[];
  /** The log the person whose record it is reads, newest first. */
  accessesFor(subjectId: string, limit: number): AccessRow[];
  /** Everything, oldest first. For tests and for an operator, never for a route. */
@@ -172,19 +193,29 @@ const asAccess = (raw: unknown): AccessRow => {
   refusedBy: optional(row.refused_by), reason: optional(row.reason),
   consentPurpose: optional(row.consent_purpose),
   consentVersion: row.consent_version === null || row.consent_version === undefined ? null : Number(row.consent_version),
-  auditId: optional(row.audit_id)
+  auditId: optional(row.audit_id),
+  previousHash: optional(row.previous_hash) ?? '', hash: optional(row.hash) ?? ''
  };
 };
 
 export function openConsentStore(db: Database): ConsentStore {
  db.exec(SCHEMA);
+ /* A register written before the log carried links gains the two columns on the next start rather
+    than on a hand-written migration, the same way vetting/store.ts adds `bootstrapped_at`. The rows
+    already in it read as empty, and the verifier reports them as vouched for by nothing — which is
+    the truthful answer. Backfilling them would be this module writing hashes over rows it cannot
+    know were not already altered, which is a chain that certifies whatever it finds. */
+ const columns = new Set((db.prepare('PRAGMA table_info(record_access_log)').all() as { name: string }[]).map(column => column.name));
+ if (!columns.has('previous_hash')) db.exec("ALTER TABLE record_access_log ADD COLUMN previous_hash TEXT NOT NULL DEFAULT ''");
+ if (!columns.has('hash')) db.exec("ALTER TABLE record_access_log ADD COLUMN hash TEXT NOT NULL DEFAULT ''");
  const insertDecision = db.prepare(`INSERT INTO consent_decisions
   (id, seq, subject_id, purpose_id, purpose_kind, version, decision, wording_hash, route, locale, recorded_by, recorded_as, at, given_reason)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
  const insertAccess = db.prepare(`INSERT INTO record_access_log
   (id, seq, at, actor_id, actor_role, actor_label, capability, processing_purpose, lawful_basis,
-   record_type, record_id, subject_id, outcome, refused_by, reason, consent_purpose, consent_version, audit_id)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+   record_type, record_id, subject_id, outcome, refused_by, reason, consent_purpose, consent_version, audit_id,
+   previous_hash, hash)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
  const topDecision = db.prepare('SELECT MAX(seq) AS seq FROM consent_decisions');
  const topAccess = db.prepare('SELECT MAX(seq) AS seq FROM record_access_log');
  const bySubject = db.prepare('SELECT * FROM consent_decisions WHERE subject_id = ? ORDER BY seq');
@@ -193,6 +224,7 @@ export function openConsentStore(db: Database): ConsentStore {
  const countDecisions = db.prepare('SELECT COUNT(*) AS n FROM consent_decisions');
  const accessBySubject = db.prepare('SELECT * FROM record_access_log WHERE subject_id = ? ORDER BY seq DESC LIMIT ?');
  const allAccess = db.prepare('SELECT * FROM record_access_log ORDER BY seq');
+ const lastAccess = db.prepare('SELECT hash FROM record_access_log ORDER BY seq DESC LIMIT 1');
  const countAccess = db.prepare('SELECT COUNT(*) AS n FROM record_access_log');
  const next = (statement: { all(...params: SqlValue[]): unknown[] }): number =>
   Number((statement.all()[0] as { seq: number | bigint | null } | undefined)?.seq ?? 0) + 1;
@@ -213,13 +245,24 @@ export function openConsentStore(db: Database): ConsentStore {
   countDecisions() { return count(countDecisions); },
 
   recordAccess(row) {
-   const complete: AccessRow = { ...row, seq: next(topAccess) };
+   /* The previous hash is read out of the table rather than remembered in a field: two processes
+      writing to the same database file would otherwise each chain onto their own last write and
+      produce two forks that both look intact. */
+   const previousHash = (lastAccess.all()[0] as { hash?: string } | undefined)?.hash || ACCESS_GENESIS;
+   const complete: AccessRow = { ...row, seq: next(topAccess), previousHash, hash: '' };
+   complete.hash = accessDigest(complete, previousHash);
    insertAccess.run(complete.id, complete.seq, complete.at, complete.actorId, complete.actorRole,
     complete.actorLabel, complete.capability, complete.processingPurpose, complete.lawfulBasis,
     complete.recordType, complete.recordId, complete.subjectId, complete.outcome,
-    complete.refusedBy, complete.reason, complete.consentPurpose, complete.consentVersion, complete.auditId);
+    complete.refusedBy, complete.reason, complete.consentPurpose, complete.consentVersion, complete.auditId,
+    complete.previousHash, complete.hash);
    return complete;
   },
+  accessHead() {
+   const last = lastAccess.all()[0] as { hash?: string } | undefined;
+   return { length: count(countAccess), head: last?.hash || ACCESS_GENESIS };
+  },
+  accessLinks() { return accessLinks(allAccess.all().map(asAccess)); },
   accessesFor(subjectId, limit) { return accessBySubject.all(subjectId, limit).map(asAccess); },
   allAccesses() { return allAccess.all().map(asAccess); },
   countAccesses() { return count(countAccess); }

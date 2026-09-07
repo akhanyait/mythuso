@@ -10,7 +10,7 @@ import { decideStepUp, SECOND_FACTOR_CAPABILITIES, SECOND_FACTOR_REASONS, type S
 import { RESPONSE_DAYS, SCOPE_STATEMENT, clinicalRetentionRules } from './personalData.ts';
 import { openCaptureStore } from './capture/index.ts';
 import {
-  ACCESS_LOG, ConsentRegister, LAWFUL_BASES, NOT_ADVICE, RULES as CONSENT_RULES, RecordAccessLog,
+  ACCESS_LOG, ACCESS_LOG_ID, ConsentRegister, LAWFUL_BASES, NOT_ADVICE, RULES as CONSENT_RULES, RecordAccessLog,
   ROUTES as CONSENT_ROUTES, WHY as CONSENT_WHY, currentVersion, openConsentStore, optionalPurposes, requiredPurposes
 } from './consent/index.ts';
 
@@ -123,7 +123,7 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
   /* The access log needs the gate, so it exists only where the protection module does — which is
      the whole of the production refusal in config.ts: with no key ring nothing decides an access and
      nothing writes it down, and a service in that state must not be the one running in production. */
-  const accessLog = protection ? new RecordAccessLog({ gate: protection.gate, store: consentStore, consent, now }) : null;
+  const accessLog = protection ? new RecordAccessLog({ gate: protection.gate, store: consentStore, consent, now, seal: protection.logSeal }) : null;
   /* What an erasure cannot reach, asked rather than assumed. With no protection keys there is no
      vault, so there is nothing it could be holding and nothing to say about it. The consent register
      always has something to say, because it needs no keys to hold a decision. */
@@ -405,6 +405,20 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
       configured: true, ...protection.audit.verify(),
       ...(vetting ? { bootstrap: vetting.bootstrapStanding() } : {})
     });
+  });
+  /* Whether the log of who opened whose record still says what it said when it was written.
+     Separate from /health/audit because the two answer different questions and can fail
+     independently: that one asks whether the gate's own chain follows, this one asks whether the
+     table the data subject reads has been rewritten behind it. It reports the window as well as the
+     verdict — how many entries have been appended since the last seal, and how many predate the
+     links entirely — because "intact" over a log that is mostly unsealed is a reassuring answer to
+     a question nobody asked. Counts and a verdict; no entry, no actor, no subject.
+
+     It does not seal before it verifies. Sealing first would commit whatever it found, which is a
+     verification that certifies the tampering it was looking for. */
+  routes.set('GET /health/access-log', (_req, res) => {
+    if (!protection || !accessLog) return send(res, 200, { configured: false, note: 'No protection keys are configured, so nothing decides an access, nothing is written down and there is no log to verify.' });
+    send(res, 200, { configured: true, ...protection.verifySealedLog(ACCESS_LOG_ID, accessLog.links()) });
   });
   /* How much of the credential verification layer is actually wired, counted by the running service
      rather than claimed by a document. It is the number this repository is most likely to be wrong

@@ -55,6 +55,17 @@ describe('the endpoint surface', () => {
     const body = await response.json() as { message: string };
     assert.match(body.message, /10-digit South African mobile number/);
   });
+  test('with no keys, both integrity routes say they are not configured rather than claiming a verdict', async () => {
+    /* This server has no protection keys, so there is no gate, no chain and no access log. Answering
+       "intact" would be the worst possible answer: a health check that reports a sound log where
+       there is no log at all. */
+    for (const path of ['/health/audit', '/health/access-log']) {
+      const body = await (await call(path)).json() as Record<string, unknown>;
+      assert.equal(body.configured, false, path);
+      assert.equal('intact' in body, false, `${path} claimed a verdict it cannot have`);
+      assert.ok(String(body.note).length > 30, `${path} does not say why`);
+    }
+  });
 });
 
 describe('the session cookie', () => {
@@ -172,6 +183,22 @@ describe('the bootstrap is not reachable over HTTP', () => {
     assert.equal(body.configured, true);
     assert.equal(body.intact, true);
     assert.deepEqual(body.bootstrap, { ceremonies: 0, lastCeremonyAt: null, restingOnBootstrap: 0 });
+  });
+
+  test('the access log has a verification of its own, and it answers in counts', async () => {
+    /* Two routes because they are two questions that fail independently: /health/audit asks whether
+       the gate's own chain follows, this asks whether the table the data subject reads has been
+       rewritten behind it. */
+    const body = await (await fetch(`${keyedBase}/health/access-log`)).json() as Record<string, unknown>;
+    assert.equal(body.configured, true);
+    assert.equal(body.intact, true);
+    assert.equal(body.logId, 'record_access_log');
+    for (const count of ['length', 'seals', 'sealedThrough', 'unsealed', 'unchained']) {
+      assert.equal(typeof body[count], 'number', `${count} is not a count`);
+    }
+    /* The window is reported rather than rounded away: an "intact" verdict over a log nothing has
+       sealed yet is a reassuring answer to a question nobody asked. */
+    assert.ok('unsealed' in body);
   });
 
   test('there is no route that seeds a party or decides a check', async () => {
