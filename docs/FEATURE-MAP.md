@@ -17,6 +17,7 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Laboratory order detail | Sample seal, courier handover, verification, results with reference ranges, and release as a deliberate clinical act | All three |
 | Dispatch board | Abstract Johannesburg map, unassigned visits, nurses ranked by estimated arrival, and assignment — with the list, not the map, as the control | All three |
 | Incident management | Severity triage, immediate-action choice, handover note and an append-only demo log | All three |
+| Thuso SOS, the emergency pathway | Real South African emergency numbers first and most prominently — 10177 for an ambulance, 112 from a mobile, 10111 for the police — above anything MyThuso sells; three questions that route rather than triage, any one of eight named conditions ending them at an ambulance; under 45 minutes shown as a target with what happens when it cannot be met; an arrival estimate that says it does not know; the same `can(subject, 'take-visit')` gate dispatch uses; standing down, and an unanswered callback that is not a cancellation; and a screen for each of the six ways it fails | All three |
 | Vetting, for all twelve vetted parties | Nurse, locum, doctor, pharmacy, laboratory, courier, Control Tower operator, admin staff, employer, sponsor, guardian and Thuso Corner site. Per-authority credential validation (SANC, HPCSA, SAPC, SANAS, SAPS, Home Affairs, CIPC, RTMC, SAHPRA), scope of practice, evidence, declarations and attestation | All three |
 | Vetting lifecycle and refusals | Expiry resolved on every read, so a lapsed check suspends a party automatically; renewals due; a second reviewer required on every high-risk check, with one name refused both decisions; decline with a recorded reason and an appeal; and a matrix of exactly what each party is refused until its checks pass | Reviewer console web-only; applicant flow and status on all three |
 | Vetting that gates real screens | Dispatch will not assign a nurse whose clearance lapsed, the clinical queue refuses a signature from a lapsed HPCSA registration, a laboratory without current ISO 15189 accreditation cannot release a result, and a pharmacy without a current responsible pharmacist is not routed a prescription — each with the refusal shown, not implied | All three |
@@ -61,7 +62,7 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Thuso Screen | Feature entry | Native feature entry | Package eligibility, clinician-approved questionnaires, referrals |
 | Thuso Wear | Apple Health / Health Connect entries with a permission-denied state | Platform-specific native entry and state | Granular permissions, compatible reading types, sync |
 | Pharmacy / Labs | Order detail and partner workspace | Native order detail and workspace | Partner APIs, prescriptions and laboratory reports |
-| SOS / Corner | Feature entries; Thuso Corner appears as a recovery route | Native entries | Verified emergency pathways and community schedules |
+| SOS / Corner | The Thuso SOS pathway end to end: emergency services first, routing questions, the target, vetting-gated dispatch, standing down and every failure screen. Thuso Alert is described and refused rather than sold, and Thuso Corner appears as a recovery route | Native equivalents of the whole pathway | A contracted ambulance partner, a real urgent rota, telephony, clinically reviewed routing questions and community schedules |
 | Work / Locum / Academy / Money | Roadmap entries, relevant workspace tools | Native roadmap/tool entries | Employer programmes, shifts, learning and regulated finance partners |
 | Cover / Devices | Roadmap entries | Native roadmap entries | Regulated insurer/device partnerships; Pod/Band/Home/Lab development |
 
@@ -98,6 +99,25 @@ These flows exist on all three platforms, with the same steps, the same wording 
 - A deduction always names the visit it came from and the reason. There is no line that says only ‘adjustment’.
 - Changing a payout account re-verifies the nurse and then waits, and a payout already in flight goes to the account
   it was authorised against — because account takeover is how a stolen sign-in becomes a stolen payout.
+- MyThuso is not an ambulance service and is never arranged to look like one. The ambulance number is
+  at the top of the emergency screen, above everything MyThuso sells, and no answer to any question
+  moves it — because a screen that offers its own service first is asking a frightened person to
+  compare the two, and some of them will choose wrong.
+- Software does not triage. The emergency screen asks three questions and they route rather than
+  assess: any one of eight named conditions — chest pain, difficulty breathing, uncontrolled
+  bleeding, unresponsiveness, stroke signs, a seizure, a child under two who is floppy or not
+  feeding, an obstetric emergency — ends the questions at an ambulance. Nothing is scored, and a
+  condition in the contract that carried a severity would fail the build.
+- Under 45 minutes is a target, not a guarantee, and it is never printed as an arrival estimate. An
+  arrival the app cannot work out says it is estimating and says why, with the basis of every
+  estimate beside it — the same rule the dispatch board follows.
+- Urgency never relaxes vetting. A nurse whose police clearance lapsed is refused on the emergency
+  screen in the register's own words, and there is no override there for anybody.
+- Silence is not a cancellation. An unanswered callback keeps the request open and the nurse
+  travelling; a dropped request is the one failure a panic button cannot be allowed to have.
+- No fictional phone number may appear on the emergency pathway. Every other screen in this preview
+  is fictional on purpose; that one is checked digit by digit against the numbers South Africa
+  actually uses, and nothing in any app dials any of them.
 - Nothing in any of these flows is transmitted, stored or acted upon.
 
 ## Cross-platform consistency
@@ -106,4 +126,4 @@ Clinical reference ranges, locale sets, the demo verification codes, the identit
 
 ## Next UI increments
 
-Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only today; teleconsultation call UI; prescription substitution and chronic authorisation; employer and sponsor programme administration; a real emergency pathway design; the remaining official languages and a clinical language review of translated copy; South African Sign Language guidance; large-text, screen-reader and low-end device testing on real hardware. None of these are claimed complete.
+Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only today; teleconsultation call UI; prescription substitution and chronic authorisation; employer and sponsor programme administration; the remaining official languages and a clinical language review of translated copy; South African Sign Language guidance; large-text, screen-reader and low-end device testing on real hardware. None of these are claimed complete.

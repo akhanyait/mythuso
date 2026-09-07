@@ -12,6 +12,7 @@ import { Onboarding, SignIn } from './features/Onboarding';
 import { VisitAssessment, DoctorReview } from './features/Clinical';
 import { ThusoKit } from './features/Kit';
 import { Earnings } from './features/Earnings';
+import { ThusoSos } from './features/Sos';
 import { LabOrderDetail, PrescriptionDetail } from './features/Orders';
 import { IncidentDetail, NurseVetting } from './features/Dispatch';
 import { VettingApplication } from './features/Vetting';
@@ -64,6 +65,7 @@ function modalTitle(modal:string){
  if(modal.startsWith('Doctor review')) return 'Clinical review';
  if(isKit(modal)) return 'Thuso Kit';
  if(modal==='Weekly payouts'||modal==='Earnings & payouts') return 'Earnings & payouts';
+ if(modal==='Thuso SOS'||modal==='Emergency & urgent care') return 'Thuso SOS';
  if(modal==='Vetting application') return 'Apply for vetting';
  if(modal==='Visit assessment'||modal.startsWith('Nurse case:')) return 'Visit assessment';
  return modal;
@@ -95,6 +97,7 @@ function modalBody(p:BodyProps){
  if(modal==='Nurse onboarding & vetting'||modal==='Nurse vetting') return <NurseVetting onClose={p.close}/>;
  if(isKit(modal)) return <ThusoKit onClose={p.close}/>;
  if(modal==='Weekly payouts'||modal==='Earnings & payouts') return <Earnings/>;
+ if(modal==='Thuso SOS'||modal==='Emergency & urgent care') return <ThusoSos/>;
  if(modal==='Consultation record') return <ConsultationRecord onClose={p.close}/>;
  if(modal==='Household record') return <HouseholdRecord/>;
  if(modal==='Health summary') return <HealthSummary/>;

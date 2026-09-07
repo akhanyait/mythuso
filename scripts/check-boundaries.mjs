@@ -4,6 +4,7 @@ import { emitTokens } from './emit-tokens.mjs';
 import { emitVetting } from './emit-vetting.mjs';
 import { emitRecords } from './emit-records.mjs';
 import { emitEarnings } from './emit-earnings.mjs';
+import { emitSos } from './emit-sos.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -153,7 +154,8 @@ const generated = [
  { source: 'packages/design-tokens/tokens.json', command: 'npm run tokens', files: emitTokens() },
  { source: 'packages/catalog/vetting.json', command: 'npm run vetting', files: emitVetting() },
  { source: 'packages/catalog/records.json', command: 'npm run records', files: emitRecords() },
- { source: 'packages/catalog/earnings.json', command: 'npm run earnings', files: emitEarnings() }
+ { source: 'packages/catalog/earnings.json', command: 'npm run earnings', files: emitEarnings() },
+ { source: 'packages/catalog/sos.json', command: 'npm run sos', files: emitSos() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -332,4 +334,95 @@ if(Number(advertised[1])!==Math.min(...shares)||Number(advertised[2])!==Math.max
  throw new Error(`The landing page advertises R${advertised[1]}–R${advertised[2]} a visit; the catalogue pays R${Math.min(...shares)}–R${Math.max(...shares)}`);
 }
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays.`);
+/* Thuso SOS is the one screen in this repository where being wrong is dangerous rather than
+   inconvenient, so it is checked harder than anything else here.
+
+   The first check is the only one that would matter on its own: an emergency number on this screen
+   must be a real South African emergency number. Not a placeholder, not a fictional demo number,
+   not a digit typed wrongly into a Swift file and a Kotlin file. Every run of three or more digits
+   anywhere in the contract is compared against the three that are allowed to be there, so a
+   fictional number cannot be added to this pathway without failing the build — which is the
+   opposite of the rule everywhere else in this preview, where the data is fictional on purpose.
+
+   The rest hold the four promises the screen makes: emergency services above anything MyThuso
+   sells, routing rather than triage, a target that is not a guarantee, and vetting that urgency
+   does not lift. */
+const sos=JSON.parse(read('packages/catalog/sos.json'));
+const SA_EMERGENCY_NUMBERS=[['ambulance','10177'],['mobile','112'],['police','10111']];
+if(sos.emergency.numbers.length!==SA_EMERGENCY_NUMBERS.length) throw new Error('The emergency pathway lists a number of emergency services other than the three South Africa actually has');
+SA_EMERGENCY_NUMBERS.forEach(([id,number],index)=>{
+ const entry=sos.emergency.numbers[index];
+ if(entry.id!==id||entry.number!==number) throw new Error(`Emergency number ${index+1} must be ${id} on ${number}. South Africa's emergency numbers are 10177 for an ambulance, 112 from a mobile and 10111 for the police, and a wrong digit here is not a cosmetic defect.`);
+ if(!entry.whenToUse) throw new Error(`Emergency number ${number} does not say when to use it`);
+});
+const allowedDigits=new Set(SA_EMERGENCY_NUMBERS.map(([,n])=>n));
+for(const run of read('packages/catalog/sos.json').match(/\d{3,}/g)??[]) {
+ if(!allowedDigits.has(run)) throw new Error(`packages/catalog/sos.json contains the number ${run}. The only numbers allowed on the emergency pathway are the real ones — ${[...allowedDigits].join(', ')} — because every other screen in this preview is fictional on purpose and this one must not be.`);
+}
+/* The eight conditions that end the questions. Losing one of them silently is losing the reason
+   somebody with it would have been sent to an ambulance instead of to a nurse. */
+for(const id of ['chest-pain','breathing','bleeding','unresponsive','stroke','seizure','infant','obstetric']) {
+ if(!sos.redFlags.conditions.some(c=>c.id===id)) throw new Error(`The emergency pathway has lost the condition "${id}". These eight are what send somebody straight to emergency services; a shorter list is a longer wait for whoever falls off it.`);
+}
+/* Routing, not triage. Nothing in the contract may carry a severity, a score or a weight: the
+   moment one appears, the questions have stopped routing and started assessing. */
+for(const condition of sos.redFlags.conditions) {
+ for(const field of ['severity','score','weight','priority','urgency']) {
+  if(field in condition) throw new Error(`Condition ${condition.id} carries a "${field}". Software does not triage: these questions route, and a condition that can be scored is a condition that can be scored lower.`);
+ }
+}
+if(sos.routing.questions[0].kind!=='red-flags') throw new Error('The red-flag question is no longer first in the emergency pathway. It is the only question that matters, and anything asked before it is a question asked instead of an ambulance.');
+if(sos.routing.questions.length>3) throw new Error(`The emergency pathway asks ${sos.routing.questions.length} questions. A frightened person answers a small number of them; anything past three is triage wearing a form.`);
+/* A target is not a promise, and the number is the catalogue's. sos.json writes {target} and has
+   nowhere to type 45, R398 or R249 — the same rule the earnings contract is held to. */
+const sosService=catalogue.find(s=>s.id==='sos');
+if(!sosService) throw new Error('packages/catalog/services.json has no `sos` row, so the emergency pathway has no service behind it');
+const sosAlert=model.subscriptions.find(s=>s.id==='alert');
+if(!sosAlert?.price) throw new Error('packages/catalog/business-model.json has no priced `alert` subscription, so Thuso Alert has no price to be honest about');
+if(!sosService.description.includes(String(sosService.duration))) throw new Error(`The Thuso SOS catalogue row promises "${sosService.description}" and targets ${sosService.duration} minutes. The claim and the target are the same number or the claim is wrong.`);
+for(const [key,text] of Object.entries(sos.target)) {
+ for(const token of text.match(/\{[a-z]+\}/g)??[]) if(token!=='{target}') throw new Error(`sos.target.${key} writes ${token}, which nothing fills in. The only token on this pathway is {target}.`);
+}
+if(!sos.target.statement.includes('{target}')) throw new Error('The target statement no longer names the target it is about');
+/* Everything a failure screen is for. A failure with no way out is a dead end wearing an apology. */
+for(const failure of sos.failures) {
+ if(!failure.instead) throw new Error(`Failure "${failure.id}" does not say what to do instead. A panic button that fails without an alternative is worse than one that was never offered.`);
+ if(!/10177|112/.test(failure.instead)&&failure.id!=='vetting') throw new Error(`Failure "${failure.id}" does not point at emergency services. Every dead end on this pathway ends at an ambulance number.`);
+}
+for(const id of ['no-signal','no-nurse','outside-hours','outside-coverage','no-callback','vetting']) {
+ if(!sos.failures.some(f=>f.id===id)) throw new Error(`The emergency pathway has lost the "${id}" failure. A panic button people rely on has to be honest about every way it does not work.`);
+}
+for(const reason of sos.standDown.reasons) {
+ if(!reason.nurseIsTold||!reason.recorded) throw new Error(`Stand-down reason "${reason.id}" does not say what the nurse is told and what is recorded`);
+}
+for(const id of ['emergency-services-first','routing-not-triage','target-is-a-target','urgency-does-not-relax-vetting','silence-is-not-cancellation','estimate-says-when-it-does-not-know']) {
+ if(!sos.rules.some(r=>r.id===id)) throw new Error(`The emergency pathway has lost the rule "${id}". These are promises made on three platforms at once, on the screen where breaking one is dangerous.`);
+}
+/* Coverage is a claim about where a nurse can actually be sent, so it is held against the board
+   that sends them. An area on this screen that the dispatch board has never heard of is a person
+   waiting at a window. */
+const dispatchSource=read('apps/web/src/features/Dispatch.tsx');
+for(const area of sos.coverage.areas) {
+ if(!dispatchSource.includes(`name: '${area}'`)) throw new Error(`Thuso SOS claims to cover ${area}, which is not a zone on the dispatch board. A coverage list drawn optimistically is a person waiting at a window.`);
+}
+/* The order of the page is the feature: emergency services above anything MyThuso sells. Each of
+   the three screens is read for where it renders the emergency block and where it first renders the
+   price of the visit, and the first must come before the second. */
+const sosScreens = {
+ web: ['apps/web/src/features/Sos.tsx','<EmergencyFirst/>','money(visitPrice)'],
+ ios: ['apps/ios/MyThuso/Features/SosView.swift','emergencyFirst','Sos.visitPrice'],
+ android: ['apps/android/app/src/main/java/za/co/mythuso/ui/SosScreens.kt','EmergencyFirst()','sosVisitPrice']
+};
+for(const [platform,[file,first,sells]] of Object.entries(sosScreens)) {
+ const source=read(file);
+ const emergencyAt=source.indexOf(first), sellsAt=source.indexOf(sells);
+ if(emergencyAt<0) throw new Error(`The ${platform} emergency screen no longer renders the emergency block (${file})`);
+ if(sellsAt>=0&&emergencyAt>sellsAt) throw new Error(`The ${platform} emergency screen offers a MyThuso visit before it shows the ambulance number (${file}). That ordering asks a frightened person to compare the two, and some of them will choose wrong.`);
+ /* Urgency never relaxes vetting: the same gate the dispatch board asks. */
+ if(!source.includes('take-visit')) throw new Error(`The ${platform} emergency screen does not ask vetting before offering a nurse (${file}). Urgency is exactly when a shortcut is easiest to justify.`);
+ /* Nothing dials. No telephony reaches these files, on any platform. */
+ if(/tel:|UIApplication\.shared\.open|ACTION_DIAL|ACTION_CALL|CallKit/.test(source)) throw new Error(`The ${platform} emergency screen has grown a way to place a call (${file}). Nothing in this preview dials, and a screen that half-dials is worse than one that prints the number.`);
+}
+
+
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells.`);

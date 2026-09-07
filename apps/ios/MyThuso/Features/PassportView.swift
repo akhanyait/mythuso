@@ -246,6 +246,8 @@ struct RoadmapView: View {
                            promise about it. */
                         if feature == "Thuso Kit" {
                             NavigationLink { ThusoKitView() } label: { MenuRow(title: feature, subtitle: "Built — pairing, calibration and provenance", symbol: "sensor.tag.radiowave.forward") }.buttonStyle(.plain)
+                        } else if feature == "Thuso SOS" {
+                            NavigationLink { SosView() } label: { MenuRow(title: feature, subtitle: "Emergency services first, then what MyThuso can actually do", symbol: "cross.case") }.buttonStyle(.plain)
                         } else {
                             NavigationLink { FeatureDetail(title: feature) } label: { MenuRow(title: feature, subtitle: "", symbol: "square.grid.2x2") }.buttonStyle(.plain)
                         }
@@ -341,6 +343,7 @@ struct WorkspaceView: View {
                     NavigationLink("Visit assessment") { VisitAssessmentView() }
                     NavigationLink("Thuso Kit · pair an instrument") { ThusoKitView() }
                     NavigationLink("Earnings & payouts") { EarningsView() }
+                    NavigationLink("Thuso SOS · urgent care") { SosView() }
                     NavigationLink("Locum shifts") { FeatureDetail(title: "Locum shifts") }
                     NavigationLink("Academy") { FeatureDetail(title: "Academy") }
                 }

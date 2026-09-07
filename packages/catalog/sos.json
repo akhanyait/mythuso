@@ -1,0 +1,139 @@
+{
+ "_note": "The emergency pathway. Read by the web app; generated into Swift and Kotlin by scripts/emit-sos.mjs. This is the one screen in MyThuso where being wrong is dangerous rather than inconvenient, so three things are held here as data rather than as code on three platforms: the real South African emergency numbers, the conditions that end the questions and send somebody to those numbers, and the sentences that say what MyThuso will not do. Not one number about money or minutes is written down here — the price of a Thuso SOS visit and its under-45-minute target come from packages/catalog/services.json, and Thuso Alert's monthly price from packages/catalog/business-model.json. Where a sentence needs the target it writes {target} and the sum is filled in from the catalogue, so the promise on the screen and the service being sold cannot drift apart. Dates are offsets in days from today so the preview never goes stale.",
+
+ "emergency": {
+  "headline": "If this is a life threat, call an ambulance now",
+  "lead": "Do not wait for MyThuso. Do not finish this screen. Call the number below, then come back if you still need us.",
+  "notAnAmbulance": "MyThuso is not an ambulance service, and nothing on this screen should be mistaken for one. We send a registered nurse to a house. We do not carry anybody to hospital, we do not have paramedics, sirens or blue lights, and we cannot reach you faster than an ambulance can.",
+  "previewNote": "Nothing here dials. This is a design preview: pressing a button on this screen does not call 10177, 112, 10111, a nurse, a doctor or anybody else. The numbers are printed so that a person reading this can dial them themselves, from their own phone.",
+  "whyFirst": "Emergency services are at the top of this screen because that is the order the decision has to be taken in. A screen that offers its own service first, and the ambulance underneath, is asking a frightened person to compare them — and some of them will choose wrong.",
+  "numbers": [
+   { "id": "ambulance", "number": "10177", "name": "Ambulance", "detail": "The national emergency ambulance number in South Africa. It works from a landline and from a mobile.", "whenToUse": "Anyone who is unconscious, struggling to breathe, bleeding badly, having a seizure, showing signs of a stroke, or in severe pain that came on suddenly." },
+   { "id": "mobile", "number": "112", "name": "Emergency, from a mobile", "detail": "Reaches an emergency call centre from any mobile phone on any South African network, and the operator routes you to the ambulance, the fire service or the police.", "whenToUse": "From a mobile phone, or when you do not know which service you need. Try this if 10177 does not answer." },
+   { "id": "police", "number": "10111", "name": "Police", "detail": "The South African Police Service emergency number.", "whenToUse": "A crime in progress, a violent situation, or a road accident where the police are needed as well as an ambulance. Ask for an ambulance too — do not choose between them." }
+  ]
+ },
+
+ "redFlags": {
+  "prompt": "Is any of this happening right now?",
+  "help": "Tick anything that is true. One tick is enough. We will stop asking and show you the ambulance number.",
+  "noneLabel": "None of these",
+  "endsTheQuestions": "One of these ends the questions. There is no second screen, no follow-up and no severity slider, because a question asked after this point would only be there to talk somebody out of an ambulance.",
+  "conditions": [
+   { "id": "chest-pain", "name": "Chest pain or pressure", "detail": "Pain, tightness or crushing in the chest, or pain spreading to an arm, the jaw or the back — at any age, in anyone." },
+   { "id": "breathing", "name": "Difficulty breathing", "detail": "Fighting for breath, gasping, unable to finish a sentence, blue or grey lips, or noisy breathing that has come on quickly." },
+   { "id": "bleeding", "name": "Bleeding that will not stop", "detail": "Bleeding that keeps soaking through cloth, spurting blood, or bleeding after an injury that pressure is not controlling." },
+   { "id": "unresponsive", "name": "Not responding", "detail": "Cannot be woken, is not answering, has collapsed, or is confused in a way that is new." },
+   { "id": "stroke", "name": "Signs of a stroke", "detail": "A face that has dropped on one side, an arm that cannot be held up, speech that has become slurred or muddled — even if it has passed. Time is the whole of the treatment." },
+   { "id": "seizure", "name": "A fit or seizure", "detail": "Shaking or jerking that will not stop, a first-ever fit, or a person who has not woken up properly afterwards." },
+   { "id": "infant", "name": "A baby under two who is floppy or not feeding", "detail": "A small child who has gone limp, will not feed, cannot be roused, is grunting, or has a rash that does not fade when a glass is pressed on it." },
+   { "id": "obstetric", "name": "A pregnancy emergency", "detail": "Heavy bleeding, a baby coming, severe pain, a fit in pregnancy, or a bad headache with blurred vision in the second half of pregnancy." }
+  ]
+ },
+
+ "routing": {
+  "isNotTriage": "These questions are routing, not triage. MyThuso does not decide who is sick. Nothing here scores you, grades you or works out how urgent you are — the questions exist only to decide which door to point you at, and every answer that could be a life threat points at the same door: emergency services.",
+  "noAlgorithm": "There is no algorithm behind this screen. A tick is not weighed against another tick, nothing is added up, and no answer makes an ambulance less appropriate than it was before you answered.",
+  "questions": [
+   { "id": "q-danger", "prompt": "Is any of this happening right now?", "help": "This is the only question that matters. Everything after it assumes the answer was no.", "kind": "red-flags" },
+   { "id": "q-where", "prompt": "Where is the person now?", "help": "Only so we know whether a nurse can reach them. Nothing is read from your phone and no location permission is asked for.", "kind": "area" },
+   { "id": "q-reach", "prompt": "Is there a phone we can call back on?", "help": "A nurse rings before leaving, so somebody has to be able to answer. If nobody can, we say so rather than sending a nurse to a door nobody opens.", "kind": "callback" }
+  ]
+ },
+
+ "outcomes": [
+  { "id": "emergency-services", "name": "Emergency services", "headline": "Call an ambulance now", "detail": "What you have described could be a life threat. Stop here and call. MyThuso cannot help faster than this, and pretending otherwise would cost time that is the whole treatment.", "offersVisit": false },
+  { "id": "urgent-visit", "name": "Thuso SOS urgent visit", "headline": "A nurse can be asked to come", "detail": "A registered nurse comes to the house and a doctor joins on video. This is for something that needs seeing today and is not a life threat — and if anything changes while you wait, call an ambulance without waiting for us.", "offersVisit": true },
+  { "id": "cannot-help", "name": "We cannot help with this one", "headline": "MyThuso cannot reach this", "detail": "Something in the answers means a nurse cannot be sent. The screen says which, and what to do instead. It does not offer a booking it cannot keep.", "offersVisit": false }
+ ],
+
+ "target": {
+  "title": "Under {target} minutes is a target, not a promise",
+  "statement": "The {target} minutes is what MyThuso aims for, inside the areas listed below, during the hours listed below. It is a target the operation is run against and reported on. It is not a guarantee, and this screen will never tell you a nurse is {target} minutes away because the service is called that.",
+  "whenItCannotBeMet": "When it cannot be met you are told while you are still deciding, not afterwards. If no cleared nurse can reach the address inside the target, the request is not accepted quietly and slowly — it is refused on this screen, with the ambulance number and the nearest alternative beside the refusal.",
+  "arrivalUnknown": "An arrival time this app cannot work out says that it does not know. It never shows the target in place of an estimate, and it never shows zero. A number on this screen is a number somebody will plan around.",
+  "estimateIsNotTheTarget": "The arrival estimate and the {target}-minute target are two different things and are never shown as one. The target is what the service promises. The estimate is what this app can measure right now, with what it measured it from written next to it."
+ },
+
+ "coverage": {
+  "statement": "Thuso SOS covers part of northern Johannesburg and Soweto, and nothing else. Outside these areas there is no nurse to send, whatever the app looks like it is offering.",
+  "areas": ["Randburg", "Rosebank", "Parktown", "Melville", "Soweto"],
+  "hours": { "opensAt": "06:00", "closesAt": "22:00", "days": "Every day", "note": "Outside these hours there is no urgent-visit rota. Emergency services do not keep office hours; MyThuso does, and saying so is the only honest way to run a button like this." },
+  "honestNote": "A coverage map that is drawn optimistically is a person waiting at a window. These five areas are the ones the dispatch board can actually reach, and the list on this screen is the same list."
+ },
+
+ "standDown": {
+  "title": "Standing it down",
+  "statement": "A request can be stopped by the person who made it, at any point, without explaining themselves. Pressing the button by mistake is not a fault and is not charged for.",
+  "reasons": [
+   { "id": "pressed-by-accident", "label": "I pressed it by mistake", "nurseIsTold": "Stood down — pressed by mistake. Do not travel.", "recorded": "The time it was raised, the time it was stood down, and that it was a mistake. Nothing about anybody's health, because nothing about anybody's health was collected." },
+   { "id": "situation-resolved", "label": "It has settled — we do not need anyone", "nurseIsTold": "Stood down — the caller says the situation has settled. Do not travel.", "recorded": "The time, the reason in the caller's own words, and nothing else. A stand-down is not an opportunity to take a history." },
+   { "id": "gone-to-hospital", "label": "We are going to hospital ourselves", "nurseIsTold": "Stood down — the patient is on their way to hospital. Do not travel.", "recorded": "The time and the reason, so that a nurse already driving is not left wondering, and so nobody rings the house afterwards to sell anything." }
+  ],
+  "noAnswerRule": "Silence is not a cancellation. If nobody answers the callback, the request is not quietly dropped: the nurse continues, the Control Tower keeps trying, and an unanswered phone at an address where somebody asked for help is treated as a reason to worry rather than a reason to stop.",
+  "chargeRule": "A stood-down request costs nothing. A button that might charge you is a button that gets pressed too late.",
+  "nurseNote": "The nurse is told that it is stood down and told not to travel. She is not told why in clinical terms, because a cancelled visit is not a consultation and there is nothing here she needs to know."
+ },
+
+ "failures": [
+  { "id": "no-signal", "name": "No signal", "what": "The phone cannot reach MyThuso. The button may look as though it worked; it did not.", "instead": "Dial 10177 or 112 by voice — a call gets through on a network too weak for data, and it does not need airtime. If there is no signal at all, send somebody to the nearest neighbour with a phone or to the nearest clinic." },
+  { "id": "no-nurse", "name": "No nurse in range", "what": "Every cleared nurse in the area is on a visit, off duty, or too far to arrive inside the target.", "instead": "This is not a queue and you are not on a waiting list. Call 10177 or 112 if it cannot wait, or a private ambulance service if you have cover with one. Your nearest clinic or hospital casualty is open now." },
+  { "id": "outside-hours", "name": "Outside the urgent-visit hours", "what": "There is no urgent-visit rota running at this time of night.", "instead": "Emergency services run all night: 10177, or 112 from a mobile. A hospital casualty department is open. A routine MyThuso visit can be booked for the morning." },
+  { "id": "outside-coverage", "name": "Outside the coverage area", "what": "The address is outside the areas MyThuso can reach. There is no nurse to send, and there is no version of this request that succeeds.", "instead": "10177 or 112 reaches an ambulance anywhere in South Africa. Your nearest clinic or district hospital is the right place for anything that is not an emergency." },
+  { "id": "no-callback", "name": "Nobody can answer a phone", "what": "A nurse rings the address before travelling. With no phone that will be answered, there is nobody to confirm the address to and nobody to let her in.", "instead": "If the person cannot be left alone with a phone, that is a reason to call an ambulance rather than a nurse: 10177, or 112 from a mobile." },
+  { "id": "vetting", "name": "The nearest nurse is not cleared", "what": "The nearest nurse has a check that has lapsed. Urgency does not lift it, and there is no override on this screen or anywhere else.", "instead": "The next cleared nurse is offered instead, with her own arrival estimate. If there is no cleared nurse in range, this is a no-nurse-in-range refusal and is shown as one." }
+ ],
+
+ "alert": {
+  "name": "Thuso Alert",
+  "what": "A wearable button for somebody who lives alone. Pressing it raises the same request this screen raises, without a phone to unlock or an app to find.",
+  "phaseNote": "Not built. Thuso Alert is a phase-four subscription in the proposal and there is no device, no rota and no ambulance partner contracted. It is described here so that what it would and would not do is settled before anyone is charged for it.",
+  "honesty": [
+   { "id": "battery", "sentence": "A button with a flat battery is a button that does nothing. It is checked by the device and said out loud on the phone of whoever is named as the family contact — not left as a small icon on a screen nobody is looking at." },
+   { "id": "signal", "sentence": "A button out of signal is a button that does nothing. It cannot queue an emergency for later, and it will say so rather than showing a tick." },
+   { "id": "unpressed", "sentence": "A fall that nobody feels is a fall nobody presses a button for. Thuso Alert does not know that somebody is in trouble; it only knows that somebody pressed a button." },
+   { "id": "ambulance-partner", "sentence": "The ambulance partner is a separate company with its own cover, its own areas and its own response times. MyThuso passing a request to them is not MyThuso arriving, and a subscription here is not a subscription to them." }
+  ],
+  "notCover": "A monthly subscription is not medical cover and not an insurance policy. It does not pay for an ambulance, a hospital or a doctor, and it does not put anybody at the front of a queue."
+ },
+
+ "record": {
+  "title": "What is written down",
+  "statement": "An emergency request is a record and is treated as one. What is kept is deliberately thin.",
+  "kept": [
+   "The time it was raised, and by whom.",
+   "Which door it was routed to — emergency services, an urgent visit, or a refusal, and which refusal.",
+   "Whether any of the eight conditions was ticked, as a yes or a no. Which one is kept only when a nurse is actually sent, because it is what she needs to know before she walks in.",
+   "The time and reason it was stood down, if it was."
+  ],
+  "notKept": [
+   "No clinical history. A routing question is not a consultation and the answers are not a symptom record.",
+   "No location taken from the device. The area is the one the person chose from a list.",
+   "No recording of any call, because no call is made."
+  ]
+ },
+
+ "rules": [
+  { "id": "emergency-services-first", "title": "Emergency services come first",
+    "sentence": "The ambulance number is at the top of this screen, above everything MyThuso sells, and it stays there whatever you answer. MyThuso is not an ambulance service and will not be arranged to look like the faster option." },
+  { "id": "routing-not-triage", "title": "This is routing, not triage",
+    "sentence": "MyThuso does not decide who is sick. These questions only decide which door to point you at, and any answer that could be a life threat points at emergency services and stops asking." },
+  { "id": "target-is-a-target", "title": "A target is not a guarantee",
+    "sentence": "The under-{target}-minute figure is what the service aims for inside its areas and hours. When it cannot be met you are told before you commit, not after you have waited." },
+  { "id": "urgency-does-not-relax-vetting", "title": "Urgency does not relax vetting",
+    "sentence": "A nurse sent to an emergency is a nurse whose registration, police clearance and indemnity are all current. There is no override for a lapsed check, on this screen or anywhere else, because the moment somebody is frightened is the moment a shortcut is easiest to justify and worst to take." },
+  { "id": "silence-is-not-cancellation", "title": "An unanswered phone is not a cancellation",
+    "sentence": "If nobody answers the callback the request stays open, the nurse keeps going and somebody keeps trying the number. A dropped request is the one failure a panic button cannot be allowed to have." },
+  { "id": "estimate-says-when-it-does-not-know", "title": "An arrival time that does not know says so",
+    "sentence": "When there is nothing to measure an arrival from, this screen says it is estimating and says why. It does not show the target instead, it does not show a dash, and it never shows zero." }
+ ],
+
+ "refusals": [
+  { "id": "not-an-ambulance", "sentence": "MyThuso will not present itself as an ambulance service. No siren, no blue light, no paramedic, and nobody is carried to hospital. A nurse arriving at a door is a nurse arriving at a door." },
+  { "id": "no-triage-algorithm", "sentence": "MyThuso will not put a scoring algorithm between a frightened person and an ambulance. Software that decides how sick somebody is, is software that will one day decide wrongly and quietly." },
+  { "id": "no-clinical-advice-before-arrival", "sentence": "Nobody on this screen will tell you what to do for the person in front of you. What to give, what to withhold, whether to move them — those are questions for the emergency call taker on 10177, who is trained to answer them and who stays on the line." },
+  { "id": "no-payment-before-help", "sentence": "Nobody is asked for a card, a plan or an account before an emergency number is shown. A payment screen in front of an ambulance number is indefensible at any price." },
+  { "id": "no-silent-location", "sentence": "MyThuso will not read your location to make this screen faster. The area is chosen from a list, by you. A panic button that quietly tracks a person is a tracker with a panic button on it." },
+  { "id": "no-override-for-urgency", "sentence": "There is no button here that dispatches a nurse whose clearance has lapsed. Not for an emergency, not for a Control Tower operator, not for anybody — because the exception would become the practice." }
+ ]
+}
