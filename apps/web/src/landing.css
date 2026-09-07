@@ -1,239 +1,254 @@
 /* The public landing page's own stylesheet.
  *
  * It used to live in styles.css, which meant every patient carrying the app on a phone downloaded
- * the marketing page's hero animations to look at their blood pressure. Split out here: landing.tsx
- * loads the shared system and then this; main.tsx loads only the shared system. Both still derive
- * every colour and radius from tokens.generated.css — this file introduces no new palette. */
+ * the marketing page's animations to look at their blood pressure. Split out here: landing.tsx
+ * loads the shared system and then this; main.tsx loads only the shared system. The buttons, cards,
+ * pills, icon tiles and the focus indicator all come from there — what follows is the editorial
+ * layer on top, and nothing in it re-implements a primitive that already exists.
+ *
+ * There is not one literal colour below. Every value is a token from tokens.generated.css, or a
+ * color-mix() of two of them, so the palette cannot be nudged out of the brand from this file. The
+ * two accents are held to their measured contrast: --teal and --mango fill shapes and carry text
+ * only on --indigo-deep (5.04:1 and 7.05:1), never on a light ground, where --teal-ink and
+ * --mango-ink are the readable versions.
+ *
+ * Motion: a marketing page can afford more of it than the app can, because nobody here is
+ * mid-observation. What it must never do is animate anything a reader did not ask for, hide a
+ * disclosure, or leave a section stuck invisible. So the whole of it is three things — sections
+ * arriving as you reach them, a bar showing how far down you are, and state changes you caused —
+ * every one of them transform or opacity only, and the last block in this file switches all of it
+ * off wholesale for prefers-reduced-motion. */
 
-/* ---- Public landing page ----
-   A marketing page can afford motion the app cannot: nobody is mid-observation here. What it can
-   never afford is motion a reader did not want, or a layout that hides a disclosure. Everything
-   below animates transform and opacity only, is released once as you reach it, and is switched off
-   wholesale by prefers-reduced-motion at the end of this block. */
 html:has(.landing){scroll-behavior:smooth}
 .landing{
  background:var(--surface);min-height:100dvh;overflow-x:clip;
- --wrap:1180px;--gutter:clamp(20px,4.4vw,32px);--pad:max(var(--gutter),calc((100vw - var(--wrap)) / 2));
+ --wrap:1200px;--gutter:clamp(20px,4.4vw,40px);--pad:max(var(--gutter),calc((100vw - var(--wrap)) / 2));
  --ease:cubic-bezier(.22,.68,0,1);
+ /* Two greys mixed rather than added to the palette: a hairline that reads on the dark grounds,
+    and the quiet text that sits on them. */
+ --on-dark:color-mix(in srgb,var(--surface) 16%,transparent);
+ --on-dark-text:color-mix(in srgb,var(--surface) 82%,var(--indigo));
 }
-.landing section[id]{scroll-margin-top:92px}
-.landing h1,.landing h2,.landing-strip strong,.landing-plans strong,.landing-ticker b{font-family:var(--font-display);font-weight:600;font-optical-sizing:auto}
-
-/* Reveal on approach. The rule that hides things is scoped to the data-motion flag that
-   apps/web/src/lib/motion.ts sets, so a page whose script never runs is fully visible, not blank. */
-[data-motion=on] .landing [data-reveal]{opacity:0;transform:translate3d(0,24px,0);transition:opacity .72s var(--ease),transform .72s var(--ease);transition-delay:calc(var(--i,0) * 90ms)}
-[data-motion=on] .landing [data-reveal=shown]{opacity:1;transform:none}
-@keyframes landing-enter{from{opacity:0;transform:translate3d(0,22px,0)}to{opacity:1;transform:none}}
-@keyframes landing-word{from{transform:translate3d(0,108%,0)}to{transform:none}}
-@keyframes landing-float{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-13px,0)}}
-@keyframes landing-blob{0%,100%{transform:scale(1) translate(0,0)}50%{transform:scale(1.06) translate(0,-12px)}}
-@keyframes landing-ticker{to{transform:translateX(-50%)}}
-@keyframes aurora-a{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(9%,-6%) scale(1.18)}}
-@keyframes aurora-b{0%,100%{transform:translate(0,0) scale(1.05)}50%{transform:translate(-11%,7%) scale(.9)}}
-@keyframes aurora-c{0%,100%{transform:translate(0,0) scale(.95)}50%{transform:translate(6%,9%) scale(1.14)}}
-.landing [data-enter]{animation:landing-enter .8s var(--ease) both}
-.landing [data-enter="1"]{animation-delay:.04s}.landing [data-enter="2"]{animation-delay:.1s}
-.landing [data-enter="3"]{animation-delay:.17s}.landing [data-enter="4"]{animation-delay:.24s}
-.landing [data-enter="5"]{animation-delay:.31s}.landing [data-enter="6"]{animation-delay:.2s}
-.landing [data-enter="7"]{animation-delay:.45s}.landing [data-enter="8"]{animation-delay:.5s}
-.landing [data-enter="9"]{animation-delay:.58s}.landing [data-enter="10"]{animation-delay:.66s}
-
-.landing-notice{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--slate);color:#99F6E4;font-size:13px;padding:11px var(--pad);line-height:1.5;letter-spacing:-.01em}
-.landing-notice strong{color:#fff}
-.landing-notice .status-dot{box-shadow:0 0 0 0 #14B8A666;animation:pulse-dot 2.6s ease-out infinite}
-@keyframes pulse-dot{0%{box-shadow:0 0 0 0 #14B8A680}70%{box-shadow:0 0 0 7px #14B8A600}100%{box-shadow:0 0 0 0 #14B8A600}}
-
-.landing-nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px;padding:14px var(--pad);background:#fffffff2;backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--line);transition:padding .3s var(--ease),box-shadow .3s,background .3s}
-.landing-nav.is-condensed{padding-block:8px;box-shadow:0 8px 28px #0F172A0f}
-.landing-brand img{height:34px;width:auto;display:block;transition:height .3s var(--ease)}
-.landing-nav.is-condensed .landing-brand img{height:29px}
-.landing-progress{position:absolute;left:0;right:0;bottom:-1px;height:2px;transform:scaleX(var(--scroll,0));transform-origin:0 50%;background:linear-gradient(90deg,var(--indigo),var(--mango));will-change:transform}
+.landing section[id]{scroll-margin-top:88px}
 .landing a{text-decoration:none}
-.landing-nav nav{display:none;flex-direction:row;align-items:center;gap:4px;margin-left:auto}
-.landing-nav nav a{position:relative;font-size:13px;font-weight:550;color:var(--body);padding:9px 12px;border-radius:999px;transition:color .2s,background .2s}
+.landing h1,.landing h2{font-family:var(--font-display);font-weight:600;letter-spacing:-.03em;color:var(--ink);text-wrap:balance}
+.landing h1{font-size:clamp(36px,5.2vw,64px);line-height:1.04}
+.landing h2{font-size:clamp(28px,3.4vw,42px);line-height:1.1}
+.landing h3{font-size:18px;font-weight:600;letter-spacing:-.015em;color:var(--ink);line-height:1.35}
+
+/* Sections arrive as you reach them. The rule that hides anything is scoped to the data-motion flag
+   that apps/web/src/lib/motion.ts sets, so a page whose script never runs is a page that is simply
+   already visible — never a blank one waiting for an observer that will not fire. */
+[data-motion=on] .landing [data-reveal]{opacity:0;transform:translate3d(0,20px,0);transition:opacity .6s var(--ease),transform .6s var(--ease);transition-delay:calc(var(--i,0) * 70ms)}
+[data-motion=on] .landing [data-reveal=shown]{opacity:1;transform:none}
+
+/* ---- The three disclosures ----
+   The banner, the caption under each photograph and the footer note. None of them is decoration and
+   none of them may be shrunk to tidy a layout, so they are styled here first, on purpose. */
+.landing-notice{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--ink);color:var(--on-dark-text);font-size:13px;line-height:1.55;padding:12px var(--pad)}
+.landing-notice strong{color:var(--surface);font-weight:600}
+/* Mango, not the teal the shared dot ships with. A teal dot is the app's "live" indicator, and this
+   is the one statement on the page that says the opposite. Mango is the attention colour, it is the
+   only place mango appears here, and on --ink it measures 10.02:1. */
+.landing-notice .status-dot{background:var(--mango);width:8px;height:8px}
+.landing-portrait figcaption{margin-top:12px;font-size:13px;line-height:1.5;color:var(--faint)}
+.landing-footer-note strong{color:var(--surface)}
+
+/* ---- Navigation ---- */
+.landing-nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px;padding:14px var(--pad);background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);transition:padding .3s var(--ease)}
+.landing-nav.is-condensed{padding-block:9px}
+/* 44 square is the floor packages/design-tokens/tokens.json sets, and none of the exemptions in it
+   covers a marketing nav. So the brand link, the section links and the menu button are all given
+   the height rather than the height they happened to inherit from a 32px logo and a 14px label. */
+.landing-brand{display:flex;align-items:center;min-height:44px}
+.landing-brand img{height:32px;width:auto;display:block}
+.landing-progress{position:absolute;left:0;right:0;bottom:-1px;height:2px;transform:scaleX(var(--scroll,0));transform-origin:0 50%;background:var(--teal);will-change:transform}
+/* flex-direction is stated rather than left to the default: the shared stylesheet gives the app's
+   sidebar a bare `nav{flex-direction:column}` from tablet up, and that rule reaches this one too. */
+.landing-nav nav{display:none;flex-direction:row;align-items:center;gap:2px;margin-left:auto}
+.landing-nav nav a{display:inline-flex;align-items:center;min-height:44px;font-size:14px;font-weight:500;color:var(--body);padding:10px 13px;border-radius:var(--r-pill);transition:color .18s,background .18s}
 .landing-nav nav a:hover{color:var(--indigo-deep);background:var(--indigo-soft)}
-.landing-cta{display:none;min-height:44px;padding:11px 20px;border-radius:var(--r-control);font-size:13px;box-shadow:0 8px 20px #1E3A8A2e}
-.landing-menu{margin-left:auto;box-shadow:none;background:var(--canvas)}
-.landing-nav nav.is-open{display:flex;flex-direction:column;position:absolute;left:0;right:0;top:100%;gap:2px;background:var(--surface);border-bottom:1px solid var(--line);padding:8px var(--pad) 18px;margin:0}
-.landing-nav nav.is-open a{padding:14px 0;border-radius:0;border-bottom:1px solid var(--line);font-size:15px}
+.landing-cta{display:none;min-height:44px;padding:11px 18px;font-size:14px}
+.landing-menu{margin-left:auto;width:44px;height:44px;box-shadow:none;background:var(--canvas)}
+.landing-nav nav.is-open{display:flex;flex-direction:column;align-items:stretch;position:absolute;left:0;right:0;top:100%;gap:0;background:var(--surface);border-bottom:1px solid var(--line);padding:4px var(--pad) 16px;margin:0}
+.landing-nav nav.is-open a{padding:15px 0;border-radius:0;border-bottom:1px solid var(--line);font-size:16px;min-height:44px;display:flex;align-items:center}
 .landing-nav nav.is-open a:hover{background:none}
 
-.landing-aurora{position:absolute;inset:-18% -12%;z-index:0;filter:blur(56px);opacity:.75;pointer-events:none;contain:strict}
-.landing-aurora i{position:absolute;display:block;border-radius:50%;mix-blend-mode:multiply;will-change:transform}
-.landing-aurora i:nth-child(1){left:-6%;top:-14%;width:52%;height:88%;background:#5EEAD4;animation:aurora-a 24s ease-in-out infinite}
-.landing-aurora i:nth-child(2){right:-8%;top:6%;width:46%;height:80%;background:#99F6E4;animation:aurora-b 31s ease-in-out infinite}
-.landing-aurora i:nth-child(3){left:32%;bottom:-28%;width:44%;height:70%;background:#5EEAD4;animation:aurora-c 27s ease-in-out infinite}
-.landing-aurora.dark{opacity:.5;filter:blur(64px)}
-.landing-aurora.dark i{mix-blend-mode:screen}
-.landing-aurora.dark i:nth-child(1){background:#0F766E}
-.landing-aurora.dark i:nth-child(2){background:#475569}
-.landing-aurora.dark i:nth-child(3){background:#14B8A6}
+/* ---- Hero ----
+   Indigo carries the page, so it carries the front door. White on --indigo-deep is 12.56:1 and the
+   teal kicker on it is 5.04:1 — both measured, neither assumed. */
+.landing-hero{position:relative;overflow:clip;background:var(--indigo-deep);color:var(--surface);padding:clamp(44px,6vw,84px) var(--pad) clamp(44px,6vw,84px);display:grid;gap:clamp(36px,5vw,64px);align-items:center}
+/* Flat, not a gradient. A radial wash across this panel lifted the ground under the kicker to
+   #1d4d8e at its brightest, where --teal measures 3.37:1 and the caption 4.07:1 — both under AA on
+   text that had been signed off against --indigo-deep. A ground that changes colour behind the
+   words makes every contrast figure in this file a guess about position, so the panel is one
+   measured colour and the portrait frame does the lifting instead. */
+.landing-hero>*{position:relative;z-index:1}
+.landing-kicker{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin:0 0 20px}
+.landing-hero h1{color:var(--surface);margin:0}
+.landing-hero-lede{margin:22px 0 0;max-width:46ch;font-size:16px;line-height:1.65;color:var(--on-dark-text)}
+.landing-actions{display:flex;align-items:center;gap:10px 24px;flex-wrap:wrap;margin:32px 0 0}
+.landing-actions .primary{background:var(--surface);color:var(--indigo-deep);min-height:52px;padding:15px 24px;font-size:15px}
+.landing-actions .primary:hover{background:var(--accent-soft)}
+.landing-quiet{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 4px;font-size:15px;font-weight:600;color:var(--surface);border-bottom:1px solid var(--teal);transition:border-color .18s}
+.landing-quiet:hover{border-bottom-color:var(--surface)}
+.landing-facts{list-style:none;display:flex;flex-wrap:wrap;gap:12px 28px;padding:32px 0 0;margin:32px 0 0;border-top:1px solid var(--on-dark)}
+.landing-facts li{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:500;color:var(--on-dark-text)}
+.landing-facts svg{color:var(--teal)}
 
-.landing-hero{position:relative;overflow:clip;padding:clamp(30px,6vw,60px) var(--pad) 0;background:linear-gradient(168deg,#99F6E4,#e9f5f0 46%,#f4faf8)}
-.landing-hero>.hero-texture{position:absolute;inset:0;opacity:.7}
-.landing-hero-copy{position:relative;z-index:2;max-width:660px}
-.landing-hero .eyebrow{display:inline-flex;align-items:center;gap:7px;background:#ffffffc4;border:1px solid #ffffff;border-radius:999px;padding:7px 14px 7px 11px;margin-bottom:18px;color:var(--indigo-deep);box-shadow:0 2px 10px #0F172A0f}
-.landing-hero h1{font-size:clamp(44px,8.4vw,86px);line-height:.98;letter-spacing:-.035em;color:var(--slate);margin:0 0 20px}
-.headline-line{display:block;overflow:hidden;padding-bottom:.045em}
-.headline-word{display:inline-block;white-space:pre}
-.landing .headline-word[data-enter]{animation-name:landing-word;animation-duration:.95s}
-.landing-hero p{font-size:clamp(15px,1.5vw,17.5px);color:#475569;max-width:31em;line-height:1.6}
-.landing-actions{display:flex;gap:12px;flex-wrap:wrap;margin:26px 0 26px}
-.landing-actions .primary,.landing-actions .secondary{min-height:54px;border-radius:var(--r-control);padding:15px 26px;font-size:15px}
-.landing .primary{box-shadow:0 10px 24px #1E3A8A2e;transition:translate .25s var(--ease),box-shadow .25s,background .2s}
-.landing .primary:hover{translate:0 -2px;box-shadow:0 16px 32px #1E3A8A40}
-.landing .primary svg,.landing .landing-cta svg{transition:translate .25s var(--ease)}
-.landing .primary:hover svg{translate:4px 0}
-.landing .secondary{transition:translate .25s var(--ease),border-color .2s,background .2s}
-.landing .secondary:hover{translate:0 -2px}
-.landing-trust{list-style:none;display:flex;gap:10px 22px;padding:0 0 30px;margin:0;flex-wrap:wrap}
-.landing-trust li{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:#475569}
-.landing-trust li span{width:34px;height:34px;border-radius:50%;background:#fffffff2;display:grid;place-items:center;color:var(--indigo);box-shadow:0 2px 8px #0F172A10}
-.landing-hero-stage{position:relative;z-index:1;display:grid;place-items:end center;min-width:0}
-.landing-hero-ring{position:absolute;bottom:6%;left:50%;translate:-50% 0;width:min(94%,420px);aspect-ratio:1;border-radius:50%;border:1px solid #ffffffcc;background:radial-gradient(circle at 46% 38%,#ffffff8c,#ffffff00 66%);animation:landing-blob 18s ease-in-out infinite}
-.landing-hero-parallax{transform:translate3d(0,var(--parallax,0),0);will-change:transform;min-width:0}
-.landing-hero-figure{display:block;width:min(100%,360px);margin:16px auto -1px;filter:drop-shadow(0 22px 40px #0F172A2b);animation:landing-float 9s ease-in-out infinite}
+/* A photograph belongs in a frame, not floating on a blob with a drop shadow. The frame is a flat
+   panel, the portrait sits in it, and the caption underneath says what it is. */
+.landing-portrait{margin:0;min-width:0}
+.landing-portrait-frame{position:relative;overflow:hidden;border-radius:var(--r-card);background:color-mix(in srgb,var(--surface) 10%,transparent);border:1px solid var(--on-dark);aspect-ratio:4 / 5;display:grid;align-items:end;justify-items:center}
+.landing-portrait-frame img{display:block;width:100%;height:100%;object-fit:contain;object-position:bottom center}
+.landing-portrait-frame.soft{background:var(--indigo-soft);border-color:var(--line)}
+.landing-hero .landing-portrait figcaption{color:var(--on-dark-text)}
 
-.landing-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 0;background:var(--slate);padding:clamp(32px,4.6vw,52px) var(--pad);position:relative;overflow:clip}
-.landing-strip>div{padding-right:clamp(14px,2.4vw,34px)}
-.landing-strip>div+div{padding-left:clamp(14px,2.4vw,34px);border-left:1px solid #ffffff1f}
-.landing-strip>div:last-child{padding-right:0}
-.landing-strip strong{display:block;font-size:clamp(32px,4.4vw,50px);line-height:1;letter-spacing:-.03em;color:#fff;font-variant-numeric:tabular-nums}
-.landing-strip>div>span{display:block;max-width:21ch;font-size:13px;color:#14B8A6;line-height:1.55;margin-top:11px}
+/* ---- The figures ----
+   Four numbers, none of them typed. Set as a rule-separated band rather than four cards, because
+   they are one statement in four parts. */
+.landing-figures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 0;padding:clamp(36px,4.5vw,52px) var(--pad);background:var(--surface);border-bottom:1px solid var(--line)}
+.landing-figures>div{padding-right:clamp(16px,2.4vw,32px)}
+.landing-figures>div:nth-child(2n){padding:0 0 0 clamp(16px,2.4vw,32px);border-left:1px solid var(--line)}
+.landing-figures strong{display:block;font-family:var(--font-display);font-size:clamp(32px,3.6vw,42px);font-weight:600;line-height:1.05;letter-spacing:-.035em;color:var(--indigo);font-variant-numeric:tabular-nums}
+.landing-figures span{display:block;max-width:26ch;margin-top:12px;font-size:14px;line-height:1.6;color:var(--body)}
 
-.landing-section{padding:clamp(56px,7vw,96px) var(--pad)}
-.landing-section.tinted,.landing-split.tinted{background:var(--canvas)}
-.landing-head{max-width:660px;margin-bottom:clamp(28px,3.6vw,44px)}
-.eyebrow i{font-style:normal;color:var(--faint);margin-right:11px;letter-spacing:.14em;font-variant-numeric:tabular-nums}
-.landing-head h2,.landing-split h2{font-size:clamp(28px,4.1vw,46px);line-height:1.08;letter-spacing:-.028em;color:var(--slate)}
-.landing-head p{margin-top:15px;font-size:clamp(14.5px,1.4vw,16.5px);color:var(--body);line-height:1.65}
-.landing-steps,.landing-promises,.landing-plans,.landing-services{display:grid;gap:14px}
-.landing-steps{align-items:start}
-.landing-steps article,.landing-promises article,.landing-plans article,.landing-services article{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:24px;box-shadow:var(--shadow);transition:translate .32s var(--ease),box-shadow .32s,border-color .32s}
-.landing-steps article:hover,.landing-promises article:hover,.landing-plans article:hover,.landing-services article:hover{translate:0 -5px;box-shadow:var(--shadow-raised);border-color:var(--accent-soft)}
-.landing-services article::after,.landing-promises article::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s;background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%),#1E3A8A12,#1E3A8A00 70%)}
-.landing-services article:hover::after,.landing-promises article:hover::after{opacity:1}
-.landing-section.tinted article{background:var(--surface)}
-.landing-steps h3,.landing-promises h3,.landing-plans h3,.landing-services h3{font-size:16px;font-weight:650;letter-spacing:-.02em;margin:14px 0 8px;color:var(--ink)}
-.landing-steps p,.landing-promises p,.landing-plans p,.landing-services p{font-size:13px;color:var(--body);line-height:1.65}
-.landing-step-mark{position:absolute;right:20px;top:12px;font-family:var(--font-display);font-size:64px;font-weight:600;line-height:1;color:transparent;-webkit-text-stroke:1px #dbe7e2;letter-spacing:-.04em}
-.landing-services article{display:flex;flex-direction:column;align-items:flex-start}
-.landing-services article>div{margin-top:0}
-.landing-services strong{display:block;margin-top:auto;padding-top:15px;font-size:15px;color:var(--slate);font-variant-numeric:tabular-nums}
-.landing-services strong small{font-weight:400;color:var(--faint);font-size:13px}
-.landing-plans article{display:flex;flex-direction:column;align-items:flex-start}
-.landing-plans strong{display:block;margin:12px 0 10px;font-size:32px;line-height:1;letter-spacing:-.03em;color:var(--indigo-deep);font-variant-numeric:tabular-nums}
-.landing-plans strong small{font-family:var(--font-text);font-size:13px;font-weight:400;color:var(--body);letter-spacing:0}
-.landing-plans article.featured{background:linear-gradient(162deg,#1E3A8A,#475569);border-color:transparent;color:#dff0ea;box-shadow:0 18px 40px #1E3A8A33}
-.landing-section.tinted article.featured{background:linear-gradient(162deg,#1E3A8A,#475569)}
-.landing-plans article.featured h3,.landing-plans article.featured strong{color:#fff}
-.landing-plans article.featured p{color:#5EEAD4}
-.landing-plans article.featured strong small{color:#5EEAD4}
-.landing-plans article.featured .tile-icon{background:#ffffff21;color:#fff}
-.plan-flag{position:absolute;top:18px;right:18px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;background:var(--mango);color:#3d2c07;border-radius:999px;padding:5px 10px}
-.landing-note{margin-top:24px;font-size:13px;color:var(--faint);line-height:1.7;max-width:60em}
+/* ---- Sections and headings ---- */
+.landing-section{padding:clamp(56px,6.5vw,96px) var(--pad)}
+.landing-section.tinted{background:var(--canvas)}
+.landing-head{max-width:62ch;margin-bottom:clamp(32px,3.6vw,48px)}
+.landing-eyebrow{display:flex;align-items:baseline;gap:12px;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--indigo);margin:0 0 14px}
+.landing-eyebrow i{font-style:normal;font-weight:600;color:var(--faint);font-variant-numeric:tabular-nums;letter-spacing:.1em}
+.landing-lede{margin-top:18px;font-size:16px;line-height:1.7;color:var(--body)}
+.landing-note{margin-top:28px;max-width:70ch;font-size:14px;line-height:1.7;color:var(--faint)}
 
-.landing-ticker{overflow:hidden;border-block:1px solid var(--line);background:var(--surface);padding:15px 0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
-.landing-ticker>div{display:flex;width:max-content;animation:landing-ticker 52s linear infinite}
-.landing-ticker>div>span{display:flex;flex-shrink:0}
-.landing-ticker b{display:inline-flex;align-items:center;gap:26px;padding-right:26px;font-size:18px;color:#c2d5cf;white-space:nowrap;letter-spacing:-.02em}
-.landing-ticker i{width:5px;height:5px;border-radius:50%;background:var(--accent-soft)}
+/* ---- How it works ----
+   A numbered list, kept as one, so the reading order and the visual order are the same thing. */
+.landing-steps{list-style:none;display:grid;gap:20px;padding:0;margin:0}
+.landing-steps li{position:relative;padding-top:24px;border-top:2px solid var(--indigo)}
+.landing-step-index{display:block;font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--faint);font-variant-numeric:tabular-nums;margin-bottom:20px}
+.landing-steps .tile-icon{margin-bottom:16px}
+.landing-steps h3{margin-bottom:10px}
+.landing-steps p{font-size:14px;line-height:1.7;color:var(--body);max-width:44ch}
 
-.landing-split{display:grid;gap:30px;padding:clamp(56px,7vw,96px) var(--pad);align-items:center}
-.landing-split-art{position:relative;display:grid;place-items:center;isolation:isolate}
-.landing-split-art>i{position:absolute;z-index:-1;bottom:2%;width:min(104%,400px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 42% 34%,#99F6E4,#eaf6f1 58%,#eaf6f100 72%);animation:landing-blob 17s ease-in-out infinite}
-.landing-split-art img{width:min(100%,320px);filter:drop-shadow(0 20px 36px #0F172A24);animation:landing-float 11s ease-in-out infinite}
-.landing-split p{margin-top:15px;font-size:clamp(14.5px,1.4vw,16.5px);color:var(--body);line-height:1.65}
-.landing-list{list-style:none;padding:0;margin:24px 0 0;display:flex;flex-direction:column;gap:13px}
-.landing-list li{display:flex;gap:12px;align-items:flex-start;font-size:14px;color:var(--slate);line-height:1.55}
-.landing-list li svg{color:var(--indigo);flex-shrink:0;margin-top:1px}
-.landing-split .primary{margin-top:26px;min-height:52px;border-radius:var(--r-control);padding:14px 24px}
-.landing-quote{display:flex;gap:16px;align-items:flex-start;margin-top:26px;background:linear-gradient(140deg,var(--indigo-soft),#eef7f3);border-radius:var(--r-card);padding:clamp(24px,3vw,34px)}
-.landing-quote svg{color:var(--indigo);flex-shrink:0}
-.landing-quote p{font-family:var(--font-display);font-size:clamp(16px,2vw,22px);line-height:1.45;letter-spacing:-.015em;color:var(--slate);font-weight:500}
+/* ---- Services ----
+   Nine cells on one hairline grid at equal weight. A bento that makes one service four times the
+   size of another is a claim about the services that is not true. */
+.landing-services{list-style:none;display:grid;gap:14px;padding:0;margin:0}
+.landing-services li{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:22px;transition:border-color .25s,translate .25s var(--ease)}
+/* `translate`, not `transform`. The reveal rule above sets transform:none on a shown element with
+   three selectors of specificity, which quietly beats a two-class hover rule and leaves the lift
+   dead everywhere motion is on. The independent property composes with it instead of fighting it. */
+.landing-services li:hover{border-color:var(--indigo);translate:0 -3px}
+.landing-services .service-icon{margin-bottom:16px}
+.landing-services h3{font-size:16px;margin-bottom:8px}
+.landing-services p{font-size:14px;line-height:1.6;color:var(--body)}
+.landing-price{display:flex;align-items:baseline;gap:10px;margin-top:auto;padding-top:18px;font-variant-numeric:tabular-nums}
+.landing-services .landing-price{margin-top:18px;border-top:1px solid var(--line)}
+.landing-price strong{font-size:16px;font-weight:650;color:var(--ink)}
+.landing-price span{font-size:13px;color:var(--faint)}
 
-.landing-faq{max-width:840px}
+/* ---- Split sections ---- */
+.landing-split{display:grid;gap:clamp(36px,5vw,72px);padding:clamp(56px,6.5vw,96px) var(--pad);align-items:center}
+.landing-split h2{margin-top:0}
+.landing-points{list-style:none;padding:0;margin:28px 0 0;display:flex;flex-direction:column;gap:0}
+.landing-points li{display:flex;gap:14px;align-items:flex-start;padding:18px 0;border-top:1px solid var(--line)}
+.landing-points li:last-child{border-bottom:1px solid var(--line)}
+.landing-points svg{color:var(--indigo);margin-top:2px}
+.landing-points strong{display:block;font-size:15px;font-weight:600;color:var(--ink);margin-bottom:5px}
+.landing-points span{font-size:14px;line-height:1.65;color:var(--body)}
+.landing-secondary{margin-top:28px;min-height:48px;padding:13px 20px;font-size:14px}
+
+/* ---- Care plans ----
+   No plan is singled out. The obvious move here is to fill one card and flag it "where most people
+   start", and that is a claim about how many people use a service that has never run. Each card
+   carries the phase it arrives in instead, which is a fact the catalogue actually holds. */
+.landing-plans{list-style:none;display:grid;gap:14px;padding:0;margin:0}
+.landing-plans li{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:22px}
+.landing-plans h3{font-size:16px;margin:14px 0 0;padding-right:70px}
+.landing-plans .landing-price{margin:10px 0 14px;padding-top:0}
+.landing-plans .landing-price strong{font-family:var(--font-display);font-size:32px;font-weight:600;letter-spacing:-.03em;color:var(--indigo)}
+.landing-plans p:last-child{font-size:14px;line-height:1.65;color:var(--body)}
+.landing-phase{position:absolute;top:20px;right:20px;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+
+/* ---- Safety ----
+   The checks and the refusals are quoted out of packages/catalog/vetting.json, so they are set like
+   a schedule rather than like marketing: hairlines, tabular rhythm, no card shadows. */
+.landing-checks{list-style:none;display:grid;gap:0;padding:0;margin:0;border-top:1px solid var(--line)}
+.landing-checks li{padding:20px 0;border-bottom:1px solid var(--line)}
+.landing-checks h3{font-size:16px;margin-bottom:8px}
+.landing-checks p{font-size:14px;line-height:1.6;color:var(--body)}
+.landing-checks .landing-cadence{margin-top:8px;font-size:13px;color:var(--teal-ink);font-weight:600}
+.landing-refusals{margin-top:clamp(32px,4vw,48px);background:var(--indigo-deep);border-radius:var(--r-card);padding:clamp(24px,3.2vw,40px)}
+.landing-refusals h3{color:var(--surface);font-size:20px;margin-bottom:8px}
+.landing-refusals ul{list-style:none;padding:0;margin:0;display:grid;gap:0}
+.landing-refusals li{padding:20px 0;border-top:1px solid var(--on-dark)}
+.landing-refusals strong{display:block;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+.landing-refusals p{font-size:15px;line-height:1.65;color:var(--on-dark-text);max-width:62ch}
+
+/* ---- Questions ---- */
+.landing-faq{max-width:80ch;border-top:1px solid var(--line)}
 .landing-faq>div{border-bottom:1px solid var(--line)}
-.landing-faq button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;text-align:left;padding:22px 0;font-size:16px;font-weight:600;letter-spacing:-.015em;color:var(--ink);transition:color .2s}
-.landing-faq button:hover{color:var(--indigo-deep)}
-.landing-faq button svg{color:var(--indigo);transition:transform .3s var(--ease);flex-shrink:0}
+.landing-faq h3{margin:0;font-size:16px}
+.landing-faq button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:44px;text-align:left;padding:20px 0;font-size:16px;font-weight:600;letter-spacing:-.015em;color:var(--ink);transition:color .18s}
+.landing-faq button:hover{color:var(--indigo)}
+.landing-faq button svg{color:var(--indigo);transition:transform .28s var(--ease)}
 .landing-faq .is-open button svg{transform:rotate(180deg)}
-.landing-answer{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s var(--ease)}
+.landing-answer{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s var(--ease)}
 .landing-faq .is-open .landing-answer{grid-template-rows:1fr}
 .landing-answer>div{overflow:hidden}
-.landing-faq p{padding:0 0 22px;font-size:14px;color:var(--body);line-height:1.7;max-width:62em}
+.landing-faq .landing-answer p{padding:0 0 22px;font-size:15px;line-height:1.75;color:var(--body);max-width:72ch}
 
-.landing-final{position:relative;overflow:clip;padding:clamp(64px,8vw,110px) var(--pad);background:linear-gradient(158deg,#1E3A8A,#475569);color:#fff;text-align:center}
-.landing-final>.hero-texture{position:absolute;inset:0;opacity:.3}
-.landing-final>div{position:relative;z-index:1}
-.landing-final h2{font-size:clamp(34px,5.6vw,62px);line-height:1.02;letter-spacing:-.035em;color:#fff}
-.landing-final p{margin:18px auto 30px;max-width:38em;color:#5EEAD4;font-size:clamp(15px,1.5vw,17px);line-height:1.65}
-.landing-final .primary{background:#fff;color:var(--indigo-deep);min-height:56px;border-radius:var(--r-control);padding:16px 30px;font-size:15px;box-shadow:0 14px 34px #0000002e}
-.landing-final .primary:hover{background:#eaf5f1}
+/* ---- Closing panel and footer ---- */
+.landing-final{padding:clamp(64px,7.5vw,112px) var(--pad);background:var(--indigo-deep);color:var(--surface);text-align:center}
+.landing-final>div{max-width:56ch;margin:0 auto}
+.landing-final h2{color:var(--surface);font-size:clamp(32px,4.6vw,56px)}
+.landing-final p{margin:20px 0 0;font-size:16px;line-height:1.7;color:var(--on-dark-text)}
+.landing-final .primary{margin-top:32px;background:var(--surface);color:var(--indigo-deep);min-height:52px;padding:15px 24px;font-size:15px}
+.landing-final .primary:hover{background:var(--accent-soft)}
+.landing-final-note{font-size:14px;color:color-mix(in srgb,var(--surface) 62%,var(--indigo))}
+.landing-footer{display:grid;gap:28px;padding:clamp(44px,5vw,64px) var(--pad);background:var(--ink);color:var(--on-dark-text);font-size:14px;line-height:1.7}
+.landing-footer img{height:34px;width:auto;background:var(--surface);border-radius:var(--r-control);padding:5px 10px}
+.landing-footer p{font-size:14px;line-height:1.7;color:var(--on-dark-text);margin-top:16px;max-width:52ch}
+.landing-footer-note p:last-child{margin-top:14px;font-size:13px;color:color-mix(in srgb,var(--surface) 58%,var(--ink))}
 
-.landing-footer{display:grid;gap:24px;padding:clamp(40px,5vw,60px) var(--pad);background:var(--slate);color:#5EEAD4;font-size:13px;line-height:1.7}
-.landing-footer img{height:36px;width:auto;background:#fff;border-radius:10px;padding:4px 10px}
-.landing-footer p{font-size:13px;color:#5EEAD4;margin-top:14px;max-width:44em}
-.landing-footer-note strong{color:#fff}
-
-/* On a phone the hero has one job: say what this is and get out of the way of the nurse. */
-@media(max-width:560px){
- .landing-notice{font-size:13px;padding:10px var(--pad)}
- .landing-hero{padding-top:26px}
- .landing-hero .eyebrow{margin-bottom:15px;padding:6px 13px 6px 10px}
- .landing-hero h1{font-size:clamp(38px,10.4vw,50px)}
- .landing-hero p{font-size:15px}
- .landing-actions{margin:22px 0 20px;gap:10px}
- .landing-actions .primary,.landing-actions .secondary{flex:1 1 auto;min-height:50px;padding:14px 18px;font-size:14px}
- .landing-trust{gap:10px 16px;padding-bottom:20px}
- .landing-trust li{font-size:13px;gap:8px}
- .landing-trust li span{width:30px;height:30px}
- .landing-hero-figure{width:min(100%,330px);margin-top:6px}
- .landing-strip{gap:26px 0}
- .landing-ticker b{font-size:16px;gap:20px;padding-right:20px}
+/* ---- Layout at width ---- */
+@media(min-width:600px){
+ .landing-services,.landing-plans{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .landing-checks{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(24px,4vw,56px)}
 }
-/* Two columns, so the divider belongs to the right-hand figure of each pair, not to every one
-   after the first: at four across that is the same rule, at two across it is not. */
-@media(max-width:759px){
- .landing-strip>div,.landing-strip>div+div{padding:0 18px 0 0;border-left:0}
- .landing-strip>div:nth-child(2n){padding:0 0 0 20px;border-left:1px solid #ffffff1f}
-}
-@media(min-width:760px){
+@media(min-width:860px){
  .landing-nav nav{display:flex;flex-direction:row}
  .landing-cta{display:inline-flex}
  .landing-menu{display:none}
- .landing-hero{display:grid;grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);align-items:end;gap:20px}
- .landing-hero-figure{width:min(100%,400px);margin:0 0 -1px}
- .landing-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
- .landing-steps,.landing-promises{grid-template-columns:repeat(3,minmax(0,1fr))}
- .landing-services,.landing-plans{grid-template-columns:repeat(2,minmax(0,1fr))}
- .landing-split{grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:clamp(32px,5vw,64px)}
- .landing-split.reverse .landing-split-art{order:2}
- .landing-footer{grid-template-columns:1fr 1fr}
+ .landing-hero{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+ .landing-figures{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .landing-figures>div,.landing-figures>div:nth-child(2n){padding:0 clamp(16px,2.2vw,32px);border-left:1px solid var(--line)}
+ .landing-figures>div:first-child{padding-left:0;border-left:0}
+ .landing-figures>div:last-child{padding-right:0}
+ .landing-steps{grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(20px,3vw,40px)}
+ .landing-split{grid-template-columns:minmax(0,1fr) minmax(0,.72fr)}
+ /* The reversed split swaps the track widths as well as the order, so the photograph keeps the
+    narrower column and the reading measure keeps the wider one whichever side each is on. */
+ .landing-split.reverse{grid-template-columns:minmax(0,.72fr) minmax(0,1fr)}
+ .landing-split.reverse>figure{order:-1}
+ .landing-refusals ul{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(24px,4vw,56px)}
+ .landing-footer{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:clamp(32px,5vw,72px)}
 }
-@media(min-width:1000px){
- /* The three steps step down the page, which is the shape of the sentence they are making. */
- .landing-steps article:nth-child(2){margin-top:30px}
- .landing-steps article:nth-child(3){margin-top:60px}
- .landing-section:has(.landing-steps){padding-bottom:clamp(56px,7vw,96px)}
- .landing-promises{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(min-width:1080px){
+ .landing-services{grid-template-columns:repeat(3,minmax(0,1fr))}
  .landing-plans{grid-template-columns:repeat(4,minmax(0,1fr))}
- /* A bento rather than nine identical tiles: 4+2, 2+4, 2+2+2, 3+3 across six columns. */
- .landing-services{grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
- .landing-services article{grid-column:span 2}
- .landing-services article:nth-child(1),.landing-services article:nth-child(4){grid-column:span 4;display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:20px;align-items:start}
- .landing-services article:nth-child(1)>.service-icon,.landing-services article:nth-child(4)>.service-icon{grid-row:1 / span 2;width:52px;height:52px}
- .landing-services article:nth-child(1) h3,.landing-services article:nth-child(4) h3{margin-top:2px;font-size:20px}
- .landing-services article:nth-child(1) strong,.landing-services article:nth-child(4) strong{grid-column:2;margin-top:0;padding-top:16px}
- .landing-services article:nth-child(1),.landing-services article:nth-child(4){align-content:start}
- .landing-services article:nth-child(1)::before,.landing-services article:nth-child(4)::before{content:"";position:absolute;right:-70px;bottom:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,var(--indigo-soft),#ffffff00 68%);pointer-events:none}
- .landing-services article:nth-child(8),.landing-services article:nth-child(9){grid-column:span 3}
- .landing-footer{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:48px}
+ .landing-checks{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
+
+/* Everything above is switched off here rather than merely slowed. A reader who has asked for less
+   motion gets none: no arrival, no hover lift, no accordion slide, no smooth scroll, and no
+   progress bar sliding along under the navigation. Nothing depends on an animation to become
+   visible, so removing all of it removes nothing but the movement. */
 @media(prefers-reduced-motion:reduce){
  html:has(.landing){scroll-behavior:auto}
- .landing-aurora i,.landing-hero-ring,.landing-hero-figure,.landing-split-art>i,.landing-split-art img,.landing-ticker>div,.landing-notice .status-dot{animation:none!important}
- .landing [data-enter]{animation:none!important;opacity:1;transform:none}
- .landing-hero-parallax{transform:none!important}
- .landing article:hover,.landing .primary:hover,.landing .secondary:hover{translate:none}
+ .landing,.landing *,.landing *::before,.landing *::after{animation:none!important;transition:none!important}
+ .landing [data-reveal]{opacity:1!important;transform:none!important}
+ .landing-services li:hover{translate:none}
+ .landing-progress{display:none}
 }
