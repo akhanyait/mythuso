@@ -155,7 +155,8 @@ CI checks web types/build/journeys, source boundaries, dependency advisories and
 | `apps/ios` | Native SwiftUI Xcode application |
 | `apps/android` | Native Compose Android application |
 | `packages/catalog` | Service definitions, the commercial model from the proposal, and the vetting table every app reads |
-| `packages/design-tokens` | Cross-platform design reference |
+| `packages/design-tokens` | The design tokens every app is generated from |
+| `packages/geo` | Coordinate validation and arrival estimates, with the porting contract for native |
 | `docs` | Architecture, privacy controls and feature scope |
 | `tests` | Desktop and mobile browser journeys, including the clinical, guardian and dispatch flows |
 | `Documentation` | Original private proposal and brand assets |

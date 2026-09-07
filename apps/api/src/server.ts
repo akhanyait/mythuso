@@ -8,7 +8,7 @@ import { TwoFactor } from './twoFactor.ts';
 import { Erasure } from './erasure.ts';
 import { decideStepUp, SECOND_FACTOR_CAPABILITIES, SECOND_FACTOR_REASONS, type StepUpAction } from './stepUp.ts';
 import { RESPONSE_DAYS, SCOPE_STATEMENT, clinicalRetentionRules } from './personalData.ts';
-import { SEALED_COLUMNS, VettingVault, openVettingStore, vettingSource } from './vetting/index.ts';
+import { SEALED_COLUMNS, VettingVault, authorityVerifiers, createIdentityProvider, openVettingStore, vettingSource } from './vetting/index.ts';
 
 const COOKIE = 'mythuso_session';
 type Handler = (req: IncomingMessage, res: ServerResponse, body: Record<string, unknown>, caller: Caller) => void;
@@ -84,7 +84,20 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
      from one either: opening the founding ceremony takes an authorisation signed from the key ring,
      and nothing arriving over HTTP has ever held key material. The command that mints one is
      src/bootstrap.ts, run at a console by two people. */
-  const vetting = protection ? new VettingVault({ gate: protection.gate, audit: protection.audit, bootstrap: protection.bootstrap, store: vettingStore, now }) : null;
+  /* The credential verification layer. The registry is the honest default — eleven authorities that
+     cannot be asked at all, each carrying what a real integration would need — with the accredited
+     identity provider dropped in over Home Affairs where one has been contracted. Where none has,
+     `createIdentityProvider` returns null and Home Affairs keeps its not-integrated adapter, so a
+     service with nothing configured reports "not integrated" rather than "sandbox". In production
+     it throws instead of sandboxing, which is a service that will not start rather than a service
+     recording confirmations nobody made. */
+  const identityProvider = createIdentityProvider({ config, store: vettingStore });
+  const vetting = protection ? new VettingVault({
+    gate: protection.gate, audit: protection.audit, bootstrap: protection.bootstrap, store: vettingStore,
+    verifiers: authorityVerifiers(identityProvider ? { dha: identityProvider } : {}),
+    identity: identityProvider,
+    now
+  }) : null;
   /* What an erasure cannot reach, asked rather than assumed. With no protection keys there is no
      vault, so there is nothing it could be holding and nothing to say about it. */
   const erasure = new Erasure(store, now, vetting ? [{ retainedFor: personId => vetting.retainedFor(personId) }] : []);
@@ -277,6 +290,36 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
       configured: true, ...protection.audit.verify(),
       ...(vetting ? { bootstrap: vetting.bootstrapStanding() } : {})
     });
+  });
+  /* How much of the credential verification layer is actually wired, counted by the running service
+     rather than claimed by a document. It is the number this repository is most likely to be wrong
+     about in a year's time — "we integrated with SANC" is the sort of thing that gets written down
+     before it is true — so the count comes from the adapters that exist. Names of authorities only;
+     no party, no credential, nothing about anybody. */
+  routes.set('GET /health/verification', (_req, res) => {
+    if (!vetting) return send(res, 200, { configured: false, note: 'No protection keys are configured, so there is no vault and no verification layer.' });
+    send(res, 200, { configured: true, ...vetting.verificationStanding() });
+  });
+
+  /**
+   * The accredited identity provider's callback.
+   *
+   * The only route in this service that is not about the caller. It carries no session and cannot:
+   * it arrives from the provider's servers, and what authenticates it is the HMAC signature over
+   * the payload, checked against the partner key, in constant time, inside a fifteen-minute window
+   * — see `apps/api/src/vetting/identityProvider.ts`. A callback that does not verify is refused
+   * and written into the same hash chain the gate writes to, because a forged callback against a
+   * real session reference is somebody trying to mark a person identity-confirmed and it is
+   * discovered by nobody unless it is in the log.
+   *
+   * It answers 200 to a repeat rather than re-recording it. A provider retries, and a retry that
+   * produced a second authority answer would be one enquiry with two entries on the register.
+   */
+  routes.set('POST /vetting/identity/callback', (_req, res, body) => {
+    if (!vetting) return send(res, 503, { error: 'not-configured' });
+    const verdict = vetting.acceptIdentityCallback(body);
+    if (!verdict.ok) return send(res, 401, { error: 'callback-refused' });
+    send(res, 200, { ok: true, repeated: verdict.repeated });
   });
 
   return async function handle(req: IncomingMessage, res: ServerResponse) {

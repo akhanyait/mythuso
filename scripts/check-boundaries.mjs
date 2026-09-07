@@ -222,4 +222,41 @@ const records=JSON.parse(read('packages/catalog/records.json'));
 const webVetting=read('apps/web/src/lib/vetting.ts');
 if(!webVetting.includes('EXPIRY_WARNING_DAYS = 45')) throw new Error('The 45-day renewal warning has moved in apps/web/src/lib/vetting.ts');
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source.`);
+/* Coordinates are written out three times, because each app is genuinely native and none of them
+   reads packages/geo at runtime. This is the layer where a disagreement is silent: a bounding box
+   that differs by a degree, or a speed that differs by ten, produces a plausible number on one phone
+   and a different plausible number on another, and nothing looks broken. ArtisanZA had a simulator's
+   default coordinate reach production and draw a 16 939 km route line — the refusal sentences below
+   are what send whoever finds it to the right line, so they are compared word for word. */
+const geoSources = {
+ /* The web splits the layer across modules; the natives keep it in one file each. Both are read
+    whole, because what is being compared is the answer the layer gives, not where it lives. */
+ web: ['packages/geo/coords.ts','packages/geo/normalize.ts','packages/geo/eta.ts'],
+ ios: ['apps/ios/MyThuso/Models/Geo.swift'],
+ android: ['apps/android/app/src/main/java/za/co/mythuso/model/Geo.kt']
+};
+const geoRefusals = [
+ 'No coordinate was given.',
+ 'Coordinate is not a number.',
+ 'Coordinate exceeds the global lat/lng range.',
+ 'Coordinate is null-island (0, 0) — almost always an unset field rather than a place.',
+ 'Coordinate looks like a mobile simulator default (Cupertino, or the Android emulator’s Mountain View).',
+ 'Coordinate is outside South Africa.'
+];
+/* The numbers an estimate is built from. A speed named on the row must be the speed the arithmetic
+   used, on every platform, or the row is lying about its own working. */
+const geoConstants = [['16', 'western bound'], ['33.5', 'eastern bound'], ['-35.5', 'southern bound'], ['-22', 'northern bound'],
+                      ['30', 'assumed urban speed'], ['300', 'the distance beyond which it is a coordinate fault'], ['6371', 'earth radius']];
+for(const [platform,paths] of Object.entries(geoSources)) {
+ for(const f of paths) if(!existsSync(f)) throw new Error(`The ${platform} app has no coordinate guard (${f}). Every coordinate is guarded or none of them is.`);
+ const file=paths[0], source=paths.map(read).join('\n');
+ for(const refusal of geoRefusals) if(!source.includes(refusal)) throw new Error(`Coordinate refusal drift in ${platform} (${file}): it does not say "${refusal}"`);
+ /* Swift and Kotlin write a Double as 30.0 where TypeScript writes 30, so a trailing zero is the
+    same number rather than a different one. Anything else after it is not. */
+ for(const [value,what] of geoConstants) {
+  const literal=value.replace('-','').replace('.','\\.');
+  if(!new RegExp(`(?<![\\d.])-?${literal}(?:\\.0+)?(?![\\d.])`).test(source)) throw new Error(`The ${what} (${value}) is missing from the ${platform} coordinate guard (${file})`);
+ }
+}
+
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three.`);

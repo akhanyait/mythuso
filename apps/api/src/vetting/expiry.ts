@@ -38,6 +38,31 @@ export const RENEWAL_MILESTONES: readonly number[] = [EXPIRY_WARNING_DAYS, 14, 0
 
 const DAY = 86_400_000;
 
+/**
+ * How often an authority is asked again where the check itself states no cadence.
+ *
+ * Twelve months, and it is MyThuso's own setting rather than anything an Act says — which is
+ * exactly the distinction personalData.ts makes about every retention period, and it is made here
+ * for the same reason. A register's answer is a statement about one moment: a registration can be
+ * withdrawn, a licence suspended and an accreditation lapsed between renewals, and none of those
+ * events sends anybody a letter. An identity confirmation and a qualification have no renewal
+ * cadence of their own and would otherwise be asked once and believed for ever.
+ */
+export const AUTHORITY_ANSWER_MONTHS = 12;
+
+/**
+ * When an authority answer stops being current.
+ *
+ * The check's own cadence where it has one — a SANC registration renews annually, so an answer
+ * older than that is an answer about a registration that has since been renewed or has not — and
+ * twelve months where it does not.
+ */
+export function authorityAnswerDueAt(checkedAt: number, renewMonths: number | null): number {
+ const due = new Date(checkedAt);
+ due.setUTCMonth(due.getUTCMonth() + (renewMonths ?? AUTHORITY_ANSWER_MONTHS));
+ return due.getTime();
+}
+
 /** Whole days, from the start of today to the expiry date. Negative once it has passed. */
 export function daysUntil(iso: string | null | undefined, now: number): number | null {
  if (!iso) return null;

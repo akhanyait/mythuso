@@ -1,0 +1,5 @@
+{
+  "name": "@mythuso/geo", "private": true, "version": "0.1.0", "type": "module",
+  "description": "Coordinates, distances and honest arrival estimates. No dependencies, by design.",
+  "scripts": {"test": "node --test \"*.test.ts\"", "check": "tsc -b"}
+}

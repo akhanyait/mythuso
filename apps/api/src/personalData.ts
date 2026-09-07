@@ -308,6 +308,20 @@ export const HOLDINGS: Holding[] = [
   basis: 'audit-integrity'
  },
  {
+  label: 'What each issuing authority said about your checks',
+  table: 'vetting_authority_answers',
+  disposition: 'retain',
+  because: 'When MyThuso puts one of your checks to the body that issued it — the Nursing Council, the Police Service, Home Affairs through an accredited provider — this records which body was asked, on what date, and what came back. For almost every authority today the answer is that there is no way to ask them at all, and that is recorded too, because a check nobody could confirm should not look the same as one somebody did. Your registration number, your policy number and your identity number are deliberately not kept here: they are used to ask the question and are not written down afterwards.',
+  basis: 'workforce-vetting'
+ },
+ {
+  label: 'Your identity verification sessions with the accredited provider',
+  table: 'vetting_identity_sessions',
+  disposition: 'retain',
+  because: 'If your identity is checked against Home Affairs through an accredited provider, this records that a session was opened, when, and what the provider answered. It holds nothing about you as a person — not your identity number, not your name, and not the photograph you took. Those go from you to the provider directly and never pass through MyThuso.',
+  basis: 'workforce-vetting'
+ },
+ {
   label: 'Which renewal reminders you have already had',
   table: 'vetting_renewal_notices',
   disposition: 'retain',

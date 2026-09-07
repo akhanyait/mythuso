@@ -61,7 +61,18 @@ as somebody else's.
 
 ## Where the keys live, and where they must never live
 
-There are two secrets, in one file, and they are not interchangeable.
+There are two secrets in one file, and they are not interchangeable — with a third variable beside
+them that is a secret of a different kind. `MYTHUSO_IDENTITY_API_KEY` is the accredited identity
+provider's partner key, and nothing in this document protects anything with it: it is presented to
+somebody else's server. It belongs on the list below all the same, for the ordinary reason — leaking
+it lets somebody open verification sessions billed to MyThuso and, worse, forge the callbacks that
+answer them. It is not held today, because no provider has been contracted. It arrives with four
+plain settings that are not secret — `MYTHUSO_IDENTITY_PROVIDER`, `MYTHUSO_IDENTITY_PARTNER_ID`,
+`MYTHUSO_IDENTITY_SANDBOX` and `MYTHUSO_IDENTITY_CALLBACK_URL` — and `apps/api/src/config.ts` refuses
+to start a production service where the provider is named with no key behind it, or where the sandbox
+is switched on. `deploy/deploy.sh` scans the built web bundle for this name alongside the other
+three, so a partner key that ever reached the client would stop the deploy — added before a provider
+was contracted rather than on the day one is, which is the only order that helps.
 
 `MYTHUSO_ENCRYPTION_KEY` is the identity service's own key — one key, no versions, sealing a name
 and a second-factor secret in `apps/api/src/sensitive.ts`. `MYTHUSO_PROTECTION_KEYS` is the root of
@@ -732,6 +743,10 @@ and every one-time code, and the mail relay sees the body of every alert, which 
 | Encrypted, off-site backups | Not built, deliberately and visibly, and the clinical-table refusal is what holds the position together. See [backups](#backups-and-the-refusal-that-keeps-them-honest) |
 | Re-encryption after a compromise | **Matters, and is the gap most likely to be mistaken for covered.** Rotation re-wraps data keys; it does not replace them. A data key recovered from a disclosed root key opens its record for ever, so a compromise needs every affected value opened and sealed again. Nothing does that |
 | Re-enrolment of second factors after a compromise | No mechanism exists. Today it would be done by hand, account by account |
+| **Any confirmation of any credential by the body that issued it** | **Matters more than anything else on this list, and is the one most likely to be mistaken for covered.** The vault, the lifecycle, the second-reviewer rule and now the verification layer are all built; not one credential on this platform has been confirmed by SANC, HPCSA, SAPS, Home Affairs or anybody else. All twelve authorities report `not-integrated`. Eleven of them need an agreement, an accreditation or a customer account MyThuso does not hold; see [Privacy and security](PRIVACY-AND-SECURITY.md#verified-by-a-reviewer-confirmed-by-nobody) for what each one needs |
+| A contracted identity verification provider | The adapter is built end to end — signed request, signature-verified idempotent callback, replay window, sandbox without secrets, production refusing to sandbox — and it has never spoken to a provider. **What is missing is a contract and a key**, which is the only honest thing left to be missing on that one |
+| Automatic withdrawal on a contradicted credential | **Deliberately absent, and a stated cost.** Where an authority contradicts a reviewer, it is in the chain, in `contradictions()` and in the sweep's report, and the party keeps their capabilities until a reviewer suspends them by name. Automatic withdrawal would let a register that was briefly wrong, or a misread response, strike nurses off the roster at 03:00 — and that route would be the one an attacker reached for. Between the answer and the reviewer reading it, the party is still dispatchable |
+| Publishing what the verification layer actually reaches | `GET /health/verification` counts the adapters that exist rather than trusting a document, and `deploy/ops/mythuso-healthcheck.sh` does not read it yet. One line is owed there: note when `integrated` goes *up*, because that is somebody claiming a register has been connected |
 
 ## What this assumes about code that is not merged yet
 
@@ -795,6 +810,15 @@ through the gate, ten checks decided, the same authorisation refused when it was
 time, and `standing` listing exactly the ten checks that were left resting on it. The refusals — an
 unsigned token, a token from another server's ring, an expired one, one presented once the register
 holds real reviewers — are covered by `apps/api/test/vetting.test.ts` rather than by hand.
+
+The credential verification layer was exercised end to end on a workstation as well as in tests: a
+real key ring, a real database, a bootstrap seeding two reviewers, a nurse enrolled and cleared
+through the gate, a dry run listing all eighteen checks as never asked, a committed run under a named
+reviewer recording eighteen answers of `not-integrated`, a second dry run reporting nothing owed, and
+eighteen `vetting.authority.answered` entries in the hash chain with the chain still verifying. The
+sweep's refusal to commit without `--as` was exercised at the console; **no live provider call has
+ever been made**, because there is no provider and no key, and the live path is covered only by tests
+driving an injected transport.
 
 None of it has been run against the server, and **the bootstrap ceremony has not been performed** —
 that is a decision for two people at a console, not for a commit. No deploy was performed, no key was generated on the

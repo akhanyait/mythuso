@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "workspaces": [
+    "packages/geo",
     "apps/web",
     "apps/api"
   ],
@@ -17,8 +18,8 @@
     "vetting": "node scripts/emit-vetting.mjs",
     "records": "node scripts/emit-records.mjs",
     "generate": "npm run tokens && npm run vetting && npm run records",
-    "check": "npm run check -w @mythuso/web && npm run check -w @mythuso/api && node scripts/check-boundaries.mjs",
-    "test": "npm run test -w @mythuso/api && playwright test",
+    "check": "npm run check -w @mythuso/geo && npm run check -w @mythuso/web && npm run check -w @mythuso/api && node scripts/check-boundaries.mjs",
+    "test": "npm run test -w @mythuso/geo && npm run test -w @mythuso/api && playwright test",
     "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0",
     "api": "npm run dev -w @mythuso/api",
     "test:live": "playwright test tests/live-identity.spec.ts"

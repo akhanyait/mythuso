@@ -26,10 +26,20 @@
  * bootstrap — takes an authorisation somebody minted at a console, is spent once, and leaves every
  * check it decided marked as standing on it until a real reviewer looks again.
  *
- * Not real: no credential is checked against an issuing authority. There is no SANC integration, no
- * accredited Home Affairs provider, no SAPS lookup. "Verified" means a named reviewer looked at a
- * document the platform can still produce and said so. That is a workflow, and it is worth having —
- * but it is not the register confirming anything, and this module never says that it is.
+ * Not real: no credential is confirmed by an issuing authority. Eleven of the twelve authorities in
+ * packages/catalog/vetting.json cannot be asked at all — no API exists, or one exists behind an
+ * agreement or an accreditation MyThuso does not hold — and the twelfth, Home Affairs through an
+ * accredited provider, has an adapter built and no contract behind it. "Verified" means a named
+ * reviewer looked at a document the platform can still produce and said so. That is a workflow, and
+ * it is worth having — but it is not the register confirming anything, and this module never says
+ * that it is.
+ *
+ * What is new is that the module can now say which of the two it means. authority.ts holds one
+ * adapter per authority, each carrying what a real integration would still need; every answer is
+ * recorded in its own table, never in the evidence row; and a party's standing composes a sentence
+ * that distinguishes "cleared by review, no authority confirmation" from "confirmed against the
+ * SANC register". Today every party is the first of those. The platform is now able to notice when
+ * one of them stops being.
  *
  * And underneath the bootstrap there is a floor no code reaches: the first two people are trusted
  * because somebody outside this system trusts them. What is here makes that act deliberate, bounded,
@@ -40,15 +50,24 @@ import { createHash, randomUUID } from 'node:crypto';
    sealed value has a shape and that the database wants one blob; it knows nothing about what is in
    it, and it cannot open one. */
 import { decodeSealedValue, encodeSealedValue, standingOf, type AccessRequest, type AuditChain, type BootstrapAuthorisation, type BootstrapAuthority, type Gate, type Standing } from '../protection/index.ts';
-import type { Actor, Answer, Evidence, EvidenceVersion, Party, ResolvedEvidence } from './contract.ts';
-import { daysUntil, expiryFrom, noticesFor, resolve, type RenewalNotice } from './expiry.ts';
-import { catalogueCheck, roleChecks, roleName, type VettingStore } from './store.ts';
+import type { Actor, Answer, AuthorityStanding, Evidence, EvidenceVersion, Party, ResolvedEvidence } from './contract.ts';
+import { authorityVerifiers, integrationSummary, isConfirmation, type AuthorityAnswer, type AuthorityOutcome, type AuthorityVerifier, type Credential } from './authority.ts';
+import { authorityAnswerDueAt, daysUntil, expiryFrom, noticesFor, resolve, type RenewalNotice } from './expiry.ts';
+import type { IdentityCallback, IdentityProvider } from './identityProvider.ts';
+import { catalogueCheck, roleChecks, roleName, type AuthorityAnswerRow, type VettingStore } from './store.ts';
 
 export { openVettingStore, vettingSource, SEALED_COLUMNS, roleChecks, roleName } from './store.ts';
-export type { VettingStore, BootstrapCeremonyRecord } from './store.ts';
+export type { VettingStore, BootstrapCeremonyRecord, AuthorityAnswerRow } from './store.ts';
 export * from './contract.ts';
-export { RENEWAL_MILESTONES, daysUntil, expiryFrom, noticesFor, resolve, severityFor, dedupeKey } from './expiry.ts';
+export { RENEWAL_MILESTONES, AUTHORITY_ANSWER_MONTHS, authorityAnswerDueAt, daysUntil, expiryFrom, noticesFor, resolve, severityFor, dedupeKey } from './expiry.ts';
 export type { RenewalNotice, NoticeSeverity } from './expiry.ts';
+/* The verification layer. Exported from here rather than reached into, the same way everything else
+   about vetting is: one door per module, so a caller cannot assemble a registry of its own with an
+   adapter nobody registered. */
+export { AUTHORITY_OUTCOMES, authorityVerifiers, integrationSummary, isConfirmation, answer as authorityAnswerOf, enquiryReference } from './authority.ts';
+export type { AuthorityAnswer, AuthorityOutcome, AuthorityVerifier, Credential, IntegrationStanding } from './authority.ts';
+export { createIdentityProvider, signIdentityRequest, signatureMatches, outcomeFor, IdentityProviderRefused, CALLBACK_WINDOW_MS } from './identityProvider.ts';
+export type { IdentityProvider, IdentityCallback, IdentityMode, IdentitySession, CallbackVerdict } from './identityProvider.ts';
 
 /** The record type the gate knows this by, and the one capability that opens it. */
 const RECORD_TYPE = 'vetting-evidence';
@@ -65,11 +84,46 @@ export type Deps = {
     default: a vault assembled without a verifier would be a vault that cannot check an
     authorisation, and the tempting thing to do with one of those is let the bootstrap through. */
  bootstrap: BootstrapAuthority;
+ /* One adapter per issuing authority. Optional only in the sense that leaving it out gives the
+    honest default — the registry from authority.ts, in which eleven of twelve answer
+    not-integrated and the twelfth does too until a provider is contracted. It is never a vault
+    with no verification layer at all: a check nobody can even ask about must still be able to say
+    that it is one. */
+ verifiers?: Map<string, AuthorityVerifier>;
+ /* The accredited identity provider, where one is configured. Held separately from the registry
+    because it is the only adapter with a flow rather than a question: a session is opened, a person
+    completes it, and the answer arrives on a callback. */
+ identity?: IdentityProvider | null;
  now?: () => number;
 };
 
 /** Refusal of a bootstrap. Its own type, because it is the one refusal that is never a mistake by a user. */
 export class BootstrapRefused extends Error {}
+
+/** Asking an authority about one check. The credential is passed through and never written down. */
+export type AuthorityRequest = {
+ actor: Actor;
+ evidenceId: string;
+ /** The credential to ask about, where it is not the party's own reference. Not stored. */
+ reference?: string;
+ /** The name on the certificate, where the authority needs one to answer at all. Not stored. */
+ subjectName?: string;
+};
+
+/** One check whose authority answer is missing or has gone stale. What the sweep walks. */
+export type ReverificationDue = {
+ evidenceId: string;
+ partyId: string;
+ checkId: string;
+ checkName: string;
+ authority: string;
+ /** Never asked, the answer has aged past the cadence, or the answer stated its own expiry. */
+ why: 'never-asked' | 'stale' | 'expired';
+ lastAskedAt: number | null;
+ lastOutcome: AuthorityOutcome | null;
+ /** False where the authority cannot be asked at all, which is the usual case and is not a fault. */
+ askable: boolean;
+};
 
 /**
  * The founding ceremony, once an authorisation has opened it.
@@ -118,13 +172,22 @@ export class VettingVault {
  readonly #audit: AuditChain;
  readonly #store: VettingStore;
  readonly #bootstrap: BootstrapAuthority;
+ readonly #verifiers: Map<string, AuthorityVerifier>;
+ readonly #identity: IdentityProvider | null;
  readonly #now: () => number;
  constructor(deps: Deps) {
   this.#gate = deps.gate;
   this.#audit = deps.audit;
   this.#store = deps.store;
   this.#bootstrap = deps.bootstrap;
+  this.#verifiers = deps.verifiers ?? authorityVerifiers();
+  this.#identity = deps.identity ?? null;
   this.#now = deps.now ?? (() => Date.now());
+ }
+
+ /** How much of the verification layer is real, counted rather than claimed. For the health check. */
+ verificationStanding(): ReturnType<typeof integrationSummary> {
+  return integrationSummary(this.#verifiers);
  }
 
  /**
@@ -451,8 +514,13 @@ export class VettingVault {
   * The standing is the gate's own, computed from the same records the gate would read, so what the
   * console shows and what the server enforces cannot disagree. Everything else here is the detail a
   * person needs in order to do something about it.
+  *
+  * `assurance` is beside it and is a different question. `standing` says whether the platform will
+  * dispatch this party; `assurance` says on whose word. Today every party on the platform is cleared
+  * by review with no authority confirmation behind any of it, and the sentence says exactly that
+  * rather than letting the green tick do the talking.
   */
- standing(partyId: string, at: number = this.#now()): { party: Party; checks: ResolvedEvidence[]; standing: Standing } | null {
+ standing(partyId: string, at: number = this.#now()): { party: Party; checks: ResolvedEvidence[]; standing: Standing; assurance: PartyAssurance } | null {
   const party = this.#store.findParty(partyId);
   if (!party) return null;
   const evidence = this.#store.evidenceForParty(partyId);
@@ -469,6 +537,7 @@ export class VettingVault {
   return {
    party,
    checks,
+   assurance: partyAssurance(checks),
    standing: standingOf({
     actorId: party.id, roleId: party.roleId,
     records: evidence.map(record => ({
@@ -527,7 +596,286 @@ export class VettingVault {
   }];
  }
 
+
+ /* ---- The verification layer ------------------------------------------------------------------
+    Everything below asks an authority, or reports what one said. None of it decides anything: a
+    reviewer's decision and an authority's answer are two facts about one check, they are recorded
+    in two tables, and no method here writes to the evidence row. That separation is the whole of
+    the point, and it is structural rather than a convention — saveEvidence is never called from
+    this section, so an authority answer cannot become a verification by accident. */
+
+ /**
+  * Ask an issuing authority about one check.
+  *
+  * The gate decides first, as it does about every other read of a vetting record: a reviewer whose
+  * own police clearance lapsed last night does not get to run enquiries against a nurse's identity
+  * number. Then the adapter is asked, and whatever it says — including "there is nothing to ask" —
+  * is recorded and lands in the hash chain.
+  *
+  * Three refusals worth naming, because each of them is a way this could have quietly gone wrong:
+  *
+  *  · **An adapter that throws is `unavailable`, never a crash and never a confirmation.** A
+  *    provider's client library that dies on a malformed response must not take a sweep down with
+  *    it, and must not leave the check looking as though nobody got round to it.
+  *  · **The credential is passed through and never stored.** See the note on Credential in
+  *    authority.ts. What is written down is the authority, the outcome, the moment and the enquiry
+  *    reference.
+  *  · **A confirmation does not verify anything.** It is recorded beside the reviewer's decision.
+  *    The gate's standing is untouched by it, which is deliberate: an authority answer arriving on
+  *    a webhook must never be able to clear a check that no person has looked at.
+  */
+ async checkWithAuthority(request: AuthorityRequest): Promise<Answer<{ answer: AuthorityAnswer; recorded: boolean; contradicts: boolean }>> {
+  const evidence = this.#store.findEvidence(request.evidenceId);
+  if (!evidence) return { ok: false, reason: 'There is no such evidence record.' };
+  const outcome = this.#gate.access(this.#request(request.actor, evidence.id, evidence.partyId, 'authority'));
+  if (!outcome.allowed) return { ok: false, reason: outcome.reason };
+
+  const verifier = this.#verifiers.get(evidence.authority);
+  if (!verifier) {
+   /* Unreachable while authorityVerifiers() refuses to be built with a gap in it, and kept because
+      the day it becomes reachable is the day somebody added an authority to the catalogue against
+      a running service. Refusing is the answer; guessing is not. */
+   return { ok: false, reason: `There is no adapter for the ${evidence.authority} authority, so this check cannot be asked about at all.` };
+  }
+  const party = this.#store.findParty(evidence.partyId);
+  const credential: Credential = {
+   evidenceId: evidence.id, partyId: evidence.partyId, checkId: evidence.checkId, authority: evidence.authority,
+   reference: request.reference ?? party?.reference ?? null,
+   subjectName: request.subjectName ?? null,
+   issuedOn: evidence.issuedOn, expiresOn: evidence.expiresOn
+  };
+  const at = this.#now();
+  let answer: AuthorityAnswer;
+  try {
+   answer = await verifier.check(credential, at);
+  } catch (error) {
+   answer = {
+    authority: evidence.authority, outcome: 'unavailable', checkedAt: at,
+    reference: `${evidence.authority}:failed:${evidence.id}:${at}`,
+    detail: `The adapter for this authority failed: ${error instanceof Error ? error.message : 'the enquiry threw'}. Nothing has been confirmed.`,
+    expiresOn: null
+   };
+  }
+  const recorded = this.#recordAnswer(evidence, answer, request.actor.id);
+  const contradicts = this.#contradicts(evidence, answer.outcome, at);
+  return { ok: true, answer, recorded, contradicts };
+ }
+
+ /**
+  * Open an identity verification session with the accredited provider.
+  *
+  * The one authority with a flow rather than a question. Nothing is confirmed here: a session is
+  * opened, the person is sent to the provider, and the answer arrives on a callback — which is why
+  * this returns a URL and no outcome.
+  */
+ async openIdentitySession(actor: Actor, evidenceId: string): Promise<Answer<{ reference: string; url: string; mode: string }>> {
+  const evidence = this.#store.findEvidence(evidenceId);
+  if (!evidence) return { ok: false, reason: 'There is no such evidence record.' };
+  const outcome = this.#gate.access(this.#request(actor, evidence.id, evidence.partyId, 'authority'));
+  if (!outcome.allowed) return { ok: false, reason: outcome.reason };
+  if (evidence.authority !== 'dha') {
+   return { ok: false, reason: `${this.#checkName(evidence)} is verified by ${evidence.authority}, not by the identity provider. Opening an identity session against it would record an answer about the wrong thing.` };
+  }
+  if (!this.#identity) {
+   this.#audit.append({
+    event: 'vetting.authority.refused', actorId: actor.id, actorRole: actor.role, capability: CAPABILITY,
+    purpose: actor.purpose, recordType: RECORD_TYPE, recordId: evidence.id, subjectId: evidence.partyId,
+    field: 'authority', allowed: false,
+    reason: 'No accredited identity provider is configured, so no session can be opened. Home Affairs is not integrated on this service.'
+   });
+   return { ok: false, reason: 'No accredited identity provider is configured on this service. Identity is not confirmed against Home Affairs here, and a session cannot be opened without a contracted provider.' };
+  }
+  const at = this.#now();
+  const opened = await this.#identity.openSession({ evidenceId: evidence.id, partyId: evidence.partyId }, at);
+  if (!opened.ok) {
+   this.#audit.append({
+    event: 'vetting.identity.session.refused', actorId: actor.id, actorRole: actor.role, capability: CAPABILITY,
+    purpose: actor.purpose, recordType: RECORD_TYPE, recordId: evidence.id, subjectId: evidence.partyId,
+    field: 'authority', allowed: false, reason: opened.reason
+   });
+   return { ok: false, reason: opened.reason };
+  }
+  /* The mode is in the log line rather than only in the row. A sandbox session and a live one are
+     indistinguishable in their consequences afterwards, and the chain is where somebody looking at
+     a confirmation months later would have to be able to tell which one produced it. */
+  this.#log('vetting.identity.session.opened', actor, evidence.id, evidence.partyId, 'authority',
+   `Identity verification session ${opened.reference} opened with the accredited provider in ${opened.mode} mode.${opened.mode === 'sandbox' ? ' A sandbox session confirms nothing: Home Affairs has not been asked.' : ''}`);
+  return { ok: true, reference: opened.reference, url: opened.url, mode: opened.mode };
+ }
+
+ /**
+  * Take the provider's callback.
+  *
+  * There is no actor and there cannot be one: this arrives from the provider's servers, carrying no
+  * session and no person. So it does not go through the gate, which decides about actors — and it
+  * does not need to, because it opens nothing and reads nothing protected. It writes one authority
+  * answer, under a reference this service minted, for a session this service opened, and every
+  * outcome including every refusal is an entry in the same chain the gate writes to.
+  *
+  * The signature check, the replay window and the idempotency guard are the adapter's — see
+  * identityProvider.ts. What is here is the recording and the log.
+  */
+ acceptIdentityCallback(payload: IdentityCallback): Answer<{ outcome: AuthorityOutcome; repeated: boolean; contradicts: boolean }> {
+  if (!this.#identity) {
+   this.#audit.append({
+    event: 'vetting.identity.callback.refused', capability: CAPABILITY, purpose: 'vetting',
+    recordType: RECORD_TYPE, recordId: 'identity-callback', field: 'authority', allowed: false,
+    reason: 'A verification callback arrived and no identity provider is configured on this service. Nothing opened a session here, so nothing can be answering one.'
+   });
+   return { ok: false, reason: 'No identity provider is configured on this service.' };
+  }
+  const at = this.#now();
+  const verdict = this.#identity.acceptCallback(payload, at);
+  if (!verdict.ok) {
+   /* A refused callback is written down as loudly as an accepted one, and it is the more
+      interesting entry: a forged signature against a real session reference is somebody trying to
+      mark a person identity-confirmed, and it is discovered by nobody unless it is in the log. */
+   this.#audit.append({
+    event: 'vetting.identity.callback.refused', capability: CAPABILITY, purpose: 'vetting',
+    recordType: RECORD_TYPE, recordId: verdict.reference ?? 'identity-callback', field: 'authority',
+    allowed: false, reason: verdict.reason
+   });
+   return { ok: false, reason: verdict.reason };
+  }
+  const evidence = this.#store.findEvidence(verdict.session.evidenceId);
+  if (!evidence) return { ok: false, reason: 'The session this callback answers is against an evidence record that no longer exists.' };
+  if (verdict.repeated) {
+   this.#audit.append({
+    event: 'vetting.identity.callback.repeated', capability: CAPABILITY, purpose: 'vetting',
+    recordType: RECORD_TYPE, recordId: evidence.id, subjectId: evidence.partyId, field: 'authority',
+    allowed: true, reason: `Session ${verdict.session.reference} had already been answered as ${verdict.outcome}. The repeat was acknowledged and changed nothing.`
+   });
+   return { ok: true, outcome: verdict.outcome, repeated: true, contradicts: false };
+  }
+  const answer: AuthorityAnswer = {
+   authority: 'dha', outcome: verdict.outcome, checkedAt: at,
+   reference: verdict.session.reference, detail: verdict.detail, expiresOn: null
+  };
+  this.#recordAnswer(evidence, answer, `provider:${verdict.session.mode}`);
+  return { ok: true, outcome: verdict.outcome, repeated: false, contradicts: this.#contradicts(evidence, verdict.outcome, at) };
+ }
+
+ /**
+  * Which checks are owed an authority answer, and why.
+  *
+  * Three reasons, kept apart because they call for different things. Nobody has ever asked, which
+  * for eleven of the twelve authorities is permanent and honest. The last answer has aged past the
+  * check's own renewal cadence, which is the case a lapsed registration hides in. And the answer
+  * stated an expiry that has now passed, which is the authority itself having said when it would
+  * stop being true.
+  */
+ reverificationDue(at: number = this.#now()): ReverificationDue[] {
+  const latest = new Map(this.#store.latestAuthorityAnswers().map(row => [row.evidenceId, row] as const));
+  const due: ReverificationDue[] = [];
+  for (const evidence of this.#store.evidenceOwedAuthority()) {
+   const answer = latest.get(evidence.id) ?? null;
+   const askable = this.#verifiers.get(evidence.authority)?.standing.integrated ?? false;
+   const common = {
+    evidenceId: evidence.id, partyId: evidence.partyId, checkId: evidence.checkId,
+    checkName: this.#checkName(evidence), authority: evidence.authority,
+    lastAskedAt: answer?.checkedAt ?? null, lastOutcome: answer?.outcome ?? null, askable
+   };
+   if (!answer) { due.push({ ...common, why: 'never-asked' }); continue; }
+   if (answer.expiresOn && (daysUntil(answer.expiresOn, at) ?? -1) < 0) { due.push({ ...common, why: 'expired' }); continue; }
+   if (at >= authorityAnswerDueAt(answer.checkedAt, evidence.renewMonths)) due.push({ ...common, why: 'stale' });
+  }
+  return due;
+ }
+
+ /**
+  * Where an authority has said something a reviewer's verification cannot survive.
+  *
+  * This lists rather than acts, and the choice is deliberate. Making a register's "no such
+  * registration" suspend somebody automatically would mean a register that was briefly wrong, or an
+  * adapter that misread a response, striking nurses off the roster at three in the morning with
+  * nobody in the loop — and the same route would be the one an attacker reached for. So a
+  * contradiction is loud, is in the chain, and is a reviewer's decision to act on through suspend(),
+  * which is a decision with a name on it. The honest cost of that choice: between the answer and
+  * the reviewer reading it, the party keeps their capabilities.
+  */
+ contradictions(at: number = this.#now()): { evidence: ResolvedEvidence; answer: AuthorityAnswerRow }[] {
+  const found: { evidence: ResolvedEvidence; answer: AuthorityAnswerRow }[] = [];
+  for (const answer of this.#store.latestAuthorityAnswers()) {
+   const evidence = this.#store.findEvidence(answer.evidenceId);
+   if (!evidence) continue;
+   if (this.#contradicts(evidence, answer.outcome, at, false)) found.push({ evidence: this.#resolve(evidence, at), answer });
+  }
+  return found;
+ }
+
+ /** Every answer this platform has ever had about one check, newest first. What a regulator asks for. */
+ authorityHistory(evidenceId: string): AuthorityAnswerRow[] {
+  return this.#store.authorityAnswers(evidenceId);
+ }
+
  /* ---- Internals ------------------------------------------------------------------------------ */
+
+ /* One writer for every authority answer, so there is no path that records one without logging it.
+    `allowed` is about the gate and nothing else: the enquiry was permitted and was made. What the
+    authority said is in the reason, and `not-integrated` is an answer rather than a refusal. */
+ #recordAnswer(evidence: Evidence, answer: AuthorityAnswer, askedBy: string): boolean {
+  const recorded = this.#store.recordAuthorityAnswer({
+   reference: answer.reference, evidenceId: evidence.id, partyId: evidence.partyId,
+   checkId: evidence.checkId, authority: answer.authority, outcome: answer.outcome,
+   detail: answer.detail, checkedAt: answer.checkedAt, expiresOn: answer.expiresOn, askedBy
+  });
+  this.#audit.append({
+   event: 'vetting.authority.answered', actorId: askedBy, capability: CAPABILITY, purpose: 'vetting',
+   recordType: RECORD_TYPE, recordId: evidence.id, subjectId: evidence.partyId, field: 'authority',
+   allowed: true,
+   reason: `${this.#checkName(evidence)}: ${answer.authority} answered ${answer.outcome} (enquiry ${answer.reference}). ${answer.detail}${recorded ? '' : ' This answer was already on file and has not been recorded twice.'}`
+  });
+  return recorded;
+ }
+
+ /* A reviewer says one thing and the authority says another. Written into the chain the first time
+    it is seen, and reported by contradictions() every time it is asked about — hence the flag: the
+    report must not append an entry each time somebody opens the console. */
+ #contradicts(evidence: Evidence, outcome: AuthorityOutcome, at: number, log = true): boolean {
+  const reviewed = resolve(evidence, at);
+  const contradicts = (reviewed === 'verified' || reviewed === 'expiring')
+   && (outcome === 'not-found' || outcome === 'mismatch' || outcome === 'expired');
+  if (contradicts && log) {
+   this.#audit.append({
+    event: 'vetting.authority.contradiction', capability: CAPABILITY, purpose: 'vetting',
+    recordType: RECORD_TYPE, recordId: evidence.id, subjectId: evidence.partyId, field: 'authority',
+    allowed: false,
+    reason: `${this.#checkName(evidence)} was verified by a reviewer and ${evidence.authority} answered ${outcome}. Nothing has been withdrawn automatically: a reviewer decides what to do about it, through suspend(), with their name on the decision.`
+   });
+  }
+  return contradicts;
+ }
+
+ /* What an authority has said about one check, resolved now. The sentence is composed here, once,
+    so a console and a report cannot describe the same record in two different registers of
+    confidence. */
+ #assure(evidence: Evidence, at: number): AuthorityStanding {
+  const integrated = this.#verifiers.get(evidence.authority)?.standing.integrated ?? false;
+  const name = catalogueCheck(evidence.roleId, evidence.checkId)?.name ?? evidence.checkId;
+  const row = evidence.id ? this.#store.latestAuthorityAnswer(evidence.id) : null;
+  if (!row) {
+   return {
+    answer: null, confirmed: false, stale: false, contradicts: false, integrated,
+    sentence: integrated
+     ? `${name} has not been put to ${evidence.authority}. Nobody has asked, so nothing has been confirmed.`
+     : `${name} cannot be confirmed with ${evidence.authority}: there is no integration with that authority. This check rests on a reviewer having read a document.`
+   };
+  }
+  const expired = Boolean(row.expiresOn) && (daysUntil(row.expiresOn, at) ?? -1) < 0;
+  const stale = expired || at >= authorityAnswerDueAt(row.checkedAt, evidence.renewMonths);
+  const confirmed = isConfirmation(row.outcome) && !stale;
+  const asked = new Date(row.checkedAt).toISOString().slice(0, 10);
+  const sentence = row.outcome === 'not-integrated'
+   ? `${name} was put to ${evidence.authority} on ${asked} and there is no integration with that authority to answer it. This check rests on a reviewer having read a document.`
+   : confirmed ? `${name} was confirmed against ${evidence.authority} on ${asked}.`
+   : isConfirmation(row.outcome) ? `${name} was confirmed against ${evidence.authority} on ${asked}, and that answer is now older than the check's own renewal cadence. It is not a current confirmation.`
+   : `${name} was put to ${evidence.authority} on ${asked} and the answer was ${row.outcome}. ${row.detail}`;
+  return {
+   answer: { outcome: row.outcome, checkedAt: row.checkedAt, reference: row.reference, detail: row.detail, expiresOn: row.expiresOn },
+   confirmed, stale, contradicts: this.#contradicts(evidence, row.outcome, at, false), integrated, sentence
+  };
+ }
+
 
  /* The ceremony itself. Everything it can do is checked twice: once at the door, against the
     authorisation, and again on every call, against the clock and the register — because a ceremony
@@ -641,7 +989,8 @@ export class VettingVault {
    daysRemaining: daysUntil(evidence.expiresOn, at),
    awaitingSecondReviewer: evidence.risk === 'high' && (resolved === 'verified' || resolved === 'expiring') && !evidence.secondedBy,
    bootstrapped: evidence.bootstrappedAt !== null,
-   versions: evidence.id ? this.#store.countVersions(evidence.id) : 0
+   versions: evidence.id ? this.#store.countVersions(evidence.id) : 0,
+   assurance: this.#assure(evidence, at)
   };
  }
 
@@ -658,6 +1007,54 @@ export class VettingVault {
    allowed: true, reason
   });
  }
+}
+
+/**
+ * A party's standing, said in the register of confidence it has actually earned.
+ *
+ * The two sentences the brief for this layer turned on are both in here, and they are different
+ * sentences: "cleared by review, no authority confirmation" and "confirmed against the SANC
+ * register". A patient, a regulator and an investor are all entitled to the second one meaning
+ * something, and the only way it can mean something is if the first one is said out loud on the
+ * days it is true. Today it is true of every party on this platform.
+ */
+export type PartyAssurance = {
+ checks: number;
+ /** Confirmed by an issuing authority, and the confirmation is current. */
+ confirmed: number;
+ /** Asked, and the authority said something other than yes, or the answer has gone stale. */
+ unconfirmed: number;
+ /** The authority cannot be asked at all. Eleven of the twelve, today. */
+ notIntegrated: number;
+ /** A reviewer verified it and the authority disagreed. Loud, and never silently withdrawn. */
+ contradicted: number;
+ sentence: string;
+};
+
+export function partyAssurance(checks: readonly ResolvedEvidence[]): PartyAssurance {
+ let confirmed = 0, unconfirmed = 0, notIntegrated = 0, contradicted = 0;
+ const registers: string[] = [];
+ for (const check of checks) {
+  if (check.assurance.contradicts) contradicted += 1;
+  if (check.assurance.confirmed) { confirmed += 1; if (!registers.includes(check.authority)) registers.push(check.authority); }
+  else if (!check.assurance.integrated) notIntegrated += 1;
+  else unconfirmed += 1;
+ }
+ const total = checks.length;
+ /* Composed in one place and in one order: what is wrong first, then what is confirmed, then what
+    is resting on a reviewer. A sentence that leads with the good half is a sentence people quote
+    the first half of. */
+ const parts: string[] = [];
+ if (contradicted) parts.push(`${contradicted} of ${total} checks were verified by a reviewer and contradicted by the issuing authority. That has withdrawn nothing automatically and needs a reviewer to look at it.`);
+ if (!confirmed) {
+  parts.push(`Cleared by review, with no authority confirmation: all ${total} checks rest on a named reviewer having read a document the platform can still produce, and no issuing authority has confirmed any of them.`);
+ } else if (confirmed === total) {
+  parts.push(`All ${total} checks are confirmed against their issuing authorities (${registers.join(', ')}).`);
+ } else {
+  parts.push(`${confirmed} of ${total} checks are confirmed against their issuing authorities (${registers.join(', ')}). The other ${total - confirmed} rest on a named reviewer having read a document.`);
+ }
+ if (notIntegrated) parts.push(`${notIntegrated} of them are with authorities MyThuso cannot ask at all: there is no integration, so no confirmation is possible today by any means.`);
+ return { checks: total, confirmed, unconfirmed, notIntegrated, contradicted, sentence: parts.join(' ') };
 }
 
 /** SHA-256 of the plaintext, hex. Plain rather than keyed — see the note on submit(). */

@@ -74,7 +74,7 @@ if found=$(find apps/web/dist \
    && [ -n "$found" ]; then
   echo "the build output contains $found — refusing to publish it"; exit 1
 fi
-if grep -rslI -e 'MYTHUSO_AUTH_PEPPER' -e 'MYTHUSO_ENCRYPTION_KEY' -e 'MYTHUSO_PROTECTION_KEYS' -e 'BEGIN .*PRIVATE KEY' apps/web/dist 2>/dev/null | head -1 | grep -q .; then
+if grep -rslI -e 'MYTHUSO_AUTH_PEPPER' -e 'MYTHUSO_ENCRYPTION_KEY' -e 'MYTHUSO_PROTECTION_KEYS' -e 'MYTHUSO_IDENTITY_API_KEY' -e 'BEGIN .*PRIVATE KEY' apps/web/dist 2>/dev/null | head -1 | grep -q .; then
   echo "the build output mentions a secret by name — refusing to publish it"; exit 1
 fi
 

@@ -7,13 +7,13 @@ Authoritative starting points: [Information Regulator POPIA resources](https://i
 | Control | Preview now | Required before real information |
 |---|---|---|
 | Data minimisation | Fictional fixtures; memory-only state; no analytics | Purpose/field inventory, minimum collection, privacy impact assessment |
-| Identity | **Built** in `apps/api`: one-time-code sign-in, peppered hashes for codes and sessions, attempt burning, rate limits per number and per address, no account enumeration, sliding idle and hard absolute session limits, append-only auth audit, and production refusals for a weak pepper, an http origin or no SMS provider. Plus **a second factor**: TOTP (RFC 6238) on `node:crypto`, its secret encrypted at rest, enrolment inactive until a code is typed back, hashed single-use recovery codes, and a sign-in that has answered the one-time code but still owes an authenticator code holding a ten-minute challenge rather than a session. Step-up is never demanded of an account with no second factor enrolled. Plus the sign-up preview with local check-digit validation and three account-recovery routes as designed states | OIDC, Home Affairs verification through an accredited provider, clinician verification, guardian authority, device binding and an audited, reversible recovery process. **Designed, not wired:** which roles must carry a second factor derives from the vetting grants `prescribe`, `sign-clinical-review`, `dispense`, `release-lab-result` and `view-patient-record` (`apps/api/src/stepUp.ts`), and the service does not yet know about roles at all |
-| Authorisation | Twelve vetted parties, and a capability each is refused by name until its checks pass — dispatch, clinical sign-off, prescribing, dispensing, result release, sample custody, guardian access and the rest. **Built** in `apps/api/src/vetting`: the evidence vault, the lifecycle and the refusals now run on the server, and the gate resolves an actor's standing out of stored evidence on every single read, so a lapsed clearance withdraws a capability with nobody having to notice first. What is still interface-only is everything the server has no records for — patients, visits, care relationships. **And the one decision nobody reviews is now an operator act rather than a code path**: seeding the first two reviewers, who by definition have nobody to clear them, takes a signed single-use authorisation minted at a console, names the parties and the two people deciding, expires in fifteen minutes, cannot be reached from any route, and marks every check it decided as standing on it until a real reviewer decides it again | Server-side deny-by-default object/tenant/relationship checks over clinical records, which do not exist yet; an audited break-glass process (the gate's break-glass route is built and refuses to write anything at all) |
+| Identity | **Built** in `apps/api`: one-time-code sign-in, peppered hashes for codes and sessions, attempt burning, rate limits per number and per address, no account enumeration, sliding idle and hard absolute session limits, append-only auth audit, and production refusals for a weak pepper, an http origin or no SMS provider. Plus **a second factor**: TOTP (RFC 6238) on `node:crypto`, its secret encrypted at rest, enrolment inactive until a code is typed back, hashed single-use recovery codes, and a sign-in that has answered the one-time code but still owes an authenticator code holding a ten-minute challenge rather than a session. Step-up is never demanded of an account with no second factor enrolled. Plus the sign-up preview with local check-digit validation and three account-recovery routes as designed states | OIDC, **a contracted** Home Affairs verification provider — the adapter is now built (`apps/api/src/vetting/identityProvider.ts`: signed requests, a signature-verified idempotent callback, a replay window, a sandbox that runs without secrets, and a refusal to sandbox in production) and it has never spoken to a provider, because none has been contracted and no key exists — clinician verification, guardian authority, device binding and an audited, reversible recovery process. **Designed, not wired:** which roles must carry a second factor derives from the vetting grants `prescribe`, `sign-clinical-review`, `dispense`, `release-lab-result` and `view-patient-record` (`apps/api/src/stepUp.ts`), and the service does not yet know about roles at all |
+| Authorisation | Twelve vetted parties, and a capability each is refused by name until its checks pass — dispatch, clinical sign-off, prescribing, dispensing, result release, sample custody, guardian access and the rest. **Built** in `apps/api/src/vetting`: the evidence vault, the lifecycle and the refusals now run on the server, and the gate resolves an actor's standing out of stored evidence on every single read, so a lapsed clearance withdraws a capability with nobody having to notice first. What is still interface-only is everything the server has no records for — patients, visits, care relationships. **And the one decision nobody reviews is now an operator act rather than a code path**: seeding the first two reviewers, who by definition have nobody to clear them, takes a signed single-use authorisation minted at a console, names the parties and the two people deciding, expires in fifteen minutes, cannot be reached from any route, and marks every check it decided as standing on it until a real reviewer decides it again **And a credential verification layer that verifies nothing yet, and says so**: one adapter per issuing authority in `apps/api/src/vetting/authority.ts`, a closed set of outcomes in which `not-integrated` is a first-class answer rather than an error, an authority's answer recorded in its own table beside — never inside — the reviewer's decision, a party's standing that composes the sentence "cleared by review, with no authority confirmation" for as long as that is true, and a re-verification sweep (`npm run reverify -w @mythuso/api`) that is a dry run unless committed. **Twelve of the twelve authorities answer `not-integrated` today** | Server-side deny-by-default object/tenant/relationship checks over clinical records, which do not exist yet; an audited break-glass process (the gate's break-glass route is built and refuses to write anything at all); **and an actual integration with any of the twelve authorities**, eleven of which need an agreement, an accreditation or a customer account that does not exist, and the twelfth of which needs a contract with an accredited identity provider |
 | Consent | Optional switches, sharing preview, sign-up consent separated into required and optional, and spoken visit consent that records refusal as a valid outcome | Versioned purposes, lawful basis, recipient/scope/expiry, proof, withdrawal and downstream propagation |
 | Family care | Guardian invitation preview in which scope, duration and identity verification are three separate decisions, revocable, with sensitive categories excluded from every scope | Verify guardianship and delegated authority with proof; no record access merely because someone pays; a record of the child's own views as they grow older |
 | Export | Explicit export of a fictional sample | Step-up identity check, scoped export, audit, expiry and secure delivery |
 | Deletion/correction | **Built** in `apps/api`: a holdings register classifying every table `erase`/`anonymise`/`retain`, each with a plain-English ground written for the data subject and each naming a **retention basis** — what keeps it, from when, under which instrument, and whether it pulls against section 24. Disposal dates are derived from the basis and its anchor, and are *null* wherever no honest date can be worked out. The section 24 thirty-day clock runs from receipt; erasure has a seven-day grace period, an immediate sign-out and a tombstone that is unique and unreachable (RFC 2606 `.invalid`, and not a number that could be dialled); the retention sweep is a dry run unless committed. The answer names what could **not** be erased and calls it a partial refusal in that word, with the ground and the disposal date, and points at the Information Regulator. The clinical retention rules — six years from the last entry, a minor's record until twenty-one, mental health and occupational health longer again — are modelled and marked as holding nothing, because nothing clinical is held here. Acknowledgement preview on web | The clinical bases attached to actual clinical holdings, once any exist; correction as distinct from deletion; an operator queue and proof of response; and a determination by the Information Officer and counsel of every period this register currently records as MyThuso's own setting |
-| Audit | Sample access timeline including a guardian access event; append-only incident log in the Control Tower preview. **Built** in `apps/api/src/protection/audit.ts`: a hash chain keyed from the key ring, so an edited, deleted, re-ordered or forged entry is detectable and `verify()` names the first break — tamper-evident, not tamper-proof. **The vetting decision log is now that chain rather than a preview**: every enrolment, submission, verification, second reviewer, decline, suspension and detected substitution is an entry in it, and two append-only logs would have been one append-only log and one table somebody eventually tidies. The audit key is pinned to the oldest key version, so a key rotation does not make the whole log stop verifying. The bootstrap has its own kinds — `vetting.bootstrap.opened`, `.enrolled`, `.verified`, `.closed` and `.refused` — so the founding of the register, and every attempt that was turned away, is one grep rather than a reconstruction | Publishing the chain head somewhere the operator does not control, which is what turns evidence of tampering into evidence somebody else can check |
+| Audit | Sample access timeline including a guardian access event; append-only incident log in the Control Tower preview. **Built** in `apps/api/src/protection/audit.ts`: a hash chain keyed from the key ring, so an edited, deleted, re-ordered or forged entry is detectable and `verify()` names the first break — tamper-evident, not tamper-proof. **The vetting decision log is now that chain rather than a preview**: every enrolment, submission, verification, second reviewer, decline, suspension and detected substitution is an entry in it, and two append-only logs would have been one append-only log and one table somebody eventually tidies. The audit key is pinned to the oldest key version, so a key rotation does not make the whole log stop verifying. The bootstrap has its own kinds — `vetting.bootstrap.opened`, `.enrolled`, `.verified`, `.closed` and `.refused` — so the founding of the register, and every attempt that was turned away, is one grep rather than a reconstruction. So does the verification layer — `vetting.authority.answered`, `.contradiction`, `.refused`, and `vetting.identity.session.opened`, `.callback.refused`, `.callback.repeated` — so every enquiry MyThuso made of an authority, every answer including "there is no way to ask", and every forged callback is in the chain | Publishing the chain head somewhere the operator does not control, which is what turns evidence of tampering into evidence somebody else can check |
 | Encryption | **Built** in `apps/api/src/protection`: AES-256-GCM with a per-record data key wrapped under an HKDF-derived key, the record's identity in the associated data so a ciphertext cannot be moved between patients, blind indexes for search without decryption, and versioned root keys so a rotation re-wraps rather than re-encrypts. **And rotation as an operation**: `npm run rotate -w @mythuso/api` walks every registered column of sealed values, re-wraps what is on an old key in small transactions, reports what is left from an indexed `key_version` column, and is a dry run unless committed — resumable and idempotent, with no cursor to lose. Every vetting document in the service goes through it. Cleartext disabled on Android. See [Data protection](DATA-PROTECTION.md) | An HSM or KMS, split-knowledge key custody, per-patient key derivation, and re-encryption — which is what a *compromised* key needs, and which rotation is not |
 | Residence/transfers | No cloud deployment | Prefer SA regions as a project choice; assess every operator/subprocessor and cross-border transfer under section 72 and applicable prior-authorisation requirements. POPIA is not a blanket SA-only hosting rule. |
 | Clinical AI | No model or inference. Out-of-range readings are flagged against indicative adult reference ranges and labelled in the UI as not a validated early-warning score | Validated intended use, provenance, review state, model/version audit, clinician sign-off, incident monitoring; no autonomous diagnosis |
@@ -44,8 +44,9 @@ read goes through the gate, is decided against the reader's own current vetting 
 written into the hash chain before any plaintext exists; and every version carries a SHA-256 of the
 file that was submitted, so a document substituted afterwards is refused rather than shown. What is
 *not* built is any verification against an issuing authority: nothing calls SANC, HPCSA, SAPS or Home
-Affairs, there is no accredited verification provider, and "verified" in this service means a named
-reviewer looked at a document the platform can still produce and said so.
+Affairs, no verification provider has been contracted, and "verified" in this service means a named
+reviewer looked at a document the platform can still produce and said so. The section below says what
+has changed about that and, more importantly, what has not.
 
 It is enforced rather than trusted: `scripts/check-boundaries.mjs` fails the build if a clinical
 table appears in the service, if the audit table is ever updated or deleted from, or if the service
@@ -55,6 +56,87 @@ Before any health information reaches a server, the rest of this document applie
 PostgreSQL with encryption at rest and key separation, SA hosting, step-up authentication before
 records, sharing and export, an append-only clinical access log distinct from the auth log, an
 Information Officer, and a data protection impact assessment.
+
+## Verified by a reviewer, confirmed by nobody
+
+This is the largest gap between what `apps/api/src/vetting` is and what a compliance control would
+be, and it has not been closed. **Not one credential on this platform has been confirmed by the body
+that issued it.** Twelve issuing authorities appear in `packages/catalog/vetting.json`; the running
+service reports all twelve as `not-integrated`, and `GET /health/verification` counts them from the
+adapters that actually exist rather than from this paragraph.
+
+What has been built is the layer those integrations drop into, and the honesty that goes with it.
+
+**A reviewer's decision and an authority's answer are different facts, and are now different data.**
+A reviewer verifies; an authority confirms. They do not share a word, they do not share a table and
+they do not share a field: `vetting_evidence` holds what a named reviewer decided, and
+`vetting_authority_answers` holds what a register said, when, and under which enquiry reference.
+Nothing in the verification layer writes to the evidence row — structurally, not by convention — so
+an authority answer arriving on a webhook can never clear a check no person has looked at. A party's
+standing composes the sentence for it, and today that sentence reads *"Cleared by review, with no
+authority confirmation: all 8 checks rest on a named reviewer having read a document the platform can
+still produce, and no issuing authority has confirmed any of them."* When one of them is confirmed,
+the sentence will say which register said so, on what date. That is the point of writing the first
+sentence out loud.
+
+**`not-integrated` is an answer, not an error.** It is recorded as a dated fact — on this day, there
+was still no way to ask SANC — and it lands in the hash chain like every other enquiry. A check
+nobody could confirm must not look the same as one somebody did.
+
+**Every adapter says what a real integration would need.** Which body, whether a machine-readable
+route exists at all, what agreement or accreditation is required, what one enquiry costs in
+wall-clock time, and what MyThuso would have to hold. The honest summary of the eleven, from the
+adapters themselves:
+
+| Authority | What exists | What it needs |
+|---|---|---|
+| SANC, HPCSA, SAPC, SAHPRA | A public register that is a web page, and a written verification service answered by a person | A written bulk-verification arrangement per council. MyThuso is deliberately **not** scraping the public forms: a confirmation resting on somebody else's page layout goes on being asserted after it has stopped being checked |
+| SANAS | A published schedule of accreditation, per facility, as a document | The question that matters is "is this test on the schedule", which no index answers — only the schedule does |
+| SAPS | Nothing reachable from a server. The Criminal Record Centre answers on fingerprints | An accredited screening bureau or direct AFIS access under a SAPS partner agreement. Weeks, and captured in person. This is why the police-clearance check warns at forty-five days rather than fourteen |
+| CIPC | A genuine enquiry API behind a customer account | A CIPC customer code with prepaid credit. **The shortest path of the eleven** — an account and a payment rather than an agreement and an accreditation |
+| RTMC | eNaTIS, reachable only by registered users under an agreement granted for a stated purpose | Likeliest honest answer is not an integration at all but the card presented in person, which is what happens today |
+| Indemnity insurer | No central register of professional indemnity cover exists in South Africa | A confirmation arrangement per insurer or one broker across them — and the real question is whether the schedule *names telemedicine*, which is a reading rather than a lookup |
+| Issuing institution | SAQA's NLRD through a verification agency, or the records office one institution at a time | An agency account. Foreign qualifications fall outside both and go to SAQA for evaluation, which takes months |
+| MyThuso Clinical Governance (`internal`) | Nothing to integrate with — MyThuso is the authority | **Permanently `not-integrated`, on purpose.** An internal check confirmed by the platform that performed it is not independently confirmed, and marking it confirmed would be the platform vouching for itself in a field built to hold somebody else's word |
+
+**Home Affairs is the twelfth, and it is the one built.** `identityProvider.ts` implements the shape
+every accredited identity provider presents: an HMAC-signed request that opens a session, a hosted
+flow the person completes themselves, and a signed callback carrying the answer. The signature is
+verified in constant time, inside a fifteen-minute window so that a correct signature over an old
+timestamp is still refused; the callback is idempotent, guarded by the store's single write rather
+than by anything held in memory; the result codes map onto the closed set with anything unreadable
+falling to `unavailable`; and the sandbox runs the whole flow without secrets. Whether a callback
+needs a signature is decided by the session's own recorded mode, and a sandbox session cannot be
+opened by a production service, so there is no arrangement of environment variables that produces a
+signature-free callback in production. With no provider named, Home Affairs keeps its
+`not-integrated` adapter — the service says "not integrated", never "sandbox". With one named and no
+key, production refuses to start. **The identity number never passes through this service:** the
+person types it into the provider's own flow, and `vetting_identity_sessions` holds no number, no
+name and no image.
+
+**Fail closed, in the place it costs something.** An adapter that cannot reach its authority returns
+`unavailable`, never `confirmed` and never the previous answer with today's date on it. An adapter
+that throws is `unavailable` too. Treating an unreachable register as agreement is exactly how a
+lapsed registration survives a re-verification sweep.
+
+**Re-verification is a schedule, and it is a dry run unless committed.** A document going out of date
+is already handled by arithmetic on every read. This is the other failure: a registration withdrawn,
+a licence suspended, an accreditation lapsed — none of which changes the certificate in the vault and
+none of which sends anybody a letter. `npm run reverify -w @mythuso/api` lists what is owed and asks
+nobody; `--commit --as <reviewer-id>` asks. It needs a named reviewer because every enquiry goes
+through the gate and the gate decides about people: a sweep with a service identity nothing had
+vetted would be the back door the gate exists to close. An answer goes stale on the check's own
+renewal cadence, or after twelve months where it has none — **twelve is MyThuso's own setting, not
+something an Act states**, and it is recorded as such.
+
+**A contradiction is loud and withdraws nothing by itself.** Where a reviewer verified a check and
+the authority answers `not-found`, `mismatch` or `expired`, it is written into the chain as
+`vetting.authority.contradiction`, it appears in `contradictions()` and in the sweep's report, and
+the party keeps their capabilities until a reviewer suspends them by name. That is a stated choice
+with a stated cost: automatic withdrawal would mean a register that was briefly wrong, or an adapter
+that misread a response, striking nurses off the roster at three in the morning with nobody in the
+loop — and that same route would be the one an attacker reached for. Between the answer and the
+reviewer reading it, the party is still dispatchable.
 
 ## Retention against erasure
 

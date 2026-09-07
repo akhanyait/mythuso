@@ -29,6 +29,14 @@ export type Config = {
   protectionKeys: string;
   protectionKeyCurrent: string;
   protectionIndexVersion: string;
+  /* The accredited identity verification provider, if one has been contracted. Empty is the honest
+     default and the state of the platform today: with nothing named here, Home Affairs is served
+     from the not-integrated adapter and the service says so rather than sandboxing quietly. */
+  identityProvider: string;
+  identityPartnerId: string;
+  identityApiKey: string;
+  identitySandbox: boolean;
+  identityCallbackUrl: string;
 };
 export class ConfigError extends Error {}
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -75,6 +83,22 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (protectionKeys.includes(',') && !protectionIndexVersion) {
     throw new ConfigError('MYTHUSO_PROTECTION_INDEX_VERSION must name a version when more than one protection key is held');
   }
+  /* The identity provider's credentials. Refused here as well as in the adapter, because the two
+     refusals are about different things: the adapter refuses to be built without a key, and this
+     refuses a *configuration* that could only ever have been a mistake — a provider named in
+     production with nothing behind it, or a production service asked to run a sandbox. A sandboxed
+     identity check records a person as confirmed against Home Affairs when Home Affairs has never
+     been asked, and afterwards the row looks the same as a real one. */
+  const identityProvider = (env.MYTHUSO_IDENTITY_PROVIDER ?? '').trim();
+  const identityPartnerId = (env.MYTHUSO_IDENTITY_PARTNER_ID ?? '').trim();
+  const identityApiKey = (env.MYTHUSO_IDENTITY_API_KEY ?? '').trim();
+  const identitySandbox = (env.MYTHUSO_IDENTITY_SANDBOX ?? '').trim() === 'true';
+  if (production && identityProvider && !(identityPartnerId && identityApiKey)) {
+    throw new ConfigError(`MYTHUSO_IDENTITY_PROVIDER names "${identityProvider}" and there is no partner id or API key behind it. In production this refuses to start rather than falling back to a sandbox.`);
+  }
+  if (production && identitySandbox) {
+    throw new ConfigError('MYTHUSO_IDENTITY_SANDBOX cannot be enabled in production: a sandbox session answers whatever it is told to, and the answer it records is indistinguishable afterwards from one Home Affairs gave');
+  }
   const allowedOrigins = (env.MYTHUSO_ALLOWED_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
     .split(',').map(o => o.trim()).filter(Boolean);
   if (production && allowedOrigins.some(o => o.startsWith('http://'))) {
@@ -91,7 +115,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     encryptionKey,
     protectionKeys,
     protectionKeyCurrent,
-    protectionIndexVersion
+    protectionIndexVersion,
+    identityProvider,
+    identityPartnerId,
+    identityApiKey,
+    identitySandbox,
+    identityCallbackUrl: (env.MYTHUSO_IDENTITY_CALLBACK_URL ?? '').trim()
   };
 }
 export const limits = {

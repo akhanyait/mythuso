@@ -1,28 +1,85 @@
 import { useState } from 'react';
-import { ArrowRight, Check, CircleAlert, Clock3, MapPin, Radio, ShieldAlert, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { ArrowRight, Check, CircleAlert, Clock3, MapPin, Radio, Route, ShieldAlert, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { StateBlock, StatePicker, type LoadState } from '../components/States';
 import { VettingApplication } from './Vetting';
 import { can, type VettingSubject } from '../lib/vetting';
 import { seededSubjects } from '../lib/vetting-fixtures';
-type Job = { id: string; service: string; area: string; window: string; x: number; y: number; priority: 'Routine' | 'Same day' | 'Urgent' };
-type Nurse = { id: string; name: string; area: string; x: number; y: number; status: 'Available' | 'On a visit' | 'Off duty'; eta: number; skills: string[] };
+import { etaFromRoute, kmToBoxUnits, noEta, projectToSquare, provinceFor, routeUnavailable, straightLineEta,
+ type Eta, type LatLng, type MapWindow, type RouteResult } from '../../../../packages/geo/index.ts';
+type Job = { id: string; service: string; area: string; window: string; at: LatLng; priority: 'Routine' | 'Same day' | 'Urgent' };
+/* A nurse who is not sharing a position has none. That is a real state — a phone in a bag, location
+   turned off between visits — and the board has to be able to say so rather than hold a number that
+   came from nowhere. */
+type Nurse = { id: string; name: string; area: string; at: LatLng | null; status: 'Available' | 'On a visit' | 'Off duty'; skills: string[] };
+
+/* The map and the list are drawn from one set of coordinates now. Pixel positions used to be typed
+   in beside each row, which meant the picture could stop agreeing with the arrival times and nobody
+   would have anything to notice it against; a projection has only one set of numbers to be wrong
+   about. packages/geo does the arithmetic, and the same file refuses a coordinate that is not in
+   South Africa before it reaches either.
+
+   The positions are fictional and deliberately blunt — three decimal places, about a hundred
+   metres. The suburbs are real places; nobody lives at these points, and a preview has no business
+   being precise about where a person is standing. */
+const mapWindow: MapWindow = { centre: { lat: -26.172, lng: 27.992 }, spanKm: 28 };
+const plot = (p: LatLng) => projectToSquare(p, mapWindow);
 const zones = [
- { name: 'Randburg', x: 17, y: 19, r: 13 }, { name: 'Rosebank', x: 76, y: 19, r: 13 },
- { name: 'Parktown', x: 68, y: 50, r: 12 }, { name: 'Melville', x: 25, y: 50, r: 12 }, { name: 'Soweto', x: 38, y: 81, r: 14 }
-];
+ { name: 'Randburg', at: { lat: -26.094, lng: 27.999 }, radiusKm: 3.0 }, { name: 'Rosebank', at: { lat: -26.146, lng: 28.042 }, radiusKm: 2.4 },
+ { name: 'Parktown', at: { lat: -26.184, lng: 28.040 }, radiusKm: 2.2 }, { name: 'Melville', at: { lat: -26.175, lng: 27.999 }, radiusKm: 2.2 },
+ { name: 'Soweto', at: { lat: -26.249, lng: 27.908 }, radiusKm: 4.0 }
+].map(z => ({ ...z, point: plot(z.at), r: kmToBoxUnits(z.radiusKm, mapWindow) }));
 const initialJobs: Job[] = [
- { id: 'TH-2049', service: 'Wound care', area: 'Soweto', window: '11:00 – 12:00', x: 41, y: 79, priority: 'Same day' },
- { id: 'TH-2051', service: 'Vitals & chronic check', area: 'Randburg', window: '13:00 – 14:00', x: 21, y: 24, priority: 'Routine' },
- { id: 'TH-2052', service: 'Post-operative check', area: 'Parktown', window: 'As soon as possible', x: 70, y: 52, priority: 'Urgent' }
+ { id: 'TH-2049', service: 'Wound care', area: 'Soweto', window: '11:00 – 12:00', at: { lat: -26.247, lng: 27.911 }, priority: 'Same day' },
+ { id: 'TH-2051', service: 'Vitals & chronic check', area: 'Randburg', window: '13:00 – 14:00', at: { lat: -26.099, lng: 28.004 }, priority: 'Routine' },
+ { id: 'TH-2052', service: 'Post-operative check', area: 'Parktown', window: 'As soon as possible', at: { lat: -26.185, lng: 28.036 }, priority: 'Urgent' }
 ];
 const nurses: Nurse[] = [
- { id: 'N-114', name: 'Sister Naledi Mokoena', area: 'Rosebank', x: 76, y: 21, status: 'Available', eta: 18, skills: ['Wound care', 'Chronic care'] },
- { id: 'N-108', name: 'Sister Palesa Khumalo', area: 'Soweto', x: 35, y: 83, status: 'Available', eta: 9, skills: ['Wound care', 'Maternal'] },
- { id: 'N-121', name: 'Brother Sipho Ndlovu', area: 'Melville', x: 24, y: 51, status: 'On a visit', eta: 46, skills: ['Post-operative', 'Chronic care'] },
- { id: 'N-133', name: 'Sister Refilwe Sithole', area: 'Randburg', x: 15, y: 20, status: 'Available', eta: 24, skills: ['Chronic care', 'Paediatric'] },
- { id: 'N-204', name: 'Sister Ayanda Dube', area: 'Soweto', x: 44, y: 84, status: 'Available', eta: 12, skills: ['Elderly care', 'Chronic care'] }
+ { id: 'N-114', name: 'Sister Naledi Mokoena', area: 'Rosebank', at: { lat: -26.150, lng: 28.046 }, status: 'Available', skills: ['Wound care', 'Chronic care'] },
+ { id: 'N-108', name: 'Sister Palesa Khumalo', area: 'Soweto', at: { lat: -26.253, lng: 27.904 }, status: 'Available', skills: ['Wound care', 'Maternal'] },
+ { id: 'N-121', name: 'Brother Sipho Ndlovu', area: 'Melville', at: { lat: -26.171, lng: 27.995 }, status: 'On a visit', skills: ['Post-operative', 'Chronic care'] },
+ { id: 'N-133', name: 'Sister Refilwe Sithole', area: 'Randburg', at: null, status: 'Available', skills: ['Chronic care', 'Paediatric'] },
+ { id: 'N-204', name: 'Sister Ayanda Dube', area: 'Soweto', at: { lat: -26.240, lng: 27.916 }, status: 'Available', skills: ['Elderly care', 'Chronic care'] }
 ];
+const located = nurses.flatMap(n => n.at ? [{ ...n, point: plot(n.at) }] : []);
+const unlocated = nurses.filter(n => n.status !== 'Off duty' && !n.at).length;
+const province = provinceFor(mapWindow.centre)?.name ?? 'South Africa';
+
+/* No routing provider is connected, and adding one is a decision about a vendor, a key and a
+   dependency rather than a line of code. So every request for a road route comes back unavailable —
+   which is also what a real provider returns when it is rate-limited, slow or down, so this is the
+   path the board has been written against from its first day rather than the one nobody tries.
+
+   packages/geo/routing.ts holds the rule the sibling project learned the hard way: an unavailable
+   route is said to be unavailable. It is never quietly redrawn as the straight line between the two
+   points, because a line through the buildings looks exactly like a road on a map. Nothing is drawn
+   here. What the board does instead is ask a different question, by name, and print the answer with
+   its basis attached to it: how far is that in a straight line, at a speed the code can point at. */
+const routeFor = (_nurse: Nurse, _job: Job): RouteResult =>
+ routeUnavailable('No routing provider is connected in this preview.');
+function etaFor(nurse: Nurse, job: Job): Eta {
+ const measured = etaFromRoute(routeFor(nurse, job));
+ if (measured.minutes !== null) return measured;
+ /* A nurse mid-visit has a position, so a straight line would happily produce a number — and the
+    number would be a lie, because what decides the arrival is when that visit ends, and nothing
+    here knows that. An estimate with no basis is worth less than the word "estimating". */
+ if (nurse.status === 'On a visit') return noEta('On a visit. Nothing here knows when that ends, so there is nothing to estimate from.');
+ /* The coordinate layer refuses a missing position on its own, but it refuses it in its own words —
+    "no coordinate was given" is a sentence for whoever is fixing the feed, not for whoever is
+    deciding who to send. Both are true; the row gets the one an operator can act on. */
+ if (!nurse.at) return noEta('No position is being shared by this nurse’s device, so there is nothing to measure from.');
+ return straightLineEta(nurse.at, job.at, { sourceLabel: `dispatch:${nurse.id}` });
+}
+/* "Estimating" is a word rather than a dash, because an empty cell reads as nothing at all to a
+   screen reader and a dash reads as one. The basis follows on the next line in both cases, so a
+   number never appears on this board without the thing it was derived from. */
+const arrivalLine = (eta: Eta) => eta.minutes === null ? 'Arrival estimating' : `About ${eta.minutes} min away`;
+const basisLine = (eta: Eta) =>
+ eta.basis === 'straight-line' ? `Straight line over ${(eta.distanceKm ?? 0).toFixed(1)} km at ${eta.speedKmh} km/h — not a road route.`
+  : eta.basis === 'last-known-route' ? `Last measured road route, ${Math.round((eta.ageSeconds ?? 0) / 60)} min old.`
+   : eta.basis === 'route' ? 'Measured road route.'
+    : eta.reason ?? 'Nothing to estimate from.';
+
 /* The board asks the vetting module before it offers anybody. A nurse whose clearance lapsed still
    appears — hiding her would leave an operator wondering where she went — but she cannot be
    assigned, and the refusal is on the row rather than in a tooltip. */
@@ -35,11 +92,15 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
   const subject = subjects.find(s => s.name === name);
   return subject ? can(subject, 'take-visit') : { allowed: false, reason: 'No vetting record. Nobody without one is offered a visit.', blockedBy: [] };
  };
- const candidates = nurses.filter(n => n.status !== 'Off duty').map(n => ({ nurse: n, decision: gate(n.name) }))
-  .sort((a, b) => Number(b.decision.allowed) - Number(a.decision.allowed) || a.nurse.eta - b.nurse.eta);
+ /* Nearest first, and a nurse with no estimate sorts last rather than sorting as though she were
+    nought minutes away. She is still on the board and still assignable — an operator who knows she
+    is around the corner knows more than this screen does. */
+ const candidates = nurses.filter(n => n.status !== 'Off duty').map(n => ({ nurse: n, decision: gate(n.name), eta: etaFor(n, job) }))
+  .sort((a, b) => Number(b.decision.allowed) - Number(a.decision.allowed) || (a.eta.minutes ?? Infinity) - (b.eta.minutes ?? Infinity));
  const dispatchable = candidates.filter(c => c.decision.allowed && c.nurse.status === 'Available').length;
  const refused = candidates.filter(c => !c.decision.allowed).length;
- const summary = `Demonstration dispatch map of northern Johannesburg. ${initialJobs.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting. All positions are fictional.`;
+ const estimating = candidates.filter(c => c.eta.minutes === null).length;
+ const summary = `Demonstration dispatch map of northern Johannesburg, ${province}. ${initialJobs.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting${unlocated ? `, ${unlocated} not drawn because no position is being shared` : ''}. All positions are fictional.`;
  return <>
   <StatePicker label="Preview the dispatch feed state" value={state} onChange={setState}/>
   <StateBlock state={state} subject="The live dispatch feed" permission="location sharing from nurse devices" onRetry={() => setState('ready')}>
@@ -49,13 +110,14 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
      <svg className="dispatch-map" viewBox="0 0 100 100" role="img" aria-label={summary}>
       <rect width="100" height="100" className="map-ground"/>
       {[20, 40, 60, 80].map(n => <g key={n}><line x1="0" y1={n} x2="100" y2={n} className="map-grid"/><line x1={n} y1="0" x2={n} y2="100" className="map-grid"/></g>)}
-      {zones.map(z => <circle key={z.name} cx={z.x} cy={z.y} r={z.r} className="map-zone"/>)}
-      {nurses.map(n => <g key={n.id} className={`map-pin nurse ${!gate(n.name).allowed ? 'blocked' : n.status === 'Available' ? 'free' : 'busy'}`}><circle cx={n.x} cy={n.y} r="2.4"/><circle cx={n.x} cy={n.y} r="4.6" className="map-halo"/></g>)}
-      {initialJobs.map(j => <g key={j.id} className={`map-pin job ${j.id === selected ? 'selected' : ''} ${assigned[j.id] ? 'assigned' : ''}`}><rect x={j.x - 2.2} y={j.y - 2.2} width="4.4" height="4.4" rx="1.2"/>{j.id === selected && <circle cx={j.x} cy={j.y} r="7" className="map-focus"/>}</g>)}
-      {zones.map(z => <text key={z.name} x={z.x} y={z.y - z.r + 4.4} className="map-label">{z.name}</text>)}
+      {zones.map(z => <circle key={z.name} cx={z.point.x} cy={z.point.y} r={z.r} className="map-zone"/>)}
+      {located.map(n => <g key={n.id} className={`map-pin nurse ${!gate(n.name).allowed ? 'blocked' : n.status === 'Available' ? 'free' : 'busy'}`}><circle cx={n.point.x} cy={n.point.y} r="2.4"/><circle cx={n.point.x} cy={n.point.y} r="4.6" className="map-halo"/></g>)}
+      {initialJobs.map(j => { const p = plot(j.at); return <g key={j.id} className={`map-pin job ${j.id === selected ? 'selected' : ''} ${assigned[j.id] ? 'assigned' : ''}`}><rect x={p.x - 2.2} y={p.y - 2.2} width="4.4" height="4.4" rx="1.2"/>{j.id === selected && <circle cx={p.x} cy={p.y} r="7" className="map-focus"/>}</g>; })}
+      {zones.map(z => <text key={z.name} x={z.point.x} y={z.point.y - z.r + 4.4} className="map-label">{z.name}</text>)}
      </svg>
      <div className="map-key"><span><i className="key-free"/>Nurse available</span><span><i className="key-busy"/>Nurse on a visit</span><span><i className="key-blocked"/>Blocked by vetting</span><span><i className="key-job"/>Visit awaiting a nurse</span><span><i className="key-assigned"/>Assigned</span></div>
-     <p className="helper">The map is a picture of the same information in the list beside it. Everything can be dispatched from the list alone, with a keyboard.</p>
+     <p className="helper">The map is a picture of the same information in the list beside it — every pin is projected from the coordinates the arrival estimates are measured from, so the two cannot drift apart. Everything can be dispatched from the list alone, with a keyboard.</p>
+     {unlocated > 0 && <p className="helper">{unlocated === 1 ? 'One nurse has no pin, because that device is not sharing a position.' : `${unlocated} nurses have no pin, because those devices are not sharing a position.`} They are in the list with the reason given, and can still be assigned from it.</p>}
     </div>
     <div className="panel">
      <div className="section-title"><h2>Awaiting assignment</h2></div>
@@ -66,10 +128,10 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
      <div className="review-line"><span>Priority</span><strong className={job.priority === 'Urgent' ? 'flagged' : ''}>{job.priority}</strong></div>
      <div className="review-line"><span>Status</span><strong>{assigned[job.id] ? `Assigned to ${assigned[job.id]}` : 'Unassigned'}</strong></div>
      <h3 className="space-top">Nearest available nurses</h3>
-     <p className="helper" role="status">{dispatchable} cleared for dispatch{refused ? `, ${refused} refused by vetting` : ''}.</p>
-     {candidates.map(({ nurse: n, decision }) => <div className="record-row static" key={n.id}>
+     <p className="helper" role="status">{dispatchable} cleared for dispatch{refused ? `, ${refused} refused by vetting` : ''}{estimating ? `, ${estimating} with no arrival estimate` : ''}.</p>
+     {candidates.map(({ nurse: n, decision, eta }) => <div className="record-row static" key={n.id}>
       <span className={`status-dot ${n.status === 'Available' && decision.allowed ? '' : 'offline'}`}/>
-      <span><strong>{n.name}</strong><small>{n.area} · {n.status} · ETA {n.eta} min</small><small>{n.skills.join(' · ')}</small>
+      <span><strong>{n.name}</strong><small>{n.area} · {n.status} · {arrivalLine(eta)}</small><small>{basisLine(eta)}</small><small>{n.skills.join(' · ')}</small>
        {!decision.allowed && <small className="flagged">{decision.reason}</small>}</span>
       {decision.allowed
        ? <button className={assigned[job.id] === n.name ? 'secondary' : 'primary'} disabled={n.status !== 'Available'} onClick={() => setAssigned({ ...assigned, [job.id]: assigned[job.id] === n.name ? '' : n.name })}>{assigned[job.id] === n.name ? <><Check size={15}/>Assigned</> : 'Assign'}</button>
@@ -77,6 +139,7 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
      </div>)}
      <div className="privacy-note"><ShieldCheck size={19}/>Vetting is asked before a name is offered, not after. The Control Tower has no override for a lapsed clearance — there is no button here that would let one be granted.</div>
      <div className="privacy-note"><Radio size={19}/>Estimated arrival is a straight-line guess in this preview. Real dispatch weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse.</div>
+     <div className="privacy-note"><Route size={19}/>No routing provider is connected, so no road route is drawn and no arrival time is claimed from one. When one is added, a route it cannot give will be shown as unavailable rather than replaced by the straight line above.</div>
     </div>
    </div>
   </StateBlock>

@@ -37,7 +37,9 @@
 import { randomUUID } from 'node:crypto';
 import catalogue from '../../../../packages/catalog/vetting.json' with { type: 'json' };
 import type { ActorVetting, CheckRecord, SealedColumn } from '../protection/index.ts';
+import type { AuthorityOutcome } from './authority.ts';
 import type { Evidence, EvidenceVersion, Party, Risk, StoredState } from './contract.ts';
+import type { IdentitySession, IdentitySessionStore } from './identityProvider.ts';
 
 /* Structural, exactly as the audit store is: this file imports no database driver, and a test can
    hand it anything answering the same two calls. node:sqlite's DatabaseSync fits as it stands. */
@@ -83,6 +85,28 @@ CREATE INDEX IF NOT EXISTS vetting_renewal_notices_evidence ON vetting_renewal_n
 CREATE TABLE IF NOT EXISTS vetting_bootstrap_ceremonies (
  fingerprint TEXT PRIMARY KEY, opened_at INTEGER NOT NULL, expires_at INTEGER NOT NULL,
  decided_by TEXT NOT NULL, seconded_by TEXT NOT NULL, parties TEXT NOT NULL);
+/* What an issuing authority said, and when. A separate table from the evidence on purpose: a
+   reviewer's decision and an authority's answer are two different facts about one check, and a
+   column on vetting_evidence would have been one field holding both by the second week. Rows
+   accumulate rather than being overwritten — "what did the register say in March" is the same
+   question as "which document did we hold in March", and both are asked after something has gone
+   wrong. The reference is the primary key, so an enquiry recorded twice is recorded once. */
+CREATE TABLE IF NOT EXISTS vetting_authority_answers (
+ reference TEXT PRIMARY KEY, evidence_id TEXT NOT NULL, party_id TEXT NOT NULL,
+ check_id TEXT NOT NULL, authority TEXT NOT NULL, outcome TEXT NOT NULL,
+ detail TEXT NOT NULL, checked_at INTEGER NOT NULL, expires_on TEXT, asked_by TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS vetting_authority_answers_evidence ON vetting_authority_answers (evidence_id, checked_at);
+CREATE INDEX IF NOT EXISTS vetting_authority_answers_outcome ON vetting_authority_answers (outcome);
+/* One identity verification session with an accredited provider. The outcome is null until the
+   provider answers and is written exactly once — see answerIdentitySession, where the guard on that
+   single write is the whole of the callback's idempotency. Nothing about the person is in here: no
+   identity number, no name, no image. The person types their number into the provider's own flow
+   and this service never sees it. */
+CREATE TABLE IF NOT EXISTS vetting_identity_sessions (
+ reference TEXT PRIMARY KEY, evidence_id TEXT NOT NULL, party_id TEXT NOT NULL,
+ mode TEXT NOT NULL, outcome TEXT, detail TEXT,
+ opened_at INTEGER NOT NULL, answered_at INTEGER);
+CREATE INDEX IF NOT EXISTS vetting_identity_sessions_evidence ON vetting_identity_sessions (evidence_id, opened_at);
 `;
 
 /**
@@ -135,6 +159,14 @@ export type VettingStore = {
  evidenceForParty(partyId: string): Evidence[];
  /** Every verified record carrying an expiry, oldest expiry first. What the nightly sweep walks. */
  expiring(): Evidence[];
+ /**
+  * Every check an authority could be asked about: one somebody has decided, in either direction.
+  *
+  * Outstanding checks are excluded deliberately. A nurse who has not yet sent her SANC receipt owes
+  * a document, not an enquiry, and putting her on the re-verification list would bury the checks
+  * that are actually stale under the ones nobody has started.
+  */
+ evidenceOwedAuthority(): Evidence[];
  saveEvidence(evidence: Evidence): void;
  addVersion(version: EvidenceVersion, document: Uint8Array): void;
  versions(evidenceId: string): EvidenceVersion[];
@@ -150,6 +182,36 @@ export type VettingStore = {
  ceremonies(): BootstrapCeremonyRecord[];
  /** Checks still standing on a decision nobody reviewed. The question an auditor asks. */
  bootstrapped(): Evidence[];
+ /** Record one authority answer. False where that enquiry reference is already recorded. */
+ recordAuthorityAnswer(row: AuthorityAnswerRow): boolean;
+ /** The most recent answer for one check, or null where nobody has ever asked. */
+ latestAuthorityAnswer(evidenceId: string): AuthorityAnswerRow | null;
+ /** Every answer for one check, newest first. Short, and it is the history a regulator asks for. */
+ authorityAnswers(evidenceId: string): AuthorityAnswerRow[];
+ /** The most recent answer for every check that has one, for the sweep and for the standing. */
+ latestAuthorityAnswers(): AuthorityAnswerRow[];
+} & IdentitySessionStore;
+
+/**
+ * One authority answer as it is stored: the answer itself, and which check it was about.
+ *
+ * The credential that was asked about is deliberately not among the columns. See the note on
+ * Credential in authority.ts — an enquiry log that accumulated identity numbers would be the most
+ * attractive table in this database, and it would have been built for the sake of a detail nobody
+ * reads.
+ */
+export type AuthorityAnswerRow = {
+ reference: string;
+ evidenceId: string;
+ partyId: string;
+ checkId: string;
+ authority: string;
+ outcome: AuthorityOutcome;
+ detail: string;
+ checkedAt: number;
+ expiresOn: string | null;
+ /** Who asked. A sweep run by an operator names the reviewer accountable for the run. */
+ askedBy: string;
 };
 
 const asNumber = (value: unknown): number | null => value === null || value === undefined ? null : Number(value);
@@ -184,6 +246,25 @@ function toVersion(raw: unknown): EvidenceVersion {
   keyVersion: Number(row.key_version), uploadedBy: String(row.uploaded_by), uploadedAt: Number(row.uploaded_at)
  };
 }
+function toAnswer(raw: unknown): AuthorityAnswerRow {
+ const row = raw as Record<string, unknown>;
+ return {
+  reference: String(row.reference), evidenceId: String(row.evidence_id), partyId: String(row.party_id),
+  checkId: String(row.check_id), authority: String(row.authority), outcome: String(row.outcome) as AuthorityOutcome,
+  detail: String(row.detail), checkedAt: Number(row.checked_at),
+  expiresOn: asText(row.expires_on), askedBy: String(row.asked_by)
+ };
+}
+function toSession(raw: unknown): IdentitySession {
+ const row = raw as Record<string, unknown>;
+ return {
+  reference: String(row.reference), evidenceId: String(row.evidence_id), partyId: String(row.party_id),
+  mode: String(row.mode) === 'live' ? 'live' : 'sandbox',
+  outcome: row.outcome === null || row.outcome === undefined ? null : String(row.outcome) as AuthorityOutcome,
+  detail: asText(row.detail), openedAt: Number(row.opened_at), answeredAt: asNumber(row.answered_at)
+ };
+}
+const ANSWER_COLUMNS = 'reference, evidence_id, party_id, check_id, authority, outcome, detail, checked_at, expires_on, asked_by';
 const EVIDENCE_COLUMNS = 'id, party_id, role_id, check_id, authority, risk, renew_months, state, issued_on, expires_on, decided_at, decided_by, seconded_at, seconded_by, declined_reason, bootstrapped_at, created_at';
 const VERSION_COLUMNS = 'id, evidence_id, version_number, filename, bytes, content_hash, key_version, uploaded_by, uploaded_at';
 
@@ -252,6 +333,9 @@ export function openVettingStore(db: Database): VettingStore {
   expiring() {
    return db.prepare(`SELECT ${EVIDENCE_COLUMNS} FROM vetting_evidence WHERE state = 'verified' AND expires_on IS NOT NULL ORDER BY expires_on, id`).all().map(toEvidence);
   },
+  evidenceOwedAuthority() {
+   return db.prepare(`SELECT ${EVIDENCE_COLUMNS} FROM vetting_evidence WHERE state IN ('verified', 'in-review', 'submitted') ORDER BY party_id, check_id`).all().map(toEvidence);
+  },
   saveEvidence(evidence) {
    db.prepare(`UPDATE vetting_evidence SET state = ?, issued_on = ?, expires_on = ?, decided_at = ?, decided_by = ?,
     seconded_at = ?, seconded_by = ?, declined_reason = ?, bootstrapped_at = ? WHERE id = ?`)
@@ -313,6 +397,55 @@ export function openVettingStore(db: Database): VettingStore {
   },
   bootstrapped() {
    return db.prepare(`SELECT ${EVIDENCE_COLUMNS} FROM vetting_evidence WHERE bootstrapped_at IS NOT NULL ORDER BY bootstrapped_at, party_id, check_id`).all().map(toEvidence);
+  },
+  recordAuthorityAnswer(row) {
+   /* The insert is the dedupe, as it is for a renewal notice and for a bootstrap. An enquiry has
+      one reference and one answer; a second write under the same reference is the same answer
+      arriving twice, which is what a provider's retry looks like from here. */
+   if (db.prepare('SELECT reference FROM vetting_authority_answers WHERE reference = ?').all(row.reference).length) return false;
+   db.prepare(`INSERT INTO vetting_authority_answers
+    (reference, evidence_id, party_id, check_id, authority, outcome, detail, checked_at, expires_on, asked_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(row.reference, row.evidenceId, row.partyId, row.checkId, row.authority, row.outcome,
+     row.detail, row.checkedAt, row.expiresOn, row.askedBy);
+   return true;
+  },
+  latestAuthorityAnswer(evidenceId) {
+   return first(db.prepare(`SELECT ${ANSWER_COLUMNS} FROM vetting_authority_answers WHERE evidence_id = ? ORDER BY checked_at DESC, rowid DESC LIMIT 1`).all(evidenceId), toAnswer);
+  },
+  authorityAnswers(evidenceId) {
+   return db.prepare(`SELECT ${ANSWER_COLUMNS} FROM vetting_authority_answers WHERE evidence_id = ? ORDER BY checked_at DESC, rowid DESC`).all(evidenceId).map(toAnswer);
+  },
+  latestAuthorityAnswers() {
+   /* One row per check: the newest answer, by date and then by insertion order, so two answers
+      recorded in the same millisecond during a sweep still have a defined last one. */
+   return db.prepare(`SELECT ${ANSWER_COLUMNS} FROM vetting_authority_answers a WHERE a.rowid =
+    (SELECT b.rowid FROM vetting_authority_answers b WHERE b.evidence_id = a.evidence_id ORDER BY b.checked_at DESC, b.rowid DESC LIMIT 1)
+    ORDER BY a.checked_at DESC`).all().map(toAnswer);
+  },
+  openIdentitySession(session) {
+   db.prepare(`INSERT INTO vetting_identity_sessions (reference, evidence_id, party_id, mode, outcome, detail, opened_at, answered_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(session.reference, session.evidenceId, session.partyId, session.mode, session.outcome,
+     session.detail, session.openedAt, session.answeredAt);
+  },
+  findIdentitySession(reference) {
+   return first(db.prepare('SELECT * FROM vetting_identity_sessions WHERE reference = ?').all(reference), toSession);
+  },
+  latestIdentitySession(evidenceId) {
+   return first(db.prepare('SELECT * FROM vetting_identity_sessions WHERE evidence_id = ? ORDER BY opened_at DESC, rowid DESC LIMIT 1').all(evidenceId), toSession);
+  },
+  answerIdentitySession(reference, at, outcome, detail) {
+   /* Guarded on the answer still being absent, in the statement rather than around it. Two
+      callbacks racing — which is what a provider's retry on a slow response actually is — both run
+      this, and exactly one of them changes a row. The other is told, and tells the provider the
+      session is already answered rather than answering it a second time. */
+   const result = db.prepare('UPDATE vetting_identity_sessions SET outcome = ?, detail = ?, answered_at = ? WHERE reference = ? AND outcome IS NULL')
+    .run(outcome, detail, at, reference) as { changes?: number | bigint } | undefined;
+   /* The count of rows changed is the answer, not a read afterwards. A read would say "it is
+      answered, and the answer is mine" on the second retry of a callback that arrived twice within
+      the same millisecond, which is exactly the case idempotency is for. */
+   return Number(result?.changes ?? 0) === 1;
   }
  };
 }

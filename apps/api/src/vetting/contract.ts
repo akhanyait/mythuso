@@ -115,6 +115,39 @@ export type Evidence = {
  createdAt: number;
 };
 
+/**
+ * What an issuing authority has said about one check, held apart from what a reviewer decided.
+ *
+ * This is the whole point of the verification layer and it is a separate type for that reason. A
+ * check can be reviewer-verified and authority-unconfirmed — which is the state of every check on
+ * this platform today — and the two facts are never allowed to become one field that somebody
+ * eventually reads as "verified". `sentence` always says who said what.
+ */
+export type AuthorityStanding = {
+ /** The last answer, or null where nobody has asked. Null is not the same as not-integrated. */
+ answer: {
+  outcome: string;
+  checkedAt: number;
+  reference: string;
+  detail: string;
+  expiresOn: string | null;
+ } | null;
+ /** True only where an authority confirmed it and the confirmation has not gone stale. */
+ confirmed: boolean;
+ /** True where the last answer is older than the cadence, or its own stated expiry has passed. */
+ stale: boolean;
+ /**
+  * True where an authority said something a reviewer's verification cannot survive — no such
+  * registration, a mismatch, or an expiry. It does not withdraw anything by itself: see the note on
+  * contradictions in index.ts for why that is a person's decision and not this module's.
+  */
+ contradicts: boolean;
+ /** Whether this authority can be asked at all today. False for eleven of the twelve. */
+ integrated: boolean;
+ /** The sentence a person reads, which never says "verified" without saying by whom. */
+ sentence: string;
+};
+
 /** Evidence with the date applied to it. This is what every read hands back. */
 export type ResolvedEvidence = Evidence & {
  /** The catalogue's own name for the check, so a refusal reads the way the console reads. */
@@ -132,6 +165,12 @@ export type ResolvedEvidence = Evidence & {
   */
  bootstrapped: boolean;
  versions: number;
+ /**
+  * What the issuing authority said, beside — never instead of — what the reviewer decided. Carried
+  * on every read for the same reason `bootstrapped` is: a check nobody has ever confirmed that
+  * looks exactly like a confirmed one is the gap this layer was built to stop being invisible.
+  */
+ assurance: AuthorityStanding;
 };
 
 /**

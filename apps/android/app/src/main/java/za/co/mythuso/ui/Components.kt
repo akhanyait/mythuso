@@ -1,9 +1,12 @@
 package za.co.mythuso.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -29,4 +32,25 @@ import androidx.compose.ui.unit.dp
 }
 @Composable fun Note(text: String) {
     Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/**
+ * A label and a switch, and the whole row is the control. The label used to be a caption beside a
+ * target the width of a thumbnail — which is fine if you are pointing at it and hopeless if you are
+ * reading “I attest that everything I have entered is true” and then hunting for the switch. The row
+ * owns the toggle semantics and the switch is drawn rather than clicked, so a screen reader hears
+ * one control with one label instead of a stray sentence and an unnamed switch, and Enter or the
+ * D-pad centre works the same as a tap.
+ */
+@Composable fun Setting(name: String, checked: Boolean, change: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            .toggleable(value = checked, onValueChange = change, role = Role.Switch)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.width(12.dp))
+        Switch(checked, null)
+    }
 }
