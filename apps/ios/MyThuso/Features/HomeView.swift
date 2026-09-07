@@ -178,7 +178,7 @@ struct HomeView: View {
             .foregroundStyle(ThusoTheme.body)
             Divider().overlay(ThusoTheme.line)
             HStack(spacing: ThusoSpacing.space12) {
-                Text("SN").font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
+                Text("SN").accessibilityHidden(true).font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
                     .padding(ThusoSpacing.space12).background(ThusoTheme.indigoSoft, in: Circle())
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Sister Naledi Mokoena").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
@@ -340,11 +340,15 @@ struct HomeView: View {
             }
             /* Booking for somebody opens their booking, never their record. What you may see of
                another person is decided in My family, under consent, and nowhere on this screen. */
+            /* One element with the sentence as its label. `children: .combine` left the shield in the
+               tree as an element of its own, so VoiceOver read "checkmark shield" before the words
+               it decorates. */
             Label("Booking for someone opens their booking, never their record. What you may see is decided in My family.",
                   systemImage: "checkmark.shield")
                 .font(.caption).foregroundStyle(ThusoTheme.body)
                 .fixedSize(horizontal: false, vertical: true)
-                .accessibilityElement(children: .combine)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Booking for someone opens their booking, never their record. What you may see is decided in My family.")
         }
     }
 

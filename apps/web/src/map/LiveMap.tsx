@@ -166,10 +166,27 @@ export function LiveMap({ markers, summary, height = 340 }: Props) {
 
 /* The same coordinates, without a network. This is the rendering every native app draws too, and
    the one the tests measure, so the behaviour under test is behaviour a real reader can get. */
+/* A nurse is a circle and a visit is a square. Colour is never the only difference between two
+   marks on this board: a controller who cannot tell teal from amber reads the same map as everyone
+   else. Selection is a control wherever it is offered, whether or not the build has tiles. */
+function Mark({ marker, x, y }: { marker: MapMarker; x: number; y: number }) {
+ const shape = marker.kind.startsWith('visit')
+  ? <rect x={x - 2.2} y={y - 2.2} width="4.4" height="4.4" rx="1.2"/>
+  : <circle cx={x} cy={y} r="2.4"/>;
+ if (!marker.onSelect) return <g><title>{marker.label}</title>{shape}</g>;
+ return (
+  <g role="button" tabIndex={0} aria-label={marker.label} aria-pressed={Boolean(marker.selected)}
+     onClick={marker.onSelect}
+     onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); marker.onSelect!(); } }}>
+   {shape}
+  </g>
+ );
+}
+
 function Schematic({ markers, summary }: { markers: MapMarker[]; summary: string }) {
  return (
   <div className="livemap-canvas schematic">
-   <svg viewBox="0 0 100 100" role="img" aria-label={summary} preserveAspectRatio="xMidYMid slice">
+   <svg viewBox="0 0 100 100" role="img" aria-label={summary} preserveAspectRatio="xMidYMid meet">
     <rect width="100" height="100" className="map-ground"/>
     {[20, 40, 60, 80].map(n => (
      <g key={n}>
@@ -188,11 +205,7 @@ function Schematic({ markers, summary }: { markers: MapMarker[]; summary: string
      return (
       <g key={marker.id} className={`map-pin ${marker.kind}${marker.selected ? ' selected' : ''}`}>
        {marker.selected && <circle cx={p.x} cy={p.y} r="7" className="map-focus"/>}
-       {marker.onSelect
-        ? <circle cx={p.x} cy={p.y} r="2.4" role="button" tabIndex={0} aria-label={marker.label}
-                  aria-pressed={Boolean(marker.selected)} onClick={marker.onSelect}
-                  onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); marker.onSelect!(); } }}/>
-        : <circle cx={p.x} cy={p.y} r="2.4"><title>{marker.label}</title></circle>}
+       <Mark marker={marker} x={p.x} y={p.y}/>
       </g>
      );
     })}

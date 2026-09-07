@@ -244,7 +244,7 @@ struct BookingView: View {
             LabeledContent("Patient", value: patient)
             Divider().overlay(ThusoTheme.line)
             HStack(spacing: ThusoSpacing.space12) {
-                Text("SN").font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
+                Text("SN").accessibilityHidden(true).font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
                     .frame(width: 42, height: 42).background(ThusoTheme.indigoSoft, in: Circle())
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
@@ -362,7 +362,7 @@ struct VisitsView: View {
                                 if row.nurse, let visit = store.visits.first {
                                     Divider().overlay(ThusoTheme.line)
                                     HStack(spacing: ThusoSpacing.space12) {
-                                        Text("SN").font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
+                                        Text("SN").accessibilityHidden(true).font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
                                             .frame(width: 42, height: 42).background(ThusoTheme.indigoSoft, in: Circle())
                                             .accessibilityHidden(true)
                                         VStack(alignment: .leading, spacing: 2) {

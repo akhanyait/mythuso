@@ -91,3 +91,56 @@
  .livemap .mapboxgl-canvas,
  .livemap .map-marker { transition: none !important; }
 }
+
+/* ---- The schematic's marks ----
+   Keyed on the mark ids in packages/catalog/geography.json, which is also what the key beside the
+   map is built from, so a pin and its legend cannot end up describing different things. They used
+   to be a pair of composed class names in styles.css — `.map-pin.nurse.free` — and when the board
+   started reading the contract, every pin silently fell through to the same navy circle. Colour is
+   never the only difference: a nurse is a circle and a visit is a square, so the board reads the
+   same to somebody who cannot tell teal from amber. */
+.map-pin circle,
+.map-pin rect { fill: var(--faint); }
+.map-pin.nurse-free circle { fill: var(--teal-ink); }
+.map-pin.nurse-busy circle { fill: var(--faint); }
+.map-pin.nurse-blocked circle { fill: var(--danger); }
+.map-pin.visit-waiting rect { fill: var(--mango-ink); }
+.map-pin.visit-assigned rect { fill: var(--indigo); }
+
+/* Scoped inside .map-pin deliberately: the ring is a child of the pin's group, so the base fill
+   above out-specifies a bare .map-focus and was painting the ring solid — which swallowed the pin
+   it was drawn to point at, and swallowed the nurse standing next to it. */
+.map-pin .map-focus { fill: none; stroke: var(--indigo-deep); stroke-width: .7; stroke-dasharray: 2 1.6; }
+
+/* A pin is a control, so it takes focus visibly. Two rings, as everywhere else: no single colour
+   clears 3:1 against both a pale zone and a saturated one. */
+.map-pin [role='button'] { cursor: pointer; }
+.map-pin [role='button']:focus-visible {
+ outline: none;
+ stroke: var(--focus);
+ stroke-width: 1.6;
+ paint-order: stroke;
+}
+
+.livemap-canvas.schematic .map-ground { fill: var(--canvas); }
+.livemap-canvas.schematic .map-grid { stroke: var(--line); stroke-width: .4; }
+.livemap-canvas.schematic .map-zone { fill: var(--indigo-wash); stroke: var(--line); stroke-width: .4; }
+.livemap-canvas.schematic .map-label {
+ font-size: 4px;
+ fill: var(--slate);
+ text-anchor: middle;
+ font-weight: 700;
+ paint-order: stroke;
+ stroke: var(--surface);
+ stroke-width: 1.4;
+}
+
+/* ---- The key ----
+   One swatch per mark in the contract, sharing the pins' colours and the pins' shapes: round for a
+   nurse, square for a visit. The old key was five hand-written spans in Dispatch.tsx with their own
+   class names, which is how it came to be describing a green that no longer existed. */
+.key-nurse-free { background: var(--teal-ink); }
+.key-nurse-busy { background: var(--faint); }
+.key-nurse-blocked { background: var(--danger); }
+.key-visit-waiting { background: var(--mango-ink); border-radius: 2px !important; }
+.key-visit-assigned { background: var(--indigo); border-radius: 2px !important; }

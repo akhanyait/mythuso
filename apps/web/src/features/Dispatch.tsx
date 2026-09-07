@@ -8,7 +8,7 @@ import { seededSubjects } from '../lib/vetting-fixtures';
 import { etaFromRoute, noEta, provinceFor, routeUnavailable, straightLineEta,
  type Eta, type LatLng, type RouteResult } from '../../../../packages/geo/index.ts';
 import { LiveMap, type MapMarker } from '../map/LiveMap';
-import { coverage, mapWindow, suburbPin, zones } from '../lib/geography';
+import { coverage, mapWindow, marks, suburbPin, zones } from '../lib/geography';
 type Job = { id: string; service: string; area: string; window: string; at: LatLng; priority: 'Routine' | 'Same day' | 'Urgent' };
 /* A nurse who is not sharing a position has none. That is a real state — a phone in a bag, location
    turned off between visits — and the board has to be able to say so rather than hold a number that
@@ -124,7 +124,11 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
     <div className="panel map-panel">
      <div className="section-title"><h2>Live dispatch · Demo</h2><Pill><span className="status-dot"/>Fictional positions</Pill></div>
      <LiveMap markers={markers} summary={summary} height={340}/>
-     <div className="map-key"><span><i className="key-free"/>Nurse available</span><span><i className="key-busy"/>Nurse on a visit</span><span><i className="key-blocked"/>Blocked by vetting</span><span><i className="key-job"/>Visit awaiting a nurse</span><span><i className="key-assigned"/>Assigned</span></div>
+     {/* The key is the contract's list of marks, not a second list typed beside the map. The two
+         used to be written separately, and when the pins started reading the contract the key went
+         on describing colours that were no longer on the board. */}
+     <div className="map-key">{marks.filter(m => m.id !== 'zone').map(m =>
+      <span key={m.id}><i className={`key-${m.id}`}/>{m.name}</span>)}</div>
      <p className="helper">The map is a picture of the same information in the list beside it — every pin is projected from the coordinates the arrival estimates are measured from, so the two cannot drift apart. Everything can be dispatched from the list alone, with a keyboard.</p>
      {unlocated > 0 && <p className="helper">{unlocated === 1 ? 'One nurse has no pin, because that device is not sharing a position.' : `${unlocated} nurses have no pin, because those devices are not sharing a position.`} They are in the list with the reason given, and can still be assigned from it.</p>}
     </div>

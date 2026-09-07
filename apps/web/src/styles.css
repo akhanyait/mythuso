@@ -213,11 +213,6 @@ main{padding:0 18px 24px;outline:none;flex:1;min-height:0;overflow-y:auto;oversc
 .home-greeting h1{font-size:28px;letter-spacing:-1px}
 .home-greeting p{color:var(--faint);margin-top:6px;font-size:14px}
 .demo-pill{display:inline-flex;align-items:center;gap:7px;background:#ffffffbf;border:1px solid #ffffff;border-radius:999px;padding:8px 13px;font-size:13px;font-weight:600;color:var(--indigo-deep);white-space:nowrap;box-shadow:var(--shadow)}
-.hero-texture{position:absolute;inset:0;width:100%;height:100%}
-.hero-bubble{fill:var(--indigo);opacity:.07;transform-box:fill-box;transform-origin:center}
-.hero-bubble.b1,.hero-bubble.b4{fill:var(--teal);opacity:.10}
-.hero-bubble.b3{opacity:.05}
-.hero-line{fill:none;stroke:url(#hero-current);stroke-width:2.5;stroke-linecap:round;transform-box:fill-box;transform-origin:center}
 /* ---- Hero carousel ---- */
 .hero-carousel{position:relative;overflow-x:clip;overflow-y:visible}
 .hero-track{display:flex;transition:transform .55s cubic-bezier(.4,0,.2,1);touch-action:pan-y}
@@ -245,27 +240,7 @@ main{padding:0 18px 24px;outline:none;flex:1;min-height:0;overflow-y:auto;oversc
 .hero-dots button{width:8px;height:8px;border-radius:999px;background:var(--teal-mid);transition:width .25s,background .25s}
 .hero-dots button.on{width:24px;background:var(--indigo-deep)}
 .hero-play{margin-left:auto;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--body);background:#ffffffcc;border:1px solid #ffffff}
-@keyframes hero-drift{0%{transform:translate(0,0) scale(1)}30%{transform:translate(17px,-24px) scale(1.12)}62%{transform:translate(-13px,-9px) scale(.9)}100%{transform:translate(0,0) scale(1)}}
-@keyframes hero-drift-alt{0%{transform:translate(0,0) scale(1)}38%{transform:translate(-26px,15px) scale(.85)}72%{transform:translate(12px,22px) scale(1.1)}100%{transform:translate(0,0) scale(1)}}
-@keyframes hero-drift-wide{0%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,12px) scale(1.16)}100%{transform:translate(0,0) scale(1)}}
-@keyframes hero-rise{0%{transform:translate(0,18px) scale(.55);opacity:0}20%{opacity:.16}100%{transform:translate(-14px,-72px) scale(1.2);opacity:0}}
 @keyframes hero-flow{0%{transform:translateX(-42px)}50%{transform:translateX(40px)}100%{transform:translateX(-42px)}}
-.hero-bubble{animation:hero-drift 9s ease-in-out infinite}
-.hero-bubble.b1{animation:hero-drift-alt 12s ease-in-out infinite .4s}
-.hero-bubble.b2{animation-duration:14s;animation-delay:1.2s}
-.hero-bubble.b3{animation:hero-drift-wide 16s ease-in-out infinite .2s}
-.hero-bubble.b4{animation-duration:7s;animation-delay:1.8s}
-.hero-bubble.b5{animation:hero-drift-alt 11s ease-in-out infinite .9s}
-.hero-bubble.b6{animation-duration:13s;animation-delay:.6s}
-.hero-bubble.b7{animation:hero-drift-wide 8s ease-in-out infinite 1.5s}
-.hero-bubble.b8{animation:hero-drift-alt 15s ease-in-out infinite .3s}
-.hero-rising{fill:var(--indigo);opacity:0;transform-box:fill-box;transform-origin:center;animation:hero-rise 9s ease-in infinite}
-.hero-rising.r1{animation-duration:11s;animation-delay:2.4s}
-.hero-rising.r2{animation-duration:8s;animation-delay:4.6s}
-.hero-rising.r3{animation-duration:13s;animation-delay:1.2s}
-.hero-line.one{animation:hero-flow 11s ease-in-out infinite}
-.hero-line.two{animation:hero-flow 15s ease-in-out infinite 1.5s reverse}
-.hero-line.three{animation:hero-flow 19s ease-in-out infinite .8s}
 @media(min-width:700px){
  .home-backdrop{height:560px}
  .home-greeting h1{font-size:32px}
@@ -290,8 +265,6 @@ main{padding:0 18px 24px;outline:none;flex:1;min-height:0;overflow-y:auto;oversc
 }
 @media(prefers-reduced-motion:reduce){
  .hero-track{transition:none}
- .hero-bubble,.hero-line,.hero-rising{animation:none!important}
- .hero-rising{display:none}
 }
 /* ---- Catalogue / service cards ---- */
 .catalog-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px}
@@ -550,20 +523,9 @@ details.state-picker .tabs>button{min-height:34px;padding:7px 12px;font-size:13p
 .map-grid{stroke:var(--line);stroke-width:.4}
 .map-zone{fill:var(--teal-light);stroke:var(--teal-mid);stroke-width:.4}
 .map-label{font-size:3.4px;fill:var(--faint);text-anchor:middle;paint-order:stroke;stroke:var(--canvas);stroke-width:1.1;font-weight:700}
-.map-pin.nurse.free circle:first-child{fill:var(--teal)}
-.map-pin.nurse.busy circle:first-child{fill:var(--faint)}
-.map-pin.nurse.blocked circle:first-child{fill:var(--danger)}
-.map-pin.nurse.blocked .map-halo{stroke:var(--danger)}
-.map-halo{fill:none;stroke:var(--teal);stroke-width:.5;opacity:.45}
-.map-pin.nurse.busy .map-halo{stroke:var(--faint)}
-.map-pin.job rect{fill:var(--mango-ink)}
-.map-pin.job.assigned rect{fill:var(--teal)}
-.map-focus{fill:none;stroke:var(--indigo-deep);stroke-width:.7;stroke-dasharray:2 1.6}
 .map-key{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--body)}
 .map-key span{display:inline-flex;align-items:center;gap:6px}
 .map-key i{width:9px;height:9px;border-radius:50%;display:inline-block}
-.key-free{background:var(--teal)}.key-busy{background:var(--faint)}.key-blocked{background:var(--danger)}
-.key-job{background:var(--mango-ink);border-radius:2px!important}.key-assigned{background:var(--teal);border-radius:2px!important}
 
 /* ---- Roadmap / plans / family / wallet ---- */
 .module-card{text-align:left;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
@@ -1919,19 +1881,6 @@ details.state-picker>summary{color:var(--faint)}
    one who is blocked by vetting is the same danger red as every other refusal. */
 .map-zone{fill:var(--indigo);fill-opacity:.05;stroke:var(--line);stroke-width:.35}
 .map-label{fill:var(--faint)}
-.map-pin.nurse.free circle:first-child{fill:var(--teal-ink)}
-.map-pin.nurse.busy circle:first-child{fill:var(--faint)}
-.map-pin.nurse.blocked circle:first-child{fill:var(--danger)}
-.map-pin.nurse.blocked .map-halo{stroke:var(--danger)}
-.map-halo{stroke:var(--teal-ink)}
-.map-pin.nurse.busy .map-halo{stroke:var(--faint)}
-.map-pin.job rect{fill:var(--mango-ink)}
-.map-pin.job.assigned rect{fill:var(--teal-ink)}
-.key-free{background:var(--teal-ink)}
-.key-busy{background:var(--faint)}
-.key-blocked{background:var(--danger)}
-.key-job{background:var(--mango-ink)}
-.key-assigned{background:var(--teal-ink)}
 /* Square, and half of a 1440px screen is a 560px square of mostly empty grid. It is a locator, not
    the screen. */
 .dispatch-map{max-width:420px;margin:0 auto}

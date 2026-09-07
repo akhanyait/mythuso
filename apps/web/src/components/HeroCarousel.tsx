@@ -10,28 +10,6 @@ const slides = [
  { id: 'pass', photo: 'one-safe-place', art: elder, trust: [ShieldCheck, Users, Sparkles], target: 'Health Passport' },
  { id: 'nurse', photo: 'feel-better', art: nurse, trust: [ShieldCheck, Heart, Stethoscope], target: 'Book a nurse' }
 ] as const;
-/* Decoration: soft drifting bubbles and two slow currents behind the whole top of the screen.
-   aria-hidden, transform and opacity only, and stopped dead under prefers-reduced-motion. */
-export function Texture() {
- return <svg className="hero-texture" viewBox="0 0 400 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
-  <defs>
-   <linearGradient id="hero-current" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%" stopColor="#0e7c6b" stopOpacity="0"/><stop offset="50%" stopColor="#0e7c6b" stopOpacity=".22"/><stop offset="100%" stopColor="#0e7c6b" stopOpacity="0"/>
-   </linearGradient>
-  </defs>
-  <g className="hero-currents">
-   <path d="M-40 214C40 180 108 250 190 208s150-18 260-74" className="hero-line one"/>
-   <path d="M-40 258C50 232 120 276 210 244s150 6 250-52" className="hero-line two"/>
-   <path d="M-40 96C60 66 130 128 220 92s140-30 220-64" className="hero-line three"/>
-  </g>
-  <g className="hero-bubbles">
-   {[[52, 232, 34], [118, 52, 20], [236, 248, 26], [318, 74, 44], [176, 156, 13], [372, 200, 17], [16, 104, 15], [268, 128, 11], [148, 274, 22], [352, 292, 15]].map(([cx, cy, r], i) =>
-    <circle key={i} cx={cx} cy={cy} r={r} className={`hero-bubble b${i % 9}`}/>)}
-   {[[86, 296, 8], [204, 306, 6], [292, 300, 10], [346, 292, 7]].map(([cx, cy, r], i) =>
-    <circle key={`r${i}`} cx={cx} cy={cy} r={r} className={`hero-rising r${i}`}/>)}
-  </g>
- </svg>;
-}
 type Props = { navigate: (page: string) => void };
 export function HeroCarousel({ navigate }: Props) {
  const t = useT();

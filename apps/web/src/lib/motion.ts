@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 /* Motion for the public page. Three rules hold everywhere in here:
 
    1. Nothing animates that a reader has asked not to animate. Every hook checks the reduced-motion
@@ -54,51 +54,3 @@ export function useScrollProgress() {
  return state;
 }
 
-/* A number that counts up the first time you see it. The label around it is written out in full in
-   the markup, so a reader on a screen reader or with motion turned off gets the finished figure
-   rather than a number climbing under them. */
-export function useCountUp(to: number, duration = 1100) {
- const ref = useRef<HTMLSpanElement>(null);
- const [value, setValue] = useState(to);
- useLayoutEffect(() => {
-  const el = ref.current;
-  if (!el || reducedMotion() || typeof IntersectionObserver !== 'function') return;
-  setValue(0);
-  let frame = 0;
-  const observer = new IntersectionObserver(entries => {
-   if (!entries.some(e => e.isIntersecting)) return;
-   observer.disconnect();
-   const start = performance.now();
-   const step = (now: number) => {
-    const t = Math.min(1, (now - start) / duration);
-    const eased = 1 - Math.pow(1 - t, 3);
-    setValue(Math.round(to * eased));
-    if (t < 1) frame = requestAnimationFrame(step);
-   };
-   frame = requestAnimationFrame(step);
-  }, { threshold: 0.4 });
-  observer.observe(el);
-  return () => { observer.disconnect(); cancelAnimationFrame(frame); };
- }, [to, duration]);
- return [value, ref] as const;
-}
-
-/* The card under the pointer lights up from where the pointer actually is. One listener on the grid
-   rather than one per card, and it writes custom properties instead of re-rendering React. */
-export function useSpotlight<T extends HTMLElement>() {
- const ref = useRef<T>(null);
- useEffect(() => {
-  const grid = ref.current;
-  if (!grid || reducedMotion() || !matchMedia('(hover: hover)').matches) return;
-  const onMove = (event: PointerEvent) => {
-   const card = (event.target as HTMLElement).closest<HTMLElement>('article, .spotlit');
-   if (!card || !grid.contains(card)) return;
-   const box = card.getBoundingClientRect();
-   card.style.setProperty('--mx', `${event.clientX - box.left}px`);
-   card.style.setProperty('--my', `${event.clientY - box.top}px`);
-  };
-  grid.addEventListener('pointermove', onMove);
-  return () => grid.removeEventListener('pointermove', onMove);
- }, []);
- return ref;
-}
