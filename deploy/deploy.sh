@@ -74,7 +74,7 @@ if found=$(find apps/web/dist \
    && [ -n "$found" ]; then
   echo "the build output contains $found — refusing to publish it"; exit 1
 fi
-if grep -rslI -e 'MYTHUSO_AUTH_PEPPER' -e 'MYTHUSO_ENCRYPTION_KEY' -e 'BEGIN .*PRIVATE KEY' apps/web/dist 2>/dev/null | head -1 | grep -q .; then
+if grep -rslI -e 'MYTHUSO_AUTH_PEPPER' -e 'MYTHUSO_ENCRYPTION_KEY' -e 'MYTHUSO_PROTECTION_KEYS' -e 'BEGIN .*PRIVATE KEY' apps/web/dist 2>/dev/null | head -1 | grep -q .; then
   echo "the build output mentions a secret by name — refusing to publish it"; exit 1
 fi
 
@@ -151,6 +151,232 @@ ssh "$TARGET" "if systemctl is-enabled --quiet mythuso-api.service 2>/dev/null; 
     curl -sf --max-time 15 http://127.0.0.1:8787/health && echo
   else echo 'identity  not enabled (see deploy/README.md)'; fi"
 
+# ── The keys have to exist before the service does ─────────────────────────────────────────────
+#
+# Two different secrets live in /etc/mythuso/api.env and they are not interchangeable:
+#
+#   MYTHUSO_ENCRYPTION_KEY   apps/api/src/sensitive.ts — the identity service's own key, sealing a
+#                            name and a second-factor secret. One key, no versions.
+#   MYTHUSO_PROTECTION_KEYS  apps/api/src/protection/crypto.ts — the root keys of the data
+#                            protection module, as "1:<key>,2:<key>". More than one is normal: a
+#                            rotation needs the old version present or the old records do not open.
+#
+# apps/api/src/config.ts refuses to start on a malformed encryption key, and the protection module
+# refuses outright if its keys are missing — but a *missing* encryption key is not a refusal: the
+# service starts, answers /health, and turns every sealed write into a 503 that reads like a bug in
+# the application. That is a failure found days later by the first person enrolling a second factor.
+# Better to find it here, while somebody is still looking at output.
+#
+# Nothing below prints a key or passes one as an argument to anything: patterns go in over stdin so
+# they never appear in the server's process list, and only counts, verdicts and truncated
+# fingerprints come back over ssh. A fingerprint is not secret — it is how two people confirm over a
+# phone call that they hold the same key, and docs/DATA-PROTECTION.md computes it the same way.
+#
+# It runs with the whole remote script on stdin rather than as a "ssh host '...'" string, because
+# nothing in it needs a value from this side and quoting a key-handling script through two shells is
+# how a key-handling script acquires a bug.
+#
+# The result is remembered rather than acted on: a failure here must not skip the co-tenant re-check
+# below, which is the reason this script exists at all.
+say "Checking the service's key material, without reading it"
+key_failed=0
+ssh "$TARGET" bash -s <<'REMOTE' || key_failed=1
+set -uo pipefail
+env_file=/etc/mythuso/api.env
+recorded=/etc/mythuso/key.fingerprint
+problems=0
+
+# Until step 4 of deploy/README.md the correct state of this service is "not running", and a deploy
+# that failed on keys nobody has generated yet would be a deploy nobody finishes.
+if ! systemctl is-enabled --quiet mythuso-api.service 2>/dev/null; then
+  echo "keys      not checked — the identity service is not enabled (deploy/README.md)"
+  exit 0
+fi
+
+[ -f "$env_file" ] || {
+  echo "!! $env_file does not exist and mythuso-api is enabled — the service has no configuration at all"
+  exit 1
+}
+
+# A key in a file anybody on this box can read is a key five other sites can read. The remedy is not
+# only chmod: a key that has been readable has to be treated as one that was read.
+owner_mode=$(stat -c '%a %U:%G' "$env_file" 2>/dev/null || echo 'unknown')
+case "$owner_mode" in
+  '600 root:root'|'400 root:root') : ;;
+  *)
+    echo "!! $env_file is $owner_mode — it must be 0600 root:root."
+    echo "   chmod 0600 && chown root:root, and then rotate every key in it: on a box shared with"
+    echo "   five other sites a readable key file is a disclosed key. docs/DATA-PROTECTION.md."
+    exit 1 ;;
+esac
+
+# ── Helpers. None of them print key material. ─────────────────────────────────────────────────
+value_of() { # <NAME> -> the value, whitespace and surrounding quotes removed
+  local v; v=$(sed -n "s/^$1=//p" "$env_file" | tail -1 | tr -d '[:space:]')
+  v=${v%\"}; v=${v#\"}; v=${v%\'}; v=${v#\'}
+  printf '%s' "$v"
+}
+key_bytes() { # material on stdin -> byte count
+  local m; m=$(cat)
+  if printf '%s' "$m" | grep -qE '^[0-9a-fA-F]{64}$'; then echo 32
+  else printf '%s' "$m" | base64 -d 2>/dev/null | wc -c | tr -d ' '; fi
+}
+fingerprint_of() { printf '%s' "$1" | sha256sum | cut -c1-16; }
+leaked() { # material -> true if it appears where it must never be
+  printf '%s\n' "$1" | grep -rqaFf - /var/www/mythuso /var/backups/mythuso 2>/dev/null
+}
+note_fingerprint() { # <name> <fingerprint>
+  local was; was=$(sed -n "s/^$1 //p" "$recorded" 2>/dev/null | tail -1)
+  if [ -z "$was" ]; then
+    printf '%s %s\n' "$1" "$2" >> "$recorded"; chmod 0644 "$recorded"
+  elif [ "$was" != "$2" ]; then
+    # Not a failure: a rotation changes this legitimately, and a deploy that refused after every
+    # rotation would teach everybody to delete the file. A change nobody performed is the finding.
+    echo "!! $1 has CHANGED on this host since the last deploy ($was -> $2)."
+    echo "   If you rotated it, update the line in $recorded. If you did not, this is the suspicion"
+    echo "   case in docs/DATA-PROTECTION.md — stop and investigate before deploying again."
+  fi
+}
+
+# ── The identity service's own key ────────────────────────────────────────────────────────────
+key=$(value_of MYTHUSO_ENCRYPTION_KEY)
+if [ -z "$key" ]; then
+  echo "!! MYTHUSO_ENCRYPTION_KEY is not set in $env_file."
+  echo "   The service will start, answer /health, and refuse every write that needs sealing —"
+  echo "   which looks like an application bug rather than a missing key. Generate one by the"
+  echo "   ceremony in docs/DATA-PROTECTION.md, with a second copy, before enabling the service."
+  problems=$((problems + 1))
+else
+  case "$key" in
+    '<'*|changeme*|REPLACE*|xxx*)
+      echo "!! MYTHUSO_ENCRYPTION_KEY is still the placeholder text from deploy/README.md"
+      problems=$((problems + 1)) ;;
+    *)
+      bytes=$(printf '%s' "$key" | key_bytes)
+      if [ "${bytes:-0}" != "32" ]; then
+        echo "!! MYTHUSO_ENCRYPTION_KEY is not 32 bytes — it decodes to ${bytes:-0}. The service will not start."
+        echo "   Generate one with: openssl rand -hex 32"
+        problems=$((problems + 1))
+      elif leaked "$key"; then
+        echo "!! MYTHUSO_ENCRYPTION_KEY appears in a file under /var/www/mythuso or /var/backups/mythuso."
+        echo "   The web root is served to the public internet and the backups are the database this"
+        echo "   key opens. Treat it as disclosed and rotate, then find what put it there."
+        problems=$((problems + 1))
+      else
+        # Two secrets that protect different things and are rotated on different occasions.
+        # Rotating the pepper signs everybody out; rotating this re-seals records.
+        pepper=$(value_of MYTHUSO_AUTH_PEPPER)
+        if [ -n "$pepper" ] && [ "$pepper" = "$key" ]; then
+          echo "!! MYTHUSO_AUTH_PEPPER and MYTHUSO_ENCRYPTION_KEY are the same value — they must not be"
+          problems=$((problems + 1))
+        fi
+        echo "identity  key present, 32 bytes, fingerprint $(fingerprint_of "$key")"
+        note_fingerprint encryption "$(fingerprint_of "$key")"
+      fi ;;
+  esac
+fi
+
+# ── The data protection module's root keys ────────────────────────────────────────────────────
+#
+# Required only when the code actually on this box reads them. The module is being written and is
+# not wired into config.ts yet; a deploy that demanded keys for a module nobody has enabled would be
+# a deploy that gets worked around. The trigger is the deployed source, not a date in a document.
+protection=$(value_of MYTHUSO_PROTECTION_KEYS)
+if grep -rqs 'MYTHUSO_PROTECTION_KEYS' /opt/mythuso/api/src 2>/dev/null; then wanted=1; else wanted=0; fi
+
+if [ -z "$protection" ] && [ "$wanted" = 0 ]; then
+  echo "protection  no MYTHUSO_PROTECTION_KEYS, and nothing deployed reads them yet"
+elif [ -z "$protection" ]; then
+  echo "!! the deployed service reads MYTHUSO_PROTECTION_KEYS and $env_file does not set it."
+  echo "   Everything that module protects is special personal information and it has no fallback:"
+  echo "   it will refuse rather than store anything in the clear. Generate the first version by the"
+  echo '   ceremony in docs/DATA-PROTECTION.md, which appends it without ever printing it.'
+  problems=$((problems + 1))
+else
+  # "1:<key>,2:<key>", and a bare key means version 1. The module refuses to start on every fault
+  # below; these are checked here anyway, because the module's refusal happens at the next restart
+  # and this happens while a person is watching.
+  versions=''
+  materials=''
+  bad=0
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    case "$entry" in
+      *:*) v=${entry%%:*}; m=${entry#*:} ;;
+      *)   v=1;            m=$entry ;;
+    esac
+    if ! printf '%s' "$v" | grep -qE '^[0-9]+$' || [ "$v" -lt 1 ] || [ "$v" -gt 65535 ]; then
+      echo "!! MYTHUSO_PROTECTION_KEYS has a key numbered '$v' — versions are whole numbers 1 to 65535"
+      bad=1; continue
+    fi
+    case " $versions " in *" $v "*)
+      echo "!! MYTHUSO_PROTECTION_KEYS lists version $v twice — which one seals is not left to ordering"
+      bad=1; continue ;;
+    esac
+    b=$(printf '%s' "$m" | key_bytes)
+    if [ "${b:-0}" != "32" ]; then
+      echo "!! the protection key for version $v is not 32 bytes — it decodes to ${b:-0}"
+      bad=1; continue
+    fi
+    f=$(fingerprint_of "$m")
+    case " $materials " in *" $f "*)
+      echo "!! two protection key versions hold the same material — rotating to the same secret rotates nothing"
+      bad=1; continue ;;
+    esac
+    if [ -n "$key" ] && [ "$m" = "$key" ]; then
+      echo "!! protection key version $v is the same value as MYTHUSO_ENCRYPTION_KEY. They protect"
+      echo "   different things and one of them is rotated by re-wrapping records; sharing a secret"
+      echo "   means neither can be rotated without the other's consequences."
+      bad=1; continue
+    fi
+    if leaked "$m"; then
+      echo "!! protection key version $v appears under /var/www/mythuso or /var/backups/mythuso —"
+      echo "   treat it as disclosed and read the compromise section of docs/DATA-PROTECTION.md"
+      bad=1; continue
+    fi
+    versions="$versions $v"
+    materials="$materials $f"
+    note_fingerprint "protection.v$v" "$f"
+    echo "protection  version $v present, 32 bytes, fingerprint $f"
+  done <<EOF
+$(printf '%s' "$protection" | tr ',' '\n')
+EOF
+
+  # Both of these are answered from the versions the loop above accepted, so a version whose key was
+  # malformed is not also reported as "not configured" — one fault, one sentence.
+  have_version() { case " $versions " in *" $1 "*) return 0 ;; *) return 1 ;; esac; }
+  count=$(printf '%s' "$versions" | wc -w | tr -d ' ')
+
+  # Blind indexes are computed under one version and default to the LOWEST configured — so retiring
+  # the oldest key silently moves them and every existing index stops matching. Pinning the version
+  # explicitly is what makes that a decision rather than a side effect of a rotation.
+  index_version=$(value_of MYTHUSO_PROTECTION_INDEX_VERSION)
+  if [ -n "$index_version" ]; then
+    if ! have_version "$index_version"; then
+      echo "!! MYTHUSO_PROTECTION_INDEX_VERSION is $index_version and no key of that version is"
+      echo "   configured. Every existing blind index would stop matching."
+      bad=1
+    fi
+  elif [ "${count:-0}" -gt 1 ]; then
+    echo "!! more than one protection key version and no MYTHUSO_PROTECTION_INDEX_VERSION."
+    echo "   Blind indexes default to the lowest version configured, so retiring the oldest key will"
+    echo "   silently move them and every index will stop matching. Pin it before retiring anything."
+  fi
+
+  current=$(value_of MYTHUSO_PROTECTION_KEY_CURRENT)
+  if [ -n "$current" ] && ! have_version "$current"; then
+    echo "!! MYTHUSO_PROTECTION_KEY_CURRENT is $current and no key of that version is configured."
+    echo "   New writes would be sealed under a key this server does not hold. That is a rotation"
+    echo "   made current before its key was added — docs/DATA-PROTECTION.md has the abort."
+    bad=1
+  fi
+
+  [ "$bad" = 0 ] || problems=$((problems + 1))
+fi
+
+[ "$problems" = 0 ] || exit 1
+REMOTE
+
 say "Re-checking the sites that must not change"
 after=$(statuses)
 echo "$after"
@@ -169,6 +395,15 @@ if [ "$before" != "$after" ]; then
   exit 1
 fi
 
+# Held back until the co-tenant re-check above had run, because that check is the point of this
+# script and a key problem of ours is no reason to skip it.
+if [ "$key_failed" = 1 ]; then
+  echo; echo "!! The identity service's key material did not pass. Nothing above was rolled back —" >&2
+  echo "   the site is published and the neighbours are unchanged — but the service is running" >&2
+  echo "   without a key it can seal with. See docs/DATA-PROTECTION.md." >&2
+  exit 1
+fi
+
 cat <<NOTE
 
 Published to $HOST on $TARGET. Co-hosted sites unchanged.
@@ -179,4 +414,6 @@ Still yours to do:
   3. The timers, once: ssh $TARGET "systemctl enable --now mythuso-healthcheck.timer"
      (the backup timer waits for the identity service — it has nothing to back up before then)
   4. Only then the identity service — see deploy/README.md. It must not be reachable over http.
+     Its keys are their own step, each with a second copy, before the service is enabled:
+     docs/DATA-PROTECTION.md. Once the unit is enabled this deploy checks them on every run.
 NOTE

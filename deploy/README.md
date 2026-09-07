@@ -39,6 +39,7 @@ That check is the point of the script. Do not skip it by running the steps by ha
 | `/assets/` | Hashed bundles, cached for a year; HTML is never cached |
 | `/opt/mythuso/ops` | The scheduled jobs and their systemd units, reinstalled on every deploy |
 | `/etc/mythuso/host.env` | The host the health check should be asking about, written by the deploy |
+| `/etc/mythuso/key.fingerprint` | One `name fingerprint` line per key this host holds. Not the keys, and not secret — it is how a key that changed without anybody rotating it becomes visible |
 
 ### What may never be deployed
 
@@ -77,7 +78,27 @@ doing it.
 refusing connections, nginx serving a stale upstream, or a certificate about to expire — all of
 which leave every unit `active` while the person trying to book a nurse sees nothing. So the check
 asks, from the box: does the public page answer, is the certificate still valid, is the identity
-service healthy, is there disk left, and did last night's backup happen.
+service healthy, is there disk left, did last night's backup happen, and does the audit chain still
+verify.
+
+That last one is not an availability question and it is on this list anyway. The access log is
+append-only by grant, which means somebody with database access can rewrite it; the hash chain is
+what makes that discoverable, because an edited or deleted entry breaks the chain from that point
+and `verify()` names the first entry that no longer follows. A broken chain is either corruption or
+somebody editing the record of who read what, it is invisible to anybody reading rows, and it is
+exactly the thing worth waking a person for. The check asks the service's own endpoint over the
+loopback rather than opening the database itself — root opening a WAL database leaves root-owned
+sidecar files the service then cannot write, which is how a health check causes the outage it was
+installed to catch.
+
+It also keeps a ratchet. A chain can verify perfectly after tampering, if whoever did it recomputed
+every hash forward from the point they edited; what that cannot do is make the log longer again. So
+the entry count is remembered in `/var/lib/mythuso/health/audit-length` and is never allowed to go
+down. It catches the operator who did not think of it and not the one who edits that file too, and
+[Data protection](../docs/DATA-PROTECTION.md#the-threat-model) says so rather than implying more.
+The endpoint does not exist yet, and a 404 is reported as a note rather than an alert — a check that
+complained every five minutes about a module nobody has merged would be switched off, taking the
+rest of the file with it.
 
 It **alerts on the second consecutive failure, and once**. A single timed-out curl at 3am is a blip,
 and an alert that cries wolf is one nobody reads. It says so again when things recover.
@@ -117,10 +138,15 @@ What they are not:
   `npm run check` refuses on the source.
 - **Not off-site.** They sit on the same disk as the database, which protects against corruption and
   not at all against losing the server.
-- **Not the encryption key.** `MYTHUSO_ENCRYPTION_KEY` lives in `/etc/mythuso/api.env`, deliberately
-  nowhere near the database it protects — so restoring an archive without it gives back sealed values
-  nobody can open. Keep a copy of the key somewhere that is not this server. Nothing here can do that
-  for you.
+- **Not the keys.** `MYTHUSO_ENCRYPTION_KEY` and `MYTHUSO_PROTECTION_KEYS` live in
+  `/etc/mythuso/api.env`, deliberately nowhere near the database they protect — so restoring an
+  archive without them gives back sealed values nobody can open. Keep a copy of the key somewhere that is not this server;
+  [Data protection](../docs/DATA-PROTECTION.md#the-key-ceremony) is how. Nothing here can do that for
+  you, and nothing here will notice that you did not. The converse *is* checked: before it compresses
+  anything, the backup searches the fresh snapshot for each key's own characters — every protection
+  key version separately — and deletes the snapshot rather than keeping it if any of them is there. A backup containing the key that opens it is a
+  backup with no encryption at all, and configuration finding its way into a table is the ordinary
+  way that happens.
 - **Not "forgotten".** Erasure runs on a seven-day grace and archives are kept fourteen days, so
   somebody erased today is still in the oldest archive for a fortnight afterwards. That is a
   proportionate retention period and it is a fortnight, not gone.
@@ -152,12 +178,52 @@ To turn it on, in this order:
    while the service was running still needs `systemctl restart mythuso-api` to take effect, and the
    deploy says so when that happens.
 
-5. **Configure it** — `/etc/mythuso/api.env`, readable only by root:
+5. **The keys, before anything is configured to use them.** They are their own step, and they come
+   before the service runs, because a key generated in a hurry at step eight is a key with no second
+   copy — and a key with no second copy is a platform one lost server away from losing every sealed
+   value permanently. There are two, and they must be different values:
+
+   - `MYTHUSO_ENCRYPTION_KEY` is the identity service's own, sealing a name and a second-factor
+     secret in `apps/api/src/sensitive.ts`. One key, no versions.
+   - `MYTHUSO_PROTECTION_KEYS` is the data protection module's root keys, written as
+     `1:<key>,2:<key>` and read by `apps/api/src/protection/crypto.ts`. More than one version is the
+     normal state during a rotation, not an exception.
+
+   The full procedure — who is present, how the second copy is made and where it is kept — is
+   [Data protection](../docs/DATA-PROTECTION.md#the-key-ceremony). The short version, on the box, in
+   the room, with a second person watching:
+
+   ```sh
+   umask 077
+   touch /etc/mythuso/api.env && chown root:root /etc/mythuso/api.env && chmod 0600 /etc/mythuso/api.env
+   printf 'MYTHUSO_ENCRYPTION_KEY=%s\n'    "$(openssl rand -hex 32)" >> /etc/mythuso/api.env
+   printf 'MYTHUSO_PROTECTION_KEYS=1:%s\n' "$(openssl rand -hex 32)" >> /etc/mythuso/api.env
+   ```
+
+   Neither key is ever typed and neither is ever printed, so neither is in shell history, on the
+   screen, or in a command line anybody can read with `ps`. `printf` is a builtin, which is the whole
+   reason it is written this way.
+
+   Then take the fingerprints — sixteen characters that identify a key without disclosing it, and the
+   thing you write in the register and read out over a phone call:
+
+   ```sh
+   sed -n 's/^MYTHUSO_ENCRYPTION_KEY=//p' /etc/mythuso/api.env | tail -1 | tr -d "\"' \n" \
+     | sha256sum | cut -c1-16
+   ```
+
+   [Data protection](../docs/DATA-PROTECTION.md#where-the-keys-live-and-where-they-must-never-live)
+   has the equivalent for each protection key version. Then make the second copies. Nothing on this
+   server, and nothing in this repository, can do that part for you or tell you afterwards that you
+   skipped it.
+
+6. **Configure the rest of it** — the same `/etc/mythuso/api.env`, still `0600 root:root`:
 
    ```
    MYTHUSO_ENV=production
    MYTHUSO_AUTH_PEPPER=<64 random characters, never committed>
-   MYTHUSO_ENCRYPTION_KEY=<32 bytes: openssl rand -hex 32 — losing it loses every sealed value>
+   MYTHUSO_ENCRYPTION_KEY=<already there, from step 5 — do not retype it>
+   MYTHUSO_PROTECTION_KEYS=<already there, from step 5 — do not retype it>
    MYTHUSO_SMS_PROVIDER=<provider>
    MYTHUSO_ALLOWED_ORIGINS=https://<host>
    MYTHUSO_DB=/var/lib/mythuso/identity.db
@@ -165,15 +231,61 @@ To turn it on, in this order:
    ```
 
    A weak pepper, an `http` origin, a missing provider, or the development setting that returns
-   codes in the response will each stop the service from starting. That is the point of them.
+   codes in the response will each stop the service from starting. That is the point of them. A
+   malformed encryption key does the same. A *missing* one does not — the service starts and refuses
+   the writes that need sealing, which is why the deploy checks for it separately.
 
-6. **Uncomment the `/api/` block** in the nginx site, `nginx -t`, reload.
-7. `systemctl enable --now mythuso-api`
-8. `systemctl enable --now mythuso-backup.timer` — there is now something worth backing up, and the
+7. **Uncomment the `/api/` block** in the nginx site, `nginx -t`, reload.
+8. `systemctl enable --now mythuso-api`
+9. `systemctl enable --now mythuso-backup.timer` — there is now something worth backing up, and the
    health check starts asking whether it happened.
+10. **Deploy again**, and read the `identity` and `protection` lines. Only once the unit is enabled
+    does the deploy check the keys at all; that run is the confirmation that they are present, thirty-
+    two bytes, in a file only root can read, and nowhere they should not be.
 
 Rotating the pepper signs everyone out, because every stored session digest stops matching. That is
-the intended behaviour, not a side effect.
+the intended behaviour, not a side effect. Rotating a protection key is a different and much more
+careful operation, and it is [written up separately](../docs/DATA-PROTECTION.md#rotation) — the two
+rules worth carrying here are that a rotation only ever *adds* a key version, and that no key is
+ever removed on the same day one is added.
+
+### What the deploy checks about the keys
+
+Once `mythuso-api` is enabled, every deploy asks the server about the keys and refuses to finish if
+the answer is wrong. About `/etc/mythuso/api.env`: that it exists and is `0600 root:root`. About
+`MYTHUSO_ENCRYPTION_KEY`: that it is set, thirty-two bytes, not still the placeholder above, and not
+the same value as the pepper. About `MYTHUSO_PROTECTION_KEYS`: that every version is thirty-two
+bytes, that no version is listed twice, that no two versions hold the same material — a rotation to
+the same secret rotates nothing — that none of them is the identity service's key, and that
+`MYTHUSO_PROTECTION_KEY_CURRENT` and `MYTHUSO_PROTECTION_INDEX_VERSION` each name a version this
+server actually holds. And about both: that the key material does not appear anywhere under
+`/var/www/mythuso`, which nginx serves to the public internet, or `/var/backups/mythuso`, which is
+the database those keys open.
+
+Two of them are advice rather than refusals, because they have legitimate causes. A fingerprint that
+has changed since the last deploy is reported loudly and not failed — a rotation you performed is a
+line to update in `/etc/mythuso/key.fingerprint`, and a change nobody performed is exactly the thing
+you wanted to be told about. And more than one protection key version with no
+`MYTHUSO_PROTECTION_INDEX_VERSION` pinned is a warning, because blind indexes default to the *lowest*
+version configured: retiring the oldest key would silently move them and every index would stop
+matching, which is a search that returns nothing rather than an error.
+
+The protection keys are required only when the source actually deployed under `/opt/mythuso/api`
+mentions them. The module is not wired into `config.ts` yet, and a deploy that demanded keys for
+something nobody has enabled is a deploy that gets worked around; binding the requirement to the
+deployed code means it starts being enforced on the deploy after that wiring lands, with nobody
+having to remember.
+
+None of it prints a key. Patterns go to the server over stdin so key material is never in a process
+list, and what comes back is a verdict, a byte count and a fingerprint. The check runs after the
+co-tenant re-check, so a key problem of ours never skips the check that protects the other five
+sites.
+
+The missing-key case is why this exists as a separate check rather than being left to the service.
+A production service with no `MYTHUSO_ENCRYPTION_KEY` starts cleanly and answers `/health`; it then
+refuses every write that needs sealing, with a 503 that reads like an application bug. That is a
+failure discovered by the first person trying to enrol a second factor, days later. The deploy finds
+it while somebody is still looking at the output.
 
 ## What this host already runs
 

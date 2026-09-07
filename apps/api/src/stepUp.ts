@@ -42,7 +42,12 @@ export const SECOND_FACTOR_CAPABILITIES = [
  'sign-clinical-review',
  'dispense',
  'release-lab-result',
- 'view-patient-record'
+ 'view-clinical-record',
+ 'view-protected-record',
+ /* An operator opens no clinical record at all — that is the design. They can send a named nurse to
+    a named address, which packages/catalog/vetting.json calls the most sensitive thing this platform
+    does, and that is reason enough on its own. */
+ 'dispatch-nurses'
 ] as const;
 
 /** Why each one, in the words that would be given to the person it applies to. */
@@ -51,7 +56,9 @@ export const SECOND_FACTOR_REASONS: Record<string, string> = {
  'sign-clinical-review': 'A signed decision is attributed to you and to your registration number. It has to be provable that it was you.',
  'dispense': 'Handing over a scheduled medicine is recorded against your pharmacy.',
  'release-lab-result': 'Releasing a result sends somebody their own health information, and there is no taking it back.',
- 'view-patient-record': 'Opening a Health Passport is reading another person\'s health information.'
+ 'view-clinical-record': 'Opening a clinical record is reading another person\'s health information.',
+ 'dispatch-nurses': 'Assigning a nurse sends a real person to a real home. Somebody using your account could choose both.',
+ 'view-protected-record': 'A protected category is released by the patient one entry at a time. Reading one is the single act on this platform most likely to cause harm if it were not you.'
 };
 
 export const requiresSecondFactor = (grants: readonly string[]): boolean =>

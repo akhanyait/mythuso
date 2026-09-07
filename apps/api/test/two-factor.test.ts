@@ -213,7 +213,7 @@ describe('who must carry one', () => {
     for (const role of ['courier', 'sponsor']) {
       assert.equal(requiresSecondFactor(grantsFor(role)), false, `${role} neither signs nor reads a record`);
     }
-    assert.deepEqual(capabilitiesNeedingSecondFactor(grantsFor('doctor')).sort(), ['prescribe', 'sign-clinical-review', 'view-patient-record']);
+    assert.deepEqual(capabilitiesNeedingSecondFactor(grantsFor('doctor')).sort(), ['prescribe', 'sign-clinical-review', 'view-clinical-record', 'view-protected-record']);
   });
 });
 
@@ -222,7 +222,7 @@ describe('the rule from the 2026-08-29 lockout', () => {
      it, and a correct sign-in bricked itself a tenth of a second later. */
   test('nothing is ever demanded of an account with nothing to answer with', () => {
     for (const action of ['capability', 'second-factor.disable', 'account.erasure'] as const) {
-      for (const grants of [[], ['prescribe'], ['sign-clinical-review', 'view-patient-record']]) {
+      for (const grants of [[], ['prescribe'], ['sign-clinical-review', 'view-clinical-record']]) {
         const decision = decideStepUp({ action, enrolled: false, grants });
         assert.equal(decision.demand, false, `${action} with grants ${grants.join()} demanded the impossible`);
       }

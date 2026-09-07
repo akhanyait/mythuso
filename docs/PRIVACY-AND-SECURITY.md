@@ -13,8 +13,8 @@ Authoritative starting points: [Information Regulator POPIA resources](https://i
 | Family care | Guardian invitation preview in which scope, duration and identity verification are three separate decisions, revocable, with sensitive categories excluded from every scope | Verify guardianship and delegated authority with proof; no record access merely because someone pays; a record of the child's own views as they grow older |
 | Export | Explicit export of a fictional sample | Step-up identity check, scoped export, audit, expiry and secure delivery |
 | Deletion/correction | **Built** in `apps/api`: a holdings register classifying every table `erase`/`anonymise`/`retain`, each with a plain-English ground written for the data subject; the section 24 thirty-day clock running from receipt; erasure with a seven-day grace period, an immediate sign-out and a tombstone that is unique and unreachable (RFC 2606 `.invalid`, and not a number that could be dialled); a retention sweep that is a dry run unless committed. The append-only audit log is never rewritten, so entries made before an erasure still carry the number — the register says so in the answer. Acknowledgement preview on web | Same register extended to clinical holdings, which do not exist yet; legally required clinical retention periods; correction as distinct from deletion; an operator queue and proof of response |
-| Audit | Sample access timeline including a guardian access event; append-only incident log in the Control Tower preview; an append-only vetting decision log recording who decided, when, on what evidence and what changed. All of it in memory, and gone on reload | Append-only access/decision logs with integrity, restricted retention and no full clinical payloads |
-| Encryption | **Built** in `apps/api`: AES-256-GCM at rest for the name and the second-factor secret, a random IV per record, a magic-byte envelope so anything written before it existed still reads back, the key from `MYTHUSO_ENCRYPTION_KEY` and validated at start-up, and a production server with no key refusing the write rather than storing it in the clear. Altered bytes fail to decrypt rather than decrypting to something else. Elsewhere: no connected backend; cleartext disabled on Android | **Key rotation does not exist** — one key, no re-sealing migration. TLS; managed KMS/envelope encryption; key separation; encrypted backups; storage access policies |
+| Audit | Sample access timeline including a guardian access event; append-only incident log in the Control Tower preview; an append-only vetting decision log. **Built** in `apps/api/src/protection/audit.ts`: a hash chain keyed from the key ring, so an edited, deleted, re-ordered or forged entry is detectable and `verify()` names the first break — tamper-evident, not tamper-proof | Publishing the chain head somewhere the operator does not control, which is what turns evidence of tampering into evidence somebody else can check |
+| Encryption | **Built** in `apps/api/src/protection`: AES-256-GCM with a per-record data key wrapped under an HKDF-derived key, the record's identity in the associated data so a ciphertext cannot be moved between patients, blind indexes for search without decryption, and versioned root keys so a rotation re-wraps rather than re-encrypts. Cleartext disabled on Android. See [Data protection](DATA-PROTECTION.md) | An HSM or KMS, split-knowledge key custody, per-patient key derivation, and re-encryption — which is what a *compromised* key needs, and which rotation is not |
 | Residence/transfers | No cloud deployment | Prefer SA regions as a project choice; assess every operator/subprocessor and cross-border transfer under section 72 and applicable prior-authorisation requirements. POPIA is not a blanket SA-only hosting rule. |
 | Clinical AI | No model or inference. Out-of-range readings are flagged against indicative adult reference ranges and labelled in the UI as not a validated early-warning score | Validated intended use, provenance, review state, model/version audit, clinician sign-off, incident monitoring; no autonomous diagnosis |
 | Devices | No device access. The permission-denied state is designed, and declining never blocks a visit | Applicable registration/exemption assessment, validated readings, signed firmware and secure pairing |
@@ -43,6 +43,26 @@ Information Officer, and a data protection impact assessment.
 No backend calls, analytics or external media dependencies are included. The browser’s fixture state is not written to localStorage, sessionStorage or IndexedDB. Web CSP disallows objects, off-origin scripts and form submission; inline styles remain allowed for presentation. Production must supply HTTP security headers (including CSP frame-ancestors, HSTS, Permissions-Policy and Referrer-Policy) at the hosting layer. The development CSP allows same-host WebSocket connections for Vite.
 
 Android denies cleartext and disables backup; no network or sensitive permissions are declared. SwiftUI/Compose implement screens directly. The no-WebView gate scans native source; it does not replace an audit of future third-party binary SDKs. No production credentials or private proposal contents are copied into public web assets. The catalogue and branding intentionally appear in the UI; deployment is not authorised or performed by this work.
+
+## The gate
+
+Every read of protected information goes through one function in `apps/api/src/protection/gate.ts`,
+and `scripts/check-boundaries.mjs` fails the build if anything outside that directory imports the
+crypto directly — because a module that can open a sealed value can decide for itself who may read a
+record. That is the hole this module exists to close, and a survey of three sibling projects found
+all three of them had it; one had a hundred and sixty-seven mutating routes with the check
+remembered on some of them.
+
+The gate refuses at the first of five failures: the capability the role holds, the actor's current
+vetting standing, the purpose the reading is for, the patient's own release of a protected category,
+and break-glass. Break-glass overrides the capability check only — never vetting standing, and never
+a protected category. Somebody unconscious needs their blood group and their allergies; nobody needs
+their HIV status to resuscitate them, and the emergency route is exactly where that would be taken
+from.
+
+The audit entry is written before any plaintext exists, and it is written for a refusal too. It
+never holds the value that was read: an audit log containing record contents is a second copy of the
+record with weaker protection.
 
 ## Clinical and operational separation
 

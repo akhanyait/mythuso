@@ -51,7 +51,11 @@
 # MYTHUSO_ENCRYPTION_KEY lives in /etc/mythuso/api.env, deliberately nowhere near the database it
 # protects — which means restoring this file onto a machine without that key gives back a database
 # whose sealed values cannot be opened. The key must be backed up somewhere that is not this server,
-# and this script cannot do that for you.
+# and this script cannot do that for you — docs/DATA-PROTECTION.md is the ceremony for that copy.
+#
+# The converse is checked rather than assumed: before anything is compressed, the fresh snapshot is
+# searched for the key's own characters, and a match deletes the snapshot and refuses. A backup that
+# contains the key that opens it is a backup with no encryption at all.
 #
 # Runs as root from a systemd timer. Everything it writes lives under /var/backups/mythuso; it
 # touches nothing belonging to the five other sites on this box.
@@ -134,6 +138,47 @@ if [ -n "$OWNER" ]; then
 fi
 
 [ -s "$SNAP" ] || fail "the snapshot is empty"
+
+# ── The one value that must never be in this file ───────────────────────────────────────────────
+#
+# The whole argument for an unencrypted archive rests on the key living somewhere else. A key that
+# has found its way into a table — configuration written to the database "for now", a debug row, a
+# migration that copied the environment — turns every archive on this disk into plaintext, and it
+# does so silently, because the database still works perfectly. So the snapshot is searched for the
+# key's own characters before anything is compressed or kept.
+#
+# What this catches and what it does not: it finds the key stored as the text in api.env (the hex or
+# base64 form), which is how it would actually get there. It would not find the raw 32 bytes, or a
+# re-encoded copy. It is a guard against an accident, not a proof — and the accident is the case
+# that happens. The pattern goes in over stdin so the key is never in this machine's process list,
+# and nothing below prints it: the alert and the log line name the mistake, never the value.
+if [ -r /etc/mythuso/api.env ]; then
+  # Both secrets, and every protection key version: "1:<key>,2:<key>" is split on the commas and the
+  # version prefix dropped, so each version's material is searched for on its own.
+  keys=$(
+    sed -n 's/^MYTHUSO_ENCRYPTION_KEY=//p' /etc/mythuso/api.env | tail -1
+    sed -n 's/^MYTHUSO_PROTECTION_KEYS=//p' /etc/mythuso/api.env | tail -1 | tr ',' '\n' \
+      | sed -e 's/^[[:space:]]*//' -e 's/^[0-9]\{1,5\}://'
+  )
+  found=''
+  while IFS= read -r material; do
+    material=$(printf '%s' "$material" | tr -d '[:space:]')
+    material=${material%\"}; material=${material#\"}
+    material=${material%\'}; material=${material#\'}
+    [ ${#material} -ge 32 ] || continue
+    if printf '%s\n' "$material" | grep -qaFf - "$SNAP" 2>/dev/null; then found=yes; fi
+  done <<EOF
+$keys
+EOF
+  unset keys material
+  if [ -n "$found" ]; then
+    rm -f "$SNAP"
+    /opt/mythuso/ops/mythuso-alert.sh "backup refused — a key is in the database" \
+      "$(printf 'A key from /etc/mythuso/api.env appears inside the identity database.\n\nEvery archive under %s is then plaintext, and so is this one, so it has been deleted rather than kept. Find what wrote the key into a table, remove it, and treat that key as disclosed: rotate it by the procedure in docs/DATA-PROTECTION.md.\n' "$DEST")" || true
+    fail "a key from api.env appears inside the database — the snapshot was deleted rather than kept"
+  fi
+fi
+
 gzip -9 -f "$SNAP"
 ARCHIVE="$SNAP.gz"
 chmod 600 "$ARCHIVE"

@@ -36,6 +36,7 @@ export type AuditEvent = {
   address: string | null; agentHash: string | null; detail: string | null;
 };
 export type Store = {
+  database: DatabaseSync;
   findPersonByPhone(phone: string): Person | null;
   findPersonById(id: string): Person | null;
   createPerson(person: Person): void;
@@ -127,6 +128,10 @@ export function openStore(path: string): Store {
   db.exec(SCHEMA);
   const one = <T>(row: unknown): T | null => (row ?? null) as T | null;
   return {
+    /* The protection module keeps its own append-only chain in this database and creates its own
+       table. Handing over the handle rather than proxying every statement keeps that module honest:
+       it owns its schema, and this store never learns how to write to it. */
+    database: db,
     findPersonByPhone(phone) {
       const row = db.prepare('SELECT id, phone, name, created_at AS createdAt FROM people WHERE phone = ?').get(phone);
       return one<Person>(row);

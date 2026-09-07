@@ -1,3 +1,4 @@
+import { createProtectionModule } from './protection/index.ts';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createHash } from 'node:crypto';
 import { loadConfig, limits, type Config } from './config.ts';
@@ -183,10 +184,29 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     send(res, 200, { ...twoFactor.state(person.id) });
   });
 
+  /* The data protection module, if it is configured. The identity service holds no clinical record,
+     so the gate has little to guard here yet — but the subject-access route below is a real read of
+     a real person's information, and routing it through the gate now means the chokepoint is
+     exercised on every deployment rather than proved once in a test and left. */
+  const protection = createProtectionModule(config, store.database, {
+    /* Nobody in this service is a vetted party — it holds identity, not a workforce. An unknown
+       actor refuses, which is the correct answer to every question except a person's own. */
+    vetting: { find: () => null },
+    releases: { find: () => null }
+  });
+
   /* The section 24 answer, as data. An operator can read it, and so can the person it is about. */
   routes.set('GET /account/data', (req, res) => {
     const person = signedIn(req, res);
     if (!person) return;
+    if (protection) {
+      const outcome = protection.gate.access({
+        actorId: person.id, actorRole: 'subject', capability: 'view-patient-summary',
+        purpose: 'subject-access', recordType: 'patient', recordId: person.id, subjectId: person.id
+      });
+      if (!outcome.allowed) return send(res, 403, { error: outcome.reason, audit: outcome.auditId });
+      res.setHeader('x-mythuso-audit', outcome.auditId);
+    }
     send(res, 200, {
       holds: SCOPE_STATEMENT, holdings: HOLDINGS, summary: erasureSummary(),
       responseDays: RESPONSE_DAYS, respondBy: dueBy(now())
@@ -212,6 +232,12 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
   });
 
   routes.set('GET /health', (_req, res) => send(res, 200, { ok: true, environment: config.environment, holds: 'identity only' }));
+  /* The audit chain's own integrity, for the health check that runs every five minutes. It returns
+     whether the chain follows and where it stops following — never an entry, and never a value. */
+  routes.set('GET /health/audit', (_req, res) => {
+    if (!protection) return send(res, 200, { configured: false, note: 'No protection keys are configured, so there is no chain to verify.' });
+    send(res, 200, { configured: true, ...protection.audit.verify() });
+  });
 
   return async function handle(req: IncomingMessage, res: ServerResponse) {
     const origin = req.headers.origin;

@@ -23,6 +23,14 @@ ExecStart=/usr/bin/node src/server.ts
 Restart=on-failure
 RestartSec=5
 
+# The root key is in this process's memory and in its environment for as long as it runs — there is
+# no way to open a sealed value on demand without that. So the two places that memory could reach
+# the disk are closed: a crash may not write a core file containing the key, and anything the
+# service creates is readable only by the service. Neither of these stops root, and nothing in a
+# unit file can; they stop the accident. docs/DATA-PROTECTION.md sets out what is left.
+LimitCORE=0
+UMask=0077
+
 # It needs a listening socket, a database file and nothing else.
 NoNewPrivileges=true
 PrivateTmp=true

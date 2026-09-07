@@ -20,6 +20,9 @@ export type Config = {
   returnCodesInResponse: boolean;
   cookieSecure: boolean;
   encryptionKey: string;
+  protectionKeys: string;
+  protectionKeyCurrent: string;
+  protectionIndexVersion: string;
 };
 export class ConfigError extends Error {}
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -46,10 +49,25 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
      instead of a service that turns out to hold nothing it can read. Its absence is allowed even in
      production: the service still signs people in, and it is the writes that are refused — see
      sensitive.ts, which is where the refusal lives. */
+  /* The protection module's own key ring, separate from the identity service's single key: it is
+     versioned, and a rotation has to be able to hold two versions at once. Validated here so a typo
+     refuses to start rather than refusing the first write, hours later, to whoever is standing in
+     front of a patient. */
+  const protectionKeys = (env.MYTHUSO_PROTECTION_KEYS ?? '').trim();
+  const protectionKeyCurrent = (env.MYTHUSO_PROTECTION_KEY_CURRENT ?? '').trim();
+  const protectionIndexVersion = (env.MYTHUSO_PROTECTION_INDEX_VERSION ?? '').trim();
   const encryptionKey = (env.MYTHUSO_ENCRYPTION_KEY ?? '').trim();
   if (encryptionKey) {
     try { parseKey(encryptionKey); }
     catch (error) { throw new ConfigError(error instanceof Error ? error.message : 'MYTHUSO_ENCRYPTION_KEY is not a 32-byte key'); }
+  }
+  /* The ring itself is parsed by the protection module's own composition root, not here: nothing
+     outside apps/api/src/protection may import the crypto, and scripts/check-boundaries.mjs fails
+     the build if it does. Blind indexes are built under one pinned version — rotating the record
+     keys must not invalidate every index in the database — so with more than one version present,
+     which one that is has to be stated rather than guessed. */
+  if (protectionKeys.includes(',') && !protectionIndexVersion) {
+    throw new ConfigError('MYTHUSO_PROTECTION_INDEX_VERSION must name a version when more than one protection key is held');
   }
   const allowedOrigins = (env.MYTHUSO_ALLOWED_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
     .split(',').map(o => o.trim()).filter(Boolean);
@@ -64,7 +82,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     databasePath: env.MYTHUSO_DB ?? ':memory:',
     returnCodesInResponse: returnCodesInResponse || !production,
     cookieSecure: production,
-    encryptionKey
+    encryptionKey,
+    protectionKeys,
+    protectionKeyCurrent,
+    protectionIndexVersion
   };
 }
 export const limits = {

@@ -117,6 +117,15 @@ if(existsSync('apps/api/src')) {
   }
  }
  if(!read('apps/api/src/config.ts').includes('holds no health information')) throw new Error('The identity service must state what it holds in apps/api/src/config.ts');
+ /* The gate is the only thing that opens a sealed value. A module that imports the crypto directly
+    can decide for itself who may read a record, which is the hole the gate exists to close — and
+    the sibling projects show how it ends: a check remembered on some of the routes. */
+ for(const f of files('apps/api/src').filter(f=>f.endsWith('.ts')&&!f.includes('src/protection/'))) {
+  if(/from\s+['"][^'"]*protection\/crypto/.test(read(f))) throw new Error(`Only the gate opens sealed values: ${f} imports the protection crypto directly`);
+ }
+ /* A renewal warning that fires at 45 days in three apps and at something else in the gate is a
+    clinician warned on their phone and refused by the server. */
+ if(!/EXPIRY_WARNING_DAYS = 45/.test(read('apps/api/src/protection/gate.ts'))) throw new Error('The 45-day renewal warning has moved in apps/api/src/protection/gate.ts');
  /* The audit trail is only worth having if nothing rewrites it. */
  const store=read('apps/api/src/store.ts');
  if(/UPDATE audit|DELETE FROM audit/i.test(store)) throw new Error('The audit table must stay append-only');

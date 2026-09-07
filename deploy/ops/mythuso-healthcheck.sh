@@ -93,6 +93,62 @@ if systemctl is-enabled --quiet mythuso-api.service 2>/dev/null; then
   if printf '%s' "$api" | grep -q '"environment":"development"'; then
     problems+=("identity service is running in development mode — it returns one-time codes in responses")
   fi
+
+  # ── The audit chain ─────────────────────────────────────────────────────────
+  #
+  # The access log is append-only by grant, which means a person with database access can rewrite
+  # it. What makes that discoverable is the hash chain: every entry carries the hash of the one
+  # before it, so an edited or deleted row breaks the chain from that point and verify() names the
+  # first entry that no longer follows. A broken chain is precisely the thing somebody needs to be
+  # woken for — it is either corruption or somebody editing the record of who read what — and it
+  # will never be noticed by a person reading rows.
+  #
+  # Asked over the loopback of the service's own endpoint rather than run as a CLI against the
+  # database, deliberately: root opening a WAL database creates root-owned sidecar files that the
+  # unprivileged service then cannot write, which is how a health check causes the outage it was
+  # installed to catch. The backup script learned that one and hands the files back; this one simply
+  # never opens the database.
+  #
+  # A 404 is "not built yet", not a failure. The gate is being written and this must be safe to
+  # install before the endpoint exists — a check that alerted every five minutes about a module
+  # nobody has merged would be switched off, taking the rest of this file with it.
+  audit=$(curl -s --max-time 20 -w '\n%{http_code}' "http://127.0.0.1:$port/health/audit" 2>/dev/null || printf '\n000')
+  audit_code=$(printf '%s' "$audit" | tail -1)
+  audit_body=$(printf '%s' "$audit" | sed '$d')
+  case "$audit_code" in
+    404)
+      notes+=("the identity service has no /health/audit yet — audit chain integrity is not being checked") ;;
+    200)
+      if printf '%s' "$audit_body" | grep -q '"intact":true'; then
+        length=$(printf '%s' "$audit_body" | sed -n 's/.*"length":\([0-9]*\).*/\1/p')
+        head_hash=$(printf '%s' "$audit_body" | sed -n 's/.*"head":"\([^"]*\)".*/\1/p')
+        # A chain can verify perfectly and still have been tampered with: somebody with the key and
+        # write access can delete entries and recompute every hash forward from there. What that
+        # cannot do is make the log longer again. So the length is ratcheted — remembered between
+        # runs, and never allowed to go down. It catches the operator who did not think of it, and
+        # not the one who edits this file too; that limit is written up in docs/DATA-PROTECTION.md
+        # rather than papered over. A deliberate archive of old entries needs this file removed by
+        # hand: rm /var/lib/mythuso/health/audit-length
+        seen=$(cat "$STATE/audit-length" 2>/dev/null || echo 0)
+        if printf '%s' "$length" | grep -qE '^[0-9]+$'; then
+          if [ "$length" -lt "${seen:-0}" ]; then
+            problems+=("the audit chain verifies but has SHRUNK from $seen entries to $length — entries were removed and the chain recomputed")
+          else
+            echo "$length" > "$STATE/audit-length"
+            echo "audit chain intact: $length entries, head ${head_hash:0:16}"
+          fi
+        else
+          problems+=("the audit chain reports intact but no entry count this can read: $audit_body")
+        fi
+      else
+        broken=$(printf '%s' "$audit_body" | sed -n 's/.*"brokenAt":"\([^"]*\)".*/\1/p')
+        problems+=("THE AUDIT CHAIN DOES NOT VERIFY — the first entry that does not follow is ${broken:-not named}. Do not clear it: preserve the database and read docs/DATA-PROTECTION.md")
+      fi ;;
+    000)
+      problems+=("the audit chain could not be checked — no response from /health/audit on 127.0.0.1:$port") ;;
+    *)
+      problems+=("the audit chain could not be checked — /health/audit returned $audit_code") ;;
+  esac
 else
   notes+=("identity service not enabled — not checked (see deploy/README.md for the order)")
 fi
