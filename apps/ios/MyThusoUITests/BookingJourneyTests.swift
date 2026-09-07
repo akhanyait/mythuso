@@ -146,6 +146,11 @@ final class BookingJourneyTests: XCTestCase {
            row by position — the three labels left of this row's time — so a different row's block
            cannot answer for it. */
         let block = dateBlock(in: app, leftOf: listedTime)
+        /* The three strings a person sees. The block is one accessibility element carrying the whole
+           date now — it used to be four, the combined label and then its parts read again — but
+           XCUITest enumerates the child texts either way, so this asserts what it can actually
+           observe: the day on screen is the day that was booked. Whether VoiceOver reads it once or
+           four times is in the notes the audit prints, and needs a person. */
         XCTAssertEqual(block, [formatter("EEE").string(from: chosenDate).uppercased(),
                                formatter("d").string(from: chosenDate),
                                formatter("MMM").string(from: chosenDate).uppercased()],

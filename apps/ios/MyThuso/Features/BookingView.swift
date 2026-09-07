@@ -348,7 +348,11 @@ struct VisitsView: View {
                                     .padding(.vertical, ThusoSpacing.space8).frame(minWidth: 52, minHeight: 58)
                                     .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                                     .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
-                                    .accessibilityElement(children: .combine)
+                                    /* One element saying the date once. `children: .combine` left the
+                                       three parts in the tree beside the combined one, so VoiceOver
+                                       read "FRI, 11, SEP" and then "FRI", "11", "SEP" again. */
+                                    .accessibilityElement(children: .ignore)
+                                    .accessibilityLabel(row.date.map(Scheduling.longDate) ?? Scheduling.Label.asapPending)
                                     VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                                         HStack(alignment: .top) {
                                             Text(row.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)

@@ -64,7 +64,16 @@ struct ClinicalChart: View {
                     Text("Fictional data, not a medical record.").font(.caption2).foregroundStyle(ThusoTheme.faint).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
                 }
             } label: {
-                Text(showTable ? "Hide readings" : "Show readings as a table").frame(minHeight: 44).contentShape(Rectangle()).font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
+                /* The whole row answers the tap, not just the words. At the largest content size
+                   the label alone was laid out clear of everything and still not hittable. */
+                HStack {
+                    Text(showTable ? "Hide readings" : "Show readings as a table")
+                        .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
         }
     }
