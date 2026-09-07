@@ -19,6 +19,10 @@ enum ThusoString: String {
     case home, bookCare, visits, passport, more
     case greeting, greetingSub, tagline, heroTitle, heroBody, heroTrust
     case bookNurse, openPassport, nextVisit, helpWith, language, previewBadge
+    /* Vetting reaches every workspace, so its shell and navigation wording is localised with the
+       rest of the shell. The checks, authorities and refusals stay in English: a mistranslated
+       credential requirement is a safety problem, not a polish problem. */
+    case vetting, vettingQueue, vettingStatus, vettingApply, vettingRenewals, vettingRefused
 }
 private let table: [ThusoLocale: [ThusoString: String]] = [
     .english: [
@@ -28,7 +32,10 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .heroBody: "A caring nurse. A doctor’s expertise. All from the comfort of your home.",
         .heroTrust: "Registered nurses · Visits from R249", .bookNurse: "Book a nurse",
         .openPassport: "Open my passport", .nextVisit: "Your next visit", .helpWith: "What can we help with?",
-        .language: "Language", .previewBadge: "Design preview · Fictional data"
+        .language: "Language", .previewBadge: "Design preview · Fictional data",
+        .vetting: "Vetting", .vettingQueue: "Vetting queue", .vettingStatus: "Vetting status",
+        .vettingApply: "Apply to join", .vettingRenewals: "Renewals due",
+        .vettingRefused: "What is refused until this passes"
     ],
     .zulu: [
         .home: "Ikhaya", .bookCare: "Bhukha", .visits: "Ukuvakashelwa", .passport: "Iphasiphothi", .more: "Okuningi",
@@ -37,7 +44,10 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .heroBody: "Umhlengikazi onendaba. Ulwazi lukadokotela. Konke usekhaya.",
         .heroTrust: "Abahlengikazi ababhalisiwe · Kusukela ku-R249", .bookNurse: "Bhukha umhlengikazi",
         .openPassport: "Vula iphasiphothi yami", .nextVisit: "Ukuvakashelwa kwakho okulandelayo", .helpWith: "Singakusiza ngani?",
-        .language: "Ulimi", .previewBadge: "Isibonelo sedizayini · Idatha eqanjiwe"
+        .language: "Ulimi", .previewBadge: "Isibonelo sedizayini · Idatha eqanjiwe",
+        .vetting: "Ukuqinisekiswa", .vettingQueue: "Ulayini wokuqinisekiswa", .vettingStatus: "Isimo sokuqinisekiswa",
+        .vettingApply: "Faka isicelo", .vettingRenewals: "Ukuvuselelwa okudingekayo",
+        .vettingRefused: "Okwenqatshelwe uze uphase"
     ],
     .sesotho: [
         .home: "Lehae", .bookCare: "Behela", .visits: "Diketelo", .passport: "Phasepoto", .more: "Tse ding",
@@ -46,7 +56,10 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .heroBody: "Mooki ya nang le kgathallo. Tsebo ya ngaka. Tsohle o le hae.",
         .heroTrust: "Baoki ba ngodisitsweng · Ho tloha ho R249", .bookNurse: "Behela mooki",
         .openPassport: "Bula phasepoto ya ka", .nextVisit: "Ketelo ya hao e latelang", .helpWith: "Re ka o thusa ka eng?",
-        .language: "Puo", .previewBadge: "Ponelopele ya moralo · Datha ya boiqapelo"
+        .language: "Puo", .previewBadge: "Ponelopele ya moralo · Datha ya boiqapelo",
+        .vetting: "Netefatso", .vettingQueue: "Mola wa netefatso", .vettingStatus: "Boemo ba netefatso",
+        .vettingApply: "Etsa kopo", .vettingRenewals: "Dintjhafatso tse tlang",
+        .vettingRefused: "Se hannweng ho fihlela sena se feta"
     ],
     .afrikaans: [
         .home: "Tuis", .bookCare: "Bespreek", .visits: "Besoeke", .passport: "Paspoort", .more: "Meer",
@@ -55,7 +68,10 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .heroBody: "’n Sorgsame verpleegster. ’n Dokter se kundigheid. Alles van die gemak van jou huis af.",
         .heroTrust: "Geregistreerde verpleegsters · Vanaf R249", .bookNurse: "Bespreek ’n verpleegster",
         .openPassport: "Open my paspoort", .nextVisit: "Jou volgende besoek", .helpWith: "Waarmee kan ons help?",
-        .language: "Taal", .previewBadge: "Ontwerpvoorskou · Fiktiewe data"
+        .language: "Taal", .previewBadge: "Ontwerpvoorskou · Fiktiewe data",
+        .vetting: "Keuring", .vettingQueue: "Keuringstou", .vettingStatus: "Keuringstatus",
+        .vettingApply: "Doen aansoek", .vettingRenewals: "Hernuwings wat verval",
+        .vettingRefused: "Wat geweier word totdat dit slaag"
     ]
 ]
 func thuso(_ key: ThusoString, _ locale: ThusoLocale) -> String {

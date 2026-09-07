@@ -30,4 +30,7 @@ class PreviewStore {
     var wearableSharing by mutableStateOf(false)
     var marketing by mutableStateOf(false)
     var locale by mutableStateOf(ThusoLocale.ENGLISH)
+    /* Vetting is held here so a decision taken in the Control Tower is the same record the nurse
+       workspace reads a screen later, rather than two lists that agree by luck. */
+    val vetting = VettingStore()
 }

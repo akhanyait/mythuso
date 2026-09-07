@@ -17,7 +17,10 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Laboratory order detail | Sample seal, courier handover, verification, results with reference ranges, and release as a deliberate clinical act | All three |
 | Dispatch board | Abstract Johannesburg map, unassigned visits, nurses ranked by estimated arrival, and assignment — with the list, not the map, as the control | All three |
 | Incident management | Severity triage, immediate-action choice, handover note and an append-only demo log | All three |
-| Nurse onboarding and vetting | SANC registration, scope of practice, and seven vetting checks that gate dispatch | All three |
+| Vetting, for all twelve vetted parties | Nurse, locum, doctor, pharmacy, laboratory, courier, Control Tower operator, admin staff, employer, sponsor, guardian and Thuso Corner site. Per-authority credential validation (SANC, HPCSA, SAPC, SANAS, SAPS, Home Affairs, CIPC, RTMC, SAHPRA), scope of practice, evidence, declarations and attestation | All three |
+| Vetting lifecycle and refusals | Expiry resolved on every read, so a lapsed check suspends a party automatically; renewals due; a second reviewer required on every high-risk check, with one name refused both decisions; decline with a recorded reason and an appeal; and a matrix of exactly what each party is refused until its checks pass | Reviewer console web-only; applicant flow and status on all three |
+| Vetting that gates real screens | Dispatch will not assign a nurse whose clearance lapsed, the clinical queue refuses a signature from a lapsed HPCSA registration, a laboratory without current ISO 15189 accreditation cannot release a result, and a pharmacy without a current responsible pharmacist is not routed a prescription — each with the refusal shown, not implied | All three |
+| Append-only vetting audit | Who decided, when, on what evidence and what changed. Prepend-only in the preview, and gone on reload | Web |
 | Accessible clinical charts | Every chart carries a spoken summary and the same values as a real table | Passport, doctor review |
 | System states | Loading, service error, offline, permission denied and empty, as shared components used by the real screens and collected in one gallery | All three |
 | Localisation | English, isiZulu, Sesotho and Afrikaans across the shell, navigation, tab bar and primary actions | All three |
@@ -45,7 +48,7 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Nurse workspace | Schedule, availability toggle, full visit assessment, onboarding and vetting | Native equivalents | Kit capture, offline sync, earnings, real dispatch integration |
 | Doctor workspace | Review queue with trend chart, outcome and rationale sign-off | Native queue and review | Secure native consult, real prescriptions, referrals |
 | Partner workspace | Prescription and laboratory order detail with chain of custody and release control | Native fulfilment queue and order detail | Partner APIs, real dispensing, courier integration, result delivery |
-| Control Tower | Dispatch map and assignment, incident triage and log, vetting queue | Native dispatch board, incidents and vetting | Live positions, real assignment, paging, escalation, revenue |
+| Control Tower | Dispatch map and assignment gated on vetting, incident triage and log, the vetting queue for all twelve roles | Native dispatch board, incidents and vetting | Live positions, real assignment, paging, escalation, revenue |
 | Localisation | Shell, navigation and primary actions in four languages | Same four languages natively | Clinical language review, remaining official languages, SASL guidance |
 | Thuso Kit / AI | Preview entries and clinical-review framing | Native entries | Bluetooth capture, validated models, clinical governance |
 | Thuso Screen | Feature entry | Native feature entry | Package eligibility, clinician-approved questionnaires, referrals |
@@ -64,12 +67,16 @@ These flows exist on all three platforms, with the same steps, the same wording 
 - Paying for someone's care grants no clinical access. Scope, duration and identity verification are separate, explicit choices.
 - Sexual and reproductive health, mental health and HIV-related entries stay hidden under every guardian scope.
 - The dispatch map is decorative. Every dispatch action is available from the list, with a keyboard, and the map carries only a spoken summary.
+- A high-risk check verified by one reviewer is not verified. The console refuses to let the same name second its own decision.
+- A lapsed credential is not a warning. Dispatch, clinical sign-off, dispensing and result release are withdrawn by arithmetic on the expiry date, without anyone having to notice.
+- Paying for care is not a permission. A sponsor is verified for payment and told, in writing, that it grants no clinical access.
+- An employer is verified to run a programme and never receives a named result, under any circumstance.
 - Nothing in any of these flows is transmitted, stored or acted upon.
 
 ## Cross-platform consistency
 
-Clinical reference ranges, locale sets, the demo verification codes and the identity check-digit validation are duplicated in three codebases by design — each app is genuinely native. `scripts/check-boundaries.mjs` fails the build if any of them drift apart, because a reference range that differs between iOS and Android is a clinical-safety problem rather than a cosmetic one.
+Clinical reference ranges, locale sets, the demo verification codes, the identity check-digit validation, and the whole vetting table — twelve roles, seventy checks, every issuing authority's credential format, every scope of practice and every refusal sentence word for word — are duplicated in three codebases by design — each app is genuinely native. `scripts/check-boundaries.mjs` fails the build if any of them drift apart, because a reference range that differs between iOS and Android is a clinical-safety problem rather than a cosmetic one.
 
 ## Next UI increments
 
-Remaining before a pilot-ready design: nurse earnings and payout detail; kit pairing and observation capture from a device; teleconsultation call UI; prescription substitution and chronic authorisation; employer and sponsor programme administration; a real emergency pathway design; offline capture and conflict resolution for nurses; the remaining official languages and a clinical language review of translated copy; South African Sign Language guidance; large-text, screen-reader and low-end device testing on real hardware. None of these are claimed complete.
+Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only today; nurse earnings and payout detail; kit pairing and observation capture from a device; teleconsultation call UI; prescription substitution and chronic authorisation; employer and sponsor programme administration; a real emergency pathway design; offline capture and conflict resolution for nurses; the remaining official languages and a clinical language review of translated copy; South African Sign Language guidance; large-text, screen-reader and low-end device testing on real hardware. None of these are claimed complete.

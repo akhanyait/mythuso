@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { ArrowRight, Check, CircleAlert, Clock3, MapPin, Radio, ShieldAlert, ShieldCheck, TriangleAlert, UserRoundCheck } from 'lucide-react';
+import { ArrowRight, Check, CircleAlert, Clock3, MapPin, Radio, ShieldAlert, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { StateBlock, StatePicker, type LoadState } from '../components/States';
+import { VettingApplication } from './Vetting';
+import { can, type VettingSubject } from '../lib/vetting';
+import { seededSubjects } from '../lib/vetting-fixtures';
 type Job = { id: string; service: string; area: string; window: string; x: number; y: number; priority: 'Routine' | 'Same day' | 'Urgent' };
 type Nurse = { id: string; name: string; area: string; x: number; y: number; status: 'Available' | 'On a visit' | 'Off duty'; eta: number; skills: string[] };
 const zones = [
@@ -17,15 +20,26 @@ const nurses: Nurse[] = [
  { id: 'N-114', name: 'Sister Naledi Mokoena', area: 'Rosebank', x: 76, y: 21, status: 'Available', eta: 18, skills: ['Wound care', 'Chronic care'] },
  { id: 'N-108', name: 'Sister Palesa Khumalo', area: 'Soweto', x: 35, y: 83, status: 'Available', eta: 9, skills: ['Wound care', 'Maternal'] },
  { id: 'N-121', name: 'Brother Sipho Ndlovu', area: 'Melville', x: 24, y: 51, status: 'On a visit', eta: 46, skills: ['Post-operative', 'Chronic care'] },
- { id: 'N-133', name: 'Sister Refilwe Sithole', area: 'Randburg', x: 15, y: 20, status: 'Available', eta: 24, skills: ['Chronic care', 'Paediatric'] }
+ { id: 'N-133', name: 'Sister Refilwe Sithole', area: 'Randburg', x: 15, y: 20, status: 'Available', eta: 24, skills: ['Chronic care', 'Paediatric'] },
+ { id: 'N-204', name: 'Sister Ayanda Dube', area: 'Soweto', x: 44, y: 84, status: 'Available', eta: 12, skills: ['Elderly care', 'Chronic care'] }
 ];
-export function DispatchBoard() {
+/* The board asks the vetting module before it offers anybody. A nurse whose clearance lapsed still
+   appears — hiding her would leave an operator wondering where she went — but she cannot be
+   assigned, and the refusal is on the row rather than in a tooltip. */
+export function DispatchBoard({ subjects = seededSubjects }: { subjects?: VettingSubject[] } = {}) {
  const [state, setState] = useState<LoadState>('ready');
  const [selected, setSelected] = useState(initialJobs[0].id);
  const [assigned, setAssigned] = useState<Record<string, string>>({});
  const job = initialJobs.find(j => j.id === selected)!;
- const candidates = [...nurses].filter(n => n.status !== 'Off duty').sort((a, b) => a.eta - b.eta);
- const summary = `Demonstration dispatch map of northern Johannesburg. ${initialJobs.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${nurses.filter(n => n.status === 'Available').length} nurses available. All positions are fictional.`;
+ const gate = (name: string) => {
+  const subject = subjects.find(s => s.name === name);
+  return subject ? can(subject, 'take-visit') : { allowed: false, reason: 'No vetting record. Nobody without one is offered a visit.', blockedBy: [] };
+ };
+ const candidates = nurses.filter(n => n.status !== 'Off duty').map(n => ({ nurse: n, decision: gate(n.name) }))
+  .sort((a, b) => Number(b.decision.allowed) - Number(a.decision.allowed) || a.nurse.eta - b.nurse.eta);
+ const dispatchable = candidates.filter(c => c.decision.allowed && c.nurse.status === 'Available').length;
+ const refused = candidates.filter(c => !c.decision.allowed).length;
+ const summary = `Demonstration dispatch map of northern Johannesburg. ${initialJobs.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting. All positions are fictional.`;
  return <>
   <StatePicker label="Preview the dispatch feed state" value={state} onChange={setState}/>
   <StateBlock state={state} subject="The live dispatch feed" permission="location sharing from nurse devices" onRetry={() => setState('ready')}>
@@ -36,11 +50,11 @@ export function DispatchBoard() {
       <rect width="100" height="100" className="map-ground"/>
       {[20, 40, 60, 80].map(n => <g key={n}><line x1="0" y1={n} x2="100" y2={n} className="map-grid"/><line x1={n} y1="0" x2={n} y2="100" className="map-grid"/></g>)}
       {zones.map(z => <circle key={z.name} cx={z.x} cy={z.y} r={z.r} className="map-zone"/>)}
-      {nurses.map(n => <g key={n.id} className={`map-pin nurse ${n.status === 'Available' ? 'free' : 'busy'}`}><circle cx={n.x} cy={n.y} r="2.4"/><circle cx={n.x} cy={n.y} r="4.6" className="map-halo"/></g>)}
+      {nurses.map(n => <g key={n.id} className={`map-pin nurse ${!gate(n.name).allowed ? 'blocked' : n.status === 'Available' ? 'free' : 'busy'}`}><circle cx={n.x} cy={n.y} r="2.4"/><circle cx={n.x} cy={n.y} r="4.6" className="map-halo"/></g>)}
       {initialJobs.map(j => <g key={j.id} className={`map-pin job ${j.id === selected ? 'selected' : ''} ${assigned[j.id] ? 'assigned' : ''}`}><rect x={j.x - 2.2} y={j.y - 2.2} width="4.4" height="4.4" rx="1.2"/>{j.id === selected && <circle cx={j.x} cy={j.y} r="7" className="map-focus"/>}</g>)}
       {zones.map(z => <text key={z.name} x={z.x} y={z.y - z.r + 4.4} className="map-label">{z.name}</text>)}
      </svg>
-     <div className="map-key"><span><i className="key-free"/>Nurse available</span><span><i className="key-busy"/>Nurse on a visit</span><span><i className="key-job"/>Visit awaiting a nurse</span><span><i className="key-assigned"/>Assigned</span></div>
+     <div className="map-key"><span><i className="key-free"/>Nurse available</span><span><i className="key-busy"/>Nurse on a visit</span><span><i className="key-blocked"/>Blocked by vetting</span><span><i className="key-job"/>Visit awaiting a nurse</span><span><i className="key-assigned"/>Assigned</span></div>
      <p className="helper">The map is a picture of the same information in the list beside it. Everything can be dispatched from the list alone, with a keyboard.</p>
     </div>
     <div className="panel">
@@ -52,11 +66,16 @@ export function DispatchBoard() {
      <div className="review-line"><span>Priority</span><strong className={job.priority === 'Urgent' ? 'flagged' : ''}>{job.priority}</strong></div>
      <div className="review-line"><span>Status</span><strong>{assigned[job.id] ? `Assigned to ${assigned[job.id]}` : 'Unassigned'}</strong></div>
      <h3 className="space-top">Nearest available nurses</h3>
-     {candidates.map(n => <div className="record-row static" key={n.id}>
-      <span className={`status-dot ${n.status === 'Available' ? '' : 'offline'}`}/>
-      <span><strong>{n.name}</strong><small>{n.area} · {n.status} · ETA {n.eta} min</small><small>{n.skills.join(' · ')}</small></span>
-      <button className={assigned[job.id] === n.name ? 'secondary' : 'primary'} disabled={n.status !== 'Available'} onClick={() => setAssigned({ ...assigned, [job.id]: assigned[job.id] === n.name ? '' : n.name })}>{assigned[job.id] === n.name ? <><Check size={15}/>Assigned</> : 'Assign'}</button>
+     <p className="helper" role="status">{dispatchable} cleared for dispatch{refused ? `, ${refused} refused by vetting` : ''}.</p>
+     {candidates.map(({ nurse: n, decision }) => <div className="record-row static" key={n.id}>
+      <span className={`status-dot ${n.status === 'Available' && decision.allowed ? '' : 'offline'}`}/>
+      <span><strong>{n.name}</strong><small>{n.area} · {n.status} · ETA {n.eta} min</small><small>{n.skills.join(' · ')}</small>
+       {!decision.allowed && <small className="flagged">{decision.reason}</small>}</span>
+      {decision.allowed
+       ? <button className={assigned[job.id] === n.name ? 'secondary' : 'primary'} disabled={n.status !== 'Available'} onClick={() => setAssigned({ ...assigned, [job.id]: assigned[job.id] === n.name ? '' : n.name })}>{assigned[job.id] === n.name ? <><Check size={15}/>Assigned</> : 'Assign'}</button>
+       : <button className="secondary" disabled aria-label={`Cannot be assigned — ${n.name}. ${decision.reason}`}>Cannot be assigned</button>}
      </div>)}
+     <div className="privacy-note"><ShieldCheck size={19}/>Vetting is asked before a name is offered, not after. The Control Tower has no override for a lapsed clearance — there is no button here that would let one be granted.</div>
      <div className="privacy-note"><Radio size={19}/>Estimated arrival is a straight-line guess in this preview. Real dispatch weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse.</div>
     </div>
    </div>
@@ -97,43 +116,9 @@ export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?:
   <button className="primary full" onClick={onClose}>Close demo incident<ArrowRight size={16}/></button>
  </div>;
 }
-const vettingChecks = [
- { name: 'SANC registration', detail: 'Verified against the South African Nursing Council register', status: 'Verified' },
- { name: 'Identity', detail: 'Home Affairs verification through an accredited provider', status: 'Verified' },
- { name: 'Qualifications', detail: 'Certified copies checked against the issuing institution', status: 'Verified' },
- { name: 'Police clearance', detail: 'SAPS clearance, renewed every two years', status: 'In review' },
- { name: 'Professional indemnity', detail: 'Cover in force for the scope of practice', status: 'In review' },
- { name: 'Two clinical references', detail: 'Contacted directly, never through the applicant', status: 'Outstanding' },
- { name: 'Thuso Kit training', detail: 'Device handling, infection control and escalation drill', status: 'Outstanding' }
-];
+/* Nurse vetting is one role in a twelve-role module now, so this is the same flow with the role
+   already chosen. The wiring in App.tsx keeps working, and there is only one applicant flow to
+   keep in step with packages/catalog/vetting.json. */
 export function NurseVetting({ onClose }: { onClose: () => void }) {
- const [stage, setStage] = useState(0);
- const [sanc, setSanc] = useState('');
- const [scope, setScope] = useState<string[]>([]);
- const [attested, setAttested] = useState(false);
- const verified = vettingChecks.filter(c => c.status === 'Verified').length;
- return <div className="form-stack">
-  <Pill>Nurse onboarding preview</Pill>
-  {stage === 0 ? <>
-   <h3>Join the MyThuso nurse network.</h3>
-   <p className="muted">Vetting protects patients and it protects you. Nothing is submitted in this preview.</p>
-   <label>SANC registration number<input inputMode="numeric" value={sanc} onChange={e => setSanc(e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="8 digits" aria-describedby="sanc-help"/></label>
-   <p className="helper" id="sanc-help">{sanc && sanc.length < 8 ? 'A SANC number has 8 digits.' : 'Use a fictional number, for example 20012345.'}</p>
-   <fieldset className="chip-set"><legend>Scope of practice you are applying for</legend>{['Chronic care', 'Wound care', 'Maternal & child', 'Post-operative', 'Phlebotomy', 'Paediatric', 'Elderly care'].map(s =>
-    <label key={s} className={scope.includes(s) ? 'chip selected' : 'chip'}><input type="checkbox" checked={scope.includes(s)} onChange={e => setScope(e.target.checked ? [...scope, s] : scope.filter(x => x !== s))}/>{s}</label>)}</fieldset>
-   <div className="privacy-note"><ShieldCheck size={19}/>You are only ever dispatched to work inside your registered scope. The Control Tower cannot override that.</div>
-   <div className="button-row"><button className="secondary" onClick={onClose}>Close</button><button className="primary" disabled={sanc.length < 8 || !scope.length} onClick={() => setStage(1)}>Continue<ArrowRight size={16}/></button></div>
-  </> : <>
-   <h3>Your vetting status</h3>
-   <div className="vetting-progress"><div style={{ width: `${(verified / vettingChecks.length) * 100}%` }}/></div>
-   <p className="helper" role="status">{verified} of {vettingChecks.length} checks complete in this sample. You cannot take visits until every check passes.</p>
-   {vettingChecks.map(c => <div className="record-row static" key={c.name}>
-    <span className={`service-icon check-${c.status.toLowerCase().replace(' ', '-')}`}>{c.status === 'Verified' ? <UserRoundCheck size={20}/> : <Clock3 size={20}/>}</span>
-    <span><strong>{c.name}</strong><small>{c.detail}</small></span><Pill tone={c.status === 'Verified' ? 'teal' : 'plain'}>{c.status}</Pill>
-   </div>)}
-   <label className="checkbox"><input type="checkbox" checked={attested} onChange={e => setAttested(e.target.checked)}/><span>I confirm the information above is true and I will report any change to my registration, clearance or health status.</span></label>
-   <div className="privacy-note"><ShieldCheck size={19}/>Re-vetting runs on a schedule, not once at sign-up. A lapsed registration removes a nurse from dispatch automatically.</div>
-   <div className="button-row"><button className="secondary" onClick={() => setStage(0)}>Back</button><button className="primary" disabled={!attested} onClick={onClose}><Check size={16}/>Submit demo application</button></div>
-  </>}
- </div>;
+ return <VettingApplication roleId="nurse" onClose={onClose}/>;
 }

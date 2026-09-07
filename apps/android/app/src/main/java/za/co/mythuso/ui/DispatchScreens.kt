@@ -16,9 +16,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import za.co.mythuso.model.PreviewStore
+import za.co.mythuso.model.can
+import za.co.mythuso.model.summarise
 
 data class DispatchJob(val id: String, val service: String, val area: String, val window: String, val priority: String, val x: Float, val y: Float)
 data class DispatchNurse(val id: String, val name: String, val area: String, val status: String, val eta: Int, val skills: String, val x: Float, val y: Float)
@@ -35,7 +36,10 @@ private val nurses = listOf(
     DispatchNurse("N-108", "Sister Palesa Khumalo", "Soweto", "Available", 9, "Wound care · Maternal", 0.35f, 0.83f),
     DispatchNurse("N-114", "Sister Naledi Mokoena", "Rosebank", "Available", 18, "Wound care · Chronic care", 0.76f, 0.21f),
     DispatchNurse("N-133", "Sister Refilwe Sithole", "Randburg", "Available", 24, "Chronic care · Paediatric", 0.15f, 0.20f),
-    DispatchNurse("N-121", "Brother Sipho Ndlovu", "Melville", "On a visit", 46, "Post-operative · Chronic care", 0.24f, 0.51f)
+    DispatchNurse("N-121", "Brother Sipho Ndlovu", "Melville", "On a visit", 46, "Post-operative · Chronic care", 0.24f, 0.51f),
+    /* The nearest nurse to the Soweto visit, and the one the board must refuse: her SAPS clearance
+       passed its renewal date nine days ago and nobody decided anything. */
+    DispatchNurse("N-204", "Sister Ayanda Dube", "Soweto", "Available", 6, "Elderly care", 0.44f, 0.86f)
 )
 private val Free = Color(0xFF2F9C7D)
 private val Busy = Color(0xFFA7ADA4)
@@ -45,13 +49,14 @@ private val Waiting = Color(0xFFD99A45)
  * The map is a picture of the same information in the list below it. Everything can be
  * dispatched from the list alone, so the map carries a spoken summary and nothing more.
  */
-@Composable fun DispatchBoardScreen() {
+@Composable fun DispatchBoardScreen(store: PreviewStore, open: (String) -> Unit) {
     var state by remember { mutableStateOf(LoadState.READY) }
     var selected by remember { mutableStateOf(jobs[0].id) }
     val assigned = remember { mutableStateMapOf<String, String>() }
     val job = jobs.first { it.id == selected }
+    val dispatchable = nurses.count { nurse -> nurse.status == "Available" && store.vetting.byName(nurse.name)?.let { can(it, "take-visit").allowed } != false }
     val summary = "Demonstration dispatch map of northern Johannesburg. ${jobs.size} visits awaiting assignment across ${zones.joinToString(", ") { it.first }}. " +
-        "${nurses.count { it.status == "Available" }} nurses available. All positions are fictional."
+        "${nurses.count { it.status == "Available" }} nurses on shift, $dispatchable of them dispatchable — the rest are refused by their own vetting. All positions are fictional."
     ScreenColumn {
         DemoBadge()
         Heading("Control Tower", "A clear view of care.", "Fictional dispatch board. No live map, assignment or escalation is connected.")
@@ -89,16 +94,32 @@ private val Waiting = Color(0xFFD99A45)
                 CareCard {
                     Text("Nearest available nurses", style = MaterialTheme.typography.titleMedium)
                     nurses.sortedBy { it.eta }.forEach { nurse ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(nurse.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                                Note("${nurse.area} · ${nurse.status} · ETA ${nurse.eta} min")
-                                Note(nurse.skills)
+                        /* Vetting is not advice to the operator. A nurse whose checks are not in date
+                           is still shown — hiding her would hide the reason — but the board refuses
+                           the assignment and says which check refused it. */
+                        val subject = store.vetting.byName(nurse.name)
+                        val summary = subject?.let { summarise(it) }
+                        val decision = subject?.let { can(it, "take-visit") }
+                        val refused = decision != null && !decision.allowed
+                        Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(nurse.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                                        summary?.let { StatusPill(it.status.label, if (it.status.label == "Cleared") "teal" else if (it.status.label == "Renewal due") "amber" else "danger") }
+                                    }
+                                    Note("${nurse.area} · ${nurse.status} · ETA ${nurse.eta} min")
+                                    Note(nurse.skills)
+                                }
+                                OutlinedButton(
+                                    onClick = { if (assigned[job.id] == nurse.name) assigned.remove(job.id) else assigned[job.id] = nurse.name },
+                                    enabled = nurse.status == "Available" && !refused
+                                ) { Text(if (assigned[job.id] == nurse.name) "Assigned" else "Assign") }
                             }
-                            OutlinedButton(
-                                onClick = { if (assigned[job.id] == nurse.name) assigned.remove(job.id) else assigned[job.id] = nurse.name },
-                                enabled = nurse.status == "Available"
-                            ) { Text(if (assigned[job.id] == nurse.name) "Assigned" else "Assign") }
+                            if (refused) {
+                                Text(decision.reason ?: "", style = MaterialTheme.typography.bodySmall, color = Danger)
+                                TextButton(onClick = { open("Vetting: ${subject.id}") }) { Text("Open the vetting record") }
+                            }
                         }
                         HorizontalDivider()
                     }
@@ -150,57 +171,5 @@ val incidents = listOf(
             }
         }
         Note("Incident logs are append-only and reviewed weekly. Nothing here is recorded, paged or sent.")
-    }
-}
-@Composable fun NurseVettingScreen(close: () -> Unit) {
-    var stage by remember { mutableIntStateOf(0) }
-    var sanc by remember { mutableStateOf("") }
-    var scope by remember { mutableStateOf(setOf<String>()) }
-    var attested by remember { mutableStateOf(false) }
-    val checks = listOf(
-        Triple("SANC registration", "Verified against the South African Nursing Council register", "Verified"),
-        Triple("Identity", "Home Affairs verification through an accredited provider", "Verified"),
-        Triple("Qualifications", "Certified copies checked against the issuing institution", "Verified"),
-        Triple("Police clearance", "SAPS clearance, renewed every two years", "In review"),
-        Triple("Professional indemnity", "Cover in force for the scope of practice", "In review"),
-        Triple("Two clinical references", "Contacted directly, never through the applicant", "Outstanding"),
-        Triple("Thuso Kit training", "Device handling, infection control and escalation drill", "Outstanding")
-    )
-    val verified = checks.count { it.third == "Verified" }
-    ScreenColumn {
-        DemoBadge()
-        if (stage == 0) {
-            Heading("Nurse onboarding preview", "Join the MyThuso nurse network.", "Vetting protects patients and it protects you. Nothing is submitted in this preview.")
-            OutlinedTextField(sanc, { sanc = it.filter { c -> c.isDigit() }.take(8) }, label = { Text("SANC registration number") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword), singleLine = true, modifier = Modifier.fillMaxWidth(),
-                supportingText = { Text(if (sanc.isNotEmpty() && sanc.length < 8) "A SANC number has 8 digits." else "Use a fictional number, for example 20012345.") })
-            Text("Scope of practice you are applying for", style = MaterialTheme.typography.titleMedium)
-            FlowRowChips(listOf("Chronic care", "Wound care", "Maternal & child", "Post-operative", "Phlebotomy", "Paediatric", "Elderly care"), scope) { skill ->
-                scope = if (skill in scope) scope - skill else scope + skill
-            }
-            Note("You are only ever dispatched to work inside your registered scope. The Control Tower cannot override that.")
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(onClick = close) { Text("Close") }
-                Button(onClick = { stage = 1 }, enabled = sanc.length == 8 && scope.isNotEmpty()) { Text("Continue") }
-            }
-        } else {
-            Heading("Nurse onboarding preview", "Your vetting status", "$verified of ${checks.size} checks complete in this sample. You cannot take visits until every check passes.")
-            LinearProgressIndicator({ verified.toFloat() / checks.size }, Modifier.fillMaxWidth())
-            checks.forEach { (name, detail, status) ->
-                CareCard {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(name, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                        Text(status, style = MaterialTheme.typography.labelMedium, color = if (status == "Verified") Teal else MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Note(detail)
-                }
-            }
-            Setting("I confirm the information above is true and I will report any change to my registration, clearance or health status.", attested) { attested = it }
-            Note("Re-vetting runs on a schedule, not once at sign-up. A lapsed registration removes a nurse from dispatch automatically.")
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(onClick = { stage = 0 }) { Text("Back") }
-                Button(onClick = close, enabled = attested) { Text("Submit demo application") }
-            }
-        }
     }
 }

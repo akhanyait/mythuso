@@ -28,23 +28,60 @@ test('signing out from the sign-in screen can start a new account instead', asyn
   await page.getByRole('button', { name: 'Skip and explore the design preview' }).click();
   await expect(page.getByRole('heading', { name: 'Hello, Lerato' })).toBeVisible();
 });
-test('the vetting pipeline gates dispatch and records a refusal', async ({ page }) => {
+test('a high-risk check needs a second reviewer, and one name cannot be both', async ({ page }) => {
   await openAdmin(page);
-  await page.getByRole('button', { name: 'Nurses', exact: true }).click();
-  const dispatchable = page.locator('.panel.metric').filter({ hasText: 'Dispatchable' });
-  await expect(dispatchable).toContainText('1');
-  const thandeka = page.locator('.admin-row').filter({ hasText: 'Sister Thandeka Zulu' });
-  await expect(thandeka).toContainText('Kit & AI training');
-  await thandeka.getByRole('button', { name: 'Pass this check' }).click();
-  await expect(thandeka).toContainText('Dispatchable');
-  await expect(thandeka.getByRole('button', { name: 'Dispatchable' })).toBeDisabled();
-  await expect(dispatchable).toContainText('2');
-  // a refusal is kept, with the stage it failed at, and can be reversed
-  const ayanda = page.locator('.admin-row').filter({ hasText: 'Sister Ayanda Dube' });
-  await ayanda.getByRole('button', { name: 'Decline' }).click();
-  await expect(page.getByText('declined at “SANC & identity”')).toBeVisible();
-  await page.getByRole('button', { name: 'Reinstate' }).click();
-  await expect(page.locator('.admin-row').filter({ hasText: 'Sister Ayanda Dube' })).toBeVisible();
+  await page.getByRole('button', { name: 'Vetting', exact: true }).click();
+  await expect(page.locator('.panel.metric').filter({ hasText: 'Awaiting a second reviewer' })).toContainText('1');
+  await page.getByRole('button', { name: /Brother Lwazi Mahlangu/ }).click();
+  const detail = page.locator('.vetting-grid > *').last();
+  const sanc = detail.locator('.record-row').filter({ hasText: 'SANC registration' });
+  await expect(sanc).toContainText('Awaiting a second reviewer');
+  await expect(detail).toContainText('SANC registration is waiting on a second reviewer.');
+  // the reviewer who took the first decision cannot agree with themselves
+  await page.getByLabel('Signed in as').selectOption('P. Mabaso · Clinical Director');
+  await expect(sanc.getByRole('button', { name: 'You decided this' })).toBeDisabled();
+  // a different name can
+  await page.getByLabel('Signed in as').selectOption('T. van Wyk · Compliance');
+  await sanc.getByRole('button', { name: 'Second it' }).click();
+  await expect(sanc).toContainText('Verified');
+  await expect(page.locator('.panel.metric').filter({ hasText: 'Awaiting a second reviewer' })).toContainText('0');
+  // seconding one check does not clear the file: Thuso Kit training is still in review
+  await expect(detail).toContainText('7 of 8');
+  await expect(detail.locator('.record-row').filter({ hasText: 'Thuso Kit training' })).toContainText('In review');
+});
+test('a lapsed clearance suspends a nurse, and the dispatch board refuses her by name', async ({ page }) => {
+  await openAdmin(page);
+  await page.getByRole('button', { name: 'Vetting', exact: true }).click();
+  const ayanda = page.getByRole('button', { name: /Sister Ayanda Dube/ });
+  await expect(ayanda).toContainText('Suspended');
+  await expect(ayanda).toContainText('Police clearance lapsed');   // not a negative countdown
+  // nobody had to notice: the suspension is arithmetic on the expiry date
+  await ayanda.click();
+  const detail = page.locator('.vetting-grid > *').last();
+  await expect(detail).toContainText('Police clearance');
+  await expect(detail).toContainText('Lapsed');
+  // and the board will not let her be sent to a patient
+  await page.getByRole('button', { name: 'Operations', exact: true }).click();
+  const row = page.locator('.record-row').filter({ hasText: 'Sister Ayanda Dube' });
+  await expect(row).toContainText('Police clearance lapsed');
+  await expect(row.getByRole('button', { name: 'Cannot be assigned' })).toBeDisabled();
+  // a cleared nurse on the same board still can be
+  const cleared = page.locator('.record-row').filter({ hasText: 'Sister Palesa Khumalo' });
+  await expect(cleared.getByRole('button', { name: 'Assign' })).toBeEnabled();
+});
+test('every vetting decision is written to a log the console can only add to', async ({ page }) => {
+  await openAdmin(page);
+  await page.getByRole('button', { name: 'Vetting', exact: true }).click();
+  await page.getByRole('button', { name: 'Decision audit' }).click();
+  const before = await page.locator('.timeline li, .record-row.static').count();
+  await page.getByRole('button', { name: 'Queue' }).click();
+  await page.getByRole('button', { name: /Sister Boitumelo Nkosi/ }).click();
+  const detail = page.locator('.vetting-grid > *').last();
+  await detail.locator('.record-row').filter({ hasText: 'Thuso Kit training' }).getByRole('button', { name: 'Verify' }).click();
+  await page.getByRole('button', { name: 'Decision audit' }).click();
+  const after = await page.locator('.timeline li, .record-row.static').count();
+  expect(after).toBeGreaterThan(before);
+  await expect(page.locator('main')).toContainText('Sister Boitumelo Nkosi');
 });
 test('changing a price shows what the platform is actually left with', async ({ page }) => {
   await openAdmin(page);

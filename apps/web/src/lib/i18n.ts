@@ -28,7 +28,13 @@ const en: Dictionary = {
  'slide2.title': 'Your health.|One safe place.', 'slide2.body': 'Visits, records and support — all in MyThuso.', 'slide2.cta': 'Open Thuso Pass',
  'slide2.trust1': 'Trusted care', 'slide2.trust2': 'For you and your loved ones', 'slide2.trust3': 'Healthier tomorrows', 'slide2.caption': 'Care connects us.',
  'slide3.title': 'Feel better.|Right at home.', 'slide3.body': 'Nurse-led care, delivered to your door.', 'slide3.cta': 'Book a nurse',
- 'slide3.trust1': 'Trusted professionals', 'slide3.trust2': 'Personalised care', 'slide3.trust3': 'Safe & convenient', 'slide3.caption': 'Quality care, where you are.'
+ 'slide3.trust1': 'Trusted professionals', 'slide3.trust2': 'Personalised care', 'slide3.trust3': 'Safe & convenient', 'slide3.caption': 'Quality care, where you are.',
+ /* The vetting console's own shell and navigation. Check names, issuing authorities and every
+    refusal stay in English: a mistranslated credential requirement is the same kind of safety
+    problem as a mistranslated clinical instruction. */
+ 'vetting.views': 'Vetting views', 'vetting.queue': 'Queue', 'vetting.renewals': 'Renewals due', 'vetting.audit': 'Decision audit',
+ 'vetting.reviewer': 'Signed in as', 'vetting.role': 'Role', 'vetting.status': 'Status',
+ 'vetting.allRoles': 'Every role', 'vetting.allStatuses': 'Every status', 'vetting.parties': 'Parties', 'vetting.apply': 'Preview an application'
 };
 const dictionaries: Record<LocaleCode, Dictionary> = {
  'en-ZA': en,
@@ -50,7 +56,10 @@ const dictionaries: Record<LocaleCode, Dictionary> = {
   'slide2.title': 'Impilo yakho.|Indawo eyodwa ephephile.', 'slide2.body': 'Ukuvakashelwa, amarekhodi nokusekelwa — konke ku-MyThuso.', 'slide2.cta': 'Vula i-Thuso Pass',
   'slide2.trust1': 'Ukunakekelwa okwethembekile', 'slide2.trust2': 'Kuwe nabathandekayo bakho', 'slide2.trust3': 'Ikusasa elinempilo', 'slide2.caption': 'Ukunakekelwa kuyasihlanganisa.',
   'slide3.title': 'Zizwe ungcono.|Ekhaya.', 'slide3.body': 'Ukunakekelwa okuholwa umhlengikazi, kulethwa emnyango wakho.', 'slide3.cta': 'Bhukha umhlengikazi',
-  'slide3.trust1': 'Ochwepheshe abethembekile', 'slide3.trust2': 'Ukunakekelwa okwakho', 'slide3.trust3': 'Kuphephile futhi kulula', 'slide3.caption': 'Ukunakekelwa okusezingeni, lapho ukhona.'
+  'slide3.trust1': 'Ochwepheshe abethembekile', 'slide3.trust2': 'Ukunakekelwa okwakho', 'slide3.trust3': 'Kuphephile futhi kulula', 'slide3.caption': 'Ukunakekelwa okusezingeni, lapho ukhona.',
+  'vetting.views': 'Amaviyu okuhlola', 'vetting.queue': 'Ulayini', 'vetting.renewals': 'Ukuvuselelwa okufanele', 'vetting.audit': 'Ukuhlolwa kwezinqumo',
+  'vetting.reviewer': 'Ungene njengo', 'vetting.role': 'Indima', 'vetting.status': 'Isimo',
+  'vetting.allRoles': 'Zonke izindima', 'vetting.allStatuses': 'Zonke izimo', 'vetting.parties': 'Amaqembu', 'vetting.apply': 'Buka isicelo'
  },
  'st-ZA': {
   'nav.section': 'TLHOKOMELO YA HAO', 'nav.Overview': 'Kakaretso', 'nav.Book a nurse': 'Behela mooki', 'nav.My visits': 'Diketelo tsa ka',
@@ -70,7 +79,10 @@ const dictionaries: Record<LocaleCode, Dictionary> = {
   'slide2.title': 'Bophelo ba hao.|Sebaka se le seng se sireletsehileng.', 'slide2.body': 'Diketelo, direkoto le tshehetso — tsohle ho MyThuso.', 'slide2.cta': 'Bula Thuso Pass',
   'slide2.trust1': 'Tlhokomelo e tshepahalang', 'slide2.trust2': 'Bakeng sa hao le ba lelapa', 'slide2.trust3': 'Bokamoso bo phetseng hantle', 'slide2.caption': 'Tlhokomelo ea re kopanya.',
   'slide3.title': 'Ikutlwe hantle.|Hae.', 'slide3.body': 'Tlhokomelo e etelletsweng ke mooki, e tliswa monyako wa hao.', 'slide3.cta': 'Behela mooki',
-  'slide3.trust1': 'Ditsebi tse tshepahalang', 'slide3.trust2': 'Tlhokomelo ya hao', 'slide3.trust3': 'E bolokehile ebile e bonolo', 'slide3.caption': 'Tlhokomelo e ntle, moo o leng teng.'
+  'slide3.trust1': 'Ditsebi tse tshepahalang', 'slide3.trust2': 'Tlhokomelo ya hao', 'slide3.trust3': 'E bolokehile ebile e bonolo', 'slide3.caption': 'Tlhokomelo e ntle, moo o leng teng.',
+  'vetting.views': 'Dipono tsa tlhahlobo', 'vetting.queue': 'Mola', 'vetting.renewals': 'Dintjhafatso tse lokelang', 'vetting.audit': 'Tlhahlobo ya diqeto',
+  'vetting.reviewer': 'O kene e le', 'vetting.role': 'Karolo', 'vetting.status': 'Boemo',
+  'vetting.allRoles': 'Dikarolo tsohle', 'vetting.allStatuses': 'Maemo ohle', 'vetting.parties': 'Mekga', 'vetting.apply': 'Sheba kopo'
  },
  'af-ZA': {
   'nav.section': 'JOU SORG', 'nav.Overview': 'Oorsig', 'nav.Book a nurse': 'Bespreek ’n verpleegster', 'nav.My visits': 'My besoeke',
@@ -90,7 +102,10 @@ const dictionaries: Record<LocaleCode, Dictionary> = {
   'slide2.title': 'Jou gesondheid.|Een veilige plek.', 'slide2.body': 'Besoeke, rekords en ondersteuning — alles in MyThuso.', 'slide2.cta': 'Open Thuso Pass',
   'slide2.trust1': 'Betroubare sorg', 'slide2.trust2': 'Vir jou en jou geliefdes', 'slide2.trust3': 'Gesonder môres', 'slide2.caption': 'Sorg verbind ons.',
   'slide3.title': 'Voel beter.|Tuis.', 'slide3.body': 'Verpleegster-gelei sorg, tot by jou deur.', 'slide3.cta': 'Bespreek ’n verpleegster',
-  'slide3.trust1': 'Betroubare professionele', 'slide3.trust2': 'Persoonlike sorg', 'slide3.trust3': 'Veilig en gerieflik', 'slide3.caption': 'Kwaliteitsorg, waar jy ook al is.'
+  'slide3.trust1': 'Betroubare professionele', 'slide3.trust2': 'Persoonlike sorg', 'slide3.trust3': 'Veilig en gerieflik', 'slide3.caption': 'Kwaliteitsorg, waar jy ook al is.',
+  'vetting.views': 'Keuringsaansigte', 'vetting.queue': 'Tou', 'vetting.renewals': 'Hernuwings wat verval', 'vetting.audit': 'Besluitoudit',
+  'vetting.reviewer': 'Aangemeld as', 'vetting.role': 'Rol', 'vetting.status': 'Status',
+  'vetting.allRoles': 'Elke rol', 'vetting.allStatuses': 'Elke status', 'vetting.parties': 'Partye', 'vetting.apply': 'Bekyk ’n aansoek'
  }
 };
 export const LocaleContext = createContext<LocaleCode>('en-ZA');

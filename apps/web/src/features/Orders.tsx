@@ -1,7 +1,14 @@
 import { useState } from 'react';
-import { ArrowRight, Check, CircleAlert, ClipboardList, FlaskConical, Package, Pill as PillIcon, ShieldCheck, Truck } from 'lucide-react';
+import { ArrowRight, Check, CircleAlert, ClipboardList, FlaskConical, Package, Pill as PillIcon, ShieldCheck, ShieldX, Truck } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { StateBlock, StatePicker, type LoadState } from '../components/States';
+import { can } from '../lib/vetting';
+import { subjectsByRole } from '../lib/vetting-fixtures';
+/* A partner is a vetted party like any other. Routing a prescription and releasing a result are
+   both capabilities in packages/catalog/vetting.json, so the two screens ask the same module the
+   dispatch board asks rather than trusting that a partner on the list is a partner in good standing. */
+const pharmacies = subjectsByRole('pharmacy');
+const laboratories = subjectsByRole('laboratory');
 type Step = { label: string; detail: string; at?: string; state: 'done' | 'active' | 'waiting' };
 function Timeline({ steps }: { steps: Step[] }) {
  return <ol className="timeline">{steps.map(s => <li key={s.label} className={s.state}>
@@ -16,22 +23,28 @@ const medicines = [
 export function PrescriptionDetail({ reference = 'RX-0081' }: { reference?: string }) {
  const [state, setState] = useState<LoadState>('ready');
  const [checked, setChecked] = useState<string[]>([]);
+ const [chosen, setChosen] = useState(pharmacies[0].id);
+ const pharmacy = pharmacies.find(p => p.id === chosen)!;
+ const mayDispense = can(pharmacy, 'dispense');
  return <div className="form-stack">
   <Pill>Fictional prescription</Pill>
   <div className="order-head"><span className="service-icon"><PillIcon size={22}/></span><div><h3>{reference}</h3><p className="muted">Issued 4 September · Valid for 6 months</p></div><Pill tone="plain">Awaiting pharmacist</Pill></div>
   <div className="review-line"><span>Patient</span><strong>Lerato Molefe · 01/01/1980</strong></div>
   <div className="review-line"><span>Prescriber</span><strong>Dr. A. Dlamini · HPCSA 0000000 (demo)</strong></div>
-  <div className="review-line"><span>Dispensing pharmacy</span><strong>Rosebank community pharmacy · Demo partner</strong></div>
+  <label>Dispensing pharmacy<select value={chosen} onChange={e => { setChosen(e.target.value); setChecked([]); }}>
+   {pharmacies.map(p => <option key={p.id} value={p.id}>{p.name} · {p.reference}</option>)}
+  </select></label>
+  {!mayDispense.allowed && <div className="privacy-note alert" role="status"><ShieldX size={19}/>{mayDispense.reason}</div>}
   <StatePicker label="Preview the pharmacy connection state" value={state} onChange={setState}/>
   <StateBlock state={state} subject="The dispensing partner’s order feed" permission="partner data sharing" onRetry={() => setState('ready')}>
    <div className="panel">{medicines.map(m => <div className="medicine-row" key={m.name}>
-    <label className="checkbox"><input type="checkbox" checked={checked.includes(m.name)} onChange={e => setChecked(e.target.checked ? [...checked, m.name] : checked.filter(x => x !== m.name))} aria-label={`Mark ${m.name} checked by pharmacist`}/><span/></label>
+    <label className="checkbox"><input type="checkbox" disabled={!mayDispense.allowed} checked={checked.includes(m.name)} onChange={e => setChecked(e.target.checked ? [...checked, m.name] : checked.filter(x => x !== m.name))} aria-label={`Mark ${m.name} checked by pharmacist`}/><span/></label>
     <div><strong>{m.name}</strong><small>{m.form} · {m.dose}</small><small>{m.quantity} · {m.repeats}</small><em>{m.note}</em></div>
    </div>)}</div>
    <Timeline steps={[
     { label: 'Prescribed', detail: 'Signed by the reviewing doctor', at: '4 September, 11:41', state: 'done' },
-    { label: 'Sent to pharmacy', detail: 'Encrypted transfer to the dispensing partner', at: '4 September, 11:42', state: 'done' },
-    { label: 'Pharmacist check', detail: `${checked.length} of ${medicines.length} items checked in this preview`, state: 'active' },
+    { label: 'Sent to pharmacy', detail: mayDispense.allowed ? 'Encrypted transfer to the dispensing partner' : 'Held. The script is not routed to a pharmacy that cannot lawfully fill it', at: mayDispense.allowed ? '4 September, 11:42' : undefined, state: mayDispense.allowed ? 'done' : 'waiting' },
+    { label: 'Pharmacist check', detail: `${checked.length} of ${medicines.length} items checked in this preview`, state: mayDispense.allowed ? 'active' : 'waiting' },
     { label: 'Dispensed and sealed', detail: 'Tamper-evident seal number recorded', state: 'waiting' },
     { label: 'Delivered to the patient', detail: 'Signature or visit-code handover', state: 'waiting' }
    ]}/>
@@ -48,19 +61,26 @@ const panel = [
 export function LabOrderDetail({ reference = 'LAB-0023' }: { reference?: string }) {
  const [state, setState] = useState<LoadState>('ready');
  const [released, setReleased] = useState(false);
+ const [chosen, setChosen] = useState(laboratories[0].id);
+ const laboratory = laboratories.find(l => l.id === chosen)!;
+ const mayRelease = can(laboratory, 'release-lab-result');
  return <div className="form-stack">
   <Pill>Fictional laboratory order</Pill>
   <div className="order-head"><span className="service-icon"><FlaskConical size={22}/></span><div><h3>{reference}</h3><p className="muted">Requested 4 September · Fasting panel</p></div><Pill tone="plain">{released ? 'Released to patient' : 'Awaiting release'}</Pill></div>
   <div className="review-line"><span>Requested by</span><strong>Dr. A. Dlamini · HPCSA 0000000 (demo)</strong></div>
   <div className="review-line"><span>Collected by</span><strong>Sister Naledi Mokoena · At home, Rosebank</strong></div>
   <div className="review-line"><span>Sample seal</span><strong>SEAL-77341 · Intact on receipt</strong></div>
+  <label>Testing laboratory<select value={chosen} onChange={e => { setChosen(e.target.value); setReleased(false); }}>
+   {laboratories.map(l => <option key={l.id} value={l.id}>{l.name} · {l.reference}</option>)}
+  </select></label>
+  {!mayRelease.allowed && <div className="privacy-note alert" role="status"><ShieldX size={19}/>{mayRelease.reason}</div>}
   <Timeline steps={[
    { label: 'Ordered', detail: 'Doctor requested a fasting panel', at: '4 September, 08:10', state: 'done' },
    { label: 'Collected at home', detail: 'Two tubes drawn, sealed and labelled at the bedside', at: '4 September, 09:05', state: 'done' },
    { label: 'Courier handover', detail: 'Seal scanned by courier · Temperature logged', at: '4 September, 09:40', state: 'done' },
    { label: 'Received by the laboratory', detail: 'Seal verified intact · Accessioned', at: '4 September, 12:15', state: 'done' },
    { label: 'Results verified', detail: 'Checked by the laboratory’s reviewing pathologist', at: '5 September, 07:30', state: 'done' },
-   { label: 'Released to the patient', detail: released ? 'Visible in the Health Passport with an explanation' : 'Held until the requesting doctor releases them', state: released ? 'done' : 'active' }
+   { label: 'Released to the patient', detail: released ? 'Visible in the Health Passport with an explanation' : mayRelease.allowed ? 'Held until the requesting doctor releases them' : 'Held. Accreditation lapsed, and a held result stays held', state: released ? 'done' : 'active' }
   ]}/>
   <StatePicker label="Preview the laboratory connection state" value={state} onChange={setState}/>
   <StateBlock state={state} subject="The laboratory result feed" permission="partner data sharing" onRetry={() => setState('ready')}>
@@ -71,7 +91,8 @@ export function LabOrderDetail({ reference = 'LAB-0023' }: { reference?: string 
    </table>
   </StateBlock>
   <div className="privacy-note"><CircleAlert size={19}/>Abnormal results are never pushed to a patient without a clinician’s explanation. Release is a deliberate clinical act, not an automatic notification.</div>
-  <button className={released ? 'secondary' : 'primary'} onClick={() => setReleased(!released)}>{released ? 'Withdraw demo release' : <>Release with an explanation<ArrowRight size={16}/></>}</button>
+  <button className={released ? 'secondary' : 'primary'} disabled={!mayRelease.allowed} aria-describedby={mayRelease.allowed ? undefined : 'release-refusal'} onClick={() => setReleased(!released)}>{released ? 'Withdraw demo release' : <>Release with an explanation<ArrowRight size={16}/></>}</button>
+  {!mayRelease.allowed && <p className="helper" id="release-refusal" role="status">Accreditation is not a badge on a partner page. It is the thing that decides whether this button does anything.</p>}
  </div>;
 }
 export function FulfilmentQueue({ open }: { open: (s: string) => void }) {

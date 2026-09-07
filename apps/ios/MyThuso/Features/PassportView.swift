@@ -127,6 +127,7 @@ struct FamilyView: View {
                     .padding(.vertical, 3)
                 }
                 NavigationLink("Invite someone") { InviteGuardianView() }
+                NavigationLink("Guardian verification") { VettingStatusView(subjectId: "G-031") }
             }
             Section { Text("Paying for care does not grant access to someone’s health records. Revoking takes effect immediately and the other person is told.").font(.caption).foregroundStyle(.secondary) }
         }.navigationTitle("Your circle of care")
@@ -141,7 +142,7 @@ struct PlansView: View {
     var body: some View { ScrollView { VStack(alignment: .leading, spacing: 18) { CareHeading(eyebrow: "Thuso Routine", title: "A healthier rhythm.", subtitle: "Proposal pricing · Phase 2–3 preview"); ForEach(plans, id: \.0) { plan in NavigationLink { FeatureDetail(title: plan.0) } label: { CareCard { Image(systemName: "heart").foregroundStyle(ThusoTheme.teal); Text(plan.0).font(.title2.weight(.semibold)); Text(plan.2).font(.subheadline).foregroundStyle(.secondary); Text(plan.1).font(.title3) } }.buttonStyle(.plain) } }.padding(20) }.background(ThusoTheme.canvas).navigationTitle("Care plans") }
 }
 struct WalletView: View {
-    var body: some View { List { Section { Label("THUSO WALLET", systemImage: "creditcard").foregroundStyle(ThusoTheme.teal); Text("R500.00").font(.largeTitle.weight(.semibold)); Text("Demo balance · No financial account").font(.caption).foregroundStyle(.secondary) }; Section { NavigationLink("Top up") { FeatureDetail(title: "Top up wallet") }; NavigationLink("Sponsor care") { FeatureDetail(title: "Sponsor care") } }; Section("Sample activity") { LabeledContent("Family care credit", value: "+ R500"); LabeledContent("Vitals visit", value: "− R249") } }.navigationTitle("Thuso Wallet") }
+    var body: some View { List { Section { Label("THUSO WALLET", systemImage: "creditcard").foregroundStyle(ThusoTheme.teal); Text("R500.00").font(.largeTitle.weight(.semibold)); Text("Demo balance · No financial account").font(.caption).foregroundStyle(.secondary) }; Section { NavigationLink("Top up") { FeatureDetail(title: "Top up wallet") }; NavigationLink("Sponsor care") { VettingStatusView(subjectId: "S-021") } }; Section("Sample activity") { LabeledContent("Family care credit", value: "+ R500"); LabeledContent("Vitals visit", value: "− R249") } }.navigationTitle("Thuso Wallet") }
 }
 struct NotificationsView: View {
     var body: some View { List { Section("Sample notifications") { Label("Your Saturday visit is confirmed.", systemImage: "calendar"); Label("Your visit summary is ready.", systemImage: "doc.text"); Label("Explore regular check-ins with Thuso Routine.", systemImage: "heart") } }.navigationTitle("Notifications") }
@@ -186,6 +187,8 @@ struct MoreView: View {
                 }
                 CareCard {
                     Button(action: firstRun) { MenuRow(title: "First-run & recovery", subtitle: "Sign-up, one-time code and lost access", symbol: "person.badge.plus") }.buttonStyle(.plain)
+                    Divider().overlay(ThusoTheme.line)
+                    row("Vetting", "Every party that must be vetted, and what each is refused", "checkmark.shield") { VettingDirectoryView() }
                     Divider().overlay(ThusoTheme.line)
                     row("System states", "Loading, error, offline and denied", "square.stack.3d.up") { SystemStatesView() }
                     Divider().overlay(ThusoTheme.line)
@@ -255,12 +258,23 @@ struct WorkspaceView: View {
                         }
                     }
                 }
-                Section("Your tools") { NavigationLink("Nurse onboarding & vetting") { NurseVettingView() }; NavigationLink("Quality & revenue") { FeatureDetail(title: "Quality & revenue") } }
+                Section("Vetting") {
+                    NavigationLink("Vetting queue") { VettingConsoleView() }
+                    NavigationLink("Renewals due") { VettingRenewalsView() }
+                    NavigationLink("All twelve vetted parties") { VettingDirectoryView() }
+                    NavigationLink("Operators on duty") { VettingRoleView(roleId: "operator") }
+                }
+                Section("Your tools") { NavigationLink("Quality & revenue") { FeatureDetail(title: "Quality & revenue") } }
             } else if role == "Doctor" {
                 Section("Review queue") {
                     ForEach(["TH-2048 · Vitals assessment", "TH-2045 · Wound follow-up", "TH-2041 · Prescription request"], id: \.self) { item in
                         NavigationLink(item) { DoctorReviewView(reference: String(item.prefix(7))) }
                     }
+                }
+                Section("Your vetting") {
+                    NavigationLink("My registration and cover") { VettingStatusView(subjectId: "D-401") }
+                    NavigationLink("Apply to join as a doctor") { VettingApplyView(roleId: "doctor") }
+                    NavigationLink("Every doctor on the platform") { VettingRoleView(roleId: "doctor") }
                 }
                 Section("Your tools") {
                     NavigationLink("Clinical protocols") { FeatureDetail(title: "Clinical protocols") }
@@ -272,9 +286,13 @@ struct WorkspaceView: View {
                     NavigationLink("TH-2048 · Vitals assessment · Rosebank") { VisitAssessmentView() }
                     ForEach(["11:30 · Wound care · Parktown", "14:00 · Mother & baby · Melville"], id: \.self) { item in NavigationLink(item) { FeatureDetail(title: item) } }
                 }
+                Section("Your vetting") {
+                    NavigationLink("My vetting status") { VettingStatusView(subjectId: "N-205") }
+                    NavigationLink("Nurse onboarding & vetting") { VettingApplyView(roleId: "nurse") }
+                    NavigationLink("Locum vetting") { VettingRoleView(roleId: "locum") }
+                }
                 Section("Your tools") {
                     NavigationLink("Visit assessment") { VisitAssessmentView() }
-                    NavigationLink("Nurse onboarding & vetting") { NurseVettingView() }
                     NavigationLink("Diagnostic kit") { FeatureDetail(title: "Diagnostic kit") }
                     NavigationLink("Weekly payouts") { FeatureDetail(title: "Weekly payouts") }
                     NavigationLink("Locum shifts") { FeatureDetail(title: "Locum shifts") }

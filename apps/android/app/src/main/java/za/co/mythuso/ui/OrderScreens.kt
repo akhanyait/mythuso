@@ -144,5 +144,14 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
             ToolRow("LAB-0023 · Fasting panel · Results verified") { open("Laboratory order LAB-0023") }
             ToolRow("LAB-0019 · Sample in transit · Seal intact") { open("Laboratory order LAB-0019") }
         }
+        /* A partner is vetted as an organisation, and the courier who carries the sample is vetted
+           in his own right. Both refusals reach this queue, so both are reachable from it. */
+        CareCard {
+            Text("Vetting", style = MaterialTheme.typography.titleMedium)
+            ToolRow("Pharmacy vetting · Diepkloof Family Pharmacy") { open("Vetting: P-502") }
+            ToolRow("Laboratory vetting · Vaal Diagnostics") { open("Vetting: B-602") }
+            ToolRow("Courier vetting · Johannes Pretorius") { open("Vetting: C-702") }
+            ToolRow("Start a partner application") { open("Apply for vetting: pharmacy") }
+        }
     }
 }

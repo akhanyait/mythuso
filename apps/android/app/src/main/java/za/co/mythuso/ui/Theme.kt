@@ -94,6 +94,9 @@ val Sage = TealSoft
     val (bg, fg) = when (tone) {
         "amber" -> AmberSoft to Amber
         "sky" -> SkySoft to Sky
+        /* A refusal is not a warning. Vetting needs a pill that says so without shouting. */
+        "danger" -> Danger.copy(alpha = 0.10f) to Danger
+        "quiet" -> Canvas to BodyText
         "light" -> Color.White.copy(alpha = 0.18f) to Color(0xFFE8F5EF)
         else -> TealSoft to TealDeep
     }

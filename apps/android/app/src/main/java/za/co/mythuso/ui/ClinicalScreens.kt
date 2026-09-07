@@ -14,6 +14,10 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import za.co.mythuso.model.PreviewStore
+import za.co.mythuso.model.can
+import za.co.mythuso.model.summarise
+import za.co.mythuso.model.vettingRoleById
 
 /**
  * Indicative adult reference ranges, used only to flag a value for the nurse's attention.
@@ -155,13 +159,40 @@ private val Flag = Color(0xFF9B6231)
         }
     }
 }
-@Composable fun DoctorReviewScreen(reference: String = "TH-2048") {
+/**
+ * The queue refuses the signature rather than warning about it. A doctor whose HPCSA registration
+ * has lapsed can still open the case — the refusal has to be readable to be answerable — but the
+ * record itself, and the signature, are withheld.
+ */
+@Composable fun DoctorReviewScreen(store: PreviewStore, reference: String = "TH-2048") {
     var decision by remember { mutableStateOf("") }
     var rationale by remember { mutableStateOf("") }
     var done by remember { mutableStateOf(false) }
+    var signingAs by remember { mutableStateOf("D-401") }
+    val doctors = store.vetting.subjects.filter { it.roleId == "doctor" }
+    val doctor = doctors.firstOrNull { it.id == signingAs } ?: doctors.firstOrNull()
+    val mayRead = doctor?.let { can(it, "view-patient-record") }
+    val maySign = doctor?.let { can(it, "sign-clinical-review") }
     ScreenColumn {
         DemoBadge()
         Heading("Clinical review", "$reference · Lerato Molefe", "Submitted by Sister Naledi Mokoena, 4 September 11:24. Two readings were flagged by the nurse.")
+        CareCard {
+            Text("Signing as", style = MaterialTheme.typography.titleMedium)
+            FlowRowChips(doctors.map { it.name }, setOfNotNull(doctor?.name)) { name -> signingAs = doctors.first { it.name == name }.id }
+            doctor?.let { Note("${vettingRoleById(it.roleId)?.name} · ${it.reference} · ${summarise(it).status.label}") }
+            if (maySign?.allowed == false) Text(maySign.reason ?: "", style = MaterialTheme.typography.bodyMedium, color = Danger)
+        }
+        if (mayRead?.allowed == false) {
+            CareCard {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Icon(Icons.Outlined.Block, null, tint = Danger)
+                    Text("This case is withheld", style = MaterialTheme.typography.titleMedium)
+                }
+                Text(mayRead.reason ?: "", style = MaterialTheme.typography.bodyMedium)
+                Note("Blocked by: ${mayRead.blockedBy.joinToString(", ") { it.name }}. The patient’s readings are not shown, not blurred — withheld.")
+            }
+            return@ScreenColumn
+        }
         ClinicalChart("Blood pressure — systolic", "mmHg", listOf(
             Reading("12 Aug", 128.0), Reading("19 Aug", 134.0), Reading("28 Aug", 141.0, "Missed medication"), Reading("4 Sep", 146.0, "Nurse flagged")
         ), 90.0..140.0)
@@ -182,7 +213,7 @@ private val Flag = Color(0xFF9B6231)
         OutlinedTextField(rationale, { rationale = it.take(800) }, label = { Text("Clinical rationale") }, modifier = Modifier.fillMaxWidth().height(120.dp),
             supportingText = { Text("Why this decision, for the record and the next clinician.") })
         Note("Decision support may summarise or highlight. It never selects the outcome, and every entry is attributed to the signing doctor’s HPCSA registration.")
-        Button(onClick = { done = true }, enabled = !done && decision.isNotEmpty() && rationale.trim().length >= 10) {
+        Button(onClick = { done = true }, enabled = !done && maySign?.allowed == true && decision.isNotEmpty() && rationale.trim().length >= 10) {
             Text(if (done) "Demo decision held in this screen only" else "Sign demo decision")
         }
     }

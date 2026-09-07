@@ -41,6 +41,12 @@ struct VisitAssessmentView: View {
         return nil
     }
     private var captured: [Observation] { Observation.all.filter { !(values[$0.id] ?? "").isEmpty && Double(values[$0.id] ?? "") != nil } }
+    /* The signature carries the registration it was made under, taken from the same vetting record
+       dispatch asks before it offers the visit, rather than a number typed into this screen. */
+    private var nurseAttribution: String {
+        let nurse = VettingStore.shared.subject(named: "Sister Naledi Mokoena")
+        return "Sister Naledi Mokoena · \(nurse?.reference ?? "SANC registration") (demo)"
+    }
     private var abnormal: [Observation] { captured.filter { flag($0) != nil } }
     var body: some View {
         Form {
@@ -145,7 +151,7 @@ struct VisitAssessmentView: View {
                 }
                 LabeledContent("Symptoms", value: symptoms.isEmpty ? "None recorded" : symptoms.sorted().joined(separator: ", "))
                 LabeledContent("Next step", value: escalation)
-                LabeledContent("Recorded by", value: "Sister Naledi Mokoena · SANC 0000000 (demo)")
+                LabeledContent("Recorded by", value: nurseAttribution)
             }
             Section {
                 Text("A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.").font(.caption).foregroundStyle(.secondary)
@@ -160,6 +166,26 @@ struct DoctorReviewView: View {
     @State private var decision = ""
     @State private var rationale = ""
     @State private var done = false
+    @State private var signingDoctor = "D-401"
+    @State private var refused = ""
+    @ObservedObject private var vetting = VettingStore.shared
+    /* A case cannot be signed by a doctor whose HPCSA registration is not current, and prescribing
+       is a separate answer again — so the queue asks twice, and refuses rather than warns. */
+    private var doctor: VettingSubject? { vetting.subject(signingDoctor) }
+    private var signDecision: VettingDecision {
+        doctor.map { can($0, "sign-clinical-review") }
+            ?? VettingDecision(allowed: false, reason: "No vetted doctor is signed in, so nothing here can be signed.", blockedBy: [])
+    }
+    private var prescribeDecision: VettingDecision {
+        doctor.map { can($0, "prescribe") }
+            ?? VettingDecision(allowed: false, reason: "No vetted doctor is signed in.", blockedBy: [])
+    }
+    private var needsPrescribing: Bool { decision.contains("prescription") }
+    private var blocked: VettingDecision? {
+        if !signDecision.allowed { return signDecision }
+        if needsPrescribing && !prescribeDecision.allowed { return prescribeDecision }
+        return nil
+    }
     var body: some View {
         Form {
             Section {
@@ -178,20 +204,39 @@ struct DoctorReviewView: View {
                 LabeledContent("Reported symptoms", value: "Headache, fatigue")
                 LabeledContent("Next step", value: "Refer for doctor review within 24 hours")
             }
+            Section("Signing doctor") {
+                Picker("Doctor", selection: $signingDoctor) {
+                    ForEach(vetting.subjects(role: "doctor")) { Text($0.name).tag($0.id) }
+                }
+                if let doctor {
+                    LabeledContent("Registration", value: doctor.reference)
+                    HStack { Text("Vetting"); Spacer(); SubjectStatusPill(status: summarise(doctor).status) }
+                    NavigationLink("Open this doctor’s vetting") { VettingStatusView(subjectId: doctor.id) }
+                }
+                VettingRefusalNote(decision: signDecision)
+            }
             Section("Your decision") {
                 Picker("Outcome", selection: $decision) {
                     Text("Choose an outcome…").tag("")
                     ForEach(["Continue current management, review in one month", "Adjust medication and issue a prescription", "Request laboratory tests", "Book a teleconsultation with the patient", "Refer to a facility"], id: \.self) { Text($0).tag($0) }
                 }
+                /* Prescribing is asked separately from signing, because it rests on a separate
+                   authority — the outcome that needs one says so before the signature is attempted. */
+                if needsPrescribing { VettingRefusalNote(decision: prescribeDecision) }
                 TextEditor(text: $rationale).frame(minHeight: 90)
                 Text("Clinical rationale — why this decision, for the record and the next clinician.").font(.caption).foregroundStyle(.secondary)
             }
             Section {
                 Text("Decision support may summarise or highlight. It never selects the outcome, and every entry is attributed to the signing doctor’s HPCSA registration.").font(.caption).foregroundStyle(.secondary)
-                Button(done ? "Demo decision held in this screen only" : "Sign demo decision") { done = true }
+                Button(done ? "Demo decision held in this screen only" : "Sign demo decision", action: sign)
                     .disabled(done || decision.isEmpty || rationale.trimmingCharacters(in: .whitespaces).count < 10)
+                if !refused.isEmpty { Text(refused).font(.caption).foregroundStyle(ThusoTheme.danger) }
             }
         }
         .navigationTitle("Clinical review").navigationBarTitleDisplayMode(.inline)
+    }
+    private func sign() {
+        guard let blocked else { refused = ""; done = true; return }
+        refused = "Signature refused. \(blocked.reason ?? "") The case stays in the queue for a doctor who may sign it."
     }
 }

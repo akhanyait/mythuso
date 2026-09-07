@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Check, CircleAlert, KeyRound, Stethoscope, ShieldCheck, UserCheck } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Check, CircleAlert, KeyRound, Stethoscope, ShieldCheck, ShieldX, UserCheck } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { ClinicalChart } from '../components/Chart';
 import { CodeInput, StepHead } from '../components/Steps';
+import { can } from '../lib/vetting';
+import { subjectsByRole } from '../lib/vetting-fixtures';
 /* Indicative adult reference ranges, used only to flag a value for the nurse's attention.
    This is not a validated triage or early-warning score and it never decides anything. */
 export const observations = [
@@ -95,22 +97,37 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
   </div>}
  </div>;
 }
+/* Signing is where vetting has to bite rather than warn. A doctor whose HPCSA registration has
+   lapsed is not asked to be careful — the queue refuses the signature, and says which check refused
+   it. The switcher exists so both answers can actually be seen in a design review. */
+const doctors = subjectsByRole('doctor');
 export function DoctorReview({ reference = 'TH-2048', onClose }: { reference?: string; onClose: () => void }) {
  const [decision, setDecision] = useState('');
  const [rationale, setRationale] = useState('');
  const [done, setDone] = useState(false);
+ const [signing, setSigning] = useState(doctors[0].id);
+ const doctor = doctors.find(d => d.id === signing)!;
+ const maySign = can(doctor, 'sign-clinical-review');
+ const mayPrescribe = can(doctor, 'prescribe');
  return <div className="form-stack">
   <Pill>Clinical review preview</Pill>
   <h3>{reference} · Lerato Molefe</h3>
   <p className="muted">Submitted by Sister Naledi Mokoena, 4 September 11:24. Two readings were flagged by the nurse.</p>
+  <label>Signing doctor<select value={signing} onChange={e => { setSigning(e.target.value); setDone(false); }}>
+   {doctors.map(d => <option key={d.id} value={d.id}>{d.name} · {d.reference}</option>)}
+  </select></label>
+  {!maySign.allowed && <div className="privacy-note alert" role="status"><ShieldX size={19}/>{maySign.reason}</div>}
   <ClinicalChart title="Blood pressure — systolic" unit="mmHg" normal={[90, 140]} readings={[{ label: '12 Aug', value: 128 }, { label: '19 Aug', value: 134 }, { label: '28 Aug', value: 141, note: 'Missed medication' }, { label: '4 Sep', value: 146, note: 'Nurse flagged' }]}/>
   <div className="review-line"><span>Pulse</span><strong>88 bpm</strong></div>
   <div className="review-line"><span>Reported symptoms</span><strong>Headache, fatigue</strong></div>
   <div className="review-line"><span>Nurse’s next step</span><strong>Refer for doctor review within 24 hours</strong></div>
-  <label>Your decision<select value={decision} onChange={e => setDecision(e.target.value)}><option value="">Choose an outcome…</option><option>Continue current management, review in one month</option><option>Adjust medication and issue a prescription</option><option>Request laboratory tests</option><option>Book a teleconsultation with the patient</option><option>Refer to a facility</option></select></label>
+  <label>Your decision<select value={decision} onChange={e => setDecision(e.target.value)} disabled={!maySign.allowed}><option value="">Choose an outcome…</option><option>Continue current management, review in one month</option>
+   <option disabled={!mayPrescribe.allowed}>Adjust medication and issue a prescription{mayPrescribe.allowed ? '' : ' — prescribing not verified'}</option>
+   <option>Request laboratory tests</option><option>Book a teleconsultation with the patient</option><option>Refer to a facility</option></select></label>
+  {!mayPrescribe.allowed && <p className="helper" role="status">{mayPrescribe.reason}</p>}
   <label>Clinical rationale<textarea value={rationale} onChange={e => setRationale(e.target.value.slice(0, 800))} placeholder="Why this decision, for the record and the next clinician…"/></label>
-  <div className="privacy-note"><Stethoscope size={19}/>Decision support may summarise or highlight. It never selects the outcome, and every entry is attributed to the signing doctor’s HPCSA registration.</div>
-  {done ? <p role="status" className="helper"><Activity size={14}/> Demo decision held in this dialog only. Nothing was issued, prescribed or sent.</p>
-   : <div className="button-row"><button className="secondary" onClick={onClose}>Close</button><button className="primary" disabled={!decision || rationale.trim().length < 10} onClick={() => setDone(true)}><Check size={16}/>Sign demo decision</button></div>}
+  <div className="privacy-note"><Stethoscope size={19}/>Decision support may summarise or highlight. It never selects the outcome, and every entry is attributed to the signing doctor’s HPCSA registration — which is exactly why an expired one stops the signature rather than annotating it.</div>
+  {done ? <p role="status" className="helper"><Activity size={14}/> Demo decision held in this dialog only, attributed to {doctor.name}. Nothing was issued, prescribed or sent.</p>
+   : <div className="button-row"><button className="secondary" onClick={onClose}>Close</button><button className="primary" disabled={!maySign.allowed || !decision || rationale.trim().length < 10} onClick={() => setDone(true)}><Check size={16}/>Sign demo decision</button></div>}
  </div>;
 }

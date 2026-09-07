@@ -157,6 +157,8 @@ import za.co.mythuso.model.PreviewStore
             MenuRow("System states", "Loading, error, offline and denied", Icons.Outlined.Layers) { open("System states") }
             HorizontalDivider(color = Line)
             MenuRow("Explore the roadmap", "All 21 modules in the proposal", Icons.Outlined.GridView) { open("Roadmap") }
+            HorizontalDivider(color = Line)
+            MenuRow("Vetting & verification", "Every party MyThuso vets, and what each is refused until it passes", Icons.Outlined.VerifiedUser) { open("Vetting pipeline") }
         }
         CareCard {
             listOf("Nurse" to "Visits, assessment and vetting", "Doctor" to "Review queue and sign-off",
@@ -195,9 +197,17 @@ import za.co.mythuso.model.PreviewStore
         title == "First-run & recovery" -> firstRun()
         title == "Invite a guardian" -> InviteGuardianScreen(store) { open("My family") }
         title == "Visit assessment" -> VisitAssessmentScreen(close = { open("Nurse workspace") })
-        title == "Nurse onboarding & vetting" -> NurseVettingScreen { open("Nurse workspace") }
-        title == "Live dispatch board" -> DispatchBoardScreen()
-        title.startsWith("Doctor review") -> DoctorReviewScreen(title.removePrefix("Doctor review "))
+        /* Vetting is reachable from every workspace, because every workspace is somebody who was
+           vetted to be there. The routes carry the party, not a copy of their record. */
+        title == "Nurse onboarding & vetting" -> VettingApplicationScreen(store, "nurse", open) { open("Nurse workspace") }
+        title == "Vetting pipeline" -> VettingPipelineScreen(store, open)
+        title == "Renewals due" -> VettingRenewalsScreen(store, open)
+        title == "Vetting decision log" -> VettingLogScreen(store)
+        title.startsWith("Vetting: ") -> VettingStatusScreen(store, title.removePrefix("Vetting: "), open)
+        title.startsWith("Apply for vetting") ->
+            VettingApplicationScreen(store, title.removePrefix("Apply for vetting").removePrefix(": ").ifEmpty { null }, open) { open("Vetting pipeline") }
+        title == "Live dispatch board" -> DispatchBoardScreen(store, open)
+        title.startsWith("Doctor review") -> DoctorReviewScreen(store, title.removePrefix("Doctor review "))
         title.startsWith("Prescription ") -> PrescriptionScreen(title.removePrefix("Prescription "))
         title.startsWith("Laboratory order ") -> LabOrderScreen(title.removePrefix("Laboratory order "))
         title.startsWith("Incident ") -> IncidentDetailScreen(title.removePrefix("Incident "))
@@ -206,7 +216,7 @@ import za.co.mythuso.model.PreviewStore
             Heading("Your care updates", "Notifications", "Sample notifications only.")
             listOf("Your Saturday visit is confirmed.", "Your visit summary is ready.", "Explore regular check-ins with Thuso Routine.", "Kagiso asked to help with your bookings. Review what he would see.").forEach { CareCard { Text(it) } }
         }
-        title.endsWith("workspace") -> WorkspaceScreen(title, open)
+        title.endsWith("workspace") -> WorkspaceScreen(title, store, open)
         else -> ScreenColumn {
             DemoBadge()
             Heading("MyThuso", title, "Connected to your care journey.")
@@ -237,6 +247,12 @@ import za.co.mythuso.model.PreviewStore
             Button(onClick = { store.family.add(name.trim()); name = "" }, enabled = name.isNotBlank()) { Text("Add demo member") }
         }
         InvitationList(store, open)
+        CareCard {
+            Text("Verification", style = MaterialTheme.typography.titleMedium)
+            ToolRow("Guardian verification · Nomsa Molefe") { open("Vetting: G-031") }
+            ToolRow("Sponsor verification · Themba Molefe") { open("Vetting: S-021") }
+            Note("Being a parent in the app is not proof of being a guardian in law, and paying is not permission. Both are vetted separately.")
+        }
         Note("Sponsoring care does not automatically grant access to health records.")
     }
 }
@@ -244,7 +260,7 @@ import za.co.mythuso.model.PreviewStore
 @Composable fun Setting(name: String, checked: Boolean, change: (Boolean) -> Unit) { Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text(name, Modifier.weight(1f)); Switch(checked, change) } }
 @Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); listOf(Triple("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), Triple("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), Triple("Thuso Mom", "R249 / month", "Pregnancy and baby’s first year"), Triple("Thuso Senior", "R699 / month", "Weekly care and family support"), Triple("Thuso Recover", "Custom pricing", "Personalised recovery support")).forEach { (name, price, description) -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Teal); Text(name, style = MaterialTheme.typography.titleLarge); Text(description); Text(price, style = MaterialTheme.typography.headlineSmall, color = Teal); OutlinedButton(onClick = { open(name) }) { Text("Explore plan") } } } } }
 @Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Forest); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
-@Composable fun WorkspaceScreen(title: String, open: (String) -> Unit) {
+@Composable fun WorkspaceScreen(title: String, store: PreviewStore, open: (String) -> Unit) {
     var available by remember { mutableStateOf(true) }
     val nurse = title.startsWith("Nurse")
     val doctor = title.startsWith("Doctor")
@@ -255,7 +271,12 @@ import za.co.mythuso.model.PreviewStore
         Heading("Care team preview", title, "Role preview for design review, not authentication.")
         if (nurse) CareCard { Setting("Available for visits", available) { available = it } }
         if (tower) {
-            CareCard { Text("Dispatch", style = MaterialTheme.typography.titleMedium); ToolRow("Live dispatch board") { open("Live dispatch board") } }
+            CareCard {
+                Text("Dispatch", style = MaterialTheme.typography.titleMedium)
+                ToolRow("Live dispatch board") { open("Live dispatch board") }
+                ToolRow("Vetting pipeline") { open("Vetting pipeline") }
+                ToolRow("Renewals due") { open("Renewals due") }
+            }
             CareCard {
                 Text("Open incidents", style = MaterialTheme.typography.titleMedium)
                 incidents.forEach { incident ->
@@ -281,11 +302,20 @@ import za.co.mythuso.model.PreviewStore
         CareCard {
             Text("Your tools", style = MaterialTheme.typography.titleMedium)
             val tools = when {
-                nurse -> listOf("Visit assessment", "Nurse onboarding & vetting", "Diagnostic kit", "Weekly payouts", "Locum shifts", "Academy")
-                doctor -> listOf("Clinical protocols", "Teleconsultation", "Referral pathway")
-                else -> listOf("Nurse onboarding & vetting", "Incident INC-015", "Quality & revenue", "Employer programmes")
+                nurse -> listOf("Visit assessment", "Nurse onboarding & vetting", "Vetting: N-205", "Apply for vetting: locum", "Diagnostic kit", "Weekly payouts", "Locum shifts", "Academy")
+                doctor -> listOf("Apply for vetting: doctor", "Vetting: D-401", "Clinical protocols", "Teleconsultation", "Referral pathway")
+                else -> listOf("Vetting pipeline", "Vetting: O-802", "Vetting: A-902", "Vetting decision log", "Apply for vetting", "Incident INC-015", "Quality & revenue", "Employer programmes")
             }
-            tools.forEach { item -> ToolRow(item) { open(item) } }
+            /* A route reads as a route. The workspace names the party it opens rather than its
+               reference, because nobody thinks of a colleague as O-802. */
+            fun label(route: String) = when {
+                route.startsWith("Vetting: ") -> store.vetting.subject(route.removePrefix("Vetting: "))
+                    ?.let { "Vetting · ${it.name}" } ?: route
+                route == "Apply for vetting" -> "Start a vetting application"
+                route.startsWith("Apply for vetting: ") -> "Vetting application · ${route.removePrefix("Apply for vetting: ").replaceFirstChar { it.uppercase() }}"
+                else -> route
+            }
+            tools.forEach { item -> ToolRow(label(item)) { open(item) } }
         }
         Note("AI is decision support. Clinical decisions require an authorised clinician’s sign-off.")
     }

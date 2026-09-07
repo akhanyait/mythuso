@@ -115,11 +115,12 @@ node scripts/render-illustrations.mjs
 - Health Passport with accessible trend charts — every chart is also a table — documents, limited-sharing preview and export.
 - Family profiles, guardian invitations with explicit scope, duration and verification, care plans, wallet, notifications and privacy choices.
 - Nurse visit assessment: visit-code identity check, spoken consent, seven observations with indicative-range flagging, escalation and attributed sign-off.
-- Doctor clinical review, prescription and laboratory order detail with chain of custody, Control Tower dispatch and incident triage, and nurse onboarding and vetting.
+- Doctor clinical review, prescription and laboratory order detail with chain of custody, and Control Tower dispatch and incident triage.
+- Vetting for all twelve vetted parties — nurse, locum, doctor, pharmacy, laboratory, sample courier, Control Tower operator, admin staff, employer, sponsor, guardian and Thuso Corner site. Credentials are checked against the format the issuing body actually uses, a high-risk check needs a second reviewer, a lapsed one suspends the party by arithmetic rather than by somebody noticing, and each party is told exactly what it is refused until its checks pass.
 - Shared loading, service-error, offline, permission-denied and empty states, collected in a state gallery.
 - English, isiZulu, Sesotho and Afrikaans across the shell, navigation and primary actions.
 - Roadmap entries for all 21 platform modules in the proposal.
-- An **admin console** (the proposal's Control Tower): reporting against the funding plan, a nurse vetting pipeline that gates dispatch, dispatch and incidents, the doctor review queue with AI-versus-clinician agreement, a pricing catalogue that shows what the platform is left with after the nurse and payment costs, subscriptions and B2B lines, the seed round with milestone-gated tranches, and a compliance checklist that says plainly what is designed and what is not built.
+- An **admin console** (the proposal's Control Tower): reporting against the funding plan, a vetting queue for every role that gates dispatch, clinical sign-off, dispensing and result release, dispatch and incidents, the doctor review queue with AI-versus-clinician agreement, a pricing catalogue that shows what the platform is left with after the nurse and payment costs, subscriptions and B2B lines, the seed round with milestone-gated tranches, and a compliance checklist that says plainly what is designed and what is not built.
 - A real session: **Log out** closes the account from the profile menu or the More hub, and nothing about it is reachable until you sign back in.
 
 The patient journey and the flows above are interactive on all three platforms. Later-phase modules remain navigation/detail previews. The precise scope, and what these flows deliberately refuse to do, is in [Feature map](docs/FEATURE-MAP.md).
@@ -128,7 +129,7 @@ The patient journey and the flows above are interactive on all three platforms. 
 
 [Architecture decisions](docs/ARCHITECTURE.md) explain the native stack, modular boundaries, planned backend, API contracts and integration gates. [Privacy and security](docs/PRIVACY-AND-SECURITY.md) separates implemented preview protections from POPIA, clinical and security work required before a pilot.
 
-CI checks web types/build/journeys, source boundaries, dependency advisories and native builds. The boundary check also fails the build if clinical reference ranges, locale sets or demo verification codes drift apart between web, iOS and Android. UI state resets on reload/restart. There is no authentication, real payment, dispatch, diagnosis, prescription or connected device. Security and POPIA compliance are not established merely by this UI.
+CI checks web types/build/journeys, source boundaries, dependency advisories and native builds. The boundary check also fails the build if clinical reference ranges, locale sets, demo verification codes or the vetting table — twelve roles, seventy checks, every credential format, every scope of practice and every refusal sentence — drift apart between web, iOS and Android. UI state resets on reload/restart. There is no authentication, real payment, dispatch, diagnosis, prescription or connected device, and no credential is verified with any issuing body — the formats are real, the numbers are fictional, and nothing is sent anywhere. Security and POPIA compliance are not established merely by this UI.
 
 ## Layout
 
@@ -137,7 +138,7 @@ CI checks web types/build/journeys, source boundaries, dependency advisories and
 | `apps/web` | Responsive React application |
 | `apps/ios` | Native SwiftUI Xcode application |
 | `apps/android` | Native Compose Android application |
-| `packages/catalog` | Service definitions and the commercial model from the proposal |
+| `packages/catalog` | Service definitions, the commercial model from the proposal, and the vetting table every app reads |
 | `packages/design-tokens` | Cross-platform design reference |
 | `docs` | Architecture, privacy controls and feature scope |
 | `tests` | Desktop and mobile browser journeys, including the clinical, guardian and dispatch flows |
@@ -149,7 +150,7 @@ CI checks web types/build/journeys, source boundaries, dependency advisories and
 
 Only phase-one services are bookable. Later-phase services appear in the catalogue marked with their phase, so the plan is visible without implying a nurse can be sent today.
 
-**This remains a preview with no backend.** There is no server, no stored record and no real account; approving a nurse approves nobody and releasing a tranche moves no money. What a working product additionally needs is listed in [Privacy and security](docs/PRIVACY-AND-SECURITY.md) and summarised in the console's Compliance tab.
+**This remains a preview with no backend.** There is no server, no stored record and no real account; approving a nurse approves nobody, suspending a laboratory suspends nobody, and releasing a tranche moves no money. What a working product additionally needs is listed in [Privacy and security](docs/PRIVACY-AND-SECURITY.md) and summarised in the console's Compliance tab.
 
 The proposal is confidential. No deployment or publication is included.
 

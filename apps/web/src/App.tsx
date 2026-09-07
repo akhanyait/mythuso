@@ -9,6 +9,7 @@ import { Onboarding, SignIn } from './features/Onboarding';
 import { VisitAssessment, DoctorReview } from './features/Clinical';
 import { LabOrderDetail, PrescriptionDetail } from './features/Orders';
 import { IncidentDetail, NurseVetting } from './features/Dispatch';
+import { VettingApplication } from './features/Vetting';
 import { InviteGuardian, sampleInvitations, type Invitation } from './features/Guardian';
 import { Texture } from './components/HeroCarousel';
 import { LocaleContext, locales, useT, type LocaleCode } from './lib/i18n';
@@ -52,6 +53,7 @@ function modalTitle(modal:string){
  if(modal.startsWith('Laboratory order ')) return 'Laboratory order';
  if(modal.startsWith('Incident ')) return 'Incident';
  if(modal.startsWith('Doctor review')) return 'Clinical review';
+ if(modal==='Vetting application') return 'Apply for vetting';
  if(modal==='Visit assessment'||modal.startsWith('Nurse case:')) return 'Visit assessment';
  return modal;
 }
@@ -76,6 +78,7 @@ function modalBody(p:BodyProps){
  if(modal.startsWith('Laboratory order ')||modal==='Laboratory results') return <LabOrderDetail reference={modal.replace('Laboratory order ','')}/>;
  if(modal.startsWith('Incident ')||modal==='Incident management') return <IncidentDetail reference={modal.replace('Incident ','')} onClose={p.close}/>;
  if(modal==='Nurse onboarding & vetting'||modal==='Nurse vetting') return <NurseVetting onClose={p.close}/>;
+ if(modal==='Vetting application') return <VettingApplication onClose={p.close}/>;
  if(modal==='Switch workspace') return <div className="workspace-options"><p className="muted">Explore each role’s UI. These previews do not grant access to real records.</p>{['Patient','Nurse','Doctor','Partner','Control Tower','Admin'].map(r=><button className="record-row" key={r} onClick={()=>{p.setRole(r);p.close();}}><span className="service-icon"><Users size={21}/></span><span><strong>{r==='Admin'?'Admin console':r}</strong><small>{r==='Patient'?'Personal and family care':r==='Nurse'?'Visits, diagnostics and earnings':r==='Doctor'?'Review queue and telehealth':r==='Partner'?'Pharmacy and laboratory fulfilment':r==='Control Tower'?'Dispatch, vetting and quality':'Back office: vetting, catalogue, growth, finance and compliance'}</small></span><ArrowRight size={17}/></button>)}</div>;
  if(modal==='Your location') return <form className="form-stack" onSubmit={e=>{e.preventDefault();p.close();}}><p className="muted">Choose a demo care area. No GPS access is requested.</p><label>Care area<select value={p.location} onChange={e=>p.setLocation(e.target.value)}><option>Rosebank, Johannesburg</option><option>Soweto, Johannesburg</option><option>Randburg, Johannesburg</option></select></label><button className="primary">Save location<ArrowRight size={16}/></button></form>;
  if(modal==='How can we help?') return <div className="form-stack"><p className="muted">Explore services or get help with your care journey.</p><form className="search-box" onSubmit={e=>{e.preventDefault();p.navigate('Book a nurse');}}><Search size={18}/><input aria-label="Search for care" placeholder="What care are you looking for?" value={p.query} onChange={e=>p.setQuery(e.target.value)}/><button className="icon-button" aria-label="Search"><ArrowRight size={18}/></button></form><div className="empty-note">Live support and emergency dispatch are not connected in this design preview.</div></div>;

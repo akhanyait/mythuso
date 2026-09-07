@@ -82,6 +82,10 @@ struct StatusPill: View {
         switch tone {
         case "amber": return (ThusoTheme.amberSoft, ThusoTheme.amber)
         case "sky": return (ThusoTheme.skySoft, ThusoTheme.sky)
+        /* A refusal has to be able to look like one. Vetting says "lapsed" and "declined" often
+           enough that the pill needs a tone for it, and a quiet one for what nobody has done yet. */
+        case "danger": return (ThusoTheme.danger.opacity(0.11), ThusoTheme.danger)
+        case "quiet": return (ThusoTheme.canvas, ThusoTheme.body)
         case "light": return (Color.white.opacity(0.18), Color(red: 0.91, green: 0.96, blue: 0.94))
         default: return (ThusoTheme.tealSoft, ThusoTheme.tealDeep)
         }

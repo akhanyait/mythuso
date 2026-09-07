@@ -1,15 +1,23 @@
 import { useMemo, useState } from 'react';
-import { Activity, BadgeCheck, Banknote, CalendarClock, CircleAlert, ClipboardList, FileText, Gauge, Landmark, LockKeyhole, Radio, ShieldCheck, Stethoscope, TrendingUp, UserRoundCheck, UserRoundX, Users } from 'lucide-react';
+import { Activity, BadgeCheck, Banknote, CalendarClock, CircleAlert, ClipboardList, FileText, Gauge, Landmark, LockKeyhole, Radio, ScrollText, ShieldCheck, Stethoscope, TrendingUp, UserRoundCheck, Users } from 'lucide-react';
 import { Pill, SectionTitle } from '../components/UI';
-import { EmptyState } from '../components/States';
 import { DispatchBoard, IncidentBoard } from './Dispatch';
+import { useVettingState, VettingConsole, type VettingState } from './Vetting';
+import { summarise, type VettingSubject } from '../lib/vetting';
 import { businessModel, money, bigMoney, platformMargin, services, type Service } from '../lib/catalog';
-const tabs = ['Overview', 'Nurses', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance'] as const;
+const tabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance'] as const;
+/* One party can be blocking in more than one place, so the console counts parties rather than
+   checks: an operator wants to know how many names cannot be used today. */
+const blocking = (subjects: VettingSubject[], roleId?: string) =>
+ subjects.filter(s => (!roleId || s.roleId === roleId) && !summarise(s).cleared).length;
 type Tab = typeof tabs[number];
 /* The back office described as "Control Tower" in the proposal. Everything here is fictional and
    held in memory: approving a nurse approves nobody, and releasing a tranche moves no money. */
 export function AdminConsole({ open }: { open: (s: string) => void }) {
  const [tab, setTab] = useState<Tab>('Overview');
+ /* Held above the tabs on purpose: a decision taken in Vetting has to still be true when the
+    Operations board is opened, or the gate is a screenshot of a gate. */
+ const vetting = useVettingState();
  return <>
   <div className="page-intro">
    <div className="eyebrow">Control Tower · Demo</div>
@@ -19,8 +27,8 @@ export function AdminConsole({ open }: { open: (s: string) => void }) {
   <div className="underline-tabs" role="group" aria-label="Console sections">
    {tabs.map(t => <button key={t} className={tab === t ? 'selected' : ''} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}
   </div>
-  {tab === 'Overview' ? <Overview/> : tab === 'Nurses' ? <Nurses/> : tab === 'Operations' ? <Operations open={open}/>
-   : tab === 'Clinical' ? <Clinical open={open}/> : tab === 'Catalogue' ? <Catalogue/> : tab === 'Growth' ? <Growth/>
+  {tab === 'Overview' ? <Overview vetting={vetting}/> : tab === 'Vetting' ? <VettingConsole vetting={vetting} open={open}/> : tab === 'Operations' ? <Operations open={open} vetting={vetting}/>
+   : tab === 'Clinical' ? <Clinical open={open} vetting={vetting}/> : tab === 'Catalogue' ? <Catalogue/> : tab === 'Growth' ? <Growth/>
    : tab === 'Finance' ? <Finance/> : <Compliance/>}
  </>;
 }
@@ -32,8 +40,9 @@ function Kpi({ icon: Icon, label, value, note, tone }: { icon: typeof Users; lab
  </div>;
 }
 /* Where the business is against the plan in the proposal, rather than against nothing. */
-function Overview() {
+function Overview({ vetting }: { vetting: VettingState }) {
  const plan = businessModel.trajectory[1];               // Month 9 is the checkpoint we report against
+ const nurses = vetting.subjects.filter(s => s.roleId === 'nurse');
  const actual = { visitsPerDay: 84, subscribers: 1620, revenue: 298000, costs: 271000 };
  const pace = (a: number, p: number) => Math.round((a / p) * 100);
  return <>
@@ -41,7 +50,7 @@ function Overview() {
    <Kpi icon={CalendarClock} label="Visits yesterday" value="84" note={`${pace(actual.visitsPerDay, plan.visitsPerDay)}% of the month-9 plan (${plan.visitsPerDay})`}/>
    <Kpi icon={Users} label="Active subscribers" value="1,620" note={`${pace(actual.subscribers, plan.subscribers)}% of the month-9 plan (${plan.subscribers.toLocaleString()})`}/>
    <Kpi icon={Banknote} label="Revenue this month" value={bigMoney(actual.revenue)} note={`Plan ${bigMoney(plan.revenue)} · costs ${bigMoney(actual.costs)}`}/>
-   <Kpi icon={UserRoundCheck} label="Nurses dispatchable" value="118" note="Of 164 applications in the pipeline"/>
+   <Kpi icon={UserRoundCheck} label="Nurses dispatchable" value={String(nurses.length - blocking(vetting.subjects, 'nurse'))} note={`Of ${nurses.length} in the vetting pipeline · read from the vetting module, not typed here`}/>
    <Kpi icon={Stethoscope} label="Reviews awaiting a doctor" value="12" note="2 flagged urgent · target 15 minutes"/>
    <Kpi icon={CircleAlert} label="Open incidents" value="3" note="1 critical · SLA acknowledged within 5 minutes" tone="flagged"/>
   </div>
@@ -59,72 +68,16 @@ function Overview() {
   <div className="privacy-note space-top"><Gauge size={19}/>Reporting against the plan is the point of this screen. A console that only shows today's numbers cannot tell an investor or a board whether the round is on track.</div>
  </>;
 }
-type Candidate = { id: string; name: string; sanc: string; zone: string; scope: string; stage: number; note?: string };
-const vettingStages = ['Applied', 'SANC & identity', 'Police clearance', 'References', 'Kit & AI training', 'Dispatchable'];
-const initialCandidates: Candidate[] = [
- { id: 'N-201', name: 'Sister Thandeka Zulu', sanc: '20014477', zone: 'Soweto', scope: 'Chronic care · Wound care', stage: 4 },
- { id: 'N-202', name: 'Sister Boitumelo Nkosi', sanc: '20019902', zone: 'Randburg', scope: 'Maternal & child', stage: 2 },
- { id: 'N-203', name: 'Brother Lwazi Mahlangu', sanc: '20007731', zone: 'Tembisa', scope: 'Post-operative · Phlebotomy', stage: 3 },
- { id: 'N-204', name: 'Sister Ayanda Dube', sanc: '20022145', zone: 'Soweto', scope: 'Elderly care', stage: 1 },
- { id: 'N-205', name: 'Sister Karabo Mothibi', sanc: '20016688', zone: 'Roodepoort', scope: 'Chronic care · Paediatric', stage: 5 }
-];
-/* Vetting is the gate the whole marketplace rests on, so it is a real pipeline with real refusals
-   rather than a list of names. */
-function Nurses() {
- const [candidates, setCandidates] = useState(initialCandidates);
- const [rejected, setRejected] = useState<Candidate[]>([]);
- const advance = (id: string) => setCandidates(cs => cs.map(c => c.id === id ? { ...c, stage: Math.min(c.stage + 1, vettingStages.length - 1) } : c));
- const reject = (id: string) => {
-  const candidate = candidates.find(c => c.id === id);
-  if (!candidate) return;
-  setCandidates(cs => cs.filter(c => c.id !== id));
-  setRejected(r => [...r, candidate]);
- };
- const dispatchable = candidates.filter(c => c.stage === vettingStages.length - 1).length;
+function Operations({ open, vetting }: { open: (s: string) => void; vetting: VettingState }) {
+ const stopped = blocking(vetting.subjects);
  return <>
   <div className="metric-grid">
-   <Kpi icon={UserRoundCheck} label="Dispatchable" value={String(dispatchable)} note="Every check passed and in date"/>
-   <Kpi icon={ClipboardList} label="In the pipeline" value={String(candidates.length - dispatchable)} note="Cannot take a visit until every check passes"/>
-   <Kpi icon={UserRoundX} label="Declined" value={String(rejected.length)} note="Recorded with a reason and re-appealable"/>
+   <Kpi icon={ShieldCheck} label="Parties blocking work" value={String(stopped)} note={`Of ${vetting.subjects.length} vetted parties · decided in the Vetting tab`} tone={stopped ? 'flagged' : ''}/>
+   <Kpi icon={UserRoundCheck} label="Nurses blocked" value={String(blocking(vetting.subjects, 'nurse'))} note="Not offered on the board below, with the reason shown"/>
+   <Kpi icon={CircleAlert} label="Open incidents" value="3" note="1 critical · SLA acknowledged within 5 minutes" tone="flagged"/>
   </div>
-  <SectionTitle title="Vetting pipeline"/>
-  <div className="panel">
-   {candidates.map(c => <div className="record-row static admin-row" key={c.id}>
-    <span className={`service-icon ${c.stage === vettingStages.length - 1 ? 'check-verified' : 'check-in-review'}`}>
-     {c.stage === vettingStages.length - 1 ? <BadgeCheck size={20}/> : <ClipboardList size={20}/>}
-    </span>
-    <span>
-     <strong>{c.name}</strong>
-     <small>SANC {c.sanc} · {c.zone} · {c.scope}</small>
-     <span className="stage-track" role="img" aria-label={`Stage ${c.stage + 1} of ${vettingStages.length}: ${vettingStages[c.stage]}`}>
-      {vettingStages.map((s, i) => <i key={s} className={i <= c.stage ? 'on' : ''}/>)}
-     </span>
-     <small>{vettingStages[c.stage]}</small>
-    </span>
-    <div className="admin-actions">
-     <button className="secondary" onClick={() => reject(c.id)}><UserRoundX size={15}/>Decline</button>
-     <button className="primary" disabled={c.stage === vettingStages.length - 1} onClick={() => advance(c.id)}>
-      {c.stage === vettingStages.length - 1 ? 'Dispatchable' : 'Pass this check'}
-     </button>
-    </div>
-   </div>)}
-   {!candidates.length && <EmptyState title="Nobody in the pipeline" body="New applications appear here as nurses apply through the app."/>}
-  </div>
-  {rejected.length > 0 && <>
-   <SectionTitle title="Declined"/>
-   <div className="panel">{rejected.map(c => <div className="record-row static" key={c.id}>
-    <span className="service-icon check-outstanding"><UserRoundX size={20}/></span>
-    <span><strong>{c.name}</strong><small>SANC {c.sanc} · declined at “{vettingStages[c.stage]}”</small></span>
-    <button className="secondary" onClick={() => { setRejected(r => r.filter(x => x.id !== c.id)); setCandidates(cs => [...cs, c]); }}>Reinstate</button>
-   </div>)}</div>
-  </>}
-  <div className="privacy-note space-top"><ShieldCheck size={19}/>Re-vetting runs on a schedule, not once at sign-up. A lapsed SANC registration or police clearance removes a nurse from dispatch automatically, without anyone here having to notice.</div>
- </>;
-}
-function Operations({ open }: { open: (s: string) => void }) {
- return <>
   <SectionTitle title="Live dispatch"/>
-  <DispatchBoard/>
+  <DispatchBoard subjects={vetting.subjects}/>
   <SectionTitle title="Open incidents"/>
   <IncidentBoard open={open}/>
  </>;
@@ -135,10 +88,13 @@ const reviewQueue = [
  { id: 'TH-2041', patient: 'Sipho Radebe', flag: 'Prescription request', waited: '1 h 12 min', urgent: false },
  { id: 'TH-2039', patient: 'Ayanda Khoza', flag: 'ECG: possible atrial fibrillation', waited: '2 min', urgent: true }
 ];
-function Clinical({ open }: { open: (s: string) => void }) {
+function Clinical({ open, vetting }: { open: (s: string) => void; vetting: VettingState }) {
+ const doctors = vetting.subjects.filter(s => s.roleId === 'doctor');
+ const blocked = blocking(vetting.subjects, 'doctor');
  return <>
   <div className="metric-grid">
    <Kpi icon={Stethoscope} label="Awaiting review" value={String(reviewQueue.length)} note="Urgent target 15 minutes · routine 4 hours"/>
+   <Kpi icon={UserRoundCheck} label="Doctors who cannot sign" value={`${blocked} of ${doctors.length}`} note="The queue refuses the signature rather than warning about it" tone={blocked ? 'flagged' : ''}/>
    <Kpi icon={Activity} label="AI agreed with the doctor" value="91%" note="Sample of 1,240 reviewed cases"/>
    <Kpi icon={CircleAlert} label="AI missed a finding" value="0.8%" note="Every miss is reviewed by the Medical Director" tone="flagged"/>
   </div>
@@ -275,7 +231,8 @@ function Compliance() {
   { name: 'SANC registration verified', detail: 'Checked at onboarding and re-checked annually', state: 'Designed', icon: BadgeCheck },
   { name: 'HPCSA registration for the doctor panel', detail: 'Every signed decision is attributed', state: 'Designed', icon: Stethoscope },
   { name: 'Consent recorded with version and wording', detail: 'Withdrawable, and shown back to the patient', state: 'Designed', icon: ShieldCheck },
-  { name: 'Append-only access and decision audit', detail: 'Who saw what, when and why', state: 'Not built', icon: FileText },
+  { name: 'Append-only vetting decision log', detail: 'Designed: every verify, second, decline, suspension, appeal and renewal is added to a log this console cannot edit, delete or reorder', state: 'Designed', icon: ScrollText },
+  { name: 'Append-only access and decision audit', detail: 'Not built: the vetting log lives in memory and dies on reload. A server-side record with integrity protection, that a person with database access still cannot rewrite, does not exist', state: 'Not built', icon: FileText },
   { name: 'SA hosting, encryption at rest and in transit', detail: 'Needs a backend before it can be true', state: 'Not built', icon: LockKeyhole },
   { name: 'Information Officer and POPIA request handling', detail: 'Correction, deletion and access requests', state: 'Not built', icon: Users },
   { name: 'Incident escalation within 5 minutes', detail: 'Acknowledged, then Clinical Lead review within 24 hours', state: 'Designed', icon: Radio },

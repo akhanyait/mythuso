@@ -19,7 +19,12 @@ enum Dispatch {
         DispatchNurse(id: "N-108", name: "Sister Palesa Khumalo", area: "Soweto", status: "Available", eta: 9, skills: "Wound care · Maternal", x: 0.35, y: 0.83),
         DispatchNurse(id: "N-114", name: "Sister Naledi Mokoena", area: "Rosebank", status: "Available", eta: 18, skills: "Wound care · Chronic care", x: 0.76, y: 0.21),
         DispatchNurse(id: "N-133", name: "Sister Refilwe Sithole", area: "Randburg", status: "Available", eta: 24, skills: "Chronic care · Paediatric", x: 0.15, y: 0.20),
-        DispatchNurse(id: "N-121", name: "Brother Sipho Ndlovu", area: "Melville", status: "On a visit", eta: 46, skills: "Post-operative · Chronic care", x: 0.24, y: 0.51)
+        DispatchNurse(id: "N-121", name: "Brother Sipho Ndlovu", area: "Melville", status: "On a visit", eta: 46, skills: "Post-operative · Chronic care", x: 0.24, y: 0.51),
+        /* Two nurses who are on the board and near the job, and still cannot be sent. Availability
+           is not permission, so they stay visible with the reason attached rather than disappearing
+           and leaving an operator to wonder where they went. */
+        DispatchNurse(id: "N-204", name: "Sister Ayanda Dube", area: "Soweto", status: "Available", eta: 12, skills: "Elderly care", x: 0.44, y: 0.85),
+        DispatchNurse(id: "N-203", name: "Brother Lwazi Mahlangu", area: "Parktown", status: "Available", eta: 21, skills: "Post-operative · Phlebotomy", x: 0.64, y: 0.47)
     ]
 }
 /// The map is a picture of the same information in the list below it. Everything can be
@@ -64,7 +69,16 @@ struct DispatchBoardView: View {
     @State private var state: LoadState = .ready
     @State private var selected = Dispatch.jobs[0].id
     @State private var assigned: [String: String] = [:]
+    @State private var onDuty = "O-801"
+    @ObservedObject private var vetting = VettingStore.shared
     private var job: DispatchJob { Dispatch.jobs.first { $0.id == selected } ?? Dispatch.jobs[0] }
+    /* Sending a named nurse to a named address is the most sensitive thing this platform does, so
+       the board asks about the operator's own vetting before it asks about anybody else's. */
+    private var operatorOnDuty: VettingSubject? { vetting.subject(onDuty) }
+    private var operatorDecision: VettingDecision {
+        operatorOnDuty.map { can($0, "dispatch-nurses") }
+            ?? VettingDecision(allowed: false, reason: "No vetted operator is signed in, so nobody can be dispatched.", blockedBy: [])
+    }
     var body: some View {
         List {
             Section { DemoBadge(); StatePicker(title: "Preview the dispatch feed state", state: $state) }
@@ -85,21 +99,19 @@ struct DispatchBoardView: View {
                     LabeledContent("Priority", value: job.priority)
                     LabeledContent("Status", value: assigned[job.id].map { "Assigned to \($0)" } ?? "Unassigned")
                 }
+                Section("Operator on duty") {
+                    Picker("Operator", selection: $onDuty) {
+                        ForEach(vetting.subjects(role: "operator")) { Text($0.name).tag($0.id) }
+                    }
+                    VettingRefusalNote(decision: operatorDecision)
+                    if let operatorOnDuty {
+                        NavigationLink("Open this operator’s vetting") { VettingStatusView(subjectId: operatorOnDuty.id) }
+                    }
+                    Text("Suspend this operator in the vetting queue and the board stops assigning, on this screen, immediately.").font(.caption).foregroundStyle(.secondary)
+                }
                 Section("Nearest available nurses") {
                     ForEach(Dispatch.nurses.sorted { $0.eta < $1.eta }) { nurse in
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(nurse.name).font(.subheadline.weight(.semibold))
-                                Text("\(nurse.area) · \(nurse.status) · ETA \(nurse.eta) min").font(.caption).foregroundStyle(.secondary)
-                                Text(nurse.skills).font(.caption2).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Button(assigned[job.id] == nurse.name ? "Assigned" : "Assign") {
-                                assigned[job.id] = assigned[job.id] == nurse.name ? nil : nurse.name
-                            }
-                            .buttonStyle(.bordered).disabled(nurse.status != "Available")
-                        }
-                        .padding(.vertical, 3)
+                        DispatchNurseRow(nurse: nurse, jobId: job.id, assigned: $assigned, operatorDecision: operatorDecision)
                     }
                     Text("Estimated arrival is a straight-line guess in this preview. Real dispatch weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse.").font(.caption).foregroundStyle(.secondary)
                 }
@@ -108,6 +120,56 @@ struct DispatchBoardView: View {
             }
         }
         .navigationTitle("Dispatch").navigationBarTitleDisplayMode(.inline)
+    }
+}
+/// A nurse who is not cleared still appears on the board — the refusal is shown against them rather
+/// than hidden by removing them, so an operator can see why the nearest nurse is not being sent.
+struct DispatchNurseRow: View {
+    let nurse: DispatchNurse
+    let jobId: String
+    @Binding var assigned: [String: String]
+    let operatorDecision: VettingDecision
+    @ObservedObject private var vetting = VettingStore.shared
+    @State private var refused = ""
+    private var subject: VettingSubject? { vetting.subject(named: nurse.name) }
+    private var decision: VettingDecision {
+        if !operatorDecision.allowed { return operatorDecision }
+        return subject.map { can($0, "take-visit") }
+            ?? VettingDecision(allowed: false, reason: "This nurse has no vetting record, so no visit can be offered to them.", blockedBy: [])
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(nurse.name).font(.subheadline.weight(.semibold))
+                        if let subject { SubjectStatusPill(status: summarise(subject).status) }
+                    }
+                    Text("\(nurse.area) · \(nurse.status) · ETA \(nurse.eta) min").font(.caption).foregroundStyle(.secondary)
+                    Text(nurse.skills).font(.caption2).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button(assigned[jobId] == nurse.name ? "Assigned" : "Assign", action: assign)
+                    .buttonStyle(.bordered)
+                    .disabled(nurse.status != "Available")
+                    .accessibilityHint(decision.allowed ? "Assigns this visit" : (decision.reason ?? "Assignment is refused"))
+            }
+            VettingRefusalNote(decision: decision)
+            if !refused.isEmpty { Text(refused).font(.caption2).foregroundStyle(ThusoTheme.danger) }
+            if let subject {
+                NavigationLink("Why") { VettingStatusView(subjectId: subject.id) }
+                    .font(.caption2).foregroundStyle(ThusoTheme.teal)
+            }
+        }
+        .padding(.vertical, 3)
+    }
+    private func assign() {
+        guard decision.allowed else {
+            refused = "Assignment refused. \(decision.reason ?? "") Nothing was sent."
+            return
+        }
+        refused = ""
+        assigned[jobId] = assigned[jobId] == nurse.name ? nil : nurse.name
     }
 }
 struct IncidentSummary: Identifiable, Hashable {
@@ -156,63 +218,6 @@ struct IncidentDetailView: View {
         .navigationTitle(incident.id).navigationBarTitleDisplayMode(.inline)
     }
 }
-struct NurseVettingView: View {
-    @State private var stage = 0
-    @State private var sanc = ""
-    @State private var scope: Set<String> = []
-    @State private var attested = false
-    private let checks = [
-        ("SANC registration", "Verified against the South African Nursing Council register", "Verified"),
-        ("Identity", "Home Affairs verification through an accredited provider", "Verified"),
-        ("Qualifications", "Certified copies checked against the issuing institution", "Verified"),
-        ("Police clearance", "SAPS clearance, renewed every two years", "In review"),
-        ("Professional indemnity", "Cover in force for the scope of practice", "In review"),
-        ("Two clinical references", "Contacted directly, never through the applicant", "Outstanding"),
-        ("Thuso Kit training", "Device handling, infection control and escalation drill", "Outstanding")
-    ]
-    private var verified: Int { checks.filter { $0.2 == "Verified" }.count }
-    var body: some View {
-        Form {
-            if stage == 0 {
-                Section("Join the MyThuso nurse network") {
-                    Text("Vetting protects patients and it protects you. Nothing is submitted in this preview.").font(.caption).foregroundStyle(.secondary)
-                    TextField("SANC registration number (8 digits)", text: $sanc).keyboardType(.numberPad)
-                }
-                Section("Scope of practice") {
-                    ForEach(["Chronic care", "Wound care", "Maternal & child", "Post-operative", "Phlebotomy", "Paediatric", "Elderly care"], id: \.self) { skill in
-                        Button { if scope.contains(skill) { scope.remove(skill) } else { scope.insert(skill) } } label: {
-                            HStack { Text(skill).foregroundStyle(ThusoTheme.ink); Spacer(); if scope.contains(skill) { Image(systemName: "checkmark").foregroundStyle(ThusoTheme.teal) } }
-                        }
-                        .accessibilityAddTraits(scope.contains(skill) ? [.isSelected] : [])
-                    }
-                }
-                Section {
-                    Text("You are only ever dispatched to work inside your registered scope. The Control Tower cannot override that.").font(.caption).foregroundStyle(.secondary)
-                    Button("Continue") { stage = 1 }.disabled(sanc.filter(\.isNumber).count < 8 || scope.isEmpty)
-                }
-            } else {
-                Section("Your vetting status") {
-                    ProgressView(value: Double(verified), total: Double(checks.count))
-                    Text("\(verified) of \(checks.count) checks complete in this sample. You cannot take visits until every check passes.").font(.caption).foregroundStyle(.secondary)
-                }
-                Section {
-                    ForEach(checks, id: \.0) { check in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack { Text(check.0).font(.subheadline.weight(.semibold)); Spacer(); Text(check.2).font(.caption).foregroundStyle(check.2 == "Verified" ? ThusoTheme.teal : .secondary) }
-                            Text(check.1).font(.caption).foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 2)
-                        .accessibilityElement(children: .combine)
-                    }
-                }
-                Section {
-                    Toggle("I confirm the information above is true and I will report any change to my registration, clearance or health status.", isOn: $attested)
-                    Text("Re-vetting runs on a schedule, not once at sign-up. A lapsed registration removes a nurse from dispatch automatically.").font(.caption).foregroundStyle(.secondary)
-                    Button("Submit demo application") { stage = 0 }.disabled(!attested)
-                    Button("Back") { stage = 0 }
-                }
-            }
-        }
-        .navigationTitle("Nurse vetting").navigationBarTitleDisplayMode(.inline)
-    }
-}
+/* The nurse-only vetting screen that used to live here has become the module in
+   Features/VettingView.swift: every vetted role, resolved against today rather than listed, and the
+   same record this board asks before it offers an assignment. */

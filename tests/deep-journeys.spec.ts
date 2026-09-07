@@ -155,17 +155,61 @@ test('partner orders show chain of custody and every integration state', async (
   await dialog.getByRole('button', { name: 'Release with an explanation' }).click();
   await expect(dialog.getByText('Visible in the Health Passport with an explanation')).toBeVisible();
 });
-test('nurse vetting will not let an unvetted nurse take visits', async ({ page }) => {
+test('vetting refuses a malformed credential, and states the refusal it is under', async ({ page }) => {
   await page.goto('/');
   await switchRole(page, 'Nurse');
   await page.getByRole('button', { name: /Nurse onboarding & vetting/ }).click();
   const dialog = page.getByRole('dialog');
+  // the credential the role hangs on is checked for the shape the issuing body actually uses
   await expect(dialog.getByRole('button', { name: 'Continue' })).toBeDisabled();
+  await dialog.getByLabel('SANC registration number').fill('2001');
+  await expect(dialog.getByText('A SANC registration number has 8 digits.')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Continue' })).toBeDisabled();
+  // and the applicant is told what they are refused, on the step that asks for it
+  await expect(dialog).toContainText('An unvetted nurse is never offered a visit');
   await dialog.getByLabel('SANC registration number').fill('20012345');
+  await dialog.getByRole('button', { name: 'Continue' }).click();
+  // scope is its own decision, and a nurse is only ever dispatched inside it
+  await expect(dialog.getByText('You are only ever dispatched to work inside your registered scope. The Control Tower cannot override that.')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Continue' })).toBeDisabled();
   await dialog.getByRole('checkbox', { name: 'Wound care' }).check();
   await dialog.getByRole('button', { name: 'Continue' }).click();
-  await expect(dialog.getByText('3 of 7 checks complete in this sample. You cannot take visits until every check passes.')).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Submit demo application' })).toBeDisabled();
+  // passing is not something an applicant can do for themselves
+  await expect(dialog).toContainText('passing is not something you can do for yourself');
+});
+test('an identity number is checked against its own check digit, not just its length', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('button.demo-pill').click();
+  await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
+  await page.getByRole('dialog').getByRole('button').filter({ hasText: 'Admin console' }).click();
+  await page.getByRole('button', { name: 'Vetting', exact: true }).click();
+  await page.getByRole('button', { name: /Preview an application/ }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: /Care sponsor/ }).click();
+  await dialog.getByRole('textbox').fill('8001015009088');            // one digit off
+  await expect(dialog.getByText('That number fails its check digit. Please re-enter it.')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Continue' })).toBeDisabled();
+  await dialog.getByRole('textbox').fill('8001015009087');
+  await expect(dialog.getByRole('button', { name: 'Continue' })).toBeEnabled();
+  // paying for care is not a permission, and the flow says so rather than implying it
+  await expect(dialog).toContainText('Sponsorship is a payment, not a permission.');
+});
+test('a doctor whose registration has lapsed cannot sign, and is told which check refused it', async ({ page }) => {
+  await page.goto('/');
+  await switchRole(page, 'Doctor');
+  await page.getByRole('button', { name: /TH-2048/ }).click();
+  const dialog = page.getByRole('dialog');
+  const sign = dialog.getByRole('button', { name: 'Sign demo decision' });
+  await dialog.getByLabel('Signing doctor').selectOption({ label: 'Dr Sanjay Naidoo · HPCSA MP0559104' });
+  await expect(dialog).toContainText('HPCSA registration lapsed');
+  await expect(dialog.getByLabel('Your decision')).toBeDisabled();
+  await expect(sign).toBeDisabled();
+  // a doctor in good standing may sign, once there is a decision and a reason for it
+  await dialog.getByLabel('Signing doctor').selectOption({ label: 'Dr Ayanda Dlamini · HPCSA MP0483217' });
+  await expect(dialog.getByLabel('Your decision')).toBeEnabled();
+  await dialog.getByLabel('Your decision').selectOption('Request laboratory tests');
+  await dialog.getByLabel('Clinical rationale').fill('Systolic trending up over four readings.');
+  await expect(sign).toBeEnabled();
 });
 test('every clinical chart is also available as a table', async ({ page }) => {
   await page.goto('/');

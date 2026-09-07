@@ -8,7 +8,10 @@ package za.co.mythuso.model
 enum class ThusoLocale(val code: String, val native: String) {
     ENGLISH("en-ZA", "English"), ZULU("zu-ZA", "isiZulu"), SESOTHO("st-ZA", "Sesotho"), AFRIKAANS("af-ZA", "Afrikaans")
 }
-enum class Phrase { HOME, BOOK_CARE, VISITS, PASSPORT, MORE, GREETING, GREETING_SUB, TAGLINE, HERO_TITLE, HERO_BODY, HERO_TRUST, BOOK_NURSE, OPEN_PASSPORT, NEXT_VISIT, HELP_WITH, LANGUAGE, PREVIEW_BADGE }
+/* Vetting reaches the shell — a register, a status and a renewal queue are navigation, so they are
+   translated. The credentials inside them are not: “SANC registration” is the name of a thing on a
+   certificate, and translating it would invent a document that does not exist. */
+enum class Phrase { HOME, BOOK_CARE, VISITS, PASSPORT, MORE, GREETING, GREETING_SUB, TAGLINE, HERO_TITLE, HERO_BODY, HERO_TRUST, BOOK_NURSE, OPEN_PASSPORT, NEXT_VISIT, HELP_WITH, LANGUAGE, PREVIEW_BADGE, VETTING, VETTING_STATUS, VETTING_APPLY, VETTING_RENEWALS, VETTING_PROGRESS }
 private val english = mapOf(
     Phrase.HOME to "Home", Phrase.BOOK_CARE to "Book care", Phrase.VISITS to "Visits", Phrase.PASSPORT to "Passport", Phrase.MORE to "More",
     Phrase.GREETING to "Hello, Lerato", Phrase.GREETING_SUB to "Here for you. And the people you love.",
@@ -16,7 +19,9 @@ private val english = mapOf(
     Phrase.HERO_BODY to "A caring nurse. A doctor’s expertise. All from the comfort of your home.",
     Phrase.HERO_TRUST to "Registered nurses · Visits from R249", Phrase.BOOK_NURSE to "Book a nurse",
     Phrase.OPEN_PASSPORT to "Open my passport", Phrase.NEXT_VISIT to "Your next visit", Phrase.HELP_WITH to "What can we help with?",
-    Phrase.LANGUAGE to "Language", Phrase.PREVIEW_BADGE to "Design preview · Fictional data"
+    Phrase.LANGUAGE to "Language", Phrase.PREVIEW_BADGE to "Design preview · Fictional data",
+    Phrase.VETTING to "Vetting", Phrase.VETTING_STATUS to "Vetting status", Phrase.VETTING_APPLY to "Start an application",
+    Phrase.VETTING_RENEWALS to "Renewals due", Phrase.VETTING_PROGRESS to "checks passing"
 )
 private val phrases: Map<ThusoLocale, Map<Phrase, String>> = mapOf(
     ThusoLocale.ENGLISH to english,
@@ -27,7 +32,9 @@ private val phrases: Map<ThusoLocale, Map<Phrase, String>> = mapOf(
         Phrase.HERO_BODY to "Umhlengikazi onendaba. Ulwazi lukadokotela. Konke usekhaya.",
         Phrase.HERO_TRUST to "Abahlengikazi ababhalisiwe · Kusukela ku-R249", Phrase.BOOK_NURSE to "Bhukha umhlengikazi",
         Phrase.OPEN_PASSPORT to "Vula iphasiphothi yami", Phrase.NEXT_VISIT to "Ukuvakashelwa kwakho okulandelayo", Phrase.HELP_WITH to "Singakusiza ngani?",
-        Phrase.LANGUAGE to "Ulimi", Phrase.PREVIEW_BADGE to "Isibonelo sedizayini · Idatha eqanjiwe"
+        Phrase.LANGUAGE to "Ulimi", Phrase.PREVIEW_BADGE to "Isibonelo sedizayini · Idatha eqanjiwe",
+        Phrase.VETTING to "Ukuhlolwa", Phrase.VETTING_STATUS to "Isimo sokuhlolwa", Phrase.VETTING_APPLY to "Qala isicelo",
+        Phrase.VETTING_RENEWALS to "Ukuvuselelwa okusalindile", Phrase.VETTING_PROGRESS to "ukuhlolwa okuphumelele"
     ),
     ThusoLocale.SESOTHO to mapOf(
         Phrase.HOME to "Lehae", Phrase.BOOK_CARE to "Behela", Phrase.VISITS to "Diketelo", Phrase.PASSPORT to "Phasepoto", Phrase.MORE to "Tse ding",
@@ -36,7 +43,9 @@ private val phrases: Map<ThusoLocale, Map<Phrase, String>> = mapOf(
         Phrase.HERO_BODY to "Mooki ya nang le kgathallo. Tsebo ya ngaka. Tsohle o le hae.",
         Phrase.HERO_TRUST to "Baoki ba ngodisitsweng · Ho tloha ho R249", Phrase.BOOK_NURSE to "Behela mooki",
         Phrase.OPEN_PASSPORT to "Bula phasepoto ya ka", Phrase.NEXT_VISIT to "Ketelo ya hao e latelang", Phrase.HELP_WITH to "Re ka o thusa ka eng?",
-        Phrase.LANGUAGE to "Puo", Phrase.PREVIEW_BADGE to "Ponelopele ya moralo · Datha ya boiqapelo"
+        Phrase.LANGUAGE to "Puo", Phrase.PREVIEW_BADGE to "Ponelopele ya moralo · Datha ya boiqapelo",
+        Phrase.VETTING to "Tlhahlobo", Phrase.VETTING_STATUS to "Boemo ba tlhahlobo", Phrase.VETTING_APPLY to "Qala kopo",
+        Phrase.VETTING_RENEWALS to "Dintjhafatso tse tlang", Phrase.VETTING_PROGRESS to "ditlhahlobo tse fetileng"
     ),
     ThusoLocale.AFRIKAANS to mapOf(
         Phrase.HOME to "Tuis", Phrase.BOOK_CARE to "Bespreek", Phrase.VISITS to "Besoeke", Phrase.PASSPORT to "Paspoort", Phrase.MORE to "Meer",
@@ -45,7 +54,9 @@ private val phrases: Map<ThusoLocale, Map<Phrase, String>> = mapOf(
         Phrase.HERO_BODY to "’n Sorgsame verpleegster. ’n Dokter se kundigheid. Alles van die gemak van jou huis af.",
         Phrase.HERO_TRUST to "Geregistreerde verpleegsters · Vanaf R249", Phrase.BOOK_NURSE to "Bespreek ’n verpleegster",
         Phrase.OPEN_PASSPORT to "Open my paspoort", Phrase.NEXT_VISIT to "Jou volgende besoek", Phrase.HELP_WITH to "Waarmee kan ons help?",
-        Phrase.LANGUAGE to "Taal", Phrase.PREVIEW_BADGE to "Ontwerpvoorskou · Fiktiewe data"
+        Phrase.LANGUAGE to "Taal", Phrase.PREVIEW_BADGE to "Ontwerpvoorskou · Fiktiewe data",
+        Phrase.VETTING to "Keuring", Phrase.VETTING_STATUS to "Keuringstatus", Phrase.VETTING_APPLY to "Begin ’n aansoek",
+        Phrase.VETTING_RENEWALS to "Hernuwings wat wag", Phrase.VETTING_PROGRESS to "kontroles geslaag"
     )
 )
 fun thuso(phrase: Phrase, locale: ThusoLocale): String = phrases[locale]?.get(phrase) ?: english[phrase] ?: phrase.name
