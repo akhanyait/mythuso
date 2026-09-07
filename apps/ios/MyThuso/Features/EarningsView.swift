@@ -54,7 +54,7 @@ struct EarningsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 DemoBadge()
                 CareHeading(eyebrow: "Nurse workspace", title: "Earnings & payouts",
                             subtitle: "Fictional visits, a fictional bank, and nothing transferred.")
@@ -68,7 +68,7 @@ struct EarningsView: View {
                 account
                 refusals
             }
-            .padding(18)
+            .padding(ThusoSpacing.space16)
         }
         .background(ThusoTheme.canvas)
         .navigationTitle("Earnings & payouts").navigationBarTitleDisplayMode(.inline)
@@ -81,7 +81,7 @@ struct EarningsView: View {
     @ViewBuilder private var standing: some View {
         let decision = nurse.map { can($0, "take-visit") }
         let allowed = decision?.allowed ?? false
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: allowed ? "checkmark.seal.fill" : "exclamationmark.shield.fill")
                 .font(.title3).foregroundStyle(allowed ? ThusoTheme.indigo : ThusoTheme.mangoInk)
             VStack(alignment: .leading, spacing: 5) {
@@ -96,13 +96,13 @@ struct EarningsView: View {
                 }
             }
         }
-        .padding(16)
+        .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(allowed ? ThusoTheme.indigoSoft : ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 18))
+        .background(allowed ? ThusoTheme.indigoSoft : ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
     }
 
     private var nursePicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             Picker("Preview this screen as", selection: $who) {
                 ForEach(payPreviewNurses, id: \.self) { id in
                     Text(vetting.subject(id)?.name ?? id).tag(id)
@@ -117,7 +117,7 @@ struct EarningsView: View {
     // MARK: - Totals
 
     private var totals: some View {
-        VStack(spacing: 11) {
+        VStack(spacing: ThusoSpacing.space12) {
             metric("This week so far", rand(Earnings.currentWeek.total),
                    "\(Earnings.currentWeek.visits) visits · closes \(Earnings.cycle.closesOn), pays \(Earnings.cycle.paysOn)")
             metric("Owed, not yet in your account", rand(Earnings.owedNotYetPaid), "On its way, or waiting on a bank")
@@ -138,7 +138,7 @@ struct EarningsView: View {
 
     private var split: some View {
         let parts = Earnings.split(service)
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Text("Where the money goes").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
                 Picker("Show the split for", selection: $serviceId) {
@@ -170,7 +170,7 @@ struct EarningsView: View {
     }
 
     private func legend(_ colour: Color, _ amount: String, _ note: String) -> some View {
-        HStack(alignment: .top, spacing: 9) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space8) {
             RoundedRectangle(cornerRadius: 3).fill(colour).frame(width: 11, height: 11).padding(.top, 4)
             VStack(alignment: .leading, spacing: 2) {
                 Text(amount).font(.callout.weight(.semibold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
@@ -182,7 +182,7 @@ struct EarningsView: View {
     // MARK: - Weeks
 
     private var weeks: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Text("Your weeks").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             Text(Earnings.cycle.note).font(.footnote).foregroundStyle(ThusoTheme.body)
             ForEach(Earnings.weeks) { entry in weekCard(entry) }
@@ -219,8 +219,8 @@ struct EarningsView: View {
                 }
                 if let failure = week.failure {
                     Text(failure).font(.caption).foregroundStyle(ThusoTheme.danger)
-                        .padding(13).frame(maxWidth: .infinity, alignment: .leading)
-                        .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: 14))
+                        .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
+                        .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
                 }
                 ForEach(week.lines) { line in payLine(line) }
                 Divider()
@@ -262,7 +262,7 @@ struct EarningsView: View {
     // MARK: - Tax and the account
 
     private var tax: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Text("Tax").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
                 row("Reached your account since \(Earnings.taxYear.startsOn)", rand(Earnings.paidThisTaxYear))
@@ -283,10 +283,10 @@ struct EarningsView: View {
     }
 
     private var account: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Text("Where you are paid").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
-                HStack(spacing: 13) {
+                HStack(spacing: ThusoSpacing.space12) {
                     TileIcon(symbol: "building.columns", size: 38)
                     VStack(alignment: .leading, spacing: 3) {
                         Text("\(Earnings.account.bank) · \(Earnings.account.maskedNumber)")
@@ -321,7 +321,7 @@ struct EarningsView: View {
     }
 
     private var refusals: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Text("What this screen will not do").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             ForEach(Earnings.refusals.filter { $0.id != "advise-on-tax" }) { item in
                 CareCard { refusal(item) }
@@ -332,7 +332,7 @@ struct EarningsView: View {
     }
 
     private func refusal(_ item: PayRefusal) -> some View {
-        HStack(alignment: .top, spacing: 11) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: "nosign").font(.callout).foregroundStyle(ThusoTheme.danger)
             Text(item.sentence).font(.caption).foregroundStyle(ThusoTheme.slate)
         }

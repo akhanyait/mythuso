@@ -34,7 +34,7 @@ struct HouseholdView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 DemoBadge()
                 CareHeading(eyebrow: "Patients · design preview", title: thuso(.householdRecord, store.locale),
                             subtitle: "One household, and what each member may see of the others. Fictional people, fictional scheme; nothing here is a record and nothing reaches a service.")
@@ -44,7 +44,7 @@ struct HouseholdView: View {
                 householdCard
                 StatePicker(title: "Preview how this household behaves when the record service is unavailable", state: $feed)
                 StateBlock(state: feed, subject: "This household record", permission: "record access", retry: { feed = .ready }) {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                         rosterSection
                         withheldNotice
                         if let open, open.visibility.level.atLeast(.emergency) { openedMember(open) }
@@ -61,7 +61,7 @@ struct HouseholdView: View {
                     }
                 }
             }
-            .padding(18)
+            .padding(ThusoSpacing.space16)
         }
         .background(ThusoTheme.canvas)
         .navigationTitle(thuso(.householdRecord, store.locale)).navigationBarTitleDisplayMode(.inline)
@@ -101,7 +101,7 @@ struct HouseholdView: View {
             }
             .labelsHidden()
             if let subject = viewer.subject {
-                HStack(spacing: 8) {
+                HStack(spacing: ThusoSpacing.space8) {
                     SubjectStatusPill(status: summarise(subject).status)
                     Text("\(subject.name) · \(subject.role?.name ?? subject.roleId) · \(subject.reference)")
                         .font(.caption2).foregroundStyle(ThusoTheme.body)
@@ -138,8 +138,8 @@ struct HouseholdView: View {
     @ViewBuilder private func memberCard(_ member: HouseholdMember, _ visibility: HouseholdVisibility) -> some View {
         let permitted = visibility.level.atLeast(.emergency)
         CareCard {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+                HStack(spacing: ThusoSpacing.space12) {
                     Text(member.initials).font(.subheadline.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
                         .frame(width: 44, height: 44)
                         .background(member.relation == "Child" ? ThusoTheme.mangoSoft : ThusoTheme.indigoSoft, in: Circle())
@@ -177,14 +177,14 @@ struct HouseholdView: View {
        something to hide would be the disclosure it is meant to prevent, and a count of the records
        it stood on would be another one. */
     @ViewBuilder private var withheldNotice: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: "lock").font(.body).foregroundStyle(ThusoTheme.mangoInk)
             Text("Every record here has parts only the person themselves can release. This line stands on all of them, whether or not there is anything behind it — a notice that appeared only where there was something to hide would be the disclosure it is meant to prevent, and a count of the records it stood on would be another one.")
                 .font(.footnote).foregroundStyle(ThusoTheme.body)
         }
-        .padding(15)
+        .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
+        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("A category is withheld from every record in this household. Every record here has parts only the person themselves can release. This notice stands on all of them, whether or not there is anything behind it.")
     }
@@ -225,7 +225,7 @@ struct HouseholdView: View {
                        who is out of the house on Saturday morning. Everybody else sees only the
                        people they have a basis for. */
                     if viewer.memberId != nil || visibility.level.atLeast(.emergency) {
-                        HStack(alignment: .top, spacing: 12) {
+                        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                             TileIcon(symbol: "calendar.badge.clock", size: 38)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("\(vettingDate(appointment.when)) · \(appointment.time) · \(member.firstName)")
@@ -299,7 +299,7 @@ struct HouseholdView: View {
     }
 
     @ViewBuilder private func dueRow(symbol: String, title: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             TileIcon(symbol: symbol, size: 38)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
@@ -341,12 +341,12 @@ struct SummaryCardView: View {
     let member: HouseholdMember
     let fields: [String]
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             ForEach(summaryValues(member, fields: fields)) { field in
                 FieldRow(label: field.label, value: field.value)
             }
         }
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: "lock").font(.body).foregroundStyle(ThusoTheme.mangoInk)
             VStack(alignment: .leading, spacing: 5) {
                 Text("Withheld from every summary.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
@@ -354,9 +354,9 @@ struct SummaryCardView: View {
                 Text(householdProtectedCategories.joined(separator: " · ")).font(.caption2).foregroundStyle(ThusoTheme.body)
             }
         }
-        .padding(15)
+        .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
+        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Withheld from every summary. \(Records.summaryCard.withheld) The categories are \(householdProtectedCategories.joined(separator: ", ")). This notice reads the same on every summary this app produces.")
     }

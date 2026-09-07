@@ -193,7 +193,7 @@ struct DispatchBoardView: View {
                 Section("Live dispatch · Demo") {
                     DispatchMap(selected: selected, assigned: assigned, summary: mapSummary)
                         .listRowInsets(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
-                    HStack(spacing: 14) {
+                    HStack(spacing: ThusoSpacing.space16) {
                         Label("Available", systemImage: "circle.fill").foregroundStyle(ThusoTheme.tealInk)
                         Label("On a visit", systemImage: "circle.fill").foregroundStyle(Color(white: 0.66))
                         Label("Visit", systemImage: "square.fill").foregroundStyle(ThusoTheme.mangoInk)
@@ -251,10 +251,10 @@ struct DispatchNurseRow: View {
             ?? VettingDecision(allowed: false, reason: "This nurse has no vetting record, so no visit can be offered to them.", blockedBy: [])
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: ThusoSpacing.space8) {
                         Text(nurse.name).font(.subheadline.weight(.semibold))
                         if let subject { SubjectStatusPill(status: summarise(subject).status) }
                     }

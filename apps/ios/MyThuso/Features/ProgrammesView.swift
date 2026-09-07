@@ -53,7 +53,7 @@ struct ProgrammesView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 DemoBadge()
                 CareHeading(eyebrow: "Admin workspace", title: "Programme administration",
                             subtitle: "Fictional companies, fictional cohorts and nothing reported anywhere.")
@@ -65,7 +65,7 @@ struct ProgrammesView: View {
                 sponsorSection
                 refusalsSection
             }
-            .padding(18)
+            .padding(ThusoSpacing.space16)
         }
         .background(ThusoTheme.canvas)
         .navigationTitle("Programme administration").navigationBarTitleDisplayMode(.inline)
@@ -74,7 +74,7 @@ struct ProgrammesView: View {
     // MARK: - The floor
 
     private var floorSection: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("The floor")
             CareCard {
                 figure("\(Programmes.floor.minimumCohort)", "people, minimum", Programmes.floor.whyTwelve)
@@ -100,7 +100,7 @@ struct ProgrammesView: View {
     // MARK: - The report
 
     private var reportSection: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("What the employer is sent")
             Picker("Employer", selection: $employerId) {
                 ForEach(programmeEmployers, id: \.self) { Text(vetting.subject($0)?.name ?? $0).tag($0) }
@@ -143,8 +143,8 @@ struct ProgrammesView: View {
                 Text(Programmes.suppressionReason(reason).sentence)
                     .font(.caption).foregroundStyle(ThusoTheme.slate)
             }
-            .padding(13).frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
+            .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
+            .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
             .accessibilityElement(children: .combine)
         } else {
             HStack(alignment: .top) {
@@ -161,7 +161,7 @@ struct ProgrammesView: View {
     // MARK: - Sees and never sees
 
     private var disclosureSection: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             CareCard {
                 Text("WHAT AN EMPLOYER SEES").font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.faint)
                 ForEach(Programmes.employerSees) { item in bullet(item) }
@@ -175,7 +175,7 @@ struct ProgrammesView: View {
     }
 
     private var decliningSection: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("Saying no")
             CareCard {
                 Text(Programmes.declining.headline).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
@@ -190,7 +190,7 @@ struct ProgrammesView: View {
     }
 
     private var joiningAndLeaving: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("Joining, and leaving")
             CareCard {
                 Text("HOW SOMEBODY JOINS").font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.faint)
@@ -214,7 +214,7 @@ struct ProgrammesView: View {
     }
 
     private func step0(_ number: Int, _ step: ProgrammeStep) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space8) {
             Text("\(number)").font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
                 .frame(width: 20, height: 20).background(ThusoTheme.indigoSoft, in: Circle())
             VStack(alignment: .leading, spacing: 3) {
@@ -229,7 +229,7 @@ struct ProgrammesView: View {
 
     private var sponsorSection: some View {
         let s = Programmes.statement
-        return VStack(alignment: .leading, spacing: 11) {
+        return VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("Somebody paying for somebody else")
             Picker("Sponsor", selection: $sponsorId) {
                 ForEach(programmeSponsors, id: \.self) { Text(vetting.subject($0)?.name ?? $0).tag($0) }
@@ -277,7 +277,7 @@ struct ProgrammesView: View {
     }
 
     private var refusalsSection: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("What this screen will not do")
             ForEach(Programmes.refusals) { item in CareCard { refusal(item) } }
             Text("No report is produced, no invitation is sent and no payment is taken. Every count above is fictional, the suppression is arithmetic on it, and the floor itself still needs an Information Officer to agree with it.")
@@ -301,16 +301,16 @@ struct ProgrammesView: View {
     }
 
     private func alert(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 11) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: "shield.slash").font(.callout).foregroundStyle(ThusoTheme.mangoInk)
             Text(text).font(.caption).foregroundStyle(ThusoTheme.slate)
         }
-        .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
+        .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
+        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
     }
 
     private func refusal(_ item: ProgrammeRefusal) -> some View {
-        HStack(alignment: .top, spacing: 11) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: "nosign").font(.callout).foregroundStyle(ThusoTheme.danger)
             Text(item.sentence).font(.caption).foregroundStyle(ThusoTheme.slate)
         }

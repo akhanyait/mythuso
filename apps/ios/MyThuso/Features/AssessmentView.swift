@@ -175,7 +175,7 @@ struct VisitAssessmentView: View {
             }
             if let derived {
                 Section("Calculated") {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
                         HStack {
                             Text(derived.label).font(.subheadline)
                             Spacer()
@@ -198,7 +198,7 @@ struct VisitAssessmentView: View {
                     Text("Nothing is paired to this phone, so every reading here will be one you took and typed — and it will say so. That is a complete answer, not a lesser one.").font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(kit.instruments) { instrument in
-                    HStack(spacing: 8) {
+                    HStack(spacing: ThusoSpacing.space8) {
                         Text(instrument.name).font(.caption)
                         Spacer(minLength: 6)
                         CalibrationPill(calibration: instrument.calibration)
@@ -233,7 +233,7 @@ struct VisitAssessmentView: View {
     @ViewBuilder private func observationRow(_ observation: Observation) -> some View {
         let provenance = origin[observation.id]
         let instruments = kit.paired(measuring: observation.id)
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             HStack {
                 Text(observation.label).font(.subheadline)
                 Spacer()
@@ -249,7 +249,7 @@ struct VisitAssessmentView: View {
             }
             Text(flag(observation) ?? "Indicative range \(observation.range.lowerBound.formatted())–\(observation.range.upperBound.formatted()) \(observation.unit)")
                 .font(.caption2).foregroundStyle(flag(observation) == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(ThusoTheme.mangoInk))
-            HStack(spacing: 8) {
+            HStack(spacing: ThusoSpacing.space8) {
                 if let provenance {
                     ProvenanceMark(provenance: provenance)
                 } else if typed(observation.id) {
@@ -427,7 +427,7 @@ struct DoctorReviewView: View {
                     ForEach(submitted) { entry in
                         VStack(alignment: .leading, spacing: 5) {
                             ReadingRow(reading: entry.reading)
-                            HStack(spacing: 8) {
+                            HStack(spacing: ThusoSpacing.space8) {
                                 CaptureStatePill(state: entry.state)
                                 Text(entry.capturedByName).font(.caption2).foregroundStyle(.secondary)
                                 Spacer(minLength: 0)

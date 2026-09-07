@@ -121,7 +121,7 @@ struct FamilyView: View {
                     EmptyStateCard(title: "Nobody else has access", message: "When you invite a guardian or a family member, their access appears here with exactly what they can see and when it ends.").listRowInsets(EdgeInsets())
                 }
                 ForEach($store.invitations) { $invitation in
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
                         HStack { Text("\(invitation.name) · \(invitation.relationship)").font(.subheadline.weight(.semibold)); Spacer(); Text(invitation.status).font(.caption).foregroundStyle(invitation.status == "Active" ? ThusoTheme.indigo : .secondary) }
                         Text("\(invitation.scope) · Ends: \(invitation.expires)").font(.caption).foregroundStyle(.secondary)
                         Button("Revoke") { invitation.status = "Revoked" }.font(.caption).disabled(invitation.status == "Revoked")
@@ -433,8 +433,8 @@ struct WorkspaceUrgency: View {
     var body: some View {
         let entries = WorkspaceNavigation.urgency(role)
         let layout = typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
-            : AnyLayout(HStackLayout(alignment: .top, spacing: 10))
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: ThusoSpacing.space8))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: ThusoSpacing.space8))
         layout {
             ForEach(entries, id: \.0) { entry in
                 VStack(alignment: .leading, spacing: 4) {
@@ -443,9 +443,9 @@ struct WorkspaceUrgency: View {
                     Text(entry.2).font(.caption2).foregroundStyle(ThusoTheme.body).fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(13)
-                .background(.white, in: RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(ThusoTheme.line, lineWidth: 1))
+                .padding(ThusoSpacing.space12)
+                .background(.white, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("\(entry.0): \(entry.1). \(entry.2)")
             }

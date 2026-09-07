@@ -152,11 +152,18 @@ struct StatusPill: View {
         default: return (ThusoTheme.tealSoft, ThusoTheme.tealInk)
         }
     }
+    /* A pill's ends curve in by half its height, so a status that has wrapped to three lines at the
+       accessibility sizes has its first and last words cut off by its own background. Past that
+       point the pill becomes a rounded chip and keeps all of its words. */
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private var shape: AnyShape {
+        typeSize.isAccessibilitySize ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)) : AnyShape(Capsule())
+    }
     var body: some View {
         Text(text).font(.caption2.weight(.semibold))
             .padding(.horizontal, ThusoSpacing.space8).padding(.vertical, ThusoSpacing.space4)
-            .background(colors.0, in: Capsule()).foregroundStyle(colors.1)
             .fixedSize(horizontal: false, vertical: true)
+            .background(colors.0, in: shape).foregroundStyle(colors.1)
     }
 }
 
@@ -229,8 +236,11 @@ struct DemoBadge: View {
         Label("Design preview · Fictional data", systemImage: "info.circle")
             .font(.caption.weight(.medium))
             .foregroundStyle(ThusoTheme.indigoDeep)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, ThusoSpacing.space8).padding(.vertical, ThusoSpacing.space4)
-            .background(ThusoTheme.indigoSoft, in: Capsule())
+            /* A rounded rectangle rather than a capsule: at the accessibility sizes this wraps to
+               three lines, and a capsule's ends then curve so far in that they cut the text. */
+            .background(ThusoTheme.indigoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
     }

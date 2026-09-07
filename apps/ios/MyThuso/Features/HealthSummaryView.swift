@@ -27,7 +27,7 @@ struct HealthSummaryView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 DemoBadge()
                 CareHeading(eyebrow: "Patients · design preview", title: thuso(.healthSummary, store.locale),
                             subtitle: "The page a stranger reads when there is no time to read the file — shared for one purpose, for one period.")
@@ -41,7 +41,7 @@ struct HealthSummaryView: View {
                     ForEach(shares) { shareCard($0) }
                 }
             }
-            .padding(18)
+            .padding(ThusoSpacing.space16)
         }
         .background(ThusoTheme.canvas)
         .navigationTitle(thuso(.healthSummary, store.locale)).navigationBarTitleDisplayMode(.inline)
@@ -75,7 +75,7 @@ struct HealthSummaryView: View {
                     purposeId = option.id
                     status = "\(option.name) — \(option.fields.count) fields, valid \(option.hours) hours."
                 } label: {
-                    HStack(alignment: .top, spacing: 12) {
+                    HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                         Image(systemName: option.id == purposeId ? "largecircle.fill.circle" : "circle")
                             .foregroundStyle(ThusoTheme.indigo)
                         VStack(alignment: .leading, spacing: 3) {
@@ -144,7 +144,7 @@ struct HealthSummaryView: View {
        only be a way to lose the reference — the reference is the part that matters. */
     @ViewBuilder private func scannerNote(_ share: SummaryShare) -> some View {
         let initials = member.name.split(separator: " ").compactMap(\.first).map(String.init).joined(separator: ".")
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: "checkmark.shield").font(.body).foregroundStyle(ThusoTheme.indigo)
             VStack(alignment: .leading, spacing: 5) {
                 Text("What a scanner would read.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
@@ -154,9 +154,9 @@ struct HealthSummaryView: View {
                     .font(.caption2).foregroundStyle(ThusoTheme.body)
             }
         }
-        .padding(15)
+        .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.indigoSoft, in: RoundedRectangle(cornerRadius: 14))
+        .background(ThusoTheme.indigoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 
@@ -173,9 +173,9 @@ struct HealthSummaryView: View {
                 ShareLink(item: body) {
                     Label("Export this summary", systemImage: "square.and.arrow.up")
                         .font(.subheadline.weight(.semibold))
-                        .padding(15).frame(maxWidth: .infinity, minHeight: 50)
-                        .background(.white, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(ThusoTheme.line, lineWidth: 1))
+                        .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, minHeight: 50)
+                        .background(.white, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
                         .foregroundStyle(ThusoTheme.slate)
                 }
                 .accessibilityLabel("Export this summary through the share sheet")

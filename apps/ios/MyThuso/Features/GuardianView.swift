@@ -37,7 +37,7 @@ struct InviteGuardianView: View {
                 Section("What should they be able to see?") {
                     ForEach(scopes, id: \.0) { option in
                         Button { scope = option.0 } label: {
-                            HStack(alignment: .top, spacing: 12) {
+                            HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                                 Image(systemName: scope == option.0 ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.indigo)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(option.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)

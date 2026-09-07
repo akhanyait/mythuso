@@ -22,7 +22,7 @@ struct SubjectStatusPill: View {
 struct VettingProgressRow: View {
     let summary: VettingSummary
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             ProgressView(value: summary.progress)
                 .tint(summary.cleared ? ThusoTheme.indigo : ThusoTheme.mangoInk)
             Text("\(summary.passed) of \(summary.total) checks in date")
@@ -423,10 +423,10 @@ struct CredentialField: View {
     private var result: (ok: Bool, reason: String?) { validateCredential(authority.id, value) }
     private var entered: Bool { !value.trimmingCharacters(in: .whitespaces).isEmpty }
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             Text(authority.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             Text("\(authority.verifies) · \(authority.format)").font(.caption).foregroundStyle(.secondary)
-            HStack(spacing: 8) {
+            HStack(spacing: ThusoSpacing.space8) {
                 TextField(authority.example, text: $value)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.characters)
@@ -458,7 +458,7 @@ struct EvidenceSlot: View {
     private var authority: VettingAuthority? { Vetting.authority(check.authority) }
     private var mine: Bool { check.authority != "internal" }
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             HStack(alignment: .firstTextBaseline) {
                 Text(check.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Spacer(minLength: 8)
@@ -576,7 +576,7 @@ struct CheckStandingRow: View {
     private var check: VettingCheck { standing.check }
     private var record: CheckRecord { standing.record }
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             HStack(alignment: .firstTextBaseline) {
                 Text(check.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Spacer(minLength: 8)
@@ -605,9 +605,9 @@ struct CheckStandingRow: View {
     }
     @ViewBuilder private var reviewer: some View {
         DisclosureGroup(isExpanded: $open) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                 Text("Deciding as \(vetting.reviewer)").font(.caption2).foregroundStyle(.secondary)
-                HStack(spacing: 12) {
+                HStack(spacing: ThusoSpacing.space12) {
                     Button(standing.state.passes ? "Renew" : "Verify") { vetting.verify(subject.id, check: check.id); refused = "" }
                     if check.isHighRisk {
                         Button("Second") {

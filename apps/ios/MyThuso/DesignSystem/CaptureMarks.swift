@@ -71,7 +71,7 @@ struct ProvenanceKey: View {
                 .font(.caption).foregroundStyle(ThusoTheme.body)
             ForEach(Provenance.allCases) { provenance in
                 VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: ThusoSpacing.space8) {
                         ProvenanceMark(provenance: provenance, full: true)
                         Spacer(minLength: 6)
                         Text(provenance.fhir).font(.caption2).foregroundStyle(ThusoTheme.faint)
@@ -101,9 +101,9 @@ struct CaveatNote: View {
                         .font(.caption2).foregroundStyle(ThusoTheme.mangoInk)
                 }
             }
-            .padding(10)
+            .padding(ThusoSpacing.space8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 10))
+            .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
             .accessibilityElement(children: .combine)
         }
     }
@@ -124,14 +124,14 @@ struct ReadingRow: View {
     let reading: CaptureReading
     var dense = false
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
+            HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
                 Text(reading.label).font(.caption).foregroundStyle(ThusoTheme.body)
                 Spacer(minLength: 8)
                 Text(reading.display).font(.system(.subheadline, design: .rounded, weight: .semibold))
                     .foregroundStyle(ThusoTheme.ink).multilineTextAlignment(.trailing)
             }
-            HStack(spacing: 8) {
+            HStack(spacing: ThusoSpacing.space8) {
                 ProvenanceMark(provenance: reading.provenance)
                 if let standing = reading.calibrationStanding, reading.provenance == .device {
                     StatusPill(text: standing.label, tone: standing.tone)

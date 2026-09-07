@@ -50,7 +50,7 @@ struct DispensingView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 DemoBadge()
                 CareHeading(eyebrow: "Partner workspace", title: "Substitution & repeats",
                             subtitle: "A fictional prescription. Nothing is dispensed and no pharmacy is contacted.")
@@ -63,7 +63,7 @@ struct DispensingView: View {
                 authorisation
                 refusals
             }
-            .padding(18)
+            .padding(ThusoSpacing.space16)
         }
         .background(ThusoTheme.canvas)
         .navigationTitle("Substitution & repeats").navigationBarTitleDisplayMode(.inline)
@@ -86,7 +86,7 @@ struct DispensingView: View {
     /* Both answers come from the vetting register in its own words. A licence and a registration are
        not badges on a partner page; they are what decides whether anything here does anything. */
     private var parties: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Picker("Dispensing pharmacy", selection: $pharmacyId) {
                 ForEach(dispensingPharmacies, id: \.self) { id in
                     Text(vetting.subject(id)?.name ?? id).tag(id)
@@ -109,7 +109,7 @@ struct DispensingView: View {
     // MARK: - The boundary and the three classes
 
     private var boundary: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("What a substitution may and may not change")
             CareCard {
                 Text("Never, without the prescriber").font(.caption.weight(.bold))
@@ -125,7 +125,7 @@ struct DispensingView: View {
     }
 
     private var classes: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("The three classes")
             ForEach(Dispensing.substitutionClasses) { klass in
                 CareCard {
@@ -143,7 +143,7 @@ struct DispensingView: View {
     // MARK: - The items
 
     private var items: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("\(Dispensing.prescription.items.count) items · \(Dispensing.prescription.substituted.count) substituted")
             Text(Dispensing.rule("substitution-is-clinical").sentence)
                 .font(.caption).foregroundStyle(ThusoTheme.body)
@@ -187,8 +187,8 @@ struct DispensingView: View {
                         .font(.caption).foregroundStyle(ThusoTheme.faint)
                     Text(reason).font(.caption).foregroundStyle(ThusoTheme.body)
                 }
-                .padding(13).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
+                .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
+                .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
             }
 
             Button(isTold ? "Hide what was said to the patient" : "Read this to the patient") {
@@ -213,7 +213,7 @@ struct DispensingView: View {
     /* The words. Not a label on a box — sentences a person can repeat to somebody else at home, so
        they are set as speech rather than as small print. */
     private func telling(_ item: PrescriptionItem) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             Label(Dispensing.headline(item), systemImage: "ear")
                 .font(.caption.weight(.bold)).foregroundStyle(ThusoTheme.indigo)
             if item.wasSubstituted {
@@ -231,18 +231,18 @@ struct DispensingView: View {
                 }
             }
         }
-        .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.indigoSoft, in: RoundedRectangle(cornerRadius: 14))
+        .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
+        .background(ThusoTheme.indigoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
     }
 
     private var handover: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("The handover")
             CareCard {
                 ForEach(Array(Dispensing.handover.enumerated()), id: \.element.id) { index, step in
                     let done = open && (index < 2 || (step.id == "told" && everyItemTold)
                         || (step.id == "recorded" && handed.count == Dispensing.prescription.items.count))
-                    HStack(alignment: .top, spacing: 11) {
+                    HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                         Image(systemName: done ? "checkmark.circle.fill" : "circle")
                             .foregroundStyle(done ? ThusoTheme.indigo : .gray.opacity(0.5))
                         VStack(alignment: .leading, spacing: 3) {
@@ -261,7 +261,7 @@ struct DispensingView: View {
     private var authorisation: some View {
         let auth = Dispensing.authorisation
         let answer = Dispensing.collectionAnswer
-        return VStack(alignment: .leading, spacing: 11) {
+        return VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("The chronic authorisation")
             CareCard {
                 HStack(alignment: .top) {
@@ -300,19 +300,19 @@ struct DispensingView: View {
                 if Dispensing.isFinalRepeat {
                     alert("This is the last repeat. It is said now, not at the counter next month.", symbol: "exclamationmark.circle")
                 }
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
                     Text("What happens at the end").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.slate)
                     Text(auth.endsWith).font(.caption).foregroundStyle(ThusoTheme.slate)
                     Text(Dispensing.rule("ends-in-a-review").sentence).font(.caption).foregroundStyle(ThusoTheme.slate)
                 }
-                .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ThusoTheme.indigoSoft, in: RoundedRectangle(cornerRadius: 14))
+                .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
+                .background(ThusoTheme.indigoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
             }
         }
     }
 
     private var refusals: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("What this screen will not do")
             ForEach(Dispensing.refusals) { item in CareCard { refusal(item) } }
             Text("Nothing is dispensed, no stock is checked and no prescriber is notified. Every date above is arithmetic on the demo contract, and none of the clinical wording here has been read by a pharmacist.")
@@ -341,12 +341,12 @@ struct DispensingView: View {
             Text(value).font(.body.weight(.bold)).foregroundStyle(ThusoTheme.ink)
             Text(note).font(.caption).foregroundStyle(ThusoTheme.body)
         }
-        .padding(13).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
+        .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
+        .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
     }
 
     private func bullet(_ what: String, _ why: String) -> some View {
-        HStack(alignment: .top, spacing: 9) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space8) {
             Text("•").foregroundStyle(ThusoTheme.indigo)
             VStack(alignment: .leading, spacing: 2) {
                 Text(what).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
@@ -357,7 +357,7 @@ struct DispensingView: View {
     }
 
     private func groundLine(_ ground: SubstitutionGround) -> some View {
-        HStack(alignment: .top, spacing: 9) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space8) {
             Image(systemName: "info.circle").font(.subheadline).foregroundStyle(ThusoTheme.indigo)
             VStack(alignment: .leading, spacing: 3) {
                 Text(ground.section == nil ? ground.name : "\(ground.name) · section \(ground.section ?? "")")
@@ -369,16 +369,16 @@ struct DispensingView: View {
     }
 
     private func alert(_ text: String, symbol: String) -> some View {
-        HStack(alignment: .top, spacing: 11) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: symbol).font(.callout).foregroundStyle(ThusoTheme.mangoInk)
             Text(text).font(.caption).foregroundStyle(ThusoTheme.slate)
         }
-        .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
+        .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
+        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
     }
 
     private func refusal(_ item: DispensingRefusal) -> some View {
-        HStack(alignment: .top, spacing: 11) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: "nosign").font(.callout).foregroundStyle(ThusoTheme.danger)
             Text(item.sentence).font(.caption).foregroundStyle(ThusoTheme.slate)
         }

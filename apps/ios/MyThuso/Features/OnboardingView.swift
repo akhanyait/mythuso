@@ -141,7 +141,7 @@ struct RecoverAccessView: View {
                 Section("How can we reach you?") {
                     ForEach(routes, id: \.0) { option in
                         Button { route = option.0 } label: {
-                            HStack(alignment: .top, spacing: 12) {
+                            HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                                 Image(systemName: route == option.0 ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.indigo)
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text(option.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)

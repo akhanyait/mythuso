@@ -113,7 +113,7 @@ struct HomeView: View {
     }
 
     private func chipLabel(symbol: String, text: String) -> some View {
-        HStack(spacing: 7) {
+        HStack(spacing: ThusoSpacing.space8) {
             Image(systemName: symbol).font(.footnote)
             Text(text).font(.footnote.weight(.semibold)).lineLimit(2)
             Image(systemName: "chevron.down").font(.caption2.weight(.semibold))
@@ -159,18 +159,18 @@ struct HomeView: View {
                 if !stacked { Spacer(minLength: 6); StatusPill(text: visit.status, tone: visit.isScheduled ? "teal" : "amber") }
             }
             if stacked {
-                VStack(alignment: .leading, spacing: 8) { head; StatusPill(text: visit.status, tone: visit.isScheduled ? "teal" : "amber") }
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) { head; StatusPill(text: visit.status, tone: visit.isScheduled ? "teal" : "amber") }
             } else {
                 head
             }
             /* An arrival estimate belongs to "come now" and to nothing else; a visit booked for a
                named hour says how long it takes instead, from the catalogue. */
-            HStack(spacing: 6) {
+            HStack(spacing: ThusoSpacing.space4) {
                 Image(systemName: visit.isScheduled ? "clock" : "bolt.fill").font(.caption)
                 Text(visit.isScheduled ? "\(visit.service.duration) minutes" : "Looking for the nearest nurse").font(.footnote)
             }
             .foregroundStyle(ThusoTheme.body)
-            HStack(spacing: 6) {
+            HStack(spacing: ThusoSpacing.space4) {
                 Image(systemName: "mappin.and.ellipse").font(.caption)
                 Text(visit.address).font(.footnote)
             }
@@ -195,7 +195,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             searchField
             Button(action: book) {
-                HStack(spacing: 9) {
+                HStack(spacing: ThusoSpacing.space8) {
                     Image(systemName: "stethoscope")
                     Text(thuso(.bookNurse, store.locale))
                     Image(systemName: "arrow.right")
@@ -208,7 +208,7 @@ struct HomeView: View {
     /* The words typed here live on the store, so the catalogue in the next tab opens already
        filtered. The search used to call book() and throw the query away. */
     private var searchField: some View {
-        HStack(spacing: 11) {
+        HStack(spacing: ThusoSpacing.space12) {
             Image(systemName: "magnifyingglass").foregroundStyle(ThusoTheme.body.opacity(0.7))
             TextField("What care do you need today?", text: $store.careQuery).submitLabel(.search).onSubmit(book)
                 .accessibilityLabel("Search for care")

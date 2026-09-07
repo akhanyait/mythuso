@@ -84,7 +84,7 @@ struct TeleconsultView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 DemoBadge()
                 if stage < 4 {
                     Text("Step \(stage + 1) of \(callStages.count) · \(callStages[stage])")
@@ -100,7 +100,7 @@ struct TeleconsultView: View {
                 default: afterwardsStage
                 }
             }
-            .padding(18)
+            .padding(ThusoSpacing.space16)
         }
         .background(ThusoTheme.canvas)
         .navigationTitle("Teleconsultation").navigationBarTitleDisplayMode(.inline)
@@ -256,8 +256,8 @@ struct TeleconsultView: View {
         roster(canAsk: true)
         if let withdrawnNote {
             Text(withdrawnNote).font(.caption).foregroundStyle(ThusoTheme.body)
-                .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
+                .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
+                .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
         }
 
         Text("The line").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
@@ -287,7 +287,7 @@ struct TeleconsultView: View {
 
         if dropped {
             CareCard {
-                HStack(alignment: .top, spacing: 13) {
+                HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                     VStack(spacing: 3) {
                         Image(systemName: "hourglass").font(.title3).foregroundStyle(ThusoTheme.danger)
                         Text("\(holdLeft)s").font(.title2.weight(.bold)).monospacedDigit().foregroundStyle(ThusoTheme.danger)
@@ -295,7 +295,7 @@ struct TeleconsultView: View {
                             .font(.caption2).multilineTextAlignment(.center).foregroundStyle(ThusoTheme.body)
                     }
                     .frame(width: 96)
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                         Text(Teleconsult.reconnect.whoCallsWhom).font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                         Text(Teleconsult.reconnect.duringTheHold).font(.caption).foregroundStyle(ThusoTheme.body)
                         if nursePresent {
@@ -309,7 +309,7 @@ struct TeleconsultView: View {
                     }
                 }
             }
-            .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: 18))
+            .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
         }
 
         Text("What this doctor may conclude, right now").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
@@ -367,8 +367,8 @@ struct TeleconsultView: View {
             refusalCard(Teleconsult.refusal("half-a-consultation"))
             Text("\(Teleconsult.rule("dropped-is-not-finished").sentence) There is no button on this screen that closes this encounter as a completed consultation, for anybody, in any state.")
                 .font(.caption).foregroundStyle(ThusoTheme.danger)
-                .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: 14))
+                .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
+                .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
         }
         Text("What this screen will not do").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
         ForEach(Teleconsult.refusals.filter { !["half-a-consultation", "charge-for-a-failure"].contains($0.id) }) { item in
@@ -392,7 +392,7 @@ struct TeleconsultView: View {
         ForEach(inTheRoom) { person in
             let out = !person.essential && consented[person.id] != true
             CareCard {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                     TileIcon(symbol: out ? "figure.walk.departure" : "person.fill",
                              tint: out ? ThusoTheme.faint : ThusoTheme.indigo,
                              background: out ? ThusoTheme.canvas : ThusoTheme.indigoSoft, size: 38)
@@ -419,7 +419,7 @@ struct TeleconsultView: View {
     }
 
     private func limitRow(_ limit: ClinicalLimit, allowed: Bool) -> some View {
-        HStack(alignment: .top, spacing: 11) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: allowed ? "checkmark.circle.fill" : "nosign")
                 .font(.subheadline).foregroundStyle(allowed ? ThusoTheme.indigo : ThusoTheme.danger)
             VStack(alignment: .leading, spacing: 3) {
@@ -430,17 +430,17 @@ struct TeleconsultView: View {
                     .font(.caption).foregroundStyle(ThusoTheme.body)
             }
         }
-        .padding(13).frame(maxWidth: .infinity, alignment: .leading)
-        .background(allowed ? ThusoTheme.indigoSoft : ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
+        .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
+        .background(allowed ? ThusoTheme.indigoSoft : ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
     }
 
     private func refusalCard(_ item: CallRefusal) -> some View {
-        HStack(alignment: .top, spacing: 11) {
+        HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: "nosign").font(.callout).foregroundStyle(ThusoTheme.danger)
             Text(item.sentence).font(.caption).foregroundStyle(ThusoTheme.slate)
         }
-        .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
+        .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
+        .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
     }
 
     private func row(_ label: String, _ value: String) -> some View {

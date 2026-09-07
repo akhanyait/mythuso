@@ -40,7 +40,7 @@ struct CaptureQueueView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 DemoBadge()
                 CareHeading(eyebrow: "Offline capture", title: "Your work is on this phone.",
                             subtitle: "Nothing that has been captured is dropped to make a sync succeed.")
@@ -76,7 +76,7 @@ struct CaptureQueueView: View {
                 statesKey
                 housekeeping
             }
-            .padding(18)
+            .padding(ThusoSpacing.space16)
         }
         .background(ThusoTheme.canvas)
         .navigationTitle("Waiting to send").navigationBarTitleDisplayMode(.inline)
@@ -85,7 +85,7 @@ struct CaptureQueueView: View {
     /* The one sentence she is actually looking for, before anything explains itself. */
     @ViewBuilder private var headline: some View {
         CareCard {
-            HStack(spacing: 12) {
+            HStack(spacing: ThusoSpacing.space12) {
                 TileIcon(symbol: kit.onlyHereCount == 0 ? "checkmark.seal" : "iphone",
                          tint: kit.onlyHereCount == 0 ? ThusoTheme.indigo : ThusoTheme.info,
                          background: kit.onlyHereCount == 0 ? ThusoTheme.indigoSoft : ThusoTheme.infoSoft)
@@ -222,7 +222,7 @@ struct EntryCard: View {
     var chevron = false
     var body: some View {
         CareCard {
-            HStack(spacing: 8) {
+            HStack(spacing: ThusoSpacing.space8) {
                 CaptureStatePill(state: entry.state)
                 if let conflict = entry.conflict {
                     StatusPill(text: conflict.name, tone: conflict.asksAPerson ? "amber" : "quiet")
@@ -281,7 +281,7 @@ struct ConflictResolutionView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 DemoBadge()
                 if let entry {
                     header(entry)
@@ -305,7 +305,7 @@ struct ConflictResolutionView: View {
                     EmptyStateCard(title: "That entry is not on this phone", message: "It may have been cleared by hand from the queue screen.")
                 }
             }
-            .padding(18)
+            .padding(ThusoSpacing.space16)
         }
         .background(ThusoTheme.canvas)
         .navigationTitle("Needs a decision").navigationBarTitleDisplayMode(.inline)
@@ -332,7 +332,7 @@ struct ConflictResolutionView: View {
             Picker("Deciding as", selection: $decider) {
                 ForEach(resolvers) { Text("\($0.name) · \($0.reference)").tag($0.id) }
             }.labelsHidden()
-            HStack(spacing: 8) {
+            HStack(spacing: ThusoSpacing.space8) {
                 SubjectStatusPill(status: summarise(clinician).status)
                 Text(clinician.role?.name ?? clinician.roleId).font(.caption2).foregroundStyle(ThusoTheme.body)
                 Spacer(minLength: 0)
@@ -343,8 +343,8 @@ struct ConflictResolutionView: View {
                     .font(.caption2).foregroundStyle(ThusoTheme.body)
             }
             TextEditor(text: $note).frame(minHeight: 76).scrollContentBackground(.hidden)
-                .padding(8).background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(ThusoTheme.line, lineWidth: 1))
+                .padding(ThusoSpacing.space8).background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
                 .accessibilityLabel("Why")
             Text("Why. The reason goes into the record beside the decision — the next clinician reads the reason, not the button that was pressed.")
                 .font(.caption2).foregroundStyle(ThusoTheme.body)

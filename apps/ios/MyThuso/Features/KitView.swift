@@ -41,7 +41,7 @@ struct ThusoKitView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 DemoBadge()
                 CareHeading(eyebrow: "Thuso Kit", title: "Connected diagnostic capture.",
                             subtitle: "An instrument, a reading, and everything the record needs to know about where the number came from.")
@@ -64,7 +64,7 @@ struct ThusoKitView: View {
                         .accessibilityAddTraits(.updatesFrequently)
                 }
             }
-            .padding(18)
+            .padding(ThusoSpacing.space16)
         }
         .background(ThusoTheme.canvas)
         .navigationTitle("Thuso Kit").navigationBarTitleDisplayMode(.inline)
@@ -97,7 +97,7 @@ struct ThusoKitView: View {
             Picker("Working as", selection: $who) {
                 ForEach(operators) { Text("\($0.name) · \($0.reference)").tag($0.id) }
             }.labelsHidden()
-            HStack(spacing: 8) {
+            HStack(spacing: ThusoSpacing.space8) {
                 SubjectStatusPill(status: summarise(subject).status)
                 Text(subject.role?.name ?? subject.roleId).font(.caption2).foregroundStyle(ThusoTheme.body)
                 Spacer(minLength: 0)
@@ -141,8 +141,8 @@ struct ThusoKitView: View {
     }
 
     @ViewBuilder private func sightingRow(_ sighting: KitSighting) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+            HStack(spacing: ThusoSpacing.space12) {
                 TileIcon(symbol: sighting.device?.symbol ?? "sensor", size: 38)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(sighting.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
@@ -151,7 +151,7 @@ struct ThusoKitView: View {
                 }
                 Spacer(minLength: 6)
             }
-            HStack(spacing: 8) {
+            HStack(spacing: ThusoSpacing.space8) {
                 CalibrationPill(calibration: sighting.calibration)
                 Text(sighting.calibration.phrase).font(.caption2).foregroundStyle(ThusoTheme.body)
                 Spacer(minLength: 0)
@@ -177,7 +177,7 @@ struct ThusoKitView: View {
 
     @ViewBuilder private func instrumentCard(_ instrument: PairedInstrument) -> some View {
         let calibration = instrument.calibration
-        HStack(spacing: 12) {
+        HStack(spacing: ThusoSpacing.space12) {
             TileIcon(symbol: instrument.device?.symbol ?? "sensor")
             VStack(alignment: .leading, spacing: 3) {
                 Text(instrument.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
@@ -185,7 +185,7 @@ struct ThusoKitView: View {
             }
             Spacer(minLength: 6)
         }
-        HStack(spacing: 8) {
+        HStack(spacing: ThusoSpacing.space8) {
             CalibrationPill(calibration: calibration)
             Text(instrument.device?.cadence ?? "").font(.caption2).foregroundStyle(ThusoTheme.body)
             Spacer(minLength: 0)
@@ -202,7 +202,7 @@ struct ThusoKitView: View {
         if calibration.standing == .outOfDate {
             CaveatNote(caveats: [calibration.caveat ?? "", CaptureRules.calibrationNeverRefuses].filter { !$0.isEmpty })
         }
-        HStack(spacing: 10) {
+        HStack(spacing: ThusoSpacing.space8) {
             Button("Take a reading") { capturing = instrument.device }.buttonStyle(CareButton())
             Button("Unpair") { kit.unpair(instrument.id); notice = "\(instrument.name) is no longer paired. Readings already taken on it keep its name, serial and calibration date — unpairing an instrument does not un-take a reading." }
                 .buttonStyle(QuietButton())

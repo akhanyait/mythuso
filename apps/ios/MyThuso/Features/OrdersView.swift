@@ -17,7 +17,7 @@ struct TimelineList: View {
     let steps: [TimelineStep]
     var body: some View {
         ForEach(steps) { step in
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                 Image(systemName: step.state == "done" ? "checkmark.circle.fill" : step.state == "active" ? "circle.dashed" : "circle")
                     .foregroundStyle(step.state == "waiting" ? .gray.opacity(0.5) : ThusoTheme.indigo)
                 VStack(alignment: .leading, spacing: 4) {

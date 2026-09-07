@@ -15,7 +15,7 @@ struct CareService: Identifiable, Hashable {
         .init(id: "mother", name: "Mother & baby", detail: "A caring hand for your new chapter.", price: 349, duration: 45, symbol: "figure.and.child.holdinghands"),
         .init(id: "blood", name: "Blood tests", detail: "Sample collection at home.", price: 299, duration: 25, symbol: "drop"),
         .init(id: "injection", name: "Injection & vaccination", detail: "On a valid prescription.", price: 249, duration: 20, symbol: "syringe"),
-        .init(id: "planning", name: "Family planning", detail: "Discreet care on your schedule.", price: 249, duration: 25, symbol: "flower"),
+        .init(id: "planning", name: "Family planning", detail: "Discreet care on your schedule.", price: 249, duration: 25, symbol: "calendar.badge.clock"),
         .init(id: "postop", name: "Post-operative check", detail: "Support after your procedure.", price: 349, duration: 45, symbol: "cross.case"),
         .init(id: "senior", name: "Elderly care", detail: "A thoughtful one-hour visit.", price: 399, duration: 60, symbol: "person.2"),
         .init(id: "certificate", name: "Sick-note visit", detail: "Assessment with doctor review.", price: 249, duration: 30, symbol: "doc.text")

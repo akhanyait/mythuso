@@ -156,11 +156,11 @@ struct ConsultationRecordView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 header
                 if let signature { signedBlock(signature) } else { editor }
             }
-            .padding(18)
+            .padding(ThusoSpacing.space16)
         }
         .background(ThusoTheme.canvas)
         .navigationTitle("Consultation").navigationBarTitleDisplayMode(.inline)
@@ -180,7 +180,7 @@ struct ConsultationRecordView: View {
             .labelsHidden()
             .disabled(signature != nil)
             .onChange(of: writer) { _, _ in signature = nil }
-            HStack(spacing: 8) {
+            HStack(spacing: ThusoSpacing.space8) {
                 SubjectStatusPill(status: summarise(subject).status)
                 Text(role?.name ?? subject.roleId).font(.caption2).foregroundStyle(ThusoTheme.body)
             }
@@ -279,7 +279,7 @@ struct ConsultationRecordView: View {
     /// The fields themselves, so SOAP can arrange the same ones without a second set of boxes.
     @ViewBuilder private func sectionFields(_ section: ConsultationSection) -> some View {
         let decision = section.gatedBy.map { can(subject, $0) } ?? mayWrite
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             if section.id == "observations" { capturedReadings }
             if decision.allowed {
                 ForEach(fields(section)) { field in
@@ -288,9 +288,9 @@ struct ConsultationRecordView: View {
                         TextEditor(text: Binding(get: { draft[field.id] ?? "" },
                                                  set: { draft[field.id] = String($0.prefix(1200)) }))
                             .frame(minHeight: 76).scrollContentBackground(.hidden)
-                            .padding(8)
-                            .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 10))
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(ThusoTheme.line, lineWidth: 1))
+                            .padding(ThusoSpacing.space8)
+                            .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
                             .disabled(signature != nil || !mayWrite.allowed)
                             .accessibilityLabel(field.label)
                             .accessibilityHint(field.prompt)
@@ -331,12 +331,12 @@ struct ConsultationRecordView: View {
             Label("Nothing has been captured for \(reference) on this phone yet. The assessment writes here.",
                   systemImage: "tray").font(.caption2).foregroundStyle(ThusoTheme.body)
         } else {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                 StatusPill(text: "Carried from the visit · \(visitReadings.count)", tone: "quiet")
                 ForEach(visitReadings) { entry in
                     VStack(alignment: .leading, spacing: 4) {
                         ReadingRow(reading: entry.reading)
-                        HStack(spacing: 8) {
+                        HStack(spacing: ThusoSpacing.space8) {
                             CaptureStatePill(state: entry.state)
                             Text(entry.capturedByName).font(.caption2).foregroundStyle(ThusoTheme.faint)
                             Spacer(minLength: 0)
@@ -349,8 +349,8 @@ struct ConsultationRecordView: View {
                 Text("Read-only here. These are the readings as they were taken, with the origin, the instrument and the calibration each was taken under. The box below is for what they do not carry.")
                     .font(.caption2).foregroundStyle(ThusoTheme.body)
             }
-            .padding(12)
-            .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 12))
+            .padding(ThusoSpacing.space12)
+            .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
         }
     }
 

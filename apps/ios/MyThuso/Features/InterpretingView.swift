@@ -41,7 +41,7 @@ struct InterpretingView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 DemoBadge()
                 CareHeading(eyebrow: "Language and access", title: Interpreting.labels.heading,
                             subtitle: Interpreting.rule("one-roster").sentence)
@@ -56,7 +56,7 @@ struct InterpretingView: View {
                 rulesCard
                 Text(Interpreting.notYetBuilt).font(.caption).foregroundStyle(ThusoTheme.body)
             }
-            .padding(18)
+            .padding(ThusoSpacing.space16)
         }
         .background(ThusoTheme.canvas)
         .navigationTitle(Interpreting.labels.heading).navigationBarTitleDisplayMode(.inline)
@@ -198,7 +198,7 @@ struct InterpretingView: View {
         CareCard {
             Text(Interpreting.labels.refusalsHeading).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             ForEach(Interpreting.refusals) { refusal in
-                HStack(alignment: .top, spacing: 11) {
+                HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                     Image(systemName: "xmark.octagon").foregroundStyle(ThusoTheme.danger)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(refusal.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
