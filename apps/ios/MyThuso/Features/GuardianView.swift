@@ -105,14 +105,54 @@ struct SystemStatesView: View {
 }
 struct LanguageView: View {
     @EnvironmentObject private var store: PreviewStore
+    @State private var signs = false
     var body: some View {
         Form {
+            /* Every option says whether a person who speaks it has read it, on the row itself
+               rather than in a footnote. Ten of the eleven have not, and a draft that does not
+               announce itself is worse than no translation at all in a health app. The state comes
+               from packages/catalog/locales.json, so a language cannot be presented as reviewed here
+               while the contract says it is not. */
             Section("Choose your language") {
-                Picker("Language", selection: $store.locale) { ForEach(ThusoLocale.allCases) { Text($0.native).tag($0) } }.pickerStyle(.inline).labelsHidden()
+                Picker("Language", selection: $store.locale) {
+                    ForEach(ThusoLocale.allCases) { option in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(option.native)
+                            Text(option.reviewLabel).font(.caption2).foregroundStyle(.secondary)
+                        }.tag(option)
+                    }
+                }.pickerStyle(.inline).labelsHidden()
+            }
+            if let notice = store.locale.reviewNotice {
+                Section { Label(notice, systemImage: "exclamationmark.triangle").font(.caption) }
             }
             Section {
-                Text("Navigation, the shell and the main actions are translated. Clinical wording stays in English until a South African clinical language review is complete — a mistranslated instruction is a safety problem, not a polish problem.").font(.caption).foregroundStyle(.secondary)
-                Text("isiXhosa, Setswana, Sepedi, Xitsonga, siSwati, Tshivenda, isiNdebele and South African Sign Language guidance are planned before a pilot.").font(.caption).foregroundStyle(.secondary)
+                Text(ThusoLanguageNotes.clinicalRule).font(.caption).foregroundStyle(.secondary)
+                Text(ThusoLanguageNotes.fallback).font(.caption).foregroundStyle(.secondary)
+            }
+            /* South African Sign Language is an official language and is not in the picker above,
+               because there is no written form for a picker to switch the interface into. It is a
+               communication requirement on the account instead, and the written language stays a
+               separate choice. */
+            Section(ThusoLanguageNotes.signLanguageName) {
+                Toggle(ThusoLanguageNotes.signLanguageRequirement, isOn: $signs)
+                Text(ThusoLanguageNotes.signLanguageRequirementDetail).font(.caption).foregroundStyle(.secondary)
+                Text(ThusoLanguageNotes.signLanguageStatus).font(.caption).foregroundStyle(.secondary)
+                Text(ThusoLanguageNotes.signLanguageWhyNotListed).font(.caption).foregroundStyle(.secondary)
+            }
+            Section("What a visit and a call must do") {
+                ForEach(ThusoLanguageNotes.signLanguageMustHappen, id: \.0) { rule in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(rule.0).font(.subheadline.weight(.semibold))
+                        Text(rule.1).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Section("What must never happen") {
+                ForEach(ThusoLanguageNotes.signLanguageNeverHappens, id: \.self) { sentence in
+                    Label(sentence, systemImage: "xmark.circle").font(.caption)
+                }
+                Text(ThusoLanguageNotes.signLanguageNotBuilt).font(.caption).foregroundStyle(.secondary)
             }
         }
         .navigationTitle("Language").navigationBarTitleDisplayMode(.inline)

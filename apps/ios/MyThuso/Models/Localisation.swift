@@ -1,104 +1,12 @@
 import Foundation
 
-/// Localisation for the shell, navigation and primary calls to action.
-/// Clinical wording stays in English until a South African clinical language review is complete —
-/// a mistranslated instruction is a safety problem, not a polish problem.
-enum ThusoLocale: String, CaseIterable, Identifiable {
-    case english = "en-ZA", zulu = "zu-ZA", sesotho = "st-ZA", afrikaans = "af-ZA"
-    var id: String { rawValue }
-    var native: String {
-        switch self {
-        case .english: return "English"
-        case .zulu: return "isiZulu"
-        case .sesotho: return "Sesotho"
-        case .afrikaans: return "Afrikaans"
-        }
-    }
-}
-enum ThusoString: String {
-    case home, bookCare, visits, passport, more
-    case greeting, greetingSub, tagline, heroTitle, heroBody, heroTrust
-    case bookNurse, openPassport, nextVisit, helpWith, language, previewBadge
-    /* Vetting reaches every workspace, so its shell and navigation wording is localised with the
-       rest of the shell. The checks, authorities and refusals stay in English: a mistranslated
-       credential requirement is a safety problem, not a polish problem. */
-    case vetting, vettingQueue, vettingStatus, vettingApply, vettingRenewals, vettingRefused
-    /* The patient file and the consultation record reach every clinical workspace, so the way in
-       is localised with the rest of the shell. What is inside them — the record types, the
-       refusal sentences, the clinical sections — stays in English for the same reason the
-       credential requirements do. */
-    case patientFile, consultationRecord, viewingAs, openFileOf
-    /* The household and the shareable summary are two more ways into the record, so the way in is
-       localised and what is inside them is not. The nine summary fields, the refusal sentences and
-       the withheld categories come from the record contract in English, for the same reason a
-       credential requirement does. */
-    case household, healthSummary
-}
-private let table: [ThusoLocale: [ThusoString: String]] = [
-    .english: [
-        .home: "Home", .bookCare: "Book care", .visits: "Visits", .passport: "Passport", .more: "More",
-        .greeting: "Hello, Lerato", .greetingSub: "Here for you. And the people you love.",
-        .tagline: "Help. Health. Home.", .heroTitle: "Feel better.\nRight at home.",
-        .heroBody: "A caring nurse. A doctor’s expertise. All from the comfort of your home.",
-        .heroTrust: "Registered nurses · Visits from R249", .bookNurse: "Book a nurse",
-        .openPassport: "Open my passport", .nextVisit: "Your next visit", .helpWith: "What can we help with?",
-        .language: "Language", .previewBadge: "Design preview · Fictional data",
-        .vetting: "Vetting", .vettingQueue: "Vetting queue", .vettingStatus: "Vetting status",
-        .vettingApply: "Apply to join", .vettingRenewals: "Renewals due",
-        .vettingRefused: "What is refused until this passes",
-        .patientFile: "Patient file", .consultationRecord: "Consultation record",
-        .viewingAs: "Viewing as", .openFileOf: "Open the file of",
-        .household: "Household", .healthSummary: "Health summary"
-    ],
-    .zulu: [
-        .home: "Ikhaya", .bookCare: "Bhukha", .visits: "Ukuvakashelwa", .passport: "Iphasiphothi", .more: "Okuningi",
-        .greeting: "Sawubona, Lerato", .greetingSub: "Silapha ngenxa yakho. Nangenxa yabantu obathandayo.",
-        .tagline: "Usizo. Impilo. Ikhaya.", .heroTitle: "Zizwe ungcono.\nEkhaya.",
-        .heroBody: "Umhlengikazi onendaba. Ulwazi lukadokotela. Konke usekhaya.",
-        .heroTrust: "Abahlengikazi ababhalisiwe · Kusukela ku-R249", .bookNurse: "Bhukha umhlengikazi",
-        .openPassport: "Vula iphasiphothi yami", .nextVisit: "Ukuvakashelwa kwakho okulandelayo", .helpWith: "Singakusiza ngani?",
-        .language: "Ulimi", .previewBadge: "Isibonelo sedizayini · Idatha eqanjiwe",
-        .vetting: "Ukuqinisekiswa", .vettingQueue: "Ulayini wokuqinisekiswa", .vettingStatus: "Isimo sokuqinisekiswa",
-        .vettingApply: "Faka isicelo", .vettingRenewals: "Ukuvuselelwa okudingekayo",
-        .vettingRefused: "Okwenqatshelwe uze uphase",
-        .patientFile: "Ifayela lesiguli", .consultationRecord: "Irekhodi lokubonana nodokotela",
-        .viewingAs: "Ubuka njenge", .openFileOf: "Vula ifayela lika",
-        .household: "Umuzi", .healthSummary: "Isifinyezo sezempilo"
-    ],
-    .sesotho: [
-        .home: "Lehae", .bookCare: "Behela", .visits: "Diketelo", .passport: "Phasepoto", .more: "Tse ding",
-        .greeting: "Dumela, Lerato", .greetingSub: "Re teng bakeng sa hao. Le batho bao o ba ratang.",
-        .tagline: "Thuso. Bophelo. Lehae.", .heroTitle: "Ikutlwe hantle.\nHae.",
-        .heroBody: "Mooki ya nang le kgathallo. Tsebo ya ngaka. Tsohle o le hae.",
-        .heroTrust: "Baoki ba ngodisitsweng · Ho tloha ho R249", .bookNurse: "Behela mooki",
-        .openPassport: "Bula phasepoto ya ka", .nextVisit: "Ketelo ya hao e latelang", .helpWith: "Re ka o thusa ka eng?",
-        .language: "Puo", .previewBadge: "Ponelopele ya moralo · Datha ya boiqapelo",
-        .vetting: "Netefatso", .vettingQueue: "Mola wa netefatso", .vettingStatus: "Boemo ba netefatso",
-        .vettingApply: "Etsa kopo", .vettingRenewals: "Dintjhafatso tse tlang",
-        .vettingRefused: "Se hannweng ho fihlela sena se feta",
-        .patientFile: "Faele ya mokudi", .consultationRecord: "Tlaleho ya ho bonana le ngaka",
-        .viewingAs: "O shebella jwaloka", .openFileOf: "Bula faele ya",
-        .household: "Lelapa", .healthSummary: "Kakaretso ya bophelo"
-    ],
-    .afrikaans: [
-        .home: "Tuis", .bookCare: "Bespreek", .visits: "Besoeke", .passport: "Paspoort", .more: "Meer",
-        .greeting: "Hallo, Lerato", .greetingSub: "Hier vir jou. En vir die mense vir wie jy lief is.",
-        .tagline: "Hulp. Gesondheid. Huis.", .heroTitle: "Voel beter.\nTuis.",
-        .heroBody: "’n Sorgsame verpleegster. ’n Dokter se kundigheid. Alles van die gemak van jou huis af.",
-        .heroTrust: "Geregistreerde verpleegsters · Vanaf R249", .bookNurse: "Bespreek ’n verpleegster",
-        .openPassport: "Open my paspoort", .nextVisit: "Jou volgende besoek", .helpWith: "Waarmee kan ons help?",
-        .language: "Taal", .previewBadge: "Ontwerpvoorskou · Fiktiewe data",
-        .vetting: "Keuring", .vettingQueue: "Keuringstou", .vettingStatus: "Keuringstatus",
-        .vettingApply: "Doen aansoek", .vettingRenewals: "Hernuwings wat verval",
-        .vettingRefused: "Wat geweier word totdat dit slaag",
-        .patientFile: "Pasiëntlêer", .consultationRecord: "Konsultasierekord",
-        .viewingAs: "Besigtig as", .openFileOf: "Open die lêer van",
-        .household: "Huishouding", .healthSummary: "Gesondheidsopsomming"
-    ]
-]
-func thuso(_ key: ThusoString, _ locale: ThusoLocale) -> String {
-    table[locale]?[key] ?? table[.english]?[key] ?? key.rawValue
-}
+/// What is left of localisation once the table stopped being typed by hand.
+///
+/// ThusoLocale, ThusoString, the table itself and clinicalLocale() are generated into
+/// LocalisationData.swift from packages/catalog/locales.json. Three things stayed here because they
+/// are decisions rather than data: the identity check digit, the shape of a hero slide, and which
+/// key each slide reads.
+
 /// South African ID numbers carry a Luhn check digit, so the preview can show a real
 /// "that doesn't look right" state without sending anything anywhere.
 func validateSaId(_ value: String) -> (ok: Bool, message: String) {
@@ -119,8 +27,9 @@ func validateSaId(_ value: String) -> (ok: Bool, message: String) {
     return (true, String(format: "Checks out. Date of birth %02d/%02d/%d.", day, month, year))
 }
 
-/// Hero banner copy. Kept beside the rest of the localisation so a slide cannot be added in one
-/// language and forgotten in the other three.
+/// Hero banner copy. The words come out of the generated table like every other string, so a slide
+/// cannot be added in one language and forgotten in the others — and a locale that does not carry
+/// the hero set falls back to English one string at a time rather than by a switch nobody updated.
 struct HeroSlideCopy: Identifiable {
     let id: String
     let title: String
@@ -136,34 +45,15 @@ func heroSlides(_ locale: ThusoLocale) -> [HeroSlideCopy] {
     let art = ["Family", "Elder", "Nurse"]
     let banners = ["BannerCareThatComesToYou", "BannerOneSafePlace", "BannerFeelBetter"]
     let symbols = [["house", "checkmark.shield", "person.2"], ["checkmark.shield", "person.2", "sparkles"], ["checkmark.shield", "heart", "stethoscope"]]
-    let copy: [(String, String, String, [String], String)]
-    switch locale {
-    case .zulu:
-        copy = [
-            ("Ukunakekelwa\nokuza kuwe.", "Ukunakekelwa kwezempilo okwethembekile ekhaya, ngokuthinta nje.", "Thola usizo manje", ["Ekhaya", "Ukunakekelwa okwethembekile", "Kubantu obathandayo"], "Ukunakekelwa okufanayo. Eduze nekhaya."),
-            ("Impilo yakho.\nIndawo eyodwa ephephile.", "Ukuvakashelwa, amarekhodi nokusekelwa — konke ku-MyThuso.", "Vula i-Thuso Pass", ["Ukunakekelwa okwethembekile", "Kuwe nabathandekayo bakho", "Ikusasa elinempilo"], "Ukunakekelwa kuyasihlanganisa."),
-            ("Zizwe ungcono.\nEkhaya.", "Ukunakekelwa okuholwa umhlengikazi, kulethwa emnyango wakho.", "Bhukha umhlengikazi", ["Ochwepheshe abethembekile", "Ukunakekelwa okwakho", "Kuphephile futhi kulula"], "Ukunakekelwa okusezingeni, lapho ukhona.")
-        ]
-    case .sesotho:
-        copy = [
-            ("Tlhokomelo e tlang\nho wena.", "Tlhokomelo ya bophelo ya lehae e tshepahalang, ka ho tobetsa ha se kae.", "Fumana tlhokomelo hona joale", ["Lehae", "Tlhokomelo e tshepahalang", "Bakeng sa bao o ba ratang"], "Tlhokomelo e tshwanang. Haufi le lehae."),
-            ("Bophelo ba hao.\nSebaka se le seng se sireletsehileng.", "Diketelo, direkoto le tshehetso — tsohle ho MyThuso.", "Bula Thuso Pass", ["Tlhokomelo e tshepahalang", "Bakeng sa hao le ba lelapa", "Bokamoso bo phetseng hantle"], "Tlhokomelo ea re kopanya."),
-            ("Ikutlwe hantle.\nHae.", "Tlhokomelo e etelletsweng ke mooki, e tliswa monyako wa hao.", "Behela mooki", ["Ditsebi tse tshepahalang", "Tlhokomelo ya hao", "E bolokehile ebile e bonolo"], "Tlhokomelo e ntle, moo o leng teng.")
-        ]
-    case .afrikaans:
-        copy = [
-            ("Sorg wat na\njou toe kom.", "Betroubare tuisgesondheidsorg met net ’n paar tikke.", "Kry sorg nou", ["By die huis", "Betroubare sorg", "Vir die mense vir wie jy lief is"], "Dieselfde sorg. Nader aan die huis."),
-            ("Jou gesondheid.\nEen veilige plek.", "Besoeke, rekords en ondersteuning — alles in MyThuso.", "Open Thuso Pass", ["Betroubare sorg", "Vir jou en jou geliefdes", "Gesonder môres"], "Sorg verbind ons."),
-            ("Voel beter.\nTuis.", "Verpleegster-gelei sorg, tot by jou deur.", "Bespreek ’n verpleegster", ["Betroubare professionele", "Persoonlike sorg", "Veilig en gerieflik"], "Kwaliteitsorg, waar jy ook al is.")
-        ]
-    default:
-        copy = [
-            ("Care that\ncomes to you.", "Trusted home healthcare in just a few taps.", "Get care now", ["At home", "Trusted care", "For the people you love"], "Same care. Closer to home."),
-            ("Your health.\nOne safe place.", "Visits, records and support — all in MyThuso.", "Open Thuso Pass", ["Trusted care", "For you and your loved ones", "Healthier tomorrows"], "Care connects us."),
-            ("Feel better.\nRight at home.", "Nurse-led care, delivered to your door.", "Book a nurse", ["Trusted professionals", "Personalised care", "Safe & convenient"], "Quality care, where you are.")
-        ]
-    }
-    return copy.enumerated().map { index, item in
-        HeroSlideCopy(id: art[index], title: item.0, body: item.1, cta: item.2, trust: item.3, caption: item.4, art: art[index], banner: banners[index], symbols: symbols[index])
+    let keys: [(ThusoString, ThusoString, ThusoString, [ThusoString], ThusoString)] = [
+        (.slide1Title, .slide1Body, .slide1Cta, [.slide1Trust1, .slide1Trust2, .slide1Trust3], .slide1Caption),
+        (.slide2Title, .slide2Body, .slide2Cta, [.slide2Trust1, .slide2Trust2, .slide2Trust3], .slide2Caption),
+        (.slide3Title, .slide3Body, .slide3Cta, [.slide3Trust1, .slide3Trust2, .slide3Trust3], .slide3Caption)
+    ]
+    return keys.enumerated().map { index, slide in
+        HeroSlideCopy(id: art[index],
+                      title: thuso(slide.0, locale), body: thuso(slide.1, locale), cta: thuso(slide.2, locale),
+                      trust: slide.3.map { thuso($0, locale) }, caption: thuso(slide.4, locale),
+                      art: art[index], banner: banners[index], symbols: symbols[index])
     }
 }

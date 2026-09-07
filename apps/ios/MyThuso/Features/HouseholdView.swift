@@ -36,7 +36,7 @@ struct HouseholdView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 DemoBadge()
-                CareHeading(eyebrow: "Patients · design preview", title: thuso(.household, store.locale),
+                CareHeading(eyebrow: "Patients · design preview", title: thuso(.householdRecord, store.locale),
                             subtitle: "One household, and what each member may see of the others. Fictional people, fictional scheme; nothing here is a record and nothing reaches a service.")
                 viewerControl
                 Text(spokenState).font(.caption).foregroundStyle(ThusoTheme.body)
@@ -64,7 +64,7 @@ struct HouseholdView: View {
             .padding(18)
         }
         .background(ThusoTheme.canvas)
-        .navigationTitle(thuso(.household, store.locale)).navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(thuso(.householdRecord, store.locale)).navigationBarTitleDisplayMode(.inline)
     }
 
     private var spokenState: String {

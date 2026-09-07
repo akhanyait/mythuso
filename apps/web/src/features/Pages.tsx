@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, ArrowRight, ArrowUpRight, Bell, Bluetooth, Check, ChevronRight, CircleHelp, ClipboardPlus, Clock3, CreditCard, Download, Droplets, FileText, Globe, Heart, HeartHandshake, LayoutGrid, LockKeyhole, LogOut, MapPin, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Users, UserPlus, Wallet } from 'lucide-react';
+import { Activity, ArrowRight, ArrowUpRight, Bell, Bluetooth, Check, ChevronRight, CircleHelp, ClipboardPlus, Clock3, CreditCard, Download, Droplets, FileText, Globe, Heart, HeartHandshake, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Users, UserPlus, Wallet } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { ClinicalChart } from '../components/Chart';
 import { EmptyState, Skeleton, StateBlock, StatePicker, loadStates, stateLabels, type LoadState } from '../components/States';
@@ -118,7 +118,7 @@ export function Explore({open,onOnboarding}:{open:(s:string)=>void;onOnboarding:
  </div></>}
 const menuGroups=[
  [['My family','Manage your loved ones',Users,'My family'],['Care plans','Ongoing care and subscriptions',HeartHandshake,'Care plans'],['Payments','Cards, history and refunds',CreditCard,'Thuso Wallet']],
- [['Care area','Rosebank, Johannesburg',MapPin,'@Your location'],['Notifications','Visit updates and messages',Bell,'@Notifications'],['Privacy & settings','Your data and app preferences',Settings2,'Privacy & settings'],['Language','Read MyThuso your way',Globe,'@Language']],
+ [['Care area','Rosebank, Johannesburg',MapPin,'@Your location'],['Notifications','Visit updates and messages',Bell,'@Notifications'],['Privacy & settings','Your data and app preferences',Settings2,'Privacy & settings'],['Language','Read MyThuso your way',Globe,'@Language'],['Language & access','Twelve official languages, and what is honestly offered in each',Languages,'Language & access']],
  [['Explore MyThuso','The full 21-module roadmap',LayoutGrid,'Explore MyThuso'],['Help & support','Chat, FAQs and emergency',CircleHelp,'@How can we help?'],['Preview workspaces','Nurse, doctor, partner and Control Tower',Stethoscope,'@Switch workspace']]
 ] as const;
 export function MoreHub({navigate,open,onSignOut}:{navigate:(s:string)=>void;open:(s:string)=>void;onSignOut:()=>void}){

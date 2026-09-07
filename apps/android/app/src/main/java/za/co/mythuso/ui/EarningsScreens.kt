@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import za.co.mythuso.model.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import androidx.compose.ui.semantics.Role
 
 /* Earnings and payouts, for the nurse.
 
@@ -238,7 +239,8 @@ private fun rand(amount: Int): String {
     val state = Earnings.state(week.state)
     CareCard {
         Row(
-            Modifier.fillMaxWidth().clickable(onClickLabel = if (open) "Collapse the week" else "Show every line in the week", onClick = toggle),
+            Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                .clickable(onClickLabel = if (open) "Collapse the week" else "Show every line in the week", role = Role.Button, onClick = toggle),
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top
         ) {
             Column {

@@ -6,6 +6,7 @@ import { emitRecords } from './emit-records.mjs';
 import { emitEarnings } from './emit-earnings.mjs';
 import { emitSos } from './emit-sos.mjs';
 import { emitTeleconsult } from './emit-teleconsult.mjs';
+import { emitLocales } from './emit-locales.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -54,14 +55,193 @@ for(const [platform,file] of Object.entries(clinicalSources)) {
   if(!numbers.includes(low)||!numbers.includes(high)) throw new Error(`Reference range drift for '${id}' in ${platform}: expected ${low}–${high} in ${file}`);
  }
 }
-const localeSources = {
- web: 'apps/web/src/lib/i18n.ts',
- ios: 'apps/ios/MyThuso/Models/Localisation.swift',
- android: 'apps/android/app/src/main/java/za/co/mythuso/model/Localisation.kt'
+/* ---- Localisation ----------------------------------------------------------------------------
+
+   This check used to ask whether each of three hand-typed locale tables mentioned each of four
+   locale codes. It passed for months while isiZulu called vetting `Ukuqinisekiswa` on iOS and
+   `Ukuhlolwa` on Android, and while `vettingApply` read "Apply to join" on one and "Start an
+   application" on the other, because mentioning a code is not the same as agreeing about what is
+   under it. The table is packages/catalog/locales.json now and the native ones are generated from
+   it by scripts/emit-locales.mjs, so those two disagreements can no longer be typed. What is left
+   for a check to do is the part a generator cannot: hold the contract itself to its own claims. */
+const localeContract = JSON.parse(read('packages/catalog/locales.json'));
+const localeSetIds = new Set(localeContract.sets.map(s => s.id));
+const reviewStates = Object.fromEntries(localeContract.reviewStates.map(s => [s.id, s]));
+const seenKeyIds = new Set();
+for(const key of localeContract.keys) {
+ if(seenKeyIds.has(key.id)) throw new Error(`The locale contract declares "${key.id}" twice`);
+ seenKeyIds.add(key.id);
+ if(!localeSetIds.has(key.set)) throw new Error(`Locale key "${key.id}" belongs to a set "${key.set}" that is not declared`);
+ if(!key.surfaces.length) throw new Error(`Locale key "${key.id}" is rendered on no platform. A string nothing shows is a string nobody will maintain.`);
+ /* No clinical string has a key here, so there is nothing for a translator to fill in and nothing
+    for a screen to render in a language no clinician has read. The rule is worth more as a missing
+    namespace than as a sentence in a comment. */
+ if(/^clinical[.]/.test(key.id)) throw new Error(`Locale key "${key.id}" is clinical. Clinical wording is not translated in this contract — it stays in English until a clinician who reads the language has reviewed it, and the way that is guaranteed is that there is no key for it.`);
+}
+for(const [surface, field] of [['ios','swift'],['android','kotlin']]) {
+ const names = localeContract.keys.filter(k => k.surfaces.includes(surface)).map(k => k[field]);
+ const duplicate = names.find((name, index) => names.indexOf(name) !== index);
+ if(duplicate) throw new Error(`Two locale keys both compile to "${duplicate}" on ${surface}`);
+}
+/* South African Sign Language. It is an official language and it is not a written one, so the one
+   thing that must not happen is it appearing in the list of languages the interface is translated
+   into — a toggle that changes nothing is a claim of access rather than access. */
+const signLanguage = localeContract.signLanguage;
+if(localeContract.locales.some(l => l.code === signLanguage.code)) throw new Error(`${signLanguage.short} is in the list of interface languages. It has no written form; choosing it would change nothing on the screen, which is worse than not offering it.`);
+if(localeContract.strings[signLanguage.code]) throw new Error(`${signLanguage.short} has a string table. There is no written ${signLanguage.short} to put in one.`);
+
+/* The invariant the old check could not express: every locale carries every key of every set it
+   claims, and carries nothing outside them. A key present in one locale and absent from another is
+   the drift; a key present in a locale that never claimed its set is a fallback nobody declared. */
+for(const locale of localeContract.locales) {
+ if(!locale.sets.includes('shell')) throw new Error(`${locale.code} does not carry the shell. A language offered in the picker whose navigation is English is an offer that is not kept.`);
+ const table = localeContract.strings[locale.code];
+ if(!table) throw new Error(`${locale.code} is declared with no strings at all`);
+ const expected = new Set(localeContract.keys.filter(k => locale.sets.includes(k.set)).map(k => k.id));
+ for(const id of expected) if(!table[id]) throw new Error(`${locale.code} is missing "${id}". It claims the "${localeContract.keys.find(k => k.id === id).set}" set, so it carries every key in it or it does not claim the set.`);
+ for(const id of Object.keys(table)) {
+  if(!seenKeyIds.has(id)) throw new Error(`${locale.code} translates "${id}", which is not a key`);
+  if(!expected.has(id)) throw new Error(`${locale.code} translates "${id}" but does not claim the "${localeContract.keys.find(k => k.id === id).set}" set. Either claim the set and translate all of it, or drop the string — a half-translated set reads as a half-finished app.`);
+ }
+}
+/* A language presented as checked when nobody checked it is the failure this whole mechanism
+   exists to prevent, so it is the one thing here that is not a matter of taste. `reviewed` is a
+   claim; a name, an organisation and a date are what makes it one. */
+for(const locale of localeContract.locales) {
+ const state = reviewStates[locale.review.state];
+ if(!state) throw new Error(`${locale.code} claims a review state "${locale.review.state}" that is not declared`);
+ if(state.reviewed && locale.review.state !== 'source' && !(locale.review.by && locale.review.organisation && locale.review.on)) {
+  throw new Error(`${locale.code} is presented to readers as "${state.label}" without naming who read it, for whom and on what day. A language that says it was checked and cannot say by whom is worse than one that says nobody has checked it.`);
+ }
+ if(!state.reviewed && !state.notice) throw new Error(`${locale.code} is not reviewed and the "${locale.review.state}" state has no notice to show the reader. An unreviewed language that does not announce itself is the thing being guarded against.`);
+ const clinical = locale.clinicalReview;
+ if(!['none','source','complete'].includes(clinical.state)) throw new Error(`${locale.code} has an unknown clinical review state "${clinical.state}"`);
+ if(clinical.state === 'source' && locale.code !== 'en-ZA') throw new Error(`${locale.code} claims to be the source language for clinical wording. Only English is.`);
+ if(clinical.state === 'complete' && !(clinical.by && clinical.registration && clinical.on)) {
+  throw new Error(`${locale.code} claims a completed clinical language review without naming the clinician, their registration number and the date. A reference range shown in a language on the strength of an unsigned claim is exactly the failure the rule is about.`);
+ }
+}
+/* And the structural half of the same rule: a refusal sentence, an observation label or anything
+   else long enough to be a sentence cannot be smuggled into the locale table out of a clinical
+   contract. Six words is the line — shorter than that and the collisions are ordinary words. */
+const clinicalSentences = new Set();
+const collectSentences = node => {
+ if(typeof node === 'string') { if(node.trim().split(/\s+/).length >= 6) clinicalSentences.add(node.trim()); }
+ else if(node && typeof node === 'object') for(const value of Object.values(node)) collectSentences(value);
 };
-for(const [platform,file] of Object.entries(localeSources)) {
- const source=read(file);
- for(const code of ['en-ZA','zu-ZA','st-ZA','af-ZA']) if(!source.includes(code)) throw new Error(`Locale ${code} is missing from ${platform} (${file})`);
+for(const path of localeContract.clinicalRule.clinicalContracts) {
+ if(!existsSync(path)) throw new Error(`The locale contract names ${path} as a clinical contract, and it does not exist`);
+ collectSentences(JSON.parse(read(path)));
+}
+for(const [code, table] of Object.entries(localeContract.strings)) {
+ for(const [id, value] of Object.entries(table)) {
+  if(clinicalSentences.has(value.trim())) throw new Error(`${code} "${id}" is a sentence out of a clinical contract. Clinical wording is rendered in English in every locale until a clinician who reads the language has reviewed it; translating one here routes around that.`);
+ }
+}
+/* clinicalLocale() is where the rule is actually applied. If a platform loses it, every screen on
+   that platform is one careless t() away from a dose in an unreviewed language. */
+const clinicalLanguageGate = [
+ ['web', 'apps/web/src/lib/i18n.ts', /export function clinicalLocale\s*\(/],
+ ['ios', 'apps/ios/MyThuso/Models/LocalisationData.swift', /func clinicalLocale\s*\(/],
+ ['android', 'apps/android/app/src/main/java/za/co/mythuso/model/LocalisationData.kt', /fun clinicalLocale\s*\(/]
+];
+for(const [platform,file,declaration] of clinicalLanguageGate) {
+ /* The declaration, not the word. A check that a file mentions clinicalLocale is satisfied by the
+    comment explaining why it used to be there — which is the mistake the old locale check made. */
+ if(!declaration.test(read(file))) throw new Error(`${platform} no longer declares clinicalLocale() (${file}). It is the only thing standing between an unreviewed translation and a clinical instruction.`);
+}
+/* Nothing outside the contract and its generated output may know the locale list. English is
+   exempt: it is the fallback and the default, and both have to be written somewhere. */
+const localeCodesBeyondEnglish = localeContract.locales.map(l => l.code).filter(code => code !== 'en-ZA');
+for(const file of ['apps/web/src/App.tsx','apps/ios/MyThuso/Models/Localisation.swift','apps/android/app/src/main/java/za/co/mythuso/model/Localisation.kt']) {
+ const source = read(file);
+ for(const code of localeCodesBeyondEnglish) if(source.includes(code)) throw new Error(`${file} writes the locale code ${code} out by hand. The list lives in packages/catalog/locales.json so that a language cannot be offered on one platform and not another.`);
+}
+/* Ten of the eleven languages are drafted by software and have been read by nobody who speaks
+   them. Every surface that offers one has to say so where the choice is made, and a platform that
+   quietly drops the notice is presenting those ten as finished. */
+const languagePickers = {
+ web: 'apps/web/src/App.tsx',
+ 'ios language screen': 'apps/ios/MyThuso/Features/GuardianView.swift',
+ 'ios first run': 'apps/ios/MyThuso/Features/OnboardingView.swift',
+ android: 'apps/android/app/src/main/java/za/co/mythuso/ui/OnboardingScreens.kt'
+};
+for(const [platform,file] of Object.entries(languagePickers)) {
+ const source = read(file);
+ if(!/reviewNotice/.test(source)) throw new Error(`The ${platform} language picker (${file}) no longer shows whether anybody who speaks the language has read it. That notice is the only honest part of offering ten machine-drafted languages.`);
+ if(!/reviewLabel/.test(source)) throw new Error(`The ${platform} language picker (${file}) offers the languages without their review state beside them. A footnote under the list is where a claim goes to avoid being read.`);
+}
+const rosterParticipants = new Set(JSON.parse(read('packages/catalog/teleconsult.json')).participants.map(p => p.id));
+if(!rosterParticipants.has(signLanguage.teleconsult.participantId)) throw new Error(`The sign-language accommodation points at a call participant "${signLanguage.teleconsult.participantId}" that the teleconsultation roster does not have. An interpreter added by a second mechanism is an interpreter nobody consented to.`);
+for(const file of ['apps/web/src/features/Access.tsx','apps/web/src/App.tsx']) {
+ if(!read(file).includes('signLanguage')) throw new Error(`${file} no longer reads the sign-language accommodation from the contract`);
+}
+if(!read('apps/web/src/features/Access.tsx').includes('mustNeverHappen')) throw new Error('The accessibility screen no longer renders what must never happen to a Deaf patient. Those six sentences are the accommodation; the rest is arrangements.');
+if(!existsSync('docs/ACCESSIBILITY.md')) throw new Error('docs/ACCESSIBILITY.md is missing');
+if(!read('docs/ACCESSIBILITY.md').includes('packages/catalog/locales.json')) throw new Error('docs/ACCESSIBILITY.md must point at the contract rather than restating it');
+/* ---- Colour contrast ---------------------------------------------------------------------------
+
+   Computed, not eyeballed. WCAG 2.2's relative-luminance formula run over the hexes in
+   packages/design-tokens/tokens.json, for every foreground and background the design actually puts
+   together. Two rules make this worth having rather than decorative:
+
+   A pair listed in `pairs` must clear its minimum, so a palette edit that darkens a background
+   until a label stops being readable fails the build rather than shipping.
+
+   A pair listed in `knownFailures` must still fail, and its proposed fix must pass. That second
+   half is the point: a failure can be parked, because a brand palette is not an engineer's to
+   change in passing, but it cannot be parked without a specific replacement that has been measured.
+   And when somebody does apply the fix, the build tells them to move the row up rather than leaving
+   a stale confession behind. */
+const CONTRAST_AA_TEXT = 4.5;
+const tokens = JSON.parse(read('packages/design-tokens/tokens.json'));
+const relativeLuminance = hex => {
+ const channels = [0, 1, 2].map(i => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255)
+  .map(c => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+ return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+};
+const contrastRatio = (a, b) => {
+ const [high, low] = [relativeLuminance(a), relativeLuminance(b)].sort((x, y) => y - x);
+ return (high + 0.05) / (low + 0.05);
+};
+const colourOf = name => {
+ const hex = tokens.color[name];
+ if(!hex) throw new Error(`The contrast table names a colour "${name}" that is not in the palette`);
+ return hex;
+};
+const round2 = value => Math.round(value * 100) / 100;
+const contrast = tokens.contrast;
+const listed = new Set();
+for(const pair of contrast.pairs) {
+ const key = `${pair.foreground} on ${pair.background}`;
+ if(listed.has(key)) throw new Error(`The contrast table lists ${key} twice`);
+ listed.add(key);
+ const ratio = contrastRatio(colourOf(pair.foreground), colourOf(pair.background));
+ if(ratio < pair.minimum) throw new Error(`${key} measures ${round2(ratio)}:1 against a required ${pair.minimum}:1 — ${pair.use}. WCAG 2.2 AA, computed from packages/design-tokens/tokens.json.`);
+}
+for(const failure of contrast.knownFailures) {
+ const key = `${failure.foreground} on ${failure.background}`;
+ if(listed.has(key)) throw new Error(`${key} is listed both as a checked pair and as a known failure`);
+ listed.add(key);
+ if(!failure.note || !failure.proposedFix) throw new Error(`${key} is parked as a known contrast failure without a proposed fix and a reason. A failure recorded without a way out is a failure being hidden in a place that looks like bookkeeping.`);
+ const ratio = contrastRatio(colourOf(failure.foreground), colourOf(failure.background));
+ if(ratio >= failure.minimum) throw new Error(`${key} now measures ${round2(ratio)}:1 and clears its ${failure.minimum}:1 requirement. Move it out of knownFailures and into pairs — a confession nobody removed is read as a live defect by the next person.`);
+ const fixed = contrastRatio(failure.proposedFix, colourOf(failure.background));
+ if(fixed < failure.minimum) throw new Error(`${key} proposes ${failure.proposedFix}, which measures ${round2(fixed)}:1 and still does not clear ${failure.minimum}:1. A proposed fix that has not been measured is a wish.`);
+}
+for(const exempt of contrast.notMeasured) {
+ if(!tokens.color[exempt.token]) throw new Error(`The contrast table exempts a colour "${exempt.token}" that is not in the palette`);
+ if(!exempt.why) throw new Error(`${exempt.token} is exempted from the contrast table without saying why`);
+}
+/* The focus ring is a keyboard user's only way of knowing where they are, and SC 1.4.11 gives it a
+   3:1 floor. It used to be --gold, which measures 2.12:1 on a card. Naming the token here means a
+   stylesheet that quietly puts a two-to-one ring back fails the build rather than a review. */
+const focusRing = contrast.pairs.filter(p => /focus ring/i.test(p.use));
+if(focusRing.length < 2) throw new Error('The contrast table no longer measures the focus ring against the grounds it appears on');
+const focusToken = focusRing[0].foreground;
+for(const outline of read('apps/web/src/styles.css').match(/outline:\s*\d+px solid var\(--[a-z-]+\)/g) ?? []) {
+ const used = outline.match(/var\(--([a-z-]+)\)/)[1];
+ if(used !== focusToken) throw new Error(`A focus outline in apps/web/src/styles.css uses --${used}, and the contrast table measures the ring as --${focusToken}. ${outline}`);
 }
 const onboardingSources = {
  web: 'apps/web/src/features/Onboarding.tsx',
@@ -111,11 +291,21 @@ for (const name of heroCutouts) {
   if (statSync(f).mtimeMs < statSync(source).mtimeMs) throw new Error(`${f} is older than ${source}. Run: node scripts/render-illustrations.mjs`);
  }
 }
-const heroSources = { web: 'apps/web/src/lib/i18n.ts', ios: 'apps/ios/MyThuso/Models/Localisation.swift', android: 'apps/android/app/src/main/java/za/co/mythuso/model/Localisation.kt' };
-const heroCallsToAction = ['Get care now', 'Open Thuso Pass', 'Book a nurse', 'Thola usizo manje', 'Fumana tlhokomelo hona joale', 'Kry sorg nou'];
-for (const [platform, file] of Object.entries(heroSources)) {
- const source = read(file);
- for (const cta of heroCallsToAction) if (!source.includes(cta)) throw new Error(`Hero banner call to action "${cta}" is missing from ${platform} (${file})`);
+/* The banner copy used to be checked substring by substring across three files, because it was
+   written out three times. It is one set of keys in packages/catalog/locales.json now, so what is
+   left to check is that a slide has all of its parts in every locale that claims the set — the
+   locale block above does that — and that the three slides the pictures were cut for still exist.
+   A fourth slide with no cut-out is a blank banner rather than a missing sentence. */
+const heroSlideKeys = ['title','body','cta','trust1','trust2','trust3','caption'];
+for (let slide = 1; slide <= heroCutouts.length; slide += 1) {
+ for (const part of heroSlideKeys) {
+  if (!localeContract.keys.some(k => k.id === `slide${slide}.${part}` && k.set === 'hero')) {
+   throw new Error(`Hero slide ${slide} has no "${part}" in the hero set of packages/catalog/locales.json, and ${heroCutouts[slide - 1]} was cut for it`);
+  }
+ }
+}
+if (localeContract.keys.filter(k => /^slide\d+\.title$/.test(k.id)).length !== heroCutouts.length) {
+ throw new Error(`The locale contract has a different number of hero slides than there are cut-outs (${heroCutouts.length})`);
 }
 /* The identity service holds a name and a mobile number. That is personal information, not the
    special personal information that health data is, which is the only reason it can exist ahead of
@@ -157,7 +347,8 @@ const generated = [
  { source: 'packages/catalog/records.json', command: 'npm run records', files: emitRecords() },
  { source: 'packages/catalog/earnings.json', command: 'npm run earnings', files: emitEarnings() },
  { source: 'packages/catalog/sos.json', command: 'npm run sos', files: emitSos() },
- { source: 'packages/catalog/teleconsult.json', command: 'npm run teleconsult', files: emitTeleconsult() }
+ { source: 'packages/catalog/teleconsult.json', command: 'npm run teleconsult', files: emitTeleconsult() },
+ { source: 'packages/catalog/locales.json', command: 'npm run locales', files: emitLocales() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -633,4 +824,4 @@ for(const forbidden of consent.accessLog.forbiddenColumns) {
  }
 }
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in.`);
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does.`);

@@ -46,7 +46,7 @@ persist patient data. Checked.
 npm run dev        # Vite on :5173 — app at /, landing at /landing.html
 npm run check      # typecheck all three workspaces + scripts/check-boundaries.mjs
 npm test           # api node:test + Playwright (desktop 1440×1100, mobile 390×844)
-npm run generate   # re-emit tokens, vetting, records and earnings into Swift/Kotlin/CSS
+npm run generate   # re-emit tokens, vetting, records, earnings and locales into Swift/Kotlin/CSS
 npm run api        # the identity service on :8787
 ```
 

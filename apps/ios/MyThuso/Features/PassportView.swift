@@ -198,7 +198,7 @@ struct MoreView: View {
                     Divider().overlay(ThusoTheme.line)
                     row(thuso(.consultationRecord, store.locale), "One structure for every encounter, in long form or SOAP", "square.and.pencil") { ConsultationRecordView() }
                     Divider().overlay(ThusoTheme.line)
-                    row(thuso(.household, store.locale), "One household, and what each member may see of the others", "house") { HouseholdView() }
+                    row(thuso(.householdRecord, store.locale), "One household, and what each member may see of the others", "house") { HouseholdView() }
                     Divider().overlay(ThusoTheme.line)
                     row(thuso(.healthSummary, store.locale), "The shareable summary, bound to a purpose and a period", "square.and.arrow.up") { HealthSummaryView() }
                     Divider().overlay(ThusoTheme.line)

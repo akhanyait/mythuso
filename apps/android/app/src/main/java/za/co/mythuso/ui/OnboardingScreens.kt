@@ -2,6 +2,8 @@ package za.co.mythuso.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,11 +47,19 @@ import za.co.mythuso.model.*
                     Text("Choose your language", style = MaterialTheme.typography.titleMedium)
                     ThusoLocale.entries.forEach { option ->
                         Row(
-                            Modifier.fillMaxWidth().clickable { store.locale = option }.semantics { selected = store.locale == option },
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                .selectable(selected = store.locale == option, role = Role.RadioButton) { store.locale = option },
                             verticalAlignment = Alignment.CenterVertically
-                        ) { RadioButton(store.locale == option, { store.locale = option }); Text(option.native) }
+                        ) {
+                            RadioButton(store.locale == option, null)
+                            Column {
+                                Text(option.native)
+                                Text(option.reviewLabel, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                            }
+                        }
                     }
-                    Note("Navigation and the main actions are translated. Clinical wording stays in English until a clinical language review is complete.")
+                    store.locale.reviewNotice?.let { Note(it) }
+                    Note(ThusoLanguageNotes.clinicalRule)
                 }
                 Button(onClick = { step = 1 }, Modifier.fillMaxWidth()) { Text("Create my account") }
                 OutlinedButton(onClick = { recovering = true }, Modifier.fillMaxWidth()) { Text("I’ve lost access to my account") }
@@ -168,18 +179,66 @@ import za.co.mythuso.model.*
     }
 }
 @Composable fun LanguageScreen(store: PreviewStore) {
+    /* Every option says whether a person who speaks it has read it, on the row itself rather than in
+       a footnote. Ten of the eleven have not, and a draft that does not announce itself is worse
+       than no translation at all in a health app. The state comes from
+       packages/catalog/locales.json, so a language cannot be presented as reviewed here while the
+       contract says it is not. */
+    var signs by remember { mutableStateOf(false) }
     ScreenColumn {
         Heading("Language", "Read MyThuso your way.", "Navigation, the shell and the main actions are translated.")
         CareCard {
             ThusoLocale.entries.forEach { option ->
                 Row(
-                    Modifier.fillMaxWidth().clickable { store.locale = option }.semantics { selected = store.locale == option },
+                    Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                        .selectable(selected = store.locale == option, role = Role.RadioButton) { store.locale = option },
                     verticalAlignment = Alignment.CenterVertically
-                ) { RadioButton(store.locale == option, { store.locale = option }); Text(option.native) }
+                ) {
+                    RadioButton(store.locale == option, null)
+                    Column {
+                        Text(option.native)
+                        Text(option.reviewLabel, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                    }
+                }
             }
         }
-        Note("Clinical wording stays in English until a South African clinical language review is complete — a mistranslated instruction is a safety problem, not a polish problem.")
-        Note("isiXhosa, Setswana, Sepedi, Xitsonga, siSwati, Tshivenda, isiNdebele and South African Sign Language guidance are planned before a pilot.")
+        store.locale.reviewNotice?.let { Note(it) }
+        Note(ThusoLanguageNotes.clinicalRule)
+        Note(ThusoLanguageNotes.fallback)
+        /* South African Sign Language is an official language and is not in the list above, because
+           there is no written form for a radio button to switch the interface into. It is a
+           communication requirement on the account instead. */
+        Text(ThusoLanguageNotes.signLanguageName, style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text(ThusoLanguageNotes.signLanguageStatus, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+        CareCard {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    .toggleable(value = signs, role = Role.Checkbox) { signs = it },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(signs, null)
+                Column {
+                    Text(ThusoLanguageNotes.signLanguageRequirement, style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Text(ThusoLanguageNotes.signLanguageRequirementDetail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                }
+            }
+        }
+        Note(ThusoLanguageNotes.signLanguageWhyNotListed)
+        Text("What a visit and a call must do", style = MaterialTheme.typography.titleMedium, color = Ink)
+        ThusoLanguageNotes.signLanguageMustHappen.forEach { (title, sentence) ->
+            CareCard {
+                Text(title, style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            }
+        }
+        Text("What must never happen", style = MaterialTheme.typography.titleMedium, color = Ink)
+        ThusoLanguageNotes.signLanguageNeverHappens.forEach { sentence ->
+            Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+                Icon(Icons.Outlined.Block, null, tint = Danger)
+                Text(sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            }
+        }
+        Note(ThusoLanguageNotes.signLanguageNotBuilt)
     }
 }
 @Composable fun SystemStatesScreen() {

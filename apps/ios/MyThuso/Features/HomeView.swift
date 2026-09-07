@@ -101,7 +101,7 @@ struct HomeView: View {
             Image(systemName: "magnifyingglass").foregroundStyle(ThusoTheme.body.opacity(0.7))
             TextField("What care do you need today?", text: $query).submitLabel(.search).onSubmit(book)
         }
-        .padding(.horizontal, 18).frame(height: 52)
+        .padding(.horizontal, 18).padding(.vertical, 12).frame(minHeight: 52)
         .background(.white, in: Capsule())
         .overlay(Capsule().stroke(ThusoTheme.line, lineWidth: 1))
     }

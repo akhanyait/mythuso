@@ -1,116 +1,83 @@
 import { createContext, useContext } from 'react';
-/* Localisation scaffold. The shell, navigation and primary calls to action are translated.
-   Clinical copy stays in English until it has been reviewed by a South African clinical
-   language panel — a mistranslated instruction is a safety problem, not a polish problem. */
-export const locales = [
- { code: 'en-ZA', label: 'English', native: 'English' },
- { code: 'zu-ZA', label: 'isiZulu', native: 'isiZulu' },
- { code: 'st-ZA', label: 'Sesotho', native: 'Sesotho' },
- { code: 'af-ZA', label: 'Afrikaans', native: 'Afrikaans' }
-] as const;
-export type LocaleCode = typeof locales[number]['code'];
-type Dictionary = Record<string, string>;
-const en: Dictionary = {
- 'nav.section': 'YOUR CARE', 'nav.Overview': 'Overview', 'nav.Book a nurse': 'Book a nurse', 'nav.My visits': 'My visits',
- 'nav.Health Passport': 'Health Passport', 'nav.My family': 'My family', 'nav.Care plans': 'Care plans',
- 'nav.Thuso Wallet': 'Thuso Wallet', 'nav.Explore MyThuso': 'Explore MyThuso', 'nav.Privacy & settings': 'Privacy & settings',
- 'shell.greeting': 'Hello, Lerato', 'shell.greetingSub': 'Here for you. And the people you love.',
- 'shell.tagline': 'Help. Health. Home.', 'shell.preview': 'Design preview',
- 'shell.previewNote': 'Fictional data · No live care or payments', 'shell.workspaces': 'Preview workspaces',
- 'shell.breadcrumb': 'Your care', 'shell.help': 'Help & support', 'shell.personal': 'Personal account',
- 'shell.language': 'Language', 'shell.skip': 'Skip to content', 'shell.nextVisit': 'Your next visit', 'tab.Home': 'Home', 'tab.Book care': 'Book care', 'tab.Visits': 'Visits', 'tab.Passport': 'Passport', 'tab.More': 'More',
- 'cta.book': 'Book a nurse', 'cta.passport': 'Open my passport', 'cta.allVisits': 'All visits',
- 'cta.gotIt': 'Got it', 'cta.back': 'Back', 'cta.close': 'Close dialog',
- 'hero.title': 'Feel better.|Right at home.', 'hero.body': 'A caring nurse. A doctor’s expertise. All from the comfort of your home.',
- 'hero.trust': 'Registered nurses', 'hero.price': 'Visits from R249',
- 'slide1.title': 'Care that|comes to you.', 'slide1.body': 'Trusted home healthcare in just a few taps.', 'slide1.cta': 'Get care now',
- 'slide1.trust1': 'At home', 'slide1.trust2': 'Trusted care', 'slide1.trust3': 'For the people you love', 'slide1.caption': 'Same care. Closer to home.',
- 'slide2.title': 'Your health.|One safe place.', 'slide2.body': 'Visits, records and support — all in MyThuso.', 'slide2.cta': 'Open Thuso Pass',
- 'slide2.trust1': 'Trusted care', 'slide2.trust2': 'For you and your loved ones', 'slide2.trust3': 'Healthier tomorrows', 'slide2.caption': 'Care connects us.',
- 'slide3.title': 'Feel better.|Right at home.', 'slide3.body': 'Nurse-led care, delivered to your door.', 'slide3.cta': 'Book a nurse',
- 'slide3.trust1': 'Trusted professionals', 'slide3.trust2': 'Personalised care', 'slide3.trust3': 'Safe & convenient', 'slide3.caption': 'Quality care, where you are.',
- /* The vetting console's own shell and navigation. Check names, issuing authorities and every
-    refusal stay in English: a mistranslated credential requirement is the same kind of safety
-    problem as a mistranslated clinical instruction. */
- 'vetting.views': 'Vetting views', 'vetting.queue': 'Queue', 'vetting.renewals': 'Renewals due', 'vetting.audit': 'Decision audit',
- 'vetting.reviewer': 'Signed in as', 'vetting.role': 'Role', 'vetting.status': 'Status',
- 'vetting.allRoles': 'Every role', 'vetting.allStatuses': 'Every status', 'vetting.parties': 'Parties', 'vetting.apply': 'Preview an application'
-};
-const dictionaries: Record<LocaleCode, Dictionary> = {
- 'en-ZA': en,
- 'zu-ZA': {
-  'nav.section': 'UKUNAKEKELWA KWAKHO', 'nav.Overview': 'Uhlolojikelele', 'nav.Book a nurse': 'Bhukha umhlengikazi', 'nav.My visits': 'Ukuvakashelwa kwami',
-  'nav.Health Passport': 'Iphasiphothi Yezempilo', 'nav.My family': 'Umndeni wami', 'nav.Care plans': 'Izinhlelo zokunakekelwa',
-  'nav.Thuso Wallet': 'Isikhwama se-Thuso', 'nav.Explore MyThuso': 'Hlola i-MyThuso', 'nav.Privacy & settings': 'Ubumfihlo nezilungiselelo',
-  'shell.greeting': 'Sawubona, Lerato', 'shell.greetingSub': 'Silapha ngenxa yakho. Nangenxa yabantu obathandayo.',
-  'shell.tagline': 'Usizo. Impilo. Ikhaya.', 'shell.preview': 'Isibonelo sedizayini',
-  'shell.previewNote': 'Idatha eqanjiwe · Akukho ukunakekelwa noma inkokhelo yangempela', 'shell.workspaces': 'Buka izindawo zokusebenza',
-  'shell.breadcrumb': 'Ukunakekelwa kwakho', 'shell.help': 'Usizo nokusekelwa', 'shell.personal': 'I-akhawunti yomuntu siqu',
-  'shell.language': 'Ulimi', 'shell.skip': 'Yeqela kokuqukethwe', 'shell.nextVisit': 'Ukuvakashelwa kwakho okulandelayo', 'tab.Home': 'Ikhaya', 'tab.Book care': 'Bhukha', 'tab.Visits': 'Ukuvakashelwa', 'tab.Passport': 'Iphasiphothi', 'tab.More': 'Okuningi',
-  'cta.book': 'Bhukha umhlengikazi', 'cta.passport': 'Vula iphasiphothi yami', 'cta.allVisits': 'Konke ukuvakashelwa',
-  'cta.gotIt': 'Ngiyezwa', 'cta.back': 'Emuva', 'cta.close': 'Vala ibhokisi',
-  'hero.title': 'Zizwe ungcono.|Ekhaya.', 'hero.body': 'Umhlengikazi onendaba. Ulwazi lukadokotela. Konke usekhaya.',
-  'hero.trust': 'Abahlengikazi ababhalisiwe', 'hero.price': 'Ukuvakashelwa kusukela ku-R249',
-  'slide1.title': 'Ukunakekelwa|okuza kuwe.', 'slide1.body': 'Ukunakekelwa kwezempilo okwethembekile ekhaya, ngokuthinta nje.', 'slide1.cta': 'Thola usizo manje',
-  'slide1.trust1': 'Ekhaya', 'slide1.trust2': 'Ukunakekelwa okwethembekile', 'slide1.trust3': 'Kubantu obathandayo', 'slide1.caption': 'Ukunakekelwa okufanayo. Eduze nekhaya.',
-  'slide2.title': 'Impilo yakho.|Indawo eyodwa ephephile.', 'slide2.body': 'Ukuvakashelwa, amarekhodi nokusekelwa — konke ku-MyThuso.', 'slide2.cta': 'Vula i-Thuso Pass',
-  'slide2.trust1': 'Ukunakekelwa okwethembekile', 'slide2.trust2': 'Kuwe nabathandekayo bakho', 'slide2.trust3': 'Ikusasa elinempilo', 'slide2.caption': 'Ukunakekelwa kuyasihlanganisa.',
-  'slide3.title': 'Zizwe ungcono.|Ekhaya.', 'slide3.body': 'Ukunakekelwa okuholwa umhlengikazi, kulethwa emnyango wakho.', 'slide3.cta': 'Bhukha umhlengikazi',
-  'slide3.trust1': 'Ochwepheshe abethembekile', 'slide3.trust2': 'Ukunakekelwa okwakho', 'slide3.trust3': 'Kuphephile futhi kulula', 'slide3.caption': 'Ukunakekelwa okusezingeni, lapho ukhona.',
-  'vetting.views': 'Amaviyu okuhlola', 'vetting.queue': 'Ulayini', 'vetting.renewals': 'Ukuvuselelwa okufanele', 'vetting.audit': 'Ukuhlolwa kwezinqumo',
-  'vetting.reviewer': 'Ungene njengo', 'vetting.role': 'Indima', 'vetting.status': 'Isimo',
-  'vetting.allRoles': 'Zonke izindima', 'vetting.allStatuses': 'Zonke izimo', 'vetting.parties': 'Amaqembu', 'vetting.apply': 'Buka isicelo'
- },
- 'st-ZA': {
-  'nav.section': 'TLHOKOMELO YA HAO', 'nav.Overview': 'Kakaretso', 'nav.Book a nurse': 'Behela mooki', 'nav.My visits': 'Diketelo tsa ka',
-  'nav.Health Passport': 'Phasepoto ya Bophelo', 'nav.My family': 'Lelapa la ka', 'nav.Care plans': 'Merero ya tlhokomelo',
-  'nav.Thuso Wallet': 'Sepache sa Thuso', 'nav.Explore MyThuso': 'Hlahloba MyThuso', 'nav.Privacy & settings': 'Lekunutu le ditlhophiso',
-  'shell.greeting': 'Dumela, Lerato', 'shell.greetingSub': 'Re teng bakeng sa hao. Le batho bao o ba ratang.',
-  'shell.tagline': 'Thuso. Bophelo. Lehae.', 'shell.preview': 'Ponelopele ya moralo',
-  'shell.previewNote': 'Datha ya boiqapelo · Ha ho tlhokomelo kapa tefo ya nnete', 'shell.workspaces': 'Sheba dibaka tsa mosebetsi',
-  'shell.breadcrumb': 'Tlhokomelo ya hao', 'shell.help': 'Thuso le tshehetso', 'shell.personal': 'Akhaonto ya motho ka mong',
-  'shell.language': 'Puo', 'shell.skip': 'Tlolela ho dikahare', 'shell.nextVisit': 'Ketelo ya hao e latelang', 'tab.Home': 'Lehae', 'tab.Book care': 'Behela', 'tab.Visits': 'Diketelo', 'tab.Passport': 'Phasepoto', 'tab.More': 'Tse ding',
-  'cta.book': 'Behela mooki', 'cta.passport': 'Bula phasepoto ya ka', 'cta.allVisits': 'Diketelo tsohle',
-  'cta.gotIt': 'Ke utlwile', 'cta.back': 'Morao', 'cta.close': 'Kwala lebokose',
-  'hero.title': 'Ikutlwe hantle.|Hae.', 'hero.body': 'Mooki ya nang le kgathallo. Tsebo ya ngaka. Tsohle o le hae.',
-  'hero.trust': 'Baoki ba ngodisitsweng', 'hero.price': 'Diketelo ho tloha ho R249',
-  'slide1.title': 'Tlhokomelo e tlang|ho wena.', 'slide1.body': 'Tlhokomelo ya bophelo ya lehae e tshepahalang, ka ho tobetsa ha se kae.', 'slide1.cta': 'Fumana tlhokomelo hona joale',
-  'slide1.trust1': 'Lehae', 'slide1.trust2': 'Tlhokomelo e tshepahalang', 'slide1.trust3': 'Bakeng sa bao o ba ratang', 'slide1.caption': 'Tlhokomelo e tshwanang. Haufi le lehae.',
-  'slide2.title': 'Bophelo ba hao.|Sebaka se le seng se sireletsehileng.', 'slide2.body': 'Diketelo, direkoto le tshehetso — tsohle ho MyThuso.', 'slide2.cta': 'Bula Thuso Pass',
-  'slide2.trust1': 'Tlhokomelo e tshepahalang', 'slide2.trust2': 'Bakeng sa hao le ba lelapa', 'slide2.trust3': 'Bokamoso bo phetseng hantle', 'slide2.caption': 'Tlhokomelo ea re kopanya.',
-  'slide3.title': 'Ikutlwe hantle.|Hae.', 'slide3.body': 'Tlhokomelo e etelletsweng ke mooki, e tliswa monyako wa hao.', 'slide3.cta': 'Behela mooki',
-  'slide3.trust1': 'Ditsebi tse tshepahalang', 'slide3.trust2': 'Tlhokomelo ya hao', 'slide3.trust3': 'E bolokehile ebile e bonolo', 'slide3.caption': 'Tlhokomelo e ntle, moo o leng teng.',
-  'vetting.views': 'Dipono tsa tlhahlobo', 'vetting.queue': 'Mola', 'vetting.renewals': 'Dintjhafatso tse lokelang', 'vetting.audit': 'Tlhahlobo ya diqeto',
-  'vetting.reviewer': 'O kene e le', 'vetting.role': 'Karolo', 'vetting.status': 'Boemo',
-  'vetting.allRoles': 'Dikarolo tsohle', 'vetting.allStatuses': 'Maemo ohle', 'vetting.parties': 'Mekga', 'vetting.apply': 'Sheba kopo'
- },
- 'af-ZA': {
-  'nav.section': 'JOU SORG', 'nav.Overview': 'Oorsig', 'nav.Book a nurse': 'Bespreek ’n verpleegster', 'nav.My visits': 'My besoeke',
-  'nav.Health Passport': 'Gesondheidspaspoort', 'nav.My family': 'My gesin', 'nav.Care plans': 'Sorgplanne',
-  'nav.Thuso Wallet': 'Thuso-beursie', 'nav.Explore MyThuso': 'Verken MyThuso', 'nav.Privacy & settings': 'Privaatheid en instellings',
-  'shell.greeting': 'Hallo, Lerato', 'shell.greetingSub': 'Hier vir jou. En vir die mense vir wie jy lief is.',
-  'shell.tagline': 'Hulp. Gesondheid. Huis.', 'shell.preview': 'Ontwerpvoorskou',
-  'shell.previewNote': 'Fiktiewe data · Geen lewende sorg of betalings nie', 'shell.workspaces': 'Bekyk werkruimtes',
-  'shell.breadcrumb': 'Jou sorg', 'shell.help': 'Hulp en ondersteuning', 'shell.personal': 'Persoonlike rekening',
-  'shell.language': 'Taal', 'shell.skip': 'Spring na inhoud', 'shell.nextVisit': 'Jou volgende besoek', 'tab.Home': 'Tuis', 'tab.Book care': 'Bespreek', 'tab.Visits': 'Besoeke', 'tab.Passport': 'Paspoort', 'tab.More': 'Meer',
-  'cta.book': 'Bespreek ’n verpleegster', 'cta.passport': 'Open my paspoort', 'cta.allVisits': 'Alle besoeke',
-  'cta.gotIt': 'Verstaan', 'cta.back': 'Terug', 'cta.close': 'Sluit dialoog',
-  'hero.title': 'Voel beter.|Tuis.', 'hero.body': '’n Sorgsame verpleegster. ’n Dokter se kundigheid. Alles van die gemak van jou huis af.',
-  'hero.trust': 'Geregistreerde verpleegsters', 'hero.price': 'Besoeke vanaf R249',
-  'slide1.title': 'Sorg wat na|jou toe kom.', 'slide1.body': 'Betroubare tuisgesondheidsorg met net ’n paar tikke.', 'slide1.cta': 'Kry sorg nou',
-  'slide1.trust1': 'By die huis', 'slide1.trust2': 'Betroubare sorg', 'slide1.trust3': 'Vir die mense vir wie jy lief is', 'slide1.caption': 'Dieselfde sorg. Nader aan die huis.',
-  'slide2.title': 'Jou gesondheid.|Een veilige plek.', 'slide2.body': 'Besoeke, rekords en ondersteuning — alles in MyThuso.', 'slide2.cta': 'Open Thuso Pass',
-  'slide2.trust1': 'Betroubare sorg', 'slide2.trust2': 'Vir jou en jou geliefdes', 'slide2.trust3': 'Gesonder môres', 'slide2.caption': 'Sorg verbind ons.',
-  'slide3.title': 'Voel beter.|Tuis.', 'slide3.body': 'Verpleegster-gelei sorg, tot by jou deur.', 'slide3.cta': 'Bespreek ’n verpleegster',
-  'slide3.trust1': 'Betroubare professionele', 'slide3.trust2': 'Persoonlike sorg', 'slide3.trust3': 'Veilig en gerieflik', 'slide3.caption': 'Kwaliteitsorg, waar jy ook al is.',
-  'vetting.views': 'Keuringsaansigte', 'vetting.queue': 'Tou', 'vetting.renewals': 'Hernuwings wat verval', 'vetting.audit': 'Besluitoudit',
-  'vetting.reviewer': 'Aangemeld as', 'vetting.role': 'Rol', 'vetting.status': 'Status',
-  'vetting.allRoles': 'Elke rol', 'vetting.allStatuses': 'Elke status', 'vetting.parties': 'Partye', 'vetting.apply': 'Bekyk ’n aansoek'
- }
-};
+import contract from '../../../../packages/catalog/locales.json';
+/* Localisation — the reasoning. The words are in packages/catalog/locales.json and nowhere else.
+ *
+ * This file used to be one of three hand-typed copies of the same table, and the only thing holding
+ * the three together was a check that asked whether each of them mentioned each locale code. That
+ * check could not see a key translated here and forgotten on iOS, and it did not: when the table
+ * moved into the contract, isiZulu called vetting two different things on the two native apps.
+ * Swift and Kotlin are generated from the contract now by scripts/emit-locales.mjs; the web reads it
+ * directly, because a browser can.
+ *
+ * Two rules are worth reading before adding anything here.
+ *
+ * A locale carries whole *sets* of keys. Every locale carries the shell — navigation, the tab bar,
+ * the preview notices and the primary calls to action. Only four carry the hero banner and the
+ * vetting console. A key a locale does not carry falls back to English, and which sets it carries
+ * is declared in the contract so a reader can be told rather than left to discover it.
+ *
+ * Clinical wording is never translated by this module. A reference range, a dose, an observation
+ * label and a refusal sentence out of a clinical contract stay in English until a clinician who
+ * reads the language has reviewed them, and that is structural rather than a promise: there is no
+ * clinical key in the contract for a translator to fill in, and clinicalLocale() below is what a
+ * screen asks when it renders contract text. A mistranslated instruction is a safety problem.
+ */
+
+export type LocaleCode = string;
+export type StringKey = string;
+
+const reviewStates = Object.fromEntries(contract.reviewStates.map(state => [state.id, state]));
+
+export const locales = contract.locales.map(locale => ({
+ code: locale.code,
+ label: locale.label,
+ native: locale.native,
+ sets: locale.sets as string[],
+ /* Flattened onto the locale because every surface that offers a language has to show this. A
+    review state a screen has to go and look up is a review state a screen will forget to show. */
+ reviewLabel: reviewStates[locale.review.state].label,
+ reviewNotice: reviewStates[locale.review.state].notice,
+ reviewed: reviewStates[locale.review.state].reviewed,
+ clinicallyReviewed: locale.clinicalReview.state !== 'none'
+}));
+
+export const sets = contract.sets;
+export const clinicalRule = contract.clinicalRule;
+export const signLanguage = contract.signLanguage;
+export const fallbackRule = contract.fallback;
+export const translationHonesty = contract.honesty;
+
+const dictionaries = contract.strings as Record<string, Record<string, string>>;
+const english = dictionaries['en-ZA'];
+
 export const LocaleContext = createContext<LocaleCode>('en-ZA');
+
+/* A key the chosen locale does not carry falls back to English. A key the contract does not carry
+   at all falls back to the readable half of its own name — "nav.Language & access" renders as
+   "Language & access" rather than as a dotted identifier, because a screen label nobody has put in
+   the contract yet is a gap in the translation, not a gap in the sentence the reader is owed. */
+export function t(key: StringKey, code: LocaleCode): string {
+ return dictionaries[code]?.[key] ?? english[key] ?? key.slice(key.indexOf('.') + 1);
+}
 export function useT() {
  const code = useContext(LocaleContext);
- return (key: keyof typeof en) => dictionaries[code][key] ?? en[key] ?? String(key);
+ return (key: StringKey) => t(key, code);
 }
 export const useLocaleCode = () => useContext(LocaleContext);
+
+/* The locale clinical copy is rendered in, which is not the locale the reader chose unless a
+   clinician who reads that language has signed the review off in the contract. Nothing in the app
+   can set that flag; it is a name, a registration number and a date in packages/catalog/locales.json
+   or it is not true. Today it returns en-ZA for every locale except English, and the language dialog
+   says so rather than letting somebody find out from a dose. */
+export function clinicalLocale(code: LocaleCode): LocaleCode {
+ return locales.find(locale => locale.code === code)?.clinicallyReviewed ? code : 'en-ZA';
+}
+export const useClinicalLocale = () => clinicalLocale(useContext(LocaleContext));
+/* The set a locale is missing is a fact about the product, not an error. `missingSets` is what the
+   language dialog reads to tell somebody choosing isiXhosa that the landing banner will be in
+   English before they choose it. */
+export function missingSets(code: LocaleCode) {
+ const locale = locales.find(l => l.code === code);
+ return contract.sets.filter(set => !locale?.sets.includes(set.id));
+}

@@ -26,6 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import za.co.mythuso.model.*
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 
 /* Thuso SOS — the emergency pathway.
 
@@ -148,10 +150,18 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
             sosRedFlags.conditions.forEach { condition ->
                 val ticked = condition.id in flagged
                 Row(
-                    Modifier.fillMaxWidth().clickable {
-                        none = false; requested = false; stoodDown = null; unanswered = false
-                        flagged = if (ticked) flagged - condition.id else flagged + condition.id
-                    }.padding(vertical = 6.dp),
+                    /* A row drawn as a checkbox has to be one to a screen reader as well. `clickable` announces
+                       "double tap to activate" and never says whether the box is ticked, which on this
+                       screen is the difference between "chest pain" and "not chest pain". `toggleable`
+                       with Role.Checkbox announces the state and the change; the 48dp floor is what a
+                       finger needs when the person holding the phone is frightened. */
+                    Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(
+                        value = ticked, role = Role.Checkbox,
+                        onValueChange = {
+                            none = false; requested = false; stoodDown = null; unanswered = false
+                            flagged = if (ticked) flagged - condition.id else flagged + condition.id
+                        }
+                    ).padding(vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top
                 ) {
                     Icon(if (ticked) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null,
@@ -163,10 +173,13 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                 }
             }
             Row(
-                Modifier.fillMaxWidth().clickable {
-                    requested = false; stoodDown = null; unanswered = false
-                    none = !none; flagged = emptySet()
-                }.padding(vertical = 6.dp),
+                Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(
+                    value = none, role = Role.Checkbox,
+                    onValueChange = {
+                        requested = false; stoodDown = null; unanswered = false
+                        none = it; flagged = emptySet()
+                    }
+                ).padding(vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(if (none) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null,
@@ -294,7 +307,9 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                         OutlinedButton({ stoodDown = reason.id }) { Text(reason.label) }
                     }
                     Row(
-                        Modifier.fillMaxWidth().clickable { unanswered = !unanswered }.padding(vertical = 6.dp),
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                            .toggleable(value = unanswered, role = Role.Checkbox, onValueChange = { unanswered = it })
+                            .padding(vertical = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(if (unanswered) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null,

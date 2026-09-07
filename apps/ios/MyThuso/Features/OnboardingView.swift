@@ -37,8 +37,18 @@ struct OnboardingView: View {
     }
     @ViewBuilder private var welcome: some View {
         Section("Choose your language") {
-            Picker("Language", selection: $store.locale) { ForEach(ThusoLocale.allCases) { Text($0.native).tag($0) } }.pickerStyle(.inline).labelsHidden()
-            Text("Navigation and the main actions are translated. Clinical wording stays in English until a clinical language review is complete.").font(.caption).foregroundStyle(.secondary)
+            Picker("Language", selection: $store.locale) {
+                ForEach(ThusoLocale.allCases) { option in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(option.native)
+                        Text(option.reviewLabel).font(.caption2).foregroundStyle(.secondary)
+                    }.tag(option)
+                }
+            }.pickerStyle(.inline).labelsHidden()
+            if let notice = store.locale.reviewNotice {
+                Label(notice, systemImage: "exclamationmark.triangle").font(.caption)
+            }
+            Text(ThusoLanguageNotes.clinicalRule).font(.caption).foregroundStyle(.secondary)
         }
         Section {
             Button("Create my account") { step = 1 }

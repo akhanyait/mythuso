@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import za.co.mythuso.model.*
+import androidx.compose.ui.semantics.Role
 
 /*
  * Thuso Kit, and the queue underneath it.
@@ -417,7 +418,12 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
            permission cannot otherwise be shown sending anything. */
         Column(
             Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(12.dp))
-                .border(1.dp, Line, RoundedCornerShape(12.dp)).clickable { controls = !controls }.padding(14.dp),
+                .border(1.dp, Line, RoundedCornerShape(12.dp))
+                /* Announced as a button that expands, rather than as an unnamed tap target. */
+                .clickable(
+                    onClickLabel = if (controls) "Hide the design-review controls" else "Show the design-review controls",
+                    role = Role.Button
+                ) { controls = !controls }.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

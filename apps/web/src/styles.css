@@ -25,7 +25,7 @@ button:disabled{cursor:not-allowed;opacity:.45}
 button:hover:not(:disabled){filter:brightness(.985)}
 a{color:inherit}
 svg{flex-shrink:0}
-:focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:6px}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px;border-radius:6px}
 h1,h2,h3,p{margin:0}
 h1{font-size:26px;font-weight:700;letter-spacing:-.7px;line-height:1.2}
 h2{font-size:17px;font-weight:650;letter-spacing:-.3px;line-height:1.3}
@@ -159,7 +159,7 @@ main{padding:0 18px 24px;outline:none;flex:1;min-height:0;overflow-y:auto;oversc
 .search-field svg{color:var(--faint)}
 .search-field input{border:0;background:none;box-shadow:none;padding:15px 0;min-height:auto}
 .search-field input:focus-visible{outline:0}
-.search-field:focus-within{outline:3px solid var(--gold);outline-offset:3px}
+.search-field:focus-within{outline:3px solid var(--amber);outline-offset:3px}
 .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:16px}
 .quick-tile{display:flex;flex-direction:column;gap:11px;align-items:flex-start;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:15px;box-shadow:var(--shadow);min-height:104px}
 .quick-tile:hover{transform:translateY(-2px);box-shadow:var(--shadow-raised)}
@@ -189,7 +189,7 @@ main{padding:0 18px 24px;outline:none;flex:1;min-height:0;overflow-y:auto;oversc
 .search-box{display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:0 16px;flex:1;min-width:220px}
 .search-box input{border:0;background:none;padding:13px 0;min-height:auto}
 .search-box input:focus-visible{outline:0}
-.search-box:focus-within{outline:3px solid var(--gold);outline-offset:3px}
+.search-box:focus-within{outline:3px solid var(--amber);outline-offset:3px}
 .service-grid,.catalog-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .service-card{position:relative;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-card);padding:15px;display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:0;box-shadow:var(--shadow);overflow:hidden}
 .service-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-raised)}
@@ -385,7 +385,7 @@ details.state-picker .tabs>button{min-height:34px;padding:7px 12px;font-size:11p
 .phone-field>span{font-size:14px;color:var(--body);font-weight:600}
 .phone-field input{border:0;background:none;padding-left:0}
 .phone-field input:focus-visible{outline:0}
-.phone-field:focus-within{outline:3px solid var(--gold);outline-offset:3px}
+.phone-field:focus-within{outline:3px solid var(--amber);outline-offset:3px}
 .choice-list{display:flex;flex-direction:column;gap:10px}
 .choice-row{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-card);padding:15px;cursor:pointer}
 .choice-row.selected{border-color:var(--teal);background:var(--teal-soft)}
@@ -699,7 +699,7 @@ details.state-picker .tabs>button{min-height:34px;padding:7px 12px;font-size:11p
 .search-box{display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:0 16px;flex:1;min-width:220px}
 .search-box input{border:0;background:none;padding:13px 0;min-height:auto}
 .search-box input:focus-visible{outline:0}
-.search-box:focus-within{outline:3px solid var(--gold);outline-offset:3px}
+.search-box:focus-within{outline:3px solid var(--amber);outline-offset:3px}
 .service-grid,.catalog-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .service-card{position:relative;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-card);padding:15px;display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-width:0;box-shadow:var(--shadow);overflow:hidden}
 .service-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-raised)}
@@ -895,7 +895,7 @@ details.state-picker .tabs>button{min-height:34px;padding:7px 12px;font-size:11p
 .phone-field>span{font-size:14px;color:var(--body);font-weight:600}
 .phone-field input{border:0;background:none;padding-left:0}
 .phone-field input:focus-visible{outline:0}
-.phone-field:focus-within{outline:3px solid var(--gold);outline-offset:3px}
+.phone-field:focus-within{outline:3px solid var(--amber);outline-offset:3px}
 .choice-list{display:flex;flex-direction:column;gap:10px}
 .choice-row{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-card);padding:15px;cursor:pointer}
 .choice-row.selected{border-color:var(--teal);background:var(--teal-soft)}
@@ -1600,7 +1600,7 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
    sits in wears the focus ring on its behalf. A radio with no width is a radio a keyboard
    reaches and nobody can see. */
 .earn-preview-switch input{position:absolute;width:1px;height:1px;margin:-1px;opacity:0;clip:rect(0 0 0 0)}
-.earn-preview-switch label:has(:focus-visible){outline:3px solid var(--gold);outline-offset:3px}
+.earn-preview-switch label:has(:focus-visible){outline:3px solid var(--amber);outline-offset:3px}
 .earn-preview-switch .helper{flex-basis:100%;margin-top:2px}
 .earn-split label select{margin-top:8px}
 .earn-bar{display:flex;gap:3px;height:16px;margin:18px 0 14px}
@@ -1763,7 +1763,7 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
 .tc-switch label{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:9px 15px;font-size:12.5px;font-weight:600;color:var(--body);cursor:pointer}
 .tc-switch label.selected{border-color:var(--teal);background:var(--teal-soft);color:var(--teal-deep)}
 .tc-switch input{position:absolute;width:1px;height:1px;margin:-1px;opacity:0;clip:rect(0 0 0 0)}
-.tc-switch label:has(:focus-visible){outline:3px solid var(--gold);outline-offset:3px}
+.tc-switch label:has(:focus-visible){outline:3px solid var(--amber);outline-offset:3px}
 .tc-switch .helper{flex-basis:100%;margin-top:2px}
 .tc-media{display:flex;gap:12px;align-items:flex-start;background:var(--canvas);border:1px solid var(--line);border-radius:var(--r-card);padding:16px}
 .tc-media strong{display:block;color:var(--ink);font-size:14px}
@@ -1858,3 +1858,66 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
  .consent-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
  .consent-kept{grid-column:1/-1}
 }
+
+/* Language and access. The table is the screen: eleven written languages, what each one covers and
+   whether a person has read it. Every cell has to survive 200% zoom and a 320px viewport, so it
+   scrolls inside its own box rather than pushing the page sideways, and the review state is a
+   worded pill rather than a coloured dot — a reader who cannot tell amber from green would
+   otherwise be told nothing at all by the one column that matters. */
+.language-table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+.language-table th,.language-table td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.language-table thead th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--body);border-bottom-width:2px}
+.language-table tbody th{font-weight:600;color:var(--ink)}
+.language-table tbody th small{font-weight:400}
+.review-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--r-pill);font-size:12px;line-height:1.5;font-weight:600}
+.review-pill.checked{background:var(--teal-soft);color:var(--teal-deep)}
+.review-pill.drafted{background:var(--amber-soft);color:var(--amber)}
+.access-rule{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+.access-rule:last-child{border-bottom:0}
+.access-rule svg{flex:none;margin-top:2px;color:var(--teal-deep)}
+.access-rule.never svg{color:var(--danger)}
+.access-rule strong{display:block;font-size:14px;margin-bottom:3px}
+.access-rule span{font-size:13px;line-height:1.65;color:var(--body)}
+.access-subheading{font-size:14px;margin:22px 0 4px;color:var(--ink)}
+
+/* ---- Accessibility: target size and the smallest type the design declares ------------------------
+
+   tests/accessibility.spec.ts measures both of these on every build, at a 320px viewport and with
+   the layout viewport halved. This section is what it found.
+
+   Nothing renders below `typography.scale.caption` — 11px, the smallest size
+   packages/design-tokens/tokens.json declares. Twenty-odd rules had drifted under it: a 9px unread
+   count, a 10px tab-bar label, a 10.5px chart axis. None of them was a decision; each was a number
+   somebody nudged to make a row fit, and the sum of them is a design read at arm's length by anyone
+   whose eyesight is ordinary for their age. 11px is still small — the token file's own
+   `minimumBody` is 13 — and that gap is recorded in the token file rather than closed here, because
+   the type scale belongs to whoever drew it.
+
+   And every control a finger has to hit is at least 44x44, except the few listed as
+   `targets.knownUndersized` in the token file, each of which still clears the 24x24 that WCAG 2.2
+   SC 2.5.8 requires at AA. The test reads that list, so an exemption is a line in the contract
+   rather than a line in a test somebody edited on a Friday. */
+.eyebrow,.pill.plain,.tabbar button,.tabbar .nav-count,.trust-item,.service-card .pill.plain,
+.date-block span,.range-pill,.date-chip span,.chart-flag,.chart-axis,.chart-table thead th,
+.result-table thead th,.module-card small,.nav-label,.nav-count,.hero-trust li,.pf-chip>span,
+.prov,.calib,.tc-hold small{font-size:11px}
+.tabbar .nav-count{min-width:18px;height:18px}
+
+.icon-button{width:44px;height:44px}
+.hero-play{width:44px;height:44px}
+.topbar .brand{height:44px}
+.topbar button.avatar.small{width:44px;height:44px;font-size:12px}
+.demo-pill{min-height:44px}
+.location-button{min-height:44px}
+.tabs button,.underline-tabs button,details.state-picker .tabs>button{min-height:44px;min-width:44px}
+.catalog-tools input,.search-box input,.form-stack input,.form-stack select,.form-stack textarea{min-height:44px}
+.text-button{min-height:26px}
+.settings-link,.account-switch,.sidebar .profile,.help-card button,.app-footer button{min-height:44px}
+/* The carousel dots keep the shape they had; the button around each one grows to a size a thumb can
+   find. The dot is drawn by the pseudo-element so the target and the mark are different sizes,
+   which is the whole trick — an 8px dot is a design decision and an 8px target is a defect. */
+.hero-dots{gap:2px}
+.hero-dots button{width:24px;height:24px;background:none;border-radius:0;padding:0;display:grid;place-items:center}
+.hero-dots button::after{content:'';display:block;width:8px;height:8px;border-radius:999px;background:#b9d5cb;transition:width .25s,background .25s}
+.hero-dots button.on{width:40px;background:none}
+.hero-dots button.on::after{width:24px;background:var(--teal-deep)}

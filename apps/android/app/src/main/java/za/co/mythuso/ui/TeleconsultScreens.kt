@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import za.co.mythuso.model.*
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 
 /* The teleconsultation call.
 
@@ -190,8 +192,18 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     fontSize = 12.sp, color = BodyText, lineHeight = 18.sp)
                 inTheRoom.filter { it.consentQuestion != null }.forEach { person ->
                     CareCard {
-                        Row(verticalAlignment = Alignment.Top) {
-                            Checkbox(consented[person.id] == true, { consented[person.id] = it })
+                        /* The box and the question are one control, not two things read out one
+                           after the other. A screen reader that says "checkbox, not ticked" and then,
+                           separately, "may this doctor see you and treat you", has asked the patient
+                           to hold the two halves together themselves. */
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(
+                                value = consented[person.id] == true, role = Role.Checkbox,
+                                onValueChange = { consented[person.id] = it }
+                            ),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Checkbox(consented[person.id] == true, null)
                             Text("“${person.consentQuestion}”", fontSize = 13.5.sp, color = Ink, lineHeight = 20.sp)
                         }
                         if (consented[person.id] != true) {

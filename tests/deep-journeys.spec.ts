@@ -226,7 +226,7 @@ test('the shell can be read in isiZulu, Sesotho and Afrikaans', async ({ page })
   for (const [language, overview, passport, tabLabel] of [['Sesotho', 'Kakaretso', 'Phasepoto ya Bophelo', 'Lehae'], ['Afrikaans', 'Oorsig', 'Gesondheidspaspoort', 'Tuis'], ['isiZulu', 'Uhlolojikelele', 'Iphasiphothi Yezempilo', 'Ikhaya']]) {
     const settings = page.locator('button.settings-link').first();
     if (await settings.isVisible()) await settings.click();
-    else { await tab(page, 4).click(); await page.getByRole('button', { name: /^Language/ }).click(); }
+    else { await tab(page, 4).click(); await page.getByRole('button', { name: /^Language Read MyThuso/ }).click(); }
     await page.getByRole('dialog').getByRole('radio', { name: language }).check();
     await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
     const nav = page.getByRole('navigation', { name: 'Main navigation' });
@@ -289,7 +289,7 @@ test('the hero banner is translated with the rest of the shell', async ({ page }
   await page.goto('/');
   const settings = page.locator('button.settings-link').first();
   if (await settings.isVisible()) await settings.click();
-  else { await tab(page, 4).click(); await page.getByRole('button', { name: /^Language/ }).click(); }
+  else { await tab(page, 4).click(); await page.getByRole('button', { name: /^Language Read MyThuso/ }).click(); }
   await page.getByRole('dialog').getByRole('radio', { name: 'isiZulu' }).check();
   await page.getByRole('dialog').getByRole('button', { name: 'Done' }).click();
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });

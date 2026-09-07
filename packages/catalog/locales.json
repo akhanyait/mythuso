@@ -1,0 +1,1867 @@
+{
+ "why": "Every string the shell, navigation, tab bar and primary actions are made of, in one file, for three apps. Until this contract existed the same table was typed out three times — TypeScript, Swift, Kotlin — and held together by a check that asked only whether each file mentioned each locale code. That check could not see a key translated on Android and forgotten on iOS, which is the drift that actually happens. The table is generated now, so the drift has nowhere to come from, and the check reads this file instead of guessing at three others.",
+ "honesty": "South Africa has twelve official languages. MyThuso is not able to translate a health service into eleven of them properly, and pretending otherwise is the dangerous option: a confidently wrong sentence in a language the reader trusts is worse than an honest note that nobody has checked it. So every locale carries the state of its review, the app shows that state to the reader in the language dialog, and scripts/check-boundaries.mjs fails the build if a locale claims a human review without naming the person who did it and the day they did it.",
+ "clinicalRule": {
+  "sentence": "Clinical wording stays in English until a clinician who reads the language has reviewed it. A reference range, a dose, an observation label and a refusal sentence from a clinical contract are shown in English in every locale below, because a mistranslated instruction is a safety problem rather than a polish problem.",
+  "mechanism": "This is structural rather than a promise. No clinical string has a key in this file, so there is nothing for a translator to fill in; clinicalLocale() on all three platforms returns en-ZA for every locale whose clinicalReview state is not \"complete\"; and the build fails if any string here matches a sentence held in a clinical contract, or if a locale claims a completed clinical review without naming the clinician and their registration.",
+  "clinicalContracts": [
+   "packages/catalog/vetting.json",
+   "packages/catalog/records.json",
+   "packages/catalog/sos.json",
+   "packages/catalog/teleconsult.json",
+   "packages/catalog/consent.json",
+   "packages/catalog/capture.json"
+  ],
+  "refusal": "This part of the app is in English. It has not been reviewed by a clinician who reads your language, and a health instruction nobody has checked is not safer for being in your language."
+ },
+ "reviewStates": [
+  {
+   "id": "source",
+   "label": "Source language",
+   "reviewed": true,
+   "notice": null,
+   "detail": "Everything is written in English first. There is nothing to review it against."
+  },
+  {
+   "id": "human-reviewed",
+   "label": "Checked by a person",
+   "reviewed": true,
+   "notice": null,
+   "detail": "A named person who speaks the language read every string and signed the review. A locale may only claim this state with a name, an organisation and a date in this file, and the build fails without them."
+  },
+  {
+   "id": "machine-drafted",
+   "label": "Machine-drafted · awaiting review",
+   "reviewed": false,
+   "notice": "Drafted by software and not yet checked by a person who speaks it. Words on this screen may be wrong. Anything clinical stays in English.",
+   "detail": "Drafted by software. Nobody who speaks the language has read it. It is shown because a reader who is offered nothing in their language is worse served than a reader who is offered a draft and told it is one — but it is labelled everywhere it appears."
+  }
+ ],
+ "sets": [
+  {
+   "id": "shell",
+   "name": "The shell",
+   "detail": "Navigation, the tab bar, the greeting, the preview notices and the primary calls to action. Every locale carries this set in full; a locale that cannot is not offered."
+  },
+  {
+   "id": "hero",
+   "name": "The hero banner",
+   "detail": "The three landing slides and the headline copy. Marketing prose, and the hardest thing to draft without a speaker of the language, so a locale may carry the shell without carrying this."
+  },
+  {
+   "id": "console",
+   "name": "Workspace entries",
+   "detail": "The vetting console shell and the way into the patient file, the consultation record, the household record and the health summary. The way in is navigation and is translated; what is inside them is the clinical contracts speaking and is not."
+  }
+ ],
+ "fallback": "A key a locale does not carry is rendered in English, never blank and never as its own key name. A locale that carries only the shell shows an English hero banner and an English vetting console, and says so in the language dialog rather than letting the reader discover it.",
+ "locales": [
+  {
+   "code": "en-ZA",
+   "label": "English",
+   "native": "English",
+   "swift": "english",
+   "kotlin": "ENGLISH",
+   "sets": [
+    "shell",
+    "hero",
+    "console"
+   ],
+   "review": {
+    "state": "source",
+    "by": null,
+    "organisation": null,
+    "on": null,
+    "note": "The source language."
+   },
+   "clinicalReview": {
+    "state": "source",
+    "by": null,
+    "registration": null,
+    "on": null
+   }
+  },
+  {
+   "code": "zu-ZA",
+   "label": "isiZulu",
+   "native": "isiZulu",
+   "swift": "zulu",
+   "kotlin": "ZULU",
+   "sets": [
+    "shell",
+    "hero",
+    "console"
+   ],
+   "review": {
+    "state": "machine-drafted",
+    "by": null,
+    "organisation": null,
+    "on": null,
+    "note": "Drafted without a speaker of the language in the room. The four languages that predate this file are in the same state as the seven added with it: no review was ever recorded for them, so none is claimed."
+   },
+   "clinicalReview": {
+    "state": "none",
+    "by": null,
+    "registration": null,
+    "on": null
+   }
+  },
+  {
+   "code": "st-ZA",
+   "label": "Sesotho",
+   "native": "Sesotho",
+   "swift": "sesotho",
+   "kotlin": "SESOTHO",
+   "sets": [
+    "shell",
+    "hero",
+    "console"
+   ],
+   "review": {
+    "state": "machine-drafted",
+    "by": null,
+    "organisation": null,
+    "on": null,
+    "note": "Drafted without a speaker of the language in the room. The four languages that predate this file are in the same state as the seven added with it: no review was ever recorded for them, so none is claimed."
+   },
+   "clinicalReview": {
+    "state": "none",
+    "by": null,
+    "registration": null,
+    "on": null
+   }
+  },
+  {
+   "code": "af-ZA",
+   "label": "Afrikaans",
+   "native": "Afrikaans",
+   "swift": "afrikaans",
+   "kotlin": "AFRIKAANS",
+   "sets": [
+    "shell",
+    "hero",
+    "console"
+   ],
+   "review": {
+    "state": "machine-drafted",
+    "by": null,
+    "organisation": null,
+    "on": null,
+    "note": "Drafted without a speaker of the language in the room. The four languages that predate this file are in the same state as the seven added with it: no review was ever recorded for them, so none is claimed."
+   },
+   "clinicalReview": {
+    "state": "none",
+    "by": null,
+    "registration": null,
+    "on": null
+   }
+  },
+  {
+   "code": "xh-ZA",
+   "label": "isiXhosa",
+   "native": "isiXhosa",
+   "swift": "xhosa",
+   "kotlin": "XHOSA",
+   "sets": [
+    "shell"
+   ],
+   "review": {
+    "state": "machine-drafted",
+    "by": null,
+    "organisation": null,
+    "on": null,
+    "note": "Drafted without a speaker of the language in the room. The four languages that predate this file are in the same state as the seven added with it: no review was ever recorded for them, so none is claimed."
+   },
+   "clinicalReview": {
+    "state": "none",
+    "by": null,
+    "registration": null,
+    "on": null
+   }
+  },
+  {
+   "code": "nso-ZA",
+   "label": "Sepedi",
+   "native": "Sepedi",
+   "swift": "sepedi",
+   "kotlin": "SEPEDI",
+   "sets": [
+    "shell"
+   ],
+   "review": {
+    "state": "machine-drafted",
+    "by": null,
+    "organisation": null,
+    "on": null,
+    "note": "Drafted without a speaker of the language in the room. The four languages that predate this file are in the same state as the seven added with it: no review was ever recorded for them, so none is claimed."
+   },
+   "clinicalReview": {
+    "state": "none",
+    "by": null,
+    "registration": null,
+    "on": null
+   }
+  },
+  {
+   "code": "tn-ZA",
+   "label": "Setswana",
+   "native": "Setswana",
+   "swift": "setswana",
+   "kotlin": "SETSWANA",
+   "sets": [
+    "shell"
+   ],
+   "review": {
+    "state": "machine-drafted",
+    "by": null,
+    "organisation": null,
+    "on": null,
+    "note": "Drafted without a speaker of the language in the room. The four languages that predate this file are in the same state as the seven added with it: no review was ever recorded for them, so none is claimed."
+   },
+   "clinicalReview": {
+    "state": "none",
+    "by": null,
+    "registration": null,
+    "on": null
+   }
+  },
+  {
+   "code": "ts-ZA",
+   "label": "Xitsonga",
+   "native": "Xitsonga",
+   "swift": "xitsonga",
+   "kotlin": "XITSONGA",
+   "sets": [
+    "shell"
+   ],
+   "review": {
+    "state": "machine-drafted",
+    "by": null,
+    "organisation": null,
+    "on": null,
+    "note": "Drafted without a speaker of the language in the room. The four languages that predate this file are in the same state as the seven added with it: no review was ever recorded for them, so none is claimed."
+   },
+   "clinicalReview": {
+    "state": "none",
+    "by": null,
+    "registration": null,
+    "on": null
+   }
+  },
+  {
+   "code": "ss-ZA",
+   "label": "siSwati",
+   "native": "siSwati",
+   "swift": "siswati",
+   "kotlin": "SISWATI",
+   "sets": [
+    "shell"
+   ],
+   "review": {
+    "state": "machine-drafted",
+    "by": null,
+    "organisation": null,
+    "on": null,
+    "note": "Drafted without a speaker of the language in the room. The four languages that predate this file are in the same state as the seven added with it: no review was ever recorded for them, so none is claimed."
+   },
+   "clinicalReview": {
+    "state": "none",
+    "by": null,
+    "registration": null,
+    "on": null
+   }
+  },
+  {
+   "code": "ve-ZA",
+   "label": "Tshivenda",
+   "native": "Tshivenḓa",
+   "swift": "tshivenda",
+   "kotlin": "TSHIVENDA",
+   "sets": [
+    "shell"
+   ],
+   "review": {
+    "state": "machine-drafted",
+    "by": null,
+    "organisation": null,
+    "on": null,
+    "note": "Drafted without a speaker of the language in the room. The four languages that predate this file are in the same state as the seven added with it: no review was ever recorded for them, so none is claimed."
+   },
+   "clinicalReview": {
+    "state": "none",
+    "by": null,
+    "registration": null,
+    "on": null
+   }
+  },
+  {
+   "code": "nr-ZA",
+   "label": "isiNdebele",
+   "native": "isiNdebele",
+   "swift": "ndebele",
+   "kotlin": "NDEBELE",
+   "sets": [
+    "shell"
+   ],
+   "review": {
+    "state": "machine-drafted",
+    "by": null,
+    "organisation": null,
+    "on": null,
+    "note": "Drafted without a speaker of the language in the room. The four languages that predate this file are in the same state as the seven added with it: no review was ever recorded for them, so none is claimed."
+   },
+   "clinicalReview": {
+    "state": "none",
+    "by": null,
+    "registration": null,
+    "on": null
+   }
+  }
+ ],
+ "keys": [
+  {
+   "id": "tab.Home",
+   "set": "shell",
+   "swift": "home",
+   "kotlin": "HOME",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "tab.Book care",
+   "set": "shell",
+   "swift": "bookCare",
+   "kotlin": "BOOK_CARE",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "tab.Visits",
+   "set": "shell",
+   "swift": "visits",
+   "kotlin": "VISITS",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "tab.Passport",
+   "set": "shell",
+   "swift": "passport",
+   "kotlin": "PASSPORT",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "tab.More",
+   "set": "shell",
+   "swift": "more",
+   "kotlin": "MORE",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "nav.section",
+   "set": "shell",
+   "swift": "navSection",
+   "kotlin": "NAV_SECTION",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "nav.Overview",
+   "set": "shell",
+   "swift": "navOverview",
+   "kotlin": "NAV_OVERVIEW",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "nav.Book a nurse",
+   "set": "shell",
+   "swift": "navBookNurse",
+   "kotlin": "NAV_BOOK_NURSE",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "nav.My visits",
+   "set": "shell",
+   "swift": "navMyVisits",
+   "kotlin": "NAV_MY_VISITS",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "nav.Health Passport",
+   "set": "shell",
+   "swift": "navPassport",
+   "kotlin": "NAV_PASSPORT",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "nav.My family",
+   "set": "shell",
+   "swift": "navFamily",
+   "kotlin": "NAV_FAMILY",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "nav.Care plans",
+   "set": "shell",
+   "swift": "navCarePlans",
+   "kotlin": "NAV_CARE_PLANS",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "nav.Thuso Wallet",
+   "set": "shell",
+   "swift": "navWallet",
+   "kotlin": "NAV_WALLET",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "nav.Explore MyThuso",
+   "set": "shell",
+   "swift": "navExplore",
+   "kotlin": "NAV_EXPLORE",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "nav.Privacy & settings",
+   "set": "shell",
+   "swift": "navPrivacy",
+   "kotlin": "NAV_PRIVACY",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "shell.greeting",
+   "set": "shell",
+   "swift": "greeting",
+   "kotlin": "GREETING",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "shell.greetingSub",
+   "set": "shell",
+   "swift": "greetingSub",
+   "kotlin": "GREETING_SUB",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "shell.tagline",
+   "set": "shell",
+   "swift": "tagline",
+   "kotlin": "TAGLINE",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "shell.preview",
+   "set": "shell",
+   "swift": "preview",
+   "kotlin": "PREVIEW",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "shell.previewNote",
+   "set": "shell",
+   "swift": "previewNote",
+   "kotlin": "PREVIEW_NOTE",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "shell.previewBadge",
+   "set": "shell",
+   "swift": "previewBadge",
+   "kotlin": "PREVIEW_BADGE",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "shell.workspaces",
+   "set": "shell",
+   "swift": "workspaces",
+   "kotlin": "WORKSPACES",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "shell.breadcrumb",
+   "set": "shell",
+   "swift": "breadcrumb",
+   "kotlin": "BREADCRUMB",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "shell.help",
+   "set": "shell",
+   "swift": "help",
+   "kotlin": "HELP",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "shell.personal",
+   "set": "shell",
+   "swift": "personal",
+   "kotlin": "PERSONAL",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "shell.language",
+   "set": "shell",
+   "swift": "language",
+   "kotlin": "LANGUAGE",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "shell.skip",
+   "set": "shell",
+   "swift": "skip",
+   "kotlin": "SKIP",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "shell.nextVisit",
+   "set": "shell",
+   "swift": "nextVisit",
+   "kotlin": "NEXT_VISIT",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "shell.helpWith",
+   "set": "shell",
+   "swift": "helpWith",
+   "kotlin": "HELP_WITH",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "cta.book",
+   "set": "shell",
+   "swift": "bookNurse",
+   "kotlin": "BOOK_NURSE",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "cta.passport",
+   "set": "shell",
+   "swift": "openPassport",
+   "kotlin": "OPEN_PASSPORT",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "cta.allVisits",
+   "set": "shell",
+   "swift": "allVisits",
+   "kotlin": "ALL_VISITS",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "cta.gotIt",
+   "set": "shell",
+   "swift": "gotIt",
+   "kotlin": "GOT_IT",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "cta.back",
+   "set": "shell",
+   "swift": "back",
+   "kotlin": "BACK",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "cta.close",
+   "set": "shell",
+   "swift": "closeDialog",
+   "kotlin": "CLOSE_DIALOG",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "hero.title",
+   "set": "hero",
+   "swift": "heroTitle",
+   "kotlin": "HERO_TITLE",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "hero.body",
+   "set": "hero",
+   "swift": "heroBody",
+   "kotlin": "HERO_BODY",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "hero.trust",
+   "set": "hero",
+   "swift": "heroTrust",
+   "kotlin": "HERO_TRUST",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "hero.price",
+   "set": "hero",
+   "swift": "heroPrice",
+   "kotlin": "HERO_PRICE",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "hero.trustLine",
+   "set": "hero",
+   "swift": "heroTrustLine",
+   "kotlin": "HERO_TRUST_LINE",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide1.title",
+   "set": "hero",
+   "swift": "slide1Title",
+   "kotlin": "SLIDE1_TITLE",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide1.body",
+   "set": "hero",
+   "swift": "slide1Body",
+   "kotlin": "SLIDE1_BODY",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide1.cta",
+   "set": "hero",
+   "swift": "slide1Cta",
+   "kotlin": "SLIDE1_CTA",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide1.trust1",
+   "set": "hero",
+   "swift": "slide1Trust1",
+   "kotlin": "SLIDE1_TRUST1",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide1.trust2",
+   "set": "hero",
+   "swift": "slide1Trust2",
+   "kotlin": "SLIDE1_TRUST2",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide1.trust3",
+   "set": "hero",
+   "swift": "slide1Trust3",
+   "kotlin": "SLIDE1_TRUST3",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide1.caption",
+   "set": "hero",
+   "swift": "slide1Caption",
+   "kotlin": "SLIDE1_CAPTION",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide2.title",
+   "set": "hero",
+   "swift": "slide2Title",
+   "kotlin": "SLIDE2_TITLE",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide2.body",
+   "set": "hero",
+   "swift": "slide2Body",
+   "kotlin": "SLIDE2_BODY",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide2.cta",
+   "set": "hero",
+   "swift": "slide2Cta",
+   "kotlin": "SLIDE2_CTA",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide2.trust1",
+   "set": "hero",
+   "swift": "slide2Trust1",
+   "kotlin": "SLIDE2_TRUST1",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide2.trust2",
+   "set": "hero",
+   "swift": "slide2Trust2",
+   "kotlin": "SLIDE2_TRUST2",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide2.trust3",
+   "set": "hero",
+   "swift": "slide2Trust3",
+   "kotlin": "SLIDE2_TRUST3",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide2.caption",
+   "set": "hero",
+   "swift": "slide2Caption",
+   "kotlin": "SLIDE2_CAPTION",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide3.title",
+   "set": "hero",
+   "swift": "slide3Title",
+   "kotlin": "SLIDE3_TITLE",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide3.body",
+   "set": "hero",
+   "swift": "slide3Body",
+   "kotlin": "SLIDE3_BODY",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide3.cta",
+   "set": "hero",
+   "swift": "slide3Cta",
+   "kotlin": "SLIDE3_CTA",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide3.trust1",
+   "set": "hero",
+   "swift": "slide3Trust1",
+   "kotlin": "SLIDE3_TRUST1",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide3.trust2",
+   "set": "hero",
+   "swift": "slide3Trust2",
+   "kotlin": "SLIDE3_TRUST2",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide3.trust3",
+   "set": "hero",
+   "swift": "slide3Trust3",
+   "kotlin": "SLIDE3_TRUST3",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "slide3.caption",
+   "set": "hero",
+   "swift": "slide3Caption",
+   "kotlin": "SLIDE3_CAPTION",
+   "surfaces": [
+    "web",
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "vetting.views",
+   "set": "console",
+   "swift": "vettingViews",
+   "kotlin": "VETTING_VIEWS",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "vetting.queue",
+   "set": "console",
+   "swift": "vettingQueueFilter",
+   "kotlin": "VETTING_QUEUE_FILTER",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "vetting.renewals",
+   "set": "console",
+   "swift": "vettingRenewalsHeading",
+   "kotlin": "VETTING_RENEWALS_HEADING",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "vetting.audit",
+   "set": "console",
+   "swift": "vettingAudit",
+   "kotlin": "VETTING_AUDIT",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "vetting.reviewer",
+   "set": "console",
+   "swift": "vettingReviewer",
+   "kotlin": "VETTING_REVIEWER",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "vetting.role",
+   "set": "console",
+   "swift": "vettingRole",
+   "kotlin": "VETTING_ROLE",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "vetting.status",
+   "set": "console",
+   "swift": "vettingRoleStatus",
+   "kotlin": "VETTING_ROLE_STATUS",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "vetting.allRoles",
+   "set": "console",
+   "swift": "vettingAllRoles",
+   "kotlin": "VETTING_ALL_ROLES",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "vetting.allStatuses",
+   "set": "console",
+   "swift": "vettingAllStatuses",
+   "kotlin": "VETTING_ALL_STATUSES",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "vetting.parties",
+   "set": "console",
+   "swift": "vettingParties",
+   "kotlin": "VETTING_PARTIES",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "vetting.apply",
+   "set": "console",
+   "swift": "vettingPreviewApplication",
+   "kotlin": "VETTING_PREVIEW_APPLICATION",
+   "surfaces": [
+    "web"
+   ]
+  },
+  {
+   "id": "vetting.label",
+   "set": "console",
+   "swift": "vetting",
+   "kotlin": "VETTING",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "vetting.nativeQueue",
+   "set": "console",
+   "swift": "vettingQueue",
+   "kotlin": "VETTING_QUEUE",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "vetting.nativeStatus",
+   "set": "console",
+   "swift": "vettingStatus",
+   "kotlin": "VETTING_STATUS",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "vetting.nativeApply",
+   "set": "console",
+   "swift": "vettingApply",
+   "kotlin": "VETTING_APPLY",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "vetting.nativeRenewals",
+   "set": "console",
+   "swift": "vettingRenewals",
+   "kotlin": "VETTING_RENEWALS",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "vetting.refused",
+   "set": "console",
+   "swift": "vettingRefused",
+   "kotlin": "VETTING_REFUSED",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "vetting.progress",
+   "set": "console",
+   "swift": "vettingProgress",
+   "kotlin": "VETTING_PROGRESS",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "record.patientFile",
+   "set": "console",
+   "swift": "patientFile",
+   "kotlin": "PATIENT_FILE",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "record.consultation",
+   "set": "console",
+   "swift": "consultationRecord",
+   "kotlin": "CONSULTATION_RECORD",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "record.household",
+   "set": "console",
+   "swift": "householdRecord",
+   "kotlin": "HOUSEHOLD_RECORD",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "record.healthSummary",
+   "set": "console",
+   "swift": "healthSummary",
+   "kotlin": "HEALTH_SUMMARY",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "record.viewingAs",
+   "set": "console",
+   "swift": "viewingAs",
+   "kotlin": "VIEWING_AS",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  },
+  {
+   "id": "record.openFileOf",
+   "set": "console",
+   "swift": "openFileOf",
+   "kotlin": "OPEN_FILE_OF",
+   "surfaces": [
+    "ios",
+    "android"
+   ]
+  }
+ ],
+ "strings": {
+  "en-ZA": {
+   "tab.Home": "Home",
+   "tab.Book care": "Book care",
+   "tab.Visits": "Visits",
+   "tab.Passport": "Passport",
+   "tab.More": "More",
+   "nav.section": "YOUR CARE",
+   "nav.Overview": "Overview",
+   "nav.Book a nurse": "Book a nurse",
+   "nav.My visits": "My visits",
+   "nav.Health Passport": "Health Passport",
+   "nav.My family": "My family",
+   "nav.Care plans": "Care plans",
+   "nav.Thuso Wallet": "Thuso Wallet",
+   "nav.Explore MyThuso": "Explore MyThuso",
+   "nav.Privacy & settings": "Privacy & settings",
+   "shell.greeting": "Hello, Lerato",
+   "shell.greetingSub": "Here for you. And the people you love.",
+   "shell.tagline": "Help. Health. Home.",
+   "shell.preview": "Design preview",
+   "shell.previewNote": "Fictional data · No live care or payments",
+   "shell.previewBadge": "Design preview · Fictional data",
+   "shell.workspaces": "Preview workspaces",
+   "shell.breadcrumb": "Your care",
+   "shell.help": "Help & support",
+   "shell.personal": "Personal account",
+   "shell.language": "Language",
+   "shell.skip": "Skip to content",
+   "shell.nextVisit": "Your next visit",
+   "shell.helpWith": "What can we help with?",
+   "cta.book": "Book a nurse",
+   "cta.passport": "Open my passport",
+   "cta.allVisits": "All visits",
+   "cta.gotIt": "Got it",
+   "cta.back": "Back",
+   "cta.close": "Close dialog",
+   "hero.title": "Feel better.|Right at home.",
+   "hero.body": "A caring nurse. A doctor’s expertise. All from the comfort of your home.",
+   "hero.trust": "Registered nurses",
+   "hero.price": "Visits from R249",
+   "hero.trustLine": "Registered nurses · Visits from R249",
+   "slide1.title": "Care that|comes to you.",
+   "slide1.body": "Trusted home healthcare in just a few taps.",
+   "slide1.cta": "Get care now",
+   "slide1.trust1": "At home",
+   "slide1.trust2": "Trusted care",
+   "slide1.trust3": "For the people you love",
+   "slide1.caption": "Same care. Closer to home.",
+   "slide2.title": "Your health.|One safe place.",
+   "slide2.body": "Visits, records and support — all in MyThuso.",
+   "slide2.cta": "Open Thuso Pass",
+   "slide2.trust1": "Trusted care",
+   "slide2.trust2": "For you and your loved ones",
+   "slide2.trust3": "Healthier tomorrows",
+   "slide2.caption": "Care connects us.",
+   "slide3.title": "Feel better.|Right at home.",
+   "slide3.body": "Nurse-led care, delivered to your door.",
+   "slide3.cta": "Book a nurse",
+   "slide3.trust1": "Trusted professionals",
+   "slide3.trust2": "Personalised care",
+   "slide3.trust3": "Safe & convenient",
+   "slide3.caption": "Quality care, where you are.",
+   "vetting.views": "Vetting views",
+   "vetting.queue": "Queue",
+   "vetting.renewals": "Renewals due",
+   "vetting.audit": "Decision audit",
+   "vetting.reviewer": "Signed in as",
+   "vetting.role": "Role",
+   "vetting.status": "Status",
+   "vetting.allRoles": "Every role",
+   "vetting.allStatuses": "Every status",
+   "vetting.parties": "Parties",
+   "vetting.apply": "Preview an application",
+   "vetting.label": "Vetting",
+   "vetting.nativeQueue": "Vetting queue",
+   "vetting.nativeStatus": "Vetting status",
+   "vetting.nativeApply": "Start an application",
+   "vetting.nativeRenewals": "Renewals due",
+   "vetting.refused": "What is refused until this passes",
+   "vetting.progress": "checks passing",
+   "record.patientFile": "Patient file",
+   "record.consultation": "Consultation record",
+   "record.household": "Household record",
+   "record.healthSummary": "Health summary",
+   "record.viewingAs": "Viewing as",
+   "record.openFileOf": "Open the file of"
+  },
+  "zu-ZA": {
+   "tab.Home": "Ikhaya",
+   "tab.Book care": "Bhukha",
+   "tab.Visits": "Ukuvakashelwa",
+   "tab.Passport": "Iphasiphothi",
+   "tab.More": "Okuningi",
+   "nav.section": "UKUNAKEKELWA KWAKHO",
+   "nav.Overview": "Uhlolojikelele",
+   "nav.Book a nurse": "Bhukha umhlengikazi",
+   "nav.My visits": "Ukuvakashelwa kwami",
+   "nav.Health Passport": "Iphasiphothi Yezempilo",
+   "nav.My family": "Umndeni wami",
+   "nav.Care plans": "Izinhlelo zokunakekelwa",
+   "nav.Thuso Wallet": "Isikhwama se-Thuso",
+   "nav.Explore MyThuso": "Hlola i-MyThuso",
+   "nav.Privacy & settings": "Ubumfihlo nezilungiselelo",
+   "shell.greeting": "Sawubona, Lerato",
+   "shell.greetingSub": "Silapha ngenxa yakho. Nangenxa yabantu obathandayo.",
+   "shell.tagline": "Usizo. Impilo. Ikhaya.",
+   "shell.preview": "Isibonelo sedizayini",
+   "shell.previewNote": "Idatha eqanjiwe · Akukho ukunakekelwa noma inkokhelo yangempela",
+   "shell.previewBadge": "Isibonelo sedizayini · Idatha eqanjiwe",
+   "shell.workspaces": "Buka izindawo zokusebenza",
+   "shell.breadcrumb": "Ukunakekelwa kwakho",
+   "shell.help": "Usizo nokusekelwa",
+   "shell.personal": "I-akhawunti yomuntu siqu",
+   "shell.language": "Ulimi",
+   "shell.skip": "Yeqela kokuqukethwe",
+   "shell.nextVisit": "Ukuvakashelwa kwakho okulandelayo",
+   "shell.helpWith": "Singakusiza ngani?",
+   "cta.book": "Bhukha umhlengikazi",
+   "cta.passport": "Vula iphasiphothi yami",
+   "cta.allVisits": "Konke ukuvakashelwa",
+   "cta.gotIt": "Ngiyezwa",
+   "cta.back": "Emuva",
+   "cta.close": "Vala ibhokisi",
+   "hero.title": "Zizwe ungcono.|Ekhaya.",
+   "hero.body": "Umhlengikazi onendaba. Ulwazi lukadokotela. Konke usekhaya.",
+   "hero.trust": "Abahlengikazi ababhalisiwe",
+   "hero.price": "Ukuvakashelwa kusukela ku-R249",
+   "hero.trustLine": "Abahlengikazi ababhalisiwe · Kusukela ku-R249",
+   "slide1.title": "Ukunakekelwa|okuza kuwe.",
+   "slide1.body": "Ukunakekelwa kwezempilo okwethembekile ekhaya, ngokuthinta nje.",
+   "slide1.cta": "Thola usizo manje",
+   "slide1.trust1": "Ekhaya",
+   "slide1.trust2": "Ukunakekelwa okwethembekile",
+   "slide1.trust3": "Kubantu obathandayo",
+   "slide1.caption": "Ukunakekelwa okufanayo. Eduze nekhaya.",
+   "slide2.title": "Impilo yakho.|Indawo eyodwa ephephile.",
+   "slide2.body": "Ukuvakashelwa, amarekhodi nokusekelwa — konke ku-MyThuso.",
+   "slide2.cta": "Vula i-Thuso Pass",
+   "slide2.trust1": "Ukunakekelwa okwethembekile",
+   "slide2.trust2": "Kuwe nabathandekayo bakho",
+   "slide2.trust3": "Ikusasa elinempilo",
+   "slide2.caption": "Ukunakekelwa kuyasihlanganisa.",
+   "slide3.title": "Zizwe ungcono.|Ekhaya.",
+   "slide3.body": "Ukunakekelwa okuholwa umhlengikazi, kulethwa emnyango wakho.",
+   "slide3.cta": "Bhukha umhlengikazi",
+   "slide3.trust1": "Ochwepheshe abethembekile",
+   "slide3.trust2": "Ukunakekelwa okwakho",
+   "slide3.trust3": "Kuphephile futhi kulula",
+   "slide3.caption": "Ukunakekelwa okusezingeni, lapho ukhona.",
+   "vetting.views": "Amaviyu okuhlola",
+   "vetting.queue": "Ulayini",
+   "vetting.renewals": "Ukuvuselelwa okufanele",
+   "vetting.audit": "Ukuhlolwa kwezinqumo",
+   "vetting.reviewer": "Ungene njengo",
+   "vetting.role": "Indima",
+   "vetting.status": "Isimo",
+   "vetting.allRoles": "Zonke izindima",
+   "vetting.allStatuses": "Zonke izimo",
+   "vetting.parties": "Amaqembu",
+   "vetting.apply": "Buka isicelo",
+   "vetting.label": "Ukuhlolwa",
+   "vetting.nativeQueue": "Ulayini wokuhlolwa",
+   "vetting.nativeStatus": "Isimo sokuhlolwa",
+   "vetting.nativeApply": "Qala isicelo",
+   "vetting.nativeRenewals": "Ukuvuselelwa okusalindile",
+   "vetting.refused": "Okwenqatshelwe uze uphase",
+   "vetting.progress": "ukuhlolwa okuphumelele",
+   "record.patientFile": "Ifayela lesiguli",
+   "record.consultation": "Irekhodi lokubonana nodokotela",
+   "record.household": "Irekhodi lomndeni",
+   "record.healthSummary": "Isifinyezo sempilo",
+   "record.viewingAs": "Ubuka njengo",
+   "record.openFileOf": "Vula ifayela lika"
+  },
+  "st-ZA": {
+   "tab.Home": "Lehae",
+   "tab.Book care": "Behela",
+   "tab.Visits": "Diketelo",
+   "tab.Passport": "Phasepoto",
+   "tab.More": "Tse ding",
+   "nav.section": "TLHOKOMELO YA HAO",
+   "nav.Overview": "Kakaretso",
+   "nav.Book a nurse": "Behela mooki",
+   "nav.My visits": "Diketelo tsa ka",
+   "nav.Health Passport": "Phasepoto ya Bophelo",
+   "nav.My family": "Lelapa la ka",
+   "nav.Care plans": "Merero ya tlhokomelo",
+   "nav.Thuso Wallet": "Sepache sa Thuso",
+   "nav.Explore MyThuso": "Hlahloba MyThuso",
+   "nav.Privacy & settings": "Lekunutu le ditlhophiso",
+   "shell.greeting": "Dumela, Lerato",
+   "shell.greetingSub": "Re teng bakeng sa hao. Le batho bao o ba ratang.",
+   "shell.tagline": "Thuso. Bophelo. Lehae.",
+   "shell.preview": "Ponelopele ya moralo",
+   "shell.previewNote": "Datha ya boiqapelo · Ha ho tlhokomelo kapa tefo ya nnete",
+   "shell.previewBadge": "Ponelopele ya moralo · Datha ya boiqapelo",
+   "shell.workspaces": "Sheba dibaka tsa mosebetsi",
+   "shell.breadcrumb": "Tlhokomelo ya hao",
+   "shell.help": "Thuso le tshehetso",
+   "shell.personal": "Akhaonto ya motho ka mong",
+   "shell.language": "Puo",
+   "shell.skip": "Tlolela ho dikahare",
+   "shell.nextVisit": "Ketelo ya hao e latelang",
+   "shell.helpWith": "Re ka o thusa ka eng?",
+   "cta.book": "Behela mooki",
+   "cta.passport": "Bula phasepoto ya ka",
+   "cta.allVisits": "Diketelo tsohle",
+   "cta.gotIt": "Ke utlwile",
+   "cta.back": "Morao",
+   "cta.close": "Kwala lebokose",
+   "hero.title": "Ikutlwe hantle.|Hae.",
+   "hero.body": "Mooki ya nang le kgathallo. Tsebo ya ngaka. Tsohle o le hae.",
+   "hero.trust": "Baoki ba ngodisitsweng",
+   "hero.price": "Diketelo ho tloha ho R249",
+   "hero.trustLine": "Baoki ba ngodisitsweng · Ho tloha ho R249",
+   "slide1.title": "Tlhokomelo e tlang|ho wena.",
+   "slide1.body": "Tlhokomelo ya bophelo ya lehae e tshepahalang, ka ho tobetsa ha se kae.",
+   "slide1.cta": "Fumana tlhokomelo hona joale",
+   "slide1.trust1": "Lehae",
+   "slide1.trust2": "Tlhokomelo e tshepahalang",
+   "slide1.trust3": "Bakeng sa bao o ba ratang",
+   "slide1.caption": "Tlhokomelo e tshwanang. Haufi le lehae.",
+   "slide2.title": "Bophelo ba hao.|Sebaka se le seng se sireletsehileng.",
+   "slide2.body": "Diketelo, direkoto le tshehetso — tsohle ho MyThuso.",
+   "slide2.cta": "Bula Thuso Pass",
+   "slide2.trust1": "Tlhokomelo e tshepahalang",
+   "slide2.trust2": "Bakeng sa hao le ba lelapa",
+   "slide2.trust3": "Bokamoso bo phetseng hantle",
+   "slide2.caption": "Tlhokomelo ea re kopanya.",
+   "slide3.title": "Ikutlwe hantle.|Hae.",
+   "slide3.body": "Tlhokomelo e etelletsweng ke mooki, e tliswa monyako wa hao.",
+   "slide3.cta": "Behela mooki",
+   "slide3.trust1": "Ditsebi tse tshepahalang",
+   "slide3.trust2": "Tlhokomelo ya hao",
+   "slide3.trust3": "E bolokehile ebile e bonolo",
+   "slide3.caption": "Tlhokomelo e ntle, moo o leng teng.",
+   "vetting.views": "Dipono tsa tlhahlobo",
+   "vetting.queue": "Mola",
+   "vetting.renewals": "Dintjhafatso tse lokelang",
+   "vetting.audit": "Tlhahlobo ya diqeto",
+   "vetting.reviewer": "O kene e le",
+   "vetting.role": "Karolo",
+   "vetting.status": "Boemo",
+   "vetting.allRoles": "Dikarolo tsohle",
+   "vetting.allStatuses": "Maemo ohle",
+   "vetting.parties": "Mekga",
+   "vetting.apply": "Sheba kopo",
+   "vetting.label": "Tlhahlobo",
+   "vetting.nativeQueue": "Mola wa tlhahlobo",
+   "vetting.nativeStatus": "Boemo ba tlhahlobo",
+   "vetting.nativeApply": "Qala kopo",
+   "vetting.nativeRenewals": "Dintjhafatso tse tlang",
+   "vetting.refused": "Se hannweng ho fihlela sena se feta",
+   "vetting.progress": "ditlhahlobo tse fetileng",
+   "record.patientFile": "Faele ya mokudi",
+   "record.consultation": "Rekoto ya ho bona ngaka",
+   "record.household": "Rekoto ya lelapa",
+   "record.healthSummary": "Kakaretso ya bophelo",
+   "record.viewingAs": "O shebella e le",
+   "record.openFileOf": "Bula faele ya"
+  },
+  "af-ZA": {
+   "tab.Home": "Tuis",
+   "tab.Book care": "Bespreek",
+   "tab.Visits": "Besoeke",
+   "tab.Passport": "Paspoort",
+   "tab.More": "Meer",
+   "nav.section": "JOU SORG",
+   "nav.Overview": "Oorsig",
+   "nav.Book a nurse": "Bespreek ’n verpleegster",
+   "nav.My visits": "My besoeke",
+   "nav.Health Passport": "Gesondheidspaspoort",
+   "nav.My family": "My gesin",
+   "nav.Care plans": "Sorgplanne",
+   "nav.Thuso Wallet": "Thuso-beursie",
+   "nav.Explore MyThuso": "Verken MyThuso",
+   "nav.Privacy & settings": "Privaatheid en instellings",
+   "shell.greeting": "Hallo, Lerato",
+   "shell.greetingSub": "Hier vir jou. En vir die mense vir wie jy lief is.",
+   "shell.tagline": "Hulp. Gesondheid. Huis.",
+   "shell.preview": "Ontwerpvoorskou",
+   "shell.previewNote": "Fiktiewe data · Geen lewende sorg of betalings nie",
+   "shell.previewBadge": "Ontwerpvoorskou · Fiktiewe data",
+   "shell.workspaces": "Bekyk werkruimtes",
+   "shell.breadcrumb": "Jou sorg",
+   "shell.help": "Hulp en ondersteuning",
+   "shell.personal": "Persoonlike rekening",
+   "shell.language": "Taal",
+   "shell.skip": "Spring na inhoud",
+   "shell.nextVisit": "Jou volgende besoek",
+   "shell.helpWith": "Waarmee kan ons help?",
+   "cta.book": "Bespreek ’n verpleegster",
+   "cta.passport": "Open my paspoort",
+   "cta.allVisits": "Alle besoeke",
+   "cta.gotIt": "Verstaan",
+   "cta.back": "Terug",
+   "cta.close": "Sluit dialoog",
+   "hero.title": "Voel beter.|Tuis.",
+   "hero.body": "’n Sorgsame verpleegster. ’n Dokter se kundigheid. Alles van die gemak van jou huis af.",
+   "hero.trust": "Geregistreerde verpleegsters",
+   "hero.price": "Besoeke vanaf R249",
+   "hero.trustLine": "Geregistreerde verpleegsters · Vanaf R249",
+   "slide1.title": "Sorg wat na|jou toe kom.",
+   "slide1.body": "Betroubare tuisgesondheidsorg met net ’n paar tikke.",
+   "slide1.cta": "Kry sorg nou",
+   "slide1.trust1": "By die huis",
+   "slide1.trust2": "Betroubare sorg",
+   "slide1.trust3": "Vir die mense vir wie jy lief is",
+   "slide1.caption": "Dieselfde sorg. Nader aan die huis.",
+   "slide2.title": "Jou gesondheid.|Een veilige plek.",
+   "slide2.body": "Besoeke, rekords en ondersteuning — alles in MyThuso.",
+   "slide2.cta": "Open Thuso Pass",
+   "slide2.trust1": "Betroubare sorg",
+   "slide2.trust2": "Vir jou en jou geliefdes",
+   "slide2.trust3": "Gesonder môres",
+   "slide2.caption": "Sorg verbind ons.",
+   "slide3.title": "Voel beter.|Tuis.",
+   "slide3.body": "Verpleegster-gelei sorg, tot by jou deur.",
+   "slide3.cta": "Bespreek ’n verpleegster",
+   "slide3.trust1": "Betroubare professionele",
+   "slide3.trust2": "Persoonlike sorg",
+   "slide3.trust3": "Veilig en gerieflik",
+   "slide3.caption": "Kwaliteitsorg, waar jy ook al is.",
+   "vetting.views": "Keuringsaansigte",
+   "vetting.queue": "Tou",
+   "vetting.renewals": "Hernuwings wat verval",
+   "vetting.audit": "Besluitoudit",
+   "vetting.reviewer": "Aangemeld as",
+   "vetting.role": "Rol",
+   "vetting.status": "Status",
+   "vetting.allRoles": "Elke rol",
+   "vetting.allStatuses": "Elke status",
+   "vetting.parties": "Partye",
+   "vetting.apply": "Bekyk ’n aansoek",
+   "vetting.label": "Keuring",
+   "vetting.nativeQueue": "Keuringstou",
+   "vetting.nativeStatus": "Keuringstatus",
+   "vetting.nativeApply": "Begin ’n aansoek",
+   "vetting.nativeRenewals": "Hernuwings wat wag",
+   "vetting.refused": "Wat geweier word totdat dit slaag",
+   "vetting.progress": "kontroles geslaag",
+   "record.patientFile": "Pasiëntlêer",
+   "record.consultation": "Konsultasierekord",
+   "record.household": "Huishoudingrekord",
+   "record.healthSummary": "Gesondheidsopsomming",
+   "record.viewingAs": "Bekyk as",
+   "record.openFileOf": "Open die lêer van"
+  },
+  "xh-ZA": {
+   "tab.Home": "Ikhaya",
+   "tab.Book care": "Bhukisha",
+   "tab.Visits": "Utyelelo",
+   "tab.Passport": "Ipasipoti",
+   "tab.More": "Okungakumbi",
+   "nav.section": "UKHATHALELO LWAKHO",
+   "nav.Overview": "Isishwankathelo",
+   "nav.Book a nurse": "Bhukisha umongikazi",
+   "nav.My visits": "Utyelelo lwam",
+   "nav.Health Passport": "Ipasipoti Yezempilo",
+   "nav.My family": "Usapho lwam",
+   "nav.Care plans": "Izicwangciso zokhathalelo",
+   "nav.Thuso Wallet": "Isipaji seThuso",
+   "nav.Explore MyThuso": "Phonononga iMyThuso",
+   "nav.Privacy & settings": "Ubumfihlo nezicwangciso",
+   "shell.greeting": "Molo, Lerato",
+   "shell.greetingSub": "Silapha ngenxa yakho. Nangenxa yabantu obathandayo.",
+   "shell.tagline": "Uncedo. Impilo. Ikhaya.",
+   "shell.preview": "Umboniso woyilo",
+   "shell.previewNote": "Idatha eyenziweyo · Akukho khathalelo okanye intlawulo yokwenene",
+   "shell.previewBadge": "Umboniso woyilo · Idatha eyenziweyo",
+   "shell.workspaces": "Jonga iindawo zokusebenza",
+   "shell.breadcrumb": "Ukhathalelo lwakho",
+   "shell.help": "Uncedo nenkxaso",
+   "shell.personal": "I-akhawunti yobuqu",
+   "shell.language": "Ulwimi",
+   "shell.skip": "Tsibela kokuqulathiweyo",
+   "shell.nextVisit": "Utyelelo lwakho olulandelayo",
+   "shell.helpWith": "Singakunceda ngantoni?",
+   "cta.book": "Bhukisha umongikazi",
+   "cta.passport": "Vula ipasipoti yam",
+   "cta.allVisits": "Lonke utyelelo",
+   "cta.gotIt": "Ndiyaqonda",
+   "cta.back": "Emva",
+   "cta.close": "Vala ibhokisi"
+  },
+  "nso-ZA": {
+   "tab.Home": "Gae",
+   "tab.Book care": "Bookela",
+   "tab.Visits": "Diketelo",
+   "tab.Passport": "Phasepoto",
+   "tab.More": "Tše dingwe",
+   "nav.section": "TLHOKOMELO YA GAGO",
+   "nav.Overview": "Kakaretšo",
+   "nav.Book a nurse": "Bookela mooki",
+   "nav.My visits": "Diketelo tša ka",
+   "nav.Health Passport": "Phasepoto ya Maphelo",
+   "nav.My family": "Lapa la ka",
+   "nav.Care plans": "Merero ya tlhokomelo",
+   "nav.Thuso Wallet": "Sepatšhe sa Thuso",
+   "nav.Explore MyThuso": "Hlahloba MyThuso",
+   "nav.Privacy & settings": "Sephiri le dipeakanyo",
+   "shell.greeting": "Thobela, Lerato",
+   "shell.greetingSub": "Re gona bakeng sa gago. Le batho bao o ba ratago.",
+   "shell.tagline": "Thušo. Maphelo. Gae.",
+   "shell.preview": "Ponelopele ya tlhamo",
+   "shell.previewNote": "Datha ya boitlhamelo · Ga go na tlhokomelo goba tefo ya kgonthe",
+   "shell.previewBadge": "Ponelopele ya tlhamo · Datha ya boitlhamelo",
+   "shell.workspaces": "Lebelela mafelo a mošomo",
+   "shell.breadcrumb": "Tlhokomelo ya gago",
+   "shell.help": "Thušo le thekgo",
+   "shell.personal": "Akhaonto ya motho ka noši",
+   "shell.language": "Polelo",
+   "shell.skip": "Fofela go dikagare",
+   "shell.nextVisit": "Ketelo ya gago ye e latelago",
+   "shell.helpWith": "Re ka go thuša ka eng?",
+   "cta.book": "Bookela mooki",
+   "cta.passport": "Bula phasepoto ya ka",
+   "cta.allVisits": "Diketelo ka moka",
+   "cta.gotIt": "Ke kwele",
+   "cta.back": "Morago",
+   "cta.close": "Tswalela lepokisi"
+  },
+  "tn-ZA": {
+   "tab.Home": "Legae",
+   "tab.Book care": "Bookela",
+   "tab.Visits": "Diketelo",
+   "tab.Passport": "Phasepoto",
+   "tab.More": "Tse dingwe",
+   "nav.section": "TLHOKOMELO YA GAGO",
+   "nav.Overview": "Kakaretso",
+   "nav.Book a nurse": "Bookela mooki",
+   "nav.My visits": "Diketelo tsa me",
+   "nav.Health Passport": "Phasepoto ya Boitekanelo",
+   "nav.My family": "Lelapa la me",
+   "nav.Care plans": "Ditogamaano tsa tlhokomelo",
+   "nav.Thuso Wallet": "Sekhwama sa Thuso",
+   "nav.Explore MyThuso": "Sekaseka MyThuso",
+   "nav.Privacy & settings": "Sephiri le dipeelo",
+   "shell.greeting": "Dumela, Lerato",
+   "shell.greetingSub": "Re fano go go thusa. Le batho ba o ba ratang.",
+   "shell.tagline": "Thuso. Boitekanelo. Legae.",
+   "shell.preview": "Ponelopele ya thadiso",
+   "shell.previewNote": "Data ya boitlhamo · Ga go na tlhokomelo kgotsa tuelo ya nnete",
+   "shell.previewBadge": "Ponelopele ya thadiso · Data ya boitlhamo",
+   "shell.workspaces": "Leba mafelo a tiro",
+   "shell.breadcrumb": "Tlhokomelo ya gago",
+   "shell.help": "Thuso le tshegetso",
+   "shell.personal": "Akhaonto ya sebele",
+   "shell.language": "Puo",
+   "shell.skip": "Tlolela mo diteng",
+   "shell.nextVisit": "Ketelo ya gago e e latelang",
+   "shell.helpWith": "Re ka go thusa ka eng?",
+   "cta.book": "Bookela mooki",
+   "cta.passport": "Bula phasepoto ya me",
+   "cta.allVisits": "Diketelo tsotlhe",
+   "cta.gotIt": "Ke utlwile",
+   "cta.back": "Morago",
+   "cta.close": "Tswala lebokoso"
+  },
+  "ts-ZA": {
+   "tab.Home": "Kaya",
+   "tab.Book care": "Bhuka",
+   "tab.Visits": "Maendzo",
+   "tab.Passport": "Phasipoto",
+   "tab.More": "Swin'wana",
+   "nav.section": "NKHATHALELO WA WENA",
+   "nav.Overview": "Nkomiso",
+   "nav.Book a nurse": "Bhuka muongori",
+   "nav.My visits": "Maendzo ya mina",
+   "nav.Health Passport": "Phasipoto ya Rihanyu",
+   "nav.My family": "Ndyangu wa mina",
+   "nav.Care plans": "Makungu ya nkhathalelo",
+   "nav.Thuso Wallet": "Xikhwama xa Thuso",
+   "nav.Explore MyThuso": "Kambisisa MyThuso",
+   "nav.Privacy & settings": "Xihundla na swilulamiso",
+   "shell.greeting": "Avuxeni, Lerato",
+   "shell.greetingSub": "Hi kona hikwalaho ka wena. Na vanhu lava u va rhandzaka.",
+   "shell.tagline": "Mpfuno. Rihanyu. Kaya.",
+   "shell.preview": "Xikombiso xa dizayini",
+   "shell.previewNote": "Datha yo endliwa · A ku na nkhathalelo kumbe hakelo ya ntiyiso",
+   "shell.previewBadge": "Xikombiso xa dizayini · Datha yo endliwa",
+   "shell.workspaces": "Languta tindhawu ta ntirho",
+   "shell.breadcrumb": "Nkhathalelo wa wena",
+   "shell.help": "Mpfuno na nseketelo",
+   "shell.personal": "Akhawunti ya munhu hi xiyexe",
+   "shell.language": "Ririmi",
+   "shell.skip": "Tlula u ya eka leswi nga endzeni",
+   "shell.nextVisit": "Riendzo ra wena leri landzelaka",
+   "shell.helpWith": "Hi nga ku pfuna hi yini?",
+   "cta.book": "Bhuka muongori",
+   "cta.passport": "Pfula phasipoto ya mina",
+   "cta.allVisits": "Maendzo hinkwawo",
+   "cta.gotIt": "Ndzi swi twile",
+   "cta.back": "Endzhaku",
+   "cta.close": "Pfala bokisi"
+  },
+  "ss-ZA": {
+   "tab.Home": "Likhaya",
+   "tab.Book care": "Bhukha",
+   "tab.Visits": "Kuvakashelwa",
+   "tab.Passport": "Iphasiphothi",
+   "tab.More": "Lokunye",
+   "nav.section": "KUNAKEKELWA KWAKHO",
+   "nav.Overview": "Kubuka konkhe",
+   "nav.Book a nurse": "Bhukha umhlengikati",
+   "nav.My visits": "Kuvakashelwa kwami",
+   "nav.Health Passport": "Iphasiphothi Yetempilo",
+   "nav.My family": "Umndeni wami",
+   "nav.Care plans": "Tinhlelo tekunakekelwa",
+   "nav.Thuso Wallet": "Sikhwama seThuso",
+   "nav.Explore MyThuso": "Hlola iMyThuso",
+   "nav.Privacy & settings": "Bumfihlo netilungiselelo",
+   "shell.greeting": "Sawubona, Lerato",
+   "shell.greetingSub": "Silapha ngenca yakho. Nangenca yebantfu lobatsandzako.",
+   "shell.tagline": "Lusito. Imphilo. Likhaya.",
+   "shell.preview": "Sibonelo sedizayini",
+   "shell.previewNote": "Idatha lecatjangwako · Kute kunakekelwa nome inkhokhelo yangempela",
+   "shell.previewBadge": "Sibonelo sedizayini · Idatha lecatjangwako",
+   "shell.workspaces": "Buka tindzawo tekusebenta",
+   "shell.breadcrumb": "Kunakekelwa kwakho",
+   "shell.help": "Lusito nekusekelwa",
+   "shell.personal": "I-akhawunti yakho",
+   "shell.language": "Lulwimi",
+   "shell.skip": "Yeqela kulokucuketfwe",
+   "shell.nextVisit": "Kuvakashelwa kwakho lokulandzelako",
+   "shell.helpWith": "Singakusita ngani?",
+   "cta.book": "Bhukha umhlengikati",
+   "cta.passport": "Vula iphasiphothi yami",
+   "cta.allVisits": "Konkhe kuvakashelwa",
+   "cta.gotIt": "Ngiyeva",
+   "cta.back": "Emuva",
+   "cta.close": "Vala libhokisi"
+  },
+  "ve-ZA": {
+   "tab.Home": "Hayani",
+   "tab.Book care": "Bukha ndondolo",
+   "tab.Visits": "Vhudalelo",
+   "tab.Passport": "Phasiphoto",
+   "tab.More": "Zwinwe",
+   "nav.section": "NDONDOLO YAU",
+   "nav.Overview": "Nyimele yoṱhe",
+   "nav.Book a nurse": "Bukha muongi",
+   "nav.My visits": "Vhudalelo hanga",
+   "nav.Health Passport": "Phasiphoto ya Mutakalo",
+   "nav.My family": "Muṱa wanga",
+   "nav.Care plans": "Mbekanyamushumo dza ndondolo",
+   "nav.Thuso Wallet": "Tshikwama tsha Thuso",
+   "nav.Explore MyThuso": "Sedzulusa MyThuso",
+   "nav.Privacy & settings": "Tshiphiri na mavhekanyele",
+   "shell.greeting": "Ndaa, Lerato",
+   "shell.greetingSub": "Ri hone nga ṅwambo wau. Na vhathu vhane wa vha funa.",
+   "shell.tagline": "Thuso. Mutakalo. Hayani.",
+   "shell.preview": "Musumbedzo wa nyito",
+   "shell.previewNote": "Data yo bveledzwaho · A hu na ndondolo kana mbadelo ya vhukuma",
+   "shell.previewBadge": "Musumbedzo wa nyito · Data yo bveledzwaho",
+   "shell.workspaces": "Sedza fhethu ha mushumo",
+   "shell.breadcrumb": "Ndondolo yau",
+   "shell.help": "Thuso na thikhedzo",
+   "shell.personal": "Akhaunthu ya muthu",
+   "shell.language": "Luambo",
+   "shell.skip": "Fhufhela kha zwi re ngomu",
+   "shell.nextVisit": "Vhudalelo hau ha u tevhela",
+   "shell.helpWith": "Ri nga ni thusa nga mini?",
+   "cta.book": "Bukha muongi",
+   "cta.passport": "Vula phasiphoto yanga",
+   "cta.allVisits": "Vhudalelo hoṱhe",
+   "cta.gotIt": "Ndo zwi pfa",
+   "cta.back": "Murahu",
+   "cta.close": "Vala bogisi"
+  },
+  "nr-ZA": {
+   "tab.Home": "Ikhaya",
+   "tab.Book care": "Bhuka",
+   "tab.Visits": "Ukuvakatjhelwa",
+   "tab.Passport": "Iphasiphodi",
+   "tab.More": "Okunye",
+   "nav.section": "UKUTLHOGOMELWA KWAKHO",
+   "nav.Overview": "Isirhunyezo",
+   "nav.Book a nurse": "Bhuka umongikazi",
+   "nav.My visits": "Ukuvakatjhelwa kwami",
+   "nav.Health Passport": "Iphasiphodi Yezamaphilo",
+   "nav.My family": "Umndeni wami",
+   "nav.Care plans": "Amahlelo wokutlhogomela",
+   "nav.Thuso Wallet": "Isikhwama seThuso",
+   "nav.Explore MyThuso": "Hlola iMyThuso",
+   "nav.Privacy & settings": "Ubufihlo neenlungiselelo",
+   "shell.greeting": "Lotjhani, Lerato",
+   "shell.greetingSub": "Silapha ngenxa yakho. Nangebanga labantu obathandako.",
+   "shell.tagline": "Irhelebho. Amaphilo. Ikhaya.",
+   "shell.preview": "Isibonelo somklamo",
+   "shell.previewNote": "Idatha eyenziweko · Akunakutlhogonyelwa namkha ukubhadela kwamambala",
+   "shell.previewBadge": "Isibonelo somklamo · Idatha eyenziweko",
+   "shell.workspaces": "Qala iindawo zokusebenza",
+   "shell.breadcrumb": "Ukutlhogomelwa kwakho",
+   "shell.help": "Irhelebho nesekelo",
+   "shell.personal": "I-akhawundi yomuntu",
+   "shell.language": "Ilimi",
+   "shell.skip": "Tjhinga kokuqukethweko",
+   "shell.nextVisit": "Ukuvakatjhelwa kwakho okulandelako",
+   "shell.helpWith": "Singakurhelebha ngani?",
+   "cta.book": "Bhuka umongikazi",
+   "cta.passport": "Vula iphasiphodi yami",
+   "cta.allVisits": "Koke ukuvakatjhelwa",
+   "cta.gotIt": "Ngizwile",
+   "cta.back": "Emuva",
+   "cta.close": "Vala ibhoksi"
+  }
+ },
+ "signLanguage": {
+  "code": "sasl-ZA",
+  "name": "South African Sign Language",
+  "short": "SASL",
+  "status": "South Africa’s twelfth official language, added to section 6(1) of the Constitution by the Constitution Eighteenth Amendment Act, 2023.",
+  "notAUiLanguage": true,
+  "whyNotInTheList": "SASL is a visual language with its own grammar and no written form. It is not English on the hands, and there is nothing to put in the table above. Offering it beside isiZulu and Afrikaans as a language the interface is translated into would be a lie — a reader would choose it and nothing on the screen would change. It is offered instead as a communication requirement that travels with the account, and the interface stays in whichever written language the person chooses separately.",
+  "requirement": {
+   "id": "sasl-interpreter",
+   "label": "I use South African Sign Language",
+   "detail": "A qualified SASL interpreter is arranged for every visit and every call, at no cost to you. Your written language stays whatever you chose above.",
+   "appliesTo": [
+    "booking",
+    "visit",
+    "teleconsultation"
+   ],
+   "cost": "Never charged for. An accommodation that is billed is a fee for being Deaf."
+  },
+  "mustHappen": [
+   {
+    "id": "booking",
+    "title": "The booking will not complete without an interpreter",
+    "sentence": "When the account records this requirement, a visit is not offered at a time no interpreter is available. It is offered at the next time one is, with the wait shown, because a slot booked without an interpreter is a visit that will fail on the doorstep."
+   },
+   {
+    "id": "before-arrival",
+    "title": "The nurse knows before she leaves",
+    "sentence": "The dispatch note says the patient signs, that an interpreter is arranged, and how the interpreter will be present. It says nothing else about the patient’s hearing, because how much somebody hears is a clinical fact and the dispatch note is not a clinical record."
+   },
+   {
+    "id": "teleconsultation",
+    "title": "The interpreter is on the roster, named and consented to",
+    "sentence": "A SASL interpreter joins a teleconsultation as the interpreter already on the call roster — named, bound by the same confidentiality as the clinicians, and asked about like everybody else. There is no second, quieter mechanism for adding one."
+   },
+   {
+    "id": "video-is-not-optional",
+    "title": "Sound only is not a degraded call, it is no call at all",
+    "sentence": "The connection ladder treats sound only as a designed path. For a patient who signs it is not a path: the picture is the language. A call that drops to sound only is rebooked, not continued."
+   },
+   {
+    "id": "writing-is-an-extra",
+    "title": "Anything written is offered as well, never instead",
+    "sentence": "A written summary is offered in addition to the interpretation and only if the patient wants one. It is never the way the consultation is conducted."
+   },
+   {
+    "id": "recorded-once",
+    "title": "The requirement lives on the account",
+    "sentence": "It is established once and travels with every booking. A Deaf patient does not explain themselves again at each visit."
+   }
+  ],
+  "mustNeverHappen": [
+   {
+    "id": "family-as-interpreter",
+    "sentence": "A family member is never used as the interpreter for a clinical conversation. Not a spouse, not an adult child, not a neighbour who signs a little. A person who is part of the story cannot be the channel it is told through, and a child interpreting a diagnosis for a parent is a harm the appointment caused."
+   },
+   {
+    "id": "written-english-assumed",
+    "sentence": "A Deaf patient is never written to in English and assumed to have understood. English is a second language for many Deaf South Africans and SASL is their first. A nod is not comprehension, and neither is a signature."
+   },
+   {
+    "id": "lip-reading",
+    "sentence": "Lip-reading is never counted as an accommodation the service provided. It is something a patient may choose to do; it is not something MyThuso may rely on."
+   },
+   {
+    "id": "sasl-as-ui-language",
+    "sentence": "SASL is never listed as a language the interface is translated into. There is no written SASL to translate into, and a language toggle that changes nothing is a claim of access rather than access."
+   },
+   {
+    "id": "unnamed-interpreter",
+    "sentence": "An interpreter is never added to a call or a visit without being named to the patient and consented to first, on the same roster as everybody else who can see and hear them."
+   },
+   {
+    "id": "nurse-will-manage",
+    "sentence": "A visit is never dispatched without the interpreter on the grounds that the nurse will manage. Managing is what happens instead of a consultation."
+   }
+  ],
+  "teleconsult": {
+   "contract": "packages/catalog/teleconsult.json",
+   "participantId": "interpreter",
+   "essentialWhenRequired": true,
+   "sentence": "The interpreter is the participant the call roster already has. When this requirement is on the account that participant becomes essential: the call does not open without them, and declining them rebooks the consultation rather than continuing it in a language the patient did not choose — which is what the roster already says happens."
+  },
+  "notYetBuilt": "None of this is a working service. There is no interpreter roster, no interpreter vetting row and no scheduling that can hold a visit until one is free. What exists is the requirement, the refusals it creates, and the place each of them belongs. An interpreter is a vetted party who hears a whole consultation, and the vetting table does not have a row for one yet."
+ }
+}

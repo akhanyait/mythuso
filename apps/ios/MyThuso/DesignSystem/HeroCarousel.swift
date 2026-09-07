@@ -11,6 +11,13 @@ struct HeroCarousel: View {
     @State private var playing = true
     private let rotate = Timer.publish(every: 6.5, on: .main, in: .common).autoconnect()
     private var slides: [HeroSlideCopy] { heroSlides(store.locale) }
+    /* The one fixed height on this screen that has text under it. A TabView in page style needs a
+       height, and 366 was the height the design was drawn at — at the largest Dynamic Type sizes the
+       headline, the body, three trust items and a call to action do not fit in 366 points, and what
+       happens then is that the call to action is clipped off the bottom without a scroll bar to say
+       so. @ScaledMetric grows it with the reader's text size, which is the only honest way to keep a
+       fixed height at all. */
+    @ScaledMetric(relativeTo: .body) private var slideHeight: CGFloat = 366
     private var rotating: Bool { playing && !reduceMotion }
     var body: some View {
         VStack(spacing: 12) {
@@ -20,7 +27,7 @@ struct HeroCarousel: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 366)
+            .frame(height: slideHeight)
             .onReceive(rotate) { _ in
                 guard rotating else { return }
                 withAnimation(.easeInOut(duration: 0.45)) { index = (index + 1) % slides.count }
