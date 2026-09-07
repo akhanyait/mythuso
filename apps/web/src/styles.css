@@ -1663,6 +1663,11 @@ main{padding-bottom:var(--space-40)}
    find the start of the next line. Sixty-eight characters is the widest a line gets here, whatever
    the screen does. Headings and tabular data are exempt: they are not read line by line. */
 .page-intro p,p.muted,p.helper,.earn-rule,.privacy-note,.empty-note,.prog-reconcile{max-width:68ch}
+/* The language screen is the longest piece of prose a reader meets here — a contract sentence, a
+   rule and its reasoning, six things a visit must do. Its `.muted` paragraphs were held to the
+   measure and its plain ones were not, so a panel alternated between sixty-eight characters and a
+   hundred and thirty down the same column. */
+.panel>p,.access-rule p,.access-rule>div>p{max-width:68ch}
 /* A helper is a sentence, so it is set as one. As a flex row it wrapped its own icon onto a line of
    its own the moment the measure above bit, and a symbol alone above a paragraph reads as a
    heading for it. */
