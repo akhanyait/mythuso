@@ -447,7 +447,12 @@ fun serviceIcon(id: String) = when (id) {
     val endTime = Scheduling.endTime(slot, service.duration)
     AlertDialog(
         onDismissRequest = close,
-        title = { Text(if (step == 4) "Your demo visit is booked" else "Your home visit", fontWeight = FontWeight.Bold) },
+        /* White, like every other surface in the app. Material derives a dialog's ground from the
+           primary colour, which under Deep Indigo comes out a pale lavender — a colour that appears
+           nowhere else in this design and reads as a different product the moment it opens. */
+        containerColor = Color.White,
+        shape = RoundedCornerShape(ThusoRadius.card),
+        title = { Text(if (step == 4) "Your demo visit is booked" else "Your home visit", style = MaterialTheme.typography.titleLarge, color = Ink) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (step < 4) StepDots(step + 1, 4, labels[step])
