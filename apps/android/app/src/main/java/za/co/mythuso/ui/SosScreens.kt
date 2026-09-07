@@ -161,8 +161,8 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                             none = false; requested = false; stoodDown = null; unanswered = false
                             flagged = if (ticked) flagged - condition.id else flagged + condition.id
                         }
-                    ).padding(vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top
+                    ).padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top
                 ) {
                     Icon(if (ticked) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null,
                         tint = if (ticked) Danger else Faint)
@@ -179,8 +179,8 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                         requested = false; stoodDown = null; unanswered = false
                         none = it; flagged = emptySet()
                     }
-                ).padding(vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.CenterVertically
+                ).padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(if (none) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null,
                     tint = if (none) Indigo else Faint)
@@ -192,8 +192,8 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
         if (flagged.isNotEmpty()) {
             val outcome = Sos.outcome("emergency-services")
             Column(
-                Modifier.fillMaxWidth().background(DangerSoft, RoundedCornerShape(18.dp)).padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(9.dp)
+                Modifier.fillMaxWidth().background(DangerSoft, RoundedCornerShape(ThusoRadius.card)).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(outcome.headline, style = MaterialTheme.typography.titleLarge, color = Danger)
                 Text(outcome.detail, style = MaterialTheme.typography.bodyMedium, color = Slate)
@@ -234,8 +234,8 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
             val outcome = Sos.outcome("cannot-help")
             val failure = Sos.failure(door.failureId)
             Column(
-                Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(18.dp)).padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(9.dp)
+                Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(ThusoRadius.card)).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(outcome.headline, style = MaterialTheme.typography.titleMedium, color = Ink)
                 Text(outcome.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
@@ -273,7 +273,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
             Text("Who could come", style = MaterialTheme.typography.titleLarge, color = Ink)
             CareCard {
                 candidates.forEach { (subject, decision, eta) ->
-                    Column(Modifier.padding(vertical = 5.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                             Text(subject.name, style = MaterialTheme.typography.titleSmall, color = Ink, modifier = Modifier.weight(1f))
                             StatusPill(if (decision.allowed) "Cleared" else "Refused", if (decision.allowed) "teal" else "danger")
@@ -309,8 +309,8 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 48.dp)
                             .toggleable(value = unanswered, role = Role.Checkbox, onValueChange = { unanswered = it })
-                            .padding(vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.CenterVertically
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(if (unanswered) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null,
                             tint = if (unanswered) MangoInk else Faint)
@@ -318,7 +318,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                     }
                     if (unanswered) {
                         Text(sosStandDown.noAnswerRule, style = MaterialTheme.typography.bodyMedium, color = Slate,
-                            modifier = Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(14.dp)).padding(13.dp))
+                            modifier = Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp))
                     }
                 } else {
                     Text("Stood down · ${chosen.label}", style = MaterialTheme.typography.titleSmall, color = Ink)
@@ -334,7 +334,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
         Note("Four ways a button like this fails and one way vetting stops it. Each says what to do instead, because a failure screen without one is a dead end wearing an apology.")
         sosFailures.forEach { failure ->
             CareCard {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.WarningAmber, null, tint = MangoInk)
                     Text(failure.name, style = MaterialTheme.typography.titleSmall, color = Ink)
                 }
@@ -382,7 +382,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
         Text("What this screen will not do", style = MaterialTheme.typography.titleLarge, color = Ink)
         sosRefusals.forEach { refusal ->
             CareCard {
-                Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                     Icon(Icons.Outlined.Block, null, tint = Danger)
                     Text(refusal.sentence, style = MaterialTheme.typography.bodyMedium, color = Slate)
                 }
@@ -396,26 +396,26 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
 @Composable private fun EmergencyFirst() {
     Column(
         Modifier.fillMaxWidth()
-            .background(DangerSoft, RoundedCornerShape(18.dp))
-            .border(2.dp, Danger, RoundedCornerShape(18.dp))
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(13.dp)
+            .background(DangerSoft, RoundedCornerShape(ThusoRadius.card))
+            .border(2.dp, Danger, RoundedCornerShape(ThusoRadius.card))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
             Icon(Icons.Outlined.LocalHospital, null, tint = Danger)
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(sosEmergency.headline, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Danger)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(sosEmergency.headline, style = MaterialTheme.typography.titleLarge, color = Danger)
                 Text(sosEmergency.lead, style = MaterialTheme.typography.bodyMedium, color = Slate)
             }
         }
         sosEmergency.numbers.forEach { number ->
             Row(
-                Modifier.fillMaxWidth().background(SurfaceWhite, RoundedCornerShape(14.dp)).padding(13.dp)
+                Modifier.fillMaxWidth().background(SurfaceWhite, RoundedCornerShape(ThusoRadius.card)).padding(12.dp)
                     .semantics { contentDescription = "${number.name}. ${number.number}. ${number.whenToUse}" },
-                horizontalArrangement = Arrangement.spacedBy(13.dp), verticalAlignment = Alignment.Top
+                horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top
             ) {
-                Text(number.number, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Danger)
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(number.number, style = MaterialTheme.typography.titleLarge, color = Danger)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(number.name, style = MaterialTheme.typography.titleSmall, color = Ink)
                     Text(number.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                     Text(number.whenToUse, style = MaterialTheme.typography.bodySmall, color = Faint)
@@ -430,11 +430,11 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
 /** The ambulance number again, wherever a door has just been chosen. Repetition is the point. */
 @Composable private fun DialLine() {
     Row(
-        Modifier.fillMaxWidth().background(SurfaceWhite, RoundedCornerShape(14.dp)).padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.CenterVertically
+        Modifier.fillMaxWidth().background(SurfaceWhite, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(Icons.Outlined.Phone, null, tint = Danger)
-        Text(sosEmergency.numbers[0].number, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Danger)
+        Text(sosEmergency.numbers[0].number, style = MaterialTheme.typography.titleLarge, color = Danger)
         Text("Ambulance · or ${sosEmergency.numbers[1].number} from a mobile",
             style = MaterialTheme.typography.bodySmall, color = BodyText)
     }

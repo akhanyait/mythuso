@@ -64,13 +64,13 @@ private fun provenanceIcon(provenance: Provenance): ImageVector = when (provenan
 }
 @Composable fun ProvenanceMark(provenance: Provenance) {
     Row(
-        Modifier.background(IndigoSoft, CircleShape).padding(horizontal = 9.dp, vertical = 5.dp)
+        Modifier.background(IndigoSoft, CircleShape).padding(horizontal = 8.dp, vertical = 4.dp)
             .semantics(mergeDescendants = true) { contentDescription = provenance.label },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Icon(provenanceIcon(provenance), null, tint = IndigoDeep, modifier = Modifier.size(13.dp))
-        Text(provenance.shortLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = IndigoDeep)
+        Text(provenance.shortLabel, style = MaterialTheme.typography.labelMedium, color = IndigoDeep)
     }
 }
 @Composable private fun CalibrationPill(state: CalibrationState) {
@@ -95,7 +95,7 @@ private fun stateTone(state: CaptureState) = when (state) {
  * same weight on purpose — see the note above the mark.
  */
 @Composable fun ProvenanceBlock(reading: CapturedReading, patient: String = reading.patient) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         when (reading.provenance) {
             Provenance.DEVICE -> {
                 ReviewLine("Instrument", "${reading.instrumentName ?: "—"} · ${reading.serial ?: "—"}")
@@ -179,7 +179,7 @@ private fun stateTone(state: CaptureState) = when (state) {
         DemoBadge()
         Heading("Thuso Kit", "Connected diagnostic capture.", "$visit · $patient. Six instruments, each with what it measures, how it would connect and when it was last calibrated.")
         CareCard {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Outlined.BluetoothDisabled, null, tint = Indigo)
                 Text("Nothing here connects.", style = MaterialTheme.typography.titleMedium)
             }
@@ -231,9 +231,9 @@ private fun stateTone(state: CaptureState) = when (state) {
         }
         if (scanned) capture.unpaired().forEach { instrument ->
             CareCard {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TileIcon(instrumentIcon(instrument.id), size = 38.dp)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(instrument.name, style = MaterialTheme.typography.titleSmall, color = Ink)
                         Note("${instrument.transport} · measures ${instrument.measures.joinToString(", ") { measureLabels[it] ?: it }}")
                     }
@@ -283,9 +283,9 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
     var takenId by remember(paired.instrument.id) { mutableStateOf<String?>(null) }
     val taken = takenId?.let(latest)
     CareCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TileIcon(instrumentIcon(paired.instrument.id), size = 40.dp)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(paired.instrument.name, style = MaterialTheme.typography.titleSmall, color = Ink)
                 Note("${paired.serial} · ${paired.instrument.transport} · battery ${paired.battery}%")
             }
@@ -296,7 +296,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             "This instrument is out of calibration and it still takes readings. A nurse in a home with one blood-pressure monitor needs the number; what she must not have is the number without the caveat, so the caveat is written onto every reading it produces and travels with them into the record.",
             style = MaterialTheme.typography.bodyMedium, color = MangoInk
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = toggle) { Text(if (expanded) "Close" else "Take a reading") }
             TextButton(onClick = unpair) { Text("Unpair") }
         }
@@ -310,7 +310,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             }
         }
         /* The limitation, at the moment of the reading. */
-        Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Info, null, tint = MangoInk, modifier = Modifier.size(17.dp))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("What this instrument cannot decide for you", style = MaterialTheme.typography.labelLarge, color = Ink)
@@ -329,8 +329,8 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
 
         if (taken != null) {
             HorizontalDivider(color = Line)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("${taken.value} ${taken.unit}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Ink)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("${taken.value} ${taken.unit}", style = MaterialTheme.typography.titleLarge, color = Ink)
                 ProvenanceMark(taken.provenance)
                 StatusPill(taken.state.label, stateTone(taken.state))
             }
@@ -376,7 +376,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
 
         /* offlineNeverServesStaleSilently, first thing on the screen and in words. */
         CareCard {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Outlined.Storage, null, tint = Indigo)
                 Text("Read from this phone, ${ageText(capture.readAtMillis)}", style = MaterialTheme.typography.titleMedium)
             }
@@ -392,9 +392,9 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         CareCard {
             Text("Where the work is", style = MaterialTheme.typography.titleMedium)
             CaptureState.entries.forEach { state ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatusPill("${counts[state] ?: 0}", stateTone(state))
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(state.label, style = MaterialTheme.typography.bodyMedium, color = Ink)
                         Note(state.detail)
                     }
@@ -417,14 +417,14 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         /* A design-review control, kept collapsed and labelled, because a phone with no internet
            permission cannot otherwise be shown sending anything. */
         Column(
-            Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(12.dp))
-                .border(1.dp, Line, RoundedCornerShape(12.dp))
+            Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(ThusoRadius.control))
+                .border(1.dp, Line, RoundedCornerShape(ThusoRadius.control))
                 /* Announced as a button that expands, rather than as an unnamed tap target. */
                 .clickable(
                     onClickLabel = if (controls) "Hide the design-review controls" else "Show the design-review controls",
                     role = Role.Button
-                ) { controls = !controls }.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(9.dp)
+                ) { controls = !controls }.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(if (controls) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, tint = BodyText, modifier = Modifier.size(18.dp))
@@ -483,12 +483,13 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
 @Composable private fun QueueEntryCard(store: PreviewStore, reading: CapturedReading, resolver: VettingSubject?) {
     var open by remember(reading.id) { mutableStateOf(false) }
     CareCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(reading.label, style = MaterialTheme.typography.titleSmall, color = Ink)
                 Note("${reading.visit} · ${reading.patient} · ${reading.id}")
             }
-            Text("${reading.value} ${reading.unit}", fontSize = 18.sp, fontWeight = FontWeight.Bold,
+            Text("${reading.value} ${reading.unit}",
+                 style = MaterialTheme.typography.titleLarge,
                 color = if (reading.superseded) BodyText else Ink)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -523,7 +524,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
     val conflict = captureConflictById(reading.conflictId) ?: return
     val capture = store.capture
     HorizontalDivider(color = Line)
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Outlined.Balance, null, tint = MangoInk)
         Text(conflict.name, style = MaterialTheme.typography.titleSmall, color = Ink)
     }
@@ -543,11 +544,11 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             Note("Neither is presented as the better one and neither is a correction of the other. They are two things that happened, and a clinician says which stands.")
             listOf(other, reading).forEach { candidate ->
                 Column(
-                    Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(12.dp)).padding(13.dp),
+                    Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(ThusoRadius.control)).padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                        Text("${candidate.value} ${candidate.unit}", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Ink)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("${candidate.value} ${candidate.unit}", style = MaterialTheme.typography.titleLarge, color = Ink)
                         ProvenanceMark(candidate.provenance)
                     }
                     Note("${candidate.id} · this phone believed ${clockText(candidate.deviceMillis)}${candidate.serverMillis?.let { " · server received ${clockText(it)}" } ?: " · not yet received"}")
@@ -580,7 +581,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             Button(onClick = { capture.countersign(reading.id, resolver) }) {
                 Text("Countersign as ${resolver.name}")
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = {
                     capture.hold(reading.id, "Held by ${resolver.name} · ${resolver.reference}: not countersigned yet. It stays here, in full, until somebody is willing to put their registration against it.")
                 }) { Text("Hold it") }
@@ -599,7 +600,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                 style = MaterialTheme.typography.bodyMedium
             )
             Button(onClick = { capture.fileAsAddendum(reading.id, resolver) }) { Text("File as an addendum") }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = {
                     capture.hold(reading.id, "Held by ${resolver.name} · ${resolver.reference} pending a word with the clinician who signed the visit.")
                 }) { Text("Hold it") }

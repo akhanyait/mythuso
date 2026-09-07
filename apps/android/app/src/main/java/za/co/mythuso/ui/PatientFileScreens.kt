@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -102,7 +103,7 @@ private fun grantSentence(roleId: String, capability: String): String? =
             FlowRowChips(viewers.map(::viewerLabel), setOf(viewerLabel(viewer))) { label ->
                 viewerId = viewers.first { viewerLabel(it) == label }.id; notice = ""
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatusPill(
                     status.label,
                     when (status) {
@@ -183,7 +184,7 @@ private fun grantSentence(roleId: String, capability: String): String? =
 }
 /** The same refusal without a card of its own, for the places already standing inside one. */
 @Composable private fun ColumnScope.RefusalBody(title: String, decision: VettingDecision) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Outlined.Lock, null, tint = Danger)
         Text(title, style = MaterialTheme.typography.titleSmall, color = Ink)
     }
@@ -230,23 +231,23 @@ private fun grantSentence(roleId: String, capability: String): String? =
     )
     CareCard {
         if (!decision.allowed) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TileIcon(Icons.Outlined.PersonOutline)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Patient ${patient.id}", style = MaterialTheme.typography.titleMedium, color = Ink)
                     Note("The file is open. The person is not.")
                 }
             }
             RefusalBody("The patient summary is not open to this viewer", decision)
         } else {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.size(46.dp).background(IndigoSoft, CircleShape), Alignment.Center) {
                     Text(
                         patient.name.split(" ").mapNotNull { it.firstOrNull() }.take(2).joinToString(""),
-                        fontSize = 16.sp, fontWeight = FontWeight.Bold, color = IndigoDeep
+                         style = MaterialTheme.typography.titleMedium, color = IndigoDeep
                     )
                 }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(patient.name, style = MaterialTheme.typography.titleMedium, color = Ink)
                     Note("${patient.id} · ${patient.sex} · ${ageFrom(patient.dob)} years")
                 }
@@ -273,12 +274,12 @@ private fun grantSentence(roleId: String, capability: String): String? =
         else -> IndigoSoft to IndigoDeep
     }
     Column(
-        Modifier.background(background, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 8.dp)
+        Modifier.background(background, RoundedCornerShape(ThusoRadius.control)).padding(horizontal = 12.dp, vertical = 8.dp)
             .semantics(mergeDescendants = true) { contentDescription = "$key: $value" },
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text(key, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = foreground.copy(alpha = 0.85f))
-        Text(value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = foreground)
+        Text(key, style = MaterialTheme.typography.labelMedium, color = foreground.copy(alpha = 0.85f))
+        Text(value, style = MaterialTheme.typography.labelMedium, color = foreground)
     }
 }
 
@@ -306,7 +307,7 @@ private val withheldCategorySentence: String = run {
         "Vetted is not released: the patient releases a category entry by entry, in their own account, naming you. Ask them."
     else "${decision.reason.orEmpty()} Ask the patient, or the clinician they released it to."
     CareCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Lock, null, tint = Indigo)
             Text("A category is withheld from this header.", style = MaterialTheme.typography.titleSmall, color = Ink)
         }
@@ -334,7 +335,7 @@ private val withheldCategorySentence: String = run {
     val current = patient.medication.filter { it.stopped == null && canOpen(viewer, it).allowed }
 
     CareCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.CalendarMonth, null, tint = Indigo, modifier = Modifier.size(17.dp))
             Text("Last visit", style = MaterialTheme.typography.labelLarge, color = BodyText)
         }
@@ -345,7 +346,7 @@ private val withheldCategorySentence: String = run {
         } else RefusalBody("Withheld", clinical)
     }
     CareCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.EventAvailable, null, tint = Indigo, modifier = Modifier.size(17.dp))
             Text("Next appointment", style = MaterialTheme.typography.labelLarge, color = BodyText)
         }
@@ -357,7 +358,7 @@ private val withheldCategorySentence: String = run {
         } else Note("Nothing is booked. A missed appointment and an unbooked one are not the same thing, and this file does not blur them.")
     }
     CareCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Medication, null, tint = Indigo, modifier = Modifier.size(17.dp))
             Text("Current medication", style = MaterialTheme.typography.labelLarge, color = BodyText)
         }
@@ -432,7 +433,7 @@ private val withheldCategorySentence: String = run {
             val icon = when (action.label) {
                 "New consultation" -> Icons.Outlined.MedicalServices
                 "Prescription" -> Icons.Outlined.Medication
-                "Referral" -> Icons.Outlined.Send
+                "Referral" -> Icons.AutoMirrored.Outlined.Send
                 "Upload document" -> Icons.Outlined.UploadFile
                 else -> Icons.Outlined.Place
             }
@@ -440,11 +441,11 @@ private val withheldCategorySentence: String = run {
                 setNotice("${action.label} would open here for ${patient.name}. This preview writes nothing, sends nothing and dispenses nothing.")
             } else Row(
                 Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 TileIcon(Icons.Outlined.Lock, Danger, DangerSoft, 38.dp)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(action.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = BodyText)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(action.label, style = MaterialTheme.typography.titleSmall, color = BodyText)
                     Note(allowed.reason.orEmpty())
                 }
             }
@@ -458,15 +459,15 @@ private val withheldCategorySentence: String = run {
 }
 @Composable private fun VitalTile(icon: ImageVector, name: String, value: String, provenance: Provenance? = null) {
     Column(
-        Modifier.background(Color.White, RoundedCornerShape(14.dp)).padding(12.dp)
+        Modifier.background(Color.White, RoundedCornerShape(ThusoRadius.card)).padding(12.dp)
             .semantics(mergeDescendants = true) { contentDescription = "$name $value${provenance?.let { ", ${it.label}" } ?: ""}" },
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(icon, null, tint = Indigo, modifier = Modifier.size(15.dp))
-            Text(name, fontSize = 11.sp, color = BodyText)
+            Text(name, style = MaterialTheme.typography.bodySmall, color = BodyText)
         }
-        Text(value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+        Text(value, style = MaterialTheme.typography.titleSmall, color = Ink)
         provenance?.let { ProvenanceMark(it) }
     }
 }
@@ -499,7 +500,7 @@ private val withheldCategorySentence: String = run {
 @Composable private fun EntryRow(entry: TimelineEntry, decision: VettingDecision, full: Boolean) {
     val type = recordTypeById(entry.typeId)
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 9.dp),
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         TileIcon(
@@ -507,10 +508,10 @@ private val withheldCategorySentence: String = run {
             if (decision.allowed) Indigo else Danger,
             if (decision.allowed) IndigoSoft else DangerSoft, 36.dp
         )
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 if (decision.allowed) entry.title else "${type?.name ?: "Record"} · withheld",
-                fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink
+                 style = MaterialTheme.typography.titleSmall, color = Ink
             )
             Text(
                 if (decision.allowed) entry.detail else decision.reason.orEmpty(),
@@ -534,8 +535,8 @@ private val withheldCategorySentence: String = run {
         key(consultation.id) {
         var open by remember { mutableStateOf(false) }
         CareCard(Modifier.clickable { open = !open }) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("${shortDate(consultation.at)} · ${consultation.kind}", style = MaterialTheme.typography.titleSmall, color = Ink)
                     Note(consultation.by)
                 }
@@ -555,8 +556,8 @@ private val withheldCategorySentence: String = run {
                 Text("The standardised structure", style = MaterialTheme.typography.titleSmall, color = Ink)
                 consultationSections.forEach { section ->
                     val filled = section.id in consultation.sections
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(section.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (filled) Ink else BodyText)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(section.name, style = MaterialTheme.typography.labelMedium, color = if (filled) Ink else BodyText)
                         Note(
                             (if (filled) "Recorded" else if (section.required) "Required and not recorded" else "Not recorded") +
                                 (section.gatedBy?.let { " · written only by a party holding $it" } ?: "")
@@ -580,7 +581,7 @@ private val withheldCategorySentence: String = run {
     val current = visible.filter { it.stopped == null }
     val past = visible.filter { it.stopped != null }
     CareCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Warning, null, tint = if (patient.allergies.isNotEmpty()) Danger else MangoInk)
             Text(if (patient.allergies.isNotEmpty()) "Allergies" else "No allergy has been recorded", style = MaterialTheme.typography.titleSmall, color = Ink)
         }
@@ -615,12 +616,12 @@ private val withheldCategorySentence: String = run {
 }
 @Composable private fun MedicineRow(medicine: Medicine, detail: String, attribution: String) {
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 9.dp),
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         TileIcon(Icons.Outlined.Medication, size = 36.dp)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text("${medicine.name} ${medicine.dose}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("${medicine.name} ${medicine.dose}", style = MaterialTheme.typography.titleSmall, color = Ink)
             Text(detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
             Note(attribution)
             ReleasedTag(medicine)
@@ -637,7 +638,7 @@ private val withheldCategorySentence: String = run {
         CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TileIcon(Icons.Outlined.Science, size = 40.dp)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(report.name, style = MaterialTheme.typography.titleSmall, color = Ink)
                     Note("${report.source} · ${shortDate(report.at)}")
                 }
@@ -647,11 +648,11 @@ private val withheldCategorySentence: String = run {
             Note("Fictional results. Reference ranges are indicative and are not a validated early-warning score.")
             report.rows.forEach { row ->
                 Column(
-                    Modifier.fillMaxWidth().padding(vertical = 5.dp)
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         .semantics(mergeDescendants = true) {
                             contentDescription = "${row.name}: ${row.value}${row.flag?.let { ", $it" } ?: ""}. Reference range ${row.range}."
                         },
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(row.name, style = MaterialTheme.typography.bodyMedium, color = BodyText, modifier = Modifier.weight(1f))
@@ -681,12 +682,12 @@ private val withheldCategorySentence: String = run {
     else CareCard {
         rows.forEachIndexed { index, referral ->
             Row(
-                Modifier.fillMaxWidth().padding(vertical = 9.dp),
+                Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                TileIcon(Icons.Outlined.Send, size = 36.dp)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(referral.to, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+                TileIcon(Icons.AutoMirrored.Outlined.Send, size = 36.dp)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(referral.to, style = MaterialTheme.typography.titleSmall, color = Ink)
                     Text(referral.reason, style = MaterialTheme.typography.bodySmall, color = BodyText)
                     Note("${shortDate(referral.at)} · ${referral.urgency} · ${referral.by}")
                     StatusPill(referral.status, if (referral.status.startsWith("Accepted")) "teal" else "sky")
@@ -706,12 +707,12 @@ private val withheldCategorySentence: String = run {
     else CareCard {
         rows.forEachIndexed { index, document ->
             Row(
-                Modifier.fillMaxWidth().padding(vertical = 9.dp),
+                Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 TileIcon(Icons.Outlined.Description, size = 36.dp)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(document.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(document.name, style = MaterialTheme.typography.titleSmall, color = Ink)
                     Text("${document.kind} · ${document.by}", style = MaterialTheme.typography.bodySmall, color = BodyText)
                     Note("${shortDate(document.at)} · DocumentReference")
                 }
@@ -732,8 +733,8 @@ private val withheldCategorySentence: String = run {
     val rows = patient.billing.filter { canOpen(viewer, it).allowed }
     val total = rows.sumOf { it.amount }
     CareCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.ReceiptLong, null, tint = Danger)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.AutoMirrored.Outlined.ReceiptLong, null, tint = Danger)
             Text("A code is not anonymous.", style = MaterialTheme.typography.titleSmall, color = Ink)
         }
         Text(
@@ -746,15 +747,15 @@ private val withheldCategorySentence: String = run {
         Note("Fictional claim lines. Nothing has been submitted to a scheme and no payment has been taken.")
         rows.forEachIndexed { index, line ->
             Column(
-                Modifier.fillMaxWidth().padding(vertical = 7.dp)
+                Modifier.fillMaxWidth().padding(vertical = 8.dp)
                     .semantics(mergeDescendants = true) {
                         contentDescription = "${shortDate(line.at)}, code ${line.code}, ${line.service}, ${rands(line.amount)}, ${line.status}."
                     },
-                verticalArrangement = Arrangement.spacedBy(3.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${line.code} · ${line.service}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink, modifier = Modifier.weight(1f))
-                    Text(rands(line.amount), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Slate)
+                    Text("${line.code} · ${line.service}", style = MaterialTheme.typography.titleSmall, color = Ink, modifier = Modifier.weight(1f))
+                    Text(rands(line.amount), style = MaterialTheme.typography.titleSmall, color = Slate)
                 }
                 Note("${shortDate(line.at)} · ${line.payer}")
                 StatusPill(line.status, if (line.status == "Rejected") "danger" else "quiet")

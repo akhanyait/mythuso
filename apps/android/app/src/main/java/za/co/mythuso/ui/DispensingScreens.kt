@@ -16,7 +16,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -114,7 +114,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
         CareCard {
             Text("NEVER, WITHOUT THE PRESCRIBER", style = MaterialTheme.typography.labelSmall, color = Faint)
             substitutionNeverChanges.forEach { Bullet(it.what, it.why) }
-            Divider()
+            HorizontalDivider()
             Text("MAY CHANGE, AND THE PATIENT IS TOLD", style = MaterialTheme.typography.labelSmall, color = Faint)
             substitutionMayChange.forEach { Bullet(it.what, it.why) }
             DispensingRefusalRow(Dispensing.refusal("substitute-the-molecule"))
@@ -160,10 +160,10 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             dispensingHandover.forEachIndexed { index, step ->
                 val done = open && (index < 2 || (step.id == "told" && everyItemTold) ||
                     (step.id == "recorded" && handed.size == rx.items.size))
-                Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                     Icon(if (done) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked, null,
                         tint = if (done) Indigo else Faint)
-                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(step.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
                         Text(step.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                     }
@@ -210,8 +210,8 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
                 Alert("This is the last repeat. It is said now, not at the counter next month.")
             }
             Column(
-                Modifier.fillMaxWidth().background(IndigoSoft, RoundedCornerShape(14.dp)).padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                Modifier.fillMaxWidth().background(IndigoSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text("What happens at the end", style = MaterialTheme.typography.titleMedium, color = Slate)
                 Text(auth.endsWith, style = MaterialTheme.typography.bodyMedium, color = Slate)
@@ -233,7 +233,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
     val klass = Dispensing.substitutionClass(item.classId)
     CareCard {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(item.dispensed, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
                 Text("${item.molecule} ${item.strength} · ${item.form} · ${item.dose} · ${item.quantity}",
                     style = MaterialTheme.typography.bodySmall, color = BodyText)
@@ -254,8 +254,8 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 
         item.writtenReason?.let { reason ->
             Column(
-                Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(14.dp)).padding(13.dp),
-                verticalArrangement = Arrangement.spacedBy(5.dp)
+                Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text("${pharmacist.name} · ${pharmacist.registration}",
                     style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
@@ -287,8 +287,8 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
    are set as speech rather than as small print. */
 @Composable private fun Telling(item: PrescriptionItem) {
     Column(
-        Modifier.fillMaxWidth().background(IndigoSoft, RoundedCornerShape(14.dp)).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        Modifier.fillMaxWidth().background(IndigoSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.Hearing, null, tint = IndigoDeep)
@@ -308,9 +308,9 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 }
 
 @Composable private fun GroundRow(ground: SubstitutionGround) {
-    Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Top) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
         Icon(Icons.Outlined.Info, null, tint = Indigo)
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(if (ground.section == null) ground.name else "${ground.name} · section ${ground.section}",
                 style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Ink)
             Text(ground.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
@@ -319,9 +319,9 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 }
 
 @Composable private fun Bullet(what: String, why: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Top) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
         Text("•", color = Indigo)
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(what, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Ink)
             Text(why, style = MaterialTheme.typography.bodySmall, color = BodyText)
         }
@@ -330,8 +330,8 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 
 @Composable private fun Box3(label: String, value: String, note: String) {
     Column(
-        Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(14.dp)).padding(13.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+        Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = Faint)
         Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Ink)
@@ -341,8 +341,8 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 
 @Composable private fun Alert(text: String) {
     Row(
-        Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(14.dp)).padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top
+        Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top
     ) {
         Icon(Icons.Outlined.CalendarMonth, null, tint = MangoInk)
         Text(text, style = MaterialTheme.typography.bodyMedium, color = Slate)
@@ -350,7 +350,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 }
 
 @Composable private fun DispensingRefusalRow(item: DispensingRefusal) {
-    Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
         Icon(Icons.Outlined.Block, null, tint = Danger)
         Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Slate)
     }

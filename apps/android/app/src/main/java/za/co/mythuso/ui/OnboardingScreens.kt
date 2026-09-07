@@ -72,7 +72,7 @@ import za.co.mythuso.model.*
                     isError = phone.isNotEmpty() && !phoneOk,
                     supportingText = { Text(if (phone.isEmpty() || phoneOk) "Standard network rates apply. We never share your number with advertisers." else "Enter a 10-digit South African mobile number, starting with 0.") })
                 Note("In production this step is rate-limited and the code is bound to one device.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 0 }) { Text("Back") }
                     Button(onClick = { code = ""; codeError = ""; step = 2 }, enabled = phoneOk) { Text("Send my code") }
                 }
@@ -82,7 +82,7 @@ import za.co.mythuso.model.*
                 Text("Verification code", style = MaterialTheme.typography.labelLarge, color = Slate)
                 CodeBoxes(code, { code = it; codeError = "" }, invalid = codeError.isNotEmpty(), label = "Verification code")
                 if (codeError.isNotEmpty()) Note(codeError)
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 1 }) { Text("Different number") }
                     Button(onClick = { if (code == "240924") step = 3 else codeError = "That code doesn’t match. Check the message and try again." }, enabled = code.length == 6) { Text("Verify") }
                 }
@@ -94,7 +94,7 @@ import za.co.mythuso.model.*
                     isError = idNumber.isNotEmpty() && !idCheck.first,
                     supportingText = { Text(if (idNumber.isEmpty()) "Use a fictional number for this preview — for example 8001015009087." else idCheck.second) })
                 Note("Production verification runs against the Department of Home Affairs through an accredited provider, with a documented lawful basis. Nothing is verified here.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 2 }) { Text("Back") }
                     Button(onClick = { step = 4 }, enabled = idCheck.first) { Text("Continue") }
                 }
@@ -114,7 +114,7 @@ import za.co.mythuso.model.*
                 OutlinedTextField(recoveryWord, { recoveryWord = it.take(24) }, label = { Text("Recovery word") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
                     supportingText = { Text("Choose something memorable that isn’t your name, birthday or a family name.") })
                 Note("A trusted contact can start recovery for you. They never see your records, and you are told every time recovery is attempted.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 3 }) { Text("Back") }
                     Button(onClick = { step = 5 }, enabled = recoveryWord.trim().length >= 3) { Text("Continue") }
                 }
@@ -127,7 +127,7 @@ import za.co.mythuso.model.*
                     Setting("Send me optional health tips and product news.", consentUpdates) { consentUpdates = it }
                 }
                 Note("Consent is recorded with its version, wording and timestamp so you can see exactly what you agreed to, and withdraw it later.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 4 }) { Text("Back") }
                     Button(onClick = done, enabled = consentCare && consentPopia) { Text("Enter MyThuso") }
                 }
@@ -148,7 +148,7 @@ import za.co.mythuso.model.*
         Heading("Account recovery", "Getting you back in.", "Losing a phone shouldn’t mean losing your health history.")
         if (submitted) {
             CareCard {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo)
                     Text("We’ve started your recovery", style = MaterialTheme.typography.titleMedium)
                 }
@@ -162,7 +162,7 @@ import za.co.mythuso.model.*
                 CareCard(Modifier.clickable { route = title }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(route == title, { route = title })
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
                             Note(body)
                             Text(wait, style = MaterialTheme.typography.labelSmall, color = Indigo)
@@ -171,7 +171,7 @@ import za.co.mythuso.model.*
                 }
             }
             Note("Recovery never reveals your records to the person helping you.")
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = back) { Text("Back") }
                 Button(onClick = { submitted = true }, enabled = route.isNotEmpty()) { Text("Start recovery") }
             }
@@ -233,7 +233,7 @@ import za.co.mythuso.model.*
         }
         Text("What must never happen", style = MaterialTheme.typography.titleMedium, color = Ink)
         ThusoLanguageNotes.signLanguageNeverHappens.forEach { sentence ->
-            Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                 Icon(Icons.Outlined.Block, null, tint = Danger)
                 Text(sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             }
@@ -249,7 +249,7 @@ import za.co.mythuso.model.*
         StatePicker("Choose a state", state) { state = it }
         CareCard {
             if (state == LoadState.READY) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Outlined.CheckCircle, null, tint = Indigo)
                     Text("The real content, with nothing standing in for it.")
                 }

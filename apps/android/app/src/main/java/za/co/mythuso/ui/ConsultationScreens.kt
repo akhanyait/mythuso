@@ -177,7 +177,7 @@ private data class ConsultationSignature(
                     CareCard {
                         StatusPill("${heading.id} · ${heading.name}", "quiet")
                         if (heading.id == "O") readings.forEach { reading ->
-                            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(reading.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                                 Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Slate)
                                 ProvenanceMark(reading.provenance)
@@ -197,7 +197,7 @@ private data class ConsultationSignature(
             Note("Written on another clinician’s form and read-only here. The record does not change shape because the reader did.")
         }
         if (neverGranted.isNotEmpty()) CareCard {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Outlined.MedicalServices, null, tint = Indigo)
                 Text("Not on this form at all", style = MaterialTheme.typography.titleSmall, color = Ink)
             }
@@ -211,7 +211,7 @@ private data class ConsultationSignature(
            the moment of signing, taken from the vetting record the platform decides on. */
         val signed = signature
         if (signed != null) CareCard {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo)
                 Text("Demo consultation signed.", style = MaterialTheme.typography.titleMedium)
             }
@@ -255,7 +255,7 @@ private data class ConsultationSignature(
     patient: String
 ) {
     val decision = if (section.gatedBy != null) can(writer, section.gatedBy) else can(writer, "write-clinical-note")
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         /* The observations arrive already filed, each with its origin and whatever the instrument
            could not decide for itself. They are read-only here because a consultation does not get
            to change what a reading was — it gets to say what it makes of it, which is the free field
@@ -263,8 +263,8 @@ private data class ConsultationSignature(
         if (section.id == "observations" && decision.allowed && readings.isNotEmpty()) {
             Text("Readings captured on this visit", style = MaterialTheme.typography.labelLarge, color = Slate)
             readings.forEach { reading ->
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(reading.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                         Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Slate)
                         ProvenanceMark(reading.provenance)

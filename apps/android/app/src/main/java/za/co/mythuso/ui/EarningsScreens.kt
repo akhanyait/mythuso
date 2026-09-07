@@ -11,7 +11,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -84,11 +84,11 @@ private fun rand(amount: Int): String {
 
         Column(
             Modifier.fillMaxWidth()
-                .background(if (dispatchable.allowed) IndigoSoft else MangoSoft, RoundedCornerShape(18.dp))
+                .background(if (dispatchable.allowed) IndigoSoft else MangoSoft, RoundedCornerShape(ThusoRadius.card))
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                 Icon(if (dispatchable.allowed) Icons.Outlined.Verified else Icons.Outlined.WarningAmber, null,
                     tint = if (dispatchable.allowed) Indigo else MangoInk)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -125,7 +125,7 @@ private fun rand(amount: Int): String {
                     contentDescription = "Of ${rand(split.price)}, ${rand(split.nurse)} is yours, " +
                         "${rand(split.payment)} is the card fee and ${rand(split.platform)} is what MyThuso keeps"
                 },
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Bar(Indigo, split.nurse)
                 Bar(Mango, split.payment)
@@ -155,7 +155,7 @@ private fun rand(amount: Int): String {
 
         Text("Where you are paid", style = MaterialTheme.typography.titleLarge, color = Ink)
         CareCard {
-            Row(horizontalArrangement = Arrangement.spacedBy(13.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 TileIcon(Icons.Outlined.AccountBalance, size = 38.dp)
                 Column {
                     Text("${payoutAccount.bank} · ${payoutAccount.maskedNumber}",
@@ -173,7 +173,7 @@ private fun rand(amount: Int): String {
                 "verifying" -> {
                     Note("Before anything changes, we check it is you. Nothing here is sent.")
                     payoutAccount.reverify.forEach { step ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Top) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
                             Icon(Icons.Outlined.Lock, null, tint = Indigo)
                             Text(step, style = MaterialTheme.typography.bodyMedium, color = Slate)
                         }
@@ -204,8 +204,8 @@ private fun rand(amount: Int): String {
 }
 
 @Composable private fun Legend(colour: Color, amount: String, note: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Top) {
-        Box(Modifier.padding(top = 5.dp).size(11.dp).background(colour, RoundedCornerShape(3.dp)))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+        Box(Modifier.padding(top = 4.dp).size(11.dp).background(colour, RoundedCornerShape(3.dp)))
         Column {
             Text(amount, style = MaterialTheme.typography.titleMedium, color = Ink)
             Text(note, style = MaterialTheme.typography.bodySmall, color = Faint)
@@ -229,7 +229,7 @@ private fun rand(amount: Int): String {
 }
 
 @Composable private fun Refusal(item: PayRefusal) {
-    Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
         Icon(Icons.Outlined.Block, null, tint = Danger)
         Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Slate)
     }
@@ -256,10 +256,10 @@ private fun rand(amount: Int): String {
             Note(state.detail)
             week.failure?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = Danger,
-                    modifier = Modifier.fillMaxWidth().background(DangerSoft, RoundedCornerShape(14.dp)).padding(13.dp))
+                    modifier = Modifier.fillMaxWidth().background(DangerSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp))
             }
             week.lines.forEach { line ->
-                Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(line.service ?: Earnings.lineKind(line.kind).name,
                             style = MaterialTheme.typography.bodyLarge, color = Ink, modifier = Modifier.weight(1f))
@@ -272,7 +272,7 @@ private fun rand(amount: Int): String {
                     line.reason?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = BodyText) }
                 }
             }
-            Divider()
+            HorizontalDivider()
             LabelledAmount("Total for the week", rand(week.total))
             if (week.hasDeduction) Note(Earnings.rule("every-deduction-is-named").sentence)
         }

@@ -91,9 +91,9 @@ private val householdRecordType = recordTypeById("household")
         )
 
         CareCard {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TileIcon(Icons.Outlined.Groups)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(household.name, style = MaterialTheme.typography.titleMedium, color = Ink)
                     Note("FHIR ${householdRecordType?.fhir ?: "Group"} · ${household.id} · ${household.area}")
                 }
@@ -111,7 +111,7 @@ private val householdRecordType = recordTypeById("household")
                     }
                 }
                 if (roster.isEmpty()) CareCard {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Outlined.Lock, null, tint = Danger)
                         Text("Nothing here is yours to see.", style = MaterialTheme.typography.titleSmall, color = Ink)
                     }
@@ -202,13 +202,13 @@ private val householdRecordType = recordTypeById("household")
                 contentDescription = "${member.name}, ${member.relation.lowercase()}, $age years, " +
                     "reference ${member.reference}. ${visibility.level.label}. ${visibility.reason}"
             },
-            verticalArrangement = Arrangement.spacedBy(13.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.size(46.dp).background(if (member.relation == "Child") MangoSoft else IndigoSoft, CircleShape), Alignment.Center) {
                     Text(
                         member.name.split(" ").mapNotNull { it.firstOrNull() }.take(2).joinToString(""),
-                        fontSize = 16.sp, fontWeight = FontWeight.Bold,
+                         style = MaterialTheme.typography.titleMedium,
                         color = if (member.relation == "Child") MangoInk else IndigoDeep
                     )
                 }
@@ -248,7 +248,7 @@ private val householdRecordType = recordTypeById("household")
             "${summaryWithheldCategories.joinToString(", ")}. This notice stands on every record here, " +
             "whether or not anything is held behind it, and no count of them is given."
     }) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Lock, null, tint = Indigo)
             Text("A category is withheld from every record here.", style = MaterialTheme.typography.titleSmall, color = Ink)
         }
@@ -276,9 +276,9 @@ private val householdRecordType = recordTypeById("household")
                out of the house on Saturday morning. Everyone else sees only the people they hold a
                basis for — and the service name needs summary level, not a shared front door. */
             if (viewer.memberId == null && !atLeast(visibility.level, AccessLevel.EMERGENCY)) return@forEach
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TileIcon(Icons.Outlined.CalendarMonth, size = 38.dp)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("${formatVettingDate(appointment.on)} · ${appointment.time} · ${firstName(member)}",
                         style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
                     Note(if (atLeast(visibility.level, AccessLevel.SUMMARY)) appointment.service
@@ -320,9 +320,9 @@ private val householdRecordType = recordTypeById("household")
         Text(title, style = MaterialTheme.typography.titleMedium)
         if (rows.isEmpty()) Note("Nothing is outstanding for the members whose records are open to you.")
         rows.forEach { (who, what) ->
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TileIcon(icon, size = 38.dp)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(who, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
                     Note(what)
                 }
@@ -345,8 +345,8 @@ private val householdRecordType = recordTypeById("household")
    the edge. */
 @Composable private fun StackedLine(label: String, value: String) {
     Column(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp)
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = BodyText)
         Text(value, style = MaterialTheme.typography.bodyMedium, color = Slate)
@@ -355,15 +355,15 @@ private val householdRecordType = recordTypeById("household")
 
 @Composable fun ColumnScope.WithheldSummaryNotice() {
     Column(
-        Modifier.fillMaxWidth().background(Canvas, MaterialTheme.shapes.medium).padding(14.dp)
+        Modifier.fillMaxWidth().background(Canvas, MaterialTheme.shapes.medium).padding(12.dp)
             .semantics(mergeDescendants = true) {
                 contentDescription = "Withheld from every summary. ${recordSummaryCard.withheld} " +
                     "The categories are ${summaryWithheldCategories.joinToString(", ")}. " +
                     "This notice reads the same on every summary, whether or not anything is held behind it."
             },
-        verticalArrangement = Arrangement.spacedBy(9.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Lock, null, tint = IndigoDeep, modifier = Modifier.size(18.dp))
             Text("Withheld from every summary.", style = MaterialTheme.typography.titleSmall, color = IndigoDeep)
         }
@@ -446,7 +446,7 @@ private val householdRecordType = recordTypeById("household")
                 ReviewLine("Stops being valid", if (share.revoked) "Revoked" else formatVettingTime(share.validUntil))
                 StackedLine("Reference", share.token)
                 ScannerNote(member)
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = {
                             /* The rule is checked against the bytes that would actually leave. */
@@ -487,10 +487,10 @@ private val householdRecordType = recordTypeById("household")
 @Composable private fun ColumnScope.ScannerNote(member: HouseholdMember) {
     val initials = member.name.split(" ").mapNotNull { it.firstOrNull() }.joinToString(".") + "."
     Column(
-        Modifier.fillMaxWidth().background(InfoSoft, MaterialTheme.shapes.medium).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(9.dp)
+        Modifier.fillMaxWidth().background(InfoSoft, MaterialTheme.shapes.medium).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.QrCode2, null, tint = Info, modifier = Modifier.size(18.dp))
             Text("What a scanner would read.", style = MaterialTheme.typography.titleSmall, color = Info)
         }

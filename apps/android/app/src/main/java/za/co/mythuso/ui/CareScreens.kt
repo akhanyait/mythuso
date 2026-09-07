@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,7 +37,7 @@ import androidx.compose.foundation.text.KeyboardActions
 
 @Composable fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp), content = content
     )
 }
@@ -77,7 +78,7 @@ private val tileTints = listOf(
         HomeFamily(store, open)
         PassportPromo(store, open)
         TextButton(onClick = firstRun, modifier = Modifier.heightIn(min = 48.dp)) { Text("See the first-run and recovery flow") }
-        Text(thuso(Phrase.TAGLINE, store.locale), fontSize = 12.sp, color = BodyText, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        Text(thuso(Phrase.TAGLINE, store.locale), style = MaterialTheme.typography.bodySmall, color = BodyText, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
     }
 }
 
@@ -87,14 +88,14 @@ private val tileTints = listOf(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable private fun HomeGreeting(store: PreviewStore, open: (String) -> Unit) {
     var areaMenu by remember { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${thuso(Phrase.GREETING, store.locale)} 👋", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Ink, lineHeight = 29.sp)
-            Text(thuso(Phrase.GREETING_SUB, store.locale), fontSize = 13.sp, color = BodyText, lineHeight = 19.sp)
+            Text("${thuso(Phrase.GREETING, store.locale)} 👋", style = MaterialTheme.typography.titleLarge, color = Ink)
+            Text(thuso(Phrase.GREETING_SUB, store.locale), style = MaterialTheme.typography.bodySmall, color = BodyText)
         }
         /* A FlowRow rather than a Row: at the largest font scales the two chips take a line each
            instead of squeezing the care area down to an ellipsis. */
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Box {
                 ContextChip(Icons.Outlined.LocationOn, store.careArea, "Care area: ${store.careArea}") { areaMenu = true }
                 DropdownMenu(areaMenu, { areaMenu = false }) {
@@ -116,24 +117,25 @@ private val tileTints = listOf(
     Row(
         Modifier.heightIn(min = 48.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.92f))
             .border(1.dp, Line, CircleShape).clickable(onClick = click)
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
             .semantics { contentDescription = label },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(7.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Icon(icon, null, tint = Slate, modifier = Modifier.size(17.dp))
-        Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Slate, lineHeight = 18.sp)
+        Text(text, style = MaterialTheme.typography.labelMedium, color = Slate)
         Icon(Icons.Outlined.ExpandMore, null, tint = Slate, modifier = Modifier.size(15.dp))
     }
 }
 
 @Composable private fun SectionRow(title: String, action: String, onAction: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 23.sp, modifier = Modifier.weight(1f))
+        Text(title, style = MaterialTheme.typography.titleMedium, color = Ink, modifier = Modifier.weight(1f))
         Text(
-            action, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Indigo, lineHeight = 18.sp,
-            modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onAction)
-                .heightIn(min = 48.dp).padding(horizontal = 8.dp, vertical = 15.dp)
+            action,
+             style = MaterialTheme.typography.labelMedium, color = Indigo,
+            modifier = Modifier.clip(RoundedCornerShape(ThusoRadius.control)).clickable(onClick = onAction)
+                .heightIn(min = 48.dp).padding(horizontal = 8.dp, vertical = 16.dp)
         )
     }
 }
@@ -146,8 +148,8 @@ private val tileTints = listOf(
            three apps say the same thing about having nothing booked. */
         CareCard {
             TileIcon(Icons.Outlined.EditCalendar)
-            Text(SchedulingData.noUpcoming, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 21.sp)
-            Text(SchedulingData.noUpcomingDetail, fontSize = 13.sp, color = BodyText, lineHeight = 19.sp)
+            Text(SchedulingData.noUpcoming, style = MaterialTheme.typography.titleMedium, color = Ink)
+            Text(SchedulingData.noUpcomingDetail, style = MaterialTheme.typography.bodySmall, color = BodyText)
             OutlinedButton(onClick = { book(null) }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                 Text(thuso(Phrase.BOOK_NURSE, store.locale))
             }
@@ -157,8 +159,8 @@ private val tileTints = listOf(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TileIcon(serviceIcon(visit.service.id))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(visit.service.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 20.sp)
-                    Text(visit.shortWhenText, fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
+                    Text(visit.service.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text(visit.shortWhenText, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
                 StatusPill(visit.status, if (visit.isScheduled) "teal" else "amber")
             }
@@ -183,12 +185,12 @@ private val tileTints = listOf(
         keyboardActions = KeyboardActions(onSearch = { book(null) }),
         colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = Line)
     )
-    Button(onClick = { book(null) }, Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(12.dp)) {
+    Button(onClick = { book(null) }, Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(ThusoRadius.control)) {
         Icon(Icons.Outlined.MedicalServices, null, Modifier.size(18.dp))
-        Spacer(Modifier.width(9.dp))
+        Spacer(Modifier.width(8.dp))
         Text(thuso(Phrase.BOOK_NURSE, store.locale), fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.width(9.dp))
-        Icon(Icons.Outlined.ArrowForward, null, Modifier.size(16.dp))
+        Spacer(Modifier.width(8.dp))
+        Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(16.dp))
     }
 }
 
@@ -200,23 +202,23 @@ private val tileTints = listOf(
     CareCard(padding = 14.dp) {
         services.take(4).forEachIndexed { index, service ->
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { book(service) }
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.control)).clickable { book(service) }
                     .heightIn(min = 48.dp).padding(vertical = 8.dp)
                     .semantics {
                         contentDescription =
                             "${service.name}. ${service.detail} From R${service.price}, ${service.duration} minutes"
                     },
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(13.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 TileIcon(serviceIcon(service.id), tileTints[index % 4].first, tileTints[index % 4].second, 40.dp)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(service.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 20.sp)
-                    Text(service.detail, fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(service.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text(service.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
-                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("R${service.price}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Slate, lineHeight = 19.sp)
-                    Text("${service.duration} min", fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("R${service.price}", style = MaterialTheme.typography.titleSmall, color = Slate)
+                    Text("${service.duration} min", style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
                 Icon(Icons.Outlined.ChevronRight, null, tint = BodyText.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
             }
@@ -235,15 +237,15 @@ private val tileTints = listOf(
         )
         results.forEachIndexed { index, (name, value, status) ->
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { open("Health Passport") }
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.control)).clickable { open("Health Passport") }
                     .heightIn(min = 48.dp).padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 19.sp)
-                    Text(value, fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text(value, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(8.dp))
                 StatusPill(status.first, status.second)
             }
             if (index < results.size - 1) HorizontalDivider(color = Line)
@@ -277,36 +279,36 @@ private val tileTints = listOf(
     }
     /* Booking for somebody opens their booking, never their record. What you may see of another
        person is decided in My family, under consent, and nowhere on this screen. */
-    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Outlined.VerifiedUser, null, tint = BodyText, modifier = Modifier.size(15.dp))
         Text("Booking for someone opens their booking, never their record. What you may see is decided in My family.",
-             fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
+              style = MaterialTheme.typography.bodySmall, color = BodyText)
     }
 }
 
 @Composable private fun PassportPromo(store: PreviewStore, open: (String) -> Unit) {
     Box(
-        Modifier.fillMaxWidth().heightIn(min = 160.dp).clip(RoundedCornerShape(18.dp))
-            .background(Brush.linearGradient(listOf(Color(0xFF12564B), Indigo)))
-            .clickable { open("Health Passport") }.padding(22.dp)
+        Modifier.fillMaxWidth().heightIn(min = 160.dp).clip(RoundedCornerShape(ThusoRadius.card))
+            .background(Brush.linearGradient(listOf(IndigoDeep, Indigo)))
+            .clickable { open("Health Passport") }.padding(20.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             StatusPill("THUSO PASS", "light")
-            Text("Your health.\nOne safe place.", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White, lineHeight = 28.sp)
+            Text("Your health.\nOne safe place.", style = MaterialTheme.typography.titleLarge, color = Color.White)
             Text("Every visit, reading and result, in a record you own and control.",
-                 fontSize = 13.sp, color = Color(0xFFC9E5DB), lineHeight = 19.sp)
-            Text("${thuso(Phrase.OPEN_PASSPORT, store.locale)} →", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFC9E5DB))
+                  style = MaterialTheme.typography.bodySmall, color = IndigoSoft)
+            Text("${thuso(Phrase.OPEN_PASSPORT, store.locale)} →", style = MaterialTheme.typography.titleSmall, color = IndigoSoft)
         }
     }
 }
 @Composable fun NurseRow(trailing: @Composable (() -> Unit)? = null) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(Modifier.size(42.dp).background(AccentSoft, CircleShape), Alignment.Center) {
-            Text("SN", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = IndigoDeep)
+            Text("SN", style = MaterialTheme.typography.labelMedium, color = IndigoDeep)
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text("Sister Naledi Mokoena", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
-            Text("Registered Nurse (SANC)", fontSize = 11.sp, color = BodyText)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Sister Naledi Mokoena", style = MaterialTheme.typography.titleSmall, color = Ink)
+            Text("Registered Nurse (SANC)", style = MaterialTheme.typography.bodySmall, color = BodyText)
         }
         trailing?.invoke()
     }
@@ -340,14 +342,14 @@ fun serviceIcon(id: String) = when (id) {
         val filtered = services.filter { it.name.contains(store.careQuery, ignoreCase = true) }
         if (filtered.isEmpty()) EmptyStateCard("No matching services", "Try another name, or browse the whole catalogue.")
         filtered.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 row.forEach { service ->
                     CareCard(Modifier.weight(1f).clickable { selected = service }, padding = 15.dp) {
                         TileIcon(serviceIcon(service.id))
-                        Text(service.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 19.sp)
-                        Text(service.detail, fontSize = 11.sp, color = BodyText, lineHeight = 16.sp)
+                        Text(service.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                        Text(service.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("From R${service.price}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Slate, modifier = Modifier.weight(1f))
+                            Text("From R${service.price}", style = MaterialTheme.typography.labelMedium, color = Slate, modifier = Modifier.weight(1f))
                             Icon(Icons.Outlined.ChevronRight, null, tint = BodyText.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
                         }
                     }
@@ -380,29 +382,29 @@ fun serviceIcon(id: String) = when (id) {
         onDismissRequest = close,
         title = { Text(if (step == 4) "Your demo visit is booked" else "Your home visit", fontWeight = FontWeight.Bold) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (step < 4) StepDots(step + 1, 4, labels[step])
                 when (step) {
                     0 -> {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             TileIcon(serviceIcon(service.id))
                             Column(Modifier.weight(1f)) {
-                                Text(service.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink)
-                                Text("Registered nurse", fontSize = 12.sp, color = BodyText)
+                                Text(service.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                                Text("Registered nurse", style = MaterialTheme.typography.bodySmall, color = BodyText)
                             }
-                            Text("R${service.price}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
+                            Text("R${service.price}", style = MaterialTheme.typography.titleMedium, color = Ink)
                         }
-                        Text("Who is this visit for?", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Slate)
+                        Text("Who is this visit for?", style = MaterialTheme.typography.labelMedium, color = Slate)
                         (listOf("Lerato Molefe") + store.family).forEach { name ->
                             Row(
                                 Modifier.fillMaxWidth().clickable { person = name }.semantics { selected = person == name },
                                 verticalAlignment = Alignment.CenterVertically
-                            ) { RadioButton(person == name, { person = name }); Text(name, fontSize = 14.sp) }
+                            ) { RadioButton(person == name, { person = name }); Text(name, style = MaterialTheme.typography.bodyMedium) }
                         }
                         OutlinedTextField(address, { address = it }, label = { Text("Visit location") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     }
                     1 -> {
-                        Text(SchedulingData.chooseWhen, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+                        Text(SchedulingData.chooseWhen, style = MaterialTheme.typography.titleSmall, color = Ink)
                         /* Two different promises, chosen rather than inferred: an arrival estimate
                            answers "when will somebody get here", which is only a question for one. */
                         SchedulingData.kinds.forEach { option ->
@@ -412,40 +414,40 @@ fun serviceIcon(id: String) = when (id) {
                             ) {
                                 RadioButton(kind == option.id, { kind = option.id })
                                 Column(Modifier.weight(1f).padding(top = 12.dp)) {
-                                    Text(option.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
-                                    Text(option.detail, fontSize = 12.sp, color = BodyText)
+                                    Text(option.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                                    Text(option.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                                 }
                             }
                         }
                         if (scheduled) {
-                        Text(SchedulingData.scheduledHeading, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink)
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                        Text(SchedulingData.scheduledHeading, style = MaterialTheme.typography.titleSmall, color = Ink)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             days.forEachIndexed { index, offered ->
                                 Column(
                                     Modifier.widthIn(min = 66.dp).heightIn(min = 72.dp).padding(vertical = 4.dp)
-                                        .background(if (day == index) Indigo else Color.White, RoundedCornerShape(14.dp))
-                                        .border(1.dp, if (day == index) Indigo else Line, RoundedCornerShape(14.dp))
+                                        .background(if (day == index) Indigo else Color.White, RoundedCornerShape(ThusoRadius.card))
+                                        .border(1.dp, if (day == index) Indigo else Line, RoundedCornerShape(ThusoRadius.card))
                                         .clickable { day = index }
                                         .semantics { selected = day == index; contentDescription = Scheduling.longDate(offered.date) },
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.Center
                                 ) {
-                                    Text(offered.weekday, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = if (day == index) Color(0xFFD6ECE5) else BodyText)
-                                    Text(offered.dayNumber, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = if (day == index) Color.White else Ink)
-                                    Text(offered.month, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = if (day == index) Color(0xFFD6ECE5) else BodyText)
+                                    Text(offered.weekday, style = MaterialTheme.typography.labelMedium, color = if (day == index) IndigoSoft else BodyText)
+                                    Text(offered.dayNumber, style = MaterialTheme.typography.titleMedium, color = if (day == index) Color.White else Ink)
+                                    Text(offered.month, style = MaterialTheme.typography.labelMedium, color = if (day == index) IndigoSoft else BodyText)
                                 }
                             }
                         }
                         slots.chunked(3).forEach { row ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEach { time ->
                                     Box(
                                         Modifier.weight(1f).height(48.dp)
-                                            .background(if (slot == time) Indigo else Color.White, RoundedCornerShape(12.dp))
-                                            .border(1.dp, if (slot == time) Indigo else Line, RoundedCornerShape(12.dp))
+                                            .background(if (slot == time) Indigo else Color.White, RoundedCornerShape(ThusoRadius.control))
+                                            .border(1.dp, if (slot == time) Indigo else Line, RoundedCornerShape(ThusoRadius.control))
                                             .clickable { slot = time }.semantics { selected = slot == time },
                                         Alignment.Center
-                                    ) { Text(time, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (slot == time) Color.White else BodyText) }
+                                    ) { Text(time, style = MaterialTheme.typography.titleSmall, color = if (slot == time) Color.White else BodyText) }
                                 }
                             }
                         }
@@ -459,7 +461,7 @@ fun serviceIcon(id: String) = when (id) {
                         }
                     }
                     2 -> {
-                        Text("How would you like to pay?", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+                        Text("How would you like to pay?", style = MaterialTheme.typography.titleSmall, color = Ink)
                         listOf("Card" to "Visa ending 4242", "Cash" to "Pay the nurse after the visit", "Thuso Wallet" to "Demo balance R500.00").forEach { (name, detail) ->
                             Row(
                                 Modifier.fillMaxWidth().clickable { payment = name }.semantics { selected = payment == name },
@@ -467,8 +469,8 @@ fun serviceIcon(id: String) = when (id) {
                             ) {
                                 RadioButton(payment == name, { payment = name })
                                 Column(Modifier.weight(1f)) {
-                                    Text(name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
-                                    Text(detail, fontSize = 12.sp, color = BodyText)
+                                    Text(name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                                    Text(detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                                 }
                             }
                         }
@@ -481,10 +483,10 @@ fun serviceIcon(id: String) = when (id) {
                         ReviewLine("Location", address)
                         ReviewLine("Patient", person)
                         ReviewLine("Payment", if (payment == "Card") "•••• 4242" else payment)
-                        NurseRow { Text("★ 4.9", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = BodyText) }
+                        NurseRow { Text("★ 4.9", style = MaterialTheme.typography.labelMedium, color = BodyText) }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(consent, { consent = it })
-                            Text("I understand this is a UI preview using fictional information.", fontSize = 13.sp, color = BodyText)
+                            Text("I understand this is a UI preview using fictional information.", style = MaterialTheme.typography.bodySmall, color = BodyText)
                         }
                         Note("You can cancel or reschedule up to 2 hours before the visit.")
                     }
@@ -540,22 +542,22 @@ fun serviceIcon(id: String) = when (id) {
         FlowRowChips(listOf("Upcoming", "Past", "Cancelled"), setOf(tab)) { tab = it }
         StatePicker("Preview how this list behaves when the network or service is unavailable", state) { state = it }
         StateBlock(state, "Your visit list", "notifications", { state = LoadState.READY }) {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 rows.forEach { row ->
                     CareCard {
-                        Row(horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Column(
-                                Modifier.width(54.dp).background(Canvas, RoundedCornerShape(14.dp))
-                                    .border(1.dp, Line, RoundedCornerShape(14.dp)).padding(vertical = 9.dp),
+                                Modifier.width(54.dp).background(Canvas, RoundedCornerShape(ThusoRadius.card))
+                                    .border(1.dp, Line, RoundedCornerShape(ThusoRadius.card)).padding(vertical = 8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
                             ) {
-                                Text(row.weekday, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = BodyText, lineHeight = 11.sp)
-                                Text(row.dayNumber, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Ink, lineHeight = 23.sp)
-                                Text(row.month, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = BodyText, lineHeight = 11.sp)
+                                Text(row.weekday, style = MaterialTheme.typography.labelMedium, color = BodyText)
+                                Text(row.dayNumber, style = MaterialTheme.typography.titleLarge, color = Ink)
+                                Text(row.month, style = MaterialTheme.typography.labelMedium, color = BodyText)
                             }
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(verticalAlignment = Alignment.Top) {
-                                    Text(row.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink, modifier = Modifier.weight(1f))
+                                    Text(row.title, style = MaterialTheme.typography.titleSmall, color = Ink, modifier = Modifier.weight(1f))
                                     StatusPill(row.status, row.tone)
                                 }
                                 IconLine(Icons.Outlined.Schedule, row.time)
@@ -565,7 +567,7 @@ fun serviceIcon(id: String) = when (id) {
                         if (row.nurse) {
                             HorizontalDivider(color = Line)
                             NurseRow()
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 OutlinedButton(onClick = { open("Reschedule visit") }, Modifier.weight(1f)) { Text("Reschedule") }
                                 Button(onClick = { open("Visit: ${row.title} · ${row.time}") }, Modifier.weight(1f)) { Text("View details") }
                             }
@@ -575,23 +577,23 @@ fun serviceIcon(id: String) = when (id) {
             }
         }
         Box(
-            Modifier.fillMaxWidth().heightIn(min = 190.dp).clip(RoundedCornerShape(18.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF12564B), Indigo)))
+            Modifier.fillMaxWidth().heightIn(min = 190.dp).clip(RoundedCornerShape(ThusoRadius.card))
+                .background(Brush.linearGradient(listOf(IndigoDeep, Indigo)))
         ) {
             Image(painterResource(R.drawable.mythuso_family), null, Modifier.align(Alignment.BottomEnd).height(150.dp), contentScale = ContentScale.Fit)
-            Column(Modifier.padding(20.dp).fillMaxWidth(0.66f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Text("Care that fits\nyour life.", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Color.White, lineHeight = 28.sp)
-                Text("Easy booking. Trusted professionals.", fontSize = 13.sp, color = Color(0xFFC9E5DB), lineHeight = 18.sp)
+            Column(Modifier.padding(20.dp).fillMaxWidth(0.66f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Care that fits\nyour life.", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                Text("Easy booking. Trusted professionals.", style = MaterialTheme.typography.bodySmall, color = IndigoSoft)
                 Button(onClick = { open("Book care") }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = IndigoDeep)) {
-                    Text("Book another visit"); Spacer(Modifier.width(9.dp)); Icon(Icons.Outlined.ArrowForward, null, Modifier.size(16.dp))
+                    Text("Book another visit"); Spacer(Modifier.width(8.dp)); Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(16.dp))
                 }
             }
         }
     }
 }
 @Composable fun IconLine(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(icon, null, tint = BodyText, modifier = Modifier.size(14.dp))
-        Text(text, fontSize = 12.sp, color = BodyText)
+        Text(text, style = MaterialTheme.typography.bodySmall, color = BodyText)
     }
 }

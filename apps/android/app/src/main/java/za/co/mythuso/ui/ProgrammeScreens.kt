@@ -12,7 +12,7 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -109,7 +109,7 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
                 Note("${employer.name} · running since ${-report.programme.startedInDays} days ago")
                 StatusPill("${report.suppressed.size} of ${report.rows.size} groups not reported", "amber")
                 report.rows.forEach { row -> ReportRow(row) }
-                Divider()
+                HorizontalDivider()
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Everybody", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
                     Text("${report.totalTookPart} of ${report.totalEligible} · ${percent(report.totalUptake)}",
@@ -138,9 +138,9 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
 
         Text("Saying no", style = MaterialTheme.typography.titleLarge, color = Ink)
         CareCard {
-            Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                 Icon(Icons.Outlined.VisibilityOff, null, tint = Indigo)
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(programmeDeclining.headline, style = MaterialTheme.typography.titleMedium, color = Ink)
                     Note(programmeDeclining.note)
                 }
@@ -160,7 +160,7 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
         CareCard {
             Text("WHAT HAPPENS WHEN THEY LEAVE", style = MaterialTheme.typography.labelSmall, color = Faint)
             programmeLeaving.forEach { step ->
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(step.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
                     Text(step.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 }
@@ -200,7 +200,7 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
                     Text(randAmount(line.amount), style = MaterialTheme.typography.titleMedium, color = Ink)
                 }
             }
-            Divider()
+            HorizontalDivider()
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Drawn from what was set aside", style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 Text(randAmount(statement.spent), style = MaterialTheme.typography.titleMedium, color = Ink)
@@ -221,8 +221,8 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
 @Composable private fun ReportRow(row: ReportedCohort) {
     if (row.suppressedBy != null) {
         Column(
-            Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(14.dp)).padding(13.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
+            Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(row.cohort.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Faint)
             Text("NOT REPORTED", style = MaterialTheme.typography.labelSmall, color = MangoInk)
@@ -239,7 +239,7 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
 }
 
 @Composable private fun Figure(value: String, label: String, why: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(value, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Slate)
         Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = Faint)
         Text(why, style = MaterialTheme.typography.bodyMedium, color = BodyText)
@@ -247,17 +247,17 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
 }
 
 @Composable private fun DisclosureRow(item: Disclosure) {
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(item.what, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
         Text(item.why, style = MaterialTheme.typography.bodyMedium, color = BodyText)
     }
 }
 
 @Composable private fun StepRow(number: Int, step: ProgrammeStep) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
         Text("$number", style = MaterialTheme.typography.labelSmall, color = IndigoDeep,
-            modifier = Modifier.background(IndigoSoft, RoundedCornerShape(10.dp)).padding(horizontal = 7.dp, vertical = 3.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            modifier = Modifier.background(IndigoSoft, RoundedCornerShape(ThusoRadius.control)).padding(horizontal = 8.dp, vertical = 4.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(step.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
             Text(step.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
         }
@@ -266,8 +266,8 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
 
 @Composable private fun ProgrammeAlert(text: String) {
     Row(
-        Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(14.dp)).padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top
+        Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top
     ) {
         Icon(Icons.Outlined.Info, null, tint = MangoInk)
         Text(text, style = MaterialTheme.typography.bodyMedium, color = Slate)
@@ -275,7 +275,7 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
 }
 
 @Composable private fun ProgrammeRefusalRow(item: ProgrammeRefusal) {
-    Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
         Icon(Icons.Outlined.Block, null, tint = Danger)
         Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Slate)
     }

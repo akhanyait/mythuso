@@ -58,13 +58,13 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
         }
         StatePicker("Preview the pharmacy connection state", state) { state = it }
         StateBlock(state, "The dispensing partner’s order feed", "partner data sharing", { state = LoadState.READY }) {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 medicines.forEach { medicine ->
                     CareCard {
                         Row(verticalAlignment = Alignment.Top) {
                             Checkbox(medicine[0] in checked, { on -> checked = if (on) checked + medicine[0] else checked - medicine[0] },
                                 modifier = Modifier.clearAndSetSemantics { contentDescription = "Mark ${medicine[0]} checked by pharmacist" })
-                            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(medicine[0], fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
                                 Note(medicine[1]); Note(medicine[2]); Note(medicine[3])
                             }
@@ -119,7 +119,7 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
             CareCard {
                 Text("Results", style = MaterialTheme.typography.titleMedium)
                 panel.forEach { row ->
-                    Column(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(row[0], style = MaterialTheme.typography.bodyMedium)
                             Text(row[1], fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
@@ -127,7 +127,7 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Note("Reference ${row[2]}")
                             Text(row[3].ifEmpty { "Within range" }, style = MaterialTheme.typography.labelSmall,
-                                color = if (row[3].isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFFA4552D))
+                                color = if (row[3].isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MangoInk)
                         }
                     }
                     HorizontalDivider()

@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,17 +42,17 @@ import za.co.mythuso.model.mokoenaHousehold
         Heading("", "Health Passport", "")
         DemoBadge()
         Box(
-            Modifier.fillMaxWidth().heightIn(min = 160.dp).clip(RoundedCornerShape(18.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF0F4A40), Color(0xFF146B5C))))
+            Modifier.fillMaxWidth().heightIn(min = 160.dp).clip(RoundedCornerShape(ThusoRadius.card))
+                .background(Brush.linearGradient(listOf(IndigoDeep, Indigo)))
                 .padding(20.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatusPill("Thuso Pass", "light")
-                    Text("Your health.\nYour story.", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White, lineHeight = 29.sp)
-                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text("Lerato Molefe", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-                        Text("ID: TH-2048-3920", fontSize = 12.sp, color = Color(0xFFB9DCD2))
+                    Text("Your health.\nYour story.", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Lerato Molefe", style = MaterialTheme.typography.titleSmall, color = Color.White)
+                        Text("ID: TH-2048-3920", style = MaterialTheme.typography.bodySmall, color = IndigoSoft)
                     }
                 }
                 Image(
@@ -88,14 +89,14 @@ import za.co.mythuso.model.mokoenaHousehold
                 }
                 CareCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Demo access for Dr. A. Dlamini", Modifier.weight(1f), fontSize = 14.sp, color = Ink)
+                        Text("Demo access for Dr. A. Dlamini", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), color = Ink)
                         Switch(sharing, { sharing = it })
                     }
                     Note(if (sharing) "Demo access active for 24 hours. Turn off to revoke." else "No active shares. No real access is granted.")
                 }
             }
             else -> {
-                Text("Health trends", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+                Text("Health trends", style = MaterialTheme.typography.titleMedium, color = Ink)
                 ClinicalChart("Blood pressure", "mmHg", listOf(
                     Reading("12 Aug", 128.0), Reading("19 Aug", 134.0), Reading("28 Aug", 141.0, "Missed medication"), Reading("4 Sep", 136.0)
                 ), 90.0..140.0, icon = Icons.Outlined.MonitorHeart)
@@ -105,7 +106,7 @@ import za.co.mythuso.model.mokoenaHousehold
                 ClinicalChart("Blood glucose", "mmol/L", listOf(
                     Reading("12 Aug", 5.6), Reading("19 Aug", 6.1), Reading("28 Aug", 5.4), Reading("4 Sep", 5.2)
                 ), 4.0..7.8, 1, icon = Icons.Outlined.Bloodtype)
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ActionTile("Share record", Icons.Outlined.Share, Modifier.weight(1f)) { sharing = true }
                     ActionTile("Export sample", Icons.Outlined.Download, Modifier.weight(1f)) {
                         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -122,13 +123,13 @@ import za.co.mythuso.model.mokoenaHousehold
 }
 @Composable fun ActionTile(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier, click: () -> Unit) {
     Column(
-        modifier.heightIn(min = 80.dp).background(Color.White, RoundedCornerShape(18.dp))
-            .border(1.dp, Line, RoundedCornerShape(18.dp)).clickable(onClick = click).padding(14.dp),
+        modifier.heightIn(min = 80.dp).background(Color.White, RoundedCornerShape(ThusoRadius.card))
+            .border(1.dp, Line, RoundedCornerShape(ThusoRadius.card)).clickable(onClick = click).padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
     ) {
         Icon(icon, null, tint = Indigo)
         Spacer(Modifier.height(8.dp))
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Slate, textAlign = TextAlign.Center, lineHeight = 15.sp)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Slate, textAlign = TextAlign.Center)
     }
 }
 @Composable fun ToolRow(name: String, click: () -> Unit) { Row(Modifier.fillMaxWidth().clickable(onClick = click).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) { Text(name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium); Icon(Icons.Outlined.ChevronRight, null, tint = Indigo) } }
@@ -136,11 +137,11 @@ import za.co.mythuso.model.mokoenaHousehold
     ScreenColumn {
         Heading("", "More", "")
         CareCard(Modifier.clickable { open("Your profile") }) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Image(painterResource(R.drawable.mythuso_patient), null, Modifier.size(52.dp).clip(CircleShape), contentScale = ContentScale.Crop)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("Lerato Molefe", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Ink)
-                    Text("View and edit your profile", fontSize = 12.sp, color = BodyText)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Lerato Molefe", style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Text("View and edit your profile", style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
                 Icon(Icons.Outlined.ChevronRight, null, tint = BodyText.copy(alpha = 0.7f))
             }
@@ -185,7 +186,7 @@ import za.co.mythuso.model.mokoenaHousehold
                 if (index < 3) HorizontalDivider(color = Line)
             }
         }
-        CareCard { MenuRow("Log out", "Returns to the first-run flow — this preview has no account", Icons.Outlined.Logout, danger = true) { firstRun() } }
+        CareCard { MenuRow("Log out", "Returns to the first-run flow — this preview has no account", Icons.AutoMirrored.Outlined.Logout, danger = true) { firstRun() } }
         Note("Native Compose design preview. All data is fictional and held only in memory.")
     }
 }
@@ -380,18 +381,18 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
 /** The urgency strip a workspace lands on. It wraps rather than clips as the font scale grows. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable fun WorkspaceUrgency(role: String) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         workspaceUrgency(role).forEach { (label, value, note) ->
             Column(
                 Modifier.widthIn(min = 150.dp).weight(1f)
-                    .background(Color.White, RoundedCornerShape(14.dp))
-                    .border(1.dp, Line, RoundedCornerShape(14.dp)).padding(13.dp)
+                    .background(Color.White, RoundedCornerShape(ThusoRadius.card))
+                    .border(1.dp, Line, RoundedCornerShape(ThusoRadius.card)).padding(12.dp)
                     .semantics { contentDescription = "$label: $value. $note" },
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(label, fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
-                Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Ink, lineHeight = 26.sp)
-                Text(note, fontSize = 11.sp, color = BodyText, lineHeight = 16.sp)
+                Text(label, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                Text(value, style = MaterialTheme.typography.titleLarge, color = Ink)
+                Text(note, style = MaterialTheme.typography.bodySmall, color = BodyText)
             }
         }
     }

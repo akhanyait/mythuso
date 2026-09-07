@@ -127,9 +127,9 @@ private fun basisLine(eta: Eta): String = when (eta.basis) {
     EtaBasis.ROUTE -> "Measured road route."
     EtaBasis.NONE -> eta.reason ?: "Nothing to estimate from."
 }
-private val Free = Color(0xFF2F9C7D)
-private val Busy = Color(0xFFA7ADA4)
-private val Waiting = Color(0xFFD99A45)
+private val Free = TealInk
+private val Busy = Faint
+private val Waiting = MangoInk
 
 /**
  * The map is a picture of the same information in the list below it. Everything can be
@@ -172,9 +172,9 @@ private val Waiting = Color(0xFFD99A45)
                     Canvas(Modifier.fillMaxWidth().aspectRatio(1f).semantics { contentDescription = summary; role = Role.Image }) {
                         val side = size.minDimension
                         fun at(point: BoxPoint) = Offset((point.x / 100.0).toFloat() * size.width, (point.y / 100.0).toFloat() * size.height)
-                        drawRect(Color(0xFFF1F6F2), Offset.Zero, Size(size.width, size.height))
+                        drawRect(Canvas, Offset.Zero, Size(size.width, size.height))
                         locatedZones.forEach { (zone, point) ->
-                            drawCircle(Color(0xFFDFEEE4), (kmToBoxUnits(zone.radiusKm, mapWindow) / 100.0).toFloat() * side, at(point))
+                            drawCircle(IndigoSoft, (kmToBoxUnits(zone.radiusKm, mapWindow) / 100.0).toFloat() * side, at(point))
                         }
                         locatedNurses.forEach { (nurse, point) ->
                             drawCircle(if (nurse.name in refusedNames) Danger else if (nurse.status == "Available") Free else Busy, 9f, at(point))
@@ -184,7 +184,7 @@ private val Waiting = Color(0xFFD99A45)
                             drawRect(if (assigned[pin.id] != null) Free else Waiting, Offset(centre.x - 9f, centre.y - 9f), Size(18f, 18f))
                         }
                     }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("● Nurse available", style = MaterialTheme.typography.labelSmall, color = Free)
                         Text("● On a visit", style = MaterialTheme.typography.labelSmall, color = Busy)
                         Text("● Blocked by vetting", style = MaterialTheme.typography.labelSmall, color = Danger)
@@ -216,7 +216,7 @@ private val Waiting = Color(0xFFD99A45)
                            the assignment and says which check refused it. */
                         val subject = store.vetting.byName(nurse.name)
                         val vetting = subject?.let { summarise(it) }
-                        Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -292,7 +292,7 @@ val incidents = listOf(
         if (log.isNotEmpty()) CareCard {
             Text("Demo incident log", style = MaterialTheme.typography.titleMedium)
             log.forEach { entry ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Outlined.CheckCircle, null, tint = Indigo); Text(entry, style = MaterialTheme.typography.bodyMedium)
                 }
             }

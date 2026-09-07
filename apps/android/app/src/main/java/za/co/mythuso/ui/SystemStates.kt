@@ -32,8 +32,8 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         repeat(rows) { index ->
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(Modifier.size(44.dp).background(Color(0x14000000), RoundedCornerShape(12.dp)))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.size(44.dp).background(Color(0x14000000), RoundedCornerShape(ThusoRadius.control)))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(Modifier.height(9.dp).width((190 - index * 26).dp).background(Color(0x14000000), RoundedCornerShape(5.dp)))
                     Box(Modifier.height(9.dp).width((120 - index * 18).dp).background(Color(0x0F000000), RoundedCornerShape(5.dp)))
@@ -63,7 +63,7 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
                 else -> Icons.Outlined.WarningAmber
             }
             CareCard {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(icon, null, tint = Indigo)
                     Text(heading, style = MaterialTheme.typography.titleMedium)
                 }
@@ -77,8 +77,8 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
 @Composable fun StatePicker(title: String, state: LoadState, onChange: (LoadState) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Column(
-        Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(12.dp))
-            .border(1.dp, Line, RoundedCornerShape(12.dp)).clickable { open = !open }.padding(14.dp),
+        Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(ThusoRadius.control))
+            .border(1.dp, Line, RoundedCornerShape(ThusoRadius.control)).clickable { open = !open }.padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -94,7 +94,7 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
 }
 @Composable fun EmptyStateCard(title: String, message: String) {
     CareCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Inbox, null, tint = Indigo)
             Text(title, style = MaterialTheme.typography.titleMedium)
         }

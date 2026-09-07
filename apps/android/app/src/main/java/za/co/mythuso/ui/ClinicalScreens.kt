@@ -34,7 +34,7 @@ val observations = listOf(
     Observation("oxygen", "Oxygen saturation", "%", 95.0, 100.0),
     Observation("glucose", "Blood glucose", "mmol/L", 4.0, 7.8)
 )
-private val Flag = Color(0xFF9B6231)
+private val Flag = MangoInk
 
 @Composable fun VisitAssessmentScreen(store: PreviewStore, reference: String = "TH-2048", patient: String = "Lerato Molefe", close: () -> Unit) {
     /* The signature carries the registration it was made under, read from the same vetting record
@@ -108,7 +108,7 @@ private val Flag = Color(0xFF9B6231)
                 Note(otpError.ifEmpty { "The code changes for every visit and expires when the visit ends." })
                 Setting("I have seen the patient’s identity document, or a household member has confirmed identity.", identitySeen) { identitySeen = it }
                 Note("If the code fails, the visit does not start. The nurse contacts the Control Tower instead of proceeding.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = close) { Text("Leave") }
                     Button(onClick = { if (otp == "482190") stage = 1 else otpError = "That code doesn’t match this visit. Call the Control Tower before continuing." }, enabled = otp.length == 6 && identitySeen) { Text("Confirm identity") }
                 }
@@ -121,7 +121,7 @@ private val Flag = Color(0xFF9B6231)
                     Setting("“May I add today’s readings to your Health Passport, where a doctor can review them?”", consentRecord) { consentRecord = it }
                 }
                 Note("Refusal is recorded as a valid outcome, not a failed visit. A guardian consents for a child or where authority is verified.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { stage = 0 }) { Text("Back") }
                     Button(onClick = { stage = 2 }, enabled = consentAssessment) { Text("Start observations") }
                 }
@@ -137,12 +137,12 @@ private val Flag = Color(0xFF9B6231)
                 observations.forEach { observation ->
                     val kit = kitFor(observation)
                     if (kit != null) CareCard {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(observation.label, style = MaterialTheme.typography.titleSmall, color = Ink)
                                 Note("Indicative range ${observation.low}–${observation.high} ${observation.unit}")
                             }
-                            Text("${kit.value} ${observation.unit}", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Ink)
+                            Text("${kit.value} ${observation.unit}", style = MaterialTheme.typography.titleLarge, color = Ink)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ProvenanceMark(kit.provenance)
@@ -162,7 +162,7 @@ private val Flag = Color(0xFF9B6231)
                             isError = message != null,
                             supportingText = { Text(message ?: "Indicative range ${observation.low}–${observation.high}", color = if (message != null) Flag else MaterialTheme.colorScheme.onSurfaceVariant) }
                         )
-                        if (values[observation.id].orEmpty().isNotBlank()) Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        if (values[observation.id].orEmpty().isNotBlank()) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Where did this come from?", style = MaterialTheme.typography.labelLarge, color = Slate)
                             FlowRowChips(
                                 listOf(Provenance.MANUAL.label, Provenance.PATIENT_REPORTED.label),
@@ -178,16 +178,16 @@ private val Flag = Color(0xFF9B6231)
                 }
                 Note("“Measured by a device” is not one of the choices above, and that is deliberate: a device reading is one that came off a paired instrument with its serial and its calibration date attached. Typing a number and calling it a device reading would be the record’s first lie. Take it on the Thuso Kit screen instead. “Calculated” is not offered either — it is computed from readings that are already here, and it names them.")
                 if (unattributed.isNotEmpty()) CareCard {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Outlined.QuestionMark, null, tint = Flag)
                         Text("${unattributed.size} number${if (unattributed.size > 1) "s are" else " is"} typed but not filed", style = MaterialTheme.typography.titleSmall, color = Ink)
                     }
                     Text("${unattributed.joinToString(", ") { it.label }} — say where each came from and it is filed. Until then it is not counted, because a record that cannot say where a value came from will eventually be read wrongly by somebody in a hurry.", style = MaterialTheme.typography.bodyMedium)
                 }
                 if (mapValue != null) CareCard {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Column(Modifier.weight(1f)) { Text("Mean arterial pressure", style = MaterialTheme.typography.titleSmall, color = Ink) }
-                        Text("%.0f mmHg".format(mapValue), fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Ink)
+                        Text("%.0f mmHg".format(mapValue), style = MaterialTheme.typography.titleLarge, color = Ink)
                     }
                     ProvenanceMark(Provenance.DERIVED)
                     ReviewLine("Calculated from", mapDerivedFrom(systolic!!, diastolic!!).joinToString(" and "))
@@ -197,7 +197,7 @@ private val Flag = Color(0xFF9B6231)
                     Text("Also captured on the kit", style = MaterialTheme.typography.titleMedium)
                     Note("Filed with the rest, and never flagged: there is no indicative range to flag them against. A weight means something only against this person’s own earlier weights, and a single-lead trace is a screening tool rather than a number.")
                     alsoCaptured.forEach { extra ->
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("${extra.label} · ${extra.value} ${extra.unit}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                             ProvenanceMark(extra.provenance)
                         }
@@ -207,7 +207,7 @@ private val Flag = Color(0xFF9B6231)
                     if (abnormal.isEmpty()) "Readings are compared against indicative adult reference ranges only. Clinical judgement stays with you."
                     else "${abnormal.size} reading${if (abnormal.size > 1) "s are" else " is"} outside the indicative range. Flagging is a prompt for your judgement — it is not a validated early-warning score and it does not triage the patient."
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { stage = 1 }) { Text("Back") }
                     Button(onClick = { stage = 3 }, enabled = captured.isNotEmpty()) { Text("Record findings") }
                 }
@@ -229,7 +229,7 @@ private val Flag = Color(0xFF9B6231)
                     }
                 }
                 if (escalation.contains("Emergency")) Note("In production this opens the emergency pathway immediately and alerts the Control Tower before the form is finished.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { stage = 2 }) { Text("Back") }
                     Button(onClick = { stage = 4 }) { Text("Review sign-off") }
                 }
@@ -237,7 +237,7 @@ private val Flag = Color(0xFF9B6231)
             else -> {
                 if (signed) {
                     CareCard {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo); Text("Demo assessment closed.", style = MaterialTheme.typography.titleMedium)
                         }
                         Note("Nothing was transmitted, no record was written and no clinician was notified. In production this becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration.")
@@ -251,7 +251,7 @@ private val Flag = Color(0xFF9B6231)
                            different kinds, and a reader in a hurry has to be able to tell them apart
                            without opening anything. */
                         captured.forEach { observation ->
-                            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(observation.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                                 Text("${rawOf(observation)} ${observation.unit}${if (flag(observation) != null) " ⚠" else ""}", style = MaterialTheme.typography.bodyMedium, color = Slate)
                                 originOf(observation)?.let { ProvenanceMark(it) }
@@ -260,7 +260,7 @@ private val Flag = Color(0xFF9B6231)
                                 Text(kit.caveats.first(), style = MaterialTheme.typography.bodySmall, color = MangoInk)
                             }
                         }
-                        if (mapValue != null) Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                        if (mapValue != null) Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Mean arterial pressure", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                             Text("%.0f mmHg".format(mapValue), style = MaterialTheme.typography.bodyMedium, color = Slate)
                             ProvenanceMark(Provenance.DERIVED)
@@ -271,7 +271,7 @@ private val Flag = Color(0xFF9B6231)
                     }
                     if (unattributed.isNotEmpty()) Note("${unattributed.size} number${if (unattributed.size > 1) "s were" else " was"} typed without an origin and ${if (unattributed.size > 1) "are" else "is"} not in this record. Nothing was guessed on your behalf.")
                     Note("A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.")
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { stage = 3 }) { Text("Back") }
                         Button(onClick = { signed = true }, enabled = mayWrite?.allowed != false) { Text("Sign demo assessment") }
                     }
@@ -305,7 +305,7 @@ private val Flag = Color(0xFF9B6231)
         }
         if (mayRead?.allowed == false) {
             CareCard {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Outlined.Block, null, tint = Danger)
                     Text("This case is withheld", style = MaterialTheme.typography.titleMedium)
                 }

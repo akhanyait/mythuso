@@ -14,6 +14,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -98,16 +99,16 @@ import za.co.mythuso.model.heroSlides
         "one_safe_place" -> R.drawable.banner_one_safe_place
         else -> R.drawable.banner_feel_better
     }
-    Box(Modifier.fillMaxSize().padding(horizontal = 2.dp).clipToBounds()) {
+    Box(Modifier.fillMaxSize().padding(horizontal = 4.dp).clipToBounds()) {
         @Suppress("UNUSED_EXPRESSION") tone
         Box(
-            Modifier.fillMaxSize().padding(top = 66.dp).clip(RoundedCornerShape(24.dp))
+            Modifier.fillMaxSize().padding(top = 66.dp).clip(RoundedCornerShape(ThusoRadius.card))
                 .background(Color.White.copy(alpha = 0.66f))
-                .border(1.dp, Color.White.copy(alpha = 0.85f), RoundedCornerShape(24.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.85f), RoundedCornerShape(ThusoRadius.card))
         )
         Image(
             painterResource(banner), null,
-            Modifier.align(Alignment.TopEnd).width(212.dp).padding(top = 6.dp)
+            Modifier.align(Alignment.TopEnd).width(212.dp).padding(top = 4.dp)
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                 .drawWithContent {
                     drawContent()
@@ -116,29 +117,30 @@ import za.co.mythuso.model.heroSlides
             contentScale = ContentScale.FillWidth
         )
         Column(
-            Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 20.dp, end = 14.dp, bottom = 16.dp, top = 82.dp),
+            Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 20.dp, end = 12.dp, bottom = 16.dp, top = 82.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Text(slide.title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Slate, lineHeight = 28.sp, modifier = Modifier.fillMaxWidth(0.5f))
-            Text(slide.body, fontSize = 12.5.sp, color = BodyText, lineHeight = 18.sp, modifier = Modifier.fillMaxWidth(0.5f).padding(top = 8.dp))
-            Button(onClick = onAction, shape = CircleShape, modifier = Modifier.padding(top = 13.dp)) {
-                Text(slide.cta, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.width(9.dp))
-                Icon(Icons.Outlined.ArrowForward, null, Modifier.size(16.dp))
+            Text(slide.title, style = MaterialTheme.typography.titleLarge, color = Slate, modifier = Modifier.fillMaxWidth(0.5f))
+            Text(slide.body, style = MaterialTheme.typography.bodySmall, color = BodyText, modifier = Modifier.fillMaxWidth(0.5f).padding(top = 8.dp))
+            Button(onClick = onAction, shape = CircleShape, modifier = Modifier.padding(top = 12.dp)) {
+                Text(slide.cta, style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(16.dp))
             }
-            Row(Modifier.fillMaxWidth().padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 slide.trust.forEachIndexed { spot, label ->
-                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Box(Modifier.size(32.dp).background(Color.White.copy(alpha = 0.78f), CircleShape), Alignment.Center) {
                             Icon(trustIcon(slide.symbols[spot]), null, tint = Indigo, modifier = Modifier.size(15.dp))
                         }
-                        Text(label, fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF42655B), textAlign = TextAlign.Center, lineHeight = 12.sp)
+                        Text(label, style = MaterialTheme.typography.labelMedium, color = Slate, textAlign = TextAlign.Center)
                     }
                 }
             }
             Text(
-                slide.caption, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = IndigoDeep,
-                modifier = Modifier.padding(top = 10.dp).background(Color.White.copy(alpha = 0.88f), CircleShape).padding(horizontal = 13.dp, vertical = 7.dp)
+                slide.caption,
+                 style = MaterialTheme.typography.labelMedium, color = IndigoDeep,
+                modifier = Modifier.padding(top = 8.dp).background(Color.White.copy(alpha = 0.88f), CircleShape).padding(horizontal = 12.dp, vertical = 8.dp)
             )
         }
     }

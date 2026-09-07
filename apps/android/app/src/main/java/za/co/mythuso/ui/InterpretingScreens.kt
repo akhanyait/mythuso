@@ -59,7 +59,7 @@ import za.co.mythuso.model.*
     Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp)
             .selectable(selected = selected, role = Role.RadioButton, onClick = choose)
-            .padding(vertical = 2.dp),
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(selected, null)
@@ -132,7 +132,7 @@ import za.co.mythuso.model.*
         CareCard {
             when (outcome) {
                 is InterpreterOutcome.Matched -> {
-                    Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                         Icon(Icons.Outlined.CheckCircle, null, tint = Indigo)
                         Text(interpretingLabels.matched, style = MaterialTheme.typography.titleMedium, color = Ink)
                     }
@@ -140,7 +140,7 @@ import za.co.mythuso.model.*
                     Note("The visit is confirmed with ${outcome.slot.interpreter.name} named on it. Nothing is booked in this preview.")
                 }
                 is InterpreterOutcome.Held -> {
-                    Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                         Icon(Icons.Outlined.HourglassEmpty, null, tint = MangoInk)
                         Text("${interpretingLabels.noneFree} — ${interpretingLabels.heldBadge}", style = MaterialTheme.typography.titleMedium, color = Ink)
                     }
@@ -149,7 +149,7 @@ import za.co.mythuso.model.*
                     Note(interpreterHold.whatHappensNext)
                 }
                 InterpreterOutcome.HeldUnknown -> {
-                    Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                         Icon(Icons.Outlined.WarningAmber, null, tint = Danger)
                         Text("${interpretingLabels.noneFree} — ${interpretingLabels.heldBadge}", style = MaterialTheme.typography.titleMedium, color = Ink)
                     }
@@ -158,7 +158,7 @@ import za.co.mythuso.model.*
                 }
             }
             if (outcome.isHeld) {
-                Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                     Icon(Icons.Outlined.Block, null, tint = Danger)
                     Text(interpreterHold.whyNotDispatched, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 }
@@ -185,7 +185,7 @@ import za.co.mythuso.model.*
         Note(Interpreting.rule("vetted-like-anybody-else").sentence)
         CareCard {
             Interpreting.role()?.checks?.forEach { check ->
-                Column(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(check.name, style = MaterialTheme.typography.titleMedium, color = Ink)
                     Note(check.detail)
                     Note(check.renewMonths?.let { "Renewed every $it months" } ?: "Once")
@@ -209,9 +209,9 @@ import za.co.mythuso.model.*
 
         Text(interpretingLabels.refusalsHeading, style = MaterialTheme.typography.titleMedium, color = Ink)
         interpretingRefusals.forEach { refusal ->
-            Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                 Icon(Icons.Outlined.Block, null, tint = Danger)
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(refusal.title, style = MaterialTheme.typography.titleMedium, color = Ink)
                     Text(refusal.sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 }

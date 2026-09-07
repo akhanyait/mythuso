@@ -41,18 +41,18 @@ data class Reading(val label: String, val value: Double, val note: String = "—
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) { Icon(icon, null, tint = Indigo, modifier = Modifier.size(17.dp)); Spacer(Modifier.width(8.dp)) }
             Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            Surface(color = if (inRange) Sage else Color(0xFFFAF0E6), shape = RoundedCornerShape(6.dp)) {
+            Surface(color = if (inRange) Sage else MangoSoft, shape = RoundedCornerShape(6.dp)) {
                 Text(
                     if (inRange) "Within sample range" else "Outside sample range",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (inRange) Slate else Color(0xFF96552C),
+                    color = if (inRange) Slate else MangoInk,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
         }
         Row(verticalAlignment = Alignment.Bottom) {
             Text(format(latest.value), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(4.dp))
             Text(unit, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
             Text(
                 if (delta == 0.0) "No change" else "${if (delta > 0) "+" else ""}${format(delta)} since ${first.label}",
@@ -70,7 +70,7 @@ data class Reading(val label: String, val value: Double, val note: String = "—
             fun y(value: Double) = size.height - size.height * ((value - minimum) / (maximum - minimum)).toFloat()
             if (normal != null) {
                 val top = y(normal.endInclusive)
-                drawRect(Color(0xFFF1F2EE), Offset(0f, top), Size(size.width, max(y(normal.start) - top, 1f)))
+                drawRect(TealSoft, Offset(0f, top), Size(size.width, max(y(normal.start) - top, 1f)))
             }
             val path = Path()
             readings.forEachIndexed { index, reading ->
@@ -94,7 +94,7 @@ data class Reading(val label: String, val value: Double, val note: String = "—
         if (showTable) {
             Column {
                 readings.forEach { reading ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 7.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                         Text(reading.label, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                         Text("${format(reading.value)} $unit", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                         Text(reading.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))

@@ -107,8 +107,8 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 FlowRowChips(listOf("All roles") + vettingRoles.map { it.name }, setOf(filter)) { filter = it }
                 summaries.forEach { (subject, summary) ->
                     CareCard(Modifier.clickable { open("Vetting: ${subject.id}") }) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(subject.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Ink)
                                 Note("${vettingRoleById(subject.roleId)?.name} · ${subject.reference}${subject.zone?.let { " · $it" } ?: ""}")
                             }
@@ -144,15 +144,15 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 due.forEach { renewal ->
                     val overdue = renewal.days < 0
                     CareCard {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("${renewal.check.name} · ${renewal.subject.name}", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = Ink)
                                 Note("${vettingRoleById(renewal.subject.roleId)?.name} · ${vettingAuthorityById(renewal.check.authority)?.short}")
                             }
                             StatusPill(if (overdue) "Lapsed" else "${renewal.days} days", if (overdue) "danger" else if (renewal.days <= EXPIRY_WARNING_DAYS) "amber" else "quiet")
                         }
                         Note(expiryWording(renewal.record))
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(onClick = { open("Vetting: ${renewal.subject.id}") }) { Text("Open record") }
                             Button(onClick = { vetting.verify(renewal.subject.id, renewal.check.id, renewal = true) }) { Text("Renew") }
                         }
@@ -175,7 +175,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
         Heading("Vetting", "Decision log", "Append-only. Nothing on this screen can edit an entry that was already written.")
         vetting.log.forEach { event ->
             CareCard {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(event.kind.label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = Ink, modifier = Modifier.weight(1f))
                     StatusPill(event.id, "quiet")
                 }
@@ -207,7 +207,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
         DemoBadge()
         Heading(role?.name ?: "Vetting", subject.name, "${subject.reference}${subject.zone?.let { " · $it" } ?: ""} · ${role?.summary ?: ""}")
         CareCard {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(thuso(Phrase.VETTING_STATUS, store.locale), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 StatusPill(summary.status.label, tone(summary.status))
             }
@@ -236,7 +236,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
             val authority = vettingAuthorityById(check.authority)
             val awaiting = needsSecondReviewer(subject, check.id)
             CareCard {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(check.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Ink, modifier = Modifier.weight(1f))
                     StatusPill(if (awaiting) "Awaiting second" else state.label, if (awaiting) "sky" else tone(state))
                 }
@@ -250,7 +250,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 Note(expiryWording(record))
                 record.note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Danger) }
                 if (refusedSecond == check.id) Note("You verified this check yourself. A second reviewer has to be somebody else.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (state == CheckState.VERIFIED || state == CheckState.EXPIRING) {
                         if (awaiting) Button(onClick = { refusedSecond = if (vetting.second(subject.id, check.id)) null else check.id }) { Text("Second this check") }
                         else OutlinedButton(onClick = { vetting.verify(subject.id, check.id, renewal = true) }) { Text("Renew") }
@@ -265,7 +265,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                         modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp),
                         supportingText = { Text("A decline without a reason is a decision the applicant cannot answer.") }
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { declining = null }) { Text("Cancel") }
                         Button(onClick = { vetting.decline(subject.id, check.id, declineNote.trim()); declining = null }, enabled = declineNote.trim().length >= 10) { Text("Record the decline") }
                     }
@@ -277,7 +277,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
         Text("What this party may do", style = MaterialTheme.typography.titleMedium, color = Ink)
         capabilityDecisions(subject).forEach { (capability, _, decision) ->
             CareCard {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(if (decision.allowed) Icons.Outlined.CheckCircle else Icons.Outlined.Block, null, tint = if (decision.allowed) Indigo else Danger)
                     Text(capability.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Ink, modifier = Modifier.weight(1f))
                     StatusPill(if (decision.allowed) "Allowed" else "Refused", if (decision.allowed) "teal" else "danger")
@@ -331,7 +331,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
             DemoBadge()
             Heading("Vetting", "Application lodged", "Nothing was transmitted, and no register was contacted.")
             CareCard {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Outlined.Schedule, null, tint = Indigo)
                     Text("$applicant · ${role?.name}", style = MaterialTheme.typography.titleMedium)
                 }
@@ -351,9 +351,9 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 Heading("Vetting", "Who is applying?", "Twelve kinds of party are vetted on MyThuso, and each is refused something specific until its checks pass.")
                 vettingRoles.forEach { option ->
                     CareCard(Modifier.clickable { roleId = option.id; credentials.clear(); scope = emptySet(); attached = emptySet(); agreed = emptySet() }) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             RadioButton(roleId == option.id, { roleId = option.id }, Modifier.semantics { selected = roleId == option.id })
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(option.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Ink)
                                 Note(option.summary)
                                 Note("${option.checks.size} checks · ${option.workspace} workspace")
@@ -361,7 +361,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = close) { Text("Close") }
                     Button(onClick = { step = 1 }, enabled = roleId != null) { Text("Continue") }
                 }
@@ -392,7 +392,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                     )
                 }
                 Note("Leave a number you do not have yet blank — that check stays outstanding rather than becoming wrong. ${anchor?.name ?: "The first credential"} is the one this application hangs on.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 0 }) { Text("Back") }
                     Button(onClick = { step = 2 }, enabled = credentialsReady) { Text("Continue") }
                 }
@@ -401,7 +401,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 Heading("Vetting", practice!!.title, practice.detail)
                 FlowRowChips(practice.options, scope) { option -> scope = if (option in scope) scope - option else scope + option }
                 Note("Declaring a scope is not being granted it. Every check below still has to pass first.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step -= 1 }) { Text("Back") }
                     Button(onClick = { step += 1 }, enabled = scope.isNotEmpty()) { Text("Continue") }
                 }
@@ -412,7 +412,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                     val authority = vettingAuthorityById(check.authority)
                     val on = check.id in attached
                     CareCard {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(check.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Ink, modifier = Modifier.weight(1f))
                             if (check.risk == "high") StatusPill("Two reviewers", "quiet")
                         }
@@ -427,7 +427,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                     }
                 }
                 Note("This preview attaches nothing. There is no upload, no storage and no transmission — the switch records only that the slot was filled.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step -= 1 }) { Text("Back") }
                     Button(onClick = { step += 1 }) { Text("Continue") }
                 }
@@ -438,7 +438,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                     CareCard { Setting(declaration, index in agreed) { on -> agreed = if (on) agreed + index else agreed - index } }
                 }
                 Note("Every undertaking is required. An application cannot proceed on a partial one.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step -= 1 }) { Text("Back") }
                     Button(onClick = { step += 1 }, enabled = agreed.size == declarations.size) { Text("Continue") }
                 }
@@ -465,7 +465,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 }
                 Setting("I attest that everything I have entered is true, and I accept that a false declaration ends the application and any access it would have given.", attested) { attested = it }
                 Note("Re-vetting runs on a schedule, not once at sign-up. A lapsed registration removes a party automatically, without anybody deciding anything.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step -= 1 }) { Text("Back") }
                     Button(
                         onClick = { submittedId = vetting.startApplication(roleId!!, applicant.trim(), reference, scope.sorted(), attached).id },

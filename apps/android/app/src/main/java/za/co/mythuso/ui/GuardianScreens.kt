@@ -46,7 +46,7 @@ import za.co.mythuso.model.PreviewStore
                     }
                 }
                 if (minor) Note("For a child under 18 you are asking for guardianship, not sharing. Production requires proof of parental responsibility and a record of the child’s own views as they grow older.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = close) { Text("Cancel") }
                     Button(onClick = { step = 1 }, enabled = name.isNotBlank()) { Text("Continue") }
                 }
@@ -57,7 +57,7 @@ import za.co.mythuso.model.PreviewStore
                     CareCard(Modifier.clickable { scope = title }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(scope == title, { scope = title })
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
                                 Note(body)
                             }
@@ -65,7 +65,7 @@ import za.co.mythuso.model.PreviewStore
                     }
                 }
                 Note("Sexual and reproductive health, mental health and HIV-related entries stay hidden under every scope unless you release them one by one.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 0 }) { Text("Back") }
                     Button(onClick = { step = 2 }) { Text("Continue") }
                 }
@@ -81,7 +81,7 @@ import za.co.mythuso.model.PreviewStore
                     }
                 }
                 Note("${name.substringBefore(' ')} must verify their identity before the invitation becomes active. An unverified invitation grants nothing.")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 1 }) { Text("Back") }
                     Button(onClick = { step = 3 }) { Text("Review") }
                 }
@@ -96,7 +96,7 @@ import za.co.mythuso.model.PreviewStore
                     ReviewLine("Before it starts", "Identity verification${if (minor) " and proof of guardianship" else ""}")
                 }
                 Setting("I understand this is a design preview.", understood) { understood = it }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 2 }) { Text("Back") }
                     Button(onClick = {
                         store.invitations.add(GuardianInvitation("INV-00${(40..89).random()}", name.trim(), relationship, scope, expires, "Verification pending"))
@@ -114,7 +114,7 @@ import za.co.mythuso.model.PreviewStore
             Note("When you invite a guardian or a family member, their access appears here with exactly what they can see and when it ends.")
         }
         store.invitations.forEachIndexed { index, invitation ->
-            Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("${invitation.name} · ${invitation.relationship}", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                     Text(invitation.status, style = MaterialTheme.typography.labelMedium, color = if (invitation.status == "Active") Indigo else MaterialTheme.colorScheme.onSurfaceVariant)
