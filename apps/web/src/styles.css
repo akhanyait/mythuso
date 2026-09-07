@@ -1737,7 +1737,6 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
  .sos-failures{grid-template-columns:repeat(2,minmax(0,1fr))}
  .sos-rules{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-
 /* ---- Teleconsultation call --------------------------------------------------------------
    The roster is the load-bearing element: a list of people, each with where they are standing and
    what they can hear, and one of them possibly greyed out because the patient asked them to leave.
@@ -1802,4 +1801,60 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
  .tc-ends{grid-template-columns:repeat(2,minmax(0,1fr))}
  .tc-limits{grid-template-columns:repeat(2,minmax(0,1fr))}
  .tc-refusals{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* ---- Consent, and the log of who opened your record ----
+   Two screens with one job between them: make a choice legible before it is made, and make what
+   happened afterwards readable by the person it happened to. Three things are load-bearing rather
+   than decorative. The state chip is the whole point of versioned consent — "agreed", "needs
+   answering again" and "withdrawn" have to look like three different things, because they are.
+   The refused rows in the access log are given the same weight as the allowed ones and a colour of
+   their own, since a refusal is the entry somebody actually opens this screen looking for. And the
+   retention list sits inside the card at rest rather than behind a confirmation, which is what
+   keeps withdrawal one tap: the person has already read what it does not undo. */
+.consent-centre,.access-log{display:grid;gap:16px}
+.consent-blocked{display:flex;gap:11px;align-items:flex-start;background:var(--amber-soft);color:#7d5512;border-radius:var(--r-tile);padding:14px 16px;font-size:12.5px;line-height:1.6}
+.consent-blocked svg{flex-shrink:0;margin-top:1px}
+.consent-group{display:grid;gap:12px}
+.consent-group>h3{font-family:var(--font-display);font-size:16px}
+.consent-card{border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);padding:16px;display:grid;gap:12px}
+.consent-card.is-held{border-color:var(--teal)}
+.consent-card.is-held-on-superseded-version{border-color:var(--amber)}
+.consent-card.is-withdrawn,.consent-card.is-refused{background:var(--canvas)}
+.consent-card>header{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.consent-card h4{margin:0;font-size:14.5px;font-weight:650;letter-spacing:-.2px}
+.consent-card header small{display:block;color:var(--faint);margin-top:3px}
+.consent-state{border-radius:var(--r-pill);padding:4px 11px;font-size:11px;font-weight:650;white-space:nowrap;background:var(--canvas);color:var(--body)}
+.consent-state-held{background:var(--teal-soft);color:var(--teal-deep)}
+.consent-state-held-on-superseded-version{background:var(--amber-soft);color:#7d5512}
+.consent-state-withdrawn,.consent-state-refused{background:var(--line);color:var(--forest)}
+.consent-wording{margin:0;padding:13px 15px;border-left:3px solid var(--teal);background:var(--canvas);border-radius:0 var(--r-tile) var(--r-tile) 0;font-size:13px;line-height:1.65;color:var(--ink)}
+.consent-proof{display:flex;gap:16px;flex-wrap:wrap;color:var(--faint);font-size:11px}
+.consent-proof span{display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.consent-changed{background:var(--amber-soft);color:#7d5512;border-radius:var(--r-tile);padding:13px 15px;display:grid;gap:6px}
+.consent-changed strong{font-size:12.5px}
+.consent-changed p{font-size:12.5px;line-height:1.6;color:inherit}
+.consent-changed .muted{color:inherit;opacity:.85;font-size:12px}
+.consent-facts{display:grid;gap:12px}
+.consent-facts>div>span{display:block;font-size:11px;font-weight:650;letter-spacing:.4px;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.consent-facts p{font-size:12.5px;line-height:1.6;color:var(--body)}
+.consent-kept ul{margin:0;padding-left:17px;display:grid;gap:7px}
+.consent-kept li{font-size:12.5px;line-height:1.6;color:var(--body)}
+.consent-kept em{color:var(--faint);font-style:normal}
+.consent-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.consent-actions button{min-height:44px;padding:11px 16px;font-size:13px;display:inline-flex;align-items:center;gap:7px}
+.consent-actions .helper{flex-basis:100%}
+.access-list{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.access-row{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r-tile);background:var(--surface);padding:13px 15px}
+.access-row.is-refused{border-color:var(--danger);background:var(--danger-soft)}
+.access-row .access-mark{color:var(--teal-deep);margin-top:1px}
+.access-row.is-refused .access-mark{color:var(--danger)}
+.access-row strong{display:block;font-size:13px;font-weight:650}
+.access-row small{display:block;color:var(--faint);margin-top:3px}
+.access-row em{display:block;font-style:normal;color:var(--body);font-size:11.5px;margin-top:4px}
+.access-reason{font-size:12px;line-height:1.6;color:var(--forest);margin-top:7px}
+.access-log .empty-note ul{margin:8px 0 0;padding-left:17px;display:grid;gap:6px}
+@media(min-width:700px){
+ .consent-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .consent-kept{grid-column:1/-1}
 }

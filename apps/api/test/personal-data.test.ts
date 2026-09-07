@@ -16,6 +16,7 @@ import { basisById, clinicalRetentionRules, daysRemaining, disposalDate, dueBy, 
 import { createProtectionModule } from '../src/protection/index.ts';
 import { openVettingStore } from '../src/vetting/index.ts';
 import { openCaptureStore } from '../src/capture/index.ts';
+import { openConsentStore } from '../src/consent/index.ts';
 
 const config = loadConfig({
   MYTHUSO_ENV: 'development', MYTHUSO_AUTH_PEPPER: 'p'.repeat(40),
@@ -63,6 +64,7 @@ describe('the holdings register', () => {
     const store = openStore(path);
     openVettingStore(store.database);
     openCaptureStore(store.database);
+    openConsentStore(store.database);
     createProtectionModule({ environment: 'development', protectionKeys: `1:${randomBytes(32).toString('hex')}` }, store.database, {
       vetting: { find: () => null }, releases: { find: () => null }
     });

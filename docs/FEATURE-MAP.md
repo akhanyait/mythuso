@@ -34,6 +34,7 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | System states | Loading, service error, offline, permission denied and empty, as shared components used by the real screens and collected in one gallery | All three |
 | Localisation | English, isiZulu, Sesotho and Afrikaans across the shell, navigation, tab bar and primary actions | All three |
 | Shared design language | One token set, one illustration source and one set of shared components, implemented natively three times | All three |
+| Versioned consent, and the log of who opened a record | **Built** in `apps/api/src/consent`. Consent is to a *version* of a *purpose*, never a boolean on a person: the fingerprint of the exact wording and of the withdrawal sentence is what is stored, so the words cannot be edited out from under a recorded consent; wording that has changed does not carry the old agreement forward, and the person is asked again with the reason for the change; withdrawal is one action with no reason required, is recorded as an entry of its own, and answers with what is kept anyway and the law that keeps it. The consents care depends on are separated from the optional ones structurally — an optional purpose has no route to the care decision at all. Beside it a clinical access log distinct from the sign-in log: who opened whose record, when, under what lawful basis and what capability, refused attempts included, readable in full by the person whose record it is. Records no reading, and has no column one could go in | Web; the service holds both ledgers |
 | Identity service | **Built**: one-time-code sign-in over a first-party HttpOnly cookie, peppered hashes, attempt burning, rate limits, no account enumeration, sliding and absolute session limits, append-only auth audit, production refusals. Holds identity only — no health information | Web; native keeps its first-run route |
 | Admin console | Reporting against the funding plan, vetting pipeline gating dispatch, catalogue pricing with live platform margin, subscriptions and B2B, milestone-gated tranches, compliance checklist | Web only — a back office, not a phone surface |
 | Session and sign-out | Sign out from the profile menu or More; the shell and the account are unreachable until sign-in | Web; native keeps its first-run route |
@@ -44,7 +45,7 @@ These flows exist on all three platforms, with the same steps, the same wording 
 
 | Area | Web preview | Native iOS / Android preview | Later functionality |
 |---|---|---|---|
-| Onboarding | Six-step sign-up, identity check-digit validation, recovery setup, consent separation | Native equivalents of every step | Home Affairs verification, SMS provider, rate limiting, device binding, audited consent records |
+| Onboarding | Six-step sign-up, identity check-digit validation, recovery setup, consent separation held in step with the contract by a boundary check | Native equivalents of every step | Home Affairs verification, SMS provider, rate limiting, device binding; the sign-up screen writing to the consent register rather than to its own state |
 | Identity recovery | Three recovery routes with acknowledgement state | Native routes and acknowledgement | Verified trusted-contact flow, cooling-off period, physical-site process |
 | Patient home | Dashboard, care illustration, service cards, upcoming visit, family, Passport | Native home, services, visit card, Passport and family routes | Real personalised care data |
 | Thuso Nurse | Nine service catalogue, filters, search, 3-step booking | Searchable catalogue and native booking review | Matching, scheduling, secure messaging, live ETA, reschedule/cancel policies |
@@ -53,7 +54,7 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Thuso Family | Family cards, add-member preview, guardian invitations with scope/duration/verification and revocation | Native family list, add-member preview and invitation management | Real invitations, verified authority, guardianship proof, diaspora sponsorship |
 | Thuso Routine | Five plan cards with indicative pricing | Five native plan cards | Billing, eligibility, schedules, care pathways |
 | Thuso Wallet | Sample balance/activity and entry dialogs; the nurse side is the earnings and payout screen | Native balance/activity and entry screens | Payment provider, vouchers, immutable ledger, sponsorship |
-| Privacy | Switches, sharing, guardian access, access-history sample, request acknowledgement | Native switches, invitations and rights entry screens | Identity verification, lawful-basis records, audited rights fulfilment |
+| Privacy | Switches, sharing, guardian access, request acknowledgement, and — reading the service where one is running — your consents with their versions, wording, fingerprints and withdrawal, and the real access log including refused attempts | Native switches, invitations and rights entry screens; consent and the access log are web-only | Recipient, scope and expiry per consent and propagation downstream; guardian consent as a proven authority; a disposal for the access log's own six-year period |
 | Nurse workspace | Schedule, availability toggle, full visit assessment with device capture, the offline queue, weekly earnings and payouts, onboarding and vetting | Native equivalents | A payment provider, a real ledger, bank verification, real dispatch integration |
 | Doctor workspace | Review queue with trend chart, outcome and rationale sign-off, and the teleconsultation call with its roster, consent, connection ladder and encounter outcomes | Native queue, review and call | A media transport, real prescriptions, referrals |
 | Partner workspace | Prescription and laboratory order detail with chain of custody and release control | Native fulfilment queue and order detail | Partner APIs, real dispensing, courier integration, result delivery |
@@ -134,6 +135,22 @@ These flows exist on all three platforms, with the same steps, the same wording 
   nobody: anything felt or measured is the nurse's finding, under her registration.
 - A doctor whose HPCSA registration has lapsed cannot open a call, and is refused in the clinical queue's
   own words rather than in a second sentence written for video.
+- Consent is never a boolean on a person. It is to one version of one purpose, and when the wording
+  changes the old agreement does not quietly become agreement to the new words — the person is asked
+  again, and told what changed.
+- What is stored as proof is the fingerprint of the exact words shown, not a pointer to wording
+  somebody can edit afterwards.
+- Withdrawal is never harder than agreeing was. One action, no reason, no confirmation step — and
+  what withdrawing does not undo is on the screen before anything is touched, with the law that
+  keeps it, because a withdrawal is not a deletion and saying only "done" tells the pleasant half.
+- Refusing an optional consent cannot reach the care decision at all. Not "does not today" — an
+  optional purpose has no route to it, and the build fails on a contract that says otherwise.
+- Reading a notice is not agreeing to anything. The POPIA notification is recorded as an
+  acknowledgement, cannot be withdrawn, and is never counted as a consent.
+- A refused attempt to open a record is written down exactly as an allowed one. A log that only
+  shows successes cannot show anybody an attempted intrusion.
+- The access log records that a record was opened and never what was in it, and there is no column
+  one could go in — the forbidden column words are read from the contract, not remembered.
 - Nothing in any of these flows is transmitted, stored or acted upon.
 
 ## Cross-platform consistency

@@ -9,7 +9,7 @@ Authoritative starting points: [Information Regulator POPIA resources](https://i
 | Data minimisation | Fictional fixtures; memory-only state; no analytics | Purpose/field inventory, minimum collection, privacy impact assessment |
 | Identity | **Built** in `apps/api`: one-time-code sign-in, peppered hashes for codes and sessions, attempt burning, rate limits per number and per address, no account enumeration, sliding idle and hard absolute session limits, append-only auth audit, and production refusals for a weak pepper, an http origin or no SMS provider. Plus **a second factor**: TOTP (RFC 6238) on `node:crypto`, its secret encrypted at rest, enrolment inactive until a code is typed back, hashed single-use recovery codes, and a sign-in that has answered the one-time code but still owes an authenticator code holding a ten-minute challenge rather than a session. Step-up is never demanded of an account with no second factor enrolled. Plus the sign-up preview with local check-digit validation and three account-recovery routes as designed states | OIDC, **a contracted** Home Affairs verification provider — the adapter is now built (`apps/api/src/vetting/identityProvider.ts`: signed requests, a signature-verified idempotent callback, a replay window, a sandbox that runs without secrets, and a refusal to sandbox in production) and it has never spoken to a provider, because none has been contracted and no key exists — clinician verification, guardian authority, device binding and an audited, reversible recovery process. **Designed, not wired:** which roles must carry a second factor derives from the vetting grants `prescribe`, `sign-clinical-review`, `dispense`, `release-lab-result` and `view-patient-record` (`apps/api/src/stepUp.ts`), and the service does not yet know about roles at all |
 | Authorisation | Twelve vetted parties, and a capability each is refused by name until its checks pass — dispatch, clinical sign-off, prescribing, dispensing, result release, sample custody, guardian access and the rest. **Built** in `apps/api/src/vetting`: the evidence vault, the lifecycle and the refusals now run on the server, and the gate resolves an actor's standing out of stored evidence on every single read, so a lapsed clearance withdraws a capability with nobody having to notice first. What is still interface-only is everything the server has no records for — patients, visits, care relationships. **And the one decision nobody reviews is now an operator act rather than a code path**: seeding the first two reviewers, who by definition have nobody to clear them, takes a signed single-use authorisation minted at a console, names the parties and the two people deciding, expires in fifteen minutes, cannot be reached from any route, and marks every check it decided as standing on it until a real reviewer decides it again **And a credential verification layer that verifies nothing yet, and says so**: one adapter per issuing authority in `apps/api/src/vetting/authority.ts`, a closed set of outcomes in which `not-integrated` is a first-class answer rather than an error, an authority's answer recorded in its own table beside — never inside — the reviewer's decision, a party's standing that composes the sentence "cleared by review, with no authority confirmation" for as long as that is true, and a re-verification sweep (`npm run reverify -w @mythuso/api`) that is a dry run unless committed. **Twelve of the twelve authorities answer `not-integrated` today** | Server-side deny-by-default object/tenant/relationship checks over clinical records, which do not exist yet; an audited break-glass process (the gate's break-glass route is built and refuses to write anything at all); **and an actual integration with any of the twelve authorities**, eleven of which need an agreement, an accreditation or a customer account that does not exist, and the twelfth of which needs a contract with an accredited identity provider |
-| Consent | Optional switches, sharing preview, sign-up consent separated into required and optional, and spoken visit consent that records refusal as a valid outcome | Versioned purposes, lawful basis, recipient/scope/expiry, proof, withdrawal and downstream propagation |
+| Consent | **Built** in `apps/api/src/consent`: consent to a *version* of a *purpose*, never a boolean on a person; the SHA-256 of the exact wording and the withdrawal sentence stored as the proof, so the words cannot be edited out from under a recorded consent; a decision refused outright where it names wording that is no longer in force, and an existing consent to superseded wording that authorises nothing until the person is asked again; withdrawal as one call with no reason required, recorded as an entry of its own, answering with what is kept anyway and the ground for each; and the required consents care depends on separated from the optional ones structurally — an optional purpose has no route to the care decision at all, and the contract refuses to load one that admits to degrading care. Beside it a **clinical access log** distinct from the auth log: who opened whose record, when, under what lawful basis and what capability, refusals included, carrying the id of the gate's own chain entry for the same decision, and readable in full by the person whose record it is. `packages/catalog/consent.json` holds the purposes, the versions, the required/optional split and every refusal, withdrawal and retention sentence; web and the service read it, and nothing restates it. Plus the earlier preview: optional switches, sharing preview, and spoken visit consent that records refusal as a valid outcome | Recipient, scope and expiry per grant, and downstream propagation to anybody the information was given to — none of which exists, because no clinical record and no recipient does. Guardian consent for a minor as a proven authority rather than a recorded route. A determination by the Information Officer and counsel of the lawful basis this file has *named* for each purpose |
 | Family care | Guardian invitation preview in which scope, duration and identity verification are three separate decisions, revocable, with sensitive categories excluded from every scope | Verify guardianship and delegated authority with proof; no record access merely because someone pays; a record of the child's own views as they grow older |
 | Export | Explicit export of a fictional sample | Step-up identity check, scoped export, audit, expiry and secure delivery |
 | Deletion/correction | **Built** in `apps/api`: a holdings register classifying every table `erase`/`anonymise`/`retain`, each with a plain-English ground written for the data subject and each naming a **retention basis** — what keeps it, from when, under which instrument, and whether it pulls against section 24. Disposal dates are derived from the basis and its anchor, and are *null* wherever no honest date can be worked out. The section 24 thirty-day clock runs from receipt; erasure has a seven-day grace period, an immediate sign-out and a tombstone that is unique and unreachable (RFC 2606 `.invalid`, and not a number that could be dialled); the retention sweep is a dry run unless committed. The answer names what could **not** be erased and calls it a partial refusal in that word, with the ground and the disposal date, and points at the Information Regulator. The clinical retention rules — six years from the last entry, a minor's record until twenty-one, mental health and occupational health longer again — are modelled and marked as holding nothing, because nothing clinical is held here. Acknowledgement preview on web. The intake ledger is registered like everything else — the receipt that an entry arrived, and anything a clinician still has to decide about, both on a `capture-receipt` basis anchored on the day it arrived rather than on what the device claimed, because a disposal date computed off a device's clock is not a date. **An entry still waiting for a decision is never disposed of**, whatever its age: a question that has been open for a year is a question somebody owes an answer to, and sweeping it away would answer it by deletion | The clinical bases attached to actual clinical holdings, once any exist; correction as distinct from deletion; an operator queue and proof of response; and a determination by the Information Officer and counsel of every period this register currently records as MyThuso's own setting |
@@ -141,6 +141,81 @@ with a stated cost: automatic withdrawal would mean a register that was briefly 
 that misread a response, striking nurses off the roster at three in the morning with nobody in the
 loop — and that same route would be the one an attacker reached for. Between the answer and the
 reviewer reading it, the party is still dispatchable.
+
+## Consent, and the log of who opened a record
+
+Two things, built together because they are one question asked from two ends: a consent is a
+permission to process, and the access log is the record of the processing it permitted. Neither is
+a compliance control on its own, and neither is a claim that MyThuso is POPIA-compliant.
+
+**Consent is to a version, and the version does not carry.** There is no boolean on a person meaning
+"has consented" — `consent_decisions` holds one row per decision, and where somebody stands is
+derived from those rows on every read, the way a vetting standing is derived from evidence. When the
+wording of a purpose changes, the old consent stays exactly what it was: a valid consent, to those
+words, on the register, unedited. What it does not become is a consent to the new words. The service
+refuses to record a decision naming wording that is no longer in force, refuses to act on one held at
+a superseded version, and says which version the person agreed to, which is in force, and what
+changed. `packages/catalog/consent.json` carries the sentence for each change, so the reason a person
+is being asked again is the reason rather than "our terms have been updated".
+
+**The proof is the fingerprint of the words, not a pointer to them.** A stored consent that carries a
+foreign key to a wording row is a consent somebody can edit into a consent to something else,
+afterwards, without touching the consent record. So what is stored is the SHA-256 of the exact
+wording *and* the withdrawal sentence the person was shown, with the purpose and version in the
+digest. The honest limit is stated in the module: a hash proves those words were shown to anybody who
+still has the words, and the words live in a version-controlled contract file. It does not survive
+that file being rewritten and its history discarded.
+
+**Withdrawal is one call, and it is an entry.** No reason is asked for, no second factor is demanded,
+there is no confirmation endpoint, and the screen shows what withdrawing does not undo *before* the
+person touches anything rather than behind a step — which is what keeps it as cheap as the tick was.
+A withdrawal is a new row rather than an edit of the row that gave it, because "never consented" and
+"consented and then stopped" are different facts and only one of them is true. And it is not
+deletion: what is kept afterwards is named, in the words the person reads, with the ground and the
+instrument — a health record kept for six years from its last entry, and the log of who opened it
+while the consent stood.
+
+**Required and optional are separated structurally.** An optional consent has no route to the care
+decision: `careStanding()` consults the required purposes and nothing else, the contract refuses at
+start-up to load an optional purpose that admits to degrading care, and
+`scripts/check-boundaries.mjs` fails the build on one. `apps/web/src/features/Onboarding.tsx` already
+separated the two at sign-up; the check now holds the two in step, so a purpose that is really
+compulsory cannot be presented as a choice on one surface and a condition on the other. Reading a
+notice is separated from agreeing to something as well — the POPIA section 18 notification is
+recorded as an *acknowledgement*, cannot be withdrawn, and is never counted as consent to a purpose.
+
+**The access log is not the sign-in log.** `audit` answers "who signed in, from where, and was the
+code right". `record_access_log` answers "who opened whose record, when, under what lawful basis and
+what capability, and were they allowed to". Two tables, two retentions, two audiences: the first is
+read by an operator investigating an account takeover and the second by the person whose record it
+is. A refused attempt is written exactly as an allowed one, because a log that only shows successes
+cannot show anybody an attempted intrusion. Every entry goes through the gate first and carries the
+id of the gate's own hash-chain entry for the same decision, so the two can be compared — which is
+also why this table is not chained itself: chaining it would mean the consent module holding key
+material, and a module that can compute the chain is a module that can forge it. It is append-only by
+contract, guarded by a boundary check on `UPDATE` and `DELETE`, exactly as `audit` is.
+
+**It records that a record was opened, never what was in it.** There is no column a reading could go
+in; `packages/catalog/consent.json` names the column words that may never appear, and the boundary
+check reads that list from the contract rather than from anybody's memory. The clinical-table check
+that fails the build on a clinical table in this service was not touched and did not need to be.
+
+**Three production refusals** in `apps/api/src/config.ts`, in the same spirit as the ones already
+there. `MYTHUSO_INFORMATION_OFFICER` must name the registered Information Officer: a consent is given
+to a responsible party, and a service recording one without being able to say who is accountable for
+it has written down half an agreement. `MYTHUSO_CONSENT_ASSUME_CARRIED_OVER` — a development
+convenience so a developer need not re-answer every screen after a wording change — cannot be true in
+production, because there it would convert consent to old wording into consent to new wording and the
+row would afterwards be indistinguishable from one somebody gave. And `MYTHUSO_PROTECTION_KEYS` is
+now required in production: with no key ring there is no gate, so no access is decided and none is
+written into the chain, and a service in that state cannot honestly claim to know who opened what.
+
+**Designed, not built.** A recipient, a scope and an expiry per consent, and propagation to anybody
+the information was already given to — none of which exists here because no clinical record and no
+recipient does. Guardian consent recorded as a *proven* authority rather than as a route on a
+decision. And the access log's own retention: six years is written into the register and nothing
+carries it out — the retention sweep does not reach the table and no row has ever been disposed of.
+Closing that needs a disposal a boundary check can tell apart from a deletion, and it is not built.
 
 ## Retention against erasure
 

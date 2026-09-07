@@ -16,6 +16,14 @@
  * handed straight back to the device with the receipt; what stays here is a digest of the sealed
  * bytes, so the key ring is on this side and the ciphertext is not.
  *
+ * And since versioned consent there is a fourth, which is the one that had to be built the most
+ * carefully: what a person agreed to, in which words, on what day and by what route — and, in its
+ * own table, who opened whose record, when, under what lawful basis and what capability. The second
+ * of those is the closest this service comes to the line, and it stays the right side of it because
+ * it records *that* a record was opened and never what was in it. There is no column it could go
+ * in, packages/catalog/consent.json names the column words that may never appear, and
+ * scripts/check-boundaries.mjs checks the schema against that list rather than against a memory.
+ *
  * It holds no health information, which is why it can exist before the POPIA controls that special
  * personal information requires. A police clearance is not a clinical finding and a SANC certificate
  * is not a diagnosis — they are information about the people who give care, not about the people who
@@ -46,6 +54,12 @@ export type Config = {
   identityApiKey: string;
   identitySandbox: boolean;
   identityCallbackUrl: string;
+  /* Who is accountable for the consents this service records. POPIA makes the responsible party's
+     Information Officer the person a data subject complains to and the Regulator writes to; a
+     service recording consent with nobody named is recording a signature with no counterparty. */
+  informationOfficer: string;
+  /* A development convenience, and one that must never exist in production. See the refusal below. */
+  consentAssumeCarriedOver: boolean;
 };
 export class ConfigError extends Error {}
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -113,6 +127,35 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (production && allowedOrigins.some(o => o.startsWith('http://'))) {
     throw new ConfigError('Allowed origins must be https in production');
   }
+  /* ---- Consent, and the log of who opened a record ------------------------------------------
+     Three refusals, in the same spirit as the ones above: things this service must not be allowed
+     to run without, rather than things it warns about and carries on. */
+  /* A consent is given to somebody. POPIA requires the responsible party to register an Information
+     Officer, and that person is who a data subject takes a withdrawal or a complaint to. A service
+     that records consent in production and cannot say who is accountable for it has recorded one
+     half of an agreement. Development runs without one, because there is nobody to complain to
+     about a consent nobody gave. */
+  const informationOfficer = (env.MYTHUSO_INFORMATION_OFFICER ?? '').trim();
+  if (production && !informationOfficer) {
+    throw new ConfigError('MYTHUSO_INFORMATION_OFFICER must name the registered Information Officer in production. A consent is given to a responsible party, and a service that records consent without being able to say who is accountable for it has written down one half of an agreement.');
+  }
+  /* The exact shape of MYTHUSO_RETURN_CODES, and for the same reason. It exists so a developer
+     seeding a database does not have to re-answer every consent screen after a wording change. In
+     production it would silently convert consent to old wording into consent to new wording, which
+     is the one thing packages/catalog/consent.json says can never happen — and afterwards the row
+     would look exactly like a consent somebody actually gave. */
+  const consentAssumeCarriedOver = env.MYTHUSO_CONSENT_ASSUME_CARRIED_OVER === 'true';
+  if (production && consentAssumeCarriedOver) {
+    throw new ConfigError('MYTHUSO_CONSENT_ASSUME_CARRIED_OVER cannot be enabled in production: it would treat consent given to superseded wording as consent to the wording in force, and afterwards nothing would distinguish it from a consent somebody actually gave.');
+  }
+  /* The gate is what decides an access and what writes the tamper-evident entry the access log
+     cross-references. With no key ring there is no gate, no chain and no decision — so every read of
+     somebody's record would happen unlogged and undetectable. That is tolerable in development,
+     where there is no record and nobody to read it; it is not tolerable in a production service
+     whose whole claim is that it can say who opened what. */
+  if (production && !protectionKeys) {
+    throw new ConfigError('MYTHUSO_PROTECTION_KEYS must be configured in production. Without the key ring there is no gate, so no access to a record is decided, none is written into the tamper-evident chain, and the log of who opened what would be a table nothing writes to.');
+  }
   return {
     environment,
     port: Number(env.MYTHUSO_PORT ?? 8787),
@@ -129,7 +172,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     identityPartnerId,
     identityApiKey,
     identitySandbox,
-    identityCallbackUrl: (env.MYTHUSO_IDENTITY_CALLBACK_URL ?? '').trim()
+    identityCallbackUrl: (env.MYTHUSO_IDENTITY_CALLBACK_URL ?? '').trim(),
+    informationOfficer,
+    consentAssumeCarriedOver
   };
 }
 export const limits = {

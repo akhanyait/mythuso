@@ -124,7 +124,12 @@ describe('responses do not leak', () => {
 });
 
 describe('what production refuses to start with', () => {
-  const base = { MYTHUSO_ENV: 'production', MYTHUSO_AUTH_PEPPER: 'z'.repeat(40), MYTHUSO_SMS_PROVIDER: 'clickatell', MYTHUSO_ALLOWED_ORIGINS: 'https://app.mythuso.co.za' };
+  /* Since versioned consent a production service must also name an Information Officer and hold the
+     protection key ring: a service recording consent with nobody accountable for it, or opening
+     records with no gate to decide and no chain to write to, is refused. The refusals themselves are
+     tested in test/consent.test.ts; what they are doing here is keeping this baseline a complete
+     production configuration rather than one that happens to pass. */
+  const base = { MYTHUSO_ENV: 'production', MYTHUSO_AUTH_PEPPER: 'z'.repeat(40), MYTHUSO_SMS_PROVIDER: 'clickatell', MYTHUSO_ALLOWED_ORIGINS: 'https://app.mythuso.co.za', MYTHUSO_INFORMATION_OFFICER: 'Information Officer, Akhanya IT Innovations', MYTHUSO_PROTECTION_KEYS: '1:' + 'a'.repeat(64) };
   const refuses = (env: Record<string, string | undefined>, expected: RegExp) =>
     assert.throws(() => loadConfig({ ...base, ...env } as NodeJS.ProcessEnv), (error: unknown) => error instanceof ConfigError && expected.test(error.message));
   test('a weak or missing pepper', () => refuses({ MYTHUSO_AUTH_PEPPER: 'short' }, /PEPPER/));

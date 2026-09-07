@@ -1,0 +1,260 @@
+{
+ "why": "A consent that cannot say which words were agreed to, on what day, by what route, is not proof of anything. MyThuso records consent to a specific version of a specific purpose, keeps the fingerprint of the exact wording rather than a pointer to a row somebody can edit, and treats withdrawal as an ordinary operation rather than a support ticket. The half of this contract nobody enjoys writing is the one that matters most: what withdrawal does not undo, and what is kept anyway, said in the words the person reads.",
+ "notAdvice": "This file records instruments and periods. It does not interpret either, and nothing in it is legal advice. Which lawful basis and which authorisation actually apply to each purpose is a determination for MyThuso's Information Officer and South African counsel, and the sections named below are pointers to something a reader can go and read rather than a conclusion about it.",
+
+ "lawfulBases": [
+  {
+   "id": "s11a-consent",
+   "name": "You said yes",
+   "authority": "POPIA section 11(1)(a): processing is lawful where the data subject consents to it.",
+   "detail": "Voluntary, specific and informed, and given by somebody who could have said no without losing anything they were entitled to. A consent that is the price of care is not a consent, which is why the required purposes below are separated from the optional ones and why refusing an optional one is worth nothing to MyThuso."
+  },
+  {
+   "id": "s32-health-professional",
+   "name": "A health professional treating you",
+   "authority": "POPIA section 26 read with section 32(1)(a): the prohibition on processing health information does not apply to processing by a health-care professional, or by a health-care institution, where it is necessary for proper treatment and care.",
+   "detail": "Health information is special personal information and starts out prohibited. This is the authorisation the nurse at your door and the doctor reviewing her assessment work under. It is not a consent and it does not become one: withdrawing consent to be contacted does not withdraw a clinician's authority to read the record of care they are giving you."
+  },
+  {
+   "id": "s11c-legal-obligation",
+   "name": "A law requires it",
+   "authority": "POPIA section 11(1)(c): processing complies with an obligation imposed by law on the responsible party.",
+   "detail": "The record-keeping duties in the National Health Act and the HPCSA's guidance are the ones that reach MyThuso. This basis is the reason a withdrawal is not a deletion."
+  },
+  {
+   "id": "s11d-vital-interest",
+   "name": "To protect you when you cannot be asked",
+   "authority": "POPIA section 11(1)(d): processing protects a legitimate interest of the data subject.",
+   "detail": "The emergency route. Somebody unconscious cannot be asked, and asking is not a condition of helping them. Every access on this basis is written down, is reviewed afterwards, and reaches the emergency card and nothing else."
+  },
+  {
+   "id": "s11f-legitimate-interest",
+   "name": "Necessary to run the service",
+   "authority": "POPIA section 11(1)(f): processing is necessary for pursuing the legitimate interests of the responsible party or of a third party to whom the information is supplied.",
+   "detail": "Sending a named nurse to a named door, and billing for the visit afterwards. It reaches an address, a service and an amount. It never reaches a finding."
+  },
+  {
+   "id": "s23-subject-access",
+   "name": "You reading your own record",
+   "authority": "POPIA section 23: a data subject may ask what personal information a responsible party holds about them, and be given a record of it.",
+   "detail": "A right rather than a grant. Nobody hands it out and nobody can withdraw it, which is why the gate satisfies the capability check for a data subject by identity and by nothing else."
+  },
+  {
+   "id": "s69-direct-marketing",
+   "name": "You asked to hear from us",
+   "authority": "POPIA section 69: direct marketing by electronic communication is prohibited unless the data subject has consented, or is an existing customer within the narrow terms that section allows.",
+   "detail": "MyThuso takes the consent route for everyone rather than relying on the customer exception, because the exception is narrow, arguable, and would put the platform's convenience above a person's inbox."
+  }
+ ],
+
+ "routes": [
+  { "id": "web-account", "name": "In your MyThuso account", "detail": "Ticked on a screen you were reading, in the language you chose. The exact words on that screen are what the fingerprint is taken of." },
+  { "id": "spoken-at-visit", "name": "Spoken to the nurse at your door", "detail": "Read aloud by the nurse and answered out loud, because the person in front of her may not read, may not read that language, or may not be holding a phone. The nurse records which version she read and that she read it; she cannot record it as read by you." },
+  { "id": "paper-at-corner", "name": "On paper at a Thuso Corner", "detail": "Signed on the printed version of the same wording. The printed sheet carries the version number so that the fingerprint of what was signed can be established afterwards rather than assumed." },
+  { "id": "guardian", "name": "Given by a guardian with proven authority", "detail": "Recorded as the guardian's act and never as the person's own, with the guardian named. A child of twelve or older may consent for themselves to some care, and a guardian's consent does not overwrite theirs." }
+ ],
+
+ "rules": {
+  "consentIsToAVersion": "Consent is to a specific version of a specific purpose. There is no boolean on a person that means \"has consented\", because the only useful question is what they agreed to and when.",
+  "wordingIsFingerprintedNotPointed": "What is stored is the SHA-256 of the exact wording that was shown, not a foreign key to a row somebody can edit. A consent that points at mutable wording can be rewritten after the fact into a consent to something else.",
+  "newWordingDoesNotCarryOver": "When the wording of a purpose changes, consent to the old version does not become consent to the new one. The old consent stays exactly what it was — valid, recorded, and about the old words — and MyThuso must ask again.",
+  "withdrawalIsAsEasyAsGiving": "Withdrawal takes the same number of actions as giving it, on the same screen, with no reason required and nobody to contact. A withdrawal that costs more effort than the consent did is a consent that was never really free.",
+  "withdrawalIsNotDeletion": "Withdrawing consent stops the processing it authorised from that moment. It does not delete what was lawfully processed while it stood, and it does not reach anything held on another ground. Which records those are, and why, is said at the moment of withdrawal rather than in a policy nobody opens.",
+  "withdrawalIsRecorded": "A withdrawal is an entry, not the absence of one. It carries its own date, route and wording, because \"they never consented\" and \"they consented and then stopped\" are different facts and only one of them is true.",
+  "optionalNeverDegradesCare": "Refusing an optional consent changes nothing about the care you receive, the price you pay, how quickly a nurse is dispatched, or which nurse it is. A platform that quietly makes the refusers wait longer has made the consent a payment.",
+  "anAcknowledgementIsNotAConsent": "Reading a notice is not agreeing to anything. \"I have read how my information is used\" is recorded as an acknowledgement, with its own version, and is never counted as consent to a purpose. A platform that counts a person's confirmation that they read something as their permission has manufactured a permission.",
+  "requiredIsNamedNotImplied": "The purposes without which MyThuso cannot deliver care at all are listed as required, and the reason is given for each. Everything else is optional. A purpose that is really required and is presented as a choice is a lie about a choice.",
+  "theAccessLogIsNotTheSignInLog": "Who signed in and who opened whose record are two questions. They are kept in two tables, with two retentions and two audiences, because a log answering both answers neither well — and the one a person actually wants to read is the second.",
+  "aRefusedAccessIsRecordedToo": "An attempt that was refused is written down exactly as an access that was allowed. A log that only shows successes cannot show you an attempted intrusion, which is most of what a person is looking for when they open it.",
+  "theRecordHolderReadsTheirOwnLog": "The person whose record it is can read the log of who opened it, without asking anybody. That is the whole point of keeping one; a log only the operator can read is a log about the operator's comfort."
+ },
+
+ "purposes": [
+  {
+   "id": "care-delivery",
+   "name": "Arranging and delivering your care",
+   "kind": "consent",
+   "required": true,
+   "requiredBecause": "MyThuso cannot send a nurse to your house, or hold what she finds, without it. There is no version of the service that works without this one, so it is presented as a condition rather than as a choice.",
+   "lawfulBasis": "s11a-consent",
+   "alsoRestsOn": "s32-health-professional",
+   "degradesCare": false,
+   "ifRefused": "MyThuso cannot arrange a visit. Nothing else about your account changes, no other consent is affected, and you can give it later on the same screen.",
+   "withdrawal": "You can withdraw this at any time from your own account, in one action, without giving a reason. From that moment MyThuso arranges no further visits and no clinician opens your record for treatment.",
+   "retainedOnWithdrawal": [
+    {
+     "what": "The record of care you have already received",
+     "because": "A health record is kept for six years from the last entry in it under the National Health Act and the HPCSA's record-keeping guidance, and longer for a child. That duty is not MyThuso's to waive on your behalf and does not stop when your consent does — it exists so that a question about your treatment can still be answered, including a question you ask.",
+     "basis": "s11c-legal-obligation"
+    },
+    {
+     "what": "The log of who opened your record while your consent stood",
+     "because": "Removing it would take away the only evidence of what was done with your information during the period you are asking about. It is kept, and you can read it.",
+     "basis": "s11c-legal-obligation"
+    }
+   ],
+   "versions": [
+    {
+     "version": 1,
+     "effectiveDays": -540,
+     "wording": "I agree to MyThuso arranging home visits for me and holding the health information from them.",
+     "withdrawalWording": "You can withdraw this at any time in your account settings.",
+     "change": "The first version.",
+     "carriesOver": false,
+     "supersededBecause": "It said MyThuso would hold health information without saying who would be able to read it or what happens to it when you stop. Somebody agreeing to that was agreeing to less than they were told."
+    },
+    {
+     "version": 2,
+     "effectiveDays": -90,
+     "wording": "I agree to MyThuso arranging home visits for me and holding the health information from them. The nurse who attends, and a doctor reviewing what she found, may read the record of that care. Nobody else may, unless I say so entry by entry or a law requires it. If I withdraw this, MyThuso stops arranging visits and stops opening my record for treatment — and keeps the record of care already given, because a health record must be kept for six years from its last entry.",
+     "withdrawalWording": "You can withdraw this at any time, in one action, in your account. What is kept afterwards, and the law that keeps it, is on that same screen before you touch anything — not behind a confirmation step, because a withdrawal that takes more steps than the tick did was never really free.",
+     "change": "Names who may read the record, says that nobody else may, and says what withdrawal keeps and why — all of which the first version left to a policy page.",
+     "carriesOver": false,
+     "reconsent": "Anybody who agreed to version 1 is asked again. Their version 1 consent stays on the register exactly as it was: it was a valid consent to those words, and it is not evidence of agreement to these ones."
+    }
+   ]
+  },
+  {
+   "id": "processing-notice",
+   "name": "How your information is used, stored and deleted",
+   "kind": "acknowledgement",
+   "required": true,
+   "requiredBecause": "POPIA section 18 requires MyThuso to tell you what it collects, why, who receives it and what your rights are, before it collects it. Recording that you were told is MyThuso's obligation, not your permission — see anAcknowledgementIsNotAConsent.",
+   "lawfulBasis": "s11c-legal-obligation",
+   "degradesCare": false,
+   "withdrawable": false,
+   "ifRefused": "Nothing is refused here, because nothing is being asked for. If you have not seen the notice, MyThuso has not met its own obligation and shows it to you again.",
+   "withdrawal": "There is nothing to withdraw. You cannot un-read something, and MyThuso would be lying if it recorded that you had.",
+   "retainedOnWithdrawal": [],
+   "versions": [
+    {
+     "version": 1,
+     "effectiveDays": -90,
+     "wording": "I have read how MyThuso collects, uses, stores and deletes my information, who it may be given to, and how I can ask for it, correct it, or ask for it to be deleted.",
+     "withdrawalWording": "This is a record that you were told, not a permission you gave. There is nothing here to withdraw.",
+     "change": "The first version.",
+     "carriesOver": false
+    }
+   ]
+  },
+  {
+   "id": "product-updates",
+   "name": "Health tips and news about MyThuso",
+   "kind": "consent",
+   "required": false,
+   "lawfulBasis": "s69-direct-marketing",
+   "degradesCare": false,
+   "ifRefused": "Nothing. You get the same care, at the same price, from the same nurses, as quickly. You will still get the messages MyThuso has to send you about a visit you booked — a nurse's arrival is not marketing.",
+   "withdrawal": "One action, on the same screen you gave it on, and every message MyThuso sends under it carries the same way out.",
+   "retainedOnWithdrawal": [
+    {
+     "what": "The record that you had consented, and the date you withdrew",
+     "because": "It is the only thing that can show MyThuso stopped when you asked. Deleting it would leave the platform unable to prove it had ever had permission, or that it stopped having it.",
+     "basis": "s11c-legal-obligation"
+    }
+   ],
+   "versions": [
+    {
+     "version": 1,
+     "effectiveDays": -540,
+     "wording": "Send me health tips and news about MyThuso.",
+     "withdrawalWording": "You can unsubscribe at any time.",
+     "change": "The first version.",
+     "carriesOver": false,
+     "supersededBecause": "It did not say how often, and it did not say that saying no changes nothing about your care. Both are the questions people actually have, and leaving them out is how a marketing consent gets given by somebody who thought it was compulsory."
+    },
+    {
+     "version": 2,
+     "effectiveDays": -90,
+     "wording": "Send me health tips and occasional news about MyThuso, at most twice a month, by SMS or in the app. Saying no to this changes nothing about the care I receive, what it costs, or how quickly a nurse reaches me.",
+     "withdrawalWording": "One tap in your account, or reply STOP to any message. It takes effect immediately and you do not have to say why.",
+     "change": "States a frequency, and states in the wording itself that refusing costs nothing.",
+     "carriesOver": false,
+     "reconsent": "Version 1 consent is not carried forward. Somebody who agreed to an unbounded stream of messages did not agree to this one, and the fact that this one is narrower does not make the old agreement cover it."
+    }
+   ]
+  },
+  {
+   "id": "wearable-readings",
+   "name": "Readings from your own watch or band",
+   "kind": "consent",
+   "required": false,
+   "lawfulBasis": "s11a-consent",
+   "alsoRestsOn": "s32-health-professional",
+   "degradesCare": false,
+   "ifRefused": "Nothing. A nurse measures what she needs at the visit, which is what happens today for everybody, because nothing is connected yet.",
+   "withdrawal": "One action. MyThuso stops reading anything new from the device immediately; readings already in your record stay there, as part of the record of your care.",
+   "retainedOnWithdrawal": [
+    {
+     "what": "Readings already written into your health record",
+     "because": "Once a reading has been acted on clinically it is part of the record of your care, and the six-year rule reaches it like everything else in that record. Removing it would leave a decision in your record with the evidence for it missing.",
+     "basis": "s11c-legal-obligation"
+    }
+   ],
+   "versions": [
+    {
+     "version": 1,
+     "effectiveDays": -90,
+     "wording": "Let MyThuso read the health measurements my own watch or band records, and show them to the nurse and doctor treating me.",
+     "withdrawalWording": "Turn it off in your account, or withdraw the permission in your phone's settings. Either one stops it.",
+     "change": "The first version.",
+     "carriesOver": false
+    }
+   ]
+  },
+  {
+   "id": "service-improvement",
+   "name": "Using de-identified information to improve MyThuso",
+   "kind": "consent",
+   "required": false,
+   "lawfulBasis": "s11a-consent",
+   "degradesCare": false,
+   "ifRefused": "Nothing at all. This is off unless you turn it on, and it is the one on this list MyThuso gains from — which is exactly why refusing it must cost you nothing.",
+   "withdrawal": "One action. MyThuso stops including anything of yours in this work from that moment.",
+   "retainedOnWithdrawal": [
+    {
+     "what": "Work already done that included de-identified information from your record",
+     "because": "It cannot be unpicked once it has been aggregated, and MyThuso will not pretend otherwise. What it will not do is include you in anything after the moment you withdraw. This is said plainly because \"we will delete your data from our analysis\" is a promise platforms make and cannot keep.",
+     "basis": "s11a-consent"
+    }
+   ],
+   "versions": [
+    {
+     "version": 1,
+     "effectiveDays": -90,
+     "wording": "MyThuso may use information from my record, with my name, number and identity number removed, to understand how home care is working and to improve it. It may not be used to make a decision about me, sold, or given to an advertiser.",
+     "withdrawalWording": "One tap in your account. It stops immediately.",
+     "change": "The first version.",
+     "carriesOver": false,
+     "note": "Pseudonymised health information is not anonymous information, and this wording deliberately does not claim that it is."
+    }
+   ]
+  }
+ ],
+
+ "accessLog": {
+  "why": "Who opened your record, when, under what lawful basis and what capability — and whether they were allowed to. It is a different question from who signed in, and MyThuso keeps it in a different table with a different retention and a different audience, because a log that answers both answers neither well.",
+  "records": [
+   "Who asked, by their identity on the platform, and in what role.",
+   "Whose record it was, which record type and which entry.",
+   "When, by the server's own clock.",
+   "Which lawful basis the reading was made under.",
+   "Which capability was being exercised.",
+   "Whether it was allowed or refused, and what refused it.",
+   "The identifier of the tamper-evident chain entry the gate wrote for the same decision."
+  ],
+  "neverRecords": [
+   "What was in the record. An access log holding the contents of what was opened is a second copy of the record with weaker protection and a longer retention.",
+   "A reading, a finding, a diagnosis, or anything a clinician wrote.",
+   "Anything that would let a reader of the log learn something about the person that the log itself was not about."
+  ],
+  "forbiddenColumns": ["value", "reading", "payload", "content", "plaintext", "body", "result", "finding", "note", "summary"],
+  "bases": ["s11a-consent", "s32-health-professional", "s11c-legal-obligation", "s11d-vital-interest", "s11f-legitimate-interest", "s23-subject-access"],
+  "outcomes": [
+   { "id": "granted", "name": "Opened", "detail": "The gate allowed it and the record was opened." },
+   { "id": "refused", "name": "Refused", "detail": "Somebody asked and was turned away. This is the entry worth reading: an access that was allowed is a Tuesday, and an access that was refused is somebody trying." }
+  ],
+  "subjectMayRead": "You can read your own access log, in full, without asking anybody and without giving a reason. Your own reading of it is recorded in it, which is how you would notice somebody signed in as you.",
+  "retention": "Kept for six years from the day the entry was written. Six is MyThuso's own setting, chosen to match the period a health record is kept for so that a question about care and a question about who read it do not stop being answerable on different days. No statute names a period for an access log."
+ }
+}

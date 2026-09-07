@@ -164,6 +164,28 @@ export const RETENTION_BASES: RetentionBasis[] = [
   inUse: true,
   note: 'Six years is MyThuso\'s own setting. No statute names a period for a sync receipt: the six-year clinical period runs from the last entry in a record, and this counts from the day the entry arrived, which is a different anchor and a shorter clock. It was chosen to match rather than derived from anything, and it is a setting an Information Officer should confirm or change. An entry still waiting for a clinician\'s decision is never disposed of on this ground, whatever its age — see apps/api/src/capture/index.ts.'
  },
+ {
+  id: 'consent-proof',
+  name: 'Proof of what you agreed to, and what you withdrew',
+  authority: 'POPIA section 11(2), which requires the responsible party to be able to show that consent was given, read with section 4(1) and the duty to demonstrate compliance. Section 69(4) requires the same for a direct-marketing consent.',
+  anchor: 'request',
+  years: 6,
+  rule: 'For every choice you were offered: which purpose, which version of the wording, the fingerprint of the exact words you were shown, the date, and how it was taken — and the same for every withdrawal. It is the only thing that can show MyThuso had your permission while it was processing, and that it stopped the moment you asked.',
+  conflictsWithErasure: true,
+  inUse: true,
+  note: 'Six years is MyThuso\'s own setting. POPIA states no period for keeping proof of consent; six matches the period a health record is kept for, so that a question about care and a question about whether it was permitted do not stop being answerable on different days. It is a setting an Information Officer should confirm or change.'
+ },
+ {
+  id: 'access-log',
+  name: 'The log of who opened your record',
+  authority: 'POPIA section 19 (measures to detect unlawful access) read with section 23 (your right to know what is held about you and who it has been given to).',
+  anchor: 'request',
+  years: 6,
+  rule: 'A line every time anybody asked to open something of yours, whether they were allowed to or not: who asked, in what role, under which law, which entry, and the answer. It never holds what was read. It is kept for six years so that a question about your care and a question about who read it stay answerable for the same length of time.',
+  conflictsWithErasure: true,
+  inUse: true,
+  note: 'Six years is MyThuso\'s own setting; no statute names a period for an access log. This is the separate log with its own period that the audit-integrity basis above says should eventually exist — it has one, and nothing yet carries it out: the retention sweep does not reach this table, and no row has ever been disposed of. That is a stated gap rather than a claim, and closing it needs a disposal that a boundary check can tell apart from a deletion.'
+ },
  /* ── Written down, holding nothing ─────────────────────────────────────────────────────────
     These are the bases that make the conflict real, and not one of them applies to anything this
     service holds today, because no clinical record exists here. They are here so that when one
@@ -292,6 +314,20 @@ export const HOLDINGS: Holding[] = [
   basis: 'audit-integrity'
  },
 
+ {
+  label: 'What you agreed to, and what you withdrew',
+  table: 'consent_decisions',
+  disposition: 'retain',
+  because: 'Every choice you were offered and what you said to it — which purpose, which version of the wording, the fingerprint of the exact words on the screen you were reading, the language it was in, the date, and whether you ticked it yourself or a nurse read it to you at your door. A withdrawal is a line of its own rather than the absence of one, because "never agreed" and "agreed and then stopped" are different things and only one of them is true about you. Nothing here is ever edited: a change of mind is a new line. It is kept because it is the only way MyThuso can show it had your permission while it was processing, and that it stopped when you asked.',
+  basis: 'consent-proof'
+ },
+ {
+  label: 'The log of who opened your record',
+  table: 'record_access_log',
+  disposition: 'retain',
+  because: 'A line every time anybody asked to open something of yours — who asked, in what role, under which law, which capability they were exercising, which entry, and the answer. Refused attempts are in it as well as allowed ones, because a list that only showed the successes could not show you somebody trying. It never holds what was read, and there is nowhere in it that what was read could be put. You can read it yourself, in full, without asking anybody — and your own reading of it appears in it, which is how you would notice somebody who had signed in as you.',
+  basis: 'access-log'
+ },
  /* ── The workforce holdings: only for a party MyThuso vets ───────────────────────────────── */
  {
   label: 'Your record as a vetted care worker or partner',
@@ -366,7 +402,7 @@ export const holdingsFor = (disposition: Disposition, options: { vetted: boolean
 
 /** One sentence about the whole service, for the top of an answer to a request. */
 export const SCOPE_STATEMENT =
- 'MyThuso\'s identity service holds a mobile number, a name if you gave one, the short-lived machinery of signing in, and — if you set one up — the secret your authenticator app shares with it. If MyThuso vets you as a nurse, courier, pharmacy, laboratory or site, it also holds the certificates and clearances your checks were verified against, and the decisions taken on them. Where a nurse\'s phone has synced after being offline, it also holds the line saying an entry arrived — which phone, which nurse, against which visit, and when — and never what was in it. It holds no health information: no visits, no observations, no results, no prescriptions. Those live nowhere yet.';
+ 'MyThuso\'s identity service holds a mobile number, a name if you gave one, the short-lived machinery of signing in, and — if you set one up — the secret your authenticator app shares with it. If MyThuso vets you as a nurse, courier, pharmacy, laboratory or site, it also holds the certificates and clearances your checks were verified against, and the decisions taken on them. Where a nurse\'s phone has synced after being offline, it also holds the line saying an entry arrived — which phone, which nurse, against which visit, and when — and never what was in it. It holds what you agreed to and what you withdrew, in the exact words you were shown, and the log of who opened your record — which never holds what they read. It holds no health information: no visits, no observations, no results, no prescriptions. Those live nowhere yet.';
 
 /**
  * What could not be erased, with the ground and the date it stops applying.

@@ -9,6 +9,11 @@ import { Erasure } from './erasure.ts';
 import { decideStepUp, SECOND_FACTOR_CAPABILITIES, SECOND_FACTOR_REASONS, type StepUpAction } from './stepUp.ts';
 import { RESPONSE_DAYS, SCOPE_STATEMENT, clinicalRetentionRules } from './personalData.ts';
 import { openCaptureStore } from './capture/index.ts';
+import {
+  ACCESS_LOG, ConsentRegister, LAWFUL_BASES, NOT_ADVICE, RULES as CONSENT_RULES, RecordAccessLog,
+  ROUTES as CONSENT_ROUTES, WHY as CONSENT_WHY, currentVersion, openConsentStore, optionalPurposes, requiredPurposes
+} from './consent/index.ts';
+
 import { SEALED_COLUMNS, VettingVault, authorityVerifiers, createIdentityProvider, openVettingStore, vettingSource } from './vetting/index.ts';
 
 const COOKIE = 'mythuso_session';
@@ -78,6 +83,13 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
      in apps/api/test/capture.test.ts; what it is waiting for is device identity, not more code. */
   openCaptureStore(store.database);
 
+  /* The consent register and the log of who opened a record. Both tables are opened here, together,
+     because they are one question asked from two ends: a consent is a permission to process, and the
+     access log is the record of the processing it permitted — which is why an access entry can name
+     the consent it stood on and a withdrawal can be answered with what was already done under it. */
+  const consentStore = openConsentStore(store.database);
+  const consent = new ConsentRegister({ store: consentStore, now });
+
   /* The data protection module, if it is configured. The identity service holds no clinical record,
      so the gate has little to guard here yet — but the subject-access route below is a real read of
      a real person's information, and every vetting document is a real sealed value, so the
@@ -108,9 +120,19 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     identity: identityProvider,
     now
   }) : null;
+  /* The access log needs the gate, so it exists only where the protection module does — which is
+     the whole of the production refusal in config.ts: with no key ring nothing decides an access and
+     nothing writes it down, and a service in that state must not be the one running in production. */
+  const accessLog = protection ? new RecordAccessLog({ gate: protection.gate, store: consentStore, consent, now }) : null;
   /* What an erasure cannot reach, asked rather than assumed. With no protection keys there is no
-     vault, so there is nothing it could be holding and nothing to say about it. */
-  const erasure = new Erasure(store, now, vetting ? [{ retainedFor: personId => vetting.retainedFor(personId) }] : []);
+     vault, so there is nothing it could be holding and nothing to say about it. The consent register
+     always has something to say, because it needs no keys to hold a decision. */
+  const erasure = new Erasure(store, now, [
+    ...(vetting ? [{ retainedFor: (personId: string) => vetting.retainedFor(personId) }] : []),
+    { retainedFor: (personId: string) => consent.retainedFor(personId) },
+    ...(accessLog ? [{ retainedFor: (personId: string) => accessLog.retainedFor(personId) }] : [])
+  ]);
+
 
   /* Every route below this line is about somebody's own account, so each one starts by resolving
      the cookie rather than trusting an id in the body. */
@@ -274,6 +296,89 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     const person = signedIn(req, res);
     if (!person) return;
     send(res, 200, { cancelled: erasure.cancel(person.id, caller) });
+  });
+
+  /* ---- Consent, and the log of who opened a record ------------------------------------------
+     The contract itself, unauthenticated, because what MyThuso asks people to agree to is not a
+     secret and a person deciding whether to sign up is entitled to read it first. It carries no
+     decision by anybody: the standing is on the route below, behind a session. */
+  routes.set('GET /consent/contract', (_req, res) => send(res, 200, {
+    why: CONSENT_WHY, notAdvice: NOT_ADVICE, rules: CONSENT_RULES,
+    bases: LAWFUL_BASES, routes: CONSENT_ROUTES,
+    /* Required and optional are two lists rather than one list with a flag, because that is the
+       decision the person is actually making and a flag is what lets a screen quietly blur it. */
+    required: requiredPurposes().map(purpose => ({ ...purpose, current: currentVersion(purpose) })),
+    optional: optionalPurposes().map(purpose => ({ ...purpose, current: currentVersion(purpose) })),
+    accessLog: ACCESS_LOG,
+    informationOfficer: config.informationOfficer || null
+  }));
+
+  routes.set('GET /consent', (req, res) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    send(res, 200, {
+      standing: consent.standing(person.id).map(entry => ({
+        purposeId: entry.purpose.id, name: entry.purpose.name, kind: entry.purpose.kind,
+        required: entry.purpose.required, state: entry.state, authorises: entry.authorises,
+        heldVersion: entry.heldVersion, currentVersion: entry.current.version,
+        decidedAt: entry.decidedAt, proofIntact: entry.proofIntact,
+        reconsentBecause: entry.reconsentBecause,
+        ifRefused: entry.purpose.ifRefused, withdrawal: entry.purpose.withdrawal,
+        retainedOnWithdrawal: entry.purpose.retainedOnWithdrawal,
+        /* The proof, as a person would want to see it: the words, the fingerprint of them, the date
+           and the route. Never a pointer to a row somebody could edit. */
+        history: entry.history.map(row => ({
+          decision: row.decision, version: row.version, at: row.at, route: row.route,
+          locale: row.locale, recordedAs: row.recordedAs, wordingHash: row.wordingHash
+        }))
+      })),
+      care: consent.careStanding(person.id)
+    });
+  });
+
+  routes.set('POST /consent/give', (req, res, body) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    const result = consent.give(person.id, {
+      purposeId: asString(body.purposeId), version: Number(body.version),
+      route: asString(body.route) || 'web-account', locale: asString(body.locale) || 'en-ZA'
+    });
+    if (!result.ok) return send(res, 400, { error: 'consent-refused', message: result.reason });
+    send(res, 200, { recorded: true, repeated: result.repeated, version: result.decision.version, wordingHash: result.decision.wordingHash, at: result.decision.at });
+  });
+
+  /* Withdrawal is a POST with a purpose and nothing else. No reason is asked for, no second factor
+     is demanded and there is no confirmation endpoint: it has to be as easy as giving it was, and
+     giving it was a tick. What comes back is what is kept anyway, so the surface can say it. */
+  routes.set('POST /consent/withdraw', (req, res, body) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    const result = consent.withdraw(person.id, { purposeId: asString(body.purposeId), route: asString(body.route) || 'web-account' });
+    if (!result.ok) return send(res, 400, { error: 'withdrawal-refused', message: result.reason });
+    send(res, 200, { withdrawn: true, at: result.decision.at, retained: result.retained, alsoStops: result.alsoStops });
+  });
+
+  /* The person's own access log. It goes through the gate like every other read, and the read is
+     itself written into the log — see RecordAccessLog.mine. */
+  routes.set('GET /consent/access-log', (req, res) => {
+    const person = signedIn(req, res);
+    if (!person) return;
+    if (!accessLog) return send(res, 503, { error: 'not-configured', message: 'No protection keys are configured, so nothing here decides or records an access.' });
+    const result = accessLog.mine(person.id);
+    if (!result.ok) return send(res, 403, { error: 'refused', message: result.reason });
+    send(res, 200, {
+      entries: result.entries.map(entry => ({
+        at: entry.at, actorLabel: entry.actorLabel, actorRole: entry.actorRole,
+        capability: entry.capability, purpose: entry.processingPurpose, lawfulBasis: entry.lawfulBasis,
+        recordType: entry.recordType, outcome: entry.outcome, refusedBy: entry.refusedBy,
+        reason: entry.reason, consentPurpose: entry.consentPurpose, consentVersion: entry.consentVersion,
+        auditId: entry.auditId
+      })),
+      /* Said on the response rather than only in a document, because the entry a person is looking
+         for is usually a refusal and a list of successes would quietly reassure them. */
+      refusalsIncluded: CONSENT_RULES.aRefusedAccessIsRecordedToo,
+      notTheSignInLog: CONSENT_RULES.theAccessLogIsNotTheSignInLog
+    });
   });
 
   routes.set('POST /auth/logout', (req, res, _body, caller) => {

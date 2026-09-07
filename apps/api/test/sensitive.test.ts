@@ -12,7 +12,13 @@ const withKey = loadConfig({ ...base, MYTHUSO_ENV: 'development', MYTHUSO_ENCRYP
 const noKey = loadConfig({ ...base, MYTHUSO_ENV: 'development' } as NodeJS.ProcessEnv);
 const production = loadConfig({
   ...base, MYTHUSO_ENV: 'production', MYTHUSO_SMS_PROVIDER: 'clickatell',
-  MYTHUSO_ALLOWED_ORIGINS: 'https://app.mythuso.co.za'
+  MYTHUSO_ALLOWED_ORIGINS: 'https://app.mythuso.co.za',
+  /* A production service also has to name an accountable Information Officer and hold the key ring
+     the gate is built from — see the consent refusals in config.ts. Neither has anything to do with
+     the envelope this file is about; they are here because a production config is a production
+     config, and a test that quietly ran an incompletely configured one would be testing nothing. */
+  MYTHUSO_INFORMATION_OFFICER: 'Information Officer, Akhanya IT Innovations',
+  MYTHUSO_PROTECTION_KEYS: `1:${randomBytes(32).toString('hex')}`
 } as NodeJS.ProcessEnv);
 
 describe('the envelope', () => {

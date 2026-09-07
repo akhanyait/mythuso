@@ -1,0 +1,199 @@
+import { useEffect, useState } from 'react';
+import { ArrowRight, Ban, Check, Clock, Eye, Fingerprint, ShieldAlert, ShieldCheck, X } from 'lucide-react';
+import { Pill } from '../components/UI';
+import {
+ accessLog, asDate, asMoment, authorises, basisName, careStanding, currentVersion, effectiveOn,
+ fetchAccessLog, fetchStanding, optionalPurposes, previewAccesses, previewStandings, purposeById,
+ requiredPurposes, rules, sendDecision, stateLabel, stateOf, versionOf, why, wordingHash,
+ type AccessEntry, type ConsentPurpose, type Standing
+} from '../lib/consent';
+
+/**
+ * Your consents, and the log of who opened your record.
+ *
+ * Two screens, one module, because they are one question asked from two ends: a consent is a
+ * permission to process, and the access log is the record of the processing it permitted. Every
+ * sentence on both comes from packages/catalog/consent.json — the same file the server reads and
+ * takes the fingerprint of — so there is nothing here to drift.
+ *
+ * Three things this screen is designed around, and each of them is a decision rather than a layout:
+ *
+ *  · **Required and optional are two lists, not one list with a badge.** A person deciding whether
+ *    to tick something needs to know first whether it is a choice at all.
+ *  · **The way out is on the screen before the way in.** What withdrawing does not undo is shown on
+ *    the card, permanently, rather than behind a confirmation nobody reaches until it is too late.
+ *    That is also what keeps withdrawal one action: it takes exactly as many taps as the tick did.
+ *  · **A consent given to wording that has since changed is shown as its own state**, with what
+ *    changed and why they are being asked again. It is not shown as agreed, and it is not shown as
+ *    never asked, because it is neither.
+ */
+
+const withPreview = <T,>(load: () => Promise<T | null>, fallback: () => T) => {
+ /* The same shape lib/auth.ts uses: with a service answering, this is the real register; without
+    one it is fixtures in memory, gone on reload, and the screen says which. */
+ const [value, setValue] = useState<T>(fallback);
+ const [live, setLive] = useState(false);
+ const [ready, setReady] = useState(false);
+ useEffect(() => {
+  let cancelled = false;
+  void (async () => {
+   const answered = await load();
+   if (cancelled) return;
+   if (answered) { setValue(answered); setLive(true); }
+   setReady(true);
+  })();
+  return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, []);
+ return { value, setValue, live, ready };
+};
+
+export function ConsentCentre() {
+ const loaded = withPreview(async () => {
+  const answered = await fetchStanding();
+  return answered ? answered.standings : null;
+ }, previewStandings);
+ const standings = loaded.value;
+ const [said, setSaid] = useState('');
+ const care = careStanding(standings);
+
+ const apply = async (purpose: ConsentPurpose, decision: 'given' | 'withdrawn' | 'refused') => {
+  const version = currentVersion(purpose).version;
+  if (loaded.live) await sendDecision(decision === 'withdrawn' ? 'withdraw' : 'give', purpose.id, version);
+  const at = Date.now();
+  loaded.setValue(standings.map(standing => standing.purposeId === purpose.id
+   ? { ...standing, state: decision === 'given' ? 'held' : decision === 'withdrawn' ? 'withdrawn' : 'refused', heldVersion: version, decidedAt: at, history: [...standing.history, { decision, version, at, route: 'web-account', locale: 'en-ZA' }] }
+   : standing));
+  setSaid(decision === 'given'
+   ? `${purpose.name} agreed, on version ${version} of the wording.`
+   : decision === 'withdrawn'
+    ? `${purpose.name} withdrawn. What is kept anyway is on the card, with the law that keeps it.`
+    : `${purpose.name} declined. Nothing about your care changes.`);
+ };
+
+ return <div className="consent-centre">
+  <Pill>{loaded.live ? 'Consent register connected' : 'Design preview'}</Pill>
+  <p className="muted">{why}</p>
+  <p className="muted">{rules.consentIsToAVersion}</p>
+  <div className={care.mayReceiveCare ? 'privacy-note' : 'consent-blocked'} role="status">
+   {care.mayReceiveCare ? <ShieldCheck size={19}/> : <ShieldAlert size={19}/>}{care.sentence}
+  </div>
+  <p className="helper" role="status">{said || (loaded.live ? 'Every decision below is recorded with its version, its wording and the date.' : 'These decisions live in this browser tab only. Nothing is sent anywhere.')}</p>
+
+  <section className="consent-group">
+   <h3>Needed to give you care</h3>
+   <p className="muted">{rules.requiredIsNamedNotImplied}</p>
+   {requiredPurposes.map(purpose => <PurposeCard key={purpose.id} purpose={purpose} standing={find(standings, purpose.id)} onDecide={apply}/>)}
+  </section>
+
+  <section className="consent-group">
+   <h3>Entirely up to you</h3>
+   <p className="muted">{rules.optionalNeverDegradesCare}</p>
+   {optionalPurposes.map(purpose => <PurposeCard key={purpose.id} purpose={purpose} standing={find(standings, purpose.id)} onDecide={apply}/>)}
+  </section>
+
+  <div className="empty-note">{rules.withdrawalIsNotDeletion}</div>
+ </div>;
+}
+
+const find = (standings: Standing[], purposeId: string): Standing =>
+ standings.find(standing => standing.purposeId === purposeId)
+ ?? { purposeId, state: 'never-asked', heldVersion: null, decidedAt: null, history: [] };
+
+function PurposeCard({ purpose, standing, onDecide }: {
+ purpose: ConsentPurpose; standing: Standing;
+ onDecide: (purpose: ConsentPurpose, decision: 'given' | 'withdrawn' | 'refused') => void;
+}) {
+ const current = currentVersion(purpose);
+ const state = stateOf(standing.history, purpose);
+ const held = authorises({ ...standing, state });
+ const acknowledgement = purpose.kind === 'acknowledgement';
+ const [proof, setProof] = useState<string | null>(null);
+ useEffect(() => { void wordingHash(purpose.id, current).then(setProof); }, [purpose.id, current]);
+ const supersededBy = standing.heldVersion === null ? undefined : versionOf(purpose, standing.heldVersion);
+
+ return <article className={`consent-card is-${state}`}>
+  <header>
+   <div>
+    <h4>{purpose.name}</h4>
+    <small>{basisName(purpose.lawfulBasis)}{purpose.alsoRestsOn ? `, and ${basisName(purpose.alsoRestsOn).toLowerCase()}` : ''}</small>
+   </div>
+   <span className={`consent-state consent-state-${state}`}>{stateLabel[state]}</span>
+  </header>
+
+  <blockquote className="consent-wording">{current.wording}</blockquote>
+  <div className="consent-proof">
+   <span><Clock size={14}/>Version {current.version}, in force since {asDate(effectiveOn(current))}</span>
+   {/* The fingerprint of the exact words above, shown rather than described. A proof somebody
+       cannot see is a proof they have to take on trust. */}
+   <span><Fingerprint size={14}/>{proof ? `${proof.slice(0, 16)}…` : 'fingerprint of these exact words'}</span>
+  </div>
+
+  {state === 'held-on-superseded-version' && <div className="consent-changed">
+   <strong>The wording has changed since you agreed.</strong>
+   <p>You agreed to version {standing.heldVersion} on {asDate(standing.decidedAt!)}. That is still a real agreement to those words, and it is not an agreement to these ones. {current.change}</p>
+   {supersededBy?.supersededBecause && <p className="muted">Why the old wording was replaced: {supersededBy.supersededBecause}</p>}
+  </div>}
+
+  {state === 'withdrawn' && standing.decidedAt !== null && <p className="helper">Withdrawn on {asDate(standing.decidedAt)}. It is on your record as a withdrawal, not as an absence.</p>}
+
+  <div className="consent-facts">
+   <div><span>If you say no</span><p>{purpose.ifRefused}</p></div>
+   <div><span>Getting out</span><p>{purpose.withdrawal}</p></div>
+   {purpose.retainedOnWithdrawal.length > 0 && <div className="consent-kept">
+    <span>What withdrawing does not undo</span>
+    <ul>{purpose.retainedOnWithdrawal.map(kept => <li key={kept.what}><strong>{kept.what}.</strong> {kept.because} <em>({basisName(kept.basis)})</em></li>)}</ul>
+   </div>}
+  </div>
+
+  <div className="consent-actions">
+   {acknowledgement
+    ? <>
+      {!held && <button className="primary" onClick={() => onDecide(purpose, 'given')}><Check size={16}/>I have read this</button>}
+      <p className="helper">{rules.anAcknowledgementIsNotAConsent}</p>
+     </>
+    : held
+     ? <button className="secondary" onClick={() => onDecide(purpose, 'withdrawn')}><X size={16}/>Withdraw</button>
+     : <>
+       <button className="primary" onClick={() => onDecide(purpose, 'given')}><Check size={16}/>{state === 'held-on-superseded-version' ? `Agree to version ${current.version}` : 'I agree'}</button>
+       {state !== 'refused' && <button className="secondary" onClick={() => onDecide(purpose, 'refused')}><Ban size={16}/>No thanks</button>}
+      </>}
+  </div>
+ </article>;
+}
+
+/**
+ * The log of who opened your record.
+ *
+ * It replaces the two-line sample that used to sit here. Two things it does that the sample could
+ * not: it shows the refused attempts as well as the allowed ones, and it names the lawful basis each
+ * reading was made under rather than leaving "why were they allowed to" unanswered.
+ */
+export function AccessHistory() {
+ const loaded = withPreview(fetchAccessLog, previewAccesses);
+ const entries: AccessEntry[] = loaded.value;
+ const refused = entries.filter(entry => entry.outcome === 'refused').length;
+ return <div className="access-log">
+  <Pill>{loaded.live ? 'Access log connected' : 'Design preview'}</Pill>
+  <p className="muted">{accessLog.why}</p>
+  <div className="privacy-note"><Eye size={19}/>{accessLog.subjectMayRead}</div>
+  <p className="helper" role="status">{entries.length} {entries.length === 1 ? 'entry' : 'entries'}, {refused} of them refused. {rules.aRefusedAccessIsRecordedToo}</p>
+  <ul className="access-list">
+   {entries.map(entry => <li key={entry.auditId ?? `${entry.at}-${entry.recordType}`} className={`access-row is-${entry.outcome}`}>
+    <span className="access-mark">{entry.outcome === 'granted' ? <ShieldCheck size={20}/> : <ShieldAlert size={20}/>}</span>
+    <div>
+     <strong>{entry.actorLabel ?? 'Somebody MyThuso cannot name'}</strong>
+     <small>{asMoment(entry.at)} · {entry.outcome === 'granted' ? 'Opened' : 'Refused'} your {entry.recordType.replace(/-/g, ' ')} · {entry.purpose}</small>
+     <em>{basisName(entry.lawfulBasis)}{entry.consentPurpose ? ` — ${purposeById(entry.consentPurpose)?.name ?? entry.consentPurpose}, version ${entry.consentVersion}` : ''}</em>
+     {entry.reason && <p className="access-reason">{entry.refusedBy ? `Refused at the ${entry.refusedBy} check. ` : ''}{entry.reason}</p>}
+    </div>
+   </li>)}
+  </ul>
+  <div className="empty-note">
+   <strong>What this log never holds.</strong>
+   <ul>{accessLog.neverRecords.map(line => <li key={line}>{line}</li>)}</ul>
+  </div>
+  <p className="helper">{rules.theAccessLogIsNotTheSignInLog} {accessLog.retention}</p>
+  {!loaded.live && loaded.ready && <div className="empty-note">These entries are fictional and held in this browser tab only. With the identity service running, this screen reads the real append-only log on the server. <button className="text-button" onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}>Back to the top<ArrowRight size={14}/></button></div>}
+ </div>;
+}

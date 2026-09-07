@@ -542,4 +542,95 @@ if(namedInContract.test(JSON.stringify(teleconsult))) throw new Error('packages/
 for(const p of teleconsult.participants) if(p.roleId&&!roleIds.has(p.roleId)) throw new Error(`Teleconsultation participant ${p.id} carries a vetted role nothing defines: ${p.roleId}`);
 
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge.`);
+/* ---- Consent, and the log of who opened a record ----
+   Consent is the one contract where a single wrong word is the whole failure: a purpose that is
+   really compulsory presented as a choice, an optional consent that quietly costs somebody their
+   care, or a version of the wording that carries an old agreement forward into a new one. All three
+   are decisions written into packages/catalog/consent.json as data, so all three are checkable. */
+const consent = JSON.parse(read('packages/catalog/consent.json'));
+const consentBases = new Set(consent.lawfulBases.map(b => b.id));
+const consentRoutes = new Set(consent.routes.map(r => r.id));
+if(consentBases.size !== consent.lawfulBases.length) throw new Error('Duplicate lawful basis id in packages/catalog/consent.json');
+for(const basis of consent.lawfulBases) if(!/section \d/.test(basis.authority)) throw new Error(`Lawful basis ${basis.id} does not point at a section somebody can go and read`);
+const consentIds = new Set();
+let requiredCount = 0, optionalCount = 0;
+for(const purpose of consent.purposes) {
+ if(consentIds.has(purpose.id)) throw new Error(`Duplicate consent purpose ${purpose.id}`);
+ consentIds.add(purpose.id);
+ if(!consentBases.has(purpose.lawfulBasis)) throw new Error(`Consent purpose ${purpose.id} names lawful basis ${purpose.lawfulBasis}, which is not in the register. Processing with no stated basis is what POPIA section 11 exists to stop.`);
+ if(purpose.alsoRestsOn && !consentBases.has(purpose.alsoRestsOn)) throw new Error(`Consent purpose ${purpose.id} also rests on unknown basis ${purpose.alsoRestsOn}`);
+ if(!purpose.ifRefused) throw new Error(`Consent purpose ${purpose.id} does not say what refusing it costs. A choice with no stated cost is not a choice anybody can make.`);
+ if(!purpose.withdrawal) throw new Error(`Consent purpose ${purpose.id} does not say how it is withdrawn`);
+ /* The invariant the whole required/optional split exists for. An optional consent that degrades
+    care is a payment dressed as a choice. */
+ if(purpose.required) { requiredCount++; if(!purpose.requiredBecause) throw new Error(`Consent purpose ${purpose.id} is required and does not say why`); }
+ else { optionalCount++; if(purpose.degradesCare) throw new Error(`Consent purpose ${purpose.id} is optional and degrades care. ${consent.rules.optionalNeverDegradesCare}`); }
+ let previousVersion = 0;
+ for(const version of purpose.versions) {
+  if(!(version.version > previousVersion)) throw new Error(`Consent purpose ${purpose.id} version ${version.version} does not follow ${previousVersion}`);
+  previousVersion = version.version;
+  if(!version.wording || !version.withdrawalWording) throw new Error(`Consent purpose ${purpose.id} version ${version.version} is missing its wording or the way out of it`);
+  /* Written as data so that turning it on is a change somebody has to argue for in a contract,
+     rather than a flag a hurried release quietly flips. */
+  if(version.carriesOver) throw new Error(`Consent purpose ${purpose.id} version ${version.version} carries an earlier consent forward. ${consent.rules.newWordingDoesNotCarryOver}`);
+ }
+ for(const kept of purpose.retainedOnWithdrawal ?? []) {
+  if(!consentBases.has(kept.basis)) throw new Error(`Consent purpose ${purpose.id} keeps "${kept.what}" on unknown ground ${kept.basis}. Anything kept after a withdrawal is kept on a stated ground or is not kept.`);
+ }
+}
+if(!requiredCount) throw new Error('packages/catalog/consent.json lists no required purpose, so nothing separates the consents care depends on from the ones it does not');
+if(!optionalCount) throw new Error('packages/catalog/consent.json lists no optional purpose. A consent screen on which everything is compulsory is a terms-of-service page.');
+if(!consentRoutes.size) throw new Error('Consent has to record how it was taken; packages/catalog/consent.json lists no route');
+for(const basis of consent.accessLog.bases) {
+ if(!consentBases.has(basis)) throw new Error(`The access log may record basis ${basis}, which is not in the lawful-basis register`);
+ /* A marketing consent is not a key to a record, and the one place that could go wrong is a list
+    of bases somebody widened without thinking about what each of them opens. */
+ if(/marketing/.test(basis)) throw new Error(`${basis} is a basis for sending somebody a message, not for opening their record. It must not be on the access log's list.`);
+}
+/* The sign-up screen separates the consents care depends on from the ones it does not, and the
+   contract is where that split is decided. Two screens disagreeing about which consents are
+   compulsory is the drift that turns an optional consent into a compulsory one on one platform. */
+const onboardingConsents = read('apps/web/src/features/Onboarding.tsx').match(/\(\[\[[\s\S]*?\] as const\)\.map\(\(\[key, label, required\]\)/);
+if(!onboardingConsents) throw new Error('apps/web/src/features/Onboarding.tsx no longer separates required consents from optional ones in a form this check can read');
+const onboardingRequired = (onboardingConsents[0].match(/,\s*true\]/g) ?? []).length;
+const onboardingOptional = (onboardingConsents[0].match(/,\s*false\]/g) ?? []).length;
+if(onboardingRequired !== requiredCount) throw new Error(`Sign-up presents ${onboardingRequired} consents as required and packages/catalog/consent.json has ${requiredCount}. A purpose that is really required and is presented as a choice is a lie about a choice.`);
+if(!onboardingOptional) throw new Error('Sign-up presents nothing as optional, so the separation it is supposed to demonstrate has gone');
+/* The fingerprint is only proof if both sides take it of the same thing. The browser shows a
+   person the digest of what is on their screen and the server stores the digest of what it recorded;
+   if the two ever build that input differently the screen is showing a proof the register does not
+   hold, which is worse than showing none. So the one line that builds it is compared, not trusted. */
+const digestInput = 'JSON.stringify([purposeId, version.version, version.wording, version.withdrawalWording])';
+for(const f of ['apps/web/src/lib/consent.ts', 'apps/api/src/consent/contract.ts']) {
+ if(!read(f).includes(digestInput)) throw new Error(`${f} no longer builds the consent fingerprint from ${digestInput}. Both sides take the digest of the same thing or neither of them is proof of anything.`);
+}
+/* One set of words. The wording is what a recorded consent is a fingerprint of, so a second copy of
+   it anywhere is a screen that can be edited out of step with the proof the server holds. */
+const consentReaders = ['apps/web/src/lib/consent.ts', 'apps/api/src/consent/contract.ts'];
+/* The import rather than the phrase: both files also mention the contract in their own comments,
+   and a check satisfied by a comment is a check satisfied by a file that has stopped reading it. */
+for(const f of consentReaders) if(!/import\s+\w+\s+from\s+['"][^'"]*packages\/catalog\/consent\.json['"]/.test(read(f))) throw new Error(`${f} must import packages/catalog/consent.json rather than restating it`);
+const consentSources = [...files('apps/web/src'), ...files('apps/api/src'), ...files('apps/ios/MyThuso'), ...files('apps/android/app/src/main')]
+ .filter(f => /\.(tsx?|swift|kt)$/.test(f));
+for(const purpose of consent.purposes) for(const version of purpose.versions) {
+ for(const f of consentSources) if(read(f).includes(version.wording)) throw new Error(`The wording of ${purpose.id} version ${version.version} is written out again in ${f}. It lives in packages/catalog/consent.json, because a recorded consent is a fingerprint of those exact words.`);
+}
+/* The two ledgers are append-only, exactly as the auth audit table is, and for a stronger reason:
+   a withdrawal is a new line rather than an edit of the line that gave it, so "never consented" and
+   "consented and then stopped" stay two different facts. */
+const consentStore = read('apps/api/src/consent/store.ts');
+for(const table of ['consent_decisions', 'record_access_log']) {
+ if(new RegExp(`UPDATE ${table}|DELETE FROM ${table}`, 'i').test(consentStore)) throw new Error(`${table} must stay append-only`);
+}
+/* And the access log records that a record was opened, never what was in it. The forbidden column
+   words are read from the contract rather than restated here, so widening the log means arguing
+   with packages/catalog/consent.json first. */
+const accessSchema = (consentStore.match(/CREATE TABLE[^;]*record_access_log[^;]+/i) ?? [])[0];
+if(!accessSchema) throw new Error('apps/api/src/consent/store.ts no longer creates record_access_log');
+for(const forbidden of consent.accessLog.forbiddenColumns) {
+ if(new RegExp(`\\b\\w*${forbidden}\\w*\\s+(TEXT|BLOB|INTEGER|REAL|NUMERIC)`, 'i').test(accessSchema)) {
+  throw new Error(`record_access_log has grown a "${forbidden}" column. An access log holding the contents of what was opened is a second copy of the record with weaker protection and a longer retention.`);
+ }
+}
+
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in.`);
