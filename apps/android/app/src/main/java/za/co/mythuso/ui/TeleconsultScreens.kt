@@ -68,7 +68,7 @@ private val callDoctorIds = listOf("D-401", "D-402")
 private val callStageNames = listOf("Who is in the room", "Identity", "Recording", "The call", "Afterwards")
 
 @Composable fun TeleconsultScreen(store: PreviewStore, reference: String = "TH-2048", patient: String = "Lerato Molefe", open: (String) -> Unit) {
-    var stage by remember { mutableStateOf(0) }
+    var stage by remember { mutableIntStateOf(0) }
     var doctorId by remember { mutableStateOf(callDoctorIds.first()) }
     val present = remember { mutableStateMapOf("nurse" to true, "guardian" to false, "interpreter" to false) }
     val consented = remember { mutableStateMapOf("doctor" to false, "nurse" to false, "guardian" to false, "interpreter" to false) }
@@ -80,7 +80,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
     var connectionId by remember { mutableStateOf("video") }
     var everDropped by remember { mutableStateOf(false) }
     var resumed by remember { mutableStateOf(false) }
-    var holdLeft by remember { mutableStateOf(callReconnect.holdSeconds) }
+    var holdLeft by remember { mutableIntStateOf(callReconnect.holdSeconds) }
     var decisionReached by remember { mutableStateOf(false) }
     var refusedClinician by remember { mutableStateOf(false) }
 

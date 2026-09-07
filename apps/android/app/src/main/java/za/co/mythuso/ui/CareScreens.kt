@@ -21,7 +21,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -277,7 +278,16 @@ import androidx.compose.foundation.text.KeyboardActions
                     1 -> "Your son · 8 years"
                     else -> "Added in this preview"
                 }
-                MenuRow(member, relationship, Icons.Outlined.AccountCircle) { open("My family") }
+                /* A face for the two people the preview knows about, and the generic mark for
+                   anybody typed in during it — the app has never been shown their face and does not
+                   invent one, in the same way it does not invent their relationship. */
+                val portrait = when (index) {
+                    0 -> painterResource(R.drawable.mythuso_elder)
+                    1 -> painterResource(R.drawable.mythuso_family)
+                    else -> null
+                }
+                if (portrait != null) PersonRow(member, relationship, portrait) { open("My family") }
+                else MenuRow(member, relationship, Icons.Outlined.AccountCircle) { open("My family") }
                 HorizontalDivider(color = Line)
             }
             MenuRow("Add a family member", "", Icons.Outlined.PersonAdd) { open("My family") }
@@ -310,11 +320,17 @@ import androidx.compose.foundation.text.KeyboardActions
         }
     }
 }
+/* The nurse whose name is on the visit. The portrait is the shared illustration the three apps are
+   held to by scripts/check-boundaries.mjs — it has been rendered into this bundle all along and only
+   Android was not drawing it, which is why lint had it down as an unused resource. Two initials in a
+   circle is what a system shows when it does not know who is coming. */
 @Composable fun NurseRow(trailing: @Composable (() -> Unit)? = null) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(Modifier.size(42.dp).background(AccentSoft, CircleShape), Alignment.Center) {
-            Text("SN", style = MaterialTheme.typography.labelMedium, color = IndigoDeep)
-        }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+        Image(
+            painterResource(R.drawable.mythuso_nurse), null,
+            Modifier.size(44.dp).clip(CircleShape).background(AccentSoft, CircleShape),
+            contentScale = ContentScale.Crop
+        )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Sister Naledi Mokoena", style = MaterialTheme.typography.titleSmall, color = Ink)
             Text("Registered Nurse (SANC)", style = MaterialTheme.typography.bodySmall, color = BodyText)
@@ -348,7 +364,7 @@ fun serviceIcon(id: String) = when (id) {
        It used to be captured into a local that nothing outside this screen could read. */
     var selected by remember { mutableStateOf<CareService?>(null) }
     LaunchedEffect(preselect) { if (preselect != null) { selected = preselect; onPreselectUsed() } }
-    val columns = if (LocalConfiguration.current.screenWidthDp >= 600) 2 else 1
+    val columns = if (with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() } >= 600.dp) 2 else 1
     ScreenColumn {
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
             /* No eyebrow on this one. "Care, on your terms" above "Professional care at your door"

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nothing leaves the device. The preview writes one thing to the phone — the capture queue, so a
+     nurse's morning of readings survives being killed in a doorway — and that is exactly the thing
+     that must not be swept into a cloud backup or a device-to-device transfer. Both paths are
+     excluded whole rather than by file, because a rule that lists what to exclude is a rule that
+     goes stale the next time something is written. -->
+<data-extraction-rules>
+    <cloud-backup><exclude domain="root" path="."/></cloud-backup>
+    <device-transfer><exclude domain="root" path="."/></device-transfer>
+</data-extraction-rules>

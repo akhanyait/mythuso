@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The same refusal for Android 11 and below, where android:dataExtractionRules does not yet exist.
+     Both files say the same thing because the platform reads a different one either side of API 31,
+     and a rule that holds on one version of Android and not the other is not a rule. -->
+<full-backup-content>
+    <exclude domain="root" path="."/>
+</full-backup-content>

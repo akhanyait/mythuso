@@ -19,6 +19,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -71,7 +72,7 @@ import za.co.mythuso.model.*
     var required by remember { mutableStateOf(true) }
     var mode by remember { mutableStateOf(interpretingModes.first().id) }
     val days = Scheduling.offeredDays()
-    var dayIndex by remember { mutableStateOf(0) }
+    var dayIndex by remember { mutableIntStateOf(0) }
     var slot by remember { mutableStateOf("09:00") }
     var cancelled by remember { mutableStateOf(false) }
 

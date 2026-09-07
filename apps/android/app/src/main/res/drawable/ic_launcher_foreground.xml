@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The heart and the pulse from Documentation/MyThuso_AppIcon.svg, on the 512 grid that file uses.
+     The group scales the drawing to 62% about the centre so it sits inside the adaptive icon's safe
+     zone rather than being cropped by whichever mask the launcher applies. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="512" android:viewportHeight="512">
+    <group android:pivotX="256" android:pivotY="256" android:scaleX="0.62" android:scaleY="0.62">
+        <path
+            android:pathData="M256,388 C186,336 118,288 118,214 C118,166 154,134 196,134 C224,134 246,150 256,172 C266,150 288,134 316,134 C358,134 394,166 394,214 C394,288 326,336 256,388 Z"
+            android:strokeColor="#FFFFFFFF" android:strokeWidth="26" android:strokeLineJoin="round"/>
+        <path
+            android:pathData="M150,250 L208,250 L226,214 L250,300 L274,222 L290,250 L362,250"
+            android:strokeColor="#FFFFB347" android:strokeWidth="22" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    </group>
+</vector>

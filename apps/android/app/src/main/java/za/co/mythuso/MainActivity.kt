@@ -16,8 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -104,7 +104,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
        gives back the vertical space that is the scarce thing at that size. The reader who has asked
        for the largest type is exactly the reader who cannot afford a truncated label. */
     val fontScale = LocalDensity.current.fontScale
-    val wide = LocalConfiguration.current.screenWidthDp >= 600 || fontScale >= 1.6f
+    val wide = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() } >= 600.dp || fontScale >= 1.6f
     val destinations: List<Destination> =
         if (role == null) tabs
         else workspaceSections(role).map { Destination(it.name, it.icon, null) }

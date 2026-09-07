@@ -1,6 +1,9 @@
 package za.co.mythuso.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -273,6 +276,33 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
         trailingContent = if (danger) null else ({
             Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Faint)
         }),
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = Modifier
+            .clip(RoundedCornerShape(ThusoRadius.control))
+            .clickable(onClick = click)
+            .heightIn(min = TouchTarget)
+            .semantics(mergeDescendants = true) {}
+    )
+}
+
+/* A person, with a face. The generic silhouette MenuRow draws is right for "Add a family member"
+   and wrong for a named human being: the illustrations are rendered into this bundle for all three
+   apps and Android was drawing none of them, which is how one of them came to be sitting in the
+   resources unused. */
+@Composable fun PersonRow(name: String, detail: String, portrait: Painter, click: () -> Unit) {
+    ListItem(
+        headlineContent = { Text(name, style = MaterialTheme.typography.titleSmall, color = Ink) },
+        supportingContent = if (detail.isEmpty()) null else ({
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+        }),
+        leadingContent = {
+            Image(
+                portrait, null,
+                Modifier.size(40.dp).clip(CircleShape).background(IndigoSoft, CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        },
+        trailingContent = { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Faint) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier
             .clip(RoundedCornerShape(ThusoRadius.control))

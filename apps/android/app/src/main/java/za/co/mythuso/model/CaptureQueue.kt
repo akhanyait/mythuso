@@ -2,6 +2,7 @@ package za.co.mythuso.model
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.json.JSONArray
@@ -157,14 +158,14 @@ class CaptureStore(private val book: CaptureBook) {
     val readings = mutableStateListOf<CapturedReading>()
     val paired = mutableStateListOf<PairedInstrument>()
     /** When this app last read the store off the disk. Shown on screen, in words, never hidden. */
-    var readAtMillis by mutableStateOf(System.currentTimeMillis())
+    var readAtMillis by mutableLongStateOf(System.currentTimeMillis())
         private set
     var storeNote by mutableStateOf("")
         private set
     /* Two design-review controls, because the states they produce cannot otherwise be seen on a
        phone that is genuinely not connected to anything. Both are marked as such on screen. */
     var pretendConnected by mutableStateOf(false)
-    var clockOffsetMinutes by mutableStateOf(0L)
+    var clockOffsetMinutes by mutableLongStateOf(0L)
     /** The last attempt to reach a server, and what it said. Never a silent fall-back to the cache. */
     var lastAttempt by mutableStateOf<String?>(null)
         private set
