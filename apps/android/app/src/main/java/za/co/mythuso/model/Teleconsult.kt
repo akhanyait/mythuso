@@ -135,6 +135,46 @@ data class EncounterOutcome(
 data class CallRule(val id: String, val title: String, val sentence: String)
 data class CallRefusal(val id: String, val sentence: String)
 
+/** One of the three ways a person reaches a doctor. A route names a service in the catalogue rather
+ *  than carrying a price: a price lives in one place and this is not it. [serviceId] is null for the
+ *  route a patient does not buy — the doctor joining a visit that has already been paid for.
+ *  [live] is false for the results review, which is a doctor reading rather than a call; naming it a
+ *  consultation would let a review be charged and recorded as one. */
+data class CallRoute(
+    val id: String,
+    val name: String,
+    val serviceId: String?,
+    val startedBy: String,
+    val detail: String,
+    val patientWords: String,
+    val live: Boolean,
+    val phase: Int
+)
+
+/** What a person is told between asking for a doctor and getting one. [shows] is what the screen
+ *  puts beside the sentence — a name, a position in the queue, a plan. */
+data class WaitingState(val id: String, val name: String, val patientWords: String, val shows: String)
+
+/** A document a consultation can produce, and the limit on producing it. A prescription and a
+ *  medical certificate are legal documents; a video call is not an examination, which is why two of
+ *  these have [mayIssue] false and say so in the patient's own words. */
+data class IssuedDocument(
+    val id: String,
+    val name: String,
+    val mayIssue: Boolean,
+    val condition: String,
+    val goesTo: String?,
+    val limit: String
+)
+
+fun callRoute(id: String): CallRoute = callRoutes.firstOrNull { it.id == id } ?: callRoutes[0]
+fun callWaiting(id: String): WaitingState = callWaitingRoom.firstOrNull { it.id == id } ?: callWaitingRoom[0]
+fun callDocument(id: String): IssuedDocument = callIssued.firstOrNull { it.id == id } ?: callIssued[0]
+
+/** The two documents a call may not produce, so a screen lists them from the contract rather than
+ *  from somebody remembering which two they were. */
+fun callRefusedDocuments(): List<IssuedDocument> = callIssued.filter { !it.mayIssue }
+
 /** What actually happened, in the order the refusals bite. */
 data class CallAttempt(
     val clinicianAllowed: Boolean = true,

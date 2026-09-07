@@ -43,6 +43,11 @@ export const reconnect = contract.reconnect;
 export const outcomes = contract.outcomes;
 export const rules = contract.rules;
 export const refusals = contract.refusals;
+export const routes = contract.routes.items;
+export const refusedRoute = contract.routes.refusedRoute;
+export const waitingRoom = contract.waitingRoom.states;
+export const maximumWaitMinutes = contract.waitingRoom.maximumWaitMinutes;
+export const issued = contract.issued.items;
 
 export type Participant = typeof participants[number];
 export type ConsentItem = typeof consentItems[number];
@@ -57,6 +62,24 @@ export const outcomeById = (id: string) => outcomes.find(o => o.id === id)!;
 export const limitById = (id: string) => clinicalLimits.find(l => l.id === id)!;
 export const ruleById = (id: string) => rules.find(r => r.id === id)!;
 export const refusalById = (id: string) => refusals.find(r => r.id === id)!;
+export const routeById = (id: string) => routes.find(r => r.id === id)!;
+export const waitingById = (id: string) => waitingRoom.find(w => w.id === id)!;
+export const documentById = (id: string) => issued.find(d => d.id === id)!;
+
+/* The two documents a call may not produce. Listed from the contract rather than from somebody
+   remembering which two they were, because "which of these can a doctor actually give me" is the
+   question a patient asks at the end of the call and the answer must not depend on a screen having
+   been kept up to date by hand. */
+export const refusedDocuments = issued.filter(d => !d.mayIssue);
+
+/* A route's price is the catalogue's, or there is no price. The doctor joining a nurse's visit
+   carries no service id on purpose: the visit was already paid for, and a nurse who has to justify
+   the cost of a second opinion will sometimes not ask for one. That is a clinical safety decision
+   before it is a commercial one, and it is why this returns undefined rather than a zero. */
+export const priceOfRoute = (routeId: string, priceOf: (serviceId: string) => number | undefined) => {
+ const serviceId = routeById(routeId).serviceId;
+ return serviceId ? priceOf(serviceId) : undefined;
+};
 
 /* Ordered worst-first, which is the order the ladder is read in when something is going wrong. */
 export const degradations = [...connectionStates].sort((a, b) => a.fidelity - b.fidelity);

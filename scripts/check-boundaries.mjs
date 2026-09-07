@@ -11,6 +11,8 @@ import { emitDispensing } from './emit-dispensing.mjs';
 import { emitProgrammes } from './emit-programmes.mjs';
 import { clinicalIdentifiers, tablesIn } from './clinical-tables.mjs';
 import { emitInterpreting } from './emit-interpreting.mjs';
+import { emitScheduling } from './emit-scheduling.mjs';
+import { emitGeography } from './emit-geography.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -392,7 +394,9 @@ const generated = [
  { source: 'packages/catalog/locales.json', command: 'npm run locales', files: emitLocales() },
  { source: 'packages/catalog/dispensing.json', command: 'npm run dispensing', files: emitDispensing() },
  { source: 'packages/catalog/programmes.json', command: 'npm run programmes', files: emitProgrammes() },
- { source: 'packages/catalog/interpreting.json', command: 'npm run interpreting', files: emitInterpreting() }
+ { source: 'packages/catalog/interpreting.json', command: 'npm run interpreting', files: emitInterpreting() },
+ { source: 'packages/catalog/scheduling.json', command: 'npm run scheduling', files: emitScheduling() },
+ { source: 'packages/catalog/geography.json', command: 'npm run geography', files: emitGeography() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -754,6 +758,87 @@ for(const outcome of teleconsult.outcomes) {
 if(!unfinishedOutcomes||!realConsultations) throw new Error('The encounter outcomes do not distinguish a consultation from an encounter that was not one, so the record cannot either.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&!o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and did not come back. That is the state this feature is for.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and was re-established. A break in a consultation is a clinical fact, not a reason to start the encounter again.');
+/* Where MyThuso works, and what a map of it is allowed to draw.
+   Three copies of Johannesburg used to exist — one inside a React component, one inside a SwiftUI
+   view, one inside a composable — and they had already drifted. There is one now, and these are the
+   things that were wrong before somebody wrote them down.
+
+   The privacy rules are not decoration. A home address beside a health service is not a location,
+   it is a diagnosis with a doorstep, and the two checks that matter are that no coordinate is
+   sharper than the contract declares and that no map can zoom close enough to pick out a house. */
+const geography=JSON.parse(read('packages/catalog/geography.json'));
+const decimalsOf=n=>{const [,fraction='']=String(n).split('.');return fraction.length;};
+for(const zone of geography.zones) {
+ for(const [axis,value] of [['lat',zone.at.lat],['lng',zone.at.lng]]) {
+  if(decimalsOf(value)>geography.precision.decimals) throw new Error(`Zone "${zone.id}" carries a ${axis} of ${value} — more decimal places than the ${geography.precision.decimals} this contract declares. Three decimals is enough to draw a suburb and not enough to find a door, which is the entire point of writing the number down.`);
+ }
+ if(zone.at.lng<16||zone.at.lng>33.5||zone.at.lat<-35.5||zone.at.lat>-22) throw new Error(`Zone "${zone.id}" is not in South Africa. packages/geo refuses that coordinate, so the zone would be a suburb no map could draw.`);
+ if(!(zone.radiusKm>0)) throw new Error(`Zone "${zone.id}" has no working radius, so nothing can be inside it.`);
+}
+if(decimalsOf(geography.window.centre.lat)>geography.precision.decimals||decimalsOf(geography.window.centre.lng)>geography.precision.decimals) throw new Error('The map window centre is sharper than the precision this contract declares.');
+if(geography.window.maxZoom>15) throw new Error(`The map may zoom to ${geography.window.maxZoom}. Above fifteen a reader can pick out an individual house, and no screen in this product has a reason to — the limit is the privacy control, not a performance one.`);
+if(geography.window.minZoom>=geography.window.maxZoom) throw new Error('The map cannot zoom at all: its minimum is not below its maximum.');
+for(const id of ['address-is-not-a-pin','nothing-leaves-for-a-tile','no-history-drawn']) {
+ if(!geography.privacy.rules.some(r=>r.id===id)) throw new Error(`The geography contract has lost the privacy rule "${id}". These are the three that decide whether a map of a health service is safe to draw.`);
+}
+for(const rule of geography.privacy.rules) if(!rule.why) throw new Error(`Privacy rule "${rule.id}" states what happens and not why. A rule without its reasoning is a rule the next person deletes.`);
+/* Every mark on a map has a name in the key, so a colour never carries meaning on its own. */
+const markIds=new Set(geography.marks.map(m=>m.id));
+for(const id of ['nurse-blocked','visit-waiting']) if(!markIds.has(id)) throw new Error(`The map key has no entry for "${id}". A dispatcher who cannot tell a blocked nurse from an available one will dispatch the blocked one.`);
+/* The tile provider is a third party and its attribution is a licence condition, not a design
+   choice. It is also the only text on that surface somebody would be tempted to shrink. */
+if(!geography.rendering.attributionRequired) throw new Error('packages/catalog/geography.json no longer requires map attribution. That is a licence condition rather than a design decision.');
+if(!read('apps/web/src/map/map.css').includes('font-size: 13px')) throw new Error('The map stylesheet no longer holds the attribution to the type scale, so the map is the one surface in the product with text below the floor the token file declares.');
+/* A build with no tile token is a supported state. The moment the schematic goes, a missing key
+   becomes a grey rectangle, and a controller who has seen one grey rectangle stops trusting the
+   board at the moment they most need to believe it. */
+if(!read('apps/web/src/map/LiveMap.tsx').includes('Schematic')) throw new Error('The web map has no rendering for a build without a tile token. That is not a failure state, it is the ordinary one — no token is committed to this repository.');
+for(const file of ['apps/web/src/map/LiveMap.tsx','apps/web/src/lib/geography.ts']) {
+ if(/pk\.eyJ/.test(read(file))) throw new Error(`${file} contains a Mapbox token. A key in source is a key in every fork of the repository; the token is read from the environment and its absence is a supported state.`);
+}
+/* No native app fetches a tile. Both draw the schematic, which is why neither declares a location
+   permission and neither has a map vendor to be told anything. */
+if(/android\.permission\.ACCESS_(FINE|COARSE)_LOCATION/.test(read('apps/android/app/src/main/AndroidManifest.xml'))) throw new Error('The Android manifest declares a location permission. Nothing in this build asks a device where it is — the positions are fictional and the map is drawn from a contract.');
+if(/INFOPLIST_KEY_NSLocation/.test(read('apps/ios/MyThuso.xcodeproj/project.pbxproj'))) throw new Error('The iOS target declares a location usage description. Nothing in this build asks a device where it is.');
+
+/* How a person reaches a doctor, and what may come out of it.
+   The proposal sells no standalone video consultation — Thuso Doctor joins a visit, reads what was
+   captured, or takes a booked counselling session — so the routes are checked against the service
+   catalogue rather than against a price typed beside them. The route a patient does not buy carries
+   no service id at all, and that is the point: a nurse who has to justify the cost of a second
+   opinion will sometimes not ask for one. */
+const serviceIds=new Set(catalogue.map(s=>s.id));
+const freeRoutes=teleconsult.routes.items.filter(r=>r.serviceId===null);
+if(!freeRoutes.length) throw new Error('Every way of reaching a doctor names a service to charge for. The doctor joining a nurse\'s visit must not: the visit is paid for already, and a call a nurse has to justify is a call a nurse will sometimes not make.');
+for(const route of teleconsult.routes.items) {
+ if(route.serviceId!==null&&!serviceIds.has(route.serviceId)) throw new Error(`Consultation route "${route.id}" names service "${route.serviceId}", which is not in packages/catalog/services.json. A route that names a price nobody sells is a route that will be sold at a number somebody typed.`);
+ /* A route may describe what it costs. It may not state the figure: that lives in the catalogue. */
+ const priced=[route.detail,route.patientWords].join(' ');
+ for(const service of catalogue) if(new RegExp(`R\\s?${service.price}\\b`).test(priced)) throw new Error(`Consultation route "${route.id}" writes the price R${service.price} into its own words. A price lives in packages/catalog/services.json and everything else derives from it.`);
+}
+const review=teleconsult.routes.items.find(r=>r.live===false);
+if(!review) throw new Error('Every consultation route is a live call. Most of what a doctor panel does is reading, and a review that can be called a consultation is a review that can be charged and recorded as one.');
+/* A wait that cannot end is how somebody sits in a chair for an hour being told a doctor is coming. */
+if(!(teleconsult.waitingRoom.maximumWaitMinutes>0)) throw new Error('The waiting room has no maximum wait. A queue with no exit is not a queue, it is a room.');
+if(!teleconsult.waitingRoom.states.some(w=>w.id==='nobody-came')) throw new Error('The waiting room has no state for nobody arriving. That is the state it exists for.');
+/* The sharpest refusal in the module, and the one most likely to be quietly relaxed by somebody who
+   wants the demo to be more impressive. A medical certificate says a doctor was satisfied the person
+   could not work; satisfying a doctor of that with nobody in the room is a question for the HPCSA
+   rather than for this repository, and until it is answered the answer here is no. */
+const certificate=teleconsult.issued.items.find(d=>d.id==='certificate');
+if(!certificate) throw new Error('The consultation contract does not say whether a medical certificate can come out of a call. Silence on that question is the answer a demo will take.');
+if(certificate.mayIssue) throw new Error('packages/catalog/teleconsult.json now lets a video call issue a medical certificate. Nothing in this repository has an HPCSA ruling that it may, and the sick-note visit in the catalogue is a visit precisely because somebody has to examine the patient.');
+if(!teleconsult.issued.items.some(d=>d.mayIssue)) throw new Error('A consultation in this contract can produce nothing at all, which is not a consultation.');
+for(const document of teleconsult.issued.items) {
+ if(!document.mayIssue&&document.goesTo) throw new Error(`Issued document "${document.id}" may not be issued and still says where it goes. A refusal with a destination is a refusal somebody will route around.`);
+ if(!document.limit) throw new Error(`Issued document "${document.id}" carries no limit. The valuable half of this contract is what it will not do.`);
+}
+/* The two refusals a patient actually hears, on all three platforms, word for word. */
+for(const id of ['certificate-from-a-call','doctor-on-demand']) {
+ const refusal=teleconsult.refusals.find(r=>r.id===id);
+ if(!refusal) throw new Error(`The consultation contract has no refusal "${id}".`);
+}
+
 /* One identity check, one refusal sentence, three platforms — and the same code the nurse is asked
    for at the door, so a patient learns it once. */
 const doorRefusal='That code doesn’t match this visit. Call the Control Tower before continuing.';

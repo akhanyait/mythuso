@@ -152,6 +152,43 @@ struct CallRefusal: Identifiable, Hashable {
     let sentence: String
 }
 
+/// One of the three ways a person reaches a doctor. A route names a service in the catalogue rather
+/// than carrying a price: a price lives in one place and this is not it. `serviceId` is nil for the
+/// route a patient does not buy — the doctor joining a visit that has already been paid for.
+struct CallRoute: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let serviceId: String?
+    let startedBy: String
+    let detail: String
+    let patientWords: String
+    /// False for the results review, which is a doctor reading rather than a call. Naming it a
+    /// consultation would let a review be charged and recorded as one.
+    let live: Bool
+    let phase: Int
+}
+
+/// What a person is told between asking for a doctor and getting one.
+struct WaitingState: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let patientWords: String
+    /// What the screen puts beside the sentence — a name, a position in the queue, a plan.
+    let shows: String
+}
+
+/// A document a consultation can produce, and the limit on producing it. A prescription and a
+/// medical certificate are legal documents; a video call is not an examination, which is why two of
+/// these have `mayIssue` false and say so in the patient's own words.
+struct IssuedDocument: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let mayIssue: Bool
+    let condition: String
+    let goesTo: String?
+    let limit: String
+}
+
 /// What actually happened, in the order the refusals bite.
 struct CallAttempt {
     var clinicianAllowed = true
@@ -172,6 +209,12 @@ enum Teleconsult {
     static func outcome(_ id: String) -> EncounterOutcome { outcomes.first { $0.id == id } ?? outcomes[0] }
     static func rule(_ id: String) -> CallRule { rules.first { $0.id == id } ?? rules[0] }
     static func refusal(_ id: String) -> CallRefusal { refusals.first { $0.id == id } ?? refusals[0] }
+    static func route(_ id: String) -> CallRoute { routes.first { $0.id == id } ?? routes[0] }
+    static func waiting(_ id: String) -> WaitingState { waitingRoom.first { $0.id == id } ?? waitingRoom[0] }
+    static func document(_ id: String) -> IssuedDocument { issued.first { $0.id == id } ?? issued[0] }
+    /// The two documents a call may not produce, so a screen lists them from the contract rather
+    /// than from somebody remembering which two they were.
+    static var refusedDocuments: [IssuedDocument] { issued.filter { !$0.mayIssue } }
     static func mediaState(_ id: String) -> MediaState { media.states.first { $0.id == id } ?? media.states[0] }
 
     /// Worst first, which is the order the ladder is read in when something is going wrong.

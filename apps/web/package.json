@@ -1,6 +1,26 @@
 {
-  "name": "@mythuso/web", "private": true, "version": "0.1.0", "type": "module",
-  "scripts": {"dev": "vite", "build": "tsc -b && vite build", "check": "tsc -b", "preview": "vite preview"},
-  "dependencies": {"react": "^19.2.0", "react-dom": "^19.2.0", "lucide-react": "^0.468.0"},
-  "devDependencies": {"@types/react": "^19.2.0", "@types/react-dom": "^19.2.0", "@vitejs/plugin-react": "^5.0.0", "typescript": "~5.9.3", "vite": "^7.3.0"}
+  "name": "@mythuso/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "check": "tsc -b",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "mapbox-gl": "^3.30.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.16",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.0"
+  }
 }

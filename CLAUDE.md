@@ -94,7 +94,7 @@ namespaces.** Use `#private` fields.
 
 ## Deployment
 
-`./deploy/deploy.sh` builds and publishes to `mythuso.liqzar.co.za` on `liqzar-server`, which also
+`./deploy/deploy.sh` builds and publishes to `mythuso.co.za` on `liqzar-server`, which also
 hosts five unrelated production sites. Never edit another site's config; `nginx -t` before any
 reload. The identity service is installed but deliberately switched off until DNS, TLS and an SMS
 provider exist — a one-time-code endpoint over plain http hands out accounts. See `deploy/README.md`.

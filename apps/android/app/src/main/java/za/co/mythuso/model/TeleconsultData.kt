@@ -174,6 +174,64 @@ val callOutcomes = listOf(
     )
 )
 
+
+/* How a person reaches a doctor at all. The funding proposal sells no standalone video
+   consultation — Thuso Doctor joins a visit, reads what was captured, or takes a booked counselling
+   session — so none is invented here. A route names a service id rather than a price, because a
+   price lives in packages/catalog/services.json and nowhere else. */
+val callRoutes = listOf(
+    CallRoute(
+        "joined-visit", "The doctor joins the visit", null, "nurse",
+        "The nurse is at the house and wants a doctor. The call opens inside the visit that is already running, on the nurse's device, with the patient present.", "The nurse is calling a doctor about what she has found. You do not pay again for this — it is part of the visit you booked.", true, 1
+    ),
+    CallRoute(
+        "results-review", "A doctor reviews what was captured", "screening", "system",
+        "Vitals, an ECG trace, a wound image or a rapid test were captured at a visit and screened. A doctor on the panel reads them and signs, or does not.", "A doctor is reading what the nurse recorded. This is not a call — nobody will phone you unless the doctor wants to speak to you.", false, 1
+    ),
+    CallRoute(
+        "booked-session", "A booked counselling session", "mental", "patient",
+        "The only consultation in MyThuso a person books directly and attends alone. It runs to its full time or it does not run.", "This is your session. Nobody else joins it and nothing about it goes to anybody without you saying so.", true, 3
+    )
+)
+val callRefusedRoute = CallRefusal("doctor-on-demand", "You cannot call a doctor here. MyThuso sends a nurse to you, and the nurse calls the doctor.")
+
+/* The wait, said out loud. An app that shows "connecting…" for eleven minutes has lied for ten of
+   them; these four states are the truth at each point, and the last one ends the wait with a
+   different plan rather than a longer one. */
+val callWaitingRoom = listOf(
+    WaitingState("asked", "The nurse has asked for a doctor", "The nurse has asked the doctor panel to join. She will stay with you while you wait.", "who-was-asked"),
+    WaitingState("waiting", "Waiting for a doctor", "No doctor is free at this moment. You are next, and the nurse is still here.", "position-and-elapsed"),
+    WaitingState("joining", "A doctor is joining", "Dr {name} is joining now.", "name-and-registration"),
+    WaitingState("nobody-came", "No doctor was available", "No doctor could join within the time this visit can wait. The nurse will finish what she can do and this goes to the panel as a review instead. You are not charged for the call that did not happen.", "what-happens-instead")
+)
+const val callMaximumWaitMinutes = 15
+const val callWhyFifteen = "Long enough for a doctor between consultations to finish one; short enough that a nurse standing in somebody's house is not waiting on a person who is never coming. It is a number in this file so that changing it is a decision, not a deployment."
+
+/* What may come out of a consultation held over a screen, and what may not. A prescription and a
+   medical certificate are legal documents; a video call is not an examination. */
+val callIssued = listOf(
+    IssuedDocument(
+        "prescription", "A prescription", true, "Where the doctor has a record of the patient, and the medicine is one this consultation can responsibly reach.",
+        "packages/catalog/dispensing.json — the prescription is dispensed under the Medicines and Related Substances Act 101 of 1965 like any other, and the pharmacist's substitution rules are unchanged by how it was written.", "Never a first prescription for a condition the doctor has not seen assessed. The nurse in the house is the examination; a description down a phone line is not."
+    ),
+    IssuedDocument(
+        "repeat", "A repeat of a chronic authorisation", true, "Where an authorisation exists and the review it ends with has actually happened.",
+        "The chronic authorisation in packages/catalog/dispensing.json, which ends in a review with the prescribing doctor, in person or by teleconsultation. This is that review.", "A repeat renews what is already authorised. It does not start a medicine, change a dose or extend an authorisation that has run out."
+    ),
+    IssuedDocument(
+        "referral", "A referral", true, "Always. A doctor who thinks somebody needs more than MyThuso can give says so.",
+        "The patient, and the record.", "A referral is not a booking. MyThuso does not hold an appointment at a hospital and must not imply that it does."
+    ),
+    IssuedDocument(
+        "certificate", "A medical certificate", false, "Not from a call. The sick-note visit in the service catalogue is a visit: a nurse examines the patient in person and a doctor reviews what she found.",
+        null, "A certificate says a doctor was satisfied the person could not work. Satisfying a doctor of that over a video call, with nobody in the room, is the thing the HPCSA's telemedicine guidance is most careful about — and it is a question for the HPCSA rather than for this repository. Until it is answered, the answer here is no."
+    ),
+    IssuedDocument(
+        "sick-leave-extension", "An extension of sick leave already certified", false, "Not from a call, for the same reason as the certificate it would extend.",
+        null, "Extending a certificate is issuing one."
+    )
+)
+
 /* Rendered word for word. A rule paraphrased on one platform is a different promise on that
    platform, which is the whole reason these live in one file. */
 val callRules = listOf(
@@ -182,7 +240,10 @@ val callRules = listOf(
     CallRule("dropped-is-not-finished", "A dropped call is not a finished one", "A call that dropped is not a consultation that ended. Until a doctor has reached a decision and signed it, this is an interrupted encounter in your record — it says so in those words, it carries no diagnosis, and it is never charged for."),
     CallRule("audio-is-not-lesser", "Sound only is a consultation", "Sound only is an ordinary way to be seen in South Africa, not a failure. What changes is not how seriously you are taken but what the doctor is allowed to conclude on their own, and this screen says which of those things they still can."),
     CallRule("examination-is-attributed", "A doctor on a screen examines nothing", "On a call the doctor examines nobody. Anything felt, measured or looked at closely is the nurse's finding, recorded under her name and her SANC registration — never written up afterwards as the doctor's own examination."),
-    CallRule("no-media-in-this-build", "Nothing here is connected", "MyThuso has never asked this device for the camera or the microphone, and this build declares neither permission. That is not the same as you refusing: no question was put to you, so there is nothing to withdraw.")
+    CallRule("no-media-in-this-build", "Nothing here is connected", "MyThuso has never asked this device for the camera or the microphone, and this build declares neither permission. That is not the same as you refusing: no question was put to you, so there is nothing to withdraw."),
+    CallRule("the-nurse-is-the-examination", "The nurse in the house is the examination", "Everything a doctor on a screen concludes rests on somebody who is physically present. That is why MyThuso does not sell a call on its own: the value is not the video, it is the person standing next to the patient with a stethoscope."),
+    CallRule("a-review-is-not-a-consultation", "Reading results is not a consultation", "A doctor reading vitals and signing them is doing a review. It is named a review, recorded as a review, and it becomes a consultation only when a doctor decides somebody should be spoken to — at which point it is charged and recorded as one."),
+    CallRule("a-wait-has-an-end", "A wait has an end, and the end is a different plan", "Fifteen minutes, and then the visit stops waiting. A queue a patient cannot leave is how somebody sits in a chair for an hour being told that a doctor is coming.")
 )
 
 val callRefusals = listOf(
@@ -191,5 +252,9 @@ val callRefusals = listOf(
     CallRefusal("consent-outlives-withdrawal", "A consultation is not held open “just to finish the notes” after consent is withdrawn. Withdrawal ends the call at the moment it is said, and what is written afterwards is written only from what was already said."),
     CallRefusal("diagnose-the-unseen", "A doctor does not record a finding about something they could not see or hear. On a poor line an uncertain answer is written down as an uncertain answer and the patient is seen again — a confident note is not a substitute for a working connection."),
     CallRefusal("charge-for-a-failure", "An encounter that never reached a decision is not charged for, whoever's connection failed. Making a patient pay for their own bad signal puts the cost of South African bandwidth on the person least able to do anything about it."),
-    CallRefusal("half-a-consultation", "An interrupted encounter is never closed off as a completed consultation, and no clinician is offered a button that would do it. A record that cannot tell a finished consultation from an abandoned one is worse than no record, because it will be trusted.")
+    CallRefusal("half-a-consultation", "An interrupted encounter is never closed off as a completed consultation, and no clinician is offered a button that would do it. A record that cannot tell a finished consultation from an abandoned one is worse than no record, because it will be trusted."),
+    CallRefusal("certificate-from-a-call", "A doctor on this call cannot write you a medical certificate. A sick note needs somebody to examine you, and that is a visit — a nurse comes to the house and a doctor reviews what she finds."),
+    CallRefusal("doctor-on-demand", "You cannot call a doctor here. MyThuso sends a nurse to you, and the nurse calls the doctor."),
+    CallRefusal("waiting-without-an-end", "No doctor could join within the time this visit can wait. This goes to the panel as a review instead, and you are not charged for the call that did not happen."),
+    CallRefusal("first-prescription-unseen", "A medicine is not started on this call for something nobody has examined. The nurse with you is the examination; ask her to look, and the doctor will decide from what she finds.")
 )

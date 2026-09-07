@@ -1,0 +1,93 @@
+{
+ "_note": "Where MyThuso works, and what a map of it is allowed to draw. The dispatch board used to hold its own list of suburbs, its own coordinates and its own map window inside a React component, which meant iOS and Android each invented their own Johannesburg and none of the three agreed. This file is the one Johannesburg. Read by the web app; generated into Swift and Kotlin by scripts/emit-geography.mjs. No arithmetic lives here — distance, projection, province lookup and arrival estimates are packages/geo, and a coordinate outside South Africa is refused there before it reaches a map. Nothing in this file contacts a tile server; the token, if there is one, is supplied at build time and its absence is a supported state rather than a failure.",
+
+ "coverage": {
+  "city": "Johannesburg",
+  "province": "Gauteng",
+  "phase": 1,
+  "sentence": "Phase one is northern Johannesburg and Soweto. Everywhere else on this map is drawn because it is there, not because anybody is working in it.",
+  "whyOneCity": "The funding proposal commits to a single metro first. A map that shades in the whole of Gauteng because the tiles reach that far is a map making a promise the business has not made."
+ },
+
+ "window": {
+  "centre": { "lat": -26.172, "lng": 27.992 },
+  "spanKm": 28,
+  "zoom": 10.4,
+  "minZoom": 8.5,
+  "maxZoom": 15,
+  "_maxZoomNote": "Fifteen, deliberately. At sixteen and above a reader can pick out an individual house, and no screen in this product has a reason to. The limit is the privacy control, not a performance one."
+ },
+
+ "zones": [
+  { "id": "randburg", "name": "Randburg", "at": { "lat": -26.094, "lng": 27.999 }, "radiusKm": 3.0 },
+  { "id": "rosebank", "name": "Rosebank", "at": { "lat": -26.146, "lng": 28.042 }, "radiusKm": 2.4 },
+  { "id": "parktown", "name": "Parktown", "at": { "lat": -26.184, "lng": 28.040 }, "radiusKm": 2.2 },
+  { "id": "melville", "name": "Melville", "at": { "lat": -26.175, "lng": 27.999 }, "radiusKm": 2.2 },
+  { "id": "soweto", "name": "Soweto", "at": { "lat": -26.249, "lng": 27.908 }, "radiusKm": 4.0 }
+ ],
+
+ "precision": {
+  "decimals": 3,
+  "metres": 110,
+  "sentence": "Every position in this preview is rounded to three decimal places — about a hundred metres. The suburbs are real; nobody lives at these points.",
+  "why": "A preview has no business being precise about where a person is standing. Three decimals is enough to draw a suburb and not enough to find a door."
+ },
+
+ "rendering": {
+  "tokenEnvVar": "VITE_MAPBOX_TOKEN",
+  "styleUrl": "mapbox://styles/mapbox/light-v11",
+  "withoutToken": {
+   "name": "Schematic",
+   "sentence": "No map tiles are configured for this build, so the map is drawn from the coordinates alone: the zones, the visits and the nurses, in their real positions, without streets behind them.",
+   "why": "A map that fails to a grey rectangle when a key is missing teaches a dispatcher to distrust the screen. The schematic is a complete answer to the same question — who is where — drawn from the same numbers, and it needs no network at all."
+  },
+  "suppressedLayers": [
+   "poi-label", "poi-label-major", "airport-label", "settlement-minor-label",
+   "natural-point-label", "natural-line-label", "transit-label", "building-number-label"
+  ],
+  "whySuppressed": "A dispatch board is not a street directory. Every restaurant, filling station and church the base map wants to name is one more thing between a controller and the visit that has been waiting fifty minutes. Suburb names, roads and water stay; the rest is turned off.",
+  "attributionRequired": true,
+  "attributionNote": "Mapbox and OpenStreetMap attribution is a licence condition, not a design choice. It is never suppressed, never moved off-screen and never made smaller than the type scale's floor."
+ },
+
+ "marks": [
+  { "id": "zone", "name": "Service zone", "detail": "A suburb MyThuso covers, drawn at its working radius." },
+  { "id": "nurse-free", "name": "Nurse available", "detail": "Cleared by vetting and not on a visit." },
+  { "id": "nurse-busy", "name": "Nurse on a visit", "detail": "Positioned, but not dispatchable until the visit closes." },
+  { "id": "nurse-blocked", "name": "Blocked by vetting", "detail": "Drawn where they are and refused all the same. A lapsed credential withdraws dispatch by arithmetic, not by somebody remembering." },
+  { "id": "visit-waiting", "name": "Visit awaiting a nurse", "detail": "Plotted at the centre of its suburb, never at its address." },
+  { "id": "visit-assigned", "name": "Assigned", "detail": "A nurse has accepted it." }
+ ],
+
+ "privacy": {
+  "sentence": "A map in MyThuso plots suburbs, not addresses.",
+  "rules": [
+   {
+    "id": "address-is-not-a-pin",
+    "statement": "A visit awaiting a nurse is drawn at the centre of its suburb. Its street address is never a coordinate on any map, on any screen, at any zoom.",
+    "why": "A home address beside a health service is not a location, it is a diagnosis with a doorstep. The controller assigning the visit needs to know which suburb it is in; they do not need to know which house until they are the one going to it, and then it is in the visit, not on the board."
+   },
+   {
+    "id": "a-nurse-is-not-tracked-between-visits",
+    "statement": "A nurse who is not sharing a position has none, and the board says so rather than placing them somewhere plausible.",
+    "why": "An empty space is a true statement about a phone in a bag. A guessed pin is a false statement about a person's whereabouts, and it is the one a dispatcher would act on."
+   },
+   {
+    "id": "no-history-drawn",
+    "statement": "No map here draws where anybody has been. A position is the current one or it is absent.",
+    "why": "A track is a record of a person's movements. Nothing in this product needs one, so nothing in this product keeps one, and there is no screen that could be persuaded to show one."
+   },
+   {
+    "id": "nothing-leaves-for-a-tile",
+    "statement": "The tile server is asked for streets. It is never told what is on top of them — no visit, no patient, no nurse position is sent to any mapping provider.",
+    "why": "A map vendor that can see your pins can see your caseload. The zones, the visits and the nurses are drawn by this application on top of tiles that know nothing about them."
+   }
+  ]
+ },
+
+ "refusals": [
+  { "id": "outside-south-africa", "sentence": "That position is not in South Africa. It has not been drawn.", "why": "packages/geo refuses the coordinate before a map sees it. A pin in the Atlantic is a data fault, and the map's job is to be the place it becomes visible rather than the place it is smoothed over." },
+  { "id": "outside-coverage", "sentence": "MyThuso is not working in that area yet. You can be told when it is.", "why": "Refusing a booking outside phase one is the whole point of naming a phase. An app that takes the booking anyway has moved the disappointment to the patient's front door." },
+  { "id": "no-position-shared", "sentence": "This nurse is not sharing a position right now, so they are not on the map.", "why": "Said out loud, on the board, next to the count. A dispatcher who cannot see the difference between nobody-there and nobody-reporting will read the map as the first one." }
+ ]
+}

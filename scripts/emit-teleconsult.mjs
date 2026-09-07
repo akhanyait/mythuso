@@ -131,6 +131,34 @@ ${contract.outcomes.map(o => `        .init(id: ${swift(o.id)}, name: ${swift(o.
               record: ${swift(o.record)})`).join(',\n')}
     ]
 
+
+    /* How a person reaches a doctor at all. The funding proposal sells no standalone video
+       consultation — Thuso Doctor joins a visit, reads what was captured, or takes a booked
+       counselling session — so none is invented here. A route names a service id rather than a
+       price, because a price lives in packages/catalog/services.json and nowhere else. */
+    static let routes: [CallRoute] = [
+${contract.routes.items.map(r => `        .init(id: ${swift(r.id)}, name: ${swift(r.name)}, serviceId: ${optSwift(r.serviceId)},
+              startedBy: ${swift(r.startedBy)}, detail: ${swift(r.detail)}, patientWords: ${swift(r.patientWords)},
+              live: ${r.live === false ? 'false' : 'true'}, phase: ${r.phase})`).join(',\n')}
+    ]
+    static let refusedRoute = CallRefusal(id: ${swift(contract.routes.refusedRoute.id)}, sentence: ${swift(contract.routes.refusedRoute.sentence)})
+
+    /* The wait, said out loud. An app that shows "connecting…" for eleven minutes has lied for ten
+       of them; these four states are the truth at each point, and the last one ends the wait with a
+       different plan rather than a longer one. */
+    static let waitingRoom: [WaitingState] = [
+${contract.waitingRoom.states.map(w => `        .init(id: ${swift(w.id)}, name: ${swift(w.name)}, patientWords: ${swift(w.patientWords)}, shows: ${swift(w.shows)})`).join(',\n')}
+    ]
+    static let maximumWaitMinutes = ${contract.waitingRoom.maximumWaitMinutes}
+    static let whyFifteen = ${swift(contract.waitingRoom.whyFifteen)}
+
+    /* What may come out of a consultation held over a screen, and what may not. A prescription and
+       a medical certificate are legal documents; a video call is not an examination. */
+    static let issued: [IssuedDocument] = [
+${contract.issued.items.map(i => `        .init(id: ${swift(i.id)}, name: ${swift(i.name)}, mayIssue: ${i.mayIssue},
+              condition: ${swift(i.condition)}, goesTo: ${optSwift(i.goesTo)}, limit: ${swift(i.limit)})`).join(',\n')}
+    ]
+
     /* Rendered word for word. A rule paraphrased on one platform is a different promise on that
        platform, which is the whole reason these live in one file. */
     static let rules: [CallRule] = [
@@ -229,6 +257,37 @@ ${contract.outcomes.map(o => `    EncounterOutcome(
         ${kotlin(o.id)}, ${kotlin(o.name)}, ${o.reachedDecision}, ${o.connectionLost},
         ${o.countsAsConsultation}, ${o.charged}, ${kotlinList(o.writes)},
         ${kotlin(o.record)}
+    )`).join(',\n')}
+)
+
+
+/* How a person reaches a doctor at all. The funding proposal sells no standalone video
+   consultation — Thuso Doctor joins a visit, reads what was captured, or takes a booked counselling
+   session — so none is invented here. A route names a service id rather than a price, because a
+   price lives in packages/catalog/services.json and nowhere else. */
+val callRoutes = listOf(
+${contract.routes.items.map(r => `    CallRoute(
+        ${kotlin(r.id)}, ${kotlin(r.name)}, ${optKotlin(r.serviceId)}, ${kotlin(r.startedBy)},
+        ${kotlin(r.detail)}, ${kotlin(r.patientWords)}, ${r.live === false ? 'false' : 'true'}, ${r.phase}
+    )`).join(',\n')}
+)
+val callRefusedRoute = CallRefusal(${kotlin(contract.routes.refusedRoute.id)}, ${kotlin(contract.routes.refusedRoute.sentence)})
+
+/* The wait, said out loud. An app that shows "connecting…" for eleven minutes has lied for ten of
+   them; these four states are the truth at each point, and the last one ends the wait with a
+   different plan rather than a longer one. */
+val callWaitingRoom = listOf(
+${contract.waitingRoom.states.map(w => `    WaitingState(${kotlin(w.id)}, ${kotlin(w.name)}, ${kotlin(w.patientWords)}, ${kotlin(w.shows)})`).join(',\n')}
+)
+const val callMaximumWaitMinutes = ${contract.waitingRoom.maximumWaitMinutes}
+const val callWhyFifteen = ${kotlin(contract.waitingRoom.whyFifteen)}
+
+/* What may come out of a consultation held over a screen, and what may not. A prescription and a
+   medical certificate are legal documents; a video call is not an examination. */
+val callIssued = listOf(
+${contract.issued.items.map(i => `    IssuedDocument(
+        ${kotlin(i.id)}, ${kotlin(i.name)}, ${i.mayIssue}, ${kotlin(i.condition)},
+        ${optKotlin(i.goesTo)}, ${kotlin(i.limit)}
     )`).join(',\n')}
 )
 

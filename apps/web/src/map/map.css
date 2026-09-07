@@ -1,0 +1,93 @@
+/* The map's own stylesheet.
+ *
+ * It lives beside the component rather than in an appended section of styles.css because the map
+ * is the one surface that pulls in a third party's CSS — mapbox-gl.css — and the overrides that
+ * tame it belong next to the import that causes them, not four hundred lines away in a file about
+ * cards and pills. Every colour is a token; there are no literals here. */
+
+.livemap {
+ position: relative;
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-8);
+}
+
+.livemap-canvas {
+ flex: 1;
+ min-height: 0;
+ border-radius: var(--r-card);
+ border: 1px solid var(--line);
+ overflow: hidden;
+ background: var(--canvas);
+}
+
+.livemap-canvas.schematic svg { width: 100%; height: 100%; display: block; }
+
+.livemap-note {
+ font-size: 13px;
+ color: var(--faint);
+ margin: 0;
+}
+
+/* ---- Marks ----
+   A marker is a real button: reachable by keyboard, nameable by a screen reader, and 44px of
+   target even though the dot inside it is 14. A canvas-drawn pin is none of those things, which is
+   why these are DOM even though drawing them on the GL layer would be cheaper. */
+.map-marker {
+ width: 44px;
+ height: 44px;
+ padding: 0;
+ border: 0;
+ background: none;
+ display: grid;
+ place-items: center;
+ cursor: pointer;
+}
+
+.map-marker::before {
+ content: '';
+ width: 14px;
+ height: 14px;
+ border-radius: var(--r-pill);
+ background: var(--marker);
+ box-shadow: 0 0 0 3px var(--surface), var(--shadow);
+}
+
+/* A visit is a square and a nurse is a circle. Colour alone never carries the difference: a
+   controller with a colour vision deficiency reads the same board as everyone else. */
+.map-marker.visit-waiting::before,
+.map-marker.visit-assigned::before { border-radius: var(--r-tile); }
+
+.map-marker.nurse-blocked::before { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--danger); }
+
+.map-marker.selected::before { width: 20px; height: 20px; }
+
+.map-marker:focus-visible { outline: none; }
+.map-marker:focus-visible::before { box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
+
+/* ---- Taming mapbox-gl.css ----
+   The vendor stylesheet ships its own type sizes, radii and a focus ring. Left alone the map is
+   the only place in the product with 11px text and 4px corners. Attribution is never suppressed —
+   it is a licence condition — but it is brought onto the type scale like everything else. */
+.livemap .mapboxgl-ctrl-attrib,
+.livemap .mapboxgl-ctrl-attrib a {
+ font-size: 13px;
+ color: var(--faint);
+}
+
+.livemap .mapboxgl-ctrl-group {
+ border-radius: var(--r-control);
+ box-shadow: var(--shadow);
+ border: 1px solid var(--line);
+}
+
+.livemap .mapboxgl-ctrl-group button { width: 36px; height: 36px; }
+
+.livemap .mapboxgl-ctrl-group button:focus-visible {
+ box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge);
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .livemap .mapboxgl-canvas,
+ .livemap .map-marker { transition: none !important; }
+}
