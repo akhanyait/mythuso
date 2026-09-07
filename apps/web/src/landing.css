@@ -252,3 +252,57 @@ html:has(.landing){scroll-behavior:smooth}
  .landing-services li:hover{translate:none}
  .landing-progress{display:none}
 }
+
+/* ---- Ambient motion on the hero ----
+ *
+ * Asked for twice: "the greenish bubbles and lines to have animation just to give the app some
+ * texture". The bubbles that used to do it were nine SVG circles and three currents on an infinite
+ * loop, and they went — they were dead code by then, they were part of what read as cartoonish, and
+ * an element that never stops moving is one Playwright will wait forever to click.
+ *
+ * This is the same intent, measured. It cannot be greenish: teal at eight per cent over the hero
+ * lifts the ground to #173a73, where the kicker measures 4.47:1 and AA wants 4.5. The panel is one
+ * signed-off colour precisely so that every contrast figure in this file is not a guess about
+ * position. So the drift is ink, and ink only darkens: 12.56 → 13.27 for the headline, 5.04 → 5.33
+ * for the kicker, 11.13 → 11.76 for the lede. Motion that can only improve legibility.
+ *
+ * It is a pseudo-element with pointer-events:none and nothing inside it, so no control's box ever
+ * moves — which is what made the old bubbles a test hazard rather than the fact that they moved. */
+[data-motion=on] .landing-hero::before {
+ content: '';
+ position: absolute;
+ inset: -25%;
+ z-index: 0;
+ pointer-events: none;
+ background:
+  radial-gradient(38% 44% at 22% 30%, color-mix(in srgb, var(--ink) 30%, transparent), transparent 70%),
+  radial-gradient(30% 36% at 74% 68%, color-mix(in srgb, var(--ink) 24%, transparent), transparent 70%);
+ animation: hero-drift 34s ease-in-out infinite alternate;
+ will-change: transform;
+}
+
+/* The lines, at the intensity a texture wants rather than the intensity a pattern wants: at 6% of
+   ink over this ground they are felt at arm's length and invisible at reading distance. */
+[data-motion=on] .landing-hero::after {
+ content: '';
+ position: absolute;
+ inset: -25%;
+ z-index: 0;
+ pointer-events: none;
+ background: repeating-linear-gradient(
+  118deg,
+  transparent 0 58px,
+  color-mix(in srgb, var(--ink) 6%, transparent) 58px 59px
+ );
+ animation: hero-lines 46s linear infinite alternate;
+ will-change: transform;
+}
+
+@keyframes hero-drift {
+ from { transform: translate3d(-3%, -2%, 0) scale(1.04); }
+ to   { transform: translate3d(3%, 2%, 0) scale(1.1); }
+}
+@keyframes hero-lines {
+ from { transform: translate3d(-2%, 0, 0); }
+ to   { transform: translate3d(2%, 0, 0); }
+}
