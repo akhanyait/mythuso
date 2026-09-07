@@ -33,161 +33,226 @@ import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.householdMemberById
 import za.co.mythuso.model.mokoenaHousehold
 
+/* The patient's own record.
+ *
+ * The screen used to open with the words "Health Passport" at 26sp, then a card carrying the words
+ * "Your health. Your story." at 24 — two headings in a row, saying the same thing at almost the same
+ * size, and then four filter chips. The card is the heading now: it names the person, carries the
+ * identifier, and is the one thing on the screen with the brand behind it. The top bar already says
+ * which tab this is.
+ *
+ * Overview, Records, Medications and More are four views of one record, which is a tab row rather
+ * than a set of filters. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable fun PassportScreen(open: (String) -> Unit) {
-    var tab by remember { mutableStateOf("Overview") }
+    val tabs = listOf("Overview", "Records", "Medications", "More")
+    var tab by remember { mutableStateOf(tabs.first()) }
     var sharing by remember { mutableStateOf(false) }
     var deviceState by remember { mutableStateOf(LoadState.DENIED) }
     val context = LocalContext.current
     ScreenColumn {
-        Heading("", "Health Passport", "")
-        DemoBadge()
         Box(
-            Modifier.fillMaxWidth().heightIn(min = 160.dp).clip(RoundedCornerShape(ThusoRadius.card))
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.card))
                 .background(Brush.linearGradient(listOf(IndigoDeep, Indigo)))
-                .padding(20.dp)
+                .padding(ThusoSpacing.space20)
+                .semantics(mergeDescendants = true) {}
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
                     StatusPill("Thuso Pass", "light")
-                    Text("Your health.\nYour story.", style = MaterialTheme.typography.titleLarge, color = Color.White)
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Your health.\nYour story.", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                    Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                         Text("Lerato Molefe", style = MaterialTheme.typography.titleSmall, color = Color.White)
                         Text("ID: TH-2048-3920", style = MaterialTheme.typography.bodySmall, color = IndigoSoft)
                     }
                 }
                 Image(
                     painterResource(R.drawable.mythuso_patient), null,
-                    Modifier.size(84.dp).clip(CircleShape).border(3.dp, Color.White.copy(alpha = 0.25f), CircleShape),
+                    Modifier.size(72.dp).clip(CircleShape).border(2.dp, Color.White.copy(alpha = 0.3f), CircleShape),
                     contentScale = ContentScale.Crop
                 )
             }
         }
-        FlowRowChips(listOf("Overview", "Records", "Medications", "More"), setOf(tab)) { tab = it }
-        when (tab) {
-            "Records" -> CareCard {
-                MenuRow("Visit summary", "Fictional document · 4 September", Icons.Outlined.Description) { open("Visit summary") }
-                HorizontalDivider(color = Line)
-                MenuRow("Laboratory results", "Fasting panel · Released", Icons.Outlined.Science) { open("Laboratory order LAB-0023") }
-                HorizontalDivider(color = Line)
-                MenuRow("Medical certificate", "Doctor reviewed · Demo", Icons.Outlined.VerifiedUser) { open("Medical certificate") }
-            }
-            "Medications" -> {
-                EmptyStateCard("No active prescriptions", "Prescriptions appear here after a registered doctor issues them.")
-                OutlinedButton(onClick = { open("Prescription RX-0081") }, Modifier.fillMaxWidth()) { Text("Preview a sample prescription") }
-            }
-            "More" -> {
-                StatePicker("Preview the device permission state", deviceState) { deviceState = it }
-                StateBlock(deviceState, "Readings from your connected devices", "Health Connect access", { deviceState = LoadState.READY }) {
-                    CareCard {
-                        MenuRow("Health Connect", "Choose exactly which readings you share", Icons.Outlined.MonitorHeart) { open("Health Connect") }
-                        HorizontalDivider(color = Line)
-                        /* The patient's side of the kit is the readings it wrote into her record, not
-                           the pairing surface — that one is a clinician's, and it opens under a
-                           nurse's registration. */
-                        MenuRow("Thuso Kit readings", "What a nurse’s instruments wrote into your record", Icons.Outlined.Sensors) { open("Thuso Kit readings") }
-                    }
-                }
-                CareCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Demo access for Dr. A. Dlamini", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), color = Ink)
-                        Switch(sharing, { sharing = it })
-                    }
-                    Note(if (sharing) "Demo access active for 24 hours. Turn off to revoke." else "No active shares. No real access is granted.")
+        DemoBadge()
+        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
+            /* Scrollable rather than fixed: four tab labels at the largest font scale do not fit
+               across a 360dp phone, and a tab that has been squeezed to two characters is not a tab. */
+            ScrollableTabRow(
+                selectedTabIndex = tabs.indexOf(tab),
+                containerColor = Color.Transparent,
+                edgePadding = 0.dp,
+                divider = { HorizontalDivider(color = Line) }
+            ) {
+                tabs.forEach { name ->
+                    Tab(
+                        selected = tab == name, onClick = { tab = name },
+                        text = { Text(name, style = MaterialTheme.typography.labelLarge, maxLines = 1) },
+                        selectedContentColor = Indigo, unselectedContentColor = BodyText
+                    )
                 }
             }
-            else -> {
-                Text("Health trends", style = MaterialTheme.typography.titleMedium, color = Ink)
-                ClinicalChart("Blood pressure", "mmHg", listOf(
-                    Reading("12 Aug", 128.0), Reading("19 Aug", 134.0), Reading("28 Aug", 141.0, "Missed medication"), Reading("4 Sep", 136.0)
-                ), 90.0..140.0, icon = Icons.Outlined.MonitorHeart)
-                ClinicalChart("Heart rate", "bpm", listOf(
-                    Reading("12 Aug", 76.0), Reading("19 Aug", 74.0), Reading("28 Aug", 80.0), Reading("4 Sep", 72.0)
-                ), 50.0..100.0, icon = Icons.Outlined.Favorite)
-                ClinicalChart("Blood glucose", "mmol/L", listOf(
-                    Reading("12 Aug", 5.6), Reading("19 Aug", 6.1), Reading("28 Aug", 5.4), Reading("4 Sep", 5.2)
-                ), 4.0..7.8, 1, icon = Icons.Outlined.Bloodtype)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ActionTile("Share record", Icons.Outlined.Share, Modifier.weight(1f)) { sharing = true }
-                    ActionTile("Export sample", Icons.Outlined.Download, Modifier.weight(1f)) {
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, "MyThuso fictional passport: BP 118/78 mmHg, pulse 72 bpm, glucose 5.2 mmol/L. Demo only, not a medical record.")
+            when (tab) {
+                "Records" -> CareCard(padding = ThusoSpacing.space8) {
+                    MenuRow("Visit summary", "Fictional document · 4 September", Icons.Outlined.Description) { open("Visit summary") }
+                    HorizontalDivider(color = Line)
+                    MenuRow("Laboratory results", "Fasting panel · Released", Icons.Outlined.Science) { open("Laboratory order LAB-0023") }
+                    HorizontalDivider(color = Line)
+                    MenuRow("Medical certificate", "Doctor reviewed · Demo", Icons.Outlined.VerifiedUser) { open("Medical certificate") }
+                }
+                "Medications" -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+                    EmptyStateCard("No active prescriptions", "Prescriptions appear here after a registered doctor issues them.")
+                    OutlinedButton(onClick = { open("Prescription RX-0081") }, Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text("Preview a sample prescription") }
+                }
+                "More" -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space24)) {
+                    Section("Connected devices") {
+                        StateBlock(deviceState, "Readings from your connected devices", "Health Connect access", { deviceState = LoadState.READY }) {
+                            CareCard(padding = ThusoSpacing.space8) {
+                                MenuRow("Health Connect", "Choose exactly which readings you share", Icons.Outlined.MonitorHeart) { open("Health Connect") }
+                                HorizontalDivider(color = Line)
+                                /* The patient's side of the kit is the readings it wrote into her record, not
+                                   the pairing surface — that one is a clinician's, and it opens under a
+                                   nurse's registration. */
+                                MenuRow("Thuso Kit readings", "What a nurse’s instruments wrote into your record", Icons.Outlined.Sensors) { open("Thuso Kit readings") }
+                            }
                         }
-                        context.startActivity(Intent.createChooser(intent, "Export sample passport"))
+                        StatePicker("Preview the device permission state", deviceState) { deviceState = it }
                     }
-                    ActionTile("Doctors", Icons.Outlined.People, Modifier.weight(1f)) { open("Your care team") }
+                    Section("Who can see your record") {
+                        CareCard {
+                            Setting("Demo access for Dr. A. Dlamini", sharing) { sharing = it }
+                            Note(if (sharing) "Demo access active for 24 hours. Turn off to revoke." else "No active shares. No real access is granted.")
+                        }
+                    }
+                }
+                else -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space24)) {
+                    Section("Health trends") {
+                        ClinicalChart("Blood pressure", "mmHg", listOf(
+                            Reading("12 Aug", 128.0), Reading("19 Aug", 134.0), Reading("28 Aug", 141.0, "Missed medication"), Reading("4 Sep", 136.0)
+                        ), 90.0..140.0, icon = Icons.Outlined.MonitorHeart)
+                        ClinicalChart("Heart rate", "bpm", listOf(
+                            Reading("12 Aug", 76.0), Reading("19 Aug", 74.0), Reading("28 Aug", 80.0), Reading("4 Sep", 72.0)
+                        ), 50.0..100.0, icon = Icons.Outlined.Favorite)
+                        ClinicalChart("Blood glucose", "mmol/L", listOf(
+                            Reading("12 Aug", 5.6), Reading("19 Aug", 6.1), Reading("28 Aug", 5.4), Reading("4 Sep", 5.2)
+                        ), 4.0..7.8, 1, icon = Icons.Outlined.Bloodtype)
+                    }
+                    Section("Do something with it") {
+                        Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+                            ActionTile("Share record", Icons.Outlined.Share, Modifier.weight(1f)) { sharing = true }
+                            ActionTile("Export sample", Icons.Outlined.Download, Modifier.weight(1f)) {
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, "MyThuso fictional passport: BP 118/78 mmHg, pulse 72 bpm, glucose 5.2 mmol/L. Demo only, not a medical record.")
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Export sample passport"))
+                            }
+                            ActionTile("Doctors", Icons.Outlined.People, Modifier.weight(1f)) { open("Your care team") }
+                        }
+                    }
                 }
             }
         }
     }
 }
+/* Three of these sit side by side, so the label has to be allowed two lines and the tile a height
+   that follows it — at the largest font scale a fixed 80dp box cut "Export sample" in half. */
 @Composable fun ActionTile(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier, click: () -> Unit) {
     Column(
-        modifier.heightIn(min = 80.dp).background(Color.White, RoundedCornerShape(ThusoRadius.card))
-            .border(1.dp, Line, RoundedCornerShape(ThusoRadius.card)).clickable(onClick = click).padding(12.dp),
+        modifier.heightIn(min = 88.dp).background(Color.White, RoundedCornerShape(ThusoRadius.card))
+            .border(1.dp, Line, RoundedCornerShape(ThusoRadius.card)).clickable(onClick = click)
+            .padding(ThusoSpacing.space12)
+            .semantics(mergeDescendants = true) {},
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
     ) {
-        Icon(icon, null, tint = Indigo)
-        Spacer(Modifier.height(8.dp))
+        Icon(icon, null, tint = Indigo, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.height(ThusoSpacing.space8))
         Text(label, style = MaterialTheme.typography.labelMedium, color = Slate, textAlign = TextAlign.Center)
     }
 }
-@Composable fun ToolRow(name: String, click: () -> Unit) { Row(Modifier.fillMaxWidth().clickable(onClick = click).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) { Text(name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium); Icon(Icons.Outlined.ChevronRight, null, tint = Indigo) } }
+@Composable fun ToolRow(name: String, click: () -> Unit) = PlainRow(name, click = click)
+/* Everything the four tabs do not hold.
+ *
+ * This screen used to be five cards of the same weight holding twenty-four rows of the same weight,
+ * in no order anybody could name: "Payments" sat two rows above "System states", and "Household
+ * record" — a design-review route — sat between two product features. Finding anything meant reading
+ * all of it.
+ *
+ * It is now the person, then their care, then their settings, then the role previews, then the
+ * routes that exist for design review, each under a heading that says which it is. Nothing was
+ * removed and no route changed: the same rows are on the same screen, sorted. Saying out loud that
+ * the last group is a preview is the honest version of what those rows already were.
+ */
 @Composable fun MoreScreen(open: (String) -> Unit, firstRun: () -> Unit) {
     ScreenColumn {
-        Heading("", "More", "")
-        CareCard(Modifier.clickable { open("Your profile") }) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Image(painterResource(R.drawable.mythuso_patient), null, Modifier.size(52.dp).clip(CircleShape), contentScale = ContentScale.Crop)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Lerato Molefe", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+            Heading("", "More", "")
+            DemoBadge()
+        }
+        LeadCard(Modifier.clickable { open("Your profile") }.semantics(mergeDescendants = true) {}) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
+                Image(painterResource(R.drawable.mythuso_patient), null, Modifier.size(56.dp).clip(CircleShape), contentScale = ContentScale.Crop)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
+                    Text("Lerato Molefe", style = MaterialTheme.typography.titleLarge, color = Ink)
                     Text("View and edit your profile", style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
-                Icon(Icons.Outlined.ChevronRight, null, tint = BodyText.copy(alpha = 0.7f))
+                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Faint)
             }
         }
-        CareCard {
-            MenuRow("My family", "Manage your loved ones", Icons.Outlined.People) { open("My family") }
-            HorizontalDivider(color = Line)
-            MenuRow("Care plans", "Ongoing care and subscriptions", Icons.Outlined.FavoriteBorder) { open("Care plans") }
-            HorizontalDivider(color = Line)
-            MenuRow("Payments", "Cards, history and refunds", Icons.Outlined.CreditCard) { open("Thuso Wallet") }
-        }
-        CareCard {
-            MenuRow("Notifications", "Visit updates and messages", Icons.Outlined.Notifications) { open("Notifications") }
-            HorizontalDivider(color = Line)
-            MenuRow("Privacy & settings", "Your data and app preferences", Icons.Outlined.Tune) { open("Privacy & settings") }
-            HorizontalDivider(color = Line)
-            MenuRow("Language", "Read MyThuso your way", Icons.Outlined.Language) { open("Language") }
-            HorizontalDivider(color = Line)
-            MenuRow("Interpreters", "South African Sign Language: who is free, and what happens when nobody is", Icons.Outlined.Language) { open("Interpreters") }
-        }
-        CareCard {
-            MenuRow("First-run & recovery", "Sign-up, one-time code and lost access", Icons.Outlined.PersonAdd) { firstRun() }
-            HorizontalDivider(color = Line)
-            MenuRow("System states", "Loading, error, offline and denied", Icons.Outlined.Layers) { open("System states") }
-            HorizontalDivider(color = Line)
-            MenuRow("Explore the roadmap", "All 21 modules in the proposal", Icons.Outlined.GridView) { open("Roadmap") }
-            HorizontalDivider(color = Line)
-            MenuRow("Vetting & verification", "Every party MyThuso vets, and what each is refused until it passes", Icons.Outlined.VerifiedUser) { open("Vetting pipeline") }
-            HorizontalDivider(color = Line)
-            MenuRow("Patient file", "The clinician-facing record, and what each viewer is refused", Icons.Outlined.FolderShared) { open("Patient file") }
-            HorizontalDivider(color = Line)
-            MenuRow("Consultation record", "One structure for every encounter, in long form or SOAP", Icons.Outlined.EditNote) { open("Consultation record") }
-            HorizontalDivider(color = Line)
-            MenuRow("Household record", "One household, and what each member may see of the others", Icons.Outlined.Groups) { open("Household record") }
-            HorizontalDivider(color = Line)
-            MenuRow("Health summary", "The shareable summary, bound to a purpose and a period", Icons.Outlined.Share) { open("Health summary") }
-        }
-        CareCard {
-            listOf("Nurse" to "Visits, assessment and vetting", "Doctor" to "Review queue and sign-off",
-                   "Partner" to "Pharmacy and laboratory orders", "Control Tower" to "Dispatch, incidents and vetting").forEachIndexed { index, (role, detail) ->
-                MenuRow("$role workspace", detail, Icons.Outlined.MedicalServices) { open("$role workspace") }
-                if (index < 3) HorizontalDivider(color = Line)
+        Section("Your care") {
+            CareCard(padding = ThusoSpacing.space8) {
+                MenuRow("My family", "Manage your loved ones", Icons.Outlined.People) { open("My family") }
+                HorizontalDivider(color = Line)
+                MenuRow("Care plans", "Ongoing care and subscriptions", Icons.Outlined.FavoriteBorder) { open("Care plans") }
+                HorizontalDivider(color = Line)
+                MenuRow("Payments", "Cards, history and refunds", Icons.Outlined.CreditCard) { open("Thuso Wallet") }
             }
         }
-        CareCard { MenuRow("Log out", "Returns to the first-run flow — this preview has no account", Icons.AutoMirrored.Outlined.Logout, danger = true) { firstRun() } }
-        Note("Native Compose design preview. All data is fictional and held only in memory.")
+        Section("Settings") {
+            CareCard(padding = ThusoSpacing.space8) {
+                MenuRow("Notifications", "Visit updates and messages", Icons.Outlined.Notifications) { open("Notifications") }
+                HorizontalDivider(color = Line)
+                MenuRow("Privacy & settings", "Your data and app preferences", Icons.Outlined.Tune) { open("Privacy & settings") }
+                HorizontalDivider(color = Line)
+                MenuRow("Language", "Read MyThuso your way", Icons.Outlined.Language) { open("Language") }
+                HorizontalDivider(color = Line)
+                MenuRow("Interpreters", "South African Sign Language: who is free, and what happens when nobody is", Icons.Outlined.Language) { open("Interpreters") }
+            }
+        }
+        Section("Workspaces") {
+            CareCard(padding = ThusoSpacing.space8) {
+                listOf("Nurse" to "Visits, assessment and vetting", "Doctor" to "Review queue and sign-off",
+                       "Partner" to "Pharmacy and laboratory orders", "Control Tower" to "Dispatch, incidents and vetting").forEachIndexed { index, (role, detail) ->
+                    MenuRow("$role workspace", detail, Icons.Outlined.MedicalServices) { open("$role workspace") }
+                    if (index < 3) HorizontalDivider(color = Line)
+                }
+            }
+            Note("A role preview for design review. Nothing here authenticates anybody or grants access to a record.")
+        }
+        Section("For design review") {
+            CareCard(padding = ThusoSpacing.space8) {
+                MenuRow("First-run & recovery", "Sign-up, one-time code and lost access", Icons.Outlined.PersonAdd) { firstRun() }
+                HorizontalDivider(color = Line)
+                MenuRow("System states", "Loading, error, offline and denied", Icons.Outlined.Layers) { open("System states") }
+                HorizontalDivider(color = Line)
+                MenuRow("Explore the roadmap", "All 21 modules in the proposal", Icons.Outlined.GridView) { open("Roadmap") }
+                HorizontalDivider(color = Line)
+                MenuRow("Vetting & verification", "Every party MyThuso vets, and what each is refused until it passes", Icons.Outlined.VerifiedUser) { open("Vetting pipeline") }
+                HorizontalDivider(color = Line)
+                MenuRow("Patient file", "The clinician-facing record, and what each viewer is refused", Icons.Outlined.FolderShared) { open("Patient file") }
+                HorizontalDivider(color = Line)
+                MenuRow("Consultation record", "One structure for every encounter, in long form or SOAP", Icons.Outlined.EditNote) { open("Consultation record") }
+                HorizontalDivider(color = Line)
+                MenuRow("Household record", "One household, and what each member may see of the others", Icons.Outlined.Groups) { open("Household record") }
+                HorizontalDivider(color = Line)
+                MenuRow("Health summary", "The shareable summary, bound to a purpose and a period", Icons.Outlined.Share) { open("Health summary") }
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+            CareCard(padding = ThusoSpacing.space8) {
+                MenuRow("Log out", "Returns to the first-run flow — this preview has no account", Icons.AutoMirrored.Outlined.Logout, danger = true) { firstRun() }
+            }
+            Note("Native Compose design preview. All data is fictional and held only in memory.")
+        }
     }
 }
 /* Explore. This is where the rotating banner lives now.

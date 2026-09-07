@@ -40,8 +40,10 @@ import androidx.compose.ui.unit.sp
 /* The palette itself is generated into Tokens.kt from packages/design-tokens/tokens.json, so a
    colour is converted from hex once, by a machine, rather than three times by hand. Only the alias
    below is a design decision rather than a token: sage is what the clinical chart calls the soft
-   teal it fills an in-range reading with. */
-val Sage = IndigoSoft
+   teal it fills an in-range reading with. It had been pointed at the soft indigo, which made every
+   in-range reading the same colour as the brand and left the chart with nothing to say when a
+   reading was fine — teal is the one accent that means "this is as it should be". */
+val Sage = TealSoft
 
 /* One tap target, one number. WCAG 2.2 puts the AAA figure at 44x44 and the token file holds this
    design to it, because it is a health app operated one-handed on a doorstep. */

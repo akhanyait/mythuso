@@ -165,10 +165,13 @@ private fun trustIcon(name: String) = when (name) {
     }
 }
 @Composable fun HeroTexture(tone: Int = 0, reduceMotion: Boolean = prefersReducedMotion()) {
+    /* The brand's own two soft tints rather than the three hand-mixed mints this used to hold. Teal
+       is an accent and this is the one place it is allowed to be a whole surface: a band behind a
+       greeting is decoration, carries no text of its own, and is hidden from TalkBack. */
     val plate = when (tone) {
-        1 -> listOf(Color(0xFFF2F9F9), Color(0xFFDBEEF0))
-        2 -> listOf(Color(0xFFF4FAF7), Color(0xFFDDEFE6))
-        else -> listOf(Color(0xFFF3FAF8), Color(0xFFDFF0EC))
+        1 -> listOf(TealSoft, IndigoSoft)
+        2 -> listOf(IndigoSoft, AccentSoft)
+        else -> listOf(Color.White, TealSoft)
     }
     val transition = rememberInfiniteTransition(label = "hero")
     // One slow clock; each bubble reads it at its own frequency and phase so nothing moves in step.

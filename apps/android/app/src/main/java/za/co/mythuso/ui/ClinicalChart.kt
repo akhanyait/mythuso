@@ -41,14 +41,7 @@ data class Reading(val label: String, val value: Double, val note: String = "—
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) { Icon(icon, null, tint = Indigo, modifier = Modifier.size(17.dp)); Spacer(Modifier.width(8.dp)) }
             Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            Surface(color = if (inRange) Sage else MangoSoft, shape = RoundedCornerShape(6.dp)) {
-                Text(
-                    if (inRange) "Within sample range" else "Outside sample range",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (inRange) Slate else MangoInk,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
+            StatusPill(if (inRange) "Within sample range" else "Outside sample range", if (inRange) "teal" else "amber")
         }
         Row(verticalAlignment = Alignment.Bottom) {
             Text(format(latest.value), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)

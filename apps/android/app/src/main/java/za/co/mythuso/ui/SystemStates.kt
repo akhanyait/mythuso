@@ -24,9 +24,15 @@ import androidx.compose.ui.unit.dp
  */
 enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), ERROR("Service error"), OFFLINE("Offline"), DENIED("Permission denied") }
 
+/* The one animation on this screen, and it stops when the system asks it to. "Remove animations"
+   exists for people for whom a pulsing rectangle is not a nice touch; a skeleton that keeps
+   breathing through it is the app deciding it knows better. Held still it is still a skeleton — the
+   shapes say what is loading — so nothing is lost by obeying. */
 @Composable fun SkeletonRows(rows: Int = 3) {
+    val still = prefersReducedMotion()
     val transition = rememberInfiniteTransition(label = "skeleton")
-    val alpha by transition.animateFloat(0.45f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "alpha")
+    val pulse by transition.animateFloat(0.45f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "alpha")
+    val alpha = if (still) 0.7f else pulse
     Column(
         Modifier.fillMaxWidth().alpha(alpha).semantics { contentDescription = "Loading care information" },
         verticalArrangement = Arrangement.spacedBy(16.dp)
