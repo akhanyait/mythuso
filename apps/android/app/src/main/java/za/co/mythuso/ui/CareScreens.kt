@@ -158,10 +158,17 @@ import androidx.compose.foundation.text.KeyboardActions
                 Text(SchedulingData.noUpcomingDetail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             }
         } else {
+            /* Spelled out rather than left to be concatenated. A merged card reads its children in
+               order, which on this one is seven fragments — a service, an hour, a pill, a duration,
+               an address and a nurse's two lines — and the sentence below is what somebody would
+               actually say about a visit. */
+            val spoken = "${visit.service.name}, ${visit.status}. ${visit.shortWhenText}. " +
+                (if (visit.isScheduled) "${visit.service.duration} minutes. " else "Looking for the nearest nurse. ") +
+                "${visit.address}. Sister Naledi Mokoena, Registered Nurse, SANC."
             LeadCard(
                 Modifier
                     .clickable { open("Visit: ${visit.service.name} · ${visit.shortWhenText}") }
-                    .semantics(mergeDescendants = true) {}
+                    .semantics(mergeDescendants = true) { contentDescription = spoken }
             ) {
                 StatusHeader(visit.status, if (visit.isScheduled) "teal" else "amber") {
                     Text(visit.service.name, style = MaterialTheme.typography.titleLarge, color = Ink)
