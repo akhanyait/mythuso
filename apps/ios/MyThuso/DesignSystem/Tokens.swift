@@ -12,6 +12,9 @@ enum ThusoTheme {
     static let tealInk = Color(red: 0.059, green: 0.463, blue: 0.431)    // #0F766E
     static let tealSoft = Color(red: 0.902, green: 0.980, blue: 0.965)   // #E6FAF6
     static let accentSoft = Color(red: 0.800, green: 0.984, blue: 0.937) // #CCFBEF
+    static let tealLight = Color(red: 0.600, green: 0.965, blue: 0.894)  // #99F6E4
+    static let tealMid = Color(red: 0.369, green: 0.918, blue: 0.831)    // #5EEAD4
+    static let indigoWash = Color(red: 0.118, green: 0.227, blue: 0.541) // #1E3A8A14
     static let mango = Color(red: 1.000, green: 0.702, blue: 0.278)      // #FFB347
     static let mangoInk = Color(red: 0.573, green: 0.251, blue: 0.055)   // #92400E
     static let mangoSoft = Color(red: 1.000, green: 0.957, blue: 0.890)  // #FFF4E3

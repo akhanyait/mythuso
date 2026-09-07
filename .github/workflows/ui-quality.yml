@@ -36,6 +36,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: xcodebuild -project apps/ios/MyThuso.xcodeproj -scheme MyThuso -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+      # The accessibility and booking journeys, on a simulator, because a test target nobody runs
+      # is the same gap one level up. The device is chosen from what the runner actually has
+      # rather than named: a hard-coded iPhone model is a job that goes red on the day GitHub
+      # changes its image, and a red build for that reason is a build people stop reading.
+      - name: Choose an iPhone simulator
+        id: simulator
+        run: |
+          udid=$(xcrun simctl list devices available | grep -E '^ +iPhone' | head -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+          test -n "$udid" || { echo "no iPhone simulator on this runner"; xcrun simctl list devices available; exit 1; }
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+      - run: xcodebuild test -project apps/ios/MyThuso.xcodeproj -scheme MyThuso -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}"
   android:
     runs-on: ubuntu-latest
     steps:

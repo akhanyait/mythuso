@@ -113,12 +113,104 @@ pair the design actually uses, from `packages/design-tokens/tokens.json`, and fa
 the threshold each pair declares. Computed, not eyeballed. The pairs and their thresholds are in the
 token file, so adding a colour combination to the design means declaring what it has to clear.
 
-### iOS — **not tested**
+### iOS — tested
 
-The screens were read for Dynamic Type hazards — fixed heights on text containers, `lineLimit(1)` on
-a label that grows, `.frame(height:)` where `.frame(minHeight:)` belongs — and the ones found were
-fixed. No `xcodebuild test` was run: there is no test target in the project, and the accessibility
-audit APIs need one. This section says "not tested" rather than "verified" on purpose.
+`apps/ios/MyThusoUITests` is an XCUITest target in `MyThuso.xcodeproj`, and
+
+```
+xcodebuild test -project apps/ios/MyThuso.xcodeproj -scheme MyThuso \
+  -destination 'platform=iOS Simulator,name=iPhone 16e'
+```
+
+runs it — add `,OS=<version>` or use the simulator's udid if the model you name exists only on an
+older runtime, because a destination without one means "latest" and fails to find a device before it
+reaches the project. The `ios` job in `.github/workflows/ui-quality.yml` runs it on every push as
+well, on whichever iPhone simulator the macOS runner happens to have, because a test target nobody
+runs is the same gap one level up. XCTest and XCUITest are Apple's own; no dependency was added.
+
+Five tests. What each measures, and where each is the question the web spec already asks:
+
+- **Three screens at both ends of the content-size scale.** The home, the booking flow and the
+  Health Passport are driven at the default content size and again at
+  `UICTContentSizeCategoryAccessibilityXXXL` — the largest iOS offers, a little over three times the
+  default body size — and each is walked to the bottom of its own content, measured at every resting
+  position on the way. Both sizes, and neither is optional: the largest is where text runs off the
+  side of a phone, the default is where a control is at its smallest, and the first version of this
+  suite ran only at the top of the scale and passed a fifteen-point tap target because at three
+  times the type it had grown into a legal one. It is the same reason `accessibility.spec.ts` runs
+  at 320 px *and* at the configured viewport.
+- **No control under 44×44 points**, which is Apple's own floor and, as it happens, the number
+  `packages/design-tokens/tokens.json` holds for the web. Two controls cannot reach it and are
+  declared in `Audit.knownUndersized` with what they measure and why — and, exactly as on the web,
+  an exemption is never permission to go under the 24×24 that WCAG 2.2 SC 2.5.8 requires at AA.
+- **A label on every control**, and nothing decorative announced: no image reaching the tree under
+  its own asset file name, and no SF Symbol sitting outside every control as an element of its own.
+- **Nothing pushed past the trailing edge** of the window, and every control laid out clear of the
+  bars actually tappable rather than merely positioned there.
+- **Content reachable by scrolling.** At the largest content size the home is nine screenfuls long;
+  the test asserts the last control on it was reached and could be tapped.
+- **Every string answers the setting.** The same screen measured at both sizes, and any string that
+  came back the same height ignored Dynamic Type — with a floor at the top of the scale as well, for
+  strings that truncate at one size and so cannot be paired across the two.
+- **The booking journey end to end**, which is the one with real arithmetic behind it. It picks a
+  date and a time, confirms, and reads back what came out: each chip's weekday is checked against
+  the date it names by asking Foundation's calendar rather than the app, the chips are consecutive
+  days and all of them in the future, the visit ends its own service's length after it starts rather
+  than a flat hour, and the date, the hours and the length all survive from the picker to the review
+  to the visit list and to the visit's own screen. That defect was real, was fixed in `f0b34df` on
+  all three platforms, and this is what stops it coming back on iOS.
+
+#### What the tests found that reading the screens had not
+
+- **Every point size in the iOS design system ignored Dynamic Type.** `Font.system(size:)` is that
+  many points at every content size, including the one somebody chose because they cannot read the
+  default. At the largest size the headings had tripled and the status pills, the menu rows, the
+  step counter, the card titles and the review rows were still eleven, fifteen and seventeen points.
+  Fifty-seven of them — in `Theme.swift`, `ClinicalChart.swift`, `SystemStates.swift`,
+  `BookingView.swift` and `PassportView.swift` — now go through `thusoFont`, which multiplies the
+  point size from the type scale by the reader's own scale factor and is exactly one at the default
+  size, so nothing about the design moved. This is the finding that mattered most and it is exactly
+  the kind reading cannot make: a screen where half the type grew and half did not looks like a
+  layout decision.
+- **Ten controls under 44 points**, eight fixed and two written down. Nine of the ten were visible
+  only at the **default** content size, where a control is at its smallest and the first version of
+  this suite was not looking: the "see all" links in the home's section headers, the first-run link
+  at the foot of it, the search field inside its own 52-point capsule (286×22 — and a tap that
+  landed in the capsule rather than on the letters used to do nothing at all), the *Change* link on
+  the last screen before a booking is confirmed (48×15), the disclosure that opens a chart's
+  readings as a table (318×22), and the switch beside the preview consent (354×34). The last of
+  those and the notification bell in the toolbar (43×35) are the two that could not be fixed: a
+  navigation-bar item is the height of the bar's content rather than the height its view asks for,
+  and a Toggle publishes the switch's own row height whatever is done to its label. Both are
+  declared, with what they measure and why, and both clear the AA floor.
+- **Decorative symbols announced as elements of their own** — a chart's icon, the tile icon that is
+  the repeating unit of the whole design, the chevrons, and the magnifying glass beside a field
+  already labelled "Search for care". Each is a picture of what the row beside it already says, and
+  they are hidden from VoiceOver now rather than read out. In fairness, the magnifying glass came
+  out of reading the element tree the test collects rather than out of a failure: the check only
+  looked for symbol names with a dot in them, and `magnifyingglass` has none. It looks for any
+  system symbol outside a control now, and would catch it.
+
+#### What is still not measured on iOS
+
+- **Truncation.** A SwiftUI `Text` clipped on screen still hands its whole string to the
+  accessibility tree, so no test can see the ellipsis. What is asserted instead is that nothing is
+  pushed past the edge of the window; text visually clipped inside its own row, with its label
+  intact, would pass. This is a real hole and it is the one a screenshot would catch.
+- **Three screens.** The nurse assessment, the vetting console, the dispensing and programme screens
+  and the four workspaces are not audited, and between them they hold most of the roughly 330 fixed
+  point sizes that were left alone.
+- **One simulator, one size.** iPhone 16e at 390×844. No iPad, no smaller phone, no real device.
+- **VoiceOver itself.** XCUITest reads a tree close to VoiceOver's and not the same as it: it sees
+  elements a screen reader never reaches, and it cannot hear reading order, rotor behaviour, or
+  whether a sentence makes sense out loud.
+- **The exemption list lives in the test file** rather than in `packages/design-tokens/tokens.json`
+  beside the web's. Three kinds of row — a navigation-bar item, whose height is the bar's rather
+  than its own; a Toggle, which publishes the switch's row height and ignores its label; and a
+  segmented control, whose 32 points are intrinsic to `UISegmentedControl` — and every one of them
+  is a fact about UIKit rather than about this design. They belong in the contract, with a field
+  saying which platform each is about. The segmented one has no second route to the four sections
+  it switches between, which is a reason to replace the control rather than to keep exempting it.
 
 ### Android — partly tested
 
@@ -130,4 +222,5 @@ instrumented accessibility test runs, and no test has been run on a low-end devi
 
 Real hardware. A screen reader driven by somebody who uses one. TalkBack, VoiceOver and a
 low-end Android device on a slow connection are all still in "Next UI increments", and the
-measurements above are not a substitute for any of them.
+measurements above are not a substitute for any of them. iOS is measured now, which is a different
+claim from "VoiceOver has been used on it": nothing in this repository has ever been listened to.

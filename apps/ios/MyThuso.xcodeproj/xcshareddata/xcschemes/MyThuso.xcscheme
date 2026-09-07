@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The MyThuso scheme, written down rather than left to Xcode to invent.
+
+     It exists because two commands depend on it and they must not fight: the plain
+     `xcodebuild build` in CLAUDE.md and .github/workflows/ui-quality.yml, and the
+     `xcodebuild test` that runs MyThusoUITests. The test bundle is built for testing and not for
+     running, so a plain build still builds one target and stays as quick as it was. -->
+<Scheme LastUpgradeVersion = "1600" version = "1.7">
+   <BuildAction parallelizeBuildables = "YES" buildImplicitDependencies = "YES">
+      <BuildActionEntries>
+         <BuildActionEntry buildForTesting = "YES" buildForRunning = "YES" buildForProfiling = "YES" buildForArchiving = "YES" buildForAnalyzing = "YES">
+            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "0E8A3AD980EC179856012B7E" BuildableName = "MyThuso.app" BlueprintName = "MyThuso" ReferencedContainer = "container:MyThuso.xcodeproj"></BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry buildForTesting = "YES" buildForRunning = "NO" buildForProfiling = "NO" buildForArchiving = "NO" buildForAnalyzing = "NO">
+            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "A11ACCE55B00000000000017" BuildableName = "MyThusoUITests.xctest" BlueprintName = "MyThusoUITests" ReferencedContainer = "container:MyThuso.xcodeproj"></BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv = "NO">
+      <Testables>
+         <TestableReference skipped = "NO">
+            <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "A11ACCE55B00000000000017" BuildableName = "MyThusoUITests.xctest" BlueprintName = "MyThusoUITests" ReferencedContainer = "container:MyThuso.xcodeproj"></BuildableReference>
+         </TestableReference>
+      </Testables>
+   </TestAction>
+   <LaunchAction buildConfiguration = "Debug" selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB" launchStyle = "0" useCustomWorkingDirectory = "NO" ignoresPersistentStateOnLaunch = "NO" debugDocumentVersioning = "YES" debugServiceExtension = "internal" allowLocationSimulation = "YES">
+      <BuildableProductRunnable runnableDebuggingMode = "0">
+         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "0E8A3AD980EC179856012B7E" BuildableName = "MyThuso.app" BlueprintName = "MyThuso" ReferencedContainer = "container:MyThuso.xcodeproj"></BuildableReference>
+      </BuildableProductRunnable>
+   </LaunchAction>
+   <ProfileAction buildConfiguration = "Release" shouldUseLaunchSchemeArgsEnv = "YES" savedToolIdentifier = "" useCustomWorkingDirectory = "NO" debugDocumentVersioning = "YES">
+      <BuildableProductRunnable runnableDebuggingMode = "0">
+         <BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "0E8A3AD980EC179856012B7E" BuildableName = "MyThuso.app" BlueprintName = "MyThuso" ReferencedContainer = "container:MyThuso.xcodeproj"></BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction buildConfiguration = "Debug"></AnalyzeAction>
+   <ArchiveAction buildConfiguration = "Release" revealArchiveInOrganizer = "YES"></ArchiveAction>
+</Scheme>
