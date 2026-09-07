@@ -460,12 +460,16 @@ describe('everything lands in the hash chain, and none of it is a reading', () =
   const h = harness();
   const secret = 'systolic 182 diastolic 118';
   h.intake.receive(batch({ entries: [entry({ payload: Buffer.from(secret) })] }));
-  /* The digests are hex, so a three-digit run turns up inside one often enough that searching the
-     raw JSON for "182" failed this test at random — which is worse than not having the test. What
-     is searched is everything the chain wrote except its own digests, which is the only place a
-     leaked reading could actually be read. */
-  const written = JSON.stringify(h.chain(), (_key, value) =>
-   typeof value === 'string' && /^[0-9a-f]{32,}$/.test(value) ? '<digest>' : value);
+  /* Searching the raw JSON for "182" failed this test at random, twice, for the same reason both
+     times: the chain generates random hex of its own — the digests, and each row's uuid — and a
+     three-digit run turns up inside one often enough to matter. A test that goes red on a dice
+     roll is worse than no test, and loosening the assertion would have thrown away the only thing
+     it checks. So the machine-generated values are masked by name rather than by shape, and
+     everything the chain was *given* — every actor, subject, record and reason — is still searched.
+     A leaked reading cannot hide in a digest or a row id; it can only hide where it was written. */
+  const machineGenerated = new Set(['id', 'hash', 'previous_hash', 'seal_head', 'seal_of']);
+  const written = JSON.stringify(h.chain(), (key, value) =>
+   machineGenerated.has(key) && typeof value === 'string' ? '<generated>' : value);
   assert.ok(!written.includes(secret));
   assert.ok(!written.includes('182'), `a reading leaked into the chain: ${written}`);
   /* Not left to whoever writes the next caller: the chain refuses a field it does not know. */
