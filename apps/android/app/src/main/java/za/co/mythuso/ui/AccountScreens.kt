@@ -86,7 +86,7 @@ import za.co.mythuso.model.mokoenaHousehold
                 tabs.forEach { name ->
                     Tab(
                         selected = tab == name, onClick = { tab = name },
-                        text = { Text(name, style = MaterialTheme.typography.labelLarge, maxLines = 1) },
+                        text = { Text(name, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
                         selectedContentColor = Indigo, unselectedContentColor = BodyText
                     )
                 }
@@ -101,7 +101,7 @@ import za.co.mythuso.model.mokoenaHousehold
                 }
                 "Medications" -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
                     EmptyStateCard("No active prescriptions", "Prescriptions appear here after a registered doctor issues them.")
-                    OutlinedButton(onClick = { open("Prescription RX-0081") }, Modifier.fillMaxWidth().heightIn(min = TouchTarget)) { Text("Preview a sample prescription") }
+                    OutlinedButton(onClick = { open("Prescription RX-0081") }, Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("Preview a sample prescription") }
                 }
                 "More" -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space24)) {
                     Section("Connected devices") {
@@ -184,10 +184,9 @@ import za.co.mythuso.model.mokoenaHousehold
  */
 @Composable fun MoreScreen(open: (String) -> Unit, firstRun: () -> Unit) {
     ScreenColumn {
-        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-            Heading("", "More", "")
-            DemoBadge()
-        }
+        /* No heading: the top bar already says More, and a screen that says its own name twice in
+           two sizes is what this redesign is for. */
+        DemoBadge()
         LeadCard(Modifier.clickable { open("Your profile") }.semantics(mergeDescendants = true) {}) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
                 Image(painterResource(R.drawable.mythuso_patient), null, Modifier.size(56.dp).clip(CircleShape), contentScale = ContentScale.Crop)
@@ -359,7 +358,7 @@ import za.co.mythuso.model.mokoenaHousehold
         CareCard {
             Text("Add a fictional family member")
             OutlinedTextField(name, { name = it.take(60) }, label = { Text("Display name") }, modifier = Modifier.fillMaxWidth())
-            Button(onClick = { store.family.add(name.trim()); name = "" }, enabled = name.isNotBlank()) { Text("Add demo member") }
+            Button(onClick = { store.family.add(name.trim()); name = "" }, enabled = name.isNotBlank(), shape = ThusoButtonShape) { Text("Add demo member") }
         }
         InvitationList(store, open)
         CareCard {
@@ -372,7 +371,7 @@ import za.co.mythuso.model.mokoenaHousehold
     }
 }
 @Composable fun PrivacyScreen(store: PreviewStore, open: (String) -> Unit) { ScreenColumn { Heading("Your privacy matters", "Your data. Your choices.", "Demo preferences reset when the app restarts."); CareCard { Setting("Care reminders", store.reminders) { store.reminders = it }; Setting("Wearable readings", store.wearableSharing) { store.wearableSharing = it }; Setting("Product updates", store.marketing) { store.marketing = it } }; CareCard { listOf("Access history", "Request a correction", "Request account deletion", "Information Officer").forEach { item -> ToolRow(item) { open(item) } } }; Text("Production POPIA compliance requires governance, lawful processing, verified technical controls and a clinical retention schedule. These are UI previews.", style = MaterialTheme.typography.bodySmall) } }
-@Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); listOf(Triple("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), Triple("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), Triple("Thuso Mom", "R249 / month", "Pregnancy and baby’s first year"), Triple("Thuso Senior", "R699 / month", "Weekly care and family support"), Triple("Thuso Recover", "Custom pricing", "Personalised recovery support")).forEach { (name, price, description) -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Indigo); Text(name, style = MaterialTheme.typography.titleLarge); Text(description); Text(price, style = MaterialTheme.typography.headlineSmall, color = Indigo); OutlinedButton(onClick = { open(name) }) { Text("Explore plan") } } } } }
+@Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); listOf(Triple("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), Triple("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), Triple("Thuso Mom", "R249 / month", "Pregnancy and baby’s first year"), Triple("Thuso Senior", "R699 / month", "Weekly care and family support"), Triple("Thuso Recover", "Custom pricing", "Personalised recovery support")).forEach { (name, price, description) -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Indigo); Text(name, style = MaterialTheme.typography.titleLarge); Text(description); Text(price, style = MaterialTheme.typography.headlineSmall, color = Indigo); OutlinedButton(onClick = { open(name) }, shape = ThusoButtonShape) { Text("Explore plan") } } } } }
 @Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Slate); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
 /* A clinical workspace navigates as itself.
  *
@@ -443,21 +442,32 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
     )
 }
 
-/** The urgency strip a workspace lands on. It wraps rather than clips as the font scale grows. */
-@OptIn(ExperimentalLayoutApi::class)
+/* What is waiting, at the top of a workspace, before anything else.
+ *
+ * Three equal boxes is a dashboard; a person opening a workspace has one question — what is waiting
+ * and how long has it waited — and the first of the three is the answer. So the first is the wide
+ * one with the count at the metric size, and the two behind it are context at half the width. The
+ * strip still wraps rather than clipping as the font scale grows. */
 @Composable fun WorkspaceUrgency(role: String) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        workspaceUrgency(role).forEach { (label, value, note) ->
-            Column(
-                Modifier.widthIn(min = 150.dp).weight(1f)
-                    .background(Color.White, RoundedCornerShape(ThusoRadius.card))
-                    .border(1.dp, Line, RoundedCornerShape(ThusoRadius.card)).padding(12.dp)
-                    .semantics { contentDescription = "$label: $value. $note" },
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(label, style = MaterialTheme.typography.bodySmall, color = BodyText)
-                Text(value, style = MaterialTheme.typography.titleLarge, color = Ink)
-                Text(note, style = MaterialTheme.typography.bodySmall, color = BodyText)
+    val entries = workspaceUrgency(role)
+    Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+        entries.firstOrNull()?.let { (label, value, note) ->
+            LeadCard(Modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" }) {
+                Text(label, style = MaterialTheme.typography.labelMedium, color = Indigo)
+                Text(value, style = MaterialTheme.typography.displaySmall, color = Ink)
+                Text(note, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+            entries.drop(1).forEach { (label, value, note) ->
+                CareCard(
+                    Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" },
+                    padding = ThusoSpacing.space12
+                ) {
+                    Text(label, style = MaterialTheme.typography.bodySmall, color = Faint)
+                    Text(value, style = MaterialTheme.typography.titleLarge, color = Ink)
+                    Text(note, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                }
             }
         }
     }

@@ -419,7 +419,7 @@ private val withheldCategorySentence: String = run {
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text("Recent activity", style = MaterialTheme.typography.titleMedium, color = Ink, modifier = Modifier.weight(1f))
-        TextButton(onClick = { go("Timeline") }) { Text("Open the timeline") }
+        TextButton(onClick = { go("Timeline") }, shape = ThusoButtonShape) { Text("Open the timeline") }
     }
     CareCard {
         if (recent.isEmpty()) Note("Nothing in this patient’s history is open to this viewer. That is a refusal, not an empty record.")
@@ -612,7 +612,7 @@ private val withheldCategorySentence: String = run {
         }
     }
     ProtectedLine(viewer, "medicine")
-    OutlinedButton(onClick = { open("Prescription RX-0081") }, Modifier.fillMaxWidth()) { Text("Open a sample prescription record") }
+    OutlinedButton(onClick = { open("Prescription RX-0081") }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Open a sample prescription record") }
 }
 @Composable private fun MedicineRow(medicine: Medicine, detail: String, attribution: String) {
     Row(
@@ -670,7 +670,7 @@ private val withheldCategorySentence: String = run {
         }
     }
     ProtectedLine(viewer, "result")
-    if (order.allowed) OutlinedButton(onClick = { open("Laboratory order LAB-0023") }, Modifier.fillMaxWidth()) {
+    if (order.allowed) OutlinedButton(onClick = { open("Laboratory order LAB-0023") }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) {
         Text("Request a test · open the sample order")
     } else RefusalCard("Requesting a test is refused", order)
 }

@@ -235,7 +235,7 @@ private data class ConsultationSignature(
                     )
                 },
                 enabled = mayWrite.allowed && outstanding.isEmpty()
-            ) { Text("Sign demo consultation") }
+            , shape = ThusoButtonShape) { Text("Sign demo consultation") }
         }
     }
 }

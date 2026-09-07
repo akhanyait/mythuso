@@ -137,7 +137,7 @@ private val householdRecordType = recordTypeById("household")
                         if (visibility.level == AccessLevel.SELF) {
                             /* The route carries the member, because “your own record” is whoever is
                                looking — Amahle's summary is Amahle's to hand over, not her mother's. */
-                            OutlinedButton(onClick = { open("Health summary: ${member.id}") }, Modifier.fillMaxWidth()) {
+                            OutlinedButton(onClick = { open("Health summary: ${member.id}") }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) {
                                 Icon(Icons.Outlined.Share, null, Modifier.size(17.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Text("Share this summary")
@@ -169,7 +169,7 @@ private val householdRecordType = recordTypeById("household")
                                     status = "Home visit requested for ${member.name}. Nothing is booked in this preview, and booking it would still tell you nothing about what the nurse finds."
                                 },
                                 enabled = viewer.memberId != null
-                            ) { Text(firstName(member)) }
+                            , shape = ThusoButtonShape) { Text(firstName(member)) }
                         }
                     }
                     Note(if (viewer.memberId != null)
@@ -229,7 +229,7 @@ private val householdRecordType = recordTypeById("household")
                 contentDescription = if (permitted) "Open what you may see of ${member.name}"
                 else "Refused — ${member.name}’s record is not open to you"
             }
-        ) {
+        , shape = ThusoButtonShape) {
             Icon(if (permitted) Icons.Outlined.LockOpen else Icons.Outlined.Lock, null, Modifier.size(17.dp))
             Spacer(Modifier.width(8.dp))
             Text(if (permitted) "Open what you may see" else "Refused")
@@ -432,7 +432,7 @@ private val householdRecordType = recordTypeById("household")
                         "${recordSummaryCard.fields.size} fields, and no protected category."
                 },
                 enabled = understood, modifier = Modifier.fillMaxWidth()
-            ) { Text("Create the share") }
+            , shape = ThusoButtonShape) { Text("Create the share") }
             Text(status.ifEmpty { "Nothing has been shared yet." },
                 style = MaterialTheme.typography.bodySmall, color = BodyText,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
@@ -464,14 +464,14 @@ private val householdRecordType = recordTypeById("household")
                             status = "Shared through the system sheet. The text says who made it, for whom, for what, and when it stops being valid — and carries ${share.purpose.fields.size} fields with no protected category in any of them. No file was written and no permission was asked for."
                         },
                         enabled = !share.revoked
-                    ) { Text("Export this summary") }
+                    , shape = ThusoButtonShape) { Text("Export this summary") }
                     OutlinedButton(
                         onClick = {
                             shares[index] = share.copy(revoked = true)
                             status = "Revoked. The verification link now answers “revoked”. Anything already read cannot be unread, which is why the purpose and the hours matter more than the revocation does."
                         },
                         enabled = !share.revoked
-                    ) { Text(if (share.revoked) "Revoked" else "Revoke") }
+                    , shape = ThusoButtonShape) { Text(if (share.revoked) "Revoked" else "Revoke") }
                 }
             }
         }
@@ -531,7 +531,7 @@ private val householdRecordType = recordTypeById("household")
                 })
             },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Run the check") }
+        , shape = ThusoButtonShape) { Text("Run the check") }
         if (result.isNotEmpty()) Text(result, style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
         Note("The guard searches for the entry’s own detail, never for the category names — the artefact names every protected category on purpose, so searching for those would refuse every export ever made.")

@@ -153,8 +153,8 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                         }
                         Note(expiryWording(renewal.record))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { open("Vetting: ${renewal.subject.id}") }) { Text("Open record") }
-                            Button(onClick = { vetting.verify(renewal.subject.id, renewal.check.id, renewal = true) }) { Text("Renew") }
+                            OutlinedButton(onClick = { open("Vetting: ${renewal.subject.id}") }, shape = ThusoButtonShape) { Text("Open record") }
+                            Button(onClick = { vetting.verify(renewal.subject.id, renewal.check.id, renewal = true) }, shape = ThusoButtonShape) { Text("Renew") }
                         }
                         if (renewal.check.risk == "high") Note("Renewing this check clears its second reviewer. A new decision needs a new second signature.")
                     }
@@ -223,7 +223,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
             NextDueLine(summary)
             if (subject.appealed) Note("An appeal has been lodged. The decline stands until it is decided.")
             if (subject.scope.isNotEmpty()) Note("Scope: ${subject.scope.joinToString(", ")}")
-            if (subject.declined || subject.suspended) OutlinedButton(onClick = { vetting.restore(subject.id, "Appeal upheld. The declined check still has to be decided again.") }) { Text("Uphold the appeal") }
+            if (subject.declined || subject.suspended) OutlinedButton(onClick = { vetting.restore(subject.id, "Appeal upheld. The declined check still has to be decided again.") }, shape = ThusoButtonShape) { Text("Uphold the appeal") }
         }
         CareCard {
             Text("Acting as", style = MaterialTheme.typography.titleMedium)
@@ -252,12 +252,12 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 if (refusedSecond == check.id) Note("You verified this check yourself. A second reviewer has to be somebody else.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (state == CheckState.VERIFIED || state == CheckState.EXPIRING) {
-                        if (awaiting) Button(onClick = { refusedSecond = if (vetting.second(subject.id, check.id)) null else check.id }) { Text("Second this check") }
-                        else OutlinedButton(onClick = { vetting.verify(subject.id, check.id, renewal = true) }) { Text("Renew") }
+                        if (awaiting) Button(onClick = { refusedSecond = if (vetting.second(subject.id, check.id)) null else check.id }, shape = ThusoButtonShape) { Text("Second this check") }
+                        else OutlinedButton(onClick = { vetting.verify(subject.id, check.id, renewal = true) }, shape = ThusoButtonShape) { Text("Renew") }
                     } else {
-                        Button(onClick = { vetting.verify(subject.id, check.id) }) { Text(if (state == CheckState.LAPSED) "Re-verify" else "Verify") }
+                        Button(onClick = { vetting.verify(subject.id, check.id) }, shape = ThusoButtonShape) { Text(if (state == CheckState.LAPSED) "Re-verify" else "Verify") }
                     }
-                    if (state != CheckState.DECLINED) OutlinedButton(onClick = { declining = check.id; declineNote = "" }) { Text("Decline") }
+                    if (state != CheckState.DECLINED) OutlinedButton(onClick = { declining = check.id; declineNote = "" }, shape = ThusoButtonShape) { Text("Decline") }
                 }
                 if (declining == check.id) {
                     OutlinedTextField(
@@ -266,8 +266,8 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                         supportingText = { Text("A decline without a reason is a decision the applicant cannot answer.") }
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { declining = null }) { Text("Cancel") }
-                        Button(onClick = { vetting.decline(subject.id, check.id, declineNote.trim()); declining = null }, enabled = declineNote.trim().length >= 10) { Text("Record the decline") }
+                        OutlinedButton(onClick = { declining = null }, shape = ThusoButtonShape) { Text("Cancel") }
+                        Button(onClick = { vetting.decline(subject.id, check.id, declineNote.trim()); declining = null }, enabled = declineNote.trim().length >= 10, shape = ThusoButtonShape) { Text("Record the decline") }
                     }
                 }
             }
@@ -287,7 +287,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 if (decision.blockedBy.isNotEmpty()) Note("Blocked by: ${decision.blockedBy.joinToString(", ") { it.name }}")
             }
         }
-        OutlinedButton(onClick = { open("Vetting pipeline") }, Modifier.fillMaxWidth()) { Text("Back to the register") }
+        OutlinedButton(onClick = { open("Vetting pipeline") }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Back to the register") }
         Note("Fictional party, fictional credentials, fictional decisions. Clearing somebody here clears nobody.")
     }
 }
@@ -338,8 +338,8 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 Text("You are refused everything on the list below until each check passes. That is the honest position, and it is what the applicant is told rather than “your application is being processed”.", style = MaterialTheme.typography.bodyMedium)
                 role?.grants?.forEach { grant -> Note("• ${grant.refusal}") }
             }
-            Button(onClick = { open("Vetting: $submittedId") }, Modifier.fillMaxWidth()) { Text("Open the vetting record") }
-            OutlinedButton(onClick = close, Modifier.fillMaxWidth()) { Text("Close") }
+            Button(onClick = { open("Vetting: $submittedId") }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Open the vetting record") }
+            OutlinedButton(onClick = close, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Close") }
         }
         return
     }
@@ -362,8 +362,8 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = close) { Text("Close") }
-                    Button(onClick = { step = 1 }, enabled = roleId != null) { Text("Continue") }
+                    OutlinedButton(onClick = close, shape = ThusoButtonShape) { Text("Close") }
+                    Button(onClick = { step = 1 }, enabled = roleId != null, shape = ThusoButtonShape) { Text("Continue") }
                 }
             }
             "Credentials" -> {
@@ -393,8 +393,8 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 }
                 Note("Leave a number you do not have yet blank — that check stays outstanding rather than becoming wrong. ${anchor?.name ?: "The first credential"} is the one this application hangs on.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step = 0 }) { Text("Back") }
-                    Button(onClick = { step = 2 }, enabled = credentialsReady) { Text("Continue") }
+                    OutlinedButton(onClick = { step = 0 }, shape = ThusoButtonShape) { Text("Back") }
+                    Button(onClick = { step = 2 }, enabled = credentialsReady, shape = ThusoButtonShape) { Text("Continue") }
                 }
             }
             "Scope" -> {
@@ -402,8 +402,8 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 FlowRowChips(practice.options, scope) { option -> scope = if (option in scope) scope - option else scope + option }
                 Note("Declaring a scope is not being granted it. Every check below still has to pass first.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step -= 1 }) { Text("Back") }
-                    Button(onClick = { step += 1 }, enabled = scope.isNotEmpty()) { Text("Continue") }
+                    OutlinedButton(onClick = { step -= 1 }, shape = ThusoButtonShape) { Text("Back") }
+                    Button(onClick = { step += 1 }, enabled = scope.isNotEmpty(), shape = ThusoButtonShape) { Text("Continue") }
                 }
             }
             "Evidence" -> {
@@ -428,8 +428,8 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 }
                 Note("This preview attaches nothing. There is no upload, no storage and no transmission — the switch records only that the slot was filled.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step -= 1 }) { Text("Back") }
-                    Button(onClick = { step += 1 }) { Text("Continue") }
+                    OutlinedButton(onClick = { step -= 1 }, shape = ThusoButtonShape) { Text("Back") }
+                    Button(onClick = { step += 1 }, shape = ThusoButtonShape) { Text("Continue") }
                 }
             }
             "Declarations" -> {
@@ -439,8 +439,8 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 }
                 Note("Every undertaking is required. An application cannot proceed on a partial one.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step -= 1 }) { Text("Back") }
-                    Button(onClick = { step += 1 }, enabled = agreed.size == declarations.size) { Text("Continue") }
+                    OutlinedButton(onClick = { step -= 1 }, shape = ThusoButtonShape) { Text("Back") }
+                    Button(onClick = { step += 1 }, enabled = agreed.size == declarations.size, shape = ThusoButtonShape) { Text("Continue") }
                 }
             }
             else -> {
@@ -466,11 +466,11 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 Setting("I attest that everything I have entered is true, and I accept that a false declaration ends the application and any access it would have given.", attested) { attested = it }
                 Note("Re-vetting runs on a schedule, not once at sign-up. A lapsed registration removes a party automatically, without anybody deciding anything.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step -= 1 }) { Text("Back") }
+                    OutlinedButton(onClick = { step -= 1 }, shape = ThusoButtonShape) { Text("Back") }
                     Button(
                         onClick = { submittedId = vetting.startApplication(roleId!!, applicant.trim(), reference, scope.sorted(), attached).id },
                         enabled = attested && applicant.isNotBlank()
-                    ) { Text("Submit demo application") }
+                    , shape = ThusoButtonShape) { Text("Submit demo application") }
                 }
             }
         }

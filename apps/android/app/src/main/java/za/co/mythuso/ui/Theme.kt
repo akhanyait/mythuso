@@ -49,6 +49,12 @@ val Sage = TealSoft
    design to it, because it is a health app operated one-handed on a doorstep. */
 val TouchTarget = 48.dp
 
+/* Material's button is a pill and this design system's is a 10dp rectangle — styles.css gives
+   .primary, .secondary and .ghost `border-radius: var(--r-control)`, and three platforms drawing the
+   same button three shapes is the kind of drift the token file exists to stop. Buttons cannot take
+   their shape from the theme in material3 1.3, so every button is passed this. */
+val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
+
 @Composable fun ThusoTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = lightColorScheme(
@@ -146,7 +152,7 @@ val TouchTarget = 48.dp
             onClick = onAction,
             modifier = Modifier.heightIn(min = TouchTarget),
             contentPadding = PaddingValues(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space8)
-        ) { Text(action, style = MaterialTheme.typography.labelMedium) }
+        , shape = ThusoButtonShape) { Text(action, style = MaterialTheme.typography.labelMedium) }
     }
 }
 
@@ -179,8 +185,14 @@ val TouchTarget = 48.dp
     }
 }
 
+/* The tone is what the pill means, and each pair is one the token file has measured. "teal" had been
+   falling through to the indigo default since the palette changed, so a reading in range was the
+   same colour as the brand and the design's only word for "as it should be" had gone missing —
+   tokens.json lists tealInk on tealSoft as "an accent label inside its own tint … a value in range",
+   which is this pill and nothing else. */
 @Composable fun StatusPill(text: String, tone: String = "teal") {
     val (bg, fg) = when (tone) {
+        "teal" -> TealSoft to TealInk
         "amber" -> MangoSoft to MangoInk
         "sky" -> InfoSoft to Info
         /* A refusal is not a warning. Vetting needs a pill that says so without shouting. */

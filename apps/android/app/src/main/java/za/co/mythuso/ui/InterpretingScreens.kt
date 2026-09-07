@@ -172,7 +172,7 @@ import za.co.mythuso.model.*
                 Note(interpreterCancellation.sentence)
                 Note(interpreterCancellation.notThePatientsChoice)
                 Note(interpreterCancellation.keepsTheRequirement)
-                OutlinedButton(onClick = { cancelled = true }, enabled = !cancelled, modifier = Modifier.heightIn(min = 48.dp)) {
+                OutlinedButton(onClick = { cancelled = true }, enabled = !cancelled, modifier = Modifier.heightIn(min = 48.dp), shape = ThusoButtonShape) {
                     Text(interpreterCancellation.label)
                 }
                 if (cancelled) {

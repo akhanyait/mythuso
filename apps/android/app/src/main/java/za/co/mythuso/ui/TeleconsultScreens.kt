@@ -134,7 +134,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     OutlinedButton(onClick = {
                         consented[person.id] = false
                         withdrawnNote = Teleconsult.consentFor(person.id)?.revokedMidCall
-                    }, Modifier.fillMaxWidth()) { Text("Ask ${displayName(person)} to step out") }
+                    }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Ask ${displayName(person)} to step out") }
                 } else if (person.essential && person.id != "patient") {
                     StatusPill("Cannot be asked to leave", "quiet")
                 }
@@ -215,9 +215,9 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 }
                 Refusal(Teleconsult.refusal("silent-observers"))
                 if (consult?.allowed == true) {
-                    Button(onClick = { stage = 1 }, Modifier.fillMaxWidth(), enabled = consented["doctor"] == true) { Text("Check identity") }
+                    Button(onClick = { stage = 1 }, Modifier.fillMaxWidth(), enabled = consented["doctor"] == true, shape = ThusoButtonShape) { Text("Check identity") }
                 } else {
-                    Button(onClick = { refusedClinician = true; stage = 4 }, Modifier.fillMaxWidth()) {
+                    Button(onClick = { refusedClinician = true; stage = 4 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) {
                         Text("Rebook with a doctor whose registration is current")
                     }
                 }
@@ -246,11 +246,11 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 if (codeError.isEmpty()) {
                     Button(onClick = {
                         if (code == "482190") { identityConfirmed = true; stage = 2 } else codeError = callIdentity.failure
-                    }, Modifier.fillMaxWidth(), enabled = code.length >= 6) { Text("Confirm and continue") }
+                    }, Modifier.fillMaxWidth(), enabled = code.length >= 6, shape = ThusoButtonShape) { Text("Confirm and continue") }
                 } else {
-                    Button(onClick = { stage = 4 }, Modifier.fillMaxWidth()) { Text("Close the encounter") }
+                    Button(onClick = { stage = 4 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Close the encounter") }
                 }
-                OutlinedButton(onClick = { stage = 0 }, Modifier.fillMaxWidth()) { Text("Back") }
+                OutlinedButton(onClick = { stage = 0 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Back") }
             }
 
             2 -> {
@@ -280,8 +280,8 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     Text(callRecording.whenItExists.afterwards, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
                 Refusal(Teleconsult.refusal("covert-recording"))
-                Button(onClick = { stage = 3 }, Modifier.fillMaxWidth()) { Text("Open the call") }
-                OutlinedButton(onClick = { stage = 1 }, Modifier.fillMaxWidth()) { Text("Back") }
+                Button(onClick = { stage = 3 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Open the call") }
+                OutlinedButton(onClick = { stage = 1 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Back") }
             }
 
             3 -> {
@@ -334,7 +334,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     Column(Modifier.fillMaxWidth().background(DangerSoft, RoundedCornerShape(ThusoRadius.card)).padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Column(Modifier.width(96.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(Modifier.widthIn(min = 96.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(Icons.Outlined.HourglassEmpty, null, tint = Danger)
                                 Text("${holdLeft}s", style = MaterialTheme.typography.titleLarge, color = Danger)
                                 Text("of ${callReconnect.holdSeconds} · up to ${callReconnect.attempts} attempts",
@@ -383,14 +383,14 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 /* Nothing here can close an encounter as finished while the line is down. That is the
                    button this whole feature exists in order not to have. */
                 Button(onClick = { decisionReached = true; stage = 4 }, Modifier.fillMaxWidth(),
-                    enabled = Teleconsult.mayConclude(connectionId, nursePresent) && consented["doctor"] == true) {
+                    enabled = Teleconsult.mayConclude(connectionId, nursePresent) && consented["doctor"] == true, shape = ThusoButtonShape) {
                     Text("Reach a decision and end the consultation")
                 }
                 if (!Teleconsult.mayConclude(connectionId, nursePresent)) {
                     Text("The line does not currently allow a decision to be reached, so there is no way to close this encounter as a completed consultation.",
                          style = MaterialTheme.typography.bodySmall, color = Danger)
                 }
-                OutlinedButton(onClick = { stage = 4 }, Modifier.fillMaxWidth()) { Text("End without a decision") }
+                OutlinedButton(onClick = { stage = 4 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("End without a decision") }
             }
 
             else -> {
@@ -418,7 +418,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 }
                 if (outcome.countsAsConsultation) {
                     Text(Teleconsult.rule("dropped-is-not-finished").sentence, style = MaterialTheme.typography.bodySmall, color = BodyText)
-                    OutlinedButton(onClick = { open("Consultation record") }, Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { open("Consultation record") }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) {
                         Text("Write it up in the consultation record")
                     }
                 } else {
@@ -434,7 +434,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     stage = 0; refusedClinician = false; decisionReached = false; resumed = false; everDropped = false
                     connectionId = "video"; code = ""; codeError = ""; identityConfirmed = false; withdrawnNote = null
                     listOf("doctor", "nurse", "guardian", "interpreter").forEach { consented[it] = false }
-                }, Modifier.fillMaxWidth()) { Text("Start again") }
+                }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Start again") }
             }
         }
     }

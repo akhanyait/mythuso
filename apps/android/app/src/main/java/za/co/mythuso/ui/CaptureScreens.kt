@@ -224,7 +224,7 @@ private fun stateTone(state: CaptureState) = when (state) {
                 "In production this is a Bluetooth Low Energy scan, and it needs a permission this app does not have and has not asked for. Here it is a 1.6-second timer followed by a list that was compiled into the app.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            Button(onClick = { scanning = true }, enabled = !scanning) {
+            Button(onClick = { scanning = true }, enabled = !scanning, shape = ThusoButtonShape) {
                 Text(if (scanning) "Pretending to look…" else "Pretend to discover")
             }
             if (scanning) SkeletonRows(2)
@@ -239,7 +239,7 @@ private fun stateTone(state: CaptureState) = when (state) {
                     }
                 }
                 Note(instrument.note)
-                OutlinedButton(onClick = { capture.pair(instrument) }) { Text("Pair (nothing is contacted)") }
+                OutlinedButton(onClick = { capture.pair(instrument) }, shape = ThusoButtonShape) { Text("Pair (nothing is contacted)") }
             }
         }
         if (scanned && capture.unpaired().isEmpty()) Note("All six instruments in the contract are paired. Pairing survives a restart: it is written to the same file the queue is.")
@@ -297,8 +297,8 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             style = MaterialTheme.typography.bodyMedium, color = MangoInk
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = toggle) { Text(if (expanded) "Close" else "Take a reading") }
-            TextButton(onClick = unpair) { Text("Unpair") }
+            Button(onClick = toggle, shape = ThusoButtonShape) { Text(if (expanded) "Close" else "Take a reading") }
+            TextButton(onClick = unpair, shape = ThusoButtonShape) { Text("Unpair") }
         }
         if (!expanded) return@CareCard
 
@@ -324,7 +324,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         Button(
             onClick = { takenId = capture(measure, detail).id },
             enabled = mayCapture && detail.isNotEmpty()
-        ) { Text("Take the reading") }
+        , shape = ThusoButtonShape) { Text("Take the reading") }
         if (!mayCapture) Text(refusal.orEmpty(), style = MaterialTheme.typography.bodySmall, color = Danger)
 
         if (taken != null) {
@@ -338,7 +338,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             ProvenanceBlock(taken)
             if (taken.state == CaptureState.CAPTURED) {
                 Note(CaptureState.CAPTURED.detail)
-                Button(onClick = { seal(taken.id) }) { Text("Seal it — waiting to send") }
+                Button(onClick = { seal(taken.id) }, shape = ThusoButtonShape) { Text("Seal it — waiting to send") }
             } else Note(taken.state.detail)
         }
     }
@@ -385,7 +385,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             ReviewLine("Does not survive", capture.doesNotSurvive)
             Note("It is not encrypted. A file in this app’s private storage is private to this app and no more than that, which is enough for fictional readings and is not enough for real ones — the controls that would be needed first are in docs/PRIVACY-AND-SECURITY.md.")
             if (capture.storeNote.isNotEmpty()) Text(capture.storeNote, style = MaterialTheme.typography.bodyMedium, color = MangoInk)
-            OutlinedButton(onClick = { capture.reload() }) { Text("Re-read the store") }
+            OutlinedButton(onClick = { capture.reload() }, shape = ThusoButtonShape) { Text("Re-read the store") }
             Note("Re-reading loads the file again and updates the line above. It is the same read the app does on the way in, which is how you can tell the queue is on the disk and not in memory: close the app entirely, open it again, and the entries are still here.")
         }
 
@@ -444,14 +444,14 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                     }
                 }
                 Note("This phone currently believes it is ${stampText(capture.deviceNow())}.")
-                OutlinedButton(onClick = { capture.forgetEverything() }) { Text("Clear the demonstration queue") }
+                OutlinedButton(onClick = { capture.forgetEverything() }, shape = ThusoButtonShape) { Text("Clear the demonstration queue") }
                 Note("There is no such button in the product. An entry is superseded or withdrawn with a reason; it is never erased, and it is never dropped to make a sync succeed.")
             }
         }
 
         CareCard {
             Text("Send what is waiting", style = MaterialTheme.typography.titleMedium)
-            Button(onClick = { capture.beginSending(); sending = true }, enabled = !sending && counts[CaptureState.QUEUED]?.let { it > 0 } == true) {
+            Button(onClick = { capture.beginSending(); sending = true }, enabled = !sending && counts[CaptureState.QUEUED]?.let { it > 0 } == true, shape = ThusoButtonShape) {
                 Text(if (sending) "Sending…" else "Try to send")
             }
             capture.lastAttempt?.let {
@@ -499,7 +499,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             if (reading.countersignedBy != null) StatusPill("Countersigned", "teal")
         }
         Note("Written to this phone ${ageText(reading.writtenMillis)}.")
-        TextButton(onClick = { open = !open }) { Text(if (open) "Less" else "What travels with this reading") }
+        TextButton(onClick = { open = !open }, shape = ThusoButtonShape) { Text(if (open) "Less" else "What travels with this reading") }
         if (open) {
             ProvenanceBlock(reading)
             HorizontalDivider(color = Line)
@@ -557,7 +557,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                         val loser = if (candidate.id == reading.id) other.id else reading.id
                         capture.chooseBetween(candidate.id, loser, resolver,
                             "The other reading is kept in full and marked superseded, because a record that deletes the first reading cannot show why the second was taken.")
-                    }) { Text("This one stands") }
+                    }, shape = ThusoButtonShape) { Text("This one stands") }
                 }
             }
         }
@@ -578,16 +578,16 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                 "The reading is not discarded: it was taken by a cleared nurse, on a patient who was in front of her, and throwing it away would lose a fact about that patient to punish a lapsed certificate. It is also not filed on her authority alone, because that authority is no longer current. A clinician who is cleared today accepts it, and both names stand on the record afterwards — hers, because she is the one who was in the room, and theirs, because the filing is on their registration.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            Button(onClick = { capture.countersign(reading.id, resolver) }) {
+            Button(onClick = { capture.countersign(reading.id, resolver) }, shape = ThusoButtonShape) {
                 Text("Countersign as ${resolver.name}")
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = {
                     capture.hold(reading.id, "Held by ${resolver.name} · ${resolver.reference}: not countersigned yet. It stays here, in full, until somebody is willing to put their registration against it.")
-                }) { Text("Hold it") }
+                }, shape = ThusoButtonShape) { Text("Hold it") }
                 TextButton(onClick = {
                     capture.withdraw(reading.id, resolver, "Withdrawn after review: the reading could not be attributed to a current registration and no clinician was willing to countersign it.")
-                }) { Text("Withdraw with a reason") }
+                }, shape = ThusoButtonShape) { Text("Withdraw with a reason") }
             }
             Note("Restoring the capturer’s own clearance resolves this too, and better: the reading then files on the registration it was taken under. That decision belongs in the Control Tower’s vetting pipeline, not here.")
         }
@@ -599,14 +599,14 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                 "It is never applied silently after the fact. Either it goes in as an addendum, openly, with the clinician who signed told that something arrived after their signature — or it is held, or it is withdrawn with a reason. What it does not do is slide into a signed record and change what somebody has already put their name to.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            Button(onClick = { capture.fileAsAddendum(reading.id, resolver) }) { Text("File as an addendum") }
+            Button(onClick = { capture.fileAsAddendum(reading.id, resolver) }, shape = ThusoButtonShape) { Text("File as an addendum") }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = {
                     capture.hold(reading.id, "Held by ${resolver.name} · ${resolver.reference} pending a word with the clinician who signed the visit.")
-                }) { Text("Hold it") }
+                }, shape = ThusoButtonShape) { Text("Hold it") }
                 TextButton(onClick = {
                     capture.withdraw(reading.id, resolver, "Withdrawn after review: the visit had been signed and the reading was not needed as an addendum. The row and this reason stay on the phone.")
-                }) { Text("Withdraw with a reason") }
+                }, shape = ThusoButtonShape) { Text("Withdraw with a reason") }
             }
         }
         else -> Note("This one is settled by the server, because it is a fact about clocks rather than a clinical judgement. Both times stay on the reading.")

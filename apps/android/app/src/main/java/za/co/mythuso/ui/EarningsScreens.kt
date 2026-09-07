@@ -166,7 +166,7 @@ private fun rand(amount: Int): String {
             Note(payoutAccount.note)
             when (accountStage) {
                 "settled" -> {
-                    OutlinedButton({ accountStage = "verifying" }) { Text("Change account") }
+                    OutlinedButton({ accountStage = "verifying" }, shape = ThusoButtonShape) { Text("Change account") }
                     Text(Earnings.rule("account-change-waits").sentence,
                         style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 }
@@ -180,15 +180,15 @@ private fun rand(amount: Int): String {
                     }
                     OutlinedTextField(code, { code = it.filter(Char::isDigit).take(6) },
                         label = { Text("One-time code") }, modifier = Modifier.fillMaxWidth())
-                    Button({ accountStage = "pending" }, enabled = code.length == 6) { Text("Verify and start the wait") }
-                    OutlinedButton({ accountStage = "settled"; code = "" }) { Text("Cancel") }
+                    Button({ accountStage = "pending" }, enabled = code.length == 6, shape = ThusoButtonShape) { Text("Verify and start the wait") }
+                    OutlinedButton({ accountStage = "settled"; code = "" }, shape = ThusoButtonShape) { Text("Cancel") }
                 }
                 else -> {
                     Text("Waiting ${payoutAccount.coolingOffHours} hours",
                         style = MaterialTheme.typography.titleMedium, color = Ink)
                     Text(Earnings.rule("account-change-waits").sentence,
                         style = MaterialTheme.typography.bodyMedium, color = BodyText)
-                    OutlinedButton({ accountStage = "settled"; code = "" }) { Text("Cancel the change") }
+                    OutlinedButton({ accountStage = "settled"; code = "" }, shape = ThusoButtonShape) { Text("Cancel the change") }
                 }
             }
         }

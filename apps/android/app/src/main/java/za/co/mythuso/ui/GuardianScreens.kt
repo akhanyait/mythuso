@@ -47,8 +47,8 @@ import za.co.mythuso.model.PreviewStore
                 }
                 if (minor) Note("For a child under 18 you are asking for guardianship, not sharing. Production requires proof of parental responsibility and a record of the child’s own views as they grow older.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = close) { Text("Cancel") }
-                    Button(onClick = { step = 1 }, enabled = name.isNotBlank()) { Text("Continue") }
+                    OutlinedButton(onClick = close, shape = ThusoButtonShape) { Text("Cancel") }
+                    Button(onClick = { step = 1 }, enabled = name.isNotBlank(), shape = ThusoButtonShape) { Text("Continue") }
                 }
             }
             1 -> {
@@ -66,8 +66,8 @@ import za.co.mythuso.model.PreviewStore
                 }
                 Note("Sexual and reproductive health, mental health and HIV-related entries stay hidden under every scope unless you release them one by one.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step = 0 }) { Text("Back") }
-                    Button(onClick = { step = 2 }) { Text("Continue") }
+                    OutlinedButton(onClick = { step = 0 }, shape = ThusoButtonShape) { Text("Back") }
+                    Button(onClick = { step = 2 }, shape = ThusoButtonShape) { Text("Continue") }
                 }
             }
             2 -> {
@@ -82,8 +82,8 @@ import za.co.mythuso.model.PreviewStore
                 }
                 Note("${name.substringBefore(' ')} must verify their identity before the invitation becomes active. An unverified invitation grants nothing.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step = 1 }) { Text("Back") }
-                    Button(onClick = { step = 3 }) { Text("Review") }
+                    OutlinedButton(onClick = { step = 1 }, shape = ThusoButtonShape) { Text("Back") }
+                    Button(onClick = { step = 3 }, shape = ThusoButtonShape) { Text("Review") }
                 }
             }
             else -> {
@@ -97,11 +97,11 @@ import za.co.mythuso.model.PreviewStore
                 }
                 Setting("I understand this is a design preview.", understood) { understood = it }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step = 2 }) { Text("Back") }
+                    OutlinedButton(onClick = { step = 2 }, shape = ThusoButtonShape) { Text("Back") }
                     Button(onClick = {
                         store.invitations.add(GuardianInvitation("INV-00${(40..89).random()}", name.trim(), relationship, scope, expires, "Verification pending"))
                         close()
-                    }, enabled = understood) { Text("Send demo invitation") }
+                    }, enabled = understood, shape = ThusoButtonShape) { Text("Send demo invitation") }
                 }
             }
         }
@@ -120,11 +120,11 @@ import za.co.mythuso.model.PreviewStore
                     Text(invitation.status, style = MaterialTheme.typography.labelMedium, color = if (invitation.status == "Active") Indigo else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Note("${invitation.scope} · Ends: ${invitation.expires}")
-                TextButton(onClick = { store.invitations[index] = invitation.copy(status = "Revoked") }, enabled = invitation.status != "Revoked") { Text("Revoke") }
+                TextButton(onClick = { store.invitations[index] = invitation.copy(status = "Revoked") }, enabled = invitation.status != "Revoked", shape = ThusoButtonShape) { Text("Revoke") }
             }
             HorizontalDivider()
         }
-        OutlinedButton(onClick = { open("Invite a guardian") }) { Text("Invite someone") }
+        OutlinedButton(onClick = { open("Invite a guardian") }, shape = ThusoButtonShape) { Text("Invite someone") }
         Note("Revoking takes effect immediately and the other person is told. Anything they already saw cannot be un-seen, which is why scope matters more than revocation.")
     }
 }

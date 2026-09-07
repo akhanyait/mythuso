@@ -79,7 +79,7 @@ data class Reading(val label: String, val value: Double, val note: String = "—
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Note(first.label); Note(latest.label)
         }
-        TextButton(onClick = { showTable = !showTable }) {
+        TextButton(onClick = { showTable = !showTable }, shape = ThusoButtonShape) {
             Icon(Icons.Outlined.TableChart, null, tint = Indigo)
             Spacer(Modifier.width(8.dp))
             Text(if (showTable) "Hide readings" else "Show readings as a table")

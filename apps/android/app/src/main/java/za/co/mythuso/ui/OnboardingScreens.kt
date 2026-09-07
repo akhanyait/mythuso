@@ -22,6 +22,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import za.co.mythuso.model.*
 
+/* The pair of actions at the foot of every step of a wizard.
+ *
+ * They used to be a Row of two buttons sized to their own words, so "Back" was a 64dp target beside
+ * a 120dp one, they sat at a different width on every step, and on the narrow phones this is built
+ * for the pair could not both fit beside a long label. Full width, equal weight, one height, in the
+ * same place each time: somebody filling in six steps learns where the button is once. */
+@Composable private fun WizardActions(
+    backLabel: String, back: () -> Unit,
+    nextLabel: String, enabled: Boolean = true, next: () -> Unit
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+        OutlinedButton(onClick = back, modifier = Modifier.weight(1f).heightIn(min = 52.dp), shape = RoundedCornerShape(ThusoRadius.control)) {
+            Text(backLabel, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        }
+        Button(onClick = next, enabled = enabled, modifier = Modifier.weight(1.4f).heightIn(min = 52.dp), shape = RoundedCornerShape(ThusoRadius.control)) {
+            Text(nextLabel, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        }
+    }
+}
+
 @Composable fun OnboardingScreen(store: PreviewStore, done: () -> Unit) {
     var step by remember { mutableIntStateOf(0) }
     var recovering by remember { mutableStateOf(false) }
@@ -47,13 +67,14 @@ import za.co.mythuso.model.*
                     Text("Choose your language", style = MaterialTheme.typography.titleMedium)
                     ThusoLocale.entries.forEach { option ->
                         Row(
-                            Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                                .selectable(selected = store.locale == option, role = Role.RadioButton) { store.locale = option },
+                            Modifier.fillMaxWidth().heightIn(min = TouchTarget)
+                                .selectable(selected = store.locale == option, role = Role.RadioButton) { store.locale = option }
+                                .semantics(mergeDescendants = true) {},
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(store.locale == option, null)
-                            Column {
-                                Text(option.native)
+                            Column(Modifier.padding(start = ThusoSpacing.space4), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
+                                Text(option.native, style = MaterialTheme.typography.titleSmall, color = Ink)
                                 Text(option.reviewLabel, style = MaterialTheme.typography.bodySmall, color = BodyText)
                             }
                         }
@@ -61,9 +82,13 @@ import za.co.mythuso.model.*
                     store.locale.reviewNotice?.let { Note(it) }
                     Note(ThusoLanguageNotes.clinicalRule)
                 }
-                Button(onClick = { step = 1 }, Modifier.fillMaxWidth()) { Text("Create my account") }
-                OutlinedButton(onClick = { recovering = true }, Modifier.fillMaxWidth()) { Text("I’ve lost access to my account") }
-                TextButton(onClick = done) { Text("Skip and explore the design preview") }
+                Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+                    PrimaryAction("Create my account") { step = 1 }
+                    OutlinedButton(onClick = { recovering = true }, Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(ThusoRadius.control)) {
+                        Text("I’ve lost access to my account", style = MaterialTheme.typography.labelLarge)
+                    }
+                    TextButton(onClick = done, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("Skip and explore the design preview") }
+                }
             }
             1 -> {
                 Heading("Your number", "What’s your number?", "We’ll send a one-time code. Your number is how nurses reach you on the day of a visit.")
@@ -72,19 +97,15 @@ import za.co.mythuso.model.*
                     isError = phone.isNotEmpty() && !phoneOk,
                     supportingText = { Text(if (phone.isEmpty() || phoneOk) "Standard network rates apply. We never share your number with advertisers." else "Enter a 10-digit South African mobile number, starting with 0.") })
                 Note("In production this step is rate-limited and the code is bound to one device.")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step = 0 }) { Text("Back") }
-                    Button(onClick = { code = ""; codeError = ""; step = 2 }, enabled = phoneOk) { Text("Send my code") }
-                }
+                WizardActions("Back", { step = 0 }, "Send my code", phoneOk) { code = ""; codeError = ""; step = 2 }
             }
             2 -> {
                 Heading("Verify", "Check your messages.", "In this preview the code is 240924.")
                 Text("Verification code", style = MaterialTheme.typography.labelLarge, color = Slate)
                 CodeBoxes(code, { code = it; codeError = "" }, invalid = codeError.isNotEmpty(), label = "Verification code")
                 if (codeError.isNotEmpty()) Note(codeError)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step = 1 }) { Text("Different number") }
-                    Button(onClick = { if (code == "240924") step = 3 else codeError = "That code doesn’t match. Check the message and try again." }, enabled = code.length == 6) { Text("Verify") }
+                WizardActions("Different number", { step = 1 }, "Verify", code.length == 6) {
+                    if (code == "240924") step = 3 else codeError = "That code doesn’t match. Check the message and try again."
                 }
             }
             3 -> {
@@ -94,11 +115,8 @@ import za.co.mythuso.model.*
                     isError = idNumber.isNotEmpty() && !idCheck.first,
                     supportingText = { Text(if (idNumber.isEmpty()) "Use a fictional number for this preview — for example 8001015009087." else idCheck.second) })
                 Note("Production verification runs against the Department of Home Affairs through an accredited provider, with a documented lawful basis. Nothing is verified here.")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step = 2 }) { Text("Back") }
-                    Button(onClick = { step = 4 }, enabled = idCheck.first) { Text("Continue") }
-                }
-                TextButton(onClick = { step = 4 }) { Text("I don’t have an SA ID number") }
+                WizardActions("Back", { step = 2 }, "Continue", idCheck.first) { step = 4 }
+                TextButton(onClick = { step = 4 }, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("I don’t have an SA ID number") }
             }
             4 -> {
                 Heading("Recovery", "If you ever lose your phone.", "Two ways back in, so a lost handset never means losing your health history.")
@@ -106,18 +124,17 @@ import za.co.mythuso.model.*
                     Text("Trusted family contact", style = MaterialTheme.typography.titleMedium)
                     listOf("Nomsa Molefe · Mother", "Thabo Molefe · Son", "I’ll add someone later").forEach { option ->
                         Row(
-                            Modifier.fillMaxWidth().clickable { trusted = option }.semantics { selected = trusted == option },
+                            Modifier.fillMaxWidth().heightIn(min = TouchTarget)
+                                .selectable(selected = trusted == option, role = Role.RadioButton) { trusted = option }
+                                .semantics(mergeDescendants = true) {},
                             verticalAlignment = Alignment.CenterVertically
-                        ) { RadioButton(trusted == option, { trusted = option }); Text(option, style = MaterialTheme.typography.bodyMedium) }
+                        ) { RadioButton(trusted == option, null); Text(option, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = ThusoSpacing.space4)) }
                     }
                 }
                 OutlinedTextField(recoveryWord, { recoveryWord = it.take(24) }, label = { Text("Recovery word") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
                     supportingText = { Text("Choose something memorable that isn’t your name, birthday or a family name.") })
                 Note("A trusted contact can start recovery for you. They never see your records, and you are told every time recovery is attempted.")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step = 3 }) { Text("Back") }
-                    Button(onClick = { step = 5 }, enabled = recoveryWord.trim().length >= 3) { Text("Continue") }
-                }
+                WizardActions("Back", { step = 3 }, "Continue", recoveryWord.trim().length >= 3) { step = 5 }
             }
             else -> {
                 Heading("Consent", "Your choices, before we start.", "Two of these are needed to give you care. The third is entirely up to you.")
@@ -127,10 +144,7 @@ import za.co.mythuso.model.*
                     Setting("Send me optional health tips and product news.", consentUpdates) { consentUpdates = it }
                 }
                 Note("Consent is recorded with its version, wording and timestamp so you can see exactly what you agreed to, and withdraw it later.")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { step = 4 }) { Text("Back") }
-                    Button(onClick = done, enabled = consentCare && consentPopia) { Text("Enter MyThuso") }
-                }
+                WizardActions("Back", { step = 4 }, "Enter MyThuso", consentCare && consentPopia, done)
             }
         }
         Note("Nothing you type here leaves your device. This preview creates no account.")
@@ -156,7 +170,7 @@ import za.co.mythuso.model.*
                 ReviewLine("Indicative wait", routes.first { it.first == route }.third)
                 Note("Nothing was submitted. Production recovery is rate-limited, audited and reversible for a cooling-off period.")
             }
-            Button(onClick = done, Modifier.fillMaxWidth()) { Text("Continue to the preview") }
+            Button(onClick = done, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Continue to the preview") }
         } else {
             routes.forEach { (title, body, wait) ->
                 CareCard(Modifier.clickable { route = title }) {
@@ -172,8 +186,8 @@ import za.co.mythuso.model.*
             }
             Note("Recovery never reveals your records to the person helping you.")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = back) { Text("Back") }
-                Button(onClick = { submitted = true }, enabled = route.isNotEmpty()) { Text("Start recovery") }
+                OutlinedButton(onClick = back, shape = ThusoButtonShape) { Text("Back") }
+                Button(onClick = { submitted = true }, enabled = route.isNotEmpty(), shape = ThusoButtonShape) { Text("Start recovery") }
             }
         }
     }

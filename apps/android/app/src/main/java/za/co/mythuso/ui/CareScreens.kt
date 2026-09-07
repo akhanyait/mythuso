@@ -84,7 +84,7 @@ import androidx.compose.foundation.text.KeyboardActions
         HomeFamily(store, open)
         PassportPromo(store, open)
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-            TextButton(onClick = firstRun, modifier = Modifier.heightIn(min = TouchTarget)) { Text("See the first-run and recovery flow") }
+            TextButton(onClick = firstRun, modifier = Modifier.heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("See the first-run and recovery flow") }
             Text(thuso(Phrase.TAGLINE, store.locale), style = MaterialTheme.typography.bodySmall, color = Faint, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         }
     }
@@ -118,7 +118,10 @@ import androidx.compose.foundation.text.KeyboardActions
                     }
                 }
             }
-            ContextChip(Icons.Outlined.AccountCircle, "Lerato Molefe", "Care is for Lerato Molefe. Open your circle of care") { open("My family") }
+            /* A first name here, and the whole sentence in the description a screen reader reads. The
+               full name beside the care area is wider than a 393dp phone, so the two chips took a
+               line each and pushed the visit somebody came to look at below the fold. */
+            ContextChip(Icons.Outlined.AccountCircle, "Lerato", "Care is for Lerato Molefe. Open your circle of care") { open("My family") }
         }
     }
 }
@@ -127,14 +130,14 @@ import androidx.compose.foundation.text.KeyboardActions
     Row(
         Modifier.heightIn(min = TouchTarget).clip(CircleShape).background(Color.White.copy(alpha = 0.92f))
             .border(1.dp, Line, CircleShape).clickable(onClick = click)
-            .padding(horizontal = ThusoSpacing.space16, vertical = ThusoSpacing.space8)
+            .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space8)
             .semantics { contentDescription = label },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(icon, null, tint = Slate, modifier = Modifier.size(17.dp))
-        Text(text, style = MaterialTheme.typography.labelMedium, color = Slate)
-        Icon(Icons.Outlined.ExpandMore, null, tint = Slate, modifier = Modifier.size(15.dp))
+        Icon(icon, null, tint = Slate, modifier = Modifier.size(16.dp))
+        Text(text, style = MaterialTheme.typography.labelMedium, color = Slate, maxLines = 1)
+        Icon(Icons.Outlined.ExpandMore, null, tint = Faint, modifier = Modifier.size(16.dp))
     }
 }
 
@@ -485,7 +488,7 @@ fun serviceIcon(id: String) = when (id) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 row.forEach { time ->
                                     Box(
-                                        Modifier.weight(1f).height(48.dp)
+                                        Modifier.weight(1f).heightIn(min = TouchTarget)
                                             .background(if (slot == time) Indigo else Color.White, RoundedCornerShape(ThusoRadius.control))
                                             .border(1.dp, if (slot == time) Indigo else Line, RoundedCornerShape(ThusoRadius.control))
                                             .clickable { slot = time }.semantics { selected = slot == time },
@@ -549,9 +552,9 @@ fun serviceIcon(id: String) = when (id) {
                     }
                 },
                 enabled = when (step) { 0 -> address.trim().length >= 5; 3 -> consent; else -> true }
-            ) { Text(if (step == 3) "Confirm & book" else if (step == 4) "Done" else "Continue") }
+            , shape = ThusoButtonShape) { Text(if (step == 3) "Confirm & book" else if (step == 4) "Done" else "Continue") }
         },
-        dismissButton = { if (step < 4) TextButton(onClick = { if (step == 0) close() else step -= 1 }) { Text(if (step == 0) "Cancel" else "Back") } }
+        dismissButton = { if (step < 4) TextButton(onClick = { if (step == 0) close() else step -= 1 }, shape = ThusoButtonShape) { Text(if (step == 0) "Cancel" else "Back") } }
     )
 }
 /* The list of visits.
@@ -606,7 +609,7 @@ fun serviceIcon(id: String) = when (id) {
                 tabs.forEach { name ->
                     Tab(
                         selected = tab == name, onClick = { tab = name },
-                        text = { Text(name, style = MaterialTheme.typography.labelLarge, maxLines = 1) },
+                        text = { Text(name, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
                         selectedContentColor = Indigo, unselectedContentColor = BodyText
                     )
                 }
@@ -639,8 +642,8 @@ fun serviceIcon(id: String) = when (id) {
                                 HorizontalDivider(color = Line)
                                 NurseRow()
                                 Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-                                    OutlinedButton(onClick = { open("Reschedule visit") }, Modifier.weight(1f).heightIn(min = TouchTarget)) { Text("Reschedule") }
-                                    Button(onClick = { open("Visit: ${row.title} · ${row.time}") }, Modifier.weight(1f).heightIn(min = TouchTarget)) { Text("View details") }
+                                    OutlinedButton(onClick = { open("Reschedule visit") }, Modifier.weight(1f).heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("Reschedule") }
+                                    Button(onClick = { open("Visit: ${row.title} · ${row.time}") }, Modifier.weight(1f).heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("View details") }
                                 }
                             }
                         }

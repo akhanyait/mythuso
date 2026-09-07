@@ -74,7 +74,7 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
                     Text(heading, style = MaterialTheme.typography.titleMedium)
                 }
                 Text(body, style = MaterialTheme.typography.bodyMedium)
-                if (retry != null) OutlinedButton(onClick = retry) { Text(if (state == LoadState.DENIED) "Review permission" else "Try again") }
+                if (retry != null) OutlinedButton(onClick = retry, shape = ThusoButtonShape) { Text(if (state == LoadState.DENIED) "Review permission" else "Try again") }
             }
         }
     }

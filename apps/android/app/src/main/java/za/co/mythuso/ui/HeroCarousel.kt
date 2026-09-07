@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import za.co.mythuso.R
 import za.co.mythuso.model.HeroSlideCopy
@@ -59,6 +61,7 @@ import za.co.mythuso.model.heroSlides
     val slides = heroSlides(store.locale)
     val pager = rememberPagerState(pageCount = { slides.size })
     var playing by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
     val reduceMotion = prefersReducedMotion()
     LaunchedEffect(playing, reduceMotion, pager.currentPage) {
         if (!playing || reduceMotion) return@LaunchedEffect
@@ -66,29 +69,47 @@ import za.co.mythuso.model.heroSlides
         pager.animateScrollToPage((pager.currentPage + 1) % slides.size)
     }
     Column(Modifier.fillMaxWidth().semantics { contentDescription = "MyThuso highlights" }, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        HorizontalPager(pager, Modifier.fillMaxWidth().height(376.dp)) { page ->
+        /* A pager needs a height it can measure, so this one is measured in the reader's own type
+           rather than in the type the design was drawn at. Left at a flat 376dp the headline and the
+           three trust marks under it run out of the slide at the larger font scales. */
+        val slideHeight = (376 * LocalDensity.current.fontScale.coerceIn(1f, 2f)).dp
+        HorizontalPager(pager, Modifier.fillMaxWidth().height(slideHeight)) { page ->
             SlideView(slides[page], page) { onAction(page) }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            /* The dot is 8dp tall and the thing you press is 44 — the target is the box around the
+               dot rather than the dot itself, which is how an indicator this size stays an indicator
+               and still clears WCAG 2.2. Pressing one selects the slide it names as well as stopping
+               the rotation; it used to stop the rotation and leave you on the slide you were on. */
             slides.forEachIndexed { position, slide ->
                 Box(
-                    Modifier.width(if (position == pager.currentPage) 24.dp else 8.dp).height(8.dp)
-                        .background(if (position == pager.currentPage) Indigo else Line, CircleShape)
-                        .clickable { playing = false }
+                    Modifier.size(width = if (position == pager.currentPage) 44.dp else 24.dp, height = 44.dp)
+                        .clickable {
+                            playing = false
+                            scope.launch { pager.animateScrollToPage(position) }
+                        }
                         .semantics {
                             contentDescription = "Highlight ${position + 1} of ${slides.size}: ${slide.title.replace("\n", " ")}"
                             selected = position == pager.currentPage
-                        }
-                )
+                        },
+                    Alignment.Center
+                ) {
+                    Box(
+                        Modifier.width(if (position == pager.currentPage) 24.dp else 8.dp).height(8.dp)
+                            .background(if (position == pager.currentPage) Indigo else Line, CircleShape)
+                    )
+                }
             }
             Spacer(Modifier.weight(1f))
             if (!reduceMotion) {
-                Box(
-                    Modifier.size(32.dp).background(Color.White, CircleShape).border(1.dp, Line, CircleShape)
-                        .clickable { playing = !playing }
-                        .semantics { contentDescription = if (playing) "Pause the highlights" else "Play the highlights" },
-                    Alignment.Center
-                ) { Icon(if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, null, tint = BodyText, modifier = Modifier.size(16.dp)) }
+                IconButton(
+                    onClick = { playing = !playing },
+                    modifier = Modifier.size(44.dp).semantics { contentDescription = if (playing) "Pause the highlights" else "Play the highlights" }
+                ) {
+                    Box(Modifier.size(32.dp).background(Color.White, CircleShape).border(1.dp, Line, CircleShape), Alignment.Center) {
+                        Icon(if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, null, tint = Slate, modifier = Modifier.size(18.dp))
+                    }
+                }
             }
         }
     }
@@ -165,13 +186,15 @@ private fun trustIcon(name: String) = when (name) {
     }
 }
 @Composable fun HeroTexture(tone: Int = 0, reduceMotion: Boolean = prefersReducedMotion()) {
-    /* The brand's own two soft tints rather than the three hand-mixed mints this used to hold. Teal
-       is an accent and this is the one place it is allowed to be a whole surface: a band behind a
-       greeting is decoration, carries no text of its own, and is hidden from TalkBack. */
+    /* The brand's own soft tints rather than the three hand-mixed mints this used to hold. Teal is an
+       accent and this is the one place it is allowed to be a whole surface: a band behind a greeting
+       is decoration, carries no text of its own, and is hidden from TalkBack.
+       Every plate ends in the page's own ground so the band has no bottom edge — the version before
+       this one stopped in mid-air two thirds down the greeting and drew a line across it. */
     val plate = when (tone) {
-        1 -> listOf(TealSoft, IndigoSoft)
-        2 -> listOf(IndigoSoft, AccentSoft)
-        else -> listOf(Color.White, TealSoft)
+        1 -> listOf(TealSoft, Canvas)
+        2 -> listOf(AccentSoft, Canvas)
+        else -> listOf(IndigoSoft, Canvas)
     }
     val transition = rememberInfiniteTransition(label = "hero")
     // One slow clock; each bubble reads it at its own frequency and phase so nothing moves in step.
@@ -192,7 +215,7 @@ private fun trustIcon(name: String) = when (name) {
         Bubble(0.67f, 0.42f, 9f, -18f, -26f, 1.8f, 0.6f)
     )
     Canvas(Modifier.fillMaxSize()) {
-        drawRect(Brush.linearGradient(plate, Offset.Zero, Offset(size.width, size.height)), Offset.Zero, Size(size.width, size.height))
+        drawRect(Brush.verticalGradient(plate), Offset.Zero, Size(size.width, size.height))
         bubbles.forEachIndexed { position, bubble ->
             val t = clock * bubble.frequency + bubble.phase
             val breathe = 1f + 0.14f * sin(t * 1.3f)

@@ -239,11 +239,11 @@ private val Waiting = MangoInk
                                     modifier = if (decision.allowed) Modifier else Modifier.semantics {
                                         contentDescription = "Cannot be assigned — ${nurse.name}. ${decision.reason.orEmpty()}"
                                     }
-                                ) { Text(if (assigned[job.id] == nurse.name) "Assigned" else "Assign") }
+                                , shape = ThusoButtonShape) { Text(if (assigned[job.id] == nurse.name) "Assigned" else "Assign") }
                             }
                             if (!decision.allowed) {
                                 Text(decision.reason ?: "", style = MaterialTheme.typography.bodySmall, color = Danger)
-                                subject?.let { TextButton(onClick = { open("Vetting: ${it.id}") }) { Text("Open the vetting record") } }
+                                subject?.let { TextButton(onClick = { open("Vetting: ${it.id}") }, shape = ThusoButtonShape) { Text("Open the vetting record") } }
                             }
                         }
                         HorizontalDivider()
@@ -286,9 +286,9 @@ val incidents = listOf(
                 ) { RadioButton(action == option, { action = option }); Text(option, style = MaterialTheme.typography.bodyMedium) }
             }
         }
-        OutlinedTextField(notes, { notes = it.take(600) }, label = { Text("Handover note") }, modifier = Modifier.fillMaxWidth().height(120.dp),
+        OutlinedTextField(notes, { notes = it.take(600) }, label = { Text("Handover note") }, modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
             supportingText = { Text("What happened, what you did, what the next shift must know.") })
-        Button(onClick = { log.add(action); action = "" }, enabled = action.isNotEmpty()) { Text("Add demo action to the log") }
+        Button(onClick = { log.add(action); action = "" }, enabled = action.isNotEmpty(), shape = ThusoButtonShape) { Text("Add demo action to the log") }
         if (log.isNotEmpty()) CareCard {
             Text("Demo incident log", style = MaterialTheme.typography.titleMedium)
             log.forEach { entry ->

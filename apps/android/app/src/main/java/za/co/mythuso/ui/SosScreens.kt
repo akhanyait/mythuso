@@ -284,7 +284,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                         if (!decision.allowed) {
                             Text(decision.reason.orEmpty(), style = MaterialTheme.typography.bodySmall, color = Danger)
                         } else {
-                            OutlinedButton({ requested = true }, enabled = !requested) {
+                            OutlinedButton({ requested = true }, enabled = !requested, shape = ThusoButtonShape) {
                                 Text(if (requested) "Asked" else "Ask her to come")
                             }
                         }
@@ -304,7 +304,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                 val chosen = stoodDown?.let { id -> sosStandDown.reasons.firstOrNull { it.id == id } }
                 if (chosen == null) {
                     sosStandDown.reasons.forEach { reason ->
-                        OutlinedButton({ stoodDown = reason.id }) { Text(reason.label) }
+                        OutlinedButton({ stoodDown = reason.id }, shape = ThusoButtonShape) { Text(reason.label) }
                     }
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 48.dp)
@@ -325,7 +325,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                     Text(sosStandDown.nurseNote, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                     ReviewLine("What the nurse is told", chosen.nurseIsTold)
                     ReviewLine("What is recorded", chosen.recorded)
-                    OutlinedButton({ stoodDown = null }) { Text("Back") }
+                    OutlinedButton({ stoodDown = null }, shape = ThusoButtonShape) { Text("Back") }
                 }
             }
         }

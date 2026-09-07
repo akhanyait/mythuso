@@ -109,8 +109,8 @@ private val Flag = MangoInk
                 Setting("I have seen the patient’s identity document, or a household member has confirmed identity.", identitySeen) { identitySeen = it }
                 Note("If the code fails, the visit does not start. The nurse contacts the Control Tower instead of proceeding.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = close) { Text("Leave") }
-                    Button(onClick = { if (otp == "482190") stage = 1 else otpError = "That code doesn’t match this visit. Call the Control Tower before continuing." }, enabled = otp.length == 6 && identitySeen) { Text("Confirm identity") }
+                    OutlinedButton(onClick = close, shape = ThusoButtonShape) { Text("Leave") }
+                    Button(onClick = { if (otp == "482190") stage = 1 else otpError = "That code doesn’t match this visit. Call the Control Tower before continuing." }, enabled = otp.length == 6 && identitySeen, shape = ThusoButtonShape) { Text("Confirm identity") }
                 }
             }
             1 -> {
@@ -122,8 +122,8 @@ private val Flag = MangoInk
                 }
                 Note("Refusal is recorded as a valid outcome, not a failed visit. A guardian consents for a child or where authority is verified.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { stage = 0 }) { Text("Back") }
-                    Button(onClick = { stage = 2 }, enabled = consentAssessment) { Text("Start observations") }
+                    OutlinedButton(onClick = { stage = 0 }, shape = ThusoButtonShape) { Text("Back") }
+                    Button(onClick = { stage = 2 }, enabled = consentAssessment, shape = ThusoButtonShape) { Text("Start observations") }
                 }
             }
             2 -> {
@@ -149,7 +149,7 @@ private val Flag = MangoInk
                             flag(observation)?.let { StatusPill("Outside the indicative range", "amber") }
                         }
                         ProvenanceBlock(kit, patient)
-                        TextButton(onClick = { overridden[observation.id] = true }) { Text("Take this one by hand instead") }
+                        TextButton(onClick = { overridden[observation.id] = true }, shape = ThusoButtonShape) { Text("Take this one by hand instead") }
                         Note("The kit reading stays in the queue. Two readings of one observation in one visit is a decision for a clinician, not something this screen quietly overwrites.")
                     } else {
                         val message = flag(observation)
@@ -208,8 +208,8 @@ private val Flag = MangoInk
                     else "${abnormal.size} reading${if (abnormal.size > 1) "s are" else " is"} outside the indicative range. Flagging is a prompt for your judgement — it is not a validated early-warning score and it does not triage the patient."
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { stage = 1 }) { Text("Back") }
-                    Button(onClick = { stage = 3 }, enabled = captured.isNotEmpty()) { Text("Record findings") }
+                    OutlinedButton(onClick = { stage = 1 }, shape = ThusoButtonShape) { Text("Back") }
+                    Button(onClick = { stage = 3 }, enabled = captured.isNotEmpty(), shape = ThusoButtonShape) { Text("Record findings") }
                 }
             }
             3 -> {
@@ -217,7 +217,7 @@ private val Flag = MangoInk
                 FlowRowChips(listOf("Headache", "Dizziness", "Shortness of breath", "Chest pain", "Swelling", "Fatigue", "Nausea", "None reported"), symptoms) { symptom ->
                     symptoms = if (symptom in symptoms) symptoms - symptom else symptoms + symptom
                 }
-                OutlinedTextField(notes, { notes = it.take(1200) }, label = { Text("Visit notes") }, modifier = Modifier.fillMaxWidth().height(130.dp),
+                OutlinedTextField(notes, { notes = it.take(1200) }, label = { Text("Visit notes") }, modifier = Modifier.fillMaxWidth().heightIn(min = 130.dp),
                     supportingText = { Text("Write what the next clinician needs, not everything you noticed.") })
                 CareCard {
                     Text("Next step", style = MaterialTheme.typography.titleMedium)
@@ -230,8 +230,8 @@ private val Flag = MangoInk
                 }
                 if (escalation.contains("Emergency")) Note("In production this opens the emergency pathway immediately and alerts the Control Tower before the form is finished.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { stage = 2 }) { Text("Back") }
-                    Button(onClick = { stage = 4 }) { Text("Review sign-off") }
+                    OutlinedButton(onClick = { stage = 2 }, shape = ThusoButtonShape) { Text("Back") }
+                    Button(onClick = { stage = 4 }, shape = ThusoButtonShape) { Text("Review sign-off") }
                 }
             }
             else -> {
@@ -242,7 +242,7 @@ private val Flag = MangoInk
                         }
                         Note("Nothing was transmitted, no record was written and no clinician was notified. In production this becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration.")
                     }
-                    Button(onClick = close, Modifier.fillMaxWidth()) { Text("Back to the workspace") }
+                    Button(onClick = close, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Back to the workspace") }
                 } else {
                     CareCard {
                         Text("$patient · $reference", style = MaterialTheme.typography.titleMedium)
@@ -272,8 +272,8 @@ private val Flag = MangoInk
                     if (unattributed.isNotEmpty()) Note("${unattributed.size} number${if (unattributed.size > 1) "s were" else " was"} typed without an origin and ${if (unattributed.size > 1) "are" else "is"} not in this record. Nothing was guessed on your behalf.")
                     Note("A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.")
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { stage = 3 }) { Text("Back") }
-                        Button(onClick = { signed = true }, enabled = mayWrite?.allowed != false) { Text("Sign demo assessment") }
+                        OutlinedButton(onClick = { stage = 3 }, shape = ThusoButtonShape) { Text("Back") }
+                        Button(onClick = { signed = true }, enabled = mayWrite?.allowed != false, shape = ThusoButtonShape) { Text("Sign demo assessment") }
                     }
                 }
             }
@@ -331,10 +331,10 @@ private val Flag = MangoInk
                 ) { RadioButton(decision == option, { decision = option }); Text(option, style = MaterialTheme.typography.bodyMedium) }
             }
         }
-        OutlinedTextField(rationale, { rationale = it.take(800) }, label = { Text("Clinical rationale") }, modifier = Modifier.fillMaxWidth().height(120.dp),
+        OutlinedTextField(rationale, { rationale = it.take(800) }, label = { Text("Clinical rationale") }, modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
             supportingText = { Text("Why this decision, for the record and the next clinician.") })
         Note("Decision support may summarise or highlight. It never selects the outcome, and every entry is attributed to the signing doctor’s HPCSA registration.")
-        Button(onClick = { done = true }, enabled = !done && maySign?.allowed == true && decision.isNotEmpty() && rationale.trim().length >= 10) {
+        Button(onClick = { done = true }, enabled = !done && maySign?.allowed == true && decision.isNotEmpty() && rationale.trim().length >= 10, shape = ThusoButtonShape) {
             Text(if (done) "Demo decision held in this screen only" else "Sign demo decision")
         }
     }
