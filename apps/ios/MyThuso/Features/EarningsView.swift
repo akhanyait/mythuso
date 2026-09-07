@@ -119,19 +119,32 @@ struct EarningsView: View {
     private var totals: some View {
         VStack(spacing: ThusoSpacing.space12) {
             metric("This week so far", rand(Earnings.currentWeek.total),
-                   "\(Earnings.currentWeek.visits) visits · closes \(Earnings.cycle.closesOn), pays \(Earnings.cycle.paysOn)")
-            metric("Owed, not yet in your account", rand(Earnings.owedNotYetPaid), "On its way, or waiting on a bank")
-            metric("Reached your account this tax year", rand(Earnings.paidThisTaxYear),
-                   "Since \(Earnings.taxYear.startsOn) · \(Earnings.taxYear.label)")
+                   "\(Earnings.currentWeek.visits) visits · closes \(Earnings.cycle.closesOn), pays \(Earnings.cycle.paysOn)",
+                   weight: .lead, size: .largeTitle)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: ThusoSpacing.space12) { secondaryTotals }
+                VStack(spacing: ThusoSpacing.space12) { secondaryTotals }
+            }
         }
     }
 
-    private func metric(_ label: String, _ value: String, _ note: String) -> some View {
-        CareCard {
+    @ViewBuilder private var secondaryTotals: some View {
+        metric("Owed, not yet in your account", rand(Earnings.owedNotYetPaid), "On its way, or waiting on a bank")
+        metric("Reached your account this tax year", rand(Earnings.paidThisTaxYear),
+               "Since \(Earnings.taxYear.startsOn) · \(Earnings.taxYear.label)")
+    }
+
+    private func metric(_ label: String, _ value: String, _ note: String,
+                        weight: CardWeight = .plain, size: Font = .title2) -> some View {
+        CareCard(weight: weight, spacing: ThusoSpacing.space4) {
             Text(label).font(.caption).foregroundStyle(ThusoTheme.body)
-            Text(value).font(.title.weight(.bold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(value).font(size.weight(.bold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
+                .minimumScaleFactor(0.7).lineLimit(1)
             Text(note).font(.caption).foregroundStyle(ThusoTheme.faint)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - The split
@@ -148,14 +161,14 @@ struct EarningsView: View {
                     HStack(spacing: 3) {
                         bar(ThusoTheme.indigo, parts.nurse, parts.price, geometry.size.width)
                         bar(ThusoTheme.mango, parts.payment, parts.price, geometry.size.width)
-                        bar(ThusoTheme.accentSoft, parts.platform, parts.price, geometry.size.width)
+                        bar(ThusoTheme.teal, parts.platform, parts.price, geometry.size.width)
                     }
                 }
                 .frame(height: 16)
                 .accessibilityLabel("Of \(rand(parts.price)), \(rand(parts.nurse)) is yours, \(rand(parts.payment)) is the card fee and \(rand(parts.platform)) is what MyThuso keeps")
                 legend(ThusoTheme.indigo, rand(parts.nurse), "Yours · \(Int((parts.nurseShareOfPrice * 100).rounded()))% of the price")
                 legend(ThusoTheme.mango, rand(parts.payment), "The card fee, paid by MyThuso")
-                legend(ThusoTheme.accentSoft, rand(parts.platform), "What MyThuso keeps")
+                legend(ThusoTheme.teal, rand(parts.platform), "What MyThuso keeps")
                 Text(Earnings.rule("share-is-not-reduced").sentence)
                     .font(.caption).foregroundStyle(ThusoTheme.body)
                 Text("Across the nine services at launch that is \(rand(Earnings.shareRange.low)) to \(rand(Earnings.shareRange.high)) a visit — the same range the public page advertises, read from the same catalogue.")

@@ -19,6 +19,10 @@ struct OnboardingView: View {
     var body: some View {
         NavigationStack {
             Form {
+                /* The sentence saying no account is created was at the foot of a six-step form, so
+                   on the step that asks for a phone number it was below the fold. It is still there;
+                   the standing disclosure is now also at the top, where it is read first. */
+                Section { DemoBadge().listRowBackground(Color.clear) }
                 Section { StepDots(step: step + 1, total: steps.count, label: steps[step]) }
                 switch step {
                 case 0: welcome
