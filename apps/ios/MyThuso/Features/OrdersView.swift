@@ -131,26 +131,3 @@ struct LabOrderView: View {
         .navigationTitle("Laboratory order").navigationBarTitleDisplayMode(.inline)
     }
 }
-struct FulfilmentQueueView: View {
-    var body: some View {
-        List {
-            Section { DemoBadge(); Text("Fulfilment queue").font(.title2.weight(.semibold)) }
-            Section("Prescriptions") {
-                NavigationLink("RX-0081 · 2 items · Awaiting pharmacist") { PrescriptionView(reference: "RX-0081") }
-                NavigationLink("RX-0079 · 1 item · Dispensed, awaiting courier") { PrescriptionView(reference: "RX-0079") }
-            }
-            Section("Laboratory") {
-                NavigationLink("LAB-0023 · Fasting panel · Results verified") { LabOrderView(reference: "LAB-0023") }
-                NavigationLink("LAB-0019 · Sample in transit · Seal intact") { LabOrderView(reference: "LAB-0019") }
-            }
-            Section("Vetting") {
-                NavigationLink("This pharmacy’s licence and pharmacist") { VettingStatusView(subjectId: "P-501") }
-                NavigationLink("This laboratory’s accreditation") { VettingStatusView(subjectId: "B-601") }
-                NavigationLink("Couriers who may take custody") { VettingRoleView(roleId: "courier") }
-                NavigationLink("Apply as a partner") { VettingApplyView(roleId: "pharmacy") }
-            }
-            Section { Text("Sample orders. No live partner API, dispensing or courier handover is connected.").font(.caption).foregroundStyle(.secondary) }
-        }
-        .navigationTitle("Partner workspace").navigationBarTitleDisplayMode(.inline)
-    }
-}

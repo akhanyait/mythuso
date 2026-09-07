@@ -19,6 +19,8 @@ val services = listOf(
     CareService("senior", "Elderly care", "A thoughtful one-hour visit.", 399, 60),
     CareService("certificate", "Sick-note visit", "Assessment with doctor review.", 249, 30)
 )
+/** Demo care areas. Choosing one asks the device for nothing; there is no location permission. */
+val careAreas = listOf("Rosebank, Johannesburg", "Soweto, Johannesburg", "Randburg, Johannesburg")
 data class GuardianInvitation(val id: String, val name: String, val relationship: String, val scope: String, val expires: String, val status: String)
 /**
  * Everything the preview holds. All of it is in memory and lost on restart, with one deliberate
@@ -33,6 +35,10 @@ class PreviewStore(book: CaptureBook = MemoryBook()) {
         "scheduled", Scheduling.today().plusDays(5), "09:00", "Card"))
     /* What somebody typed on the home screen, so the catalogue it hands off to can apply it. */
     var careQuery by mutableStateOf("")
+    /* Where the visit would happen. It sits beside the person a visit is for because those are the
+       two things that change what everything on the home screen means, and a home that opens with a
+       promotion instead of them makes a patient guess at both. No location permission is asked for. */
+    var careArea by mutableStateOf(careAreas[0])
     val family = mutableStateListOf("Nomsa Molefe", "Thabo Molefe")
     val invitations = mutableStateListOf(
         GuardianInvitation("INV-0031", "Nomsa Molefe", "Mother", "Visit summaries only", "Until I revoke it", "Active"),

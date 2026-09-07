@@ -25,6 +25,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import za.co.mythuso.R
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import za.co.mythuso.model.CaptureState
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.householdMemberById
 import za.co.mythuso.model.mokoenaHousehold
@@ -184,9 +187,17 @@ import za.co.mythuso.model.mokoenaHousehold
         Note("Native Compose design preview. All data is fictional and held only in memory.")
     }
 }
-@Composable fun RoadmapScreen(open: (String) -> Unit) {
+/* Explore. This is where the rotating banner lives now.
+ *
+ * It used to open the patient's home, roughly two thirds of a phone screen tall, standing between
+ * somebody who had come to book a nurse and the four services they could have booked. Rotating
+ * promotion is what this screen is for, so it is promotion here rather than an obstacle there. It
+ * keeps its pause control either way — WCAG 2.2.2 — and it still refuses to rotate at all when the
+ * system asks for reduced motion. */
+@Composable fun RoadmapScreen(store: PreviewStore, open: (String) -> Unit) {
     ScreenColumn {
         Heading("The MyThuso family", "More ways to be cared for.", "Availability follows the proposal’s phased roadmap.")
+        HeroCarousel(store) { position -> if (position == 1) open("Health Passport") else open("Book care") }
         CareCard {
             listOf("Thuso Screen", "Thuso Wear", "Thuso Pharmacy", "Thuso Labs", "Thuso SOS", "Thuso Corner", "Thuso Work",
                    "Thuso Locum", "Thuso Academy", "Thuso Money", "Thuso Cover", "Thuso Devices", "Thuso Kit", "Thuso AI", "Thuso Doctor")
@@ -206,7 +217,7 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Thuso Wallet" -> WalletScreen(open)
         title == "Language" -> LanguageScreen(store)
         title == "System states" -> SystemStatesScreen()
-        title == "Roadmap" -> RoadmapScreen(open)
+        title == "Roadmap" -> RoadmapScreen(store, open)
         title == "First-run & recovery" -> firstRun()
         title == "Invite a guardian" -> InviteGuardianScreen(store) { open("My family") }
         title == "Visit assessment" -> VisitAssessmentScreen(store, close = { open("Nurse workspace") })
@@ -246,12 +257,10 @@ import za.co.mythuso.model.mokoenaHousehold
         title.startsWith("Prescription ") -> PrescriptionScreen(title.removePrefix("Prescription "))
         title.startsWith("Laboratory order ") -> LabOrderScreen(title.removePrefix("Laboratory order "))
         title.startsWith("Incident ") -> IncidentDetailScreen(title.removePrefix("Incident "))
-        title == "Partner workspace" -> FulfilmentQueueScreen(open)
         title == "Notifications" -> ScreenColumn {
             Heading("Your care updates", "Notifications", "Sample notifications only.")
             listOf("Your Saturday visit is confirmed.", "Your visit summary is ready.", "Explore regular check-ins with Thuso Routine.", "Kagiso asked to help with your bookings. Review what he would see.").forEach { CareCard { Text(it) } }
         }
-        title.endsWith("workspace") -> WorkspaceScreen(title, store, open)
         else -> ScreenColumn {
             DemoBadge()
             Heading("MyThuso", title, "Connected to your care journey.")
@@ -294,24 +303,205 @@ import za.co.mythuso.model.mokoenaHousehold
 @Composable fun PrivacyScreen(store: PreviewStore, open: (String) -> Unit) { ScreenColumn { Heading("Your privacy matters", "Your data. Your choices.", "Demo preferences reset when the app restarts."); CareCard { Setting("Care reminders", store.reminders) { store.reminders = it }; Setting("Wearable readings", store.wearableSharing) { store.wearableSharing = it }; Setting("Product updates", store.marketing) { store.marketing = it } }; CareCard { listOf("Access history", "Request a correction", "Request account deletion", "Information Officer").forEach { item -> ToolRow(item) { open(item) } } }; Text("Production POPIA compliance requires governance, lawful processing, verified technical controls and a clinical retention schedule. These are UI previews.", style = MaterialTheme.typography.bodySmall) } }
 @Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); listOf(Triple("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), Triple("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), Triple("Thuso Mom", "R249 / month", "Pregnancy and baby’s first year"), Triple("Thuso Senior", "R699 / month", "Weekly care and family support"), Triple("Thuso Recover", "Custom pricing", "Personalised recovery support")).forEach { (name, price, description) -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Teal); Text(name, style = MaterialTheme.typography.titleLarge); Text(description); Text(price, style = MaterialTheme.typography.headlineSmall, color = Teal); OutlinedButton(onClick = { open(name) }) { Text("Explore plan") } } } } }
 @Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Forest); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
-@Composable fun WorkspaceScreen(title: String, store: PreviewStore, open: (String) -> Unit) {
+/* A clinical workspace navigates as itself.
+ *
+ * Every role used to open one long screen under the patient's own bottom bar, so a nurse on a
+ * doorstep and a Control Tower operator with three late visits both navigated by Home, Book care,
+ * Visits, Passport and More. A workspace is not a shop and does not belong under a shop's
+ * navigation.
+ *
+ * Each role now gets its own bottom bar — its own sections, in Compose's own idiom — and each lands
+ * on what is waiting and how long it has waited rather than on a catalogue. Nothing was granted by
+ * moving it: every vetting route, every application and every clinical sign-off is the same screen
+ * it was behind, and the sentence about AI being decision support is at the foot of every section
+ * rather than at the foot of one. */
+data class WorkspaceSection(val name: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+
+val workspaceRoles = listOf("Nurse", "Doctor", "Partner", "Control Tower")
+
+/** The same sections, in the same order, as roleNavigation in the web app's App.tsx. */
+fun workspaceSections(role: String): List<WorkspaceSection> = when (role) {
+    "Doctor" -> listOf(
+        WorkspaceSection("Review queue", Icons.Outlined.Inbox),
+        WorkspaceSection("Teleconsultation", Icons.Outlined.Videocam),
+        WorkspaceSection("Patient context", Icons.Outlined.MonitorHeart),
+        WorkspaceSection("Protocols", Icons.Outlined.Book)
+    )
+    "Partner" -> listOf(
+        WorkspaceSection("Orders", Icons.Outlined.Inventory2),
+        WorkspaceSection("Collections", Icons.Outlined.LocalShipping),
+        WorkspaceSection("Results", Icons.Outlined.Science)
+    )
+    "Control Tower" -> listOf(
+        WorkspaceSection("Dispatch", Icons.Outlined.Sensors),
+        WorkspaceSection("Incidents", Icons.Outlined.ReportProblem),
+        WorkspaceSection("Vetting queue", Icons.Outlined.VerifiedUser),
+        WorkspaceSection("Quality", Icons.Outlined.BarChart)
+    )
+    else -> listOf(
+        WorkspaceSection("Schedule", Icons.Outlined.CalendarMonth),
+        WorkspaceSection("Assessments", Icons.Outlined.ContentPaste),
+        WorkspaceSection("Thuso Kit", Icons.Outlined.Sensors),
+        WorkspaceSection("Earnings", Icons.Outlined.CreditCard),
+        WorkspaceSection("Vetting", Icons.Outlined.VerifiedUser)
+    )
+}
+
+/* What is waiting, and how long it has waited. A workspace that opens with anything else is asking
+   the person to go and find the urgent thing themselves. */
+fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when (role) {
+    "Doctor" -> listOf(
+        Triple("Awaiting review", "12", "Longest waiting 3 h 20 m"),
+        Triple("Priority reviews", "2", "Flagged out of range"),
+        Triple("Reviewed today", "18", "Median 4 m 10 s")
+    )
+    "Partner" -> listOf(
+        Triple("Open orders", "8", "2 past their collection window"),
+        Triple("Scheduled collections", "4", "Next 11:15"),
+        Triple("Ready for release", "3", "Awaiting a clinician")
+    )
+    "Control Tower" -> listOf(
+        Triple("Active visits", "24", "3 running late"),
+        Triple("Available nurses", "18", "4 off duty"),
+        Triple("Open incidents", "3", "1 severity high")
+    )
+    else -> listOf(
+        Triple("Next visit", "09:00", "Rosebank · in 40 minutes"),
+        Triple("Today’s visits", "3", "One awaiting sign-off"),
+        Triple("This week so far", "R 598", "Pays Wednesday")
+    )
+}
+
+/** The urgency strip a workspace lands on. It wraps rather than clips as the font scale grows. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable fun WorkspaceUrgency(role: String) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        workspaceUrgency(role).forEach { (label, value, note) ->
+            Column(
+                Modifier.widthIn(min = 150.dp).weight(1f)
+                    .background(Color.White, RoundedCornerShape(14.dp))
+                    .border(1.dp, Line, RoundedCornerShape(14.dp)).padding(13.dp)
+                    .semantics { contentDescription = "$label: $value. $note" },
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(label, fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
+                Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Ink, lineHeight = 26.sp)
+                Text(note, fontSize = 11.sp, color = BodyText, lineHeight = 16.sp)
+            }
+        }
+    }
+}
+
+@Composable fun WorkspaceScreen(role: String, section: String, store: PreviewStore, open: (String) -> Unit) {
     var available by remember { mutableStateOf(true) }
-    val nurse = title.startsWith("Nurse")
-    val doctor = title.startsWith("Doctor")
-    val tower = title.startsWith("Control Tower")
-    if (title.startsWith("Partner")) { FulfilmentQueueScreen(open); return }
+    val landing = workspaceSections(role).first().name == section
+    /* A route reads as a route. The workspace names the party it opens rather than its reference,
+       because nobody thinks of a colleague as O-802. */
+    fun label(route: String) = when {
+        route.startsWith("Vetting: ") -> store.vetting.subject(route.removePrefix("Vetting: "))?.let { "Vetting · ${it.name}" } ?: route
+        route == "Apply for vetting" -> "Start a vetting application"
+        route.startsWith("Apply for vetting: ") -> "Vetting application · ${route.removePrefix("Apply for vetting: ").replaceFirstChar { it.uppercase() }}"
+        else -> route
+    }
     ScreenColumn {
-        DemoBadge()
-        Heading("Care team preview", title, "Role preview for design review, not authentication.")
-        if (nurse) CareCard { Setting("Available for visits", available) { available = it } }
-        if (tower) {
-            CareCard {
+        if (landing) {
+            DemoBadge()
+            Heading("$role workspace", section, "Role preview for design review, not authentication.")
+            WorkspaceUrgency(role)
+        } else {
+            Heading("$role workspace", section, "")
+        }
+        when {
+            role == "Nurse" && section == "Schedule" -> {
+                CareCard { Setting("Available for visits", available) { available = it } }
+                /* First, not last. A nurse coming out of a house with no signal wants one answer
+                   before anything else on this screen: is my work safe? */
+                CareCard {
+                    Text("On this phone", style = MaterialTheme.typography.titleMedium)
+                    val held = store.capture.readings.count { it.state != CaptureState.STORED }
+                    val needing = store.capture.readings.count { it.state == CaptureState.CONFLICTED }
+                    ToolRow("Waiting to send") { open("Capture queue") }
+                    Note("$held reading${if (held == 1) "" else "s"} held here · $needing needing a decision")
+                }
+                CareCard {
+                    Text("Today’s work", style = MaterialTheme.typography.titleMedium)
+                    ToolRow("TH-2048 · Vitals assessment · Rosebank") { open("Visit assessment") }
+                    listOf("11:30 · Wound care · Parktown", "14:00 · Mother & baby · Melville").forEach { item -> ToolRow(item) { open(item) } }
+                }
+                CareCard {
+                    Text("More tools", style = MaterialTheme.typography.titleMedium)
+                    listOf("Thuso SOS", "Locum shifts", "Academy").forEach { item -> ToolRow(item) { open(item) } }
+                }
+            }
+            role == "Nurse" && section == "Assessments" -> CareCard {
+                Text("Start a visit", style = MaterialTheme.typography.titleMedium)
+                listOf("Visit assessment", "Patient file", "Consultation record").forEach { item -> ToolRow(item) { open(item) } }
+            }
+            role == "Nurse" && section == "Thuso Kit" -> CareCard {
+                Text("Instruments and what they wrote", style = MaterialTheme.typography.titleMedium)
+                listOf("Thuso Kit", "Capture queue").forEach { item -> ToolRow(item) { open(item) } }
+            }
+            role == "Nurse" && section == "Earnings" -> CareCard {
+                Text("Your money", style = MaterialTheme.typography.titleMedium)
+                ToolRow("Earnings & payouts") { open("Earnings & payouts") }
+            }
+            role == "Nurse" -> CareCard {
+                Text("Your vetting", style = MaterialTheme.typography.titleMedium)
+                listOf("Vetting: N-205", "Nurse onboarding & vetting", "Apply for vetting: locum").forEach { item -> ToolRow(label(item)) { open(item) } }
+            }
+            role == "Doctor" && section == "Review queue" -> {
+                CareCard {
+                    Text("Clinical review queue", style = MaterialTheme.typography.titleMedium)
+                    listOf("TH-2048 · Vitals assessment", "TH-2045 · Wound follow-up", "TH-2041 · Prescription request").forEach { item ->
+                        ToolRow(item) { open("Doctor review ${item.take(7)}") }
+                    }
+                }
+                CareCard {
+                    Text("Your vetting", style = MaterialTheme.typography.titleMedium)
+                    listOf("Vetting: D-401", "Apply for vetting: doctor").forEach { item -> ToolRow(label(item)) { open(item) } }
+                }
+            }
+            role == "Doctor" && section == "Teleconsultation" -> CareCard { ToolRow("Teleconsultation") { open("Teleconsultation") } }
+            role == "Doctor" && section == "Patient context" -> CareCard {
+                Text("Patient records", style = MaterialTheme.typography.titleMedium)
+                listOf("Patient file", "Consultation record").forEach { item -> ToolRow(item) { open(item) } }
+            }
+            role == "Doctor" -> CareCard {
+                Text("Your tools", style = MaterialTheme.typography.titleMedium)
+                listOf("Clinical protocols", "Referral pathway").forEach { item -> ToolRow(item) { open(item) } }
+            }
+            role == "Partner" && section == "Orders" -> {
+                CareCard {
+                    Text("Prescriptions", style = MaterialTheme.typography.titleMedium)
+                    ToolRow("RX-0081 · 2 items · Awaiting pharmacist") { open("Prescription RX-0081") }
+                    ToolRow("RX-0079 · 1 item · Dispensed, awaiting courier") { open("Prescription RX-0079") }
+                }
+                /* A partner is vetted as an organisation, and the courier who carries the sample is
+                   vetted in his own right. Both refusals reach this queue, so both are reachable. */
+                CareCard {
+                    Text("Vetting", style = MaterialTheme.typography.titleMedium)
+                    ToolRow("Pharmacy vetting · Diepkloof Family Pharmacy") { open("Vetting: P-502") }
+                    ToolRow("Start a partner application") { open("Apply for vetting: pharmacy") }
+                }
+                Note("Sample orders. No live partner API, dispensing or courier handover is connected.")
+            }
+            role == "Partner" && section == "Collections" -> CareCard {
+                Text("Collections", style = MaterialTheme.typography.titleMedium)
+                ToolRow("Collection schedule") { open("Collection schedule") }
+                ToolRow("Courier vetting · Johannes Pretorius") { open("Vetting: C-702") }
+            }
+            role == "Partner" -> CareCard {
+                Text("Laboratory", style = MaterialTheme.typography.titleMedium)
+                ToolRow("LAB-0023 · Fasting panel · Results verified") { open("Laboratory order LAB-0023") }
+                ToolRow("LAB-0019 · Sample in transit · Seal intact") { open("Laboratory order LAB-0019") }
+                ToolRow("Laboratory vetting · Vaal Diagnostics") { open("Vetting: B-602") }
+            }
+            role == "Control Tower" && section == "Dispatch" -> CareCard {
                 Text("Dispatch", style = MaterialTheme.typography.titleMedium)
                 ToolRow("Live dispatch board") { open("Live dispatch board") }
-                ToolRow("Vetting pipeline") { open("Vetting pipeline") }
-                ToolRow("Renewals due") { open("Renewals due") }
+                ToolRow(label("Vetting: O-802")) { open("Vetting: O-802") }
             }
-            CareCard {
+            role == "Control Tower" && section == "Incidents" -> CareCard {
                 Text("Open incidents", style = MaterialTheme.typography.titleMedium)
                 incidents.forEach { incident ->
                     Column(Modifier.fillMaxWidth()) {
@@ -320,36 +510,14 @@ import za.co.mythuso.model.mokoenaHousehold
                     }
                 }
             }
-        } else {
-            CareCard {
-                Text(if (doctor) "Clinical review queue" else "Today’s work", style = MaterialTheme.typography.titleMedium)
-                if (doctor) {
-                    listOf("TH-2048 · Vitals assessment", "TH-2045 · Wound follow-up", "TH-2041 · Prescription request").forEach { item ->
-                        ToolRow(item) { open("Doctor review ${item.take(7)}") }
-                    }
-                } else {
-                    ToolRow("TH-2048 · Vitals assessment · Rosebank") { open("Visit assessment") }
-                    listOf("11:30 · Wound care · Parktown", "14:00 · Mother & baby · Melville").forEach { item -> ToolRow(item) { open(item) } }
-                }
+            role == "Control Tower" && section == "Vetting queue" -> CareCard {
+                Text("Vetting", style = MaterialTheme.typography.titleMedium)
+                listOf("Vetting pipeline", "Renewals due", "Vetting decision log", "Apply for vetting").forEach { item -> ToolRow(label(item)) { open(item) } }
             }
-        }
-        CareCard {
-            Text("Your tools", style = MaterialTheme.typography.titleMedium)
-            val tools = when {
-                nurse -> listOf("Visit assessment", "Patient file", "Consultation record", "Nurse onboarding & vetting", "Vetting: N-205", "Apply for vetting: locum", "Thuso Kit", "Capture queue", "Earnings & payouts", "Thuso SOS", "Locum shifts", "Academy")
-                doctor -> listOf("Patient file", "Consultation record", "Apply for vetting: doctor", "Vetting: D-401", "Clinical protocols", "Teleconsultation", "Referral pathway")
-                else -> listOf("Vetting pipeline", "Vetting: O-802", "Vetting: A-902", "Vetting decision log", "Apply for vetting", "Incident INC-015", "Quality & revenue", "Employer programmes")
+            else -> CareCard {
+                Text("Your tools", style = MaterialTheme.typography.titleMedium)
+                listOf("Quality & revenue", "Employer programmes", "Vetting: A-902").forEach { item -> ToolRow(label(item)) { open(item) } }
             }
-            /* A route reads as a route. The workspace names the party it opens rather than its
-               reference, because nobody thinks of a colleague as O-802. */
-            fun label(route: String) = when {
-                route.startsWith("Vetting: ") -> store.vetting.subject(route.removePrefix("Vetting: "))
-                    ?.let { "Vetting · ${it.name}" } ?: route
-                route == "Apply for vetting" -> "Start a vetting application"
-                route.startsWith("Apply for vetting: ") -> "Vetting application · ${route.removePrefix("Apply for vetting: ").replaceFirstChar { it.uppercase() }}"
-                else -> route
-            }
-            tools.forEach { item -> ToolRow(label(item)) { open(item) } }
         }
         Note("AI is decision support. Clinical decisions require an authorised clinician’s sign-off.")
     }

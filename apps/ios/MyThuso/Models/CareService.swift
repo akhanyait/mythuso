@@ -40,6 +40,11 @@ struct GuardianInvitation: Identifiable, Hashable {
        the words away, so the person arrived at an unfiltered list having already said what they
        wanted. */
     @Published var careQuery = ""
+    /* Where the visit would happen. It sits beside the person a visit is for because those are the
+       two things that change what everything on the home screen means, and a home that opens with a
+       promotion instead of them makes a patient guess at both. No GPS is requested for it. */
+    @Published var careArea = PreviewStore.careAreas[0]
+    static let careAreas = ["Rosebank, Johannesburg", "Soweto, Johannesburg", "Randburg, Johannesburg"]
     @Published var family = ["Nomsa Molefe", "Thabo Molefe"]
     @Published var role = "Patient"
     @Published var reminders = true

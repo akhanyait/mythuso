@@ -41,6 +41,12 @@ class MainActivity : ComponentActivity() {
     var pendingService by remember { mutableStateOf<CareService?>(null) }
     var detail by remember { mutableStateOf<String?>(null) }
     var onboarding by remember { mutableStateOf(false) }
+    /* Which workspace is open, and which of its own sections. A clinical role used to navigate by
+       the patient's tabs — Home, Book care, Visits, Passport, More — which is not what a nurse on a
+       doorstep or an operator with three late visits is doing. While a workspace is open the bottom
+       bar is that role's, and leaving it puts the patient's tabs back. */
+    var workspace by remember { mutableStateOf<String?>(null) }
+    var section by remember { mutableStateOf("") }
     val tabs = listOf(
         Triple("Home", Icons.Outlined.Home, Phrase.HOME),
         Triple("Book care", Icons.Outlined.MedicalServices, Phrase.BOOK_CARE),
@@ -48,49 +54,78 @@ class MainActivity : ComponentActivity() {
         Triple("Passport", Icons.Outlined.FavoriteBorder, Phrase.PASSPORT),
         Triple("More", Icons.Outlined.GridView, Phrase.MORE)
     )
-    BackHandler(enabled = onboarding || detail != null || page != "Home") {
+    BackHandler(enabled = onboarding || detail != null || workspace != null || page != "Home") {
         when {
             onboarding -> onboarding = false
             detail != null -> detail = null
+            workspace != null -> workspace = null
             else -> page = "Home"
         }
     }
     val pages = tabs.map { it.first }
-    val go: (String) -> Unit = { target -> if (target in pages) { page = target; detail = null } else detail = target }
+    val go: (String) -> Unit = { target ->
+        val role = workspaceRoles.firstOrNull { target == "$it workspace" }
+        when {
+            role != null -> { workspace = role; section = workspaceSections(role).first().name; detail = null }
+            target in pages -> { page = target; detail = null; workspace = null }
+            else -> detail = target
+        }
+    }
     if (onboarding) {
         Surface(color = Canvas, modifier = Modifier.fillMaxSize()) {
             Box(Modifier.systemBarsPadding()) { OnboardingScreen(store) { onboarding = false } }
         }
         return
     }
-    val onHome = page == "Home" && detail == null
+    val role = workspace
+    /* A band of the brand behind the greeting, not a field the height of the screen: it used to be
+       470dp, which is most of a phone, and it sat behind a rotating promotion. */
+    val onHome = page == "Home" && detail == null && role == null
     Box(Modifier.fillMaxSize().background(Canvas)) {
-    if (onHome) Box(Modifier.fillMaxWidth().height(470.dp)) { HeroTexture() }
+    if (onHome) Box(Modifier.fillMaxWidth().height(210.dp)) { HeroTexture() }
     Scaffold(
         containerColor = if (onHome) Color.Transparent else Canvas,
         topBar = {
             TopAppBar(
-                title = { if (detail == null && page == "Home") Image(painterResource(R.drawable.mythuso_logo), "MyThuso", modifier = Modifier.width(138.dp).height(50.dp)) else if (detail != null) Text("MyThuso") },
-                navigationIcon = { if (detail != null) IconButton(onClick = { detail = null }) { Icon(Icons.Outlined.ArrowBack, "Back") } },
-                actions = { IconButton(onClick = { detail = "Notifications" }) { Icon(Icons.Outlined.Notifications, "Notifications") } },
+                title = {
+                    when {
+                        detail != null -> Text("MyThuso")
+                        role != null -> Text("$role workspace")
+                        page == "Home" -> Image(painterResource(R.drawable.mythuso_logo), "MyThuso", modifier = Modifier.width(138.dp).height(50.dp))
+                    }
+                },
+                navigationIcon = {
+                    if (detail != null) IconButton(onClick = { detail = null }) { Icon(Icons.Outlined.ArrowBack, "Back") }
+                    else if (role != null) IconButton(onClick = { workspace = null }) { Icon(Icons.Outlined.ArrowBack, "Leave the $role workspace") }
+                },
+                actions = { if (role == null) IconButton(onClick = { detail = "Notifications" }) { Icon(Icons.Outlined.Notifications, "Notifications") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                tabs.forEach { (key, icon, phrase) ->
+                if (role == null) tabs.forEach { (key, icon, phrase) ->
                     NavigationBarItem(
                         selected = page == key && detail == null,
                         onClick = { page = key; detail = null },
                         icon = { Icon(icon, null) },
                         label = { Text(thuso(phrase, store.locale)) }
                     )
+                } else workspaceSections(role).forEach { entry ->
+                    NavigationBarItem(
+                        selected = section == entry.name && detail == null,
+                        onClick = { section = entry.name; detail = null },
+                        icon = { Icon(entry.icon, null) },
+                        label = { Text(entry.name) }
+                    )
                 }
             }
         }
     ) { padding ->
         Box(Modifier.padding(padding)) {
-            if (detail != null) DetailScreen(detail!!, store, go, { onboarding = true }) else when (page) {
+            if (detail != null) DetailScreen(detail!!, store, go, { onboarding = true })
+            else if (role != null) WorkspaceScreen(role, section, store, go)
+            else when (page) {
                 /* A shortcut carries the service it names into the catalogue, which opens straight
                    into that service's booking. Passing nothing means "show me everything". */
                 "Home" -> HomeScreen(store, { service -> pendingService = service; page = "Book care" }, go, { onboarding = true })

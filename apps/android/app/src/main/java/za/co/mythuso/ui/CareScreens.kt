@@ -46,69 +46,257 @@ private val tileTints = listOf(
     Color(0xFFA97392) to Color(0xFFF6E9F0),
     Color(0xFF5C81AB) to Color(0xFFE6EEFA)
 )
-/* `book` now takes the service the person tapped. Every shortcut used to call the same argumentless
-   callback, so all four opened the same generic booking — and the search field captured a query
-   that nothing ever read. */
+/* The returning patient's home.
+ *
+ * It used to open with a 470dp green field behind a carousel that rotated on its own, then a search
+ * box, then a two-up grid of service tiles whose names wrapped to three lines on a narrow phone —
+ * and the services began below the fold. A person who had already decided to book saw a promotion
+ * first and the thing they came for last.
+ *
+ * The order below is what a returning patient needs, in the order they need it: who they are and
+ * where, what is already arranged, how to arrange the next thing, and then results, plans and
+ * family. The shortcuts are rows rather than tiles because a row has somewhere to put the price and
+ * the length of the visit without squeezing the name. One promotional card is still here, once,
+ * near the bottom, where it is an offer rather than an obstacle; the rotating one moved to the
+ * roadmap, which is the screen rotating promotion is actually for.
+ *
+ * `book` takes the service the person tapped. Every shortcut used to call the same argumentless
+ * callback, so all four opened the same generic booking — and the search field captured a query
+ * that nothing ever read.
+ *
+ * Nothing here puts a fixed height around text. At the largest font scales the rows wrap rather
+ * than clip, which is what the tiles this replaces used to do. */
 @Composable fun HomeScreen(store: PreviewStore, book: (CareService?) -> Unit, open: (String) -> Unit, firstRun: () -> Unit) {
     ScreenColumn {
-        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text("${thuso(Phrase.GREETING, store.locale)}\u00A0👋", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = Ink)
-            Text(thuso(Phrase.GREETING_SUB, store.locale), fontSize = 13.sp, color = BodyText)
-        }
-        HeroCarousel(store) { position -> if (position == 1) open("Passport") else book(null) }
-        OutlinedTextField(
-            store.careQuery, { store.careQuery = it }, placeholder = { Text("What care do you need today?") },
-            leadingIcon = { Icon(Icons.Outlined.Search, null, tint = BodyText) },
-            singleLine = true, shape = CircleShape,
-            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search for care" },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { book(null) }),
-            colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = Line)
-        )
-        services.take(4).chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
-                row.forEachIndexed { column, service ->
-                    val index = services.indexOf(service)
-                    CareCard(Modifier.weight(1f).clickable { book(service) }, padding = 15.dp) {
-                        TileIcon(serviceIcon(service.id), tileTints[index % 4].first, tileTints[index % 4].second)
-                        Text(service.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 19.sp)
-                    }
-                    if (row.size == 1 && column == 0) Spacer(Modifier.weight(1f))
-                }
-            }
-        }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(thuso(Phrase.NEXT_VISIT, store.locale), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Ink, modifier = Modifier.weight(1f))
-            Text("All visits", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Teal, modifier = Modifier.clickable { open("Visits") })
-        }
-        store.visits.firstOrNull()?.let { visit ->
-            CareCard(Modifier.clickable { open("Visit: ${visit.service.name} · ${visit.shortWhenText}") }) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    TileIcon(serviceIcon(visit.service.id))
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(visit.service.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink)
-                        Text(visit.shortWhenText, fontSize = 12.sp, color = BodyText)
-                    }
-                    StatusPill(visit.status, if (visit.isScheduled) "teal" else "amber")
-                }
-                HorizontalDivider(color = Line)
-                NurseRow()
-            }
-        }
-        Box(
-            Modifier.fillMaxWidth().heightIn(min = 160.dp).clip(RoundedCornerShape(18.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF12564B), Teal)))
-                .clickable { open("Health Passport") }.padding(22.dp)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatusPill("THUSO PASS", "light")
-                Text("Your health.\nOne safe place.", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Color.White, lineHeight = 28.sp)
-                Text("${thuso(Phrase.OPEN_PASSPORT, store.locale)} →", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFC9E5DB))
-            }
-        }
-        CareCard { MenuRow("Your circle of care", "Looking after your favourite people", Icons.Outlined.People) { open("My family") } }
-        TextButton(onClick = firstRun) { Text("See the first-run and recovery flow") }
+        HomeGreeting(store, open)
+        HomeNextVisit(store, book, open)
+        HomeBooking(store, book)
+        HomeShortcuts(store, book)
+        HomeResults(open)
+        HomeCarePlan(open)
+        HomeFamily(store, open)
+        PassportPromo(store, open)
+        TextButton(onClick = firstRun, modifier = Modifier.heightIn(min = 48.dp)) { Text("See the first-run and recovery flow") }
         Text(thuso(Phrase.TAGLINE, store.locale), fontSize = 12.sp, color = BodyText, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+    }
+}
+
+/* The care area and the person a visit is for sit at the top, together, because they change what
+   everything under them means. Choosing a family member here opens the family screen, where the
+   consent and record-access questions are actually answered — never their record. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable private fun HomeGreeting(store: PreviewStore, open: (String) -> Unit) {
+    var areaMenu by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("${thuso(Phrase.GREETING, store.locale)} 👋", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Ink, lineHeight = 29.sp)
+            Text(thuso(Phrase.GREETING_SUB, store.locale), fontSize = 13.sp, color = BodyText, lineHeight = 19.sp)
+        }
+        /* A FlowRow rather than a Row: at the largest font scales the two chips take a line each
+           instead of squeezing the care area down to an ellipsis. */
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Box {
+                ContextChip(Icons.Outlined.LocationOn, store.careArea, "Care area: ${store.careArea}") { areaMenu = true }
+                DropdownMenu(areaMenu, { areaMenu = false }) {
+                    careAreas.forEach { area ->
+                        DropdownMenuItem(
+                            text = { Text(area) },
+                            onClick = { store.careArea = area; areaMenu = false },
+                            trailingIcon = { if (area == store.careArea) Icon(Icons.Outlined.Check, null, tint = Teal) }
+                        )
+                    }
+                }
+            }
+            ContextChip(Icons.Outlined.AccountCircle, "Lerato Molefe", "Care is for Lerato Molefe. Open your circle of care") { open("My family") }
+        }
+    }
+}
+
+@Composable private fun ContextChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, label: String, click: () -> Unit) {
+    Row(
+        Modifier.heightIn(min = 48.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.92f))
+            .border(1.dp, Line, CircleShape).clickable(onClick = click)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .semantics { contentDescription = label },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp)
+    ) {
+        Icon(icon, null, tint = Forest, modifier = Modifier.size(17.dp))
+        Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Forest, lineHeight = 18.sp)
+        Icon(Icons.Outlined.ExpandMore, null, tint = Forest, modifier = Modifier.size(15.dp))
+    }
+}
+
+@Composable private fun SectionRow(title: String, action: String, onAction: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 23.sp, modifier = Modifier.weight(1f))
+        Text(
+            action, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Teal, lineHeight = 18.sp,
+            modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onAction)
+                .heightIn(min = 48.dp).padding(horizontal = 8.dp, vertical = 15.dp)
+        )
+    }
+}
+
+@Composable private fun HomeNextVisit(store: PreviewStore, book: (CareService?) -> Unit, open: (String) -> Unit) {
+    SectionRow(thuso(Phrase.NEXT_VISIT, store.locale), "All visits") { open("Visits") }
+    val visit = store.visits.firstOrNull()
+    if (visit == null) {
+        /* Not a blank space and not a fixture. The sentences are the scheduling contract's, so all
+           three apps say the same thing about having nothing booked. */
+        CareCard {
+            TileIcon(Icons.Outlined.EditCalendar)
+            Text(SchedulingData.noUpcoming, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 21.sp)
+            Text(SchedulingData.noUpcomingDetail, fontSize = 13.sp, color = BodyText, lineHeight = 19.sp)
+            OutlinedButton(onClick = { book(null) }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(thuso(Phrase.BOOK_NURSE, store.locale))
+            }
+        }
+    } else {
+        CareCard(Modifier.clickable { open("Visit: ${visit.service.name} · ${visit.shortWhenText}") }) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                TileIcon(serviceIcon(visit.service.id))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(visit.service.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 20.sp)
+                    Text(visit.shortWhenText, fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
+                }
+                StatusPill(visit.status, if (visit.isScheduled) "teal" else "amber")
+            }
+            /* An arrival estimate belongs to "come now" and to nothing else; a visit booked for a
+               named hour says how long it takes instead, from the catalogue. */
+            if (visit.isScheduled) IconLine(Icons.Outlined.Schedule, "${visit.service.duration} minutes")
+            else IconLine(Icons.Outlined.Bolt, "Looking for the nearest nurse")
+            IconLine(Icons.Outlined.LocationOn, visit.address)
+            HorizontalDivider(color = Line)
+            NurseRow { Icon(Icons.Outlined.ChevronRight, null, tint = BodyText.copy(alpha = 0.7f)) }
+        }
+    }
+}
+
+@Composable private fun HomeBooking(store: PreviewStore, book: (CareService?) -> Unit) {
+    OutlinedTextField(
+        store.careQuery, { store.careQuery = it }, placeholder = { Text("What care do you need today?") },
+        leadingIcon = { Icon(Icons.Outlined.Search, null, tint = BodyText) },
+        singleLine = true, shape = CircleShape,
+        modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search for care" },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { book(null) }),
+        colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = Line)
+    )
+    Button(onClick = { book(null) }, Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = RoundedCornerShape(12.dp)) {
+        Icon(Icons.Outlined.MedicalServices, null, Modifier.size(18.dp))
+        Spacer(Modifier.width(9.dp))
+        Text(thuso(Phrase.BOOK_NURSE, store.locale), fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.width(9.dp))
+        Icon(Icons.Outlined.ArrowForward, null, Modifier.size(16.dp))
+    }
+}
+
+/* One row per service: one icon, the name, what it is, the price and how long it takes. The two-up
+   grid this replaces had room for the name and nothing else, and wrapped it over three lines on a
+   small phone. Both numbers come from the catalogue rather than being typed here. */
+@Composable private fun HomeShortcuts(store: PreviewStore, book: (CareService?) -> Unit) {
+    SectionRow("Care you can book today", thuso(Phrase.BOOK_NURSE, store.locale)) { book(null) }
+    CareCard(padding = 14.dp) {
+        services.take(4).forEachIndexed { index, service ->
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { book(service) }
+                    .heightIn(min = 48.dp).padding(vertical = 8.dp)
+                    .semantics {
+                        contentDescription =
+                            "${service.name}. ${service.detail} From R${service.price}, ${service.duration} minutes"
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(13.dp)
+            ) {
+                TileIcon(serviceIcon(service.id), tileTints[index % 4].first, tileTints[index % 4].second, 40.dp)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(service.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 20.sp)
+                    Text(service.detail, fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
+                }
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("R${service.price}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Forest, lineHeight = 19.sp)
+                    Text("${service.duration} min", fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
+                }
+                Icon(Icons.Outlined.ChevronRight, null, tint = BodyText.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+            }
+            if (index < 3) HorizontalDivider(color = Line)
+        }
+    }
+}
+
+@Composable private fun HomeResults(open: (String) -> Unit) {
+    SectionRow("Recent results", "Health Passport") { open("Health Passport") }
+    CareCard(padding = 14.dp) {
+        val results = listOf(
+            Triple("Blood pressure", "118/78 mmHg", "In range" to "teal"),
+            Triple("Blood glucose", "5.4 mmol/L", "In range" to "teal"),
+            Triple("Full blood count", "Awaiting doctor review", "With a doctor" to "amber")
+        )
+        results.forEachIndexed { index, (name, value, status) ->
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { open("Health Passport") }
+                    .heightIn(min = 48.dp).padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 19.sp)
+                    Text(value, fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
+                }
+                Spacer(Modifier.width(10.dp))
+                StatusPill(status.first, status.second)
+            }
+            if (index < results.size - 1) HorizontalDivider(color = Line)
+        }
+    }
+}
+
+@Composable private fun HomeCarePlan(open: (String) -> Unit) {
+    SectionRow("Care plan", "Care plans") { open("Care plans") }
+    CareCard {
+        MenuRow("Chronic Routine", "Monthly check-in · due in 9 days", Icons.Outlined.Schedule) { open("Care plans") }
+    }
+}
+
+@Composable private fun HomeFamily(store: PreviewStore, open: (String) -> Unit) {
+    SectionRow("Your circle of care", "My family") { open("My family") }
+    CareCard(padding = 14.dp) {
+        store.family.forEachIndexed { index, member ->
+            /* A member somebody added in this preview has no relationship recorded, and is not given
+               one. Inventing "Your son" for a name typed a moment ago would be the app asserting
+               something about a person it was never told. */
+            val relationship = when (index) {
+                0 -> "Mother · Sponsored care"
+                1 -> "Your son · 8 years"
+                else -> "Added in this preview"
+            }
+            MenuRow(member, relationship, Icons.Outlined.AccountCircle) { open("My family") }
+            HorizontalDivider(color = Line)
+        }
+        MenuRow("Add a family member", "", Icons.Outlined.PersonAdd) { open("My family") }
+    }
+    /* Booking for somebody opens their booking, never their record. What you may see of another
+       person is decided in My family, under consent, and nowhere on this screen. */
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Icon(Icons.Outlined.VerifiedUser, null, tint = BodyText, modifier = Modifier.size(15.dp))
+        Text("Booking for someone opens their booking, never their record. What you may see is decided in My family.",
+             fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
+    }
+}
+
+@Composable private fun PassportPromo(store: PreviewStore, open: (String) -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().heightIn(min = 160.dp).clip(RoundedCornerShape(18.dp))
+            .background(Brush.linearGradient(listOf(Color(0xFF12564B), Teal)))
+            .clickable { open("Health Passport") }.padding(22.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            StatusPill("THUSO PASS", "light")
+            Text("Your health.\nOne safe place.", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White, lineHeight = 28.sp)
+            Text("Every visit, reading and result, in a record you own and control.",
+                 fontSize = 13.sp, color = Color(0xFFC9E5DB), lineHeight = 19.sp)
+            Text("${thuso(Phrase.OPEN_PASSPORT, store.locale)} →", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFC9E5DB))
+        }
     }
 }
 @Composable fun NurseRow(trailing: @Composable (() -> Unit)? = null) {

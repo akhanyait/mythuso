@@ -151,9 +151,13 @@ struct WalletView: View {
 struct NotificationsView: View {
     var body: some View { List { Section("Sample notifications") { Label("Your Saturday visit is confirmed.", systemImage: "calendar"); Label("Your visit summary is ready.", systemImage: "doc.text"); Label("Explore regular check-ins with Thuso Routine.", systemImage: "heart") } }.navigationTitle("Notifications") }
 }
+/// A role, in a shape `fullScreenCover(item:)` can present.
+struct WorkspaceEntry: Identifiable { let id: String }
+
 struct MoreView: View {
     let firstRun: () -> Void
     @EnvironmentObject private var store: PreviewStore
+    @State private var workspace: WorkspaceEntry?
     private let groups: [[(String, String, String)]] = [
         [("My family", "Manage your loved ones", "person.2"), ("Care plans", "Ongoing care and subscriptions", "heart.text.square"), ("Payments", "Cards, history and refunds", "creditcard")],
         [("Notifications", "Visit updates and messages", "bell"), ("Privacy & settings", "Your data and app preferences", "slider.horizontal.3"), ("Language", "Read MyThuso your way", "globe")],
@@ -210,14 +214,17 @@ struct MoreView: View {
                     Divider().overlay(ThusoTheme.line)
                     row("Explore the roadmap", "All 21 modules in the proposal", "square.grid.2x2") { RoadmapView() }
                 }
+                /* A workspace is entered, not pushed. Each opens over the patient's tab bar with a
+                   tab bar of its own, because a nurse's sections are not a shopper's and putting
+                   one inside the other is how the two got confused in the first place. */
                 CareCard {
-                    row("Nurse workspace", "Visits, assessment and vetting", "cross.case") { WorkspaceView(role: "Nurse") }
+                    workspaceRow("Nurse workspace", "Visits, assessment and vetting", "cross.case", role: "Nurse")
                     Divider().overlay(ThusoTheme.line)
-                    row("Doctor workspace", "Review queue and sign-off", "stethoscope") { WorkspaceView(role: "Doctor") }
+                    workspaceRow("Doctor workspace", "Review queue and sign-off", "stethoscope", role: "Doctor")
                     Divider().overlay(ThusoTheme.line)
-                    row("Partner workspace", "Pharmacy and laboratory orders", "pills") { FulfilmentQueueView() }
+                    workspaceRow("Partner workspace", "Pharmacy and laboratory orders", "pills", role: "Partner")
                     Divider().overlay(ThusoTheme.line)
-                    row("Control Tower", "Dispatch, incidents and vetting", "antenna.radiowaves.left.and.right") { WorkspaceView(role: "Control Tower") }
+                    workspaceRow("Control Tower", "Dispatch, incidents and vetting", "antenna.radiowaves.left.and.right", role: "Control Tower")
                 }
                 CareCard {
                     Button(action: firstRun) { MenuRow(title: "Log out", subtitle: "Returns to the first-run flow — this preview has no account", symbol: "rectangle.portrait.and.arrow.right", danger: true) }.buttonStyle(.plain)
@@ -228,17 +235,33 @@ struct MoreView: View {
         }
         .background(ThusoTheme.canvas)
         .navigationTitle("More").navigationBarTitleDisplayMode(.large)
+        .fullScreenCover(item: $workspace) { entry in
+            WorkspaceShell(role: entry.id) { workspace = nil }.environmentObject(store)
+        }
     }
     private func row<Destination: View>(_ title: String, _ subtitle: String, _ symbol: String, @ViewBuilder destination: @escaping () -> Destination) -> some View {
         NavigationLink { destination() } label: { MenuRow(title: title, subtitle: subtitle, symbol: symbol) }.buttonStyle(.plain)
     }
+    private func workspaceRow(_ title: String, _ subtitle: String, _ symbol: String, role: String) -> some View {
+        Button { workspace = WorkspaceEntry(id: role) } label: { MenuRow(title: title, subtitle: subtitle, symbol: symbol) }.buttonStyle(.plain)
+    }
 }
+/* Explore. This is where the rotating banner lives now.
+ *
+ * It used to open the patient's home, roughly two thirds of a phone screen tall, standing between
+ * somebody who had come to book a nurse and the four services they could have booked. Rotating
+ * promotion is what this screen is for, so it is promotion here rather than an obstacle there. It
+ * keeps its pause control either way — WCAG 2.2.2 — and it still refuses to rotate at all when the
+ * system asks for reduced motion. */
 struct RoadmapView: View {
+    @State private var openPassport = false
+    @State private var openServices = false
     private let features = ["Thuso Screen", "Thuso Wear", "Thuso Pharmacy", "Thuso Labs", "Thuso SOS", "Thuso Corner", "Thuso Work", "Thuso Locum", "Thuso Academy", "Thuso Money", "Thuso Cover", "Thuso Devices", "Thuso Kit", "Thuso AI", "Thuso Doctor"]
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 CareHeading(eyebrow: "The MyThuso family", title: "More ways to be cared for.", subtitle: "Availability follows the proposal’s phased roadmap.")
+                HeroCarousel { position in if position == 1 { openPassport = true } else { openServices = true } }
                 CareCard {
                     ForEach(Array(features.enumerated()), id: \.offset) { index, feature in
                         /* Thuso Kit is no longer a row that opens a paragraph about a later phase.
@@ -258,97 +281,285 @@ struct RoadmapView: View {
         }
         .background(ThusoTheme.canvas)
         .navigationTitle("Roadmap").navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $openPassport) { PassportView() }
+        .navigationDestination(isPresented: $openServices) { ServicesView() }
     }
 }
-struct WorkspaceView: View {
+/* A clinical workspace navigates as itself.
+ *
+ * Every role used to open one long List under the patient's own tab bar, so a nurse on a doorstep
+ * and a Control Tower operator with three late visits both navigated by Home, Book care, Visits,
+ * Passport and More. A workspace is not a shop and does not belong under a shop's navigation.
+ *
+ * Each role now gets its own tab bar — its own sections, in its own idiom — and each lands on what
+ * is waiting and how long it has waited rather than on a catalogue. Nothing was granted by moving
+ * it: every vetting gate, every "apply" route and every clinical sign-off is the same view it was
+ * behind, and the sentence about AI being decision support is at the foot of every section rather
+ * than at the foot of one. */
+struct WorkspaceSection: Identifiable, Hashable {
+    let id: String
+    let symbol: String
+}
+
+enum WorkspaceNavigation {
+    /// The same sections, in the same order, as roleNavigation in the web app's App.tsx.
+    static func sections(_ role: String) -> [WorkspaceSection] {
+        switch role {
+        case "Doctor": return [.init(id: "Review queue", symbol: "doc.text.magnifyingglass"),
+                               .init(id: "Teleconsultation", symbol: "video"),
+                               .init(id: "Patient context", symbol: "waveform.path.ecg"),
+                               .init(id: "Protocols", symbol: "book")]
+        case "Partner": return [.init(id: "Orders", symbol: "shippingbox"),
+                                .init(id: "Collections", symbol: "truck.box"),
+                                .init(id: "Results", symbol: "testtube.2")]
+        case "Control Tower": return [.init(id: "Dispatch", symbol: "antenna.radiowaves.left.and.right"),
+                                      .init(id: "Incidents", symbol: "exclamationmark.triangle"),
+                                      .init(id: "Vetting queue", symbol: "checkmark.shield"),
+                                      .init(id: "Quality", symbol: "chart.bar")]
+        default: return [.init(id: "Schedule", symbol: "calendar"),
+                         .init(id: "Assessments", symbol: "list.clipboard"),
+                         .init(id: "Thuso Kit", symbol: "sensor.tag.radiowave.forward"),
+                         .init(id: "Earnings & payouts", symbol: "creditcard"),
+                         .init(id: "Vetting", symbol: "checkmark.seal")]
+        }
+    }
+
+    /* What is waiting, and how long it has waited. A workspace that opens with anything else is
+       asking the person to go and find the urgent thing themselves. */
+    static func urgency(_ role: String) -> [(String, String, String)] {
+        switch role {
+        case "Doctor": return [("Awaiting review", "12", "Longest waiting 3 h 20 m"),
+                               ("Priority reviews", "2", "Flagged out of range"),
+                               ("Reviewed today", "18", "Median 4 m 10 s")]
+        case "Partner": return [("Open orders", "8", "2 past their collection window"),
+                                ("Scheduled collections", "4", "Next 11:15"),
+                                ("Ready for release", "3", "Awaiting a clinician")]
+        case "Control Tower": return [("Active visits", "24", "3 running late"),
+                                      ("Available nurses", "18", "4 off duty"),
+                                      ("Open incidents", "3", "1 severity high")]
+        default: return [("Next visit", "09:00", "Rosebank · in 40 minutes"),
+                         ("Today’s visits", "3", "One awaiting sign-off"),
+                         ("This week so far", "R 598", "Pays Wednesday")]
+        }
+    }
+}
+
+/// A workspace, presented as itself: its own tab bar, one NavigationStack per section.
+struct WorkspaceShell: View {
     let role: String
+    let leave: () -> Void
+    @State private var section: String
+    init(role: String, leave: @escaping () -> Void) {
+        self.role = role
+        self.leave = leave
+        _section = State(initialValue: WorkspaceNavigation.sections(role).first?.id ?? "Schedule")
+    }
+    var body: some View {
+        TabView(selection: $section) {
+            ForEach(WorkspaceNavigation.sections(role)) { entry in
+                NavigationStack { WorkspaceSectionView(role: role, section: entry.id, leave: leave) }
+                    .tabItem { Label(entry.id, systemImage: entry.symbol) }
+                    .tag(entry.id)
+            }
+        }
+        .tint(ThusoTheme.teal)
+    }
+}
+
+/// The urgency strip a workspace lands on. Scaled type, no fixed heights: at the largest sizes the
+/// three panels stack instead of clipping the note under the number.
+struct WorkspaceUrgency: View {
+    let role: String
+    @Environment(\.dynamicTypeSize) private var typeSize
+    var body: some View {
+        let entries = WorkspaceNavigation.urgency(role)
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 10))
+        layout {
+            ForEach(entries, id: \.0) { entry in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(entry.0).font(.caption).foregroundStyle(ThusoTheme.body)
+                    Text(entry.1).font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.ink)
+                    Text(entry.2).font(.caption2).foregroundStyle(ThusoTheme.body).fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(13)
+                .background(.white, in: RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(ThusoTheme.line, lineWidth: 1))
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(entry.0): \(entry.1). \(entry.2)")
+            }
+        }
+    }
+}
+
+struct WorkspaceSectionView: View {
+    let role: String
+    let section: String
+    let leave: () -> Void
     /// Observed rather than read, so the count on the nurse's first row moves when the queue does.
     @ObservedObject private var kit = CaptureStore.shared
     @State private var available = true
+    private var landing: Bool { WorkspaceNavigation.sections(role).first?.id == section }
+
     var body: some View {
         List {
-            Section {
-                DemoBadge()
-                Text("\(role) workspace").font(.title2.weight(.semibold))
-                Text("Design role preview, not authentication.").font(.caption).foregroundStyle(.secondary)
-                if role == "Nurse" { Toggle("Available for visits", isOn: $available) }
+            if landing {
+                Section {
+                    DemoBadge()
+                    Text("Design role preview, not authentication.").font(.caption).foregroundStyle(.secondary)
+                    WorkspaceUrgency(role: role).listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                }
             }
-            if role == "Control Tower" {
-                Section("Dispatch") { NavigationLink("Live dispatch board") { DispatchBoardView() } }
-                Section("Open incidents") {
-                    ForEach(Incidents.all) { incident in
-                        NavigationLink { IncidentDetailView(incident: incident) } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("\(incident.id) · \(incident.title)").font(.subheadline)
-                                Text("\(incident.severity) · \(incident.area) · Opened \(incident.opened) · \(incident.status)").font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-                Section("Vetting") {
-                    NavigationLink("Vetting queue") { VettingConsoleView() }
-                    NavigationLink("Renewals due") { VettingRenewalsView() }
-                    NavigationLink("All twelve vetted parties") { VettingDirectoryView() }
-                    NavigationLink("Operators on duty") { VettingRoleView(roleId: "operator") }
-                }
-                Section("Your tools") { NavigationLink("Quality & revenue") { FeatureDetail(title: "Quality & revenue") } }
-            } else if role == "Doctor" {
-                Section("Review queue") {
-                    ForEach(["TH-2048 · Vitals assessment", "TH-2045 · Wound follow-up", "TH-2041 · Prescription request"], id: \.self) { item in
-                        NavigationLink(item) { DoctorReviewView(reference: String(item.prefix(7))) }
-                    }
-                }
+            content
+            Section { Text("AI is decision support. An authorised clinician must sign off clinical decisions.").font(.caption).foregroundStyle(.secondary) }
+        }
+        .navigationTitle(section)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Leave", action: leave).accessibilityLabel("Leave the \(role) workspace")
+            }
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        switch (role, section) {
+        case ("Doctor", "Review queue"): doctorQueue
+        case ("Doctor", "Teleconsultation"): Section { NavigationLink("Open a teleconsultation") { TeleconsultView() } }
+        case ("Doctor", "Patient context"):
+            Section("Patient records") {
                 /* A doctor's queue and a doctor's record are the same authority asked twice, so the
                    file opens as this doctor rather than as an anonymous reader. */
-                Section("Patient records") {
-                    NavigationLink("Patient file") { PatientFileView(viewerId: "D-401") }
-                    NavigationLink("Consultation record") { ConsultationRecordView(writerId: "D-401") }
-                }
-                Section("Your vetting") {
-                    NavigationLink("My registration and cover") { VettingStatusView(subjectId: "D-401") }
-                    NavigationLink("Apply to join as a doctor") { VettingApplyView(roleId: "doctor") }
-                    NavigationLink("Every doctor on the platform") { VettingRoleView(roleId: "doctor") }
-                }
-                Section("Your tools") {
-                    NavigationLink("Clinical protocols") { FeatureDetail(title: "Clinical protocols") }
-                    NavigationLink("Teleconsultation") { TeleconsultView() }
-                    NavigationLink("Referral pathway") { FeatureDetail(title: "Referral pathway") }
-                }
-            } else {
-                Section("On this phone") {
-                    /* First, not last. A nurse coming out of a house with no signal wants one
-                       answer before anything else on this screen: is my work safe? */
-                    NavigationLink { CaptureQueueView() } label: {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Waiting to send").font(.subheadline)
-                            Text("\(kit.onlyHereCount) reading\(kit.onlyHereCount == 1 ? "" : "s") held here · \(kit.conflictedCount) needing a decision")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                Section("Today’s work") {
-                    NavigationLink("TH-2048 · Vitals assessment · Rosebank") { VisitAssessmentView() }
-                    ForEach(["11:30 · Wound care · Parktown", "14:00 · Mother & baby · Melville"], id: \.self) { item in NavigationLink(item) { FeatureDetail(title: item) } }
-                }
-                Section("Patient records") {
-                    NavigationLink("Patient file") { PatientFileView(viewerId: "N-201") }
-                    NavigationLink("Consultation record") { ConsultationRecordView(writerId: "N-205") }
-                }
-                Section("Your vetting") {
-                    NavigationLink("My vetting status") { VettingStatusView(subjectId: "N-205") }
-                    NavigationLink("Nurse onboarding & vetting") { VettingApplyView(roleId: "nurse") }
-                    NavigationLink("Locum vetting") { VettingRoleView(roleId: "locum") }
-                }
-                Section("Your tools") {
-                    NavigationLink("Visit assessment") { VisitAssessmentView() }
-                    NavigationLink("Thuso Kit · pair an instrument") { ThusoKitView() }
-                    NavigationLink("Earnings & payouts") { EarningsView() }
-                    NavigationLink("Thuso SOS · urgent care") { SosView() }
-                    NavigationLink("Locum shifts") { FeatureDetail(title: "Locum shifts") }
-                    NavigationLink("Academy") { FeatureDetail(title: "Academy") }
+                NavigationLink("Patient file") { PatientFileView(viewerId: "D-401") }
+                NavigationLink("Consultation record") { ConsultationRecordView(writerId: "D-401") }
+            }
+        case ("Doctor", "Protocols"):
+            Section("Your tools") {
+                NavigationLink("Clinical protocols") { FeatureDetail(title: "Clinical protocols") }
+                NavigationLink("Referral pathway") { FeatureDetail(title: "Referral pathway") }
+            }
+        case ("Partner", "Orders"): partnerOrders
+        case ("Partner", "Collections"):
+            Section("Collections") {
+                NavigationLink("Collection schedule") { FeatureDetail(title: "Collection schedule") }
+                NavigationLink("Couriers who may take custody") { VettingRoleView(roleId: "courier") }
+            }
+        case ("Partner", "Results"):
+            Section("Laboratory") {
+                NavigationLink("LAB-0023 · Fasting panel · Results verified") { LabOrderView(reference: "LAB-0023") }
+                NavigationLink("LAB-0019 · Sample in transit · Seal intact") { LabOrderView(reference: "LAB-0019") }
+                NavigationLink("This laboratory’s accreditation") { VettingStatusView(subjectId: "B-601") }
+            }
+        case ("Control Tower", "Dispatch"):
+            Section("Dispatch") {
+                NavigationLink("Live dispatch board") { DispatchBoardView() }
+                NavigationLink("Operators on duty") { VettingRoleView(roleId: "operator") }
+            }
+        case ("Control Tower", "Incidents"): incidents
+        case ("Control Tower", "Vetting queue"):
+            Section("Vetting") {
+                NavigationLink("Vetting queue") { VettingConsoleView() }
+                NavigationLink("Renewals due") { VettingRenewalsView() }
+                NavigationLink("All twelve vetted parties") { VettingDirectoryView() }
+            }
+        case ("Control Tower", "Quality"):
+            Section("Your tools") {
+                NavigationLink("Quality & revenue") { FeatureDetail(title: "Quality & revenue") }
+                NavigationLink("Employer programmes") { FeatureDetail(title: "Employer programmes") }
+                NavigationLink("Nurse onboarding & vetting") { VettingApplyView(roleId: "nurse") }
+            }
+        case (_, "Assessments"):
+            Section("Start a visit") { NavigationLink("Visit assessment · TH-2048") { VisitAssessmentView() } }
+            Section("Patient records") {
+                NavigationLink("Patient file") { PatientFileView(viewerId: "N-201") }
+                NavigationLink("Consultation record") { ConsultationRecordView(writerId: "N-205") }
+            }
+        case (_, "Thuso Kit"):
+            Section("On this phone") { waitingToSend }
+            Section("Instruments") { NavigationLink("Thuso Kit · pair an instrument") { ThusoKitView() } }
+        case (_, "Earnings & payouts"):
+            Section { NavigationLink("Earnings & payouts") { EarningsView() } }
+        case (_, "Vetting"):
+            Section("Your vetting") {
+                NavigationLink("My vetting status") { VettingStatusView(subjectId: "N-205") }
+                NavigationLink("Nurse onboarding & vetting") { VettingApplyView(roleId: "nurse") }
+                NavigationLink("Locum vetting") { VettingRoleView(roleId: "locum") }
+            }
+        default: nurseSchedule
+        }
+    }
+
+    private var doctorQueue: some View {
+        Group {
+            Section("Clinical review queue") {
+                ForEach(["TH-2048 · Vitals assessment", "TH-2045 · Wound follow-up", "TH-2041 · Prescription request"], id: \.self) { item in
+                    NavigationLink(item) { DoctorReviewView(reference: String(item.prefix(7))) }
                 }
             }
-            Section { Text("AI is decision support. An authorised clinician must sign off clinical decisions.").font(.caption).foregroundStyle(.secondary) }
-        }.navigationTitle(role)
+            Section("Your vetting") {
+                NavigationLink("My registration and cover") { VettingStatusView(subjectId: "D-401") }
+                NavigationLink("Apply to join as a doctor") { VettingApplyView(roleId: "doctor") }
+                NavigationLink("Every doctor on the platform") { VettingRoleView(roleId: "doctor") }
+            }
+        }
+    }
+
+    private var partnerOrders: some View {
+        Group {
+            Section("Prescriptions") {
+                NavigationLink("RX-0081 · 2 items · Awaiting pharmacist") { PrescriptionView(reference: "RX-0081") }
+                NavigationLink("RX-0079 · 1 item · Dispensed, awaiting courier") { PrescriptionView(reference: "RX-0079") }
+            }
+            Section("Vetting") {
+                NavigationLink("This pharmacy’s licence and pharmacist") { VettingStatusView(subjectId: "P-501") }
+                NavigationLink("Apply as a partner") { VettingApplyView(roleId: "pharmacy") }
+            }
+            Section { Text("Sample orders. No live partner API, dispensing or courier handover is connected.").font(.caption).foregroundStyle(.secondary) }
+        }
+    }
+
+    private var incidents: some View {
+        Section("Open incidents") {
+            ForEach(Incidents.all) { incident in
+                NavigationLink { IncidentDetailView(incident: incident) } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(incident.id) · \(incident.title)").font(.subheadline)
+                        Text("\(incident.severity) · \(incident.area) · Opened \(incident.opened) · \(incident.status)").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+    }
+
+    private var nurseSchedule: some View {
+        Group {
+            Section { Toggle("Available for visits", isOn: $available) }
+            /* First, not last. A nurse coming out of a house with no signal wants one answer before
+               anything else on this screen: is my work safe? */
+            Section("On this phone") { waitingToSend }
+            Section("Today’s work") {
+                NavigationLink("TH-2048 · Vitals assessment · Rosebank") { VisitAssessmentView() }
+                ForEach(["11:30 · Wound care · Parktown", "14:00 · Mother & baby · Melville"], id: \.self) { item in
+                    NavigationLink(item) { FeatureDetail(title: item) }
+                }
+            }
+            Section("More tools") {
+                NavigationLink("Thuso SOS · urgent care") { SosView() }
+                NavigationLink("Locum shifts") { FeatureDetail(title: "Locum shifts") }
+                NavigationLink("Academy") { FeatureDetail(title: "Academy") }
+            }
+        }
+    }
+
+    private var waitingToSend: some View {
+        NavigationLink { CaptureQueueView() } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Waiting to send").font(.subheadline)
+                Text("\(kit.onlyHereCount) reading\(kit.onlyHereCount == 1 ? "" : "s") held here · \(kit.conflictedCount) needing a decision")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
     }
 }

@@ -138,28 +138,3 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
         Button(onClick = { released = !released }, Modifier.fillMaxWidth()) { Text(if (released) "Withdraw demo release" else "Release with an explanation") }
     }
 }
-@Composable fun FulfilmentQueueScreen(open: (String) -> Unit) {
-    ScreenColumn {
-        DemoBadge()
-        Heading("Partner workspace", "Connected care, delivered.", "Sample fulfilment queue. No live partner API, dispensing or courier handover is connected.")
-        CareCard {
-            Text("Prescriptions", style = MaterialTheme.typography.titleMedium)
-            ToolRow("RX-0081 · 2 items · Awaiting pharmacist") { open("Prescription RX-0081") }
-            ToolRow("RX-0079 · 1 item · Dispensed, awaiting courier") { open("Prescription RX-0079") }
-        }
-        CareCard {
-            Text("Laboratory", style = MaterialTheme.typography.titleMedium)
-            ToolRow("LAB-0023 · Fasting panel · Results verified") { open("Laboratory order LAB-0023") }
-            ToolRow("LAB-0019 · Sample in transit · Seal intact") { open("Laboratory order LAB-0019") }
-        }
-        /* A partner is vetted as an organisation, and the courier who carries the sample is vetted
-           in his own right. Both refusals reach this queue, so both are reachable from it. */
-        CareCard {
-            Text("Vetting", style = MaterialTheme.typography.titleMedium)
-            ToolRow("Pharmacy vetting · Diepkloof Family Pharmacy") { open("Vetting: P-502") }
-            ToolRow("Laboratory vetting · Vaal Diagnostics") { open("Vetting: B-602") }
-            ToolRow("Courier vetting · Johannes Pretorius") { open("Vetting: C-702") }
-            ToolRow("Start a partner application") { open("Apply for vetting: pharmacy") }
-        }
-    }
-}
