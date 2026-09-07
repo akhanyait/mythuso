@@ -29,7 +29,7 @@ struct ClinicalChart: View {
     var body: some View {
         CareCard {
             HStack(alignment: .top) {
-                if let symbol { Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(ThusoTheme.indigo) }
+                if let symbol { Image(systemName: symbol).font(.subheadline).foregroundStyle(ThusoTheme.indigo) }
                 Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Spacer()
                 Text(inRange ? "Within sample range" : "Outside sample range")
@@ -39,7 +39,7 @@ struct ClinicalChart: View {
                     .foregroundStyle(inRange ? ThusoTheme.slate : Color(red: 0.59, green: 0.33, blue: 0.17))
             }
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(format(latest.value)).font(.system(size: 30, weight: .semibold, design: .rounded))
+                Text(format(latest.value)).font(.system(.largeTitle, design: .rounded, weight: .semibold))
                 Text(unit).font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Text(latest.value == first.value ? "No change" : "\(latest.value > first.value ? "+" : "")\(format(latest.value - first.value)) since \(first.label)")

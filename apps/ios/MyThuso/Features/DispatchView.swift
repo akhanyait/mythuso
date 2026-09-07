@@ -120,7 +120,7 @@ struct DispatchMap: View {
                 }
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
-                        Text(zone.name).font(.system(size: 10, weight: .semibold)).foregroundStyle(ThusoTheme.slate.opacity(0.75))
+                        Text(zone.name).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.slate.opacity(0.75))
                             .position(x: point.x * size, y: (point.y - zone.radius) * size + 8)
                     }
                 }

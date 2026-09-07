@@ -179,7 +179,7 @@ struct VisitAssessmentView: View {
                         HStack {
                             Text(derived.label).font(.subheadline)
                             Spacer()
-                            Text("\(derived.value) \(derived.unit)").font(.system(size: 15, weight: .semibold, design: .rounded))
+                            Text("\(derived.value) \(derived.unit)").font(.system(.subheadline, design: .rounded, weight: .semibold))
                         }
                         ProvenanceMark(provenance: .derived, full: true)
                         Text(derived.workings).font(.caption2).foregroundStyle(.secondary)
@@ -271,15 +271,15 @@ struct VisitAssessmentView: View {
             if let kitReading = fromKit[observation.id] {
                 if let line = kitReading.instrumentLine {
                     Text(provenance == .device ? line : "\(line) — read by hand, so this is a clinician’s reading of that instrument")
-                        .font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                        .font(.caption2).foregroundStyle(ThusoTheme.faint)
                 }
                 if let label = kitReading.qualifierLabel, let qualifier = kitReading.qualifier {
-                    Text("\(label): \(qualifier)").font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                    Text("\(label): \(qualifier)").font(.caption2).foregroundStyle(ThusoTheme.faint)
                 }
                 CaveatNote(caveats: kitReading.caveats)
             }
             if provenance == .patientReported {
-                Text("In the record as what they said, not as something you observed.").font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                Text("In the record as what they said, not as something you observed.").font(.caption2).foregroundStyle(ThusoTheme.faint)
             }
         }
         .padding(.vertical, 3)
@@ -343,9 +343,9 @@ struct VisitAssessmentView: View {
                 }
                 if let derived {
                     VStack(alignment: .leading, spacing: 5) {
-                        HStack { Text(derived.label).font(.caption).foregroundStyle(.secondary); Spacer(); Text("\(derived.value) \(derived.unit)").font(.system(size: 15, weight: .semibold, design: .rounded)) }
+                        HStack { Text(derived.label).font(.caption).foregroundStyle(.secondary); Spacer(); Text("\(derived.value) \(derived.unit)").font(.system(.subheadline, design: .rounded, weight: .semibold)) }
                         ProvenanceMark(provenance: .derived)
-                        Text(derived.workings).font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                        Text(derived.workings).font(.caption2).foregroundStyle(ThusoTheme.faint)
                     }
                 }
                 ForEach(unranged) { ReadingRow(reading: $0) }

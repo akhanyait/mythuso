@@ -74,7 +74,7 @@ struct DispensingView: View {
     private var header: some View {
         CareCard {
             Text(Dispensing.prescription.reference)
-                .font(.system(size: 21, weight: .bold)).foregroundStyle(ThusoTheme.ink)
+                .font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.ink)
             Text("\(Dispensing.prescription.patient) · \(Dispensing.prescription.patientBorn) · issued \(Dispensing.prescription.issued.formatted(dispensingDay))")
                 .font(.footnote).foregroundStyle(ThusoTheme.body)
             row("Prescribed by", attributedTo(prescriberId))
@@ -112,11 +112,11 @@ struct DispensingView: View {
         VStack(alignment: .leading, spacing: 11) {
             heading("What a substitution may and may not change")
             CareCard {
-                Text("Never, without the prescriber").font(.system(size: 11.5, weight: .bold))
+                Text("Never, without the prescriber").font(.caption.weight(.bold))
                     .textCase(.uppercase).foregroundStyle(ThusoTheme.faint)
                 ForEach(Dispensing.neverChanges) { change in bullet(change.what, change.why) }
                 Divider()
-                Text("May change, and the patient is told").font(.system(size: 11.5, weight: .bold))
+                Text("May change, and the patient is told").font(.caption.weight(.bold))
                     .textCase(.uppercase).foregroundStyle(ThusoTheme.faint)
                 ForEach(Dispensing.mayChange) { change in bullet(change.what, change.why) }
                 refusal(Dispensing.refusal("substitute-the-molecule"))
@@ -130,8 +130,8 @@ struct DispensingView: View {
             ForEach(Dispensing.substitutionClasses) { klass in
                 CareCard {
                     StatusPill(text: klass.shortName, tone: klass.tone)
-                    Text(klass.name).font(.system(size: 14.5, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                    Text(klass.detail).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    Text(klass.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(klass.detail).font(.caption).foregroundStyle(ThusoTheme.body)
                     Text(klass.whoDecides).font(.footnote).foregroundStyle(ThusoTheme.faint)
                 }
             }
@@ -146,12 +146,12 @@ struct DispensingView: View {
         VStack(alignment: .leading, spacing: 11) {
             heading("\(Dispensing.prescription.items.count) items · \(Dispensing.prescription.substituted.count) substituted")
             Text(Dispensing.rule("substitution-is-clinical").sentence)
-                .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                .font(.caption).foregroundStyle(ThusoTheme.body)
             ForEach(Dispensing.prescription.items) { item in itemCard(item) }
             Text(Dispensing.rule("patient-is-told-first").sentence)
-                .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                .font(.caption).foregroundStyle(ThusoTheme.body)
             Text(Dispensing.rule("substitution-is-signed").sentence)
-                .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                .font(.caption).foregroundStyle(ThusoTheme.body)
         }
     }
 
@@ -162,15 +162,15 @@ struct DispensingView: View {
         return CareCard {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(item.dispensed).font(.system(size: 14.5, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(item.dispensed).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     Text("\(item.molecule) \(item.strength) · \(item.form) · \(item.dose) · \(item.quantity)")
-                        .font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                        .font(.caption).foregroundStyle(ThusoTheme.body)
                 }
                 Spacer(minLength: 8)
                 StatusPill(text: klass.shortName, tone: klass.tone)
             }
             Text(item.wasSubstituted ? "Written: \(item.prescribed)" : "Written and dispensed: \(item.prescribed)")
-                .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                .font(.caption).foregroundStyle(ThusoTheme.body)
             groundLine(ground)
             if let second = item.secondGround { groundLine(Dispensing.ground(second)) }
             Text(klass.whoDecides).font(.footnote).foregroundStyle(ThusoTheme.faint)
@@ -182,10 +182,10 @@ struct DispensingView: View {
             if let reason = item.writtenReason {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("\(Dispensing.prescription.pharmacist.name) · \(Dispensing.prescription.pharmacist.registration)")
-                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                        .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     Text("\(Dispensing.prescription.pharmacist.role) · the prescriber was told the same day")
-                        .font(.system(size: 11.5)).foregroundStyle(ThusoTheme.faint)
-                    Text(reason).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                        .font(.caption).foregroundStyle(ThusoTheme.faint)
+                    Text(reason).font(.caption).foregroundStyle(ThusoTheme.body)
                 }
                 .padding(13).frame(maxWidth: .infinity, alignment: .leading)
                 .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
@@ -203,7 +203,7 @@ struct DispensingView: View {
                 set: { on in if on { handed.insert(item.id) } else { handed.remove(item.id) } }
             )) {
                 Text(isTold ? "Handed over" : "Nothing is handed over before the patient has been told what it is")
-                    .font(.system(size: 12.5)).foregroundStyle(isTold ? ThusoTheme.ink : ThusoTheme.faint)
+                    .font(.caption).foregroundStyle(isTold ? ThusoTheme.ink : ThusoTheme.faint)
             }
             .disabled(!isTold || !open)
             Text(item.note).font(.footnote).foregroundStyle(ThusoTheme.faint)
@@ -215,19 +215,19 @@ struct DispensingView: View {
     private func telling(_ item: PrescriptionItem) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Label(Dispensing.headline(item), systemImage: "ear")
-                .font(.system(size: 12, weight: .bold)).foregroundStyle(ThusoTheme.indigo)
+                .font(.caption.weight(.bold)).foregroundStyle(ThusoTheme.indigo)
             if item.wasSubstituted {
-                Text("It replaces \(item.prescribed).").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.indigo)
+                Text("It replaces \(item.prescribed).").font(.caption).foregroundStyle(ThusoTheme.indigo)
             }
-            Text(item.patientWords).font(.system(size: 15)).foregroundStyle(ThusoTheme.slate)
+            Text(item.patientWords).font(.subheadline).foregroundStyle(ThusoTheme.slate)
             if !item.sameness.isEmpty {
-                Text("The same").font(.system(size: 11.5, weight: .bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.faint)
+                Text("The same").font(.caption.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.faint)
                 ForEach(item.sameness, id: \.self) { line in
-                    Text("• \(line)").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    Text("• \(line)").font(.caption).foregroundStyle(ThusoTheme.body)
                 }
-                Text("Different").font(.system(size: 11.5, weight: .bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.faint)
+                Text("Different").font(.caption.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.faint)
                 ForEach(item.differences, id: \.self) { line in
-                    Text("• \(line)").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    Text("• \(line)").font(.caption).foregroundStyle(ThusoTheme.body)
                 }
             }
         }
@@ -246,8 +246,8 @@ struct DispensingView: View {
                         Image(systemName: done ? "checkmark.circle.fill" : "circle")
                             .foregroundStyle(done ? ThusoTheme.indigo : .gray.opacity(0.5))
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(step.label).font(.system(size: 13.5, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                            Text(step.detail).font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                            Text(step.label).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                            Text(step.detail).font(.caption).foregroundStyle(ThusoTheme.body)
                         }
                     }
                     .accessibilityElement(children: .combine)
@@ -266,8 +266,8 @@ struct DispensingView: View {
             CareCard {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(auth.reference).font(.system(size: 17, weight: .bold)).foregroundStyle(ThusoTheme.ink)
-                        Text("\(auth.programme) · \(auth.condition)").font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                        Text(auth.reference).font(.body.weight(.bold)).foregroundStyle(ThusoTheme.ink)
+                        Text("\(auth.programme) · \(auth.condition)").font(.caption).foregroundStyle(ThusoTheme.body)
                     }
                     Spacer(minLength: 8)
                     StatusPill(text: "\(Dispensing.repeatsRemaining) of \(auth.repeatsAuthorised) left",
@@ -284,26 +284,26 @@ struct DispensingView: View {
                 Text(auth.note).font(.footnote).foregroundStyle(ThusoTheme.body)
                 Text(auth.quantityNote).font(.footnote).foregroundStyle(ThusoTheme.body)
                 Text(Dispensing.rule("authorisation-is-boxed").sentence)
-                    .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    .font(.caption).foregroundStyle(ThusoTheme.body)
                 row("Last collected", Dispensing.lastCollectedOn.formatted(dispensingDay))
                 row("Next collection due", Dispensing.nextCollectionOn.formatted(dispensingDay))
                 Button("Collect a repeat") { collectTried = true }.buttonStyle(CareButton()).disabled(!open)
                 if collectTried {
                     if answer.allowed {
-                        Text(answer.reason).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+                        Text(answer.reason).font(.caption).foregroundStyle(ThusoTheme.slate)
                     } else {
                         alert(answer.reason, symbol: "calendar.badge.clock")
                         Text(Dispensing.rule("early-is-refused-with-a-date").sentence)
-                            .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                            .font(.caption).foregroundStyle(ThusoTheme.body)
                     }
                 }
                 if Dispensing.isFinalRepeat {
                     alert("This is the last repeat. It is said now, not at the counter next month.", symbol: "exclamationmark.circle")
                 }
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("What happens at the end").font(.system(size: 13.5, weight: .semibold)).foregroundStyle(ThusoTheme.slate)
-                    Text(auth.endsWith).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
-                    Text(Dispensing.rule("ends-in-a-review").sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+                    Text("What happens at the end").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.slate)
+                    Text(auth.endsWith).font(.caption).foregroundStyle(ThusoTheme.slate)
+                    Text(Dispensing.rule("ends-in-a-review").sentence).font(.caption).foregroundStyle(ThusoTheme.slate)
                 }
                 .padding(14).frame(maxWidth: .infinity, alignment: .leading)
                 .background(ThusoTheme.indigoSoft, in: RoundedRectangle(cornerRadius: 14))
@@ -323,23 +323,23 @@ struct DispensingView: View {
     // MARK: - Small parts
 
     private func heading(_ text: String) -> some View {
-        Text(text).font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+        Text(text).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
     }
 
     private func row(_ label: String, _ value: String) -> some View {
         HStack(alignment: .top) {
-            Text(label).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
+            Text(label).font(.footnote).foregroundStyle(ThusoTheme.body)
             Spacer(minLength: 8)
-            Text(value).font(.system(size: 13, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(value).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 .multilineTextAlignment(.trailing)
         }
     }
 
     private func box(_ label: String, _ value: String, _ note: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(label).font(.system(size: 11, weight: .bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.faint)
-            Text(value).font(.system(size: 18, weight: .bold)).foregroundStyle(ThusoTheme.ink)
-            Text(note).font(.system(size: 11.5)).foregroundStyle(ThusoTheme.body)
+            Text(label).font(.caption2.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.faint)
+            Text(value).font(.body.weight(.bold)).foregroundStyle(ThusoTheme.ink)
+            Text(note).font(.caption).foregroundStyle(ThusoTheme.body)
         }
         .padding(13).frame(maxWidth: .infinity, alignment: .leading)
         .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
@@ -349,8 +349,8 @@ struct DispensingView: View {
         HStack(alignment: .top, spacing: 9) {
             Text("•").foregroundStyle(ThusoTheme.indigo)
             VStack(alignment: .leading, spacing: 2) {
-                Text(what).font(.system(size: 13, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                Text(why).font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                Text(what).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                Text(why).font(.caption).foregroundStyle(ThusoTheme.body)
             }
         }
         .accessibilityElement(children: .combine)
@@ -358,11 +358,11 @@ struct DispensingView: View {
 
     private func groundLine(_ ground: SubstitutionGround) -> some View {
         HStack(alignment: .top, spacing: 9) {
-            Image(systemName: "info.circle").font(.system(size: 14)).foregroundStyle(ThusoTheme.indigo)
+            Image(systemName: "info.circle").font(.subheadline).foregroundStyle(ThusoTheme.indigo)
             VStack(alignment: .leading, spacing: 3) {
                 Text(ground.section == nil ? ground.name : "\(ground.name) · section \(ground.section ?? "")")
-                    .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                Text(ground.detail).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                Text(ground.detail).font(.caption).foregroundStyle(ThusoTheme.body)
             }
         }
         .accessibilityElement(children: .combine)
@@ -370,8 +370,8 @@ struct DispensingView: View {
 
     private func alert(_ text: String, symbol: String) -> some View {
         HStack(alignment: .top, spacing: 11) {
-            Image(systemName: symbol).font(.system(size: 16)).foregroundStyle(ThusoTheme.mangoInk)
-            Text(text).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+            Image(systemName: symbol).font(.callout).foregroundStyle(ThusoTheme.mangoInk)
+            Text(text).font(.caption).foregroundStyle(ThusoTheme.slate)
         }
         .padding(14).frame(maxWidth: .infinity, alignment: .leading)
         .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
@@ -379,8 +379,8 @@ struct DispensingView: View {
 
     private func refusal(_ item: DispensingRefusal) -> some View {
         HStack(alignment: .top, spacing: 11) {
-            Image(systemName: "nosign").font(.system(size: 16)).foregroundStyle(ThusoTheme.danger)
-            Text(item.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+            Image(systemName: "nosign").font(.callout).foregroundStyle(ThusoTheme.danger)
+            Text(item.sentence).font(.caption).foregroundStyle(ThusoTheme.slate)
         }
     }
 }

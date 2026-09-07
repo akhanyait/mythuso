@@ -47,7 +47,7 @@ struct HeroCarousel: View {
                 Spacer()
                 if !reduceMotion {
                     Button { playing.toggle() } label: {
-                        Image(systemName: playing ? "pause.fill" : "play.fill").font(.system(size: 11, weight: .bold))
+                        Image(systemName: playing ? "pause.fill" : "play.fill").font(.caption2.weight(.bold))
                             .foregroundStyle(ThusoTheme.body).frame(width: 32, height: 32)
                             .background(.white, in: Circle()).overlay(Circle().stroke(ThusoTheme.line, lineWidth: 1))
                     }
@@ -74,10 +74,10 @@ struct HeroCarousel: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {
-                Text(slide.title).font(.system(size: 24, weight: .bold)).foregroundStyle(ThusoTheme.slate).fixedSize(horizontal: false, vertical: true)
-                Text(slide.body).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body).padding(.top, 8).fixedSize(horizontal: false, vertical: true)
+                Text(slide.title).font(.title2.weight(.bold)).foregroundStyle(ThusoTheme.slate).fixedSize(horizontal: false, vertical: true)
+                Text(slide.body).font(.caption).foregroundStyle(ThusoTheme.body).padding(.top, 8).fixedSize(horizontal: false, vertical: true)
                 Button { onAction(position) } label: {
-                    HStack(spacing: 9) { Text(slide.cta).font(.system(size: 14, weight: .semibold)); Image(systemName: "arrow.right").font(.system(size: 13, weight: .semibold)) }
+                    HStack(spacing: 9) { Text(slide.cta).font(.subheadline.weight(.semibold)); Image(systemName: "arrow.right").font(.footnote.weight(.semibold)) }
                         .padding(.horizontal, 20).padding(.vertical, 13)
                         .background(ThusoTheme.indigo, in: Capsule()).foregroundStyle(.white)
                 }
@@ -85,14 +85,14 @@ struct HeroCarousel: View {
                 HStack(alignment: .top, spacing: 2) {
                     ForEach(Array(slide.trust.enumerated()), id: \.offset) { spot, label in
                         VStack(spacing: 6) {
-                            Image(systemName: slide.symbols[spot]).font(.system(size: 14)).foregroundStyle(ThusoTheme.indigo)
+                            Image(systemName: slide.symbols[spot]).font(.subheadline).foregroundStyle(ThusoTheme.indigo)
                                 .frame(width: 32, height: 32).background(.white.opacity(0.78), in: Circle())
-                            Text(label).font(.system(size: 10, weight: .semibold)).foregroundStyle(Color(red: 0.26, green: 0.40, blue: 0.36))
+                            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(Color(red: 0.26, green: 0.40, blue: 0.36))
                                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                         }.frame(maxWidth: .infinity)
                     }
                 }.padding(.top, 14)
-                Text(slide.caption).font(.system(size: 11, weight: .semibold)).foregroundStyle(ThusoTheme.indigoDeep)
+                Text(slide.caption).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.indigoDeep)
                     .padding(.horizontal, 14).padding(.vertical, 8)
                     .background(.white.opacity(0.88), in: Capsule())
                     .padding(.top, 12)

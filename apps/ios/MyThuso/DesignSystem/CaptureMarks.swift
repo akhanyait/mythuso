@@ -45,8 +45,8 @@ struct ProvenanceMark: View {
     var full = false
     var body: some View {
         HStack(spacing: 5) {
-            Image(systemName: provenance.symbol).font(.system(size: 10, weight: .semibold))
-            Text(full ? provenance.name : provenance.shortName).font(.system(size: 11, weight: .semibold))
+            Image(systemName: provenance.symbol).font(.caption2.weight(.semibold))
+            Text(full ? provenance.name : provenance.shortName).font(.caption2.weight(.semibold))
         }
         .foregroundStyle(provenance.tint)
         .padding(.horizontal, 9).padding(.vertical, 5)
@@ -74,7 +74,7 @@ struct ProvenanceKey: View {
                     HStack(spacing: 8) {
                         ProvenanceMark(provenance: provenance, full: true)
                         Spacer(minLength: 6)
-                        Text(provenance.fhir).font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                        Text(provenance.fhir).font(.caption2).foregroundStyle(ThusoTheme.faint)
                     }
                     Text(provenance.detail).font(.caption2).foregroundStyle(ThusoTheme.ink)
                     Text(provenance.trust).font(.caption2).foregroundStyle(ThusoTheme.body)
@@ -128,7 +128,7 @@ struct ReadingRow: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(reading.label).font(.caption).foregroundStyle(ThusoTheme.body)
                 Spacer(minLength: 8)
-                Text(reading.display).font(.system(size: 15, weight: .semibold, design: .rounded))
+                Text(reading.display).font(.system(.subheadline, design: .rounded, weight: .semibold))
                     .foregroundStyle(ThusoTheme.ink).multilineTextAlignment(.trailing)
             }
             HStack(spacing: 8) {
@@ -140,14 +140,14 @@ struct ReadingRow: View {
             }
             if let line = reading.instrumentLine {
                 Text(reading.calibratedOn.map { "\(line) · last calibrated \(vettingDate($0))" } ?? line)
-                    .font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                    .font(.caption2).foregroundStyle(ThusoTheme.faint)
             }
             if let label = reading.qualifierLabel, let qualifier = reading.qualifier {
-                Text("\(label): \(qualifier)").font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                Text("\(label): \(qualifier)").font(.caption2).foregroundStyle(ThusoTheme.faint)
             }
             if !reading.derivedFrom.isEmpty {
                 Text("Calculated from \(reading.derivedFrom.map { KitMeasures.label($0).lowercased() }.joined(separator: " and "))")
-                    .font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                    .font(.caption2).foregroundStyle(ThusoTheme.faint)
             }
             if !dense { CaveatNote(caveats: reading.caveats) }
         }
@@ -169,7 +169,7 @@ struct TwoClocksRow: View {
             Text(entry.whenItHappened == captureStamp(entry.serverReceivedAt ?? entry.deviceCapturedAt)
                  ? "Ordered by the receipt time. The phone’s own time is kept beside it as what the phone believed."
                  : entry.whenItHappened)
-                .font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                .font(.caption2).foregroundStyle(ThusoTheme.faint)
             if let drift = entry.clockDisagreedBy {
                 let hours = abs(drift) / 3600
                 Label("This phone’s clock was \(String(format: "%.1f", hours)) hours \(drift > 0 ? "ahead of" : "behind") the receipt. Nobody was asked about it — the receipt time orders the record and the phone’s time is kept as what the phone believed.",
@@ -189,10 +189,10 @@ struct WrittenAgoNote: View {
     var body: some View {
         if let at {
             Text("\(what) was \(writtenInWords(at)), to the store on this phone.")
-                .font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                .font(.caption2).foregroundStyle(ThusoTheme.faint)
         } else {
             Text("\(what) has not been written to this phone’s store.")
-                .font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                .font(.caption2).foregroundStyle(ThusoTheme.faint)
         }
     }
 }

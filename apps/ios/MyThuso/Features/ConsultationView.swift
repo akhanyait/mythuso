@@ -170,7 +170,7 @@ struct ConsultationRecordView: View {
     @ViewBuilder private var header: some View {
         DemoBadge()
         StatusPill(text: signature == nil ? "Draft — not signed" : "Signed · demo record", tone: signature == nil ? "amber" : "teal")
-        Text("\(reference) · \(patient)").font(.system(size: 20, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+        Text("\(reference) · \(patient)").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
         Text(Records.consultationWhy).font(.footnote).foregroundStyle(ThusoTheme.body)
         CareCard {
             Text("Writing as").font(.caption).foregroundStyle(ThusoTheme.body)
@@ -338,10 +338,10 @@ struct ConsultationRecordView: View {
                         ReadingRow(reading: entry.reading)
                         HStack(spacing: 8) {
                             CaptureStatePill(state: entry.state)
-                            Text(entry.capturedByName).font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                            Text(entry.capturedByName).font(.caption2).foregroundStyle(ThusoTheme.faint)
                             Spacer(minLength: 0)
                         }
-                        Text(entry.whenItHappened).font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                        Text(entry.whenItHappened).font(.caption2).foregroundStyle(ThusoTheme.faint)
                         WrittenAgoNote(at: entry.writtenToPhoneAt, what: "This reading")
                     }
                     if entry.id != visitReadings.last?.id { Divider().overlay(ThusoTheme.line) }

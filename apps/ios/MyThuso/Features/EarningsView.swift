@@ -83,16 +83,16 @@ struct EarningsView: View {
         let allowed = decision?.allowed ?? false
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: allowed ? "checkmark.seal.fill" : "exclamationmark.shield.fill")
-                .font(.system(size: 19)).foregroundStyle(allowed ? ThusoTheme.indigo : ThusoTheme.mangoInk)
+                .font(.title3).foregroundStyle(allowed ? ThusoTheme.indigo : ThusoTheme.mangoInk)
             VStack(alignment: .leading, spacing: 5) {
                 Text(allowed ? "Cleared for visits" : "You will not be sent new visits")
-                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Text(allowed ? "Every check is verified and in date. Visits can be sent to you."
                              : (decision?.reason ?? ""))
-                    .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    .font(.caption).foregroundStyle(ThusoTheme.body)
                 if !allowed {
                     Text(Earnings.rule("suspension-is-not-confiscation").sentence)
-                        .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+                        .font(.caption).foregroundStyle(ThusoTheme.slate)
                 }
             }
         }
@@ -128,9 +128,9 @@ struct EarningsView: View {
 
     private func metric(_ label: String, _ value: String, _ note: String) -> some View {
         CareCard {
-            Text(label).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
-            Text(value).font(.system(size: 28, weight: .bold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
-            Text(note).font(.system(size: 11.5)).foregroundStyle(ThusoTheme.faint)
+            Text(label).font(.caption).foregroundStyle(ThusoTheme.body)
+            Text(value).font(.title.weight(.bold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
+            Text(note).font(.caption).foregroundStyle(ThusoTheme.faint)
         }
     }
 
@@ -139,7 +139,7 @@ struct EarningsView: View {
     private var split: some View {
         let parts = Earnings.split(service)
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Where the money goes").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("Where the money goes").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
                 Picker("Show the split for", selection: $serviceId) {
                     ForEach(Earnings.pricedServices) { Text($0.name).tag($0.id) }
@@ -157,7 +157,7 @@ struct EarningsView: View {
                 legend(ThusoTheme.mango, rand(parts.payment), "The card fee, paid by MyThuso")
                 legend(ThusoTheme.accentSoft, rand(parts.platform), "What MyThuso keeps")
                 Text(Earnings.rule("share-is-not-reduced").sentence)
-                    .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    .font(.caption).foregroundStyle(ThusoTheme.body)
                 Text("Across the nine services at launch that is \(rand(Earnings.shareRange.low)) to \(rand(Earnings.shareRange.high)) a visit — the same range the public page advertises, read from the same catalogue.")
                     .font(.footnote).foregroundStyle(ThusoTheme.faint)
             }
@@ -173,8 +173,8 @@ struct EarningsView: View {
         HStack(alignment: .top, spacing: 9) {
             RoundedRectangle(cornerRadius: 3).fill(colour).frame(width: 11, height: 11).padding(.top, 4)
             VStack(alignment: .leading, spacing: 2) {
-                Text(amount).font(.system(size: 16, weight: .semibold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
-                Text(note).font(.system(size: 11.5)).foregroundStyle(ThusoTheme.faint)
+                Text(amount).font(.callout.weight(.semibold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
+                Text(note).font(.caption).foregroundStyle(ThusoTheme.faint)
             }
         }
     }
@@ -183,7 +183,7 @@ struct EarningsView: View {
 
     private var weeks: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("Your weeks").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("Your weeks").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             Text(Earnings.cycle.note).font(.footnote).foregroundStyle(ThusoTheme.body)
             ForEach(Earnings.weeks) { entry in weekCard(entry) }
         }
@@ -198,10 +198,10 @@ struct EarningsView: View {
             } label: {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(rand(week.total)).font(.system(size: 21, weight: .bold)).monospacedDigit()
+                        Text(rand(week.total)).font(.title3.weight(.bold)).monospacedDigit()
                             .foregroundStyle(ThusoTheme.ink)
                         Text("Week to \(week.ends.formatted(payDay)) · \(week.visits) visits")
-                            .font(.system(size: 12)).foregroundStyle(ThusoTheme.faint)
+                            .font(.caption).foregroundStyle(ThusoTheme.faint)
                     }
                     Spacer(minLength: 8)
                     StatusPill(text: state.name, tone: week.state == "paid" ? "teal" : week.state == "failed" ? "danger" : week.state == "in-transit" ? "sky" : "amber")
@@ -218,16 +218,16 @@ struct EarningsView: View {
                         .font(.footnote).foregroundStyle(ThusoTheme.faint)
                 }
                 if let failure = week.failure {
-                    Text(failure).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.danger)
+                    Text(failure).font(.caption).foregroundStyle(ThusoTheme.danger)
                         .padding(13).frame(maxWidth: .infinity, alignment: .leading)
                         .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: 14))
                 }
                 ForEach(week.lines) { line in payLine(line) }
                 Divider()
                 HStack {
-                    Text("Total for the week").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    Text("Total for the week").font(.caption).foregroundStyle(ThusoTheme.body)
                     Spacer()
-                    Text(rand(week.total)).font(.system(size: 15, weight: .semibold)).monospacedDigit()
+                    Text(rand(week.total)).font(.subheadline.weight(.semibold)).monospacedDigit()
                 }
                 if week.hasDeduction {
                     Text(Earnings.rule("every-deduction-is-named").sentence)
@@ -241,19 +241,19 @@ struct EarningsView: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline) {
                 Text(line.service ?? Earnings.lineKind(line.kind).name)
-                    .font(.system(size: 13.5, weight: .medium)).foregroundStyle(ThusoTheme.ink)
+                    .font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.ink)
                 Spacer(minLength: 8)
                 Text(line.amount < 0 ? "− \(rand(line.amount))" : rand(line.amount))
-                    .font(.system(size: 13.5, weight: .semibold)).monospacedDigit()
+                    .font(.footnote.weight(.semibold)).monospacedDigit()
                     .foregroundStyle(line.amount < 0 ? ThusoTheme.danger : ThusoTheme.ink)
             }
             Text("\(line.reference) · \(line.patient) · \(line.on.formatted(payDay))")
-                .font(.system(size: 11)).foregroundStyle(ThusoTheme.faint)
+                .font(.caption2).foregroundStyle(ThusoTheme.faint)
             if let plan = line.plan {
-                Text(plan).font(.system(size: 11)).foregroundStyle(ThusoTheme.indigo)
+                Text(plan).font(.caption2).foregroundStyle(ThusoTheme.indigo)
             }
             if let reason = line.reason {
-                Text(reason).font(.system(size: 11)).foregroundStyle(ThusoTheme.body)
+                Text(reason).font(.caption2).foregroundStyle(ThusoTheme.body)
             }
         }
         .padding(.vertical, 4)
@@ -263,12 +263,12 @@ struct EarningsView: View {
 
     private var tax: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("Tax").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("Tax").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
                 row("Reached your account since \(Earnings.taxYear.startsOn)", rand(Earnings.paidThisTaxYear))
                 row("Tax withheld by MyThuso", rand(0))
                 Text(Earnings.taxYear.note).font(.footnote).foregroundStyle(ThusoTheme.faint)
-                Text(Earnings.rule("no-tax-withheld").sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                Text(Earnings.rule("no-tax-withheld").sentence).font(.caption).foregroundStyle(ThusoTheme.body)
                 refusal(Earnings.refusal("advise-on-tax"))
             }
         }
@@ -276,34 +276,34 @@ struct EarningsView: View {
 
     private func row(_ label: String, _ value: String) -> some View {
         HStack {
-            Text(label).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
+            Text(label).font(.footnote).foregroundStyle(ThusoTheme.body)
             Spacer(minLength: 8)
-            Text(value).font(.system(size: 14, weight: .semibold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
+            Text(value).font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
         }
     }
 
     private var account: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("Where you are paid").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("Where you are paid").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
                 HStack(spacing: 13) {
                     TileIcon(symbol: "building.columns", size: 38)
                     VStack(alignment: .leading, spacing: 3) {
                         Text("\(Earnings.account.bank) · \(Earnings.account.maskedNumber)")
-                            .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                        Text(Earnings.account.holder).font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                        Text(Earnings.account.holder).font(.caption).foregroundStyle(ThusoTheme.body)
                     }
                 }
                 Text(Earnings.account.note).font(.footnote).foregroundStyle(ThusoTheme.faint)
                 if accountStage == "settled" {
                     Button("Change account") { accountStage = "verifying" }.buttonStyle(QuietButton())
                     Text(Earnings.rule("account-change-waits").sentence)
-                        .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                        .font(.caption).foregroundStyle(ThusoTheme.body)
                 } else if accountStage == "verifying" {
                     Text("Before anything changes, we check it is you. Nothing here is sent.")
                         .font(.footnote).foregroundStyle(ThusoTheme.body)
                     ForEach(Earnings.account.reverify, id: \.self) { step in
-                        Label(step, systemImage: "lock").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+                        Label(step, systemImage: "lock").font(.caption).foregroundStyle(ThusoTheme.slate)
                     }
                     TextField("One-time code", text: $code).keyboardType(.numberPad).textFieldStyle(.roundedBorder)
                     Button("Verify and start the wait") { accountStage = "pending" }
@@ -311,9 +311,9 @@ struct EarningsView: View {
                     Button("Cancel") { accountStage = "settled"; code = "" }.buttonStyle(QuietButton())
                 } else {
                     Text("Waiting \(Earnings.account.coolingOffHours) hours")
-                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     Text(Earnings.rule("account-change-waits").sentence)
-                        .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                        .font(.caption).foregroundStyle(ThusoTheme.body)
                     Button("Cancel the change") { accountStage = "settled"; code = "" }.buttonStyle(QuietButton())
                 }
             }
@@ -322,7 +322,7 @@ struct EarningsView: View {
 
     private var refusals: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("What this screen will not do").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("What this screen will not do").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             ForEach(Earnings.refusals.filter { $0.id != "advise-on-tax" }) { item in
                 CareCard { refusal(item) }
             }
@@ -333,12 +333,12 @@ struct EarningsView: View {
 
     private func refusal(_ item: PayRefusal) -> some View {
         HStack(alignment: .top, spacing: 11) {
-            Image(systemName: "nosign").font(.system(size: 16)).foregroundStyle(ThusoTheme.danger)
-            Text(item.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+            Image(systemName: "nosign").font(.callout).foregroundStyle(ThusoTheme.danger)
+            Text(item.sentence).font(.caption).foregroundStyle(ThusoTheme.slate)
         }
     }
 
     private func rule(_ id: String) -> some View {
-        Text(Earnings.rule(id).sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+        Text(Earnings.rule(id).sentence).font(.caption).foregroundStyle(ThusoTheme.body)
     }
 }

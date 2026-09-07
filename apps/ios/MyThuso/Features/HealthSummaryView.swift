@@ -145,7 +145,7 @@ struct HealthSummaryView: View {
     @ViewBuilder private func scannerNote(_ share: SummaryShare) -> some View {
         let initials = member.name.split(separator: " ").compactMap(\.first).map(String.init).joined(separator: ".")
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "checkmark.shield").font(.system(size: 17)).foregroundStyle(ThusoTheme.indigo)
+            Image(systemName: "checkmark.shield").font(.body).foregroundStyle(ThusoTheme.indigo)
             VStack(alignment: .leading, spacing: 5) {
                 Text("What a scanner would read.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Text("The reference above, and nothing else — it is 100 random bits from the system’s cryptographic generator, not your patient number and not a number anyone can count up to. Someone holding it is answered with your initials (\(initials).), whether the summary is valid, expired or revoked, what it was made for, and when it stops. Not your name, not your date of birth, not one clinical word.")
@@ -172,7 +172,7 @@ struct HealthSummaryView: View {
             } else {
                 ShareLink(item: body) {
                     Label("Export this summary", systemImage: "square.and.arrow.up")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
                         .padding(15).frame(maxWidth: .infinity, minHeight: 50)
                         .background(.white, in: RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(ThusoTheme.line, lineWidth: 1))

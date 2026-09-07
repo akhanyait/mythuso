@@ -72,7 +72,7 @@ struct InterpretingView: View {
 
     private var modeCard: some View {
         CareCard {
-            Text(Interpreting.labels.chooseMode).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(Interpreting.labels.chooseMode).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             Picker(Interpreting.labels.chooseMode, selection: $mode) {
                 ForEach(Interpreting.modes) { Text($0.name).tag($0.id) }
             }.pickerStyle(.segmented)
@@ -83,11 +83,11 @@ struct InterpretingView: View {
 
     private var rosterCard: some View {
         CareCard {
-            Text(Interpreting.labels.rosterHeading).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(Interpreting.labels.rosterHeading).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             ForEach(Interpreting.roster.filter { $0.mode == mode }) { person in
                 let hours = Interpreting.availability(mode: mode).filter { $0.interpreter.id == person.id }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(person.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(person.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     Text("\(Interpreting.accreditation.short) \(person.reference) · \(person.area)")
                         .font(.caption2).foregroundStyle(ThusoTheme.body)
                     Text(person.settings.joined(separator: ", ")).font(.caption2).foregroundStyle(ThusoTheme.body)
@@ -104,7 +104,7 @@ struct InterpretingView: View {
 
     private var askCard: some View {
         CareCard {
-            Text("Ask for an hour").font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("Ask for an hour").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             Picker("Day", selection: $dayIndex) {
                 ForEach(Array(days.enumerated()), id: \.offset) { index, day in
                     Text("\(day.weekday) \(day.day)").tag(index)
@@ -124,21 +124,21 @@ struct InterpretingView: View {
             switch outcome {
             case .matched(let free):
                 Label(Interpreting.labels.matched, systemImage: "checkmark.circle")
-                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.indigo)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
                 Text(Interpreting.waitSentence(outcome)).font(.subheadline).foregroundStyle(ThusoTheme.ink)
                 Text("The visit is confirmed with \(free.interpreter.name) named on it. Nothing is booked in this preview.")
                     .font(.caption).foregroundStyle(ThusoTheme.body)
             case .held:
                 Label("\(Interpreting.labels.noneFree) — \(Interpreting.labels.heldBadge)", systemImage: "hourglass")
-                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.mangoInk)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.mangoInk)
                 Text(Interpreting.waitSentence(outcome)).font(.subheadline).foregroundStyle(ThusoTheme.ink)
                 Text(Interpreting.hold.sentence).font(.caption).foregroundStyle(ThusoTheme.body)
                 Text(Interpreting.hold.whatHappensNext).font(.caption).foregroundStyle(ThusoTheme.body)
             case .heldUnknown:
                 Label("\(Interpreting.labels.noneFree) — \(Interpreting.labels.heldBadge)", systemImage: "exclamationmark.triangle")
-                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.danger)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
                 Text(Interpreting.estimate.unknown)
-                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.danger)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
                 Text(Interpreting.estimate.unknownDetail).font(.caption).foregroundStyle(ThusoTheme.body)
             }
             if outcome.isHeld {
@@ -150,7 +150,7 @@ struct InterpretingView: View {
 
     private var cancellationCard: some View {
         CareCard {
-            Text(Interpreting.hold.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(Interpreting.hold.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             HStack { Text("Cancelling costs"); Spacer(); Text("R\(Interpreting.cancellation.fee).00").fontWeight(.semibold) }
                 .font(.subheadline).foregroundStyle(ThusoTheme.ink)
             Text(Interpreting.cancellation.sentence).font(.caption).foregroundStyle(ThusoTheme.body)
@@ -167,11 +167,11 @@ struct InterpretingView: View {
 
     private var vettingCard: some View {
         CareCard {
-            Text(Interpreting.labels.vettingHeading).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(Interpreting.labels.vettingHeading).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             Text(Interpreting.rule("vetted-like-anybody-else").sentence).font(.caption).foregroundStyle(ThusoTheme.body)
             ForEach(interpreterRole?.checks ?? []) { check in
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(check.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(check.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     Text(check.detail).font(.caption2).foregroundStyle(ThusoTheme.body)
                     Text(check.renewMonths.map { "Renewed every \($0) months" } ?? "Once")
                         .font(.caption2).foregroundStyle(ThusoTheme.body)
@@ -186,7 +186,7 @@ struct InterpretingView: View {
                organisation and a day. */
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(Interpreting.accreditation.body) (\(Interpreting.accreditation.short)) — \(Interpreting.accreditation.isConfirmed ? "confirmed" : "drafted, not confirmed")")
-                    .font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.danger)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
                 Text(Interpreting.accreditation.route).font(.caption).foregroundStyle(ThusoTheme.body)
                 Text(Interpreting.accreditation.uncertainty).font(.caption).foregroundStyle(ThusoTheme.body)
                 Text(Interpreting.accreditation.whatWouldMakeItTrue).font(.caption).foregroundStyle(ThusoTheme.body)
@@ -196,12 +196,12 @@ struct InterpretingView: View {
 
     private var refusalsCard: some View {
         CareCard {
-            Text(Interpreting.labels.refusalsHeading).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(Interpreting.labels.refusalsHeading).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             ForEach(Interpreting.refusals) { refusal in
                 HStack(alignment: .top, spacing: 11) {
                     Image(systemName: "xmark.octagon").foregroundStyle(ThusoTheme.danger)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(refusal.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                        Text(refusal.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                         Text(refusal.sentence).font(.caption).foregroundStyle(ThusoTheme.body)
                     }
                 }
@@ -212,10 +212,10 @@ struct InterpretingView: View {
 
     private var rulesCard: some View {
         CareCard {
-            Text("The rules this screen is built out of").font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("The rules this screen is built out of").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             ForEach(Interpreting.rules) { rule in
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(rule.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(rule.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     Text(rule.sentence).font(.caption).foregroundStyle(ThusoTheme.body)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

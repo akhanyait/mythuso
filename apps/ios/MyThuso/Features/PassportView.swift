@@ -37,7 +37,7 @@ struct PassportView: View {
                             .font(.footnote).foregroundStyle(ThusoTheme.body)
                     }
                 default:
-                    Text("Health trends").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text("Health trends").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     ClinicalChart(title: "Blood pressure", unit: "mmHg",
                                   readings: [.init(label: "12 Aug", value: 128), .init(label: "19 Aug", value: 134), .init(label: "28 Aug", value: 141, note: "Missed medication"), .init(label: "4 Sep", value: 136)],
                                   normal: 90...140, symbol: "heart")
@@ -50,15 +50,15 @@ struct PassportView: View {
                     HStack(spacing: 10) {
                         actionTile("Share record", "square.and.arrow.up") { share = true }
                         ShareLink(item: "MyThuso fictional passport: BP 118/78 mmHg, pulse 72 bpm, glucose 5.2 mmol/L. Demo only, not a medical record.") {
-                            VStack(spacing: 8) { Image(systemName: "arrow.down.doc").font(.system(size: 19)).foregroundStyle(ThusoTheme.indigo)
-                                Text("Export sample").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.slate) }
+                            VStack(spacing: 8) { Image(systemName: "arrow.down.doc").font(.title3).foregroundStyle(ThusoTheme.indigo)
+                                Text("Export sample").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.slate) }
                                 .frame(maxWidth: .infinity, minHeight: 80)
                                 .background(.white, in: RoundedRectangle(cornerRadius: 18))
                                 .overlay(RoundedRectangle(cornerRadius: 18).stroke(ThusoTheme.line, lineWidth: 1))
                         }
                         NavigationLink { FeatureDetail(title: "Your care team") } label: {
-                            VStack(spacing: 8) { Image(systemName: "person.2").font(.system(size: 19)).foregroundStyle(ThusoTheme.indigo)
-                                Text("Doctors").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.slate) }
+                            VStack(spacing: 8) { Image(systemName: "person.2").font(.title3).foregroundStyle(ThusoTheme.indigo)
+                                Text("Doctors").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.slate) }
                                 .frame(maxWidth: .infinity, minHeight: 80)
                                 .background(.white, in: RoundedRectangle(cornerRadius: 18))
                                 .overlay(RoundedRectangle(cornerRadius: 18).stroke(ThusoTheme.line, lineWidth: 1))
@@ -73,8 +73,8 @@ struct PassportView: View {
     private func actionTile(_ title: String, _ symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                Image(systemName: symbol).font(.system(size: 19)).foregroundStyle(ThusoTheme.indigo)
-                Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.slate)
+                Image(systemName: symbol).font(.title3).foregroundStyle(ThusoTheme.indigo)
+                Text(title).font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.slate)
             }
             .frame(maxWidth: .infinity, minHeight: 80)
             .background(.white, in: RoundedRectangle(cornerRadius: 18))
@@ -87,10 +87,10 @@ struct PassportView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 11) {
                     StatusPill(text: "Thuso Pass", tone: "light")
-                    Text("Your health.\nYour story.").font(.system(size: 24, weight: .bold)).foregroundStyle(.white)
+                    Text("Your health.\nYour story.").font(.title2.weight(.bold)).foregroundStyle(.white)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Lerato Molefe").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
-                        Text("ID: TH-2048-3920").font(.system(size: 12)).foregroundStyle(Color(red: 0.725, green: 0.863, blue: 0.824))
+                        Text("Lerato Molefe").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                        Text("ID: TH-2048-3920").font(.caption).foregroundStyle(Color(red: 0.725, green: 0.863, blue: 0.824))
                     }
                 }
                 Spacer(minLength: 8)
@@ -171,11 +171,11 @@ struct MoreView: View {
                         HStack(spacing: 13) {
                             Image("Patient").resizable().scaledToFill().frame(width: 52, height: 52).clipShape(Circle()).accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text("Lerato Molefe").font(.system(size: 16, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                                Text("View and edit your profile").font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                                Text("Lerato Molefe").font(.callout.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                                Text("View and edit your profile").font(.caption).foregroundStyle(ThusoTheme.body)
                             }
                             Spacer(minLength: 0)
-                            Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(ThusoTheme.body.opacity(0.6))
+                            Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.body.opacity(0.6))
                         }
                     }
                 }.buttonStyle(.plain)

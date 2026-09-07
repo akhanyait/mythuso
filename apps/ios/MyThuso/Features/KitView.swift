@@ -145,7 +145,7 @@ struct ThusoKitView: View {
             HStack(spacing: 12) {
                 TileIcon(symbol: sighting.device?.symbol ?? "sensor", size: 38)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(sighting.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(sighting.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     Text("\(sighting.serial) · \(sighting.device?.transport ?? "") · \(sighting.proximity)")
                         .font(.caption2).foregroundStyle(ThusoTheme.body)
                 }
@@ -180,7 +180,7 @@ struct ThusoKitView: View {
         HStack(spacing: 12) {
             TileIcon(symbol: instrument.device?.symbol ?? "sensor")
             VStack(alignment: .leading, spacing: 3) {
-                Text(instrument.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                Text(instrument.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Text("\(instrument.serial) · \(instrument.device?.transport ?? "")").font(.caption2).foregroundStyle(ThusoTheme.body)
             }
             Spacer(minLength: 6)

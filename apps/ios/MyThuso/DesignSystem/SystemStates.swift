@@ -86,7 +86,7 @@ struct StatePicker: View {
             }.padding(.top, 8)
         } label: {
             HStack(spacing: 8) {
-                Text("Preview states").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.body)
+                Text("Preview states").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.body)
                 if state != .ready { StatusPill(text: state.rawValue, tone: "amber") }
             }
         }

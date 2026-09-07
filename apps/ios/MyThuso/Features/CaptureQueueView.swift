@@ -91,7 +91,7 @@ struct CaptureQueueView: View {
                          background: kit.onlyHereCount == 0 ? ThusoTheme.indigoSoft : ThusoTheme.infoSoft)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(kit.onlyHereCount == 0 ? "Nothing is waiting" : "\(kit.onlyHereCount) reading\(kit.onlyHereCount == 1 ? "" : "s") on this phone")
-                        .font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                        .font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     Text(kit.queuedCount > 0 ? "\(kit.queuedCount) sealed and waiting for a connection" : "Nothing is sealed and waiting")
                         .font(.caption).foregroundStyle(ThusoTheme.body)
                 }
@@ -139,7 +139,7 @@ struct CaptureQueueView: View {
                 Label("A ledger that would not parse was kept as \(setAside) rather than deleted.", systemImage: "archivebox")
                     .font(.caption2).foregroundStyle(ThusoTheme.mangoInk)
             }
-            Text(kit.ledgerPath).font(.system(size: 9, design: .monospaced)).foregroundStyle(ThusoTheme.faint)
+            Text(kit.ledgerPath).font(.system(.caption2, design: .monospaced)).foregroundStyle(ThusoTheme.faint)
                 .textSelection(.enabled)
         }
     }
@@ -229,7 +229,7 @@ struct EntryCard: View {
                 }
                 if entry.superseded { StatusPill(text: "Superseded", tone: "quiet") }
                 Spacer(minLength: 0)
-                if chevron { Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.body.opacity(0.6)) }
+                if chevron { Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.body.opacity(0.6)) }
             }
             Text("\(entry.id) · \(entry.visitReference) · \(entry.patient)")
                 .font(.caption2).foregroundStyle(ThusoTheme.faint)
@@ -314,12 +314,12 @@ struct ConflictResolutionView: View {
     @ViewBuilder private func header(_ entry: CapturedEntry) -> some View {
         CareCard {
             if let conflict = entry.conflict {
-                Text(conflict.name).font(.system(size: 19, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                Text(conflict.name).font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Text(conflict.detail).font(.footnote).foregroundStyle(ThusoTheme.body)
                 StatusPill(text: conflict.asksAPerson ? "A clinician decides" : "The server decided, and nobody was asked",
                            tone: conflict.asksAPerson ? "amber" : "quiet")
             } else {
-                Text("Refused").font(.system(size: 19, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                Text("Refused").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Text(CaptureState.refused.detail).font(.footnote).foregroundStyle(ThusoTheme.body)
             }
             Text(CaptureRules.conflictsAreNotMerged).font(.caption2).foregroundStyle(ThusoTheme.faint)

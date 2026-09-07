@@ -132,7 +132,7 @@ struct SosView: View {
                     Text(Sos.emergency.whyFirst).font(.footnote).foregroundStyle(ThusoTheme.body)
                 }
                 Group {
-                    Text("If it is not that, three questions").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text("If it is not that, three questions").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     Text(Sos.routing.noAlgorithm).font(.footnote).foregroundStyle(ThusoTheme.body)
                     redFlagQuestion
                     if !answers.flagged.isEmpty { emergencyOutcome }
@@ -173,20 +173,20 @@ struct SosView: View {
     private var emergencyFirst: some View {
         VStack(alignment: .leading, spacing: 13) {
             HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "cross.case.fill").font(.system(size: 23)).foregroundStyle(ThusoTheme.danger)
+                Image(systemName: "cross.case.fill").font(.title2).foregroundStyle(ThusoTheme.danger)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(Sos.emergency.headline).font(.system(size: 19, weight: .bold)).foregroundStyle(ThusoTheme.danger)
-                    Text(Sos.emergency.lead).font(.system(size: 13.5)).foregroundStyle(ThusoTheme.slate)
+                    Text(Sos.emergency.headline).font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.danger)
+                    Text(Sos.emergency.lead).font(.footnote).foregroundStyle(ThusoTheme.slate)
                 }
             }
             ForEach(Sos.emergency.numbers) { number in
                 HStack(alignment: .top, spacing: 13) {
-                    Text(number.number).font(.system(size: 22, weight: .bold)).monospacedDigit()
+                    Text(number.number).font(.title3.weight(.bold)).monospacedDigit()
                         .foregroundStyle(ThusoTheme.danger)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(number.name).font(.system(size: 13.5, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                        Text(number.detail).font(.system(size: 11.5)).foregroundStyle(ThusoTheme.body)
-                        Text(number.whenToUse).font(.system(size: 11.5)).foregroundStyle(ThusoTheme.faint)
+                        Text(number.name).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                        Text(number.detail).font(.caption).foregroundStyle(ThusoTheme.body)
+                        Text(number.whenToUse).font(.caption).foregroundStyle(ThusoTheme.faint)
                     }
                 }
                 .padding(13).frame(maxWidth: .infinity, alignment: .leading)
@@ -194,8 +194,8 @@ struct SosView: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("\(number.name). \(number.number). \(number.whenToUse)")
             }
-            Text(Sos.emergency.notAnAmbulance).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
-            Text(Sos.emergency.previewNote).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+            Text(Sos.emergency.notAnAmbulance).font(.caption).foregroundStyle(ThusoTheme.slate)
+            Text(Sos.emergency.previewNote).font(.caption).foregroundStyle(ThusoTheme.body)
         }
         .padding(18).frame(maxWidth: .infinity, alignment: .leading)
         .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: 18))
@@ -206,7 +206,7 @@ struct SosView: View {
 
     private var redFlagQuestion: some View {
         CareCard {
-            Text(Sos.redFlags.prompt).font(.system(size: 16, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(Sos.redFlags.prompt).font(.callout.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             Text(Sos.redFlags.help).font(.footnote).foregroundStyle(ThusoTheme.body)
             ForEach(Sos.redFlags.conditions) { condition in
                 Button {
@@ -216,10 +216,10 @@ struct SosView: View {
                 } label: {
                     HStack(alignment: .top, spacing: 11) {
                         Image(systemName: answers.flagged.contains(condition.id) ? "checkmark.square.fill" : "square")
-                            .font(.system(size: 18)).foregroundStyle(answers.flagged.contains(condition.id) ? ThusoTheme.danger : ThusoTheme.line)
+                            .font(.body).foregroundStyle(answers.flagged.contains(condition.id) ? ThusoTheme.danger : ThusoTheme.line)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(condition.name).font(.system(size: 13.5, weight: .medium)).foregroundStyle(ThusoTheme.ink)
-                            Text(condition.detail).font(.system(size: 11.5)).foregroundStyle(ThusoTheme.body)
+                            Text(condition.name).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.ink)
+                            Text(condition.detail).font(.caption).foregroundStyle(ThusoTheme.body)
                         }
                         Spacer(minLength: 0)
                     }
@@ -233,37 +233,37 @@ struct SosView: View {
             } label: {
                 HStack(spacing: 11) {
                     Image(systemName: none ? "checkmark.square.fill" : "square")
-                        .font(.system(size: 18)).foregroundStyle(none ? ThusoTheme.indigo : ThusoTheme.line)
-                    Text(Sos.redFlags.noneLabel).font(.system(size: 13.5, weight: .medium)).foregroundStyle(ThusoTheme.ink)
+                        .font(.body).foregroundStyle(none ? ThusoTheme.indigo : ThusoTheme.line)
+                    Text(Sos.redFlags.noneLabel).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.ink)
                     Spacer(minLength: 0)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            Text(Sos.routing.isNotTriage).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+            Text(Sos.routing.isNotTriage).font(.caption).foregroundStyle(ThusoTheme.slate)
         }
     }
 
     private var emergencyOutcome: some View {
         let outcome = Sos.outcome("emergency-services")
         return VStack(alignment: .leading, spacing: 11) {
-            Text(outcome.headline).font(.system(size: 17, weight: .bold)).foregroundStyle(ThusoTheme.danger)
-            Text(outcome.detail).font(.system(size: 13)).foregroundStyle(ThusoTheme.slate)
+            Text(outcome.headline).font(.body.weight(.bold)).foregroundStyle(ThusoTheme.danger)
+            Text(outcome.detail).font(.footnote).foregroundStyle(ThusoTheme.slate)
             ForEach(Array(answers.flagged).sorted(), id: \.self) { id in
                 if let condition = Sos.condition(id) {
-                    Text("• \(condition.name)").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text("• \(condition.name)").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 }
             }
-            Text(Sos.redFlags.endsTheQuestions).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+            Text(Sos.redFlags.endsTheQuestions).font(.caption).foregroundStyle(ThusoTheme.body)
             HStack(spacing: 11) {
-                Text(Sos.emergency.numbers[0].number).font(.system(size: 26, weight: .bold)).monospacedDigit()
+                Text(Sos.emergency.numbers[0].number).font(.title2.weight(.bold)).monospacedDigit()
                     .foregroundStyle(ThusoTheme.danger)
                 Text("Ambulance · or \(Sos.emergency.numbers[1].number) from a mobile")
-                    .font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                    .font(.caption).foregroundStyle(ThusoTheme.body)
             }
             .padding(14).frame(maxWidth: .infinity, alignment: .leading)
             .background(.white, in: RoundedRectangle(cornerRadius: 14))
-            Text(Sos.emergency.previewNote).font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+            Text(Sos.emergency.previewNote).font(.caption).foregroundStyle(ThusoTheme.body)
         }
         .padding(18).frame(maxWidth: .infinity, alignment: .leading)
         .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: 18))
@@ -317,22 +317,22 @@ struct SosView: View {
         let outcome = Sos.outcome("cannot-help")
         let failure = Sos.failure(failureId)
         return VStack(alignment: .leading, spacing: 10) {
-            Text(outcome.headline).font(.system(size: 16, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-            Text(outcome.detail).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
-            Text(failure.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-            Text(failure.what).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
-            Text(failure.instead).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+            Text(outcome.headline).font(.callout.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(outcome.detail).font(.footnote).foregroundStyle(ThusoTheme.body)
+            Text(failure.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(failure.what).font(.caption).foregroundStyle(ThusoTheme.body)
+            Text(failure.instead).font(.caption).foregroundStyle(ThusoTheme.slate)
             if failureId == "vetting" {
                 ForEach(candidates.filter { !$0.decision.allowed }) { candidate in
                     Text("\(candidate.subject.name): \(candidate.decision.reason ?? "")")
-                        .font(.system(size: 12)).foregroundStyle(ThusoTheme.danger)
+                        .font(.caption).foregroundStyle(ThusoTheme.danger)
                 }
             }
             HStack(spacing: 11) {
-                Text(Sos.emergency.numbers[0].number).font(.system(size: 22, weight: .bold)).monospacedDigit()
+                Text(Sos.emergency.numbers[0].number).font(.title3.weight(.bold)).monospacedDigit()
                     .foregroundStyle(ThusoTheme.danger)
                 Text("Ambulance · or \(Sos.emergency.numbers[1].number) from a mobile")
-                    .font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                    .font(.caption).foregroundStyle(ThusoTheme.body)
             }
         }
         .padding(18).frame(maxWidth: .infinity, alignment: .leading)
@@ -342,8 +342,8 @@ struct SosView: View {
     private var offer: some View {
         let outcome = Sos.outcome("urgent-visit")
         return CareCard {
-            Text(outcome.headline).font(.system(size: 16, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-            Text(outcome.detail).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
+            Text(outcome.headline).font(.callout.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(outcome.detail).font(.footnote).foregroundStyle(ThusoTheme.body)
             row("Thuso SOS urgent visit", "R \(Sos.visitPrice)")
             row("Of that, to the nurse", "R \(Sos.visitNurseShare)")
             row("Where", answers.area ?? "—")
@@ -353,33 +353,33 @@ struct SosView: View {
     private var targetCard: some View {
         CareCard {
             HStack {
-                Text(Sos.target.title).font(.system(size: 15.5, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                Text(Sos.target.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Spacer(minLength: 8)
                 StatusPill(text: Sos.targetLabel, tone: "amber")
             }
-            Text(Sos.target.statement).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
-            Text(Sos.target.whenItCannotBeMet).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+            Text(Sos.target.statement).font(.caption).foregroundStyle(ThusoTheme.body)
+            Text(Sos.target.whenItCannotBeMet).font(.caption).foregroundStyle(ThusoTheme.slate)
             Text(Sos.target.estimateIsNotTheTarget).font(.footnote).foregroundStyle(ThusoTheme.faint)
         }
     }
 
     private var whoCouldCome: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("Who could come").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("Who could come").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
                 ForEach(candidates) { candidate in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text(candidate.subject.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                            Text(candidate.subject.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                             Spacer(minLength: 8)
                             StatusPill(text: candidate.decision.allowed ? "Cleared" : "Refused",
                                        tone: candidate.decision.allowed ? "teal" : "danger")
                         }
                         Text("\(candidate.subject.zone ?? "—") · \(candidate.subject.reference) · \(candidate.estimate.label)")
-                            .font(.system(size: 11.5)).foregroundStyle(ThusoTheme.faint)
-                        Text(candidate.estimate.spoken).font(.system(size: 11.5)).foregroundStyle(ThusoTheme.body)
+                            .font(.caption).foregroundStyle(ThusoTheme.faint)
+                        Text(candidate.estimate.spoken).font(.caption).foregroundStyle(ThusoTheme.body)
                         if !candidate.decision.allowed {
-                            Text(candidate.decision.reason ?? "").font(.system(size: 11.5)).foregroundStyle(ThusoTheme.danger)
+                            Text(candidate.decision.reason ?? "").font(.caption).foregroundStyle(ThusoTheme.danger)
                         } else {
                             Button(requested ? "Asked" : "Ask her to come") { requested = true }
                                 .buttonStyle(QuietButton()).disabled(requested)
@@ -389,7 +389,7 @@ struct SosView: View {
                 }
                 Text(Sos.target.arrivalUnknown).font(.footnote).foregroundStyle(ThusoTheme.body)
                 Text(Sos.rule("urgency-does-not-relax-vetting").sentence)
-                    .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+                    .font(.caption).foregroundStyle(ThusoTheme.slate)
             }
         }
     }
@@ -398,13 +398,13 @@ struct SosView: View {
 
     private var standDownCard: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text(Sos.standDown.title).font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(Sos.standDown.title).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
-                Text(Sos.standDown.statement).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
+                Text(Sos.standDown.statement).font(.footnote).foregroundStyle(ThusoTheme.body)
                 Text(Sos.standDown.chargeRule).font(.footnote).foregroundStyle(ThusoTheme.slate)
                 if let stoodDown, let reason = Sos.standDown.reasons.first(where: { $0.id == stoodDown }) {
-                    Text("Stood down · \(reason.label)").font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                    Text(Sos.standDown.nurseNote).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    Text("Stood down · \(reason.label)").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(Sos.standDown.nurseNote).font(.caption).foregroundStyle(ThusoTheme.body)
                     row("What the nurse is told", reason.nurseIsTold)
                     row("What is recorded", reason.recorded)
                     Button("Back") { self.stoodDown = nil }.buttonStyle(QuietButton())
@@ -413,9 +413,9 @@ struct SosView: View {
                         Button(reason.label) { stoodDown = reason.id }.buttonStyle(QuietButton())
                     }
                     Toggle("Preview: nobody answers the callback", isOn: $unanswered)
-                        .font(.system(size: 12.5)).tint(ThusoTheme.indigo)
+                        .font(.caption).tint(ThusoTheme.indigo)
                     if unanswered {
-                        Text(Sos.standDown.noAnswerRule).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+                        Text(Sos.standDown.noAnswerRule).font(.caption).foregroundStyle(ThusoTheme.slate)
                             .padding(13).frame(maxWidth: .infinity, alignment: .leading)
                             .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
                     }
@@ -428,14 +428,14 @@ struct SosView: View {
 
     private var failuresSection: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("When this does not work").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("When this does not work").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             Text("Four ways a button like this fails and one way vetting stops it. Each says what to do instead, because a failure screen without one is a dead end wearing an apology.")
                 .font(.footnote).foregroundStyle(ThusoTheme.body)
             ForEach(Sos.failures) { failure in
                 CareCard {
-                    Text(failure.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                    Text(failure.what).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
-                    Text(failure.instead).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+                    Text(failure.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(failure.what).font(.caption).foregroundStyle(ThusoTheme.body)
+                    Text(failure.instead).font(.caption).foregroundStyle(ThusoTheme.slate)
                 }
             }
         }
@@ -443,10 +443,10 @@ struct SosView: View {
 
     private var coverageSection: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("Where and when").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("Where and when").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
-                Text(Sos.coverage.statement).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
-                Text(Sos.coverage.areas.joined(separator: " · ")).font(.system(size: 13, weight: .medium)).foregroundStyle(ThusoTheme.slate)
+                Text(Sos.coverage.statement).font(.footnote).foregroundStyle(ThusoTheme.body)
+                Text(Sos.coverage.areas.joined(separator: " · ")).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.slate)
                 row("Hours", "\(Sos.coverage.hours.days), \(Sos.coverage.hours.opensAt)–\(Sos.coverage.hours.closesAt)")
                 Text(Sos.coverage.hours.note).font(.footnote).foregroundStyle(ThusoTheme.faint)
                 Text(Sos.coverage.honestNote).font(.footnote).foregroundStyle(ThusoTheme.body)
@@ -456,30 +456,30 @@ struct SosView: View {
 
     private var alertSection: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("\(Sos.alert.name) · the panic button").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("\(Sos.alert.name) · the panic button").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
                 Text("\(Sos.alert.name) · R \(Sos.alertMonthly) a month")
-                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                Text(Sos.alert.what).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                Text(Sos.alert.what).font(.footnote).foregroundStyle(ThusoTheme.body)
                 Text(Sos.alert.phaseNote).font(.footnote).foregroundStyle(ThusoTheme.faint)
                 ForEach(Sos.alert.honesty) { note in
-                    Text(note.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    Text(note.sentence).font(.caption).foregroundStyle(ThusoTheme.body)
                 }
-                Text(Sos.alert.notCover).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+                Text(Sos.alert.notCover).font(.caption).foregroundStyle(ThusoTheme.slate)
             }
         }
     }
 
     private var recordSection: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text(Sos.record.title).font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(Sos.record.title).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
-                Text(Sos.record.statement).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
+                Text(Sos.record.statement).font(.footnote).foregroundStyle(ThusoTheme.body)
                 ForEach(Sos.record.kept, id: \.self) { item in
-                    Label(item, systemImage: "checkmark.seal").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+                    Label(item, systemImage: "checkmark.seal").font(.caption).foregroundStyle(ThusoTheme.slate)
                 }
                 ForEach(Sos.record.notKept, id: \.self) { item in
-                    Label(item, systemImage: "nosign").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    Label(item, systemImage: "nosign").font(.caption).foregroundStyle(ThusoTheme.body)
                 }
             }
         }
@@ -487,11 +487,11 @@ struct SosView: View {
 
     private var rulesSection: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("The promises this screen makes").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("The promises this screen makes").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             ForEach(Sos.rules) { rule in
                 CareCard {
-                    Text(rule.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                    Text(rule.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    Text(rule.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(rule.sentence).font(.caption).foregroundStyle(ThusoTheme.body)
                 }
             }
         }
@@ -499,12 +499,12 @@ struct SosView: View {
 
     private var refusalsSection: some View {
         VStack(alignment: .leading, spacing: 11) {
-            Text("What this screen will not do").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("What this screen will not do").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
             ForEach(Sos.refusals) { refusal in
                 CareCard {
                     HStack(alignment: .top, spacing: 11) {
-                        Image(systemName: "nosign").font(.system(size: 16)).foregroundStyle(ThusoTheme.danger)
-                        Text(refusal.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
+                        Image(systemName: "nosign").font(.callout).foregroundStyle(ThusoTheme.danger)
+                        Text(refusal.sentence).font(.caption).foregroundStyle(ThusoTheme.slate)
                     }
                 }
             }
@@ -515,9 +515,9 @@ struct SosView: View {
 
     private func row(_ label: String, _ value: String) -> some View {
         HStack(alignment: .top) {
-            Text(label).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
+            Text(label).font(.footnote).foregroundStyle(ThusoTheme.body)
             Spacer(minLength: 10)
-            Text(value).font(.system(size: 13, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(value).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 .multilineTextAlignment(.trailing)
         }
     }

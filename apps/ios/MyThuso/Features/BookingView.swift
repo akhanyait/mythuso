@@ -16,14 +16,14 @@ struct ServicesView: View {
                         NavigationLink { BookingView(service: service) } label: {
                             CareCard(padding: 15) {
                                 TileIcon(symbol: service.symbol)
-                                Text(service.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                                Text(service.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                                     .frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
-                                Text(service.detail).font(.system(size: 11)).foregroundStyle(ThusoTheme.body)
+                                Text(service.detail).font(.caption2).foregroundStyle(ThusoTheme.body)
                                     .frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
                                 HStack {
-                                    Text("From R\(service.price)").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.slate)
+                                    Text("From R\(service.price)").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.slate)
                                     Spacer()
-                                    Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(ThusoTheme.body.opacity(0.6))
+                                    Image(systemName: "chevron.right").font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.body.opacity(0.6))
                                 }
                             }
                         }.buttonStyle(.plain)
@@ -86,11 +86,11 @@ struct BookingView: View {
             HStack(spacing: 13) {
                 TileIcon(symbol: service.symbol)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(service.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                    Text("Registered nurse").font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                    Text(service.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text("Registered nurse").font(.caption).foregroundStyle(ThusoTheme.body)
                 }
                 Spacer(minLength: 6)
-                Text("R\(service.price)").font(.system(size: 16, weight: .bold)).foregroundStyle(ThusoTheme.ink)
+                Text("R\(service.price)").font(.callout.weight(.bold)).foregroundStyle(ThusoTheme.ink)
             }
         }
     }
@@ -106,7 +106,7 @@ struct BookingView: View {
         Button("Continue") { step = 1 }.buttonStyle(CareButton()).disabled(address.trimmingCharacters(in: .whitespaces).count < 5)
     }
     @ViewBuilder private var dateAndTime: some View {
-        Text(Scheduling.Label.chooseWhen).font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+        Text(Scheduling.Label.chooseWhen).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
         /* Two different promises, chosen rather than inferred. An arrival estimate answers "when
            will somebody get here", which is only a question for the second one. */
         ForEach(Scheduling.kinds) { option in
@@ -115,8 +115,8 @@ struct BookingView: View {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: kind == option.id ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.indigo)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(option.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                            Text(option.detail).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                            Text(option.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                            Text(option.detail).font(.caption).foregroundStyle(ThusoTheme.body)
                         }
                         Spacer(minLength: 0)
                     }
@@ -135,15 +135,15 @@ struct BookingView: View {
         }
     }
     @ViewBuilder private var scheduledPicker: some View {
-        Text(Scheduling.Label.scheduledHeading).font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+        Text(Scheduling.Label.scheduledHeading).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 9) {
                 ForEach(Array(days.enumerated()), id: \.element) { index, offered in
                     Button { day = index } label: {
                         VStack(spacing: 2) {
-                            Text(offered.weekday.uppercased()).font(.system(size: 10, weight: .semibold))
-                            Text(offered.day).font(.system(size: 17, weight: .bold))
-                            Text(offered.month.uppercased()).font(.system(size: 10, weight: .semibold))
+                            Text(offered.weekday.uppercased()).font(.caption2.weight(.semibold))
+                            Text(offered.day).font(.body.weight(.bold))
+                            Text(offered.month.uppercased()).font(.caption2.weight(.semibold))
                         }
                         .frame(minWidth: 66, minHeight: 72)
                         .background(day == index ? ThusoTheme.indigo : .white, in: RoundedRectangle(cornerRadius: 14))
@@ -158,7 +158,7 @@ struct BookingView: View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 9), count: 3), spacing: 9) {
             ForEach(slots, id: \.self) { time in
                 Button { slot = time } label: {
-                    Text(time).font(.system(size: 14, weight: .semibold))
+                    Text(time).font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity, minHeight: 48)
                         .background(slot == time ? ThusoTheme.indigo : .white, in: RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(slot == time ? ThusoTheme.indigo : ThusoTheme.line, lineWidth: 1))
@@ -170,7 +170,7 @@ struct BookingView: View {
             .font(.footnote).foregroundStyle(ThusoTheme.body)
     }
     @ViewBuilder private var paymentStep: some View {
-        Text("How would you like to pay?").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+        Text("How would you like to pay?").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
         ForEach([("Card", "Visa ending 4242"), ("Cash", "Pay the nurse after the visit"), ("Thuso Wallet", "Demo balance R500.00")], id: \.0) { option in
             Button { payment = option.0 } label: {
                 CareCard {
@@ -178,8 +178,8 @@ struct BookingView: View {
                         Image(systemName: payment == option.0 ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.indigo)
                         TileIcon(symbol: "creditcard", size: 38)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(option.0).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                            Text(option.1).font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                            Text(option.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                            Text(option.1).font(.caption).foregroundStyle(ThusoTheme.body)
                         }
                         Spacer(minLength: 0)
                     }
@@ -204,21 +204,21 @@ struct BookingView: View {
             LabeledContent("Patient", value: patient)
             Divider().overlay(ThusoTheme.line)
             HStack(spacing: 11) {
-                Text("SN").font(.system(size: 13, weight: .bold)).foregroundStyle(ThusoTheme.indigoDeep)
+                Text("SN").font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
                     .frame(width: 42, height: 42).background(ThusoTheme.accentSoft, in: Circle())
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Sister Naledi Mokoena").font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                    Text("Registered Nurse (SANC)").font(.system(size: 11)).foregroundStyle(ThusoTheme.body)
+                    Text("Sister Naledi Mokoena").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text("Registered Nurse (SANC)").font(.caption2).foregroundStyle(ThusoTheme.body)
                 }
                 Spacer(minLength: 4)
-                Text("★ 4.9").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.body)
+                Text("★ 4.9").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.body)
             }
             Divider().overlay(ThusoTheme.line)
             HStack(spacing: 12) {
                 TileIcon(symbol: "creditcard", size: 38)
-                Text(payment == "Card" ? "•••• 4242" : payment).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                Text(payment == "Card" ? "•••• 4242" : payment).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Spacer()
-                Button("Change") { step = 2 }.font(.system(size: 13, weight: .semibold)).foregroundStyle(ThusoTheme.indigo)
+                Button("Change") { step = 2 }.font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
             }
         }
         Toggle("I understand this is a UI preview using fictional information.", isOn: $consent).font(.footnote)
@@ -234,9 +234,9 @@ struct BookingView: View {
     }
     @ViewBuilder private var success: some View {
         VStack(spacing: 14) {
-            Image(systemName: "checkmark").font(.system(size: 26, weight: .bold)).foregroundStyle(ThusoTheme.indigo)
+            Image(systemName: "checkmark").font(.title2.weight(.bold)).foregroundStyle(ThusoTheme.indigo)
                 .frame(width: 64, height: 64).background(ThusoTheme.indigoSoft, in: Circle())
-            Text("Your demo visit is booked.").font(.system(size: 19, weight: .bold)).foregroundStyle(ThusoTheme.ink)
+            Text("Your demo visit is booked.").font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.ink)
             Text("\(service.name) for \(patient.split(separator: " ").first ?? "")")
                 .font(.subheadline).foregroundStyle(ThusoTheme.body).multilineTextAlignment(.center)
             Text("This is a preview. No nurse has been dispatched and no payment was taken.")
@@ -292,31 +292,31 @@ struct VisitsView: View {
                             CareCard {
                                 HStack(alignment: .top, spacing: 13) {
                                     VStack(spacing: 1) {
-                                        Text(row.weekday).font(.system(size: 9, weight: .bold)).foregroundStyle(ThusoTheme.body)
-                                        Text(row.dayNumber).font(.system(size: 19, weight: .bold)).foregroundStyle(ThusoTheme.ink)
-                                        Text(row.monthName).font(.system(size: 9, weight: .bold)).foregroundStyle(ThusoTheme.body)
+                                        Text(row.weekday).font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.body)
+                                        Text(row.dayNumber).font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.ink)
+                                        Text(row.monthName).font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.body)
                                     }
                                     .frame(width: 52, height: 62)
                                     .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
                                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(ThusoTheme.line, lineWidth: 1))
                                     VStack(alignment: .leading, spacing: 7) {
                                         HStack(alignment: .top) {
-                                            Text(row.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                                            Text(row.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                                             Spacer(minLength: 8)
                                             StatusPill(text: row.status, tone: row.tone)
                                         }
-                                        Label(row.time, systemImage: "clock").font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
-                                        Label(row.place, systemImage: "mappin.and.ellipse").font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                                        Label(row.time, systemImage: "clock").font(.caption).foregroundStyle(ThusoTheme.body)
+                                        Label(row.place, systemImage: "mappin.and.ellipse").font(.caption).foregroundStyle(ThusoTheme.body)
                                     }
                                 }
                                 if row.nurse, let visit = store.visits.first {
                                     Divider().overlay(ThusoTheme.line)
                                     HStack(spacing: 11) {
-                                        Text("SN").font(.system(size: 13, weight: .bold)).foregroundStyle(ThusoTheme.indigoDeep)
+                                        Text("SN").font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
                                             .frame(width: 42, height: 42).background(ThusoTheme.accentSoft, in: Circle())
                                         VStack(alignment: .leading, spacing: 3) {
-                                            Text("Sister Naledi Mokoena").font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                                            Text("Registered Nurse (SANC)").font(.system(size: 11)).foregroundStyle(ThusoTheme.body)
+                                            Text("Sister Naledi Mokoena").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                                            Text("Registered Nurse (SANC)").font(.caption2).foregroundStyle(ThusoTheme.body)
                                         }
                                         Spacer(minLength: 0)
                                     }
@@ -342,10 +342,10 @@ struct VisitsView: View {
             Image("Family").resizable().scaledToFit().frame(height: 150).accessibilityHidden(true)
                 .frame(maxWidth: .infinity, alignment: .trailing)
             VStack(alignment: .leading, spacing: 9) {
-                Text("Care that fits\nyour life.").font(.system(size: 23, weight: .bold)).foregroundStyle(.white)
-                Text("Easy booking. Trusted professionals.").font(.system(size: 13)).foregroundStyle(Color(red: 0.788, green: 0.902, blue: 0.867))
+                Text("Care that fits\nyour life.").font(.title2.weight(.bold)).foregroundStyle(.white)
+                Text("Easy booking. Trusted professionals.").font(.footnote).foregroundStyle(Color(red: 0.788, green: 0.902, blue: 0.867))
                 NavigationLink { ServicesView() } label: {
-                    Label("Book another visit", systemImage: "arrow.right").font(.system(size: 14, weight: .semibold))
+                    Label("Book another visit", systemImage: "arrow.right").font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 18).padding(.vertical, 13)
                         .background(.white, in: Capsule()).foregroundStyle(ThusoTheme.indigoDeep)
                 }
@@ -371,7 +371,7 @@ struct VisitDetailView: View {
                     LabeledContent("Nurse", value: "Sister Naledi Mokoena")
                 }
                 CareCard {
-                    Text("Before your visit").font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text("Before your visit").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     Text("Have your medication list ready.").font(.subheadline).foregroundStyle(ThusoTheme.ink)
                     Text("Secure messaging, arrival updates and rescheduling will be connected in the functionality phase.")
                         .font(.footnote).foregroundStyle(ThusoTheme.body)

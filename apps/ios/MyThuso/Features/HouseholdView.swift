@@ -140,12 +140,12 @@ struct HouseholdView: View {
         CareCard {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 12) {
-                    Text(member.initials).font(.system(size: 15, weight: .bold)).foregroundStyle(ThusoTheme.indigoDeep)
+                    Text(member.initials).font(.subheadline.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
                         .frame(width: 44, height: 44)
                         .background(member.relation == "Child" ? ThusoTheme.mangoSoft : ThusoTheme.indigoSoft, in: Circle())
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(member.name).font(.system(size: 16, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                        Text(member.name).font(.callout.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                         Text("\(member.relation) · \(householdAge(member)) years · \(member.reference)")
                             .font(.caption).foregroundStyle(ThusoTheme.body)
                     }
@@ -178,7 +178,7 @@ struct HouseholdView: View {
        it stood on would be another one. */
     @ViewBuilder private var withheldNotice: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "lock").font(.system(size: 17)).foregroundStyle(ThusoTheme.mangoInk)
+            Image(systemName: "lock").font(.body).foregroundStyle(ThusoTheme.mangoInk)
             Text("Every record here has parts only the person themselves can release. This line stands on all of them, whether or not there is anything behind it — a notice that appeared only where there was something to hide would be the disclosure it is meant to prevent, and a count of the records it stood on would be another one.")
                 .font(.footnote).foregroundStyle(ThusoTheme.body)
         }
@@ -229,7 +229,7 @@ struct HouseholdView: View {
                             TileIcon(symbol: "calendar.badge.clock", size: 38)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("\(vettingDate(appointment.when)) · \(appointment.time) · \(member.firstName)")
-                                    .font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                                 Text(visibility.level.atLeast(.summary) ? appointment.service
                                      : "A booked visit. What it is for is not part of the household calendar.")
                                     .font(.caption).foregroundStyle(ThusoTheme.body)
@@ -302,7 +302,7 @@ struct HouseholdView: View {
         HStack(alignment: .top, spacing: 12) {
             TileIcon(symbol: symbol, size: 38)
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Text(detail).font(.caption).foregroundStyle(ThusoTheme.body)
             }
             Spacer(minLength: 0)
@@ -347,7 +347,7 @@ struct SummaryCardView: View {
             }
         }
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "lock").font(.system(size: 17)).foregroundStyle(ThusoTheme.mangoInk)
+            Image(systemName: "lock").font(.body).foregroundStyle(ThusoTheme.mangoInk)
             VStack(alignment: .leading, spacing: 5) {
                 Text("Withheld from every summary.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Text(Records.summaryCard.withheld).font(.footnote).foregroundStyle(ThusoTheme.body)

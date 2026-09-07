@@ -28,7 +28,7 @@ struct CareHeading: View {
             if !eyebrow.isEmpty {
                 Text(eyebrow.uppercased()).font(.caption2.weight(.bold)).tracking(1.5).foregroundStyle(ThusoTheme.indigo)
             }
-            Text(title).font(.system(size: 26, weight: .bold)).foregroundStyle(ThusoTheme.ink)
+            Text(title).font(.title2.weight(.bold)).foregroundStyle(ThusoTheme.ink)
             if !subtitle.isEmpty { Text(subtitle).font(.subheadline).foregroundStyle(ThusoTheme.body) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -37,7 +37,7 @@ struct CareHeading: View {
 struct CareButton: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 15, weight: .semibold))
+            .font(.subheadline.weight(.semibold))
             .padding(15).frame(maxWidth: .infinity, minHeight: 50)
             .background(ThusoTheme.indigo.opacity(configuration.isPressed ? 0.82 : 1), in: RoundedRectangle(cornerRadius: 12))
             .foregroundStyle(.white)
@@ -46,7 +46,7 @@ struct CareButton: ButtonStyle {
 struct QuietButton: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 15, weight: .semibold))
+            .font(.subheadline.weight(.semibold))
             .padding(15).frame(maxWidth: .infinity, minHeight: 50)
             .background(configuration.isPressed ? ThusoTheme.indigoSoft : .white, in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(ThusoTheme.line, lineWidth: 1))
@@ -81,7 +81,7 @@ struct StatusPill: View {
         }
     }
     var body: some View {
-        Text(text).font(.system(size: 11, weight: .semibold))
+        Text(text).font(.caption2.weight(.semibold))
             .padding(.horizontal, 10).padding(.vertical, 5)
             .background(colors.0, in: Capsule()).foregroundStyle(colors.1)
     }
@@ -92,8 +92,8 @@ struct StepDots: View {
     let label: String
     var body: some View {
         HStack(spacing: 10) {
-            Text("Step \(step) of \(total)").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.indigo)
-            Text(label).font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+            Text("Step \(step) of \(total)").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
+            Text(label).font(.caption).foregroundStyle(ThusoTheme.body)
             Spacer()
             HStack(spacing: 6) {
                 ForEach(1...total, id: \.self) { index in
@@ -122,7 +122,7 @@ struct CodeBoxes: View {
             HStack(spacing: 7) {
                 ForEach(0..<length, id: \.self) { index in
                     let digit = index < code.count ? String(Array(code)[index]) : ""
-                    Text(digit).font(.system(size: 19, weight: .semibold))
+                    Text(digit).font(.title3.weight(.semibold))
                         .frame(maxWidth: .infinity, minHeight: 56)
                         .background(.white, in: RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(
@@ -130,7 +130,7 @@ struct CodeBoxes: View {
                             lineWidth: 1.5))
                 }
                 if code.count == length && !invalid {
-                    Image(systemName: "checkmark").font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                    Image(systemName: "checkmark").font(.subheadline.weight(.bold)).foregroundStyle(.white)
                         .frame(width: 34, height: 34).background(ThusoTheme.indigo, in: Circle())
                 }
             }
@@ -158,11 +158,11 @@ struct MenuRow: View {
             TileIcon(symbol: symbol, tint: danger ? ThusoTheme.danger : ThusoTheme.indigo,
                      background: danger ? ThusoTheme.danger.opacity(0.1) : ThusoTheme.indigoSoft, size: 38)
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.system(size: 15, weight: .semibold)).foregroundStyle(danger ? ThusoTheme.danger : ThusoTheme.ink)
-                if !subtitle.isEmpty { Text(subtitle).font(.system(size: 12)).foregroundStyle(ThusoTheme.body) }
+                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(danger ? ThusoTheme.danger : ThusoTheme.ink)
+                if !subtitle.isEmpty { Text(subtitle).font(.caption).foregroundStyle(ThusoTheme.body) }
             }
             Spacer(minLength: 8)
-            if !danger { Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(ThusoTheme.body.opacity(0.6)) }
+            if !danger { Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.body.opacity(0.6)) }
         }
         .padding(.vertical, 5)
         .contentShape(Rectangle())
