@@ -82,6 +82,9 @@ export type RetentionAnchor =
  | 'last-entry'
  /** From the day the party stopped being able to work through MyThuso. */
  | 'party-inactive'
+ /** From the day the server received a queued entry from a device. Not from when it was captured:
+     what the device believed is a claim, and a disposal date computed off a claim is not a date. */
+ | 'capture-received'
  /** Until the person reaches a given age. Needs a date of birth, which this service does not hold. */
  | 'age-of-majority'
  /** There is no disposal date, and saying one would be a fiction. */
@@ -149,6 +152,17 @@ export const RETENTION_BASES: RetentionBasis[] = [
   conflictsWithErasure: true,
   inUse: true,
   note: 'Six years is MyThuso\'s own setting. No statute names a period for vetting evidence; six matches the period a patient record is kept for, so that a question about a visit and a question about who attended it stop being answerable on the same day rather than years apart. It is a setting an Information Officer should confirm or change, and this file does not decide it.'
+ },
+ {
+  id: 'capture-receipt',
+  name: 'The record that a reading was sent, and what happened to it',
+  authority: 'POPIA section 14(1)(b) and (c), read with the National Health Act 61 of 2003 section 13 and the HPCSA guidance on the keeping of patient records — which govern the reading itself, held elsewhere, and not this receipt.',
+  anchor: 'capture-received',
+  years: 6,
+  rule: 'A line for every entry a nurse\'s phone sent to MyThuso: who sent it, against whose visit, when the phone believed it was taken and when MyThuso received it. It holds no reading of any kind. It is kept for six years from the day it arrived, so that the order in which things happened can still be established for as long as the care it belongs to can be asked about.',
+  conflictsWithErasure: true,
+  inUse: true,
+  note: 'Six years is MyThuso\'s own setting. No statute names a period for a sync receipt: the six-year clinical period runs from the last entry in a record, and this counts from the day the entry arrived, which is a different anchor and a shorter clock. It was chosen to match rather than derived from anything, and it is a setting an Information Officer should confirm or change. An entry still waiting for a clinician\'s decision is never disposed of on this ground, whatever its age — see apps/api/src/capture/index.ts.'
  },
  /* ── Written down, holding nothing ─────────────────────────────────────────────────────────
     These are the bases that make the conflict real, and not one of them applies to anything this
@@ -307,6 +321,21 @@ export const HOLDINGS: Holding[] = [
   because: 'MyThuso\'s vetting rule is that a high-risk check needs two different reviewers. The very first reviewers had nobody to check them, so two named people cleared them by hand at a console, under a one-time authorisation. This holds the fingerprint of that authorisation, when it was used, who used it, and who was seeded — never the authorisation itself. It is what stops the same authorisation being used a second time, and it is the record an auditor asks for when they want to know where the first trust on this platform came from.',
   basis: 'audit-integrity'
  },
+ /* ── The intake ledger: somebody's clinical work, and no clinical information ───────────── */
+ {
+  label: 'The record of entries your nurse\'s phone sent after being offline',
+  table: 'capture_entries',
+  disposition: 'retain',
+  because: 'When a nurse works somewhere with no signal, what she takes is held on her phone until it can be sent. This is the line MyThuso writes when it arrives: which phone sent it, which nurse, against which of your visits, which part of the visit it was for, what time the phone believed it was taken and what time MyThuso actually received it. It does not hold what was found. MyThuso never kept that and could not read it if it had — the reading stays on the phone, and what is kept here is a fingerprint of the sealed copy, which proves nothing about you and everything about whether the file was swapped afterwards. It is kept so that the order in which things happened can still be worked out if anybody asks about your care.',
+  basis: 'capture-receipt'
+ },
+ {
+  label: 'Anything of yours a clinician still has to decide about',
+  table: 'capture_conflicts',
+  disposition: 'retain',
+  because: 'Sometimes two entries land on the same part of the same visit, or one arrives after a doctor has already signed off, or the nurse who took it had a certificate run out while her phone was offline. MyThuso never merges those and never throws one away: it holds them and says a person has to decide. This is that decision — what disagreed, when it was noticed, who settled it, and what they said. It holds no reading. Anything still waiting is never quietly disposed of on a date, because a question that has been open for a year is a question somebody owes you an answer to rather than a record to tidy away.',
+  basis: 'capture-receipt'
+ },
  {
   label: 'What each issuing authority said about your checks',
   table: 'vetting_authority_answers',
@@ -337,7 +366,7 @@ export const holdingsFor = (disposition: Disposition, options: { vetted: boolean
 
 /** One sentence about the whole service, for the top of an answer to a request. */
 export const SCOPE_STATEMENT =
- 'MyThuso\'s identity service holds a mobile number, a name if you gave one, the short-lived machinery of signing in, and — if you set one up — the secret your authenticator app shares with it. If MyThuso vets you as a nurse, courier, pharmacy, laboratory or site, it also holds the certificates and clearances your checks were verified against, and the decisions taken on them. It holds no health information: no visits, no observations, no results, no prescriptions. Those live nowhere yet.';
+ 'MyThuso\'s identity service holds a mobile number, a name if you gave one, the short-lived machinery of signing in, and — if you set one up — the secret your authenticator app shares with it. If MyThuso vets you as a nurse, courier, pharmacy, laboratory or site, it also holds the certificates and clearances your checks were verified against, and the decisions taken on them. Where a nurse\'s phone has synced after being offline, it also holds the line saying an entry arrived — which phone, which nurse, against which visit, and when — and never what was in it. It holds no health information: no visits, no observations, no results, no prescriptions. Those live nowhere yet.';
 
 /**
  * What could not be erased, with the ground and the date it stops applying.
@@ -353,6 +382,8 @@ export type ErasureAnchors = {
  partyInactiveAt?: number | null;
  /** The last entry in a health record. There is none in this service, and there is no field for one. */
  lastEntryAt?: number | null;
+ /** When the earliest intake receipt about this person arrived. Absent for almost everybody. */
+ captureReceivedAt?: number | null;
 };
 
 export type RetainedHolding = {
@@ -368,6 +399,7 @@ const anchorFor = (basis: RetentionBasis, anchors: ErasureAnchors): number | nul
   case 'request': return anchors.requestedAt;
   case 'party-inactive': return anchors.partyInactiveAt ?? null;
   case 'last-entry': return anchors.lastEntryAt ?? null;
+  case 'capture-received': return anchors.captureReceivedAt ?? null;
   default: return null;
  }
 };

@@ -25,6 +25,7 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Consultation record | One structure for every encounter, written in long form or in SOAP — the same fields either way, so there is no second copy to drift. A nurse's assessment and a doctor's diagnosis are different fields, not the same field with a warning | All three |
 | Household record | Members, shared appointments, scheme dependants, immunisations and medicine collections due. Membership is not consent: another adult's record stays closed, a guardian's reach over a child of 12 or older is capped because that child may consent for themselves, and the roster itself discloses no more than the viewer may see | All three |
 | Health summary | The nine-field summary, shareable bound to a purpose and a period rather than as a permanently valid document, with an unguessable token. The export is checked against its own bytes for protected content before it is produced | All three |
+| Thuso Kit, capture and the offline queue | Pairing over a named transport, calibration and consumable expiry as separate gates, and four provenance marks — device, hand-entered, patient-reported and derived — carried from the instrument through the assessment into the consultation record and the patient file. A queue that holds readings on the phone, and the four disagreements a queue actually produces: a duplicate, a stale write, a clock skew and a capturer whose standing lapsed between capture and arrival. Three of the four are settled by a clinician; only the clock one is settled by the server | All three |
 | Append-only vetting audit | Who decided, when, on what evidence and what changed. Prepend-only in the preview, and gone on reload | Web |
 | Accessible clinical charts | Every chart carries a spoken summary and the same values as a real table | Passport, doctor review |
 | System states | Loading, service error, offline, permission denied and empty, as shared components used by the real screens and collected in one gallery | All three |
@@ -50,12 +51,12 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Thuso Routine | Five plan cards with indicative pricing | Five native plan cards | Billing, eligibility, schedules, care pathways |
 | Thuso Wallet | Sample balance/activity and entry dialogs | Native balance/activity and entry screens | Payment provider, vouchers, immutable ledger, sponsorship |
 | Privacy | Switches, sharing, guardian access, access-history sample, request acknowledgement | Native switches, invitations and rights entry screens | Identity verification, lawful-basis records, audited rights fulfilment |
-| Nurse workspace | Schedule, availability toggle, full visit assessment, onboarding and vetting | Native equivalents | Kit capture, offline sync, earnings, real dispatch integration |
+| Nurse workspace | Schedule, availability toggle, full visit assessment with device capture, the offline queue, onboarding and vetting | Native equivalents | Earnings and payouts, real dispatch integration |
 | Doctor workspace | Review queue with trend chart, outcome and rationale sign-off | Native queue and review | Secure native consult, real prescriptions, referrals |
 | Partner workspace | Prescription and laboratory order detail with chain of custody and release control | Native fulfilment queue and order detail | Partner APIs, real dispensing, courier integration, result delivery |
 | Control Tower | Dispatch map and assignment gated on vetting, incident triage and log, the vetting queue for all twelve roles | Native dispatch board, incidents and vetting | Live positions, real assignment, paging, escalation, revenue |
 | Localisation | Shell, navigation and primary actions in four languages | Same four languages natively | Clinical language review, remaining official languages, SASL guidance |
-| Thuso Kit / AI | Preview entries and clinical-review framing | Native entries | Bluetooth capture, validated models, clinical governance |
+| Thuso Kit / AI | Pairing, calibration, capture with provenance, and the offline queue with its four conflicts | Native equivalents | Real Bluetooth transports, validated models, clinical governance |
 | Thuso Screen | Feature entry | Native feature entry | Package eligibility, clinician-approved questionnaires, referrals |
 | Thuso Wear | Apple Health / Health Connect entries with a permission-denied state | Platform-specific native entry and state | Granular permissions, compatible reading types, sync |
 | Pharmacy / Labs | Order detail and partner workspace | Native order detail and workspace | Partner APIs, prescriptions and laboratory reports |
@@ -79,6 +80,13 @@ These flows exist on all three platforms, with the same steps, the same wording 
 - A protected category is never a header chip, for anyone. The header says a category is withheld, in the same words on every record, so a clinician knows to ask rather than assuming there is nothing to know.
 - Finance sees a service code and an amount, never a diagnosis in words — and a protected service's line is withheld entirely, because a code is not anonymous to anyone holding the code book.
 - Sharing a household is not consent, and paying for a member's care is not a permission.
+- A conflict in the capture queue is never merged and never discarded automatically. A later timestamp does not win a
+  clinical disagreement, and a retake is not the better reading: last-write-wins over two blood pressures is a silent
+  clinical decision taken by a comparison operator.
+- A reading never loses where it came from. A device reading, a nurse's hand entry and something the patient said are
+  three different things on the screen at every step, and they stay different in the record.
+- An overdue calibration does not block a reading — it labels it, permanently. An expired consumable does block it,
+  because a strip past its date is not a measurement at all.
 - Nothing in any of these flows is transmitted, stored or acted upon.
 
 ## Cross-platform consistency
@@ -87,4 +95,4 @@ Clinical reference ranges, locale sets, the demo verification codes, the identit
 
 ## Next UI increments
 
-Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only today; nurse earnings and payout detail; kit pairing and observation capture from a device; teleconsultation call UI; prescription substitution and chronic authorisation; employer and sponsor programme administration; a real emergency pathway design; offline capture and conflict resolution for nurses; the remaining official languages and a clinical language review of translated copy; South African Sign Language guidance; large-text, screen-reader and low-end device testing on real hardware. None of these are claimed complete.
+Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only today; nurse earnings and payout detail; teleconsultation call UI; prescription substitution and chronic authorisation; employer and sponsor programme administration; a real emergency pathway design; the remaining official languages and a clinical language review of translated copy; South African Sign Language guidance; large-text, screen-reader and low-end device testing on real hardware. None of these are claimed complete.

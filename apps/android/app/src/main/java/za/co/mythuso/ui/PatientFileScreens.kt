@@ -374,16 +374,31 @@ private val withheldCategorySentence: String = run {
 
     Text("Latest observations", style = MaterialTheme.typography.titleMedium, color = Ink)
     if (clinical.allowed) {
+        /* Every tile wears where its number came from. It is the difference between a file that can
+           be read in a hurry and one that will be read wrongly in a hurry: the last set here was
+           four numbers the patient read out over a telehealth call, and a reader who takes them for
+           measurements is about to make a decision on evidence that was never a measurement. The
+           mark is the same shape and the same tint on all four origins — see ProvenanceMark — so a
+           patient-reported weight is told apart from a measured one without being drawn as a lesser
+           reading than one. */
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
-                Triple(Icons.Outlined.MonitorHeart, "Blood pressure", "${latest.systolic}/${latest.diastolic} mmHg"),
-                Triple(Icons.Outlined.Favorite, "Pulse", "${latest.pulse} bpm"),
-                Triple(Icons.Outlined.Thermostat, "Temperature", "%.1f °C".format(latest.temperature)),
-                Triple(Icons.Outlined.Scale, "Weight", "%.1f kg".format(latest.weight)),
-                Triple(Icons.Outlined.Air, "Oxygen saturation", "${latest.oxygen} %")
-            ).forEach { (icon, name, value) -> VitalTile(icon, name, value) }
+                Triple(Icons.Outlined.MonitorHeart, "Blood pressure", "${latest.systolic}/${latest.diastolic} mmHg") to latest.bloodPressureFrom,
+                Triple(Icons.Outlined.Favorite, "Pulse", "${latest.pulse} bpm") to latest.pulseFrom,
+                Triple(Icons.Outlined.Thermostat, "Temperature", "%.1f °C".format(latest.temperature)) to latest.temperatureFrom,
+                Triple(Icons.Outlined.Scale, "Weight", "%.1f kg".format(latest.weight)) to latest.weightFrom,
+                Triple(Icons.Outlined.Air, "Oxygen saturation", "${latest.oxygen} %") to latest.oxygenFrom
+            ).forEach { (tile, origin) -> VitalTile(tile.first, tile.second, tile.third, provenanceById(origin)) }
+            /* The fourth origin, and the only one nobody entered. It exists while its two inputs do
+               and not otherwise, and it names them rather than standing on its own. */
+            meanArterialPressureOf(latest)?.let { map ->
+                VitalTile(Icons.Outlined.Calculate, "Mean arterial pressure", "%.0f mmHg".format(map), Provenance.DERIVED)
+            }
         }
-        Note("Recorded ${longDate(latest.at)} by ${patient.careTeam.first().name}. Readings a patient takes at home are not in this record; only what a nurse or a doctor recorded appears here.")
+        val origins = listOf(latest.bloodPressureFrom, latest.pulseFrom, latest.temperatureFrom, latest.weightFrom, latest.oxygenFrom)
+            .distinct().mapNotNull { provenanceById(it) }
+        Note("Recorded ${longDate(latest.at)} by ${patient.careTeam.first().name}. ${origins.joinToString(" ") { "${it.label}: ${it.trust}" }}")
+        Note("The mean arterial pressure is calculated from the systolic and diastolic above. It is exactly as good as those two readings and it names them, because a derived value whose inputs are unknown is not a value.")
         ClinicalChart(
             "Systolic blood pressure", "mmHg",
             patient.vitals.map { Reading(dayMonth(it.at), it.systolic.toDouble()) }, 90.0..140.0,
@@ -441,10 +456,10 @@ private val withheldCategorySentence: String = run {
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
     )
 }
-@Composable private fun VitalTile(icon: ImageVector, name: String, value: String) {
+@Composable private fun VitalTile(icon: ImageVector, name: String, value: String, provenance: Provenance? = null) {
     Column(
         Modifier.background(Color.White, RoundedCornerShape(14.dp)).padding(12.dp)
-            .semantics(mergeDescendants = true) { contentDescription = "$name $value" },
+            .semantics(mergeDescendants = true) { contentDescription = "$name $value${provenance?.let { ", ${it.label}" } ?: ""}" },
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -452,6 +467,7 @@ private val withheldCategorySentence: String = run {
             Text(name, fontSize = 11.sp, color = BodyText)
         }
         Text(value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+        provenance?.let { ProvenanceMark(it) }
     }
 }
 

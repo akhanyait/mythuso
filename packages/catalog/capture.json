@@ -1,0 +1,164 @@
+{
+ "why": "A reading is not just a number. Where it came from decides what may be done with it, and a record that cannot tell a measured value from a typed one from a reported one is a record that will eventually be read wrongly by somebody in a hurry.",
+ "provenance": [
+  {
+   "id": "device",
+   "name": "Measured by a device",
+   "fhir": "Observation.device",
+   "detail": "Read off a paired instrument and written straight into the record. The instrument, its serial and the date it was last calibrated travel with the reading.",
+   "trust": "The strongest of the four, and only while the calibration is in date. An instrument out of calibration still produces a reading; what it stops producing is a reading anybody should act on without saying so."
+  },
+  {
+   "id": "manual",
+   "name": "Entered by a clinician",
+   "fhir": "Observation.performer",
+   "detail": "Read off an instrument by a person and typed in, or taken by hand. Attributed to the registration of whoever typed it.",
+   "trust": "As good as the person and the instrument they were holding. It is not weaker than a device reading — a manual blood pressure is a clinical skill — but it is a different fact and the record says which."
+  },
+  {
+   "id": "patient-reported",
+   "name": "Reported by the patient",
+   "fhir": "Observation.performer (Patient)",
+   "detail": "What the person said, in the record as what they said rather than as a finding.",
+   "trust": "Not a measurement. It is evidence about the person's experience, which is often the more useful thing, and it must never be presented as though a clinician observed it."
+  },
+  {
+   "id": "derived",
+   "name": "Calculated",
+   "fhir": "Observation.derivedFrom",
+   "detail": "Computed from other readings — BMI from height and weight, a mean arterial pressure from a blood pressure.",
+   "trust": "Exactly as good as its inputs, and it names them. A derived value whose inputs are unknown is not a value."
+  }
+ ],
+ "devices": [
+  {
+   "id": "bp-cuff",
+   "name": "Blood-pressure monitor",
+   "measures": [
+    "systolic",
+    "diastolic",
+    "pulse"
+   ],
+   "transport": "Bluetooth Low Energy",
+   "calibrateEveryMonths": 12,
+   "note": "Cuff size is a clinical decision the device cannot make. A reading taken on the wrong cuff is wrong in a direction nobody can correct for afterwards, so the cuff used is recorded with the reading."
+  },
+  {
+   "id": "pulse-oximeter",
+   "name": "Pulse oximeter",
+   "measures": [
+    "oxygen",
+    "pulse"
+   ],
+   "transport": "Bluetooth Low Energy",
+   "calibrateEveryMonths": 24,
+   "note": "Reads high on dark skin under low perfusion. This is documented rather than corrected for, because the correction is not the platform's to invent."
+  },
+  {
+   "id": "thermometer",
+   "name": "Infrared thermometer",
+   "measures": [
+    "temperature"
+   ],
+   "transport": "Bluetooth Low Energy",
+   "calibrateEveryMonths": 12,
+   "note": "Site matters and is recorded: a forehead reading is not an oral one."
+  },
+  {
+   "id": "glucometer",
+   "name": "Glucose meter",
+   "measures": [
+    "glucose"
+   ],
+   "transport": "Bluetooth Low Energy",
+   "calibrateEveryMonths": 6,
+   "note": "Strips expire separately from the meter, and an expired strip reads low. The strip lot travels with the reading."
+  },
+  {
+   "id": "scale",
+   "name": "Weighing scale",
+   "measures": [
+    "weight"
+   ],
+   "transport": "Bluetooth Low Energy",
+   "calibrateEveryMonths": 12,
+   "note": "Recorded with whether the patient was weighed standing, seated or in bed, because the three are not comparable."
+  },
+  {
+   "id": "ecg",
+   "name": "Single-lead ECG",
+   "measures": [
+    "ecg"
+   ],
+   "transport": "Bluetooth Low Energy",
+   "calibrateEveryMonths": 12,
+   "note": "A single-lead trace is a screening tool. It is never a diagnosis, and any interpretation is decision support that a doctor signs or does not."
+  }
+ ],
+ "captureStates": [
+  {
+   "id": "captured",
+   "name": "Captured",
+   "detail": "Taken, and held on the device it was taken on. It exists nowhere else yet."
+  },
+  {
+   "id": "queued",
+   "name": "Waiting to send",
+   "detail": "Finished and sealed, waiting for a connection. The nurse has done everything they can do."
+  },
+  {
+   "id": "sending",
+   "name": "Sending",
+   "detail": "In flight. Interruptible without loss — an entry that does not land stays queued."
+  },
+  {
+   "id": "stored",
+   "name": "Stored",
+   "detail": "Accepted by the server and in the record."
+  },
+  {
+   "id": "conflicted",
+   "name": "Needs a decision",
+   "detail": "Landed against a record that already holds a reading for the same observation in the same visit. Nothing is merged and nothing is discarded."
+  },
+  {
+   "id": "refused",
+   "name": "Refused",
+   "detail": "The server would not take it, and says why. It stays on the device until somebody decides what to do with it."
+  }
+ ],
+ "conflicts": [
+  {
+   "id": "duplicate-observation",
+   "name": "Two readings, one observation",
+   "resolution": "clinician",
+   "detail": "The same observation recorded twice in one visit — usually a retake after a doubtful first reading. Both are kept; a clinician says which stands, and the other stays visible as superseded rather than being deleted."
+  },
+  {
+   "id": "clock-skew",
+   "name": "The device clock disagrees",
+   "resolution": "server",
+   "detail": "A device that has been offline may have drifted or been set by hand. The server's receipt time is authoritative for ordering; the device's time is kept beside it as what the device believed, never presented as the time it happened."
+  },
+  {
+   "id": "stale-write",
+   "name": "The record moved on",
+   "resolution": "clinician",
+   "detail": "The record changed while the entry was queued — a doctor has already signed, or the visit was cancelled. It is never applied silently after the fact."
+  },
+  {
+   "id": "vetting-lapsed",
+   "name": "The capturer's standing lapsed",
+   "resolution": "clinician",
+   "detail": "A nurse whose clearance lapsed between capture and sync. The reading was taken while she was cleared, so it is not discarded — but it is not filed on her authority alone either."
+  }
+ ],
+ "rules": {
+  "provenanceIsRequired": "Every reading carries exactly one provenance. There is no default and no unknown: a value nobody can say the origin of is not filed.",
+  "calibrationNeverRefuses": "An out-of-date calibration marks a reading, it does not block it. A nurse in a home with one instrument still needs the number; what she must not have is the number without the caveat.",
+  "deviceClockIsNotTruth": "The device's own time is recorded as what the device believed. Ordering uses the server's receipt time.",
+  "conflictsAreNotMerged": "Nothing is auto-merged and nothing is auto-discarded. A timestamp does not win a clinical disagreement; a clinician does.",
+  "queuedIsNotLost": "An entry that has been captured is the nurse's work. It survives a crash, a restart and a sign-out, and it is never dropped to make a sync succeed.",
+  "offlineNeverServesStaleSilently": "A value read from the device's own store carries when it was written, on screen, in words."
+ }
+}

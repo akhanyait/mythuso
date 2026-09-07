@@ -27,3 +27,7 @@ test-results/
 
 # Word and PowerPoint lock files, created whenever the proposal is open
 ~$*
+
+# Local verification harness for a batch in progress: a throwaway Playwright config and
+# specs used to watch a screen while it is being built. Journeys worth keeping move to tests/.
+.kitcheck/

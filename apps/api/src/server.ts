@@ -8,6 +8,7 @@ import { TwoFactor } from './twoFactor.ts';
 import { Erasure } from './erasure.ts';
 import { decideStepUp, SECOND_FACTOR_CAPABILITIES, SECOND_FACTOR_REASONS, type StepUpAction } from './stepUp.ts';
 import { RESPONSE_DAYS, SCOPE_STATEMENT, clinicalRetentionRules } from './personalData.ts';
+import { openCaptureStore } from './capture/index.ts';
 import { SEALED_COLUMNS, VettingVault, authorityVerifiers, createIdentityProvider, openVettingStore, vettingSource } from './vetting/index.ts';
 
 const COOKIE = 'mythuso_session';
@@ -67,6 +68,15 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
      nurse whose police clearance ran out last night is refused this morning by arithmetic, and that
      only works if the gate is asking the register rather than a stub that answers "nobody". */
   const vettingStore = openVettingStore(store.database);
+
+  /* The intake ledger's own tables, created here so a deployed database actually holds what
+     personalData.ts tells a data subject it holds. Nothing below reaches the intake module, and that
+     is deliberate rather than unfinished: a sync from a nurse's phone has to say who the capturer is,
+     and this service has no notion of a clinician's role on a session — so a route today would be a
+     route that took an actor id off a request body and handed it to the gate, which is precisely the
+     hole the gate exists to close. The module is exercised against the real gate and the real chain
+     in apps/api/test/capture.test.ts; what it is waiting for is device identity, not more code. */
+  openCaptureStore(store.database);
 
   /* The data protection module, if it is configured. The identity service holds no clinical record,
      so the gate has little to guard here yet — but the subject-access route below is a real read of

@@ -10,6 +10,7 @@ import { ConsultationRecord } from './features/Consultation';
 import { HouseholdRecord, HealthSummary } from './features/Household';
 import { Onboarding, SignIn } from './features/Onboarding';
 import { VisitAssessment, DoctorReview } from './features/Clinical';
+import { ThusoKit } from './features/Kit';
 import { LabOrderDetail, PrescriptionDetail } from './features/Orders';
 import { IncidentDetail, NurseVetting } from './features/Dispatch';
 import { VettingApplication } from './features/Vetting';
@@ -50,12 +51,17 @@ function Shell({locale,setLocale}:{locale:LocaleCode;setLocale:(l:LocaleCode)=>v
  {modal&&<Modal title={modalTitle(modal)} onClose={()=>setModal(null)}>{modalBody({modal,close:()=>setModal(null),navigate:(p:string)=>{navigate(p);setModal(null);},openOnboarding:()=>{setModal(null);setOnboarding(true);},reopen:(m:string)=>setModal(m),locale,setLocale,query,setQuery,location,setLocation,setRole,addMember:(n:string)=>{setMembers([...members,n]);setModal(null);navigate('My family');},addInvitation:(i:Invitation)=>{setInvitations([...invitations,i]);setModal(null);navigate('My family');},signOut})}</Modal>}
  </div>;
 }
+/* Four doors into the same surface: the nurse's tool list, the roadmap tile, the passport's device
+   tab and the design-review menu. They are one screen because they are one question — where did
+   this reading come from — and three copies of it would drift. */
+const isKit=(modal:string)=>modal==='Diagnostic kit'||modal==='Thuso Kit'||modal==='Thuso Kit connection';
 function modalTitle(modal:string){
  if(modal.startsWith('Visit:')) return 'Your visit';
  if(modal.startsWith('Prescription ')) return 'Prescription';
  if(modal.startsWith('Laboratory order ')) return 'Laboratory order';
  if(modal.startsWith('Incident ')) return 'Incident';
  if(modal.startsWith('Doctor review')) return 'Clinical review';
+ if(isKit(modal)) return 'Thuso Kit';
  if(modal==='Vetting application') return 'Apply for vetting';
  if(modal==='Visit assessment'||modal.startsWith('Nurse case:')) return 'Visit assessment';
  return modal;
@@ -71,6 +77,7 @@ function modalBody(p:BodyProps){
   <button className="record-row" onClick={()=>p.reopen('Switch workspace')}><span className="service-icon"><Users size={21}/></span><span><strong>Preview workspaces</strong><small>Nurse, doctor, partner and Control Tower</small></span><ArrowRight size={17}/></button>
   <button className="record-row" onClick={()=>p.reopen('Household record')}><span className="service-icon"><Users size={21}/></span><span><strong>Household record</strong><small>One household, and what each member may see of the others</small></span><ArrowRight size={17}/></button>
   <button className="record-row" onClick={()=>p.reopen('Health summary')}><span className="service-icon"><Users size={21}/></span><span><strong>Health summary</strong><small>The shareable summary, bound to a purpose and a period</small></span><ArrowRight size={17}/></button>
+  <button className="record-row" onClick={()=>p.reopen('Thuso Kit')}><span className="service-icon"><Users size={21}/></span><span><strong>Thuso Kit</strong><small>Pairing, provenance, calibration and the offline queue</small></span><ArrowRight size={17}/></button>
   <button className="record-row" onClick={()=>p.reopen('Consultation record')}><span className="service-icon"><Users size={21}/></span><span><strong>Consultation record</strong><small>One structure for every encounter, in long form or SOAP</small></span><ArrowRight size={17}/></button>
   <button className="record-row" onClick={()=>p.reopen('System states')}><span className="service-icon"><Users size={21}/></span><span><strong>System states</strong><small>Loading, error, offline, permission denied and empty</small></span><ArrowRight size={17}/></button>
  </div>;
@@ -84,6 +91,7 @@ function modalBody(p:BodyProps){
  if(modal.startsWith('Laboratory order ')||modal==='Laboratory results') return <LabOrderDetail reference={modal.replace('Laboratory order ','')}/>;
  if(modal.startsWith('Incident ')||modal==='Incident management') return <IncidentDetail reference={modal.replace('Incident ','')} onClose={p.close}/>;
  if(modal==='Nurse onboarding & vetting'||modal==='Nurse vetting') return <NurseVetting onClose={p.close}/>;
+ if(isKit(modal)) return <ThusoKit onClose={p.close}/>;
  if(modal==='Consultation record') return <ConsultationRecord onClose={p.close}/>;
  if(modal==='Household record') return <HouseholdRecord/>;
  if(modal==='Health summary') return <HealthSummary/>;

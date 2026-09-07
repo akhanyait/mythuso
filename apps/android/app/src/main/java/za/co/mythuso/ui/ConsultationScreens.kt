@@ -116,6 +116,13 @@ private data class ConsultationSignature(
        by a doctor, a doctor's prescription read by a nurse. It stays visible and read-only, because
        the point of one structure is that the record does not change when the reader does. */
     val carried = everyField.filter { value(it.id).isNotEmpty() && offeredFields.none { o -> o.id == it.id } }
+    /* The readings this encounter is being written about, straight from the capture queue rather
+       than retyped into the note. Retyping is where origin is lost: a number copied out of a queue
+       into a text box arrives in the record as something a clinician wrote, which is exactly the
+       confusion between a measured value and a typed one the capture contract exists to prevent. */
+    val readings = store.capture.forVisit(reference)
+        .filter { it.state != CaptureState.REFUSED }
+        .sortedBy { it.label }
 
     ScreenColumn {
         DemoBadge()
@@ -142,7 +149,7 @@ private data class ConsultationSignature(
 
         when (view) {
             "Full record" -> offered.forEach { section ->
-                ConsultationSectionBlock(section, record, mayDiagnose, writer, signature != null)
+                ConsultationSectionBlock(section, record, mayDiagnose, writer, signature != null, readings, patient)
             }
             "SOAP" -> {
                 soapHeadings.forEach { heading ->
@@ -152,14 +159,14 @@ private data class ConsultationSignature(
                         Note(heading.detail)
                         if (covered.isEmpty()) Note("Nothing under this heading is offered to a ${role?.name?.lowercase() ?: "party"}.")
                         else covered.forEach { section ->
-                            ConsultationSectionBlock(section, record, mayDiagnose, writer, signature != null)
+                            ConsultationSectionBlock(section, record, mayDiagnose, writer, signature != null, readings, patient)
                         }
                     }
                 }
                 outsideSoap.filter { it in offered }.forEach { section ->
                     CareCard {
                         StatusPill("No SOAP heading claims this", "quiet")
-                        ConsultationSectionBlock(section, record, mayDiagnose, writer, signature != null)
+                        ConsultationSectionBlock(section, record, mayDiagnose, writer, signature != null, readings, patient)
                     }
                 }
             }
@@ -169,7 +176,14 @@ private data class ConsultationSignature(
                         .flatMap { fieldsFor(it, mayDiagnose) }.filter { value(it.id).isNotEmpty() }
                     CareCard {
                         StatusPill("${heading.id} · ${heading.name}", "quiet")
-                        if (lines.isEmpty()) Note("Nothing written under ${heading.name.lowercase()} yet.")
+                        if (heading.id == "O") readings.forEach { reading ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                                Text(reading.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                                Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Forest)
+                                ProvenanceMark(reading.provenance)
+                            }
+                        }
+                        if (lines.isEmpty() && !(heading.id == "O" && readings.isNotEmpty())) Note("Nothing written under ${heading.name.lowercase()} yet.")
                         else lines.forEach { ReviewLine(it.label, value(it.id)) }
                     }
                 }
@@ -236,10 +250,33 @@ private data class ConsultationSignature(
     record: MutableMap<String, String>,
     mayDiagnose: Boolean,
     writer: VettingSubject,
-    locked: Boolean
+    locked: Boolean,
+    readings: List<CapturedReading>,
+    patient: String
 ) {
     val decision = if (section.gatedBy != null) can(writer, section.gatedBy) else can(writer, "write-clinical-note")
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        /* The observations arrive already filed, each with its origin and whatever the instrument
+           could not decide for itself. They are read-only here because a consultation does not get
+           to change what a reading was — it gets to say what it makes of it, which is the free field
+           underneath. */
+        if (section.id == "observations" && decision.allowed && readings.isNotEmpty()) {
+            Text("Readings captured on this visit", style = MaterialTheme.typography.labelLarge, color = Forest)
+            readings.forEach { reading ->
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                        Text(reading.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Forest)
+                        ProvenanceMark(reading.provenance)
+                    }
+                    if (reading.state != CaptureState.STORED) StatusPill(reading.state.label, "sky")
+                    if (reading.superseded) StatusPill("Superseded · kept", "quiet")
+                    ProvenanceBlock(reading, patient)
+                    HorizontalDivider(color = Line)
+                }
+            }
+            Note("Carried from the capture queue rather than retyped. A number copied into a text box arrives in the record as something a clinician wrote, and the whole point of recording an origin is that the record can still tell the difference in a year’s time.")
+        }
         if (decision.allowed) fieldsFor(section, mayDiagnose).forEach { field ->
             key(field.id) {
                 OutlinedTextField(

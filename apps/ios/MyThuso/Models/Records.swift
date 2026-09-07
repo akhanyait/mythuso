@@ -215,7 +215,51 @@ struct VitalSet: Identifiable, Hashable {
     let temperature: Double
     let weight: Double
     let oxygen: Double
+    /* Six numbers used to be six numbers. They are not: packages/catalog/capture.json says every
+       reading carries exactly one provenance and that there is no default and no unknown, so a set
+       carries where each of its readings came from and a reading with no entry here is not shown as
+       a finding. The absence is the point — a dictionary with nothing under "weight" is how “nobody
+       said” is written down, and originOf returns nil for it rather than quietly answering
+       “a clinician”.
+
+       A home visit is where this stops being theoretical. A nurse arrives with a manual cuff and an
+       oximeter, and the weight is whatever the patient's own bathroom scale said this morning. That
+       is three origins in one set of vitals, and a record that flattens them into one has thrown
+       away the only thing that tells the next clinician which numbers to trust for what. */
+    let origin: [String: Provenance]
+    /// Named where an instrument took them, with what its calibration was on the day.
+    var instrument: String?
+    var calibrationNote: String?
     var id: String { at }
+}
+/// nil is a real answer and callers must handle it. See the comment above.
+func originOf(_ set: VitalSet, _ observationId: String) -> Provenance? { set.origin[observationId] }
+extension VitalSet {
+    private static let all = ["systolic", "diastolic", "pulse", "temperature", "weight", "oxygen"]
+    private static func every(_ provenance: Provenance) -> [String: Provenance] {
+        Dictionary(uniqueKeysWithValues: all.map { ($0, provenance) })
+    }
+    /// A whole set off one paired instrument, which is what a fully equipped visit produces.
+    static func measured(at: String, systolic: Double, diastolic: Double, pulse: Double, temperature: Double,
+                         weight: Double, oxygen: Double, instrument: String, calibrationNote: String? = nil) -> VitalSet {
+        VitalSet(at: at, systolic: systolic, diastolic: diastolic, pulse: pulse, temperature: temperature,
+                 weight: weight, oxygen: oxygen, origin: every(.device), instrument: instrument,
+                 calibrationNote: calibrationNote)
+    }
+    /// A whole set taken by hand. Not a lesser set — most home visits in this country are this one.
+    static func byHand(at: String, systolic: Double, diastolic: Double, pulse: Double, temperature: Double,
+                       weight: Double, oxygen: Double) -> VitalSet {
+        VitalSet(at: at, systolic: systolic, diastolic: diastolic, pulse: pulse, temperature: temperature,
+                 weight: weight, oxygen: oxygen, origin: every(.manual))
+    }
+    /// Some of each, named one by one, because that is what actually happens in a front room.
+    static func mixed(at: String, systolic: Double, diastolic: Double, pulse: Double, temperature: Double,
+                      weight: Double, oxygen: Double, origin: [String: Provenance],
+                      instrument: String? = nil, calibrationNote: String? = nil) -> VitalSet {
+        VitalSet(at: at, systolic: systolic, diastolic: diastolic, pulse: pulse, temperature: temperature,
+                 weight: weight, oxygen: oxygen, origin: origin, instrument: instrument,
+                 calibrationNote: calibrationNote)
+    }
 }
 struct ConsultationEntry: RecordEntry, Identifiable, Hashable {
     let typeId: String
@@ -383,10 +427,19 @@ enum PatientFixtures {
                      prescriber: "Dr N. Dlamini · HPCSA MP0483217", stopped: "June 2026")
         ],
         vitals: [
-            VitalSet(at: "2026-06-12", systolic: 142, diastolic: 91, pulse: 78, temperature: 36.8, weight: 73.4, oxygen: 97),
-            VitalSet(at: "2026-07-10", systolic: 136, diastolic: 88, pulse: 76, temperature: 36.6, weight: 72.8, oxygen: 98),
-            VitalSet(at: "2026-08-07", systolic: 131, diastolic: 85, pulse: 79, temperature: 36.9, weight: 72.1, oxygen: 98),
-            VitalSet(at: "2026-09-04", systolic: 128, diastolic: 82, pulse: 74, temperature: 36.7, weight: 71.5, oxygen: 98)
+            VitalSet.byHand(at: "2026-06-12", systolic: 142, diastolic: 91, pulse: 78, temperature: 36.8, weight: 73.4, oxygen: 97),
+            VitalSet.byHand(at: "2026-07-10", systolic: 136, diastolic: 88, pulse: 76, temperature: 36.6, weight: 72.8, oxygen: 98),
+            VitalSet.measured(at: "2026-08-07", systolic: 131, diastolic: 85, pulse: 79, temperature: 36.9, weight: 72.1, oxygen: 98,
+                              instrument: "Blood-pressure monitor · BP-4471-0092"),
+            /* The interesting set, and the ordinary one: a manual blood pressure, an oximeter for the
+               pulse and the saturation, a thermometer, and a weight the patient read off her own
+               bathroom scale before the nurse arrived. Four origins, one visit, and the file says
+               so rather than presenting all six as though somebody measured them. */
+            VitalSet.mixed(at: "2026-09-04", systolic: 128, diastolic: 82, pulse: 74, temperature: 36.7, weight: 71.5, oxygen: 98,
+                           origin: ["systolic": .manual, "diastolic": .manual, "pulse": .device,
+                                    "oxygen": .device, "temperature": .device, "weight": .patientReported],
+                           instrument: "Pulse oximeter · OX-2210-0417 and infrared thermometer · TH-8802-1130",
+                           calibrationNote: "Both instruments were in calibration on the day.")
         ],
         careTeam: [
             CareTeamMember(name: "Dr N. Dlamini", role: "Treating doctor · General practice", since: "March 2021"),
@@ -497,9 +550,14 @@ enum PatientFixtures {
                      prescriber: "Alexandra Community Mental Health")
         ],
         vitals: [
-            VitalSet(at: "2026-06-20", systolic: 141, diastolic: 90, pulse: 84, temperature: 36.5, weight: 90.1, oxygen: 97),
-            VitalSet(at: "2026-07-25", systolic: 139, diastolic: 89, pulse: 86, temperature: 36.6, weight: 89.4, oxygen: 97),
-            VitalSet(at: "2026-08-26", systolic: 138, diastolic: 88, pulse: 82, temperature: 36.4, weight: 88.2, oxygen: 97)
+            VitalSet.byHand(at: "2026-06-20", systolic: 141, diastolic: 90, pulse: 84, temperature: 36.5, weight: 90.1, oxygen: 97),
+            VitalSet.byHand(at: "2026-07-25", systolic: 139, diastolic: 89, pulse: 86, temperature: 36.6, weight: 89.4, oxygen: 97),
+            /* The glucometer was out of calibration that morning and the reading was taken anyway,
+               because a nurse in a home with one meter still needs the number. What she must not
+               have is the number without the caveat, so the caveat is on the set. */
+            VitalSet.measured(at: "2026-08-26", systolic: 138, diastolic: 88, pulse: 82, temperature: 36.4, weight: 88.2, oxygen: 97,
+                              instrument: "Blood-pressure monitor · BP-4471-0092",
+                              calibrationNote: "The glucose meter used at the same visit was eight months past a six-month calibration cycle. Its reading stands, and it is marked.")
         ],
         careTeam: [CareTeamMember(name: "Dr N. Dlamini", role: "Treating doctor · General practice", since: "February 2016")],
         summaryPoints: [
@@ -583,9 +641,12 @@ enum PatientFixtures {
                      dispensedBy: "Rosebank Community Pharmacy · 21 Aug 2026")
         ],
         vitals: [
-            VitalSet(at: "2026-07-16", systolic: 112, diastolic: 72, pulse: 84, temperature: 36.7, weight: 62.1, oxygen: 99),
-            VitalSet(at: "2026-08-20", systolic: 108, diastolic: 70, pulse: 86, temperature: 36.5, weight: 63.4, oxygen: 99),
-            VitalSet(at: "2026-09-03", systolic: 106, diastolic: 68, pulse: 88, temperature: 36.6, weight: 64.3, oxygen: 99)
+            VitalSet.byHand(at: "2026-07-16", systolic: 112, diastolic: 72, pulse: 84, temperature: 36.7, weight: 62.1, oxygen: 99),
+            VitalSet.byHand(at: "2026-08-20", systolic: 108, diastolic: 70, pulse: 86, temperature: 36.5, weight: 63.4, oxygen: 99),
+            VitalSet.mixed(at: "2026-09-03", systolic: 106, diastolic: 68, pulse: 88, temperature: 36.6, weight: 64.3, oxygen: 99,
+                           origin: ["systolic": .manual, "diastolic": .manual, "pulse": .manual,
+                                    "temperature": .manual, "oxygen": .device, "weight": .patientReported],
+                           instrument: "Pulse oximeter · OX-2210-0417")
         ],
         careTeam: [CareTeamMember(name: "Sister Boitumelo Nkosi", role: "Registered nurse · Maternal and child", since: "April 2026")],
         summaryPoints: [

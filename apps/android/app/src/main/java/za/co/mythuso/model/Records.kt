@@ -166,10 +166,21 @@ data class Medicine(
     val dispensedBy: String? = null, val stopped: String? = null,
     override val sensitivity: String? = null, override val releasedTo: List<String> = emptyList()
 ) : Sensitive
+/* Every observation in a vital set names where it came from, and none of them has a default. The
+   capture contract says there is no default and no unknown, and the only way to make that true of a
+   record rather than of a screen is to make it impossible to write a set without answering: these
+   five parameters have no default value, so a set added a year from now that forgets one of them
+   fails to compile rather than filing a number nobody can account for. The four ids are
+   Provenance's own. */
 data class VitalSet(
     val at: String, val systolic: Int, val diastolic: Int, val pulse: Int,
-    val temperature: Double, val weight: Double, val oxygen: Int
+    val temperature: Double, val weight: Double, val oxygen: Int,
+    val bloodPressureFrom: String, val pulseFrom: String, val temperatureFrom: String,
+    val weightFrom: String, val oxygenFrom: String
 )
+/* Mean arterial pressure, calculated from the set's own blood pressure and naming it. It is here
+   rather than in the fixtures because a derived value that somebody typed in is not derived. */
+fun meanArterialPressureOf(vitals: VitalSet): Double? = meanArterialPressure(vitals.systolic.toDouble(), vitals.diastolic.toDouble())
 data class ConsultationEntry(
     override val typeId: String, val id: String, val at: String, val kind: String, val by: String,
     val registration: String, val place: String, val reason: String, val assessment: String, val plan: String,
@@ -228,10 +239,23 @@ val filePatients: List<PatientRecord> = listOf(
                 "—", "Dr N. Dlamini · HPCSA MP0483217", stopped = "June 2026")
         ),
         vitals = listOf(
-            VitalSet("2026-06-12", 142, 91, 78, 36.8, 73.4, 97),
-            VitalSet("2026-07-10", 136, 88, 76, 36.6, 72.8, 98),
-            VitalSet("2026-08-07", 131, 85, 79, 36.9, 72.1, 98),
-            VitalSet("2026-09-04", 128, 82, 74, 36.7, 71.5, 98)
+            /* Four visits, four different mixtures of origin, because that is what actually
+               happens: a nurse with a full kit one month, a home scale the patient reads out the
+               next, a telehealth review where every number is what the patient said. A file that
+               rendered all four alike would be the record being read wrongly by somebody in a
+               hurry, which is the sentence the whole contract opens with. */
+            VitalSet("2026-06-12", 142, 91, 78, 36.8, 73.4, 97,
+                bloodPressureFrom = "device", pulseFrom = "device", temperatureFrom = "device",
+                weightFrom = "manual", oxygenFrom = "device"),
+            VitalSet("2026-07-10", 136, 88, 76, 36.6, 72.8, 98,
+                bloodPressureFrom = "manual", pulseFrom = "manual", temperatureFrom = "manual",
+                weightFrom = "patient-reported", oxygenFrom = "device"),
+            VitalSet("2026-08-07", 131, 85, 79, 36.9, 72.1, 98,
+                bloodPressureFrom = "device", pulseFrom = "device", temperatureFrom = "device",
+                weightFrom = "device", oxygenFrom = "device"),
+            VitalSet("2026-09-04", 128, 82, 74, 36.7, 71.5, 98,
+                bloodPressureFrom = "patient-reported", pulseFrom = "patient-reported", temperatureFrom = "patient-reported",
+                weightFrom = "patient-reported", oxygenFrom = "patient-reported")
         ),
         careTeam = listOf(
             CareTeamMember("Dr N. Dlamini", "Treating doctor · General practice", "March 2021"),
@@ -321,9 +345,15 @@ val filePatients: List<PatientRecord> = listOf(
                 "1 of 3 remaining", "Alexandra Community Mental Health", sensitivity = "protected")
         ),
         vitals = listOf(
-            VitalSet("2026-06-20", 141, 90, 84, 36.5, 90.1, 97),
-            VitalSet("2026-07-25", 139, 89, 86, 36.6, 89.4, 97),
-            VitalSet("2026-08-26", 138, 88, 82, 36.4, 88.2, 97)
+            VitalSet("2026-06-20", 141, 90, 84, 36.5, 90.1, 97,
+                bloodPressureFrom = "device", pulseFrom = "device", temperatureFrom = "manual",
+                weightFrom = "device", oxygenFrom = "device"),
+            VitalSet("2026-07-25", 139, 89, 86, 36.6, 89.4, 97,
+                bloodPressureFrom = "device", pulseFrom = "device", temperatureFrom = "manual",
+                weightFrom = "device", oxygenFrom = "device"),
+            VitalSet("2026-08-26", 138, 88, 82, 36.4, 88.2, 97,
+                bloodPressureFrom = "manual", pulseFrom = "manual", temperatureFrom = "manual",
+                weightFrom = "device", oxygenFrom = "device")
         ),
         careTeam = listOf(CareTeamMember("Dr N. Dlamini", "Treating doctor · General practice", "February 2016")),
         summaryPoints = listOf(
@@ -391,9 +421,15 @@ val filePatients: List<PatientRecord> = listOf(
                 "2 of 3 remaining", "Dr N. Dlamini · HPCSA MP0483217", dispensedBy = "Rosebank Community Pharmacy · 21 Aug 2026")
         ),
         vitals = listOf(
-            VitalSet("2026-07-16", 112, 72, 84, 36.7, 62.1, 99),
-            VitalSet("2026-08-20", 108, 70, 86, 36.5, 63.4, 99),
-            VitalSet("2026-09-03", 106, 68, 88, 36.6, 64.3, 99)
+            VitalSet("2026-07-16", 112, 72, 84, 36.7, 62.1, 99,
+                bloodPressureFrom = "manual", pulseFrom = "manual", temperatureFrom = "device",
+                weightFrom = "device", oxygenFrom = "device"),
+            VitalSet("2026-08-20", 108, 70, 86, 36.5, 63.4, 99,
+                bloodPressureFrom = "manual", pulseFrom = "manual", temperatureFrom = "device",
+                weightFrom = "device", oxygenFrom = "device"),
+            VitalSet("2026-09-03", 106, 68, 88, 36.6, 64.3, 99,
+                bloodPressureFrom = "device", pulseFrom = "device", temperatureFrom = "device",
+                weightFrom = "device", oxygenFrom = "device")
         ),
         careTeam = listOf(CareTeamMember("Sister Boitumelo Nkosi", "Registered nurse · Maternal and child", "April 2026")),
         summaryPoints = listOf(

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BadgeCheck, Check, ClipboardList, Lock, NotebookPen, PenLine, ShieldX, Stethoscope, UserCheck } from 'lucide-react';
 import { Pill } from '../components/UI';
+import { CalibrationCaveat, CalibrationTag, ProvenanceTag, type Source } from '../components/Provenance';
 import { can, formatEventTime, roleById, type VettingSubject } from '../lib/vetting';
 import { subjectById } from '../lib/vetting-fixtures';
 import schema from '../../../../packages/catalog/records.json';
@@ -66,7 +67,10 @@ const everyField = consultationSections.flatMap(s => {
    there is nothing for a second set of note boxes to drift away from: switching view rearranges
    the screen and touches no value. */
 export type ConsultationDraft = Record<string, string>;
-export type SeededObservation = { id: string; label: string; unit: string; value: string; flagged: boolean };
+/* A reading arrives here with the origin it was captured under, never without one. The record's
+   observations section is the one place in a consultation where a number and a claim about a
+   number sit next to each other, so it is the one place the difference has to be legible. */
+export type SeededObservation = { id: string; label: string; unit: string; value: string; flagged: boolean; source: Source };
 type Signature = { name: string; reference: string; role: string; at: string; diagnosis: boolean };
 
 /* A nurse and a doctor hold different grants in the vetting table, so they are offered different
@@ -121,8 +125,10 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
   const decision = decisionFor(s);
   return <div className="form-stack" key={s.id}>
    {s.id === 'observations' && readings.map(r => <div className="review-line" key={r.id}>
-    <span>{r.label}</span><strong className={r.flagged ? 'flagged' : ''}>{r.value} {r.unit}{r.flagged ? ' ⚠' : ''}</strong>
+    <span>{r.label}<span className="prov-row"><ProvenanceTag source={r.source}/><CalibrationTag source={r.source}/></span></span>
+    <strong className={r.flagged ? 'flagged' : ''}>{r.value} {r.unit}{r.flagged ? ' ⚠' : ''}</strong>
    </div>)}
+   {s.id === 'observations' && readings.map(r => <CalibrationCaveat key={r.id} source={r.source}/>)}
    {decision.allowed ? fields(s).map(field)
     : <><div className="review-line"><span>{s.name}</span><strong><Lock size={14}/>Locked</strong></div>
        {/* The reason is worth repeating only where it is this section's own. A form the writer may

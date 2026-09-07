@@ -259,4 +259,26 @@ for(const [platform,paths] of Object.entries(geoSources)) {
  }
 }
 
+/* A reading's origin decides what may be done with it, so the contract that describes origins is
+   checked the way the others are: every device must measure something the clinical assessment
+   actually collects, and every conflict must say who resolves it. A conflict with no resolver is a
+   merge waiting to be invented by whoever is next in the file. */
+const capture=JSON.parse(read('packages/catalog/capture.json'));
+const NOT_RANGE_FLAGGED=['ecg','weight'];
+const observationIds=(read('apps/web/src/features/Clinical.tsx').match(/id: '([a-z]+)'/g)??[]).map(m=>m.slice(5,-1));
+for(const device of capture.devices) {
+ if(!device.measures.length) throw new Error(`Kit device ${device.id} measures nothing`);
+ for(const measure of device.measures) {
+  /* Two measurements are recorded without being flagged against an indicative range, and both for
+     the same reason: there is no range to flag them against. A weight is only meaningful against
+     this person's own previous weights, and a single-lead ECG is a trace rather than a number.
+     Naming them here keeps the list deliberate — a third one has to be argued for. */
+  if(!NOT_RANGE_FLAGGED.includes(measure)&&!observationIds.includes(measure)) throw new Error(`Kit device ${device.id} measures "${measure}", which the clinical assessment does not collect and which is not on the not-range-flagged list`);
+ }
+ if(!(device.calibrateEveryMonths>0)) throw new Error(`Kit device ${device.id} has no calibration cadence`);
+}
+const resolvers=new Set(['clinician','server']);
+for(const conflict of capture.conflicts) if(!resolvers.has(conflict.resolution)) throw new Error(`Capture conflict ${conflict.id} does not say who resolves it`);
+if(!capture.provenance.some(p=>p.id==='device')||!capture.provenance.some(p=>p.id==='manual')) throw new Error('The capture contract must tell a measured reading from a typed one');
+
 console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three.`);

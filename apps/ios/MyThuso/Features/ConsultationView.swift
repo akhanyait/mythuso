@@ -97,6 +97,7 @@ struct ConsultationRecordView: View {
     var writerId = "N-205"
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var vetting = VettingStore.shared
+    @ObservedObject private var kit = CaptureStore.shared
     @State private var writer = ""
     @State private var view: RecordView = .record
     @State private var draft: [String: String] = [:]
@@ -142,6 +143,16 @@ struct ConsultationRecordView: View {
     private var carried: [ConsultationField] {
         everyConsultationField.filter { field in !value(field.id).isEmpty && !offeredFields.contains { $0.id == field.id } }
     }
+    /* The readings this encounter is being written about, read out of the same store the nurse
+       captured them into. They are not retyped into the note and they are not summarised into it:
+       the observations section carries them whole, with their origins, their instruments and their
+       caveats, and the free-text box beside them is for what those readings do not say. A record
+       that let a clinician retype “BP 128/82” into prose would have quietly turned a device reading
+       and a typed one into the same fact. */
+    private var visitReadings: [CapturedEntry] {
+        kit.forVisit(reference).filter { !$0.superseded }.sorted { $0.writtenToPhoneAt < $1.writtenToPhoneAt }
+    }
+    private var caveated: [CapturedEntry] { visitReadings.filter { $0.reading.hasCaveats } }
 
     var body: some View {
         ScrollView {
@@ -269,6 +280,7 @@ struct ConsultationRecordView: View {
     @ViewBuilder private func sectionFields(_ section: ConsultationSection) -> some View {
         let decision = section.gatedBy.map { can(subject, $0) } ?? mayWrite
         VStack(alignment: .leading, spacing: 10) {
+            if section.id == "observations" { capturedReadings }
             if decision.allowed {
                 ForEach(fields(section)) { field in
                     VStack(alignment: .leading, spacing: 5) {
@@ -312,6 +324,36 @@ struct ConsultationRecordView: View {
         }
     }
 
+    /// Carried into the record rather than retyped into it, so a device reading and a typed one
+    /// stay two different facts all the way from the front room to the signature.
+    @ViewBuilder private var capturedReadings: some View {
+        if visitReadings.isEmpty {
+            Label("Nothing has been captured for \(reference) on this phone yet. The assessment writes here.",
+                  systemImage: "tray").font(.caption2).foregroundStyle(ThusoTheme.body)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                StatusPill(text: "Carried from the visit · \(visitReadings.count)", tone: "quiet")
+                ForEach(visitReadings) { entry in
+                    VStack(alignment: .leading, spacing: 4) {
+                        ReadingRow(reading: entry.reading)
+                        HStack(spacing: 8) {
+                            CaptureStatePill(state: entry.state)
+                            Text(entry.capturedByName).font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                            Spacer(minLength: 0)
+                        }
+                        Text(entry.whenItHappened).font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+                        WrittenAgoNote(at: entry.writtenToPhoneAt, what: "This reading")
+                    }
+                    if entry.id != visitReadings.last?.id { Divider().overlay(ThusoTheme.line) }
+                }
+                Text("Read-only here. These are the readings as they were taken, with the origin, the instrument and the calibration each was taken under. The box below is for what they do not carry.")
+                    .font(.caption2).foregroundStyle(ThusoTheme.body)
+            }
+            .padding(12)
+            .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
     /* Attribution — name, council registration and the moment of signing — is part of the record,
        not a footer. The registration comes from the vetting record dispatch and the clinical queue
        ask before they offer anything, rather than from a number typed into this screen. */
@@ -323,6 +365,15 @@ struct ConsultationRecordView: View {
                  : "Outstanding before this can be signed: \(outstanding.map { $0.name.lowercased() }.joined(separator: ", ")).")
                 .font(.caption).foregroundStyle(ThusoTheme.body)
                 .accessibilityAddTraits(.updatesFrequently)
+            /* Signed over, not signed away. A caveat is shown at the signature because the
+               signature is the moment somebody takes responsibility for what the record says, and
+               “that oximeter reading was taken on a cold finger” is exactly the sort of thing that
+               gets read three screens earlier and forgotten one screen later. */
+            if !caveated.isEmpty {
+                CaveatNote(caveats: caveated.flatMap { entry in entry.reading.caveats.map { "\(entry.reading.label): \($0)" } })
+                Text("None of these refuses a reading. Each of them marks one, and you are about to put your registration to the record that holds them.")
+                    .font(.caption2).foregroundStyle(ThusoTheme.body)
+            }
             Button("Sign demo consultation") {
                 signature = ConsultationSignature(name: subject.name, reference: subject.reference,
                                                   role: role?.name ?? "—", at: Date(),

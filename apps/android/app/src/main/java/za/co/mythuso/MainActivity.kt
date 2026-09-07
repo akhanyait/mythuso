@@ -14,8 +14,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import za.co.mythuso.model.FileBook
 import za.co.mythuso.model.Phrase
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.thuso
@@ -26,7 +28,12 @@ class MainActivity : ComponentActivity() {
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun MyThusoApp() {
-    val store = remember { PreviewStore() }
+    /* The capture queue is the one thing this preview writes to the phone, so it is the one thing
+       that needs somewhere to write. It is read once, here, on the way in: a queue loaded a frame
+       later is a queue that shows empty first, and an empty queue is the exact lie the rule about
+       not losing a nurse's work exists to prevent. */
+    val context = LocalContext.current
+    val store = remember(context) { PreviewStore(FileBook(context.filesDir)) }
     var page by remember { mutableStateOf("Home") }
     var detail by remember { mutableStateOf<String?>(null) }
     var onboarding by remember { mutableStateOf(false) }

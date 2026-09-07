@@ -10,14 +10,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import za.co.mythuso.model.PreviewStore
-import za.co.mythuso.model.can
-import za.co.mythuso.model.summarise
-import za.co.mythuso.model.vettingRoleById
+import androidx.compose.ui.unit.sp
+import za.co.mythuso.model.*
 
 /**
  * Indicative adult reference ranges, used only to flag a value for the nurse's attention.
@@ -41,6 +42,9 @@ private val Flag = Color(0xFF9B6231)
        attribution line is where a reader is shown what accountability looks like, and it is the one
        place a preview should not be fictional twice over. */
     val nurse = store.vetting.byName("Sister Naledi Mokoena")
+    /* Recording an observation is writing into somebody's record, so it asks the same question the
+       consultation form asks before it offers a field. */
+    val mayWrite = nurse?.let { can(it, "write-clinical-note") }
     var stage by remember { mutableIntStateOf(0) }
     var otp by remember { mutableStateOf("") }
     var otpError by remember { mutableStateOf("") }
@@ -48,21 +52,50 @@ private val Flag = Color(0xFF9B6231)
     var consentAssessment by remember { mutableStateOf(false) }
     var consentRecord by remember { mutableStateOf(false) }
     val values = remember { mutableStateMapOf<String, String>() }
+    /* Origin is its own map rather than a field on the value with a default, because the moment it
+       has a default it has been guessed, and the contract is blunt about that: there is no default
+       and no unknown, and a value nobody can say the origin of is not filed. A number typed into
+       the box below is therefore not a reading yet. It becomes one when somebody says where it
+       came from. */
+    val origins = remember { mutableStateMapOf<String, Provenance>() }
+    /* A nurse may want to take by hand what the kit already gave her — a cuff reading she does not
+       believe, most often. Overriding does not erase the kit's reading; it leaves it in the queue,
+       where it becomes the other half of a two-readings-one-observation decision. */
+    val overridden = remember { mutableStateMapOf<String, Boolean>() }
     var symptoms by remember { mutableStateOf(setOf<String>()) }
     var notes by remember { mutableStateOf("") }
     var escalation by remember { mutableStateOf("No escalation — routine visit") }
     var signed by remember { mutableStateOf(false) }
     val stages = listOf("Identity", "Consent", "Observations", "Findings", "Sign-off")
+
+    fun kitFor(observation: Observation): CapturedReading? =
+        if (overridden[observation.id] == true) null else store.capture.standingFor(reference, observation.id)
+    fun rawOf(observation: Observation): String = kitFor(observation)?.value ?: values[observation.id].orEmpty()
+    fun originOf(observation: Observation): Provenance? = kitFor(observation)?.provenance ?: origins[observation.id]
     fun flag(observation: Observation): String? {
-        val raw = values[observation.id].orEmpty()
+        val raw = rawOf(observation)
         if (raw.isBlank()) return null
         val value = raw.toDoubleOrNull() ?: return "Enter a number."
         if (value < observation.low) return "Below the indicative range (${observation.low}–${observation.high})"
         if (value > observation.high) return "Above the indicative range (${observation.low}–${observation.high})"
         return null
     }
-    val captured = observations.filter { values[it.id].orEmpty().toDoubleOrNull() != null }
+    /* Filed means a number and an origin. The two conditions are one sentence in the contract and
+       they are one condition here. */
+    val captured = observations.filter { rawOf(it).toDoubleOrNull() != null && originOf(it) != null }
+    val unattributed = observations.filter { rawOf(it).toDoubleOrNull() != null && originOf(it) == null }
     val abnormal = captured.filter { flag(it) != null }
+    /* Calculated, and it names its inputs. It exists only while both of them do — a derived value
+       whose inputs are unknown is not a value, which is a null rather than a dash on a screen. */
+    val systolic = observations.firstOrNull { it.id == "systolic" }?.let { if (it in captured) rawOf(it).toDoubleOrNull() else null }
+    val diastolic = observations.firstOrNull { it.id == "diastolic" }?.let { if (it in captured) rawOf(it).toDoubleOrNull() else null }
+    val mapValue = meanArterialPressure(systolic, diastolic)
+    /* A weight and a single-lead trace are captured and filed and never flagged, because there is no
+       indicative range to flag them against: a weight means something only against this person's own
+       earlier weights, and a trace is not a number. */
+    val alsoCaptured = store.capture.forVisit(reference)
+        .filter { it.observationId in notRangeFlagged && !it.superseded && it.state != CaptureState.REFUSED }
+
     ScreenColumn {
         StepDots(stage + 1, stages.size, stages[stage])
         ReviewLine("Visit", "$reference · $patient")
@@ -95,16 +128,80 @@ private val Flag = Color(0xFF9B6231)
             }
             2 -> {
                 Text("Today’s readings", style = MaterialTheme.typography.titleMedium)
-                Note("Leave anything you did not measure blank. Nothing is auto-filled from a device in this preview.")
+                Note("Leave anything you did not measure blank. Anything already taken on the Thuso Kit for this visit is here with its instrument, its serial and its calibration attached, rather than as a bare number.")
+                if (mayWrite?.allowed == false) Text(
+                    mayWrite.reason.orEmpty(),
+                    style = MaterialTheme.typography.bodyMedium, color = Danger,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                )
                 observations.forEach { observation ->
-                    val message = flag(observation)
-                    OutlinedTextField(
-                        values[observation.id].orEmpty(), { values[observation.id] = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text("${observation.label} (${observation.unit})") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = Modifier.fillMaxWidth(),
-                        isError = message != null,
-                        supportingText = { Text(message ?: "Indicative range ${observation.low}–${observation.high}", color = if (message != null) Flag else MaterialTheme.colorScheme.onSurfaceVariant) }
-                    )
+                    val kit = kitFor(observation)
+                    if (kit != null) CareCard {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text(observation.label, style = MaterialTheme.typography.titleSmall, color = Ink)
+                                Note("Indicative range ${observation.low}–${observation.high} ${observation.unit}")
+                            }
+                            Text("${kit.value} ${observation.unit}", fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Ink)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ProvenanceMark(kit.provenance)
+                            flag(observation)?.let { StatusPill("Outside the indicative range", "amber") }
+                        }
+                        ProvenanceBlock(kit, patient)
+                        TextButton(onClick = { overridden[observation.id] = true }) { Text("Take this one by hand instead") }
+                        Note("The kit reading stays in the queue. Two readings of one observation in one visit is a decision for a clinician, not something this screen quietly overwrites.")
+                    } else {
+                        val message = flag(observation)
+                        val origin = origins[observation.id]
+                        OutlinedTextField(
+                            values[observation.id].orEmpty(), { values[observation.id] = it.filter { c -> c.isDigit() || c == '.' } },
+                            label = { Text("${observation.label} (${observation.unit})") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true, modifier = Modifier.fillMaxWidth(),
+                            enabled = mayWrite?.allowed != false,
+                            isError = message != null,
+                            supportingText = { Text(message ?: "Indicative range ${observation.low}–${observation.high}", color = if (message != null) Flag else MaterialTheme.colorScheme.onSurfaceVariant) }
+                        )
+                        if (values[observation.id].orEmpty().isNotBlank()) Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Text("Where did this come from?", style = MaterialTheme.typography.labelLarge, color = Forest)
+                            FlowRowChips(
+                                listOf(Provenance.MANUAL.label, Provenance.PATIENT_REPORTED.label),
+                                setOfNotNull(origin?.label)
+                            ) { label -> origins[observation.id] = if (label == Provenance.MANUAL.label) Provenance.MANUAL else Provenance.PATIENT_REPORTED }
+                            if (origin == null) Text(
+                                "Not filed yet. A value nobody can say the origin of is not filed, so this number is on the screen and nowhere else.",
+                                style = MaterialTheme.typography.bodySmall, color = Flag
+                            ) else Note(origin.trust)
+                            if (overridden[observation.id] == true) Note("Taken by hand in place of the kit reading, which is still in the queue.")
+                        }
+                    }
+                }
+                Note("“Measured by a device” is not one of the choices above, and that is deliberate: a device reading is one that came off a paired instrument with its serial and its calibration date attached. Typing a number and calling it a device reading would be the record’s first lie. Take it on the Thuso Kit screen instead. “Calculated” is not offered either — it is computed from readings that are already here, and it names them.")
+                if (unattributed.isNotEmpty()) CareCard {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(Icons.Outlined.QuestionMark, null, tint = Flag)
+                        Text("${unattributed.size} number${if (unattributed.size > 1) "s are" else " is"} typed but not filed", style = MaterialTheme.typography.titleSmall, color = Ink)
+                    }
+                    Text("${unattributed.joinToString(", ") { it.label }} — say where each came from and it is filed. Until then it is not counted, because a record that cannot say where a value came from will eventually be read wrongly by somebody in a hurry.", style = MaterialTheme.typography.bodyMedium)
+                }
+                if (mapValue != null) CareCard {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(Modifier.weight(1f)) { Text("Mean arterial pressure", style = MaterialTheme.typography.titleSmall, color = Ink) }
+                        Text("%.0f mmHg".format(mapValue), fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Ink)
+                    }
+                    ProvenanceMark(Provenance.DERIVED)
+                    ReviewLine("Calculated from", mapDerivedFrom(systolic!!, diastolic!!).joinToString(" and "))
+                    Note("It is exactly as good as those two readings and no better, and it disappears the moment either of them does.")
+                }
+                if (alsoCaptured.isNotEmpty()) CareCard {
+                    Text("Also captured on the kit", style = MaterialTheme.typography.titleMedium)
+                    Note("Filed with the rest, and never flagged: there is no indicative range to flag them against. A weight means something only against this person’s own earlier weights, and a single-lead trace is a screening tool rather than a number.")
+                    alsoCaptured.forEach { extra ->
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Text("${extra.label} · ${extra.value} ${extra.unit}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            ProvenanceMark(extra.provenance)
+                        }
+                    }
                 }
                 Note(
                     if (abnormal.isEmpty()) "Readings are compared against indicative adult reference ranges only. Clinical judgement stays with you."
@@ -149,15 +246,34 @@ private val Flag = Color(0xFF9B6231)
                 } else {
                     CareCard {
                         Text("$patient · $reference", style = MaterialTheme.typography.titleMedium)
-                        captured.forEach { ReviewLine(it.label, "${values[it.id]} ${it.unit}${if (flag(it) != null) " ⚠" else ""}") }
+                        /* Each line carries its own origin. The whole argument of the capture contract
+                           is that this list is not seven numbers — it is seven facts of four
+                           different kinds, and a reader in a hurry has to be able to tell them apart
+                           without opening anything. */
+                        captured.forEach { observation ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                                Text(observation.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                                Text("${rawOf(observation)} ${observation.unit}${if (flag(observation) != null) " ⚠" else ""}", style = MaterialTheme.typography.bodyMedium, color = Forest)
+                                originOf(observation)?.let { ProvenanceMark(it) }
+                            }
+                            kitFor(observation)?.takeIf { it.caveats.isNotEmpty() }?.let { kit ->
+                                Text(kit.caveats.first(), style = MaterialTheme.typography.bodySmall, color = Amber)
+                            }
+                        }
+                        if (mapValue != null) Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Text("Mean arterial pressure", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                            Text("%.0f mmHg".format(mapValue), style = MaterialTheme.typography.bodyMedium, color = Forest)
+                            ProvenanceMark(Provenance.DERIVED)
+                        }
                         ReviewLine("Symptoms", if (symptoms.isEmpty()) "None recorded" else symptoms.sorted().joinToString(", "))
                         ReviewLine("Next step", escalation)
                         ReviewLine("Recorded by", "Sister Naledi Mokoena · ${nurse?.reference ?: "SANC registration"} (demo)")
                     }
+                    if (unattributed.isNotEmpty()) Note("${unattributed.size} number${if (unattributed.size > 1) "s were" else " was"} typed without an origin and ${if (unattributed.size > 1) "are" else "is"} not in this record. Nothing was guessed on your behalf.")
                     Note("A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.")
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         OutlinedButton(onClick = { stage = 3 }) { Text("Back") }
-                        Button(onClick = { signed = true }) { Text("Sign demo assessment") }
+                        Button(onClick = { signed = true }, enabled = mayWrite?.allowed != false) { Text("Sign demo assessment") }
                     }
                 }
             }

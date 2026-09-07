@@ -77,7 +77,10 @@ import za.co.mythuso.model.mokoenaHousehold
                     CareCard {
                         MenuRow("Health Connect", "Choose exactly which readings you share", Icons.Outlined.MonitorHeart) { open("Health Connect") }
                         HorizontalDivider(color = Line)
-                        MenuRow("Thuso Kit", "Connected diagnostic capture", Icons.Outlined.Sensors) { open("Thuso Kit") }
+                        /* The patient's side of the kit is the readings it wrote into her record, not
+                           the pairing surface — that one is a clinician's, and it opens under a
+                           nurse's registration. */
+                        MenuRow("Thuso Kit readings", "What a nurse’s instruments wrote into your record", Icons.Outlined.Sensors) { open("Thuso Kit readings") }
                     }
                 }
                 CareCard {
@@ -207,6 +210,12 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "First-run & recovery" -> firstRun()
         title == "Invite a guardian" -> InviteGuardianScreen(store) { open("My family") }
         title == "Visit assessment" -> VisitAssessmentScreen(store, close = { open("Nurse workspace") })
+        /* Thuso Kit and the queue underneath it are one feature read from two ends: the nurse takes
+           a reading on the first and the record has to live with it on the second. Two routes rather
+           than one screen with a tab, because the queue is worth opening when no instrument is
+           anywhere near — it is where the morning's work sits when there is no signal. */
+        title == "Thuso Kit" || title == "Diagnostic kit" -> ThusoKitScreen(store, open)
+        title == "Capture queue" -> CaptureQueueScreen(store, open)
         /* The clinician-facing file and the encounter that writes into it. They are one route each
            because both are read about somebody else: the Passport is the patient's own view, and
            putting them behind the same door would blur whose record is whose. */
@@ -324,7 +333,7 @@ import za.co.mythuso.model.mokoenaHousehold
         CareCard {
             Text("Your tools", style = MaterialTheme.typography.titleMedium)
             val tools = when {
-                nurse -> listOf("Visit assessment", "Patient file", "Consultation record", "Nurse onboarding & vetting", "Vetting: N-205", "Apply for vetting: locum", "Diagnostic kit", "Weekly payouts", "Locum shifts", "Academy")
+                nurse -> listOf("Visit assessment", "Patient file", "Consultation record", "Nurse onboarding & vetting", "Vetting: N-205", "Apply for vetting: locum", "Thuso Kit", "Capture queue", "Weekly payouts", "Locum shifts", "Academy")
                 doctor -> listOf("Patient file", "Consultation record", "Apply for vetting: doctor", "Vetting: D-401", "Clinical protocols", "Teleconsultation", "Referral pathway")
                 else -> listOf("Vetting pipeline", "Vetting: O-802", "Vetting: A-902", "Vetting decision log", "Apply for vetting", "Incident INC-015", "Quality & revenue", "Employer programmes")
             }

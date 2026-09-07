@@ -1,5 +1,6 @@
 import schema from '../../../../packages/catalog/records.json';
 import { can, roleById, type Decision, type VettingSubject } from './vetting';
+import { instrumentBySerial, type Source } from './capture';
 
 /* The record contract, read the way lib/catalog.ts reads the service catalogue: six master areas,
    three sensitivity classes, the eight-item navigation, 42 record types with their FHIR resource
@@ -159,7 +160,39 @@ export const fileActions: FileAction[] = [
 export type Allergy = { substance: string; reaction: string; severity: string };
 export type ConditionEntry = Sensitive & { name: string; since: string; managedBy: string; status: string };
 export type Medicine = Sensitive & { at: string; name: string; dose: string; frequency: string; started: string; repeats: string; prescriber: string; dispensedBy?: string; stopped?: string };
-export type VitalSet = { at: string; systolic: number; diastolic: number; pulse: number; temperature: number; weight: number; oxygen: number };
+export type VitalMeasure = 'systolic' | 'diastolic' | 'pulse' | 'temperature' | 'weight' | 'oxygen';
+const VITAL_MEASURES: VitalMeasure[] = ['systolic', 'diastolic', 'pulse', 'temperature', 'weight', 'oxygen'];
+export type VitalSet = { at: string; systolic: number; diastolic: number; pulse: number; temperature: number; weight: number; oxygen: number; sources: Record<VitalMeasure, Source> };
+/* Six numbers in a set and six origins beside them, written as one string per set because six
+   spelled-out keys, ten sets over, is a wall nobody proof-reads and therefore a wall that hides an
+   omission. A clause is “<who>: <measures>”, where <who> is either one of the four provenances or
+   an instrument serial or a council registration — a serial implies the reading was measured and a
+   registration implies a clinician typed it, which are the only things either can mean. A serial
+   with a trailing “!” is an instrument that was past its calibration date
+   when this reading was taken, which is a fact about that day and is stored rather than worked out
+   again from today's date.
+
+   It throws rather than filling a gap. capture.json is unambiguous — “a value nobody can say the
+   origin of is not filed” — and the loudest possible failure is the right one: a fixture that
+   cannot attribute a number should stop the app in front of whoever is editing it, not reach a
+   screen wearing a blank. */
+function sourced(spec: string): Record<VitalMeasure, Source> {
+ const out = {} as Record<VitalMeasure, Source>;
+ for (const clause of spec.split(';')) {
+  const [who, measures] = clause.split(':').map(part => part.trim());
+  const overdue = who.endsWith('!');
+  const serial = overdue ? who.slice(0, -1) : who;
+  const source: Source = instrumentBySerial(serial)
+   ? { provenance: 'device', serial, calibrationAtCapture: overdue ? 'overdue' : 'in-date' }
+   : /^(SANC|HPCSA) /.test(who)
+    ? { provenance: 'manual', by: who }
+    : { provenance: who as Source['provenance'], saidBy: 'Reported at the visit' };
+  for (const measure of measures.split(/\s+/)) out[measure as VitalMeasure] = source;
+ }
+ const missing = VITAL_MEASURES.filter(m => !out[m]);
+ if (missing.length) throw new Error(`A vital set leaves ${missing.join(', ')} unattributed. capture.json: a value nobody can say the origin of is not filed.`);
+ return out;
+}
 export type ConsultationRecord = Sensitive & { id: string; at: string; kind: string; by: string; registration: string; place: string; reason: string; assessment: string; plan: string; sections: string[] };
 export type ResultRow = { name: string; value: string; range: string; flag?: 'high' | 'low' };
 export type LabReport = Sensitive & { id: string; at: string; name: string; source: string; status: string; releasedBy: string; rows: ResultRow[] };
@@ -193,10 +226,10 @@ export const patients: PatientRecord[] = [
    { typeId: 'prescription', at: '2026-06-12', name: 'Hydrochlorothiazide', dose: '12.5 mg', frequency: 'Once daily, morning', started: 'March 2021', stopped: 'June 2026', repeats: '—', prescriber: 'Dr N. Dlamini · HPCSA MP0483217' }
   ],
   vitals: [
-   { at: '2026-06-12', systolic: 142, diastolic: 91, pulse: 78, temperature: 36.8, weight: 73.4, oxygen: 97 },
-   { at: '2026-07-10', systolic: 136, diastolic: 88, pulse: 76, temperature: 36.6, weight: 72.8, oxygen: 98 },
-   { at: '2026-08-07', systolic: 131, diastolic: 85, pulse: 79, temperature: 36.9, weight: 72.1, oxygen: 98 },
-   { at: '2026-09-04', systolic: 128, diastolic: 82, pulse: 74, temperature: 36.7, weight: 71.5, oxygen: 98 }
+   { at: '2026-06-12', systolic: 142, diastolic: 91, pulse: 78, temperature: 36.8, weight: 73.4, oxygen: 97, sources: sourced('MT-BP-4471: systolic diastolic pulse; MT-OX-2210: oxygen; MT-TH-0938: temperature; MT-SC-6602: weight') },
+   { at: '2026-07-10', systolic: 136, diastolic: 88, pulse: 76, temperature: 36.6, weight: 72.8, oxygen: 98, sources: sourced('MT-BP-4471: systolic diastolic pulse; MT-OX-2210: oxygen; HPCSA MP0483217: temperature; MT-SC-6602: weight') },
+   { at: '2026-08-07', systolic: 131, diastolic: 85, pulse: 79, temperature: 36.9, weight: 72.1, oxygen: 98, sources: sourced('HPCSA MP0483217: systolic diastolic pulse temperature; MT-OX-2210: oxygen; MT-SC-6602!: weight') },
+   { at: '2026-09-04', systolic: 128, diastolic: 82, pulse: 74, temperature: 36.7, weight: 71.5, oxygen: 98, sources: sourced('MT-BP-4471: systolic diastolic pulse; MT-OX-2210: oxygen; MT-TH-0938: temperature; patient-reported: weight') }
   ],
   careTeam: [
    { name: 'Dr N. Dlamini', role: 'Treating doctor · General practice', since: 'March 2021' },
@@ -249,9 +282,9 @@ export const patients: PatientRecord[] = [
    { typeId: 'prescription', at: '2026-08-12', sensitivity: 'protected', name: 'Escitalopram', dose: '10 mg', frequency: 'Once daily', started: 'November 2024', repeats: '1 of 3 remaining', prescriber: 'Alexandra Community Mental Health' }
   ],
   vitals: [
-   { at: '2026-06-20', systolic: 141, diastolic: 90, pulse: 84, temperature: 36.5, weight: 90.1, oxygen: 97 },
-   { at: '2026-07-25', systolic: 139, diastolic: 89, pulse: 86, temperature: 36.6, weight: 89.4, oxygen: 97 },
-   { at: '2026-08-26', systolic: 138, diastolic: 88, pulse: 82, temperature: 36.4, weight: 88.2, oxygen: 97 }
+   { at: '2026-06-20', systolic: 141, diastolic: 90, pulse: 84, temperature: 36.5, weight: 90.1, oxygen: 97, sources: sourced('MT-BP-4471: systolic diastolic pulse; MT-OX-2210: oxygen; MT-TH-0938: temperature; MT-SC-6602: weight') },
+   { at: '2026-07-25', systolic: 139, diastolic: 89, pulse: 86, temperature: 36.6, weight: 89.4, oxygen: 97, sources: sourced('HPCSA MP0483217: systolic diastolic pulse temperature; MT-OX-2210: oxygen; MT-SC-6602: weight') },
+   { at: '2026-08-26', systolic: 138, diastolic: 88, pulse: 82, temperature: 36.4, weight: 88.2, oxygen: 97, sources: sourced('MT-BP-4471: systolic diastolic pulse; MT-OX-2210: oxygen; MT-TH-0938: temperature; MT-SC-6602: weight') }
   ],
   careTeam: [{ name: 'Dr N. Dlamini', role: 'Treating doctor · General practice', since: 'February 2016' }],
   summaryPoints: [
@@ -294,9 +327,9 @@ export const patients: PatientRecord[] = [
   ],
   medication: [{ typeId: 'prescription', at: '2026-08-20', name: 'Ferrous sulfate', dose: '200 mg', frequency: 'Twice daily with food', started: 'July 2026', repeats: '2 of 3 remaining', prescriber: 'Dr N. Dlamini · HPCSA MP0483217', dispensedBy: 'Rosebank Community Pharmacy · 21 Aug 2026' }],
   vitals: [
-   { at: '2026-07-16', systolic: 112, diastolic: 72, pulse: 84, temperature: 36.7, weight: 62.1, oxygen: 99 },
-   { at: '2026-08-20', systolic: 108, diastolic: 70, pulse: 86, temperature: 36.5, weight: 63.4, oxygen: 99 },
-   { at: '2026-09-03', systolic: 106, diastolic: 68, pulse: 88, temperature: 36.6, weight: 64.3, oxygen: 99 }
+   { at: '2026-07-16', systolic: 112, diastolic: 72, pulse: 84, temperature: 36.7, weight: 62.1, oxygen: 99, sources: sourced('MT-BP-4471: systolic diastolic pulse; MT-OX-2210: oxygen; MT-TH-0938: temperature; MT-SC-6602: weight') },
+   { at: '2026-08-20', systolic: 108, diastolic: 70, pulse: 86, temperature: 36.5, weight: 63.4, oxygen: 99, sources: sourced('SANC 20019902: systolic diastolic; MT-BP-4471: pulse; MT-OX-2210: oxygen; MT-TH-0938: temperature; MT-SC-6602: weight') },
+   { at: '2026-09-03', systolic: 106, diastolic: 68, pulse: 88, temperature: 36.6, weight: 64.3, oxygen: 99, sources: sourced('MT-BP-4471: systolic diastolic pulse; MT-OX-2210: oxygen; SANC 20019902: temperature; MT-SC-6602: weight') }
   ],
   careTeam: [{ name: 'Sister Boitumelo Nkosi', role: 'Registered nurse · Maternal and child', since: 'April 2026' }],
   summaryPoints: [

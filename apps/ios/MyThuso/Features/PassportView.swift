@@ -202,6 +202,10 @@ struct MoreView: View {
                     Divider().overlay(ThusoTheme.line)
                     row(thuso(.healthSummary, store.locale), "The shareable summary, bound to a purpose and a period", "square.and.arrow.up") { HealthSummaryView() }
                     Divider().overlay(ThusoTheme.line)
+                    row("Thuso Kit", "Pairing, calibration and where a reading came from", "sensor.tag.radiowave.forward") { ThusoKitView() }
+                    Divider().overlay(ThusoTheme.line)
+                    row("Waiting to send", "Offline capture, and the four conflicts nobody merges", "tray.full") { CaptureQueueView() }
+                    Divider().overlay(ThusoTheme.line)
                     row("System states", "Loading, error, offline and denied", "square.stack.3d.up") { SystemStatesView() }
                     Divider().overlay(ThusoTheme.line)
                     row("Explore the roadmap", "All 21 modules in the proposal", "square.grid.2x2") { RoadmapView() }
@@ -237,7 +241,14 @@ struct RoadmapView: View {
                 CareHeading(eyebrow: "The MyThuso family", title: "More ways to be cared for.", subtitle: "Availability follows the proposal’s phased roadmap.")
                 CareCard {
                     ForEach(Array(features.enumerated()), id: \.offset) { index, feature in
-                        NavigationLink { FeatureDetail(title: feature) } label: { MenuRow(title: feature, subtitle: "", symbol: "square.grid.2x2") }.buttonStyle(.plain)
+                        /* Thuso Kit is no longer a row that opens a paragraph about a later phase.
+                           It is built, so the roadmap sends you to the thing rather than to a
+                           promise about it. */
+                        if feature == "Thuso Kit" {
+                            NavigationLink { ThusoKitView() } label: { MenuRow(title: feature, subtitle: "Built — pairing, calibration and provenance", symbol: "sensor.tag.radiowave.forward") }.buttonStyle(.plain)
+                        } else {
+                            NavigationLink { FeatureDetail(title: feature) } label: { MenuRow(title: feature, subtitle: "", symbol: "square.grid.2x2") }.buttonStyle(.plain)
+                        }
                         if index < features.count - 1 { Divider().overlay(ThusoTheme.line) }
                     }
                 }
@@ -249,6 +260,8 @@ struct RoadmapView: View {
 }
 struct WorkspaceView: View {
     let role: String
+    /// Observed rather than read, so the count on the nurse's first row moves when the queue does.
+    @ObservedObject private var kit = CaptureStore.shared
     @State private var available = true
     var body: some View {
         List {
@@ -300,6 +313,17 @@ struct WorkspaceView: View {
                     NavigationLink("Referral pathway") { FeatureDetail(title: "Referral pathway") }
                 }
             } else {
+                Section("On this phone") {
+                    /* First, not last. A nurse coming out of a house with no signal wants one
+                       answer before anything else on this screen: is my work safe? */
+                    NavigationLink { CaptureQueueView() } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Waiting to send").font(.subheadline)
+                            Text("\(kit.onlyHereCount) reading\(kit.onlyHereCount == 1 ? "" : "s") held here · \(kit.conflictedCount) needing a decision")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
                 Section("Today’s work") {
                     NavigationLink("TH-2048 · Vitals assessment · Rosebank") { VisitAssessmentView() }
                     ForEach(["11:30 · Wound care · Parktown", "14:00 · Mother & baby · Melville"], id: \.self) { item in NavigationLink(item) { FeatureDetail(title: item) } }
@@ -315,7 +339,7 @@ struct WorkspaceView: View {
                 }
                 Section("Your tools") {
                     NavigationLink("Visit assessment") { VisitAssessmentView() }
-                    NavigationLink("Diagnostic kit") { FeatureDetail(title: "Diagnostic kit") }
+                    NavigationLink("Thuso Kit · pair an instrument") { ThusoKitView() }
                     NavigationLink("Weekly payouts") { FeatureDetail(title: "Weekly payouts") }
                     NavigationLink("Locum shifts") { FeatureDetail(title: "Locum shifts") }
                     NavigationLink("Academy") { FeatureDetail(title: "Academy") }

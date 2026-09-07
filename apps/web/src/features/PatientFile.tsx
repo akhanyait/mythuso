@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Activity, ArrowRight, CalendarDays, ClipboardPlus, FileText, FlaskConical, Heart, LockKeyhole, MapPin, Receipt, Send, ShieldCheck, Stethoscope, Thermometer, Upload, UserRound, Weight, Wind } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
+import { CalibrationCaveat, CalibrationTag, ProvenanceTag } from '../components/Provenance';
 import { ClinicalChart } from '../components/Chart';
 import { EmptyState, StateBlock, StatePicker, type LoadState } from '../components/States';
 import { can, roleById, subjectStatusLabels, summarise, type Decision, type VettingSubject } from '../lib/vetting';
@@ -250,15 +251,22 @@ function Overview({ patient, viewer, notice, setNotice, go }: { patient: Patient
 
   <SectionTitle title="Latest observations"/>
   {clinical.allowed ? <>
+   {/* Every number on this strip says where it came from, and the four origins are drawn at one
+       size: a blood pressure a nurse took by hand is a clinical skill, not a device reading that
+       failed. What differs is the icon, the word and the fact each one attaches — the instrument
+       and its serial, the registration that typed it, the person who said it. */}
    <ul className="pf-vitals">
-    {[{ icon: <Heart size={16}/>, name: 'Blood pressure', value: `${latest.systolic}/${latest.diastolic}`, unit: 'mmHg' },
-      { icon: <Activity size={16}/>, name: 'Pulse', value: String(latest.pulse), unit: 'bpm' },
-      { icon: <Thermometer size={16}/>, name: 'Temperature', value: latest.temperature.toFixed(1), unit: '°C' },
-      { icon: <Weight size={16}/>, name: 'Weight', value: latest.weight.toFixed(1), unit: 'kg' },
-      { icon: <Wind size={16}/>, name: 'Oxygen saturation', value: String(latest.oxygen), unit: '%' }].map(v =>
-     <li key={v.name} className="panel pf-vital"><span>{v.icon}{v.name}</span><strong>{v.value}<small>{v.unit}</small></strong></li>)}
+    {[{ icon: <Heart size={16}/>, name: 'Blood pressure', value: `${latest.systolic}/${latest.diastolic}`, unit: 'mmHg', source: latest.sources.systolic },
+      { icon: <Activity size={16}/>, name: 'Pulse', value: String(latest.pulse), unit: 'bpm', source: latest.sources.pulse },
+      { icon: <Thermometer size={16}/>, name: 'Temperature', value: latest.temperature.toFixed(1), unit: '°C', source: latest.sources.temperature },
+      { icon: <Weight size={16}/>, name: 'Weight', value: latest.weight.toFixed(1), unit: 'kg', source: latest.sources.weight },
+      { icon: <Wind size={16}/>, name: 'Oxygen saturation', value: String(latest.oxygen), unit: '%', source: latest.sources.oxygen }].map(v =>
+     <li key={v.name} className="panel pf-vital"><span>{v.icon}{v.name}</span><strong>{v.value}<small>{v.unit}</small></strong>
+      <span className="prov-row"><ProvenanceTag source={v.source}/><CalibrationTag source={v.source}/></span>
+     </li>)}
    </ul>
-   <p className="helper"><Activity size={14}/>Recorded {longDate(latest.at)} by {patient.careTeam[0].name}. Readings a patient takes at home are not in this record; only what a nurse or a doctor recorded appears here.</p>
+   {Object.values(latest.sources).filter((s, i, all) => all.findIndex(o => o.serial === s.serial) === i).map(s => <CalibrationCaveat key={s.serial ?? s.provenance} source={s}/>)}
+   <p className="helper"><Activity size={14}/>Recorded {longDate(latest.at)} by {patient.careTeam[0].name}. Readings a patient takes at home are not in this record; only what a nurse or a doctor recorded appears here — and each of them says which of the two it was.</p>
    <div className="chart-grid space-top">
     <ClinicalChart title="Systolic blood pressure" unit="mmHg" normal={[90, 140]} icon={<Heart size={16}/>} readings={patient.vitals.map(v => ({ label: label(v.at), value: v.systolic }))}/>
     <ClinicalChart title="Pulse" unit="bpm" normal={[50, 100]} icon={<Activity size={16}/>} readings={patient.vitals.map(v => ({ label: label(v.at), value: v.pulse }))}/>

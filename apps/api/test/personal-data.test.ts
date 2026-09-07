@@ -15,6 +15,7 @@ import { sweep, print } from '../src/retention.ts';
 import { basisById, clinicalRetentionRules, daysRemaining, disposalDate, dueBy, erasureSummary, HOLDINGS, RESPONSE_DAYS, RETENTION_BASES, SCOPE_STATEMENT, holdings, retainedHoldings } from '../src/personalData.ts';
 import { createProtectionModule } from '../src/protection/index.ts';
 import { openVettingStore } from '../src/vetting/index.ts';
+import { openCaptureStore } from '../src/capture/index.ts';
 
 const config = loadConfig({
   MYTHUSO_ENV: 'development', MYTHUSO_AUTH_PEPPER: 'p'.repeat(40),
@@ -61,6 +62,7 @@ describe('the holdings register', () => {
     const path = join(mkdtempSync(join(tmpdir(), 'mythuso-')), 'identity.db');
     const store = openStore(path);
     openVettingStore(store.database);
+    openCaptureStore(store.database);
     createProtectionModule({ environment: 'development', protectionKeys: `1:${randomBytes(32).toString('hex')}` }, store.database, {
       vetting: { find: () => null }, releases: { find: () => null }
     });

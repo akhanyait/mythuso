@@ -19,7 +19,13 @@ val services = listOf(
 )
 data class DemoVisit(val service: CareService, val person: String, val time: String)
 data class GuardianInvitation(val id: String, val name: String, val relationship: String, val scope: String, val expires: String, val status: String)
-class PreviewStore {
+/**
+ * Everything the preview holds. All of it is in memory and lost on restart, with one deliberate
+ * exception: the capture queue, which is the nurse's own work and is written to this phone. The
+ * reasoning for that one exception is in CaptureQueue.kt, and it is the contract's — an entry that
+ * has been captured survives a crash, a restart and a sign-out.
+ */
+class PreviewStore(book: CaptureBook = MemoryBook()) {
     val visits = mutableStateListOf(DemoVisit(services[0], "Lerato Molefe", "12 September · 09:00"))
     val family = mutableStateListOf("Nomsa Molefe", "Thabo Molefe")
     val invitations = mutableStateListOf(
@@ -33,4 +39,11 @@ class PreviewStore {
     /* Vetting is held here so a decision taken in the Control Tower is the same record the nurse
        workspace reads a screen later, rather than two lists that agree by luck. */
     val vetting = VettingStore()
+    /* Capture is held here for the same reason vetting is: the readings the nurse takes on the kit
+       screen are the readings the assessment fills in and the consultation record carries, rather
+       than three lists that agree by luck. */
+    val capture = CaptureStore(book)
+    /* Which visits a clinician has already signed. It is the thing stale-write is a disagreement
+       with, so the queue has to be able to ask something rather than assume. */
+    val signedVisits = mutableStateListOf("TH-2045")
 }

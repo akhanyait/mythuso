@@ -495,20 +495,43 @@ struct PatientFileOverview: View {
         }
     }
 
+    /* Six numbers with four different origins between them, which is what a home visit actually
+       produces. The marks are the same size, the same weight and the same shape as one another:
+       a blood pressure a nurse auscultated on the right cuff is a clinical skill, not a downgrade
+       of one a machine sent over Bluetooth, and a card that shaded it grey would be telling this
+       reader something untrue about the last person who stood in that room. */
     @ViewBuilder private var observations: some View {
         CareCard {
-            VitalStat(symbol: "heart", name: "Blood pressure", value: "\(Int(latest.systolic))/\(Int(latest.diastolic))", unit: "mmHg")
+            VitalStat(symbol: "heart", name: "Blood pressure", value: "\(Int(latest.systolic))/\(Int(latest.diastolic))",
+                      unit: "mmHg", provenance: originOf(latest, "systolic"))
             Divider().overlay(ThusoTheme.line)
-            VitalStat(symbol: "waveform.path.ecg", name: "Pulse", value: "\(Int(latest.pulse))", unit: "bpm")
+            VitalStat(symbol: "waveform.path.ecg", name: "Pulse", value: "\(Int(latest.pulse))", unit: "bpm",
+                      provenance: originOf(latest, "pulse"))
             Divider().overlay(ThusoTheme.line)
-            VitalStat(symbol: "thermometer", name: "Temperature", value: String(format: "%.1f", latest.temperature), unit: "°C")
+            VitalStat(symbol: "thermometer", name: "Temperature", value: String(format: "%.1f", latest.temperature),
+                      unit: "°C", provenance: originOf(latest, "temperature"))
             Divider().overlay(ThusoTheme.line)
-            VitalStat(symbol: "scalemass", name: "Weight", value: String(format: "%.1f", latest.weight), unit: "kg")
+            VitalStat(symbol: "scalemass", name: "Weight", value: String(format: "%.1f", latest.weight), unit: "kg",
+                      provenance: originOf(latest, "weight"))
             Divider().overlay(ThusoTheme.line)
-            VitalStat(symbol: "lungs", name: "Oxygen saturation", value: "\(Int(latest.oxygen))", unit: "%")
+            VitalStat(symbol: "lungs", name: "Oxygen saturation", value: "\(Int(latest.oxygen))", unit: "%",
+                      provenance: originOf(latest, "oxygen"))
+            if let instrument = latest.instrument {
+                Divider().overlay(ThusoTheme.line)
+                FieldRow(label: "Instrument", value: instrument)
+            }
+            if let note = latest.calibrationNote {
+                CaveatNote(caveats: [note])
+            }
         }
-        Text("Recorded \(longDate(latest.at)) by \(patient.careTeam[0].name). Readings a patient takes at home are not in this record; only what a nurse or a doctor recorded appears here.")
+        Text("Recorded \(longDate(latest.at)) by \(patient.careTeam[0].name). Each reading says where it came from. A weight the patient read off her own bathroom scale is in this record as exactly that, and never as something a clinician measured — which is why the mark is beside every number rather than a footnote under the card.")
             .font(.caption2).foregroundStyle(ThusoTheme.body)
+        NavigationLink("What the four marks mean") {
+            ScrollView { VStack(alignment: .leading, spacing: 16) { DemoBadge(); ProvenanceKey() }.padding(18) }
+                .background(ThusoTheme.canvas)
+                .navigationTitle("Where a reading came from").navigationBarTitleDisplayMode(.inline)
+        }
+        .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.teal)
         ClinicalChart(title: "Systolic blood pressure", unit: "mmHg",
                       readings: patient.vitals.map { Reading(label: dayLabel($0.at), value: $0.systolic) },
                       normal: 90...140, symbol: "heart")
@@ -543,16 +566,33 @@ struct VitalStat: View {
     let name: String
     let value: String
     let unit: String
+    /* Optional, and the nil branch is not a formality. A reading whose origin nobody recorded is
+       not filed, so the file does not print the number and then apologise for it — it says the
+       number is not there and says why. */
+    var provenance: Provenance?
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: symbol).font(.system(size: 13)).foregroundStyle(ThusoTheme.teal).frame(width: 18)
-            Text(name).font(.caption).foregroundStyle(ThusoTheme.body)
-            Spacer(minLength: 8)
-            Text(value).font(.system(size: 17, weight: .semibold, design: .rounded)).foregroundStyle(ThusoTheme.ink)
-            Text(unit).font(.caption2).foregroundStyle(ThusoTheme.body)
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 10) {
+                Image(systemName: symbol).font(.system(size: 13)).foregroundStyle(ThusoTheme.teal).frame(width: 18)
+                Text(name).font(.caption).foregroundStyle(ThusoTheme.body)
+                Spacer(minLength: 8)
+                if provenance == nil {
+                    Text("Not filed").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.amber)
+                } else {
+                    Text(value).font(.system(size: 17, weight: .semibold, design: .rounded)).foregroundStyle(ThusoTheme.ink)
+                    Text(unit).font(.caption2).foregroundStyle(ThusoTheme.body)
+                }
+            }
+            if let provenance {
+                ProvenanceMark(provenance: provenance)
+            } else {
+                Text(CaptureRules.provenanceIsRequired).font(.system(size: 10)).foregroundStyle(ThusoTheme.faint)
+            }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(name): \(value) \(unit)")
+        .accessibilityLabel(provenance == nil
+                            ? "\(name): not filed, because no origin was recorded for it."
+                            : "\(name): \(value) \(unit). \(provenance?.name ?? "")")
     }
 }
 

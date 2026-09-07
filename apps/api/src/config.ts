@@ -8,11 +8,20 @@
  * through the gate. Both are written out table by table, in the words a person would use, in
  * personalData.ts.
  *
+ * Since offline capture there is a third thing, and it was built to keep that sentence true rather
+ * than in spite of it: the intake ledger. When a nurse's phone syncs after a spell with no signal,
+ * the server records that an entry arrived — which device, which capturer, against which record,
+ * what the device believed the time was and what the server's own time was — decides about it,
+ * orders it and detects any conflict. It records no reading. The payload is sealed by the gate and
+ * handed straight back to the device with the receipt; what stays here is a digest of the sealed
+ * bytes, so the key ring is on this side and the ciphertext is not.
+ *
  * It holds no health information, which is why it can exist before the POPIA controls that special
  * personal information requires. A police clearance is not a clinical finding and a SANC certificate
  * is not a diagnosis — they are information about the people who give care, not about the people who
- * receive it — so adding the vetting module did not change that sentence and was not allowed to. The
- * moment a clinical record lands here, docs/PRIVACY-AND-SECURITY.md applies in full, and
+ * receive it — and a line saying an entry arrived at half past two is not the reading that arrived.
+ * So neither the vetting module nor the intake ledger changed that sentence, and neither was allowed
+ * to. The moment a clinical record lands here, docs/PRIVACY-AND-SECURITY.md applies in full, and
  * scripts/check-boundaries.mjs fails the build rather than letting one arrive quietly.
  */
 import { parseKey } from './sensitive.ts';
