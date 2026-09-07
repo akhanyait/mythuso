@@ -16,7 +16,14 @@ extension Vetting {
         .init(id: "dispense", name: "Dispense a prescription", detail: "Fill and hand over a prescribed medicine"),
         .init(id: "release-lab-result", name: "Release a laboratory result", detail: "Send a result to a patient or a treating clinician"),
         .init(id: "transport-sample", name: "Take custody of a sample", detail: "Carry a clinical sample between a home and a laboratory"),
-        .init(id: "view-patient-record", name: "Open a Health Passport", detail: "Read a patient's clinical record"),
+        .init(id: "view-patient-summary", name: "Open a patient summary", detail: "The header a clinician reads first: identity, blood group, allergies, current medicine and one contact"),
+        .init(id: "view-clinical-record", name: "Open the clinical record", detail: "Consultations, diagnoses, history, vitals and documents"),
+        .init(id: "view-protected-record", name: "Open a protected category", detail: "Sexual and reproductive health, mental health, HIV, substance use and social support"),
+        .init(id: "view-results", name: "Open laboratory and imaging results", detail: "Tests, reports and their reference ranges"),
+        .init(id: "view-billing", name: "Open the financial record", detail: "Invoices, claims and authorisations — by service code, never by diagnosis"),
+        .init(id: "write-clinical-note", name: "Record a consultation", detail: "Write an encounter into the patient's record, under your own registration"),
+        .init(id: "order-test", name: "Request a test", detail: "Raise a laboratory or imaging request against a patient"),
+        .init(id: "refer-patient", name: "Refer a patient", detail: "Send a patient to another provider or facility"),
         .init(id: "dispatch-nurses", name: "Assign a nurse", detail: "Send a named nurse to a named address"),
         .init(id: "review-vetting", name: "Decide a vetting case", detail: "Approve, decline or suspend another party's credentials"),
         .init(id: "run-programme", name: "Run a programme", detail: "Operate an employer or community health programme"),
@@ -69,7 +76,10 @@ extension Vetting {
                    summary: "Attends visits in patients' homes, takes observations and escalates.",
                    grants: [
                     .init(capability: "take-visit", refusal: "An unvetted nurse is never offered a visit, and cannot be assigned to one by the Control Tower."),
-                    .init(capability: "view-patient-record", refusal: "A nurse sees only the visit in front of them until every check passes.")
+                    .init(capability: "view-patient-summary", refusal: "A nurse sees the summary for the visit in front of them, and only once every check passes."),
+                    .init(capability: "view-clinical-record", refusal: "The clinical record opens for the visit being attended. It is not a directory a nurse may browse."),
+                    .init(capability: "view-protected-record", refusal: "A protected category is released by the patient, entry by entry. It is never opened by a scope, however senior the nurse."),
+                    .init(capability: "write-clinical-note", refusal: "Nothing may be written into a patient's record by somebody the platform has not cleared to attend them.")
                    ],
                    checks: [
                     .init(id: "sanc-registration", name: "SANC registration", detail: "Verified against the South African Nursing Council register", authority: "sanc", evidence: "Registration number and current receipt", renewMonths: 12, risk: "high"),
@@ -99,7 +109,13 @@ extension Vetting {
                    grants: [
                     .init(capability: "sign-clinical-review", refusal: "A case cannot be signed by a doctor whose HPCSA registration is not current. The queue refuses the signature rather than warning about it."),
                     .init(capability: "prescribe", refusal: "Prescribing is withheld until the Section 22A prescribing authority is verified alongside the registration."),
-                    .init(capability: "view-patient-record", refusal: "The review queue shows nothing until registration and indemnity are both in date.")
+                    .init(capability: "view-patient-summary", refusal: "The review queue shows nothing until registration and indemnity are both in date."),
+                    .init(capability: "view-clinical-record", refusal: "A lapsed registration closes the record as well as the signature — reading it is part of practising."),
+                    .init(capability: "view-protected-record", refusal: "A protected category is released by the patient, entry by entry, even to a treating doctor."),
+                    .init(capability: "view-results", refusal: "Results are withheld from a doctor whose registration is not current, held rather than shown."),
+                    .init(capability: "write-clinical-note", refusal: "A consultation is written under a registration. Without a current one there is nothing to write it under."),
+                    .init(capability: "order-test", refusal: "A test cannot be ordered against a patient by somebody not currently registered to interpret it."),
+                    .init(capability: "refer-patient", refusal: "A referral carries the referring clinician's registration to the person receiving it.")
                    ],
                    checks: [
                     .init(id: "hpcsa-registration", name: "HPCSA registration", detail: "Verified against the Health Professions Council register", authority: "hpcsa", evidence: "Registration number and annual receipt", renewMonths: 12, risk: "high"),
@@ -115,7 +131,7 @@ extension Vetting {
                    summary: "Fills prescriptions raised through Thuso Doctor.",
                    grants: [
                     .init(capability: "dispense", refusal: "A prescription is never routed to a pharmacy whose licence or responsible pharmacist is not current."),
-                    .init(capability: "view-patient-record", refusal: "A pharmacy sees the prescription and nothing else, and only once it is licensed to fill it.")
+                    .init(capability: "view-patient-summary", refusal: "A pharmacy sees the prescription and the allergies that bear on filling it. Nothing else, and only while licensed.")
                    ],
                    checks: [
                     .init(id: "company-registration", name: "Company registration", detail: "CIPC record, and who may sign for the company", authority: "cipc", evidence: "CIPC certificate and resolution", renewMonths: nil, risk: "standard"),
@@ -130,7 +146,7 @@ extension Vetting {
                    summary: "Receives samples, runs tests and returns results.",
                    grants: [
                     .init(capability: "release-lab-result", refusal: "A result cannot be released by a laboratory whose ISO 15189 accreditation has lapsed. Held results stay held."),
-                    .init(capability: "view-patient-record", refusal: "A laboratory sees the order and the sample, and only while accredited to test it.")
+                    .init(capability: "view-results", refusal: "A laboratory sees the order and its own results, and only while accredited for the test.")
                    ],
                    checks: [
                     .init(id: "company-registration", name: "Company registration", detail: "CIPC record, and who may sign for the company", authority: "cipc", evidence: "CIPC certificate and resolution", renewMonths: nil, risk: "standard"),
@@ -158,7 +174,7 @@ extension Vetting {
                    summary: "Dispatches nurses, triages incidents and escalates.",
                    grants: [
                     .init(capability: "dispatch-nurses", refusal: "Sending a named nurse to a named address is the most sensitive thing this platform does. It is not available until vetting completes."),
-                    .init(capability: "view-patient-record", refusal: "An operator sees an address and a service, never a clinical record — and nothing at all while unvetted.")
+                    .init(capability: "view-patient-summary", refusal: "An operator sees an address, a service and a window — never a clinical record, and nothing at all while unvetted.")
                    ],
                    checks: [
                     .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
@@ -171,7 +187,8 @@ extension Vetting {
                    summary: "Back office: catalogue, finance, growth and vetting decisions.",
                    grants: [
                     .init(capability: "review-vetting", refusal: "Nobody decides another party's vetting until their own is complete. A reviewer with lapsed checks loses the queue."),
-                    .init(capability: "run-programme", refusal: "Programme administration is withheld until vetting and the confidentiality undertaking are in date.")
+                    .init(capability: "run-programme", refusal: "Programme administration is withheld until vetting and the confidentiality undertaking are in date."),
+                    .init(capability: "view-billing", refusal: "Finance sees a service code and an amount. It never sees why the service was needed.")
                    ],
                    checks: [
                     .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
@@ -208,7 +225,8 @@ extension Vetting {
                    summary: "Acts for a minor or a dependent adult.",
                    grants: [
                     .init(capability: "guardian-access", refusal: "Guardian access is refused until identity and legal authority are both proven. Being a parent in the app is not proof of being a guardian in law."),
-                    .init(capability: "view-patient-record", refusal: "Even a verified guardian sees only the scope granted, for the duration granted. Sexual and reproductive health, mental health and HIV-related entries stay hidden under every scope.")
+                    .init(capability: "view-patient-summary", refusal: "Guardian access is refused until identity and legal authority are both proven."),
+                    .init(capability: "view-clinical-record", refusal: "Even a verified guardian sees only the scope granted, for the duration granted.")
                    ],
                    checks: [
                     .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),

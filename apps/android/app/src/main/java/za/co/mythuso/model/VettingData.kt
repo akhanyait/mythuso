@@ -15,7 +15,14 @@ val vettingCapabilities = listOf(
     VettingCapability("dispense", "Dispense a prescription", "Fill and hand over a prescribed medicine"),
     VettingCapability("release-lab-result", "Release a laboratory result", "Send a result to a patient or a treating clinician"),
     VettingCapability("transport-sample", "Take custody of a sample", "Carry a clinical sample between a home and a laboratory"),
-    VettingCapability("view-patient-record", "Open a Health Passport", "Read a patient's clinical record"),
+    VettingCapability("view-patient-summary", "Open a patient summary", "The header a clinician reads first: identity, blood group, allergies, current medicine and one contact"),
+    VettingCapability("view-clinical-record", "Open the clinical record", "Consultations, diagnoses, history, vitals and documents"),
+    VettingCapability("view-protected-record", "Open a protected category", "Sexual and reproductive health, mental health, HIV, substance use and social support"),
+    VettingCapability("view-results", "Open laboratory and imaging results", "Tests, reports and their reference ranges"),
+    VettingCapability("view-billing", "Open the financial record", "Invoices, claims and authorisations — by service code, never by diagnosis"),
+    VettingCapability("write-clinical-note", "Record a consultation", "Write an encounter into the patient's record, under your own registration"),
+    VettingCapability("order-test", "Request a test", "Raise a laboratory or imaging request against a patient"),
+    VettingCapability("refer-patient", "Refer a patient", "Send a patient to another provider or facility"),
     VettingCapability("dispatch-nurses", "Assign a nurse", "Send a named nurse to a named address"),
     VettingCapability("review-vetting", "Decide a vetting case", "Approve, decline or suspend another party's credentials"),
     VettingCapability("run-programme", "Run a programme", "Operate an employer or community health programme"),
@@ -95,7 +102,10 @@ val vettingRoles = listOf(
         "Attends visits in patients' homes, takes observations and escalates.",
         listOf(
             VettingGrant("take-visit", "An unvetted nurse is never offered a visit, and cannot be assigned to one by the Control Tower."),
-            VettingGrant("view-patient-record", "A nurse sees only the visit in front of them until every check passes.")
+            VettingGrant("view-patient-summary", "A nurse sees the summary for the visit in front of them, and only once every check passes."),
+            VettingGrant("view-clinical-record", "The clinical record opens for the visit being attended. It is not a directory a nurse may browse."),
+            VettingGrant("view-protected-record", "A protected category is released by the patient, entry by entry. It is never opened by a scope, however senior the nurse."),
+            VettingGrant("write-clinical-note", "Nothing may be written into a patient's record by somebody the platform has not cleared to attend them.")
         ),
         listOf(
             VettingCheck("sanc-registration", "SANC registration", "Verified against the South African Nursing Council register", "sanc", "Registration number and current receipt", 12, "high"),
@@ -129,7 +139,13 @@ val vettingRoles = listOf(
         listOf(
             VettingGrant("sign-clinical-review", "A case cannot be signed by a doctor whose HPCSA registration is not current. The queue refuses the signature rather than warning about it."),
             VettingGrant("prescribe", "Prescribing is withheld until the Section 22A prescribing authority is verified alongside the registration."),
-            VettingGrant("view-patient-record", "The review queue shows nothing until registration and indemnity are both in date.")
+            VettingGrant("view-patient-summary", "The review queue shows nothing until registration and indemnity are both in date."),
+            VettingGrant("view-clinical-record", "A lapsed registration closes the record as well as the signature — reading it is part of practising."),
+            VettingGrant("view-protected-record", "A protected category is released by the patient, entry by entry, even to a treating doctor."),
+            VettingGrant("view-results", "Results are withheld from a doctor whose registration is not current, held rather than shown."),
+            VettingGrant("write-clinical-note", "A consultation is written under a registration. Without a current one there is nothing to write it under."),
+            VettingGrant("order-test", "A test cannot be ordered against a patient by somebody not currently registered to interpret it."),
+            VettingGrant("refer-patient", "A referral carries the referring clinician's registration to the person receiving it.")
         ),
         listOf(
             VettingCheck("hpcsa-registration", "HPCSA registration", "Verified against the Health Professions Council register", "hpcsa", "Registration number and annual receipt", 12, "high"),
@@ -147,7 +163,7 @@ val vettingRoles = listOf(
         "Fills prescriptions raised through Thuso Doctor.",
         listOf(
             VettingGrant("dispense", "A prescription is never routed to a pharmacy whose licence or responsible pharmacist is not current."),
-            VettingGrant("view-patient-record", "A pharmacy sees the prescription and nothing else, and only once it is licensed to fill it.")
+            VettingGrant("view-patient-summary", "A pharmacy sees the prescription and the allergies that bear on filling it. Nothing else, and only while licensed.")
         ),
         listOf(
             VettingCheck("company-registration", "Company registration", "CIPC record, and who may sign for the company", "cipc", "CIPC certificate and resolution", null, "standard"),
@@ -164,7 +180,7 @@ val vettingRoles = listOf(
         "Receives samples, runs tests and returns results.",
         listOf(
             VettingGrant("release-lab-result", "A result cannot be released by a laboratory whose ISO 15189 accreditation has lapsed. Held results stay held."),
-            VettingGrant("view-patient-record", "A laboratory sees the order and the sample, and only while accredited to test it.")
+            VettingGrant("view-results", "A laboratory sees the order and its own results, and only while accredited for the test.")
         ),
         listOf(
             VettingCheck("company-registration", "Company registration", "CIPC record, and who may sign for the company", "cipc", "CIPC certificate and resolution", null, "standard"),
@@ -196,7 +212,7 @@ val vettingRoles = listOf(
         "Dispatches nurses, triages incidents and escalates.",
         listOf(
             VettingGrant("dispatch-nurses", "Sending a named nurse to a named address is the most sensitive thing this platform does. It is not available until vetting completes."),
-            VettingGrant("view-patient-record", "An operator sees an address and a service, never a clinical record — and nothing at all while unvetted.")
+            VettingGrant("view-patient-summary", "An operator sees an address, a service and a window — never a clinical record, and nothing at all while unvetted.")
         ),
         listOf(
             VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
@@ -211,7 +227,8 @@ val vettingRoles = listOf(
         "Back office: catalogue, finance, growth and vetting decisions.",
         listOf(
             VettingGrant("review-vetting", "Nobody decides another party's vetting until their own is complete. A reviewer with lapsed checks loses the queue."),
-            VettingGrant("run-programme", "Programme administration is withheld until vetting and the confidentiality undertaking are in date.")
+            VettingGrant("run-programme", "Programme administration is withheld until vetting and the confidentiality undertaking are in date."),
+            VettingGrant("view-billing", "Finance sees a service code and an amount. It never sees why the service was needed.")
         ),
         listOf(
             VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
@@ -254,7 +271,8 @@ val vettingRoles = listOf(
         "Acts for a minor or a dependent adult.",
         listOf(
             VettingGrant("guardian-access", "Guardian access is refused until identity and legal authority are both proven. Being a parent in the app is not proof of being a guardian in law."),
-            VettingGrant("view-patient-record", "Even a verified guardian sees only the scope granted, for the duration granted. Sexual and reproductive health, mental health and HIV-related entries stay hidden under every scope.")
+            VettingGrant("view-patient-summary", "Guardian access is refused until identity and legal authority are both proven."),
+            VettingGrant("view-clinical-record", "Even a verified guardian sees only the scope granted, for the duration granted.")
         ),
         listOf(
             VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),

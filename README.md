@@ -130,6 +130,8 @@ node scripts/render-illustrations.mjs
 - Nurse visit assessment: visit-code identity check, spoken consent, seven observations with indicative-range flagging, escalation and attributed sign-off.
 - Doctor clinical review, prescription and laboratory order detail with chain of custody, and Control Tower dispatch and incident triage.
 - Vetting for all twelve vetted parties — nurse, locum, doctor, pharmacy, laboratory, sample courier, Control Tower operator, admin staff, employer, sponsor, guardian and Thuso Corner site. Credentials are checked against the format the issuing body actually uses, a high-risk check needs a second reviewer, a lapsed one suspends the party by arithmetic rather than by somebody noticing, and each party is told exactly what it is refused until its checks pass.
+- A clinician-facing patient file: a permanent summary header, eight tabs over forty-two record types each mapped to its FHIR resource, a visual overview and a filterable timeline — with every tab and action gated on the vetting module, so the same file read by a nurse, a pharmacy, a guardian and an operator shows four different things and says why.
+- One consultation structure for every encounter, in long form or SOAP, and a household record where membership is deliberately not consent.
 - Shared loading, service-error, offline, permission-denied and empty states, collected in a state gallery.
 - English, isiZulu, Sesotho and Afrikaans across the shell, navigation and primary actions.
 - Roadmap entries for all 21 platform modules in the proposal.

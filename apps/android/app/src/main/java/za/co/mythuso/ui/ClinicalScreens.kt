@@ -171,7 +171,7 @@ private val Flag = Color(0xFF9B6231)
     var signingAs by remember { mutableStateOf("D-401") }
     val doctors = store.vetting.subjects.filter { it.roleId == "doctor" }
     val doctor = doctors.firstOrNull { it.id == signingAs } ?: doctors.firstOrNull()
-    val mayRead = doctor?.let { can(it, "view-patient-record") }
+    val mayRead = doctor?.let { can(it, "view-clinical-record") }
     val maySign = doctor?.let { can(it, "sign-clinical-review") }
     ScreenColumn {
         DemoBadge()

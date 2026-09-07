@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Check, CircleAlert, KeyRound, Stethoscope, ShieldCheck, ShieldX, UserCheck } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Check, CircleAlert, ClipboardList, KeyRound, Stethoscope, ShieldCheck, ShieldX, UserCheck } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { ClinicalChart } from '../components/Chart';
 import { CodeInput, StepHead } from '../components/Steps';
 import { can } from '../lib/vetting';
 import { subjectsByRole } from '../lib/vetting-fixtures';
+import { ConsultationComposer, assessmentFields } from './Consultation';
 /* Indicative adult reference ranges, used only to flag a value for the nurse's attention.
    This is not a validated triage or early-warning score and it never decides anything. */
 export const observations = [
@@ -38,11 +39,20 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
  const [notes, setNotes] = useState('');
  const [escalation, setEscalation] = useState('No escalation — routine visit');
  const [signed, setSigned] = useState(false);
+ /* A visit assessment is not a second kind of record. It is what a consultation looks like while a
+    nurse is still standing in the house, and it produces one — the same twelve sections, seeded
+    with what was actually captured, rather than typed out again from memory afterwards. */
+ const [consultation, setConsultation] = useState(false);
  const flags = observations.map(o => ({ ...o, value: values[o.id] ?? '', flag: flagOf(o.id, values[o.id] ?? '') }));
  const captured = flags.filter(f => f.flag !== 'empty' && f.flag !== 'invalid');
  const abnormal = flags.filter(f => f.flag === 'low' || f.flag === 'high');
  const invalid = flags.some(f => f.flag === 'invalid');
  const set = (id: string, v: string) => setValues({ ...values, [id]: v });
+ /* Once the visit is signed off, the step counter has nothing left to count: what follows is the
+    consultation record the visit produced, in the standard structure, not a sixth step. */
+ if (signed && consultation) return <ConsultationComposer reference={reference} patient={patient} writer="N-205" onClose={onClose}
+  readings={captured.map(o => ({ id: o.id, label: o.label, unit: o.unit, value: o.value, flagged: o.flag !== 'normal' }))}
+  seed={{ reason: `Home visit · ${reference}`, history: symptoms.length ? `Reported: ${symptoms.join(', ')}.` : '', plan: escalation, notes }}/>;
  return <div className="assessment">
   <StepHead step={stage + 1} total={stages.length} label={stages[stage]}/>
   <div className="review-line"><span>Visit</span><strong>{reference} · {patient}</strong></div>
@@ -84,7 +94,10 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
    {escalation.includes('Emergency') && <div className="privacy-note alert"><CircleAlert size={19}/>In production this opens the emergency pathway immediately and alerts the Control Tower before the form is finished.</div>}
    <div className="button-row"><button className="secondary" onClick={() => setStage(2)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStage(4)}>Review sign-off<ArrowRight size={16}/></button></div>
   </div> : <div className="form-stack">
-   {signed ? <><div className="success-icon"><BadgeCheck size={30}/></div><h3>Demo assessment closed.</h3><p className="muted">Nothing was transmitted, no record was written and no clinician was notified. In production this becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration.</p><button className="primary full" onClick={onClose}>Back to the workspace<ArrowRight size={17}/></button></> : <>
+   {signed ? <><div className="success-icon"><BadgeCheck size={30}/></div><h3>Demo assessment closed.</h3><p className="muted">Nothing was transmitted, no record was written and no clinician was notified. In production this becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration.</p>
+    <button className="secondary full" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Open the consultation record this produced</button>
+    <p className="helper">The readings, the symptoms and the next step are carried across as they were captured. The structure is the same one a doctor writes into, so nobody re-types a visit into a second shape.</p>
+    <button className="primary full" onClick={onClose}>Back to the workspace<ArrowRight size={17}/></button></> : <>
     <Pill>Sign-off preview</Pill>
     <h3>{patient} · {reference}</h3>
     {captured.map(o => <div className="review-line" key={o.id}><span>{o.label}</span><strong className={o.flag === 'normal' ? '' : 'flagged'}>{o.value} {o.unit}{o.flag !== 'normal' && ' ⚠'}</strong></div>)}
@@ -106,9 +119,17 @@ export function DoctorReview({ reference = 'TH-2048', onClose }: { reference?: s
  const [rationale, setRationale] = useState('');
  const [done, setDone] = useState(false);
  const [signing, setSigning] = useState(doctors[0].id);
+ const [consultation, setConsultation] = useState(false);
  const doctor = doctors.find(d => d.id === signing)!;
  const maySign = can(doctor, 'sign-clinical-review');
  const mayPrescribe = can(doctor, 'prescribe');
+ /* The decision and the record are the same encounter. The doctor's outcome and rationale open the
+    consultation already filled in, under the registration that made them — retyping a decision into
+    a record is how the two come to say different things. */
+ if (consultation) return <ConsultationComposer reference={reference} writer={signing} onClose={onClose}
+  readings={[{ id: 'systolic', label: 'Blood pressure — systolic', unit: 'mmHg', value: '146', flagged: true },
+             { id: 'pulse', label: 'Pulse', unit: 'bpm', value: '88', flagged: false }]}
+  seed={{ reason: `Nurse referral after a home visit · ${reference}`, history: 'Headache and fatigue reported at the home visit. Systolic trending up over four readings.', plan: decision, [assessmentFields.impression]: rationale }}/>;
  return <div className="form-stack">
   <Pill>Clinical review preview</Pill>
   <h3>{reference} · Lerato Molefe</h3>
@@ -127,7 +148,8 @@ export function DoctorReview({ reference = 'TH-2048', onClose }: { reference?: s
   {!mayPrescribe.allowed && <p className="helper" role="status">{mayPrescribe.reason}</p>}
   <label>Clinical rationale<textarea value={rationale} onChange={e => setRationale(e.target.value.slice(0, 800))} placeholder="Why this decision, for the record and the next clinician…"/></label>
   <div className="privacy-note"><Stethoscope size={19}/>Decision support may summarise or highlight. It never selects the outcome, and every entry is attributed to the signing doctor’s HPCSA registration — which is exactly why an expired one stops the signature rather than annotating it.</div>
-  {done ? <p role="status" className="helper"><Activity size={14}/> Demo decision held in this dialog only, attributed to {doctor.name}. Nothing was issued, prescribed or sent.</p>
+  {done ? <><p role="status" className="helper"><Activity size={14}/> Demo decision held in this dialog only, attributed to {doctor.name}. Nothing was issued, prescribed or sent.</p>
+   <button className="secondary full" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Write this up as a consultation</button></>
    : <div className="button-row"><button className="secondary" onClick={onClose}>Close</button><button className="primary" disabled={!maySign.allowed || !decision || rationale.trim().length < 10} onClick={() => setDone(true)}><Check size={16}/>Sign demo decision</button></div>}
  </div>;
 }

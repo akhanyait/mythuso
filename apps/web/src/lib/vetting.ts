@@ -157,11 +157,21 @@ export function summarise(subject: VettingSubject) {
 /* ---- The blocking matrix ---------------------------------------------------------------
    This is the whole point of the module: not a list of documents, but a refusal with a reason
    attached to it, that other screens can ask about before offering an action. */
+/* Role names are written for people, so "Internal admin staff" is plural and "Employer" takes "an".
+   A refusal that reads "A internal admin staff is never granted this" is a refusal nobody trusts. */
+const PLURAL_ROLE_NAMES = /staff$/i;
+export function neverGranted(role?: VettingRole): string {
+ if (!role) return 'This party is never granted that.';
+ if (PLURAL_ROLE_NAMES.test(role.name)) return `${role.name} are never granted this.`;
+ /* The name is used as written: lowercasing it would turn "Thuso Corner site" into "thuso corner
+    site" and "B2B" into "b2b", and a refusal that misspells the reader's own role is not trusted. */
+ return `${/^[AEIOU]/i.test(role.name) ? 'An' : 'A'} ${role.name} is never granted this.`;
+}
 export type Decision = { allowed: boolean; reason?: string; blockedBy: VettingCheck[] };
 export function can(subject: VettingSubject, capabilityId: string): Decision {
  const role = roleById(subject.roleId);
  const grant = role?.grants.find(g => g.capability === capabilityId);
- if (!grant) return { allowed: false, reason: `A ${role?.name.toLowerCase() ?? 'party'} is never granted this.`, blockedBy: [] };
+ if (!grant) return { allowed: false, reason: neverGranted(role), blockedBy: [] };
  const summary = summarise(subject);
  if (subject.declined) return { allowed: false, reason: subject.declinedReason ?? grant.refusal, blockedBy: summary.blocking };
  if (subject.suspended) return { allowed: false, reason: subject.suspendedReason ?? grant.refusal, blockedBy: summary.blocking };

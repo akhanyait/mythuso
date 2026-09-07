@@ -1383,3 +1383,118 @@ html:has(.landing){scroll-behavior:smooth}
  .landing-hero-parallax{transform:none!important}
  .landing article:hover,.landing .primary:hover,.landing .secondary:hover{translate:none}
 }
+
+/* ---- Clinician-facing patient file ----
+   A digital profile, not a paper folder: a header that stays put, eight tabs, and cards a nurse
+   can read at a doorway. Everything is single-column at phone width and widens from 700px, so the
+   file never scrolls sideways on the device it will actually be opened on. */
+.pf-review{margin-bottom:16px;background:var(--canvas)}
+.pf-review-heading{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.pf-review-controls{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.pf-review-controls .inline-field{flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+.pf-review-controls select{width:100%}
+.pf-review-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+
+.pf-header{margin-bottom:16px}
+.pf-identity{display:flex;gap:12px;align-items:center}
+.pf-identity h2{font-size:19px;letter-spacing:-.5px}
+.pf-avatar svg{width:22px;height:22px}
+.pf-facts{display:grid;grid-template-columns:1fr;gap:0;margin:14px 0 0}
+.pf-facts>div{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line)}
+.pf-facts dt{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--faint);flex-shrink:0}
+.pf-facts dd{margin:0;font-size:13px;color:var(--ink);text-align:right;min-width:0;overflow-wrap:anywhere}
+.pf-chips{list-style:none;display:grid;grid-template-columns:1fr;gap:8px;padding:0;margin:14px 0 0}
+.pf-chip{background:var(--teal-soft);border-radius:var(--r-control);padding:10px 13px;min-width:0}
+.pf-chip>span{display:block;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--teal-deep);opacity:.75}
+.pf-chip>strong{display:block;font-size:13.5px;font-weight:600;color:var(--forest);margin-top:3px;overflow-wrap:anywhere}
+.pf-chip.amber{background:var(--amber-soft)}
+.pf-chip.amber>span{color:var(--amber);opacity:1}
+.pf-chip.amber>strong{color:#7d5615}
+.pf-chip.danger{background:var(--danger-soft)}
+.pf-chip.danger>span{color:#b44b2c;opacity:1}
+.pf-chip.danger>strong{color:#8f3a26}
+.pf-scope{margin-top:12px;align-items:flex-start}
+.pf-scope>svg{color:var(--teal);margin-top:2px}
+
+/* The refusal and the withheld notice are deliberately the loudest quiet things on the page. */
+.pf-refusal,.pf-withheld{display:flex;gap:12px;align-items:flex-start;border-radius:var(--r-control);padding:14px;margin-top:14px}
+.pf-refusal{background:var(--danger-soft);border:1px solid #f2d9d3}
+.pf-withheld{background:var(--canvas);border:1px solid var(--line)}
+.pf-refusal-icon{flex-shrink:0}
+.pf-refusal .pf-refusal-icon{color:#b44b2c}
+.pf-withheld .pf-refusal-icon{color:var(--teal)}
+.pf-refusal strong,.pf-withheld strong{display:block;font-size:13.5px;color:var(--ink);margin-bottom:5px}
+.pf-refusal p,.pf-withheld p{font-size:12.5px;color:var(--body);line-height:1.6}
+.pf-withheld p+p{margin-top:7px}
+.pf-refusal .helper,.pf-withheld .helper{margin-top:8px}
+.pf-holds{font-size:12.5px;color:var(--body);line-height:1.65;margin-bottom:14px}
+.pf-not-built{margin-top:20px;align-items:flex-start}
+.pf-not-built>svg{color:var(--teal);margin-top:2px}
+.pf-protected-line{margin-top:14px;align-items:flex-start}
+.pf-protected-line>svg{margin-top:2px}
+
+.pf-cards{display:grid;grid-template-columns:1fr;gap:11px;margin-bottom:18px}
+.pf-card{display:flex;flex-direction:column;gap:6px}
+.pf-card-key{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--faint)}
+.pf-card-key svg{color:var(--teal)}
+.pf-card>strong{font-size:19px;font-weight:700;letter-spacing:-.5px;color:var(--ink)}
+.pf-card>p{font-size:13px;color:var(--body)}
+.pf-card>small{color:var(--faint);line-height:1.55}
+.pf-card .pf-refusal{margin-top:4px}
+
+.pf-vitals{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:0;margin:0 0 12px}
+.pf-vital{display:flex;flex-direction:column;gap:5px;padding:13px}
+.pf-vital>span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--body);min-width:0}
+.pf-vital>span svg{color:var(--teal)}
+.pf-vital>strong{font-size:21px;font-weight:700;letter-spacing:-.6px;color:var(--ink);font-variant-numeric:tabular-nums}
+.pf-vital>strong small{font-size:11px;font-weight:500;color:var(--faint);margin-left:4px}
+
+.pf-bullets{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:11px}
+.pf-bullets li{position:relative;padding-left:19px;font-size:13px;color:var(--body);line-height:1.6}
+.pf-bullets li:before{content:"";position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:50%;background:var(--mint)}
+
+.pf-actions{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:0;margin:0}
+.pf-action{display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:100%;height:100%;text-align:left;padding:14px;border-radius:var(--r-card);border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow)}
+.pf-action svg{color:var(--teal)}
+.pf-action strong{font-size:13px;font-weight:600;color:var(--ink)}
+.pf-action small{font-size:11px;color:var(--body);line-height:1.55}
+button.pf-action:hover{border-color:var(--mint);background:var(--teal-soft)}
+.pf-action.refused{background:var(--canvas);border-style:dashed}
+.pf-action.refused svg{color:#b44b2c}
+.pf-action.refused strong{color:var(--faint)}
+
+.pf-entry{align-items:flex-start}
+.pf-type{display:block;font-style:normal;font-size:11px;color:var(--faint);margin-top:5px;overflow-wrap:anywhere}
+.pf-consultation{margin-bottom:11px}
+.pf-consultation>summary{display:flex;flex-direction:column;gap:4px;cursor:pointer;list-style:none;padding:2px 0}
+.pf-consultation>summary::-webkit-details-marker{display:none}
+.pf-consultation>summary strong{font-size:14px;color:var(--ink)}
+.pf-consultation>summary span{font-size:12px;color:var(--body)}
+.pf-consultation[open]>summary{border-bottom:1px solid var(--line);padding-bottom:11px;margin-bottom:4px}
+.pf-sections{list-style:none;padding:0;margin:10px 0 0;display:grid;grid-template-columns:1fr;gap:0}
+.pf-sections li{padding:11px 0 11px 17px;border-bottom:1px solid var(--line);position:relative}
+.pf-sections li:before{content:"";position:absolute;left:0;top:16px;width:8px;height:8px;border-radius:2px;background:var(--line)}
+.pf-sections li.filled:before{background:var(--teal)}
+.pf-sections strong{display:block;font-size:12.5px;font-weight:600;color:var(--faint)}
+.pf-sections li.filled strong{color:var(--ink)}
+.pf-sections small{display:block;font-size:11px;color:var(--body);margin-top:3px;line-height:1.5}
+.pf-sections em{display:block;font-style:normal;font-size:11px;color:var(--faint);margin-top:4px;line-height:1.5}
+
+@media(min-width:700px){
+ .pf-review-controls{flex-direction:row}
+ .pf-review-controls .inline-field{flex:1}
+ .pf-facts{grid-template-columns:1fr 1fr}
+ .pf-facts>div{flex-direction:column;justify-content:flex-start;gap:4px}
+ .pf-facts dd{text-align:left}
+ .pf-chips{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .pf-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .pf-vitals{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .pf-actions{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .pf-sections{grid-template-columns:1fr 1fr;column-gap:22px}
+}
+@media(min-width:1000px){
+ .pf-facts{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .pf-chips{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+.medicine-row .pill{margin-top:9px}
+.pf-consultation>summary .pill{margin-top:3px}
