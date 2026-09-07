@@ -340,7 +340,7 @@ struct WorkspaceView: View {
                 Section("Your tools") {
                     NavigationLink("Visit assessment") { VisitAssessmentView() }
                     NavigationLink("Thuso Kit · pair an instrument") { ThusoKitView() }
-                    NavigationLink("Weekly payouts") { FeatureDetail(title: "Weekly payouts") }
+                    NavigationLink("Earnings & payouts") { EarningsView() }
                     NavigationLink("Locum shifts") { FeatureDetail(title: "Locum shifts") }
                     NavigationLink("Academy") { FeatureDetail(title: "Academy") }
                 }

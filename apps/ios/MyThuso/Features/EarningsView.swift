@@ -1,0 +1,344 @@
+import SwiftUI
+
+/* Earnings and payouts, for the nurse.
+
+   The public page tells South Africa that a MyThuso nurse keeps three quarters of every visit and
+   is paid weekly. This is where that promise has to survive contact with a real week: a payout that
+   the bank sent back, a visit refunded to the patient after it was counted, and a police clearance
+   that lapsed on Tuesday.
+
+   Four numbers in a card would have been the easy version. The parts that matter are the ones a
+   payout screen has to refuse:
+
+     Nothing comes off the nurse's share. The card fee comes out of MyThuso's quarter, and the whole
+     split is shown — including what MyThuso keeps — because a marketplace that hides its own cut is
+     asking to be guessed at.
+
+     A suspension is not a confiscation. The banner at the top reads the same vetting record that
+     stops dispatch, so the two can never disagree, and the money for work already done is untouched
+     by it. The picker under the banner switches between a cleared nurse and one whose clearance
+     lapsed nine days ago: the banner changes and not one figure moves, which is the rule made
+     visible rather than asserted.
+
+     Nothing is money until it says paid. One of the four weeks below did not go through.
+
+     No tax is withheld, and MyThuso will not advise on it. Both said out loud.
+
+     Changing where you are paid waits 48 hours, because account takeover is how a stolen sign-in
+     becomes a stolen payout.
+
+   Nothing is transferred. No bank is contacted and every visit, patient and account number is
+   fictional. */
+
+private let payPreviewNurses = ["N-205", "N-204"]
+
+private func rand(_ amount: Int) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .decimal
+    formatter.groupingSeparator = " "
+    return "R \(formatter.string(from: NSNumber(value: abs(amount))) ?? String(abs(amount)))"
+}
+private let payDay = Date.FormatStyle().day().month(.abbreviated)
+private let payFullDay = Date.FormatStyle().weekday(.abbreviated).day().month(.wide)
+
+struct EarningsView: View {
+    @ObservedObject private var vetting = VettingStore.shared
+    @State private var who = payPreviewNurses[0]
+    @State private var serviceId = "wound"
+    @State private var openWeek: String? = Earnings.weeks.count > 1 ? Earnings.weeks[1].id : nil
+    @State private var accountStage = "settled"
+    @State private var code = ""
+
+    private var nurse: VettingSubject? { vetting.subject(who) }
+    private var service: CareService { CareService.all.first { $0.id == serviceId } ?? CareService.all[0] }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                DemoBadge()
+                CareHeading(eyebrow: "Nurse workspace", title: "Earnings & payouts",
+                            subtitle: "Fictional visits, a fictional bank, and nothing transferred.")
+                standing
+                nursePicker
+                totals
+                rule("accrued-is-not-paid")
+                split
+                weeks
+                tax
+                account
+                refusals
+            }
+            .padding(18)
+        }
+        .background(ThusoTheme.canvas)
+        .navigationTitle("Earnings & payouts").navigationBarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Standing
+
+    /* Read from the vetting register, not from a flag on the payout. If the two could be set
+       separately, a nurse could be told she is cleared on one screen and refused on another. */
+    @ViewBuilder private var standing: some View {
+        let decision = nurse.map { can($0, "take-visit") }
+        let allowed = decision?.allowed ?? false
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: allowed ? "checkmark.seal.fill" : "exclamationmark.shield.fill")
+                .font(.system(size: 19)).foregroundStyle(allowed ? ThusoTheme.teal : ThusoTheme.amber)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(allowed ? "Cleared for visits" : "You will not be sent new visits")
+                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                Text(allowed ? "Every check is verified and in date. Visits can be sent to you."
+                             : (decision?.reason ?? ""))
+                    .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                if !allowed {
+                    Text(Earnings.rule("suspension-is-not-confiscation").sentence)
+                        .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(allowed ? ThusoTheme.tealSoft : ThusoTheme.amberSoft, in: RoundedRectangle(cornerRadius: 18))
+    }
+
+    private var nursePicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("Preview this screen as", selection: $who) {
+                ForEach(payPreviewNurses, id: \.self) { id in
+                    Text(vetting.subject(id)?.name ?? id).tag(id)
+                }
+            }
+            .pickerStyle(.segmented)
+            Text("The same earnings, seen by a cleared nurse and by one whose police clearance lapsed nine days ago. Only the banner changes — which is the rule.")
+                .font(.footnote).foregroundStyle(ThusoTheme.body)
+        }
+    }
+
+    // MARK: - Totals
+
+    private var totals: some View {
+        VStack(spacing: 11) {
+            metric("This week so far", rand(Earnings.currentWeek.total),
+                   "\(Earnings.currentWeek.visits) visits · closes \(Earnings.cycle.closesOn), pays \(Earnings.cycle.paysOn)")
+            metric("Owed, not yet in your account", rand(Earnings.owedNotYetPaid), "On its way, or waiting on a bank")
+            metric("Reached your account this tax year", rand(Earnings.paidThisTaxYear),
+                   "Since \(Earnings.taxYear.startsOn) · \(Earnings.taxYear.label)")
+        }
+    }
+
+    private func metric(_ label: String, _ value: String, _ note: String) -> some View {
+        CareCard {
+            Text(label).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+            Text(value).font(.system(size: 28, weight: .bold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
+            Text(note).font(.system(size: 11.5)).foregroundStyle(ThusoTheme.faint)
+        }
+    }
+
+    // MARK: - The split
+
+    private var split: some View {
+        let parts = Earnings.split(service)
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Where the money goes").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            CareCard {
+                Picker("Show the split for", selection: $serviceId) {
+                    ForEach(Earnings.pricedServices) { Text($0.name).tag($0.id) }
+                }
+                GeometryReader { geometry in
+                    HStack(spacing: 3) {
+                        bar(ThusoTheme.teal, parts.nurse, parts.price, geometry.size.width)
+                        bar(ThusoTheme.gold, parts.payment, parts.price, geometry.size.width)
+                        bar(ThusoTheme.mint, parts.platform, parts.price, geometry.size.width)
+                    }
+                }
+                .frame(height: 16)
+                .accessibilityLabel("Of \(rand(parts.price)), \(rand(parts.nurse)) is yours, \(rand(parts.payment)) is the card fee and \(rand(parts.platform)) is what MyThuso keeps")
+                legend(ThusoTheme.teal, rand(parts.nurse), "Yours · \(Int((parts.nurseShareOfPrice * 100).rounded()))% of the price")
+                legend(ThusoTheme.gold, rand(parts.payment), "The card fee, paid by MyThuso")
+                legend(ThusoTheme.mint, rand(parts.platform), "What MyThuso keeps")
+                Text(Earnings.rule("share-is-not-reduced").sentence)
+                    .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                Text("Across the nine services at launch that is \(rand(Earnings.shareRange.low)) to \(rand(Earnings.shareRange.high)) a visit — the same range the public page advertises, read from the same catalogue.")
+                    .font(.footnote).foregroundStyle(ThusoTheme.faint)
+            }
+        }
+    }
+
+    private func bar(_ colour: Color, _ part: Int, _ whole: Int, _ width: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 4).fill(colour)
+            .frame(width: max(6, width * CGFloat(part) / CGFloat(whole)))
+    }
+
+    private func legend(_ colour: Color, _ amount: String, _ note: String) -> some View {
+        HStack(alignment: .top, spacing: 9) {
+            RoundedRectangle(cornerRadius: 3).fill(colour).frame(width: 11, height: 11).padding(.top, 4)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(amount).font(.system(size: 16, weight: .semibold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
+                Text(note).font(.system(size: 11.5)).foregroundStyle(ThusoTheme.faint)
+            }
+        }
+    }
+
+    // MARK: - Weeks
+
+    private var weeks: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            Text("Your weeks").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(Earnings.cycle.note).font(.footnote).foregroundStyle(ThusoTheme.body)
+            ForEach(Earnings.weeks) { entry in weekCard(entry) }
+        }
+    }
+
+    private func weekCard(_ week: PayWeek) -> some View {
+        let state = Earnings.state(week.state)
+        let open = openWeek == week.id
+        return CareCard {
+            Button {
+                withAnimation(.easeOut(duration: 0.22)) { openWeek = open ? nil : week.id }
+            } label: {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(rand(week.total)).font(.system(size: 21, weight: .bold)).monospacedDigit()
+                            .foregroundStyle(ThusoTheme.ink)
+                        Text("Week to \(week.ends.formatted(payDay)) · \(week.visits) visits")
+                            .font(.system(size: 12)).foregroundStyle(ThusoTheme.faint)
+                    }
+                    Spacer(minLength: 8)
+                    StatusPill(text: state.name, tone: week.state == "paid" ? "teal" : week.state == "failed" ? "danger" : week.state == "in-transit" ? "sky" : "amber")
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(open ? "Collapse the week" : "Show every line in the week")
+
+            if open {
+                Text(state.detail).font(.footnote).foregroundStyle(ThusoTheme.body)
+                if let paidOn = week.paidOn {
+                    Text("Paid into \(Earnings.account.maskedNumber) on \(paidOn.formatted(payFullDay)).")
+                        .font(.footnote).foregroundStyle(ThusoTheme.faint)
+                }
+                if let failure = week.failure {
+                    Text(failure).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.danger)
+                        .padding(13).frame(maxWidth: .infinity, alignment: .leading)
+                        .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: 14))
+                }
+                ForEach(week.lines) { line in payLine(line) }
+                Divider()
+                HStack {
+                    Text("Total for the week").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    Spacer()
+                    Text(rand(week.total)).font(.system(size: 15, weight: .semibold)).monospacedDigit()
+                }
+                if week.hasDeduction {
+                    Text(Earnings.rule("every-deduction-is-named").sentence)
+                        .font(.footnote).foregroundStyle(ThusoTheme.body)
+                }
+            }
+        }
+    }
+
+    private func payLine(_ line: PayLine) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(line.service ?? Earnings.lineKind(line.kind).name)
+                    .font(.system(size: 13.5, weight: .medium)).foregroundStyle(ThusoTheme.ink)
+                Spacer(minLength: 8)
+                Text(line.amount < 0 ? "− \(rand(line.amount))" : rand(line.amount))
+                    .font(.system(size: 13.5, weight: .semibold)).monospacedDigit()
+                    .foregroundStyle(line.amount < 0 ? ThusoTheme.danger : ThusoTheme.ink)
+            }
+            Text("\(line.reference) · \(line.patient) · \(line.on.formatted(payDay))")
+                .font(.system(size: 11)).foregroundStyle(ThusoTheme.faint)
+            if let plan = line.plan {
+                Text(plan).font(.system(size: 11)).foregroundStyle(ThusoTheme.teal)
+            }
+            if let reason = line.reason {
+                Text(reason).font(.system(size: 11)).foregroundStyle(ThusoTheme.body)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    // MARK: - Tax and the account
+
+    private var tax: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            Text("Tax").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            CareCard {
+                row("Reached your account since \(Earnings.taxYear.startsOn)", rand(Earnings.paidThisTaxYear))
+                row("Tax withheld by MyThuso", rand(0))
+                Text(Earnings.taxYear.note).font(.footnote).foregroundStyle(ThusoTheme.faint)
+                Text(Earnings.rule("no-tax-withheld").sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                refusal(Earnings.refusal("advise-on-tax"))
+            }
+        }
+    }
+
+    private func row(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
+            Spacer(minLength: 8)
+            Text(value).font(.system(size: 14, weight: .semibold)).monospacedDigit().foregroundStyle(ThusoTheme.ink)
+        }
+    }
+
+    private var account: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            Text("Where you are paid").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            CareCard {
+                HStack(spacing: 13) {
+                    TileIcon(symbol: "building.columns", size: 38)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(Earnings.account.bank) · \(Earnings.account.maskedNumber)")
+                            .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                        Text(Earnings.account.holder).font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
+                    }
+                }
+                Text(Earnings.account.note).font(.footnote).foregroundStyle(ThusoTheme.faint)
+                if accountStage == "settled" {
+                    Button("Change account") { accountStage = "verifying" }.buttonStyle(QuietButton())
+                    Text(Earnings.rule("account-change-waits").sentence)
+                        .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                } else if accountStage == "verifying" {
+                    Text("Before anything changes, we check it is you. Nothing here is sent.")
+                        .font(.footnote).foregroundStyle(ThusoTheme.body)
+                    ForEach(Earnings.account.reverify, id: \.self) { step in
+                        Label(step, systemImage: "lock").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+                    }
+                    TextField("One-time code", text: $code).keyboardType(.numberPad).textFieldStyle(.roundedBorder)
+                    Button("Verify and start the wait") { accountStage = "pending" }
+                        .buttonStyle(CareButton()).disabled(code.count != 6)
+                    Button("Cancel") { accountStage = "settled"; code = "" }.buttonStyle(QuietButton())
+                } else {
+                    Text("Waiting \(Earnings.account.coolingOffHours) hours")
+                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(Earnings.rule("account-change-waits").sentence)
+                        .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+                    Button("Cancel the change") { accountStage = "settled"; code = "" }.buttonStyle(QuietButton())
+                }
+            }
+        }
+    }
+
+    private var refusals: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            Text("What this screen will not do").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
+            ForEach(Earnings.refusals.filter { $0.id != "advise-on-tax" }) { item in
+                CareCard { refusal(item) }
+            }
+            Text("No money moves in this preview. Payment runs, bank verification and a real ledger arrive with the payment provider, and every amount above is arithmetic on the demo catalogue.")
+                .font(.footnote).foregroundStyle(ThusoTheme.faint)
+        }
+    }
+
+    private func refusal(_ item: PayRefusal) -> some View {
+        HStack(alignment: .top, spacing: 11) {
+            Image(systemName: "nosign").font(.system(size: 16)).foregroundStyle(ThusoTheme.danger)
+            Text(item.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+        }
+    }
+
+    private func rule(_ id: String) -> some View {
+        Text(Earnings.rule(id).sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
+    }
+}

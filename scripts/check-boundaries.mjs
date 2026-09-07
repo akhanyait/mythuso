@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { emitTokens } from './emit-tokens.mjs';
 import { emitVetting } from './emit-vetting.mjs';
 import { emitRecords } from './emit-records.mjs';
+import { emitEarnings } from './emit-earnings.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -151,7 +152,8 @@ if(existsSync('apps/api/src')) {
 const generated = [
  { source: 'packages/design-tokens/tokens.json', command: 'npm run tokens', files: emitTokens() },
  { source: 'packages/catalog/vetting.json', command: 'npm run vetting', files: emitVetting() },
- { source: 'packages/catalog/records.json', command: 'npm run records', files: emitRecords() }
+ { source: 'packages/catalog/records.json', command: 'npm run records', files: emitRecords() },
+ { source: 'packages/catalog/earnings.json', command: 'npm run earnings', files: emitEarnings() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -281,4 +283,53 @@ const resolvers=new Set(['clinician','server']);
 for(const conflict of capture.conflicts) if(!resolvers.has(conflict.resolution)) throw new Error(`Capture conflict ${conflict.id} does not say who resolves it`);
 if(!capture.provenance.some(p=>p.id==='device')||!capture.provenance.some(p=>p.id==='manual')) throw new Error('The capture contract must tell a measured reading from a typed one');
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three.`);
+/* What a nurse is paid is the one number in this repository that is written down in three places
+   at once: the price a patient is quoted, the payout on the nurse's own screen, and the claim the
+   public landing page makes about both. So it is written down in one place — packages/catalog/
+   services.json — and everything else derives from it. These checks exist to keep that true, and
+   the first of them is the one that matters: earnings.json must not be able to name an amount for
+   a visit at all. */
+const earnings=JSON.parse(read('packages/catalog/earnings.json'));
+const serviceById=new Map(catalogue.map(s=>[s.id,s]));
+const payStates=new Set(earnings.states.map(s=>s.id));
+const payKinds=new Map(earnings.lineKinds.map(k=>[k.id,k]));
+let accruing=0, settledWeeks=0;
+for(const week of earnings.weeks) {
+ if(!payStates.has(week.state)) throw new Error(`Payout week ${week.id} is in a state nothing defines: ${week.state}`);
+ if(week.state==='accruing') accruing++;
+ if(earnings.states.find(s=>s.id===week.state).settled) settledWeeks++;
+ if(week.state==='failed'&&!week.failure) throw new Error(`Payout week ${week.id} failed without saying why. A payout that says only "failed" is one a nurse cannot act on.`);
+ if(!week.lines.length) throw new Error(`Payout week ${week.id} has no lines`);
+ for(const line of week.lines) {
+  const kind=payKinds.get(line.kind);
+  if(!kind) throw new Error(`Payout line ${line.reference} has an unknown kind ${line.kind}`);
+  if(kind.sign>0&&line.service) {
+   if(!serviceById.has(line.service)) throw new Error(`Payout line ${line.reference} names a service that is not in the catalogue: ${line.service}`);
+   /* The whole design of the feature. A visit is worth the nurse's share of its catalogue price
+      and nothing else, so there is nowhere here to type a different number. */
+   if(line.amount!==undefined) throw new Error(`Payout line ${line.reference} carries its own amount. A visit is worth the nurse's share of its price in packages/catalog/services.json — there is no second place for that number.`);
+  } else {
+   if(typeof line.amount!=='number') throw new Error(`Payout line ${line.reference} is a ${line.kind} with no amount`);
+   if(!line.reason) throw new Error(`Payout line ${line.reference} takes money off or puts it back without saying why. A line that only says "adjustment" is a line a nurse cannot argue with.`);
+  }
+ }
+}
+if(accruing!==1) throw new Error(`Exactly one payout week may be accruing; ${accruing} are`);
+if(!settledWeeks) throw new Error('No payout week has settled, so the tax-year total on the earnings screen is a figure about nothing');
+for(const id of ['share-is-not-reduced','suspension-is-not-confiscation','accrued-is-not-paid','no-tax-withheld','account-change-waits','every-deduction-is-named']) {
+ if(!earnings.rules.some(r=>r.id===id)) throw new Error(`The earnings contract has lost the rule "${id}". These are promises made to nurses on three platforms at once.`);
+}
+/* The public page says three quarters of the fee goes to the nurse, and gives a range. Both are
+   claims about the catalogue rather than decoration, so both are held to it. */
+for(const s of catalogue.filter(s=>s.phase===1)) {
+ const share=s.nurseShare/s.price;
+ if(share<0.74||share>0.76) throw new Error(`${s.name} pays the nurse ${(share*100).toFixed(1)}% of R${s.price}. The public page says three quarters; either the price changes or the claim does.`);
+}
+const shares=catalogue.filter(s=>s.phase===1).map(s=>s.nurseShare);
+const advertised=read('apps/web/src/features/Landing.tsx').match(/\{money\((\d+)\)\}–\{money\((\d+)\)\} a visit/);
+if(!advertised) throw new Error('The landing page no longer advertises a per-visit range for nurses, or has stopped writing it in a form this check can read');
+if(Number(advertised[1])!==Math.min(...shares)||Number(advertised[2])!==Math.max(...shares)) {
+ throw new Error(`The landing page advertises R${advertised[1]}–R${advertised[2]} a visit; the catalogue pays R${Math.min(...shares)}–R${Math.max(...shares)}`);
+}
+
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays.`);

@@ -216,6 +216,7 @@ import za.co.mythuso.model.mokoenaHousehold
            anywhere near — it is where the morning's work sits when there is no signal. */
         title == "Thuso Kit" || title == "Diagnostic kit" -> ThusoKitScreen(store, open)
         title == "Capture queue" -> CaptureQueueScreen(store, open)
+        title == "Weekly payouts" || title == "Earnings & payouts" -> EarningsScreen(store, open)
         /* The clinician-facing file and the encounter that writes into it. They are one route each
            because both are read about somebody else: the Passport is the patient's own view, and
            putting them behind the same door would blur whose record is whose. */
@@ -333,7 +334,7 @@ import za.co.mythuso.model.mokoenaHousehold
         CareCard {
             Text("Your tools", style = MaterialTheme.typography.titleMedium)
             val tools = when {
-                nurse -> listOf("Visit assessment", "Patient file", "Consultation record", "Nurse onboarding & vetting", "Vetting: N-205", "Apply for vetting: locum", "Thuso Kit", "Capture queue", "Weekly payouts", "Locum shifts", "Academy")
+                nurse -> listOf("Visit assessment", "Patient file", "Consultation record", "Nurse onboarding & vetting", "Vetting: N-205", "Apply for vetting: locum", "Thuso Kit", "Capture queue", "Earnings & payouts", "Locum shifts", "Academy")
                 doctor -> listOf("Patient file", "Consultation record", "Apply for vetting: doctor", "Vetting: D-401", "Clinical protocols", "Teleconsultation", "Referral pathway")
                 else -> listOf("Vetting pipeline", "Vetting: O-802", "Vetting: A-902", "Vetting decision log", "Apply for vetting", "Incident INC-015", "Quality & revenue", "Employer programmes")
             }

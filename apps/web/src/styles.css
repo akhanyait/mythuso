@@ -1579,3 +1579,73 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
 .pf-vital .prov em{white-space:normal;overflow:visible;text-overflow:clip}
 .pf-vital .prov>svg{margin-top:2px}
 .prov-legend .prov{align-self:flex-start}
+
+/* ---- Nurse earnings and payouts ----
+   The screen has one job beyond arithmetic: make it obvious which figures are money and which are
+   not. Paid weeks read as settled; everything else is deliberately quieter. */
+.earnings .earn-standing{display:flex;gap:13px;align-items:flex-start;border-radius:var(--r-card);padding:16px 18px;margin-top:14px}
+.earn-standing.ok{background:var(--teal-soft);color:var(--teal-deep)}
+.earn-standing.held{background:var(--amber-soft);color:#7d5512}
+.earn-standing strong{display:block;font-size:14px}
+.earn-standing small{display:block;font-size:12.5px;line-height:1.55;margin-top:4px;opacity:.92}
+.earn-standing svg{margin-top:2px}
+.earn-rule{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.6;color:var(--body);margin-top:12px}
+.earn-rule svg{color:var(--teal);flex-shrink:0;margin-top:2px}
+.earn-standing .earn-rule{color:inherit;opacity:.95}
+.earn-standing .earn-rule svg{color:inherit}
+.earn-preview-switch{border:0;padding:0;margin:12px 0 0;display:flex;gap:8px;flex-wrap:wrap}
+.earn-preview-switch label{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:9px 15px;font-size:12.5px;font-weight:600;color:var(--body);cursor:pointer}
+.earn-preview-switch label.selected{border-color:var(--teal);background:var(--teal-soft);color:var(--teal-deep)}
+/* Clipped rather than zero-sized, so it keeps its place in the focus order, and the label it
+   sits in wears the focus ring on its behalf. A radio with no width is a radio a keyboard
+   reaches and nobody can see. */
+.earn-preview-switch input{position:absolute;width:1px;height:1px;margin:-1px;opacity:0;clip:rect(0 0 0 0)}
+.earn-preview-switch label:has(:focus-visible){outline:3px solid var(--gold);outline-offset:3px}
+.earn-preview-switch .helper{flex-basis:100%;margin-top:2px}
+.earn-split label select{margin-top:8px}
+.earn-bar{display:flex;gap:3px;height:16px;margin:18px 0 14px}
+.earn-bar i{border-radius:4px;min-width:6px}
+.earn-bar .yours{background:var(--teal)}
+.earn-bar .fee{background:var(--gold)}
+.earn-bar .platform{background:var(--mint)}
+.earn-legend{display:grid;gap:12px}
+.earn-legend>div{display:grid;grid-template-columns:auto 1fr;column-gap:9px;align-items:center}
+.earn-legend strong{font-size:16px;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+.earn-legend small{grid-column:2;font-size:11.5px;color:var(--faint);margin-top:2px}
+.earn-legend .key{width:11px;height:11px;border-radius:3px;grid-row:1 / span 2}
+.earn-legend .key.yours{background:var(--teal)}
+.earn-legend .key.fee{background:var(--gold)}
+.earn-legend .key.platform{background:var(--mint)}
+.earn-weeks{display:flex;flex-direction:column;gap:10px}
+.earn-week{border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);overflow:hidden}
+.earn-week.failed{border-color:#efd4cf}
+.earn-week>button{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;text-align:left;padding:16px 18px}
+.earn-week-head strong{display:block;font-size:21px;letter-spacing:-.6px;font-variant-numeric:tabular-nums}
+.earn-week-head small{display:block;font-size:12px;color:var(--faint);margin-top:3px}
+.earn-week-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s ease}
+.earn-week.is-open .earn-week-body{grid-template-rows:1fr}
+.earn-week-body>div{overflow:hidden;padding:0 18px}
+.earn-week.is-open .earn-week-body>div{padding-bottom:18px}
+.earn-failure{display:flex;gap:11px;align-items:flex-start;background:var(--danger-soft);color:#8f3a30;border-radius:var(--r-tile);padding:13px 15px;margin:10px 0}
+.earn-failure p{font-size:12.5px;line-height:1.6}
+.earn-lines{margin-top:12px;width:100%}
+.earn-lines th[scope=row] small{display:block;font-weight:400;color:var(--faint);font-size:11px;margin-top:3px}
+.earn-lines td small{display:flex;gap:6px;align-items:flex-start;color:var(--faint);font-size:11px;margin-top:4px;line-height:1.5}
+.earn-lines td small svg{flex-shrink:0;margin-top:2px}
+.earn-lines .earn-amount{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.earn-lines tr.negative .earn-amount{color:var(--danger)}
+.earn-lines tfoot th{text-align:right;font-size:12px;color:var(--body)}
+.earn-lines tfoot td{border-top:1px solid var(--line)}
+.earn-tax .review-line strong{font-variant-numeric:tabular-nums}
+.earn-refusal{display:flex;gap:11px;align-items:flex-start;background:var(--canvas);border-radius:var(--r-tile);padding:14px 16px}
+.earn-refusal svg{color:var(--danger);flex-shrink:0;margin-top:1px}
+.earn-refusal p{font-size:12.5px;line-height:1.6;color:var(--forest)}
+.earn-refusals{display:grid;gap:10px}
+.earn-account .record-row.plain{background:none;padding:0}
+.earn-account .record-row.plain button{margin-left:auto;min-height:42px;padding:10px 15px;font-size:12.5px;white-space:nowrap}
+.earn-pending{display:flex;gap:12px;align-items:flex-start;background:var(--amber-soft);color:#7d5512;border-radius:var(--r-tile);padding:15px 16px}
+.earn-pending p{font-size:12.5px;line-height:1.6;margin:5px 0 8px}
+@media(min-width:700px){
+ .earn-legend{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .earn-refusals{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

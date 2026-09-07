@@ -26,6 +26,7 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Household record | Members, shared appointments, scheme dependants, immunisations and medicine collections due. Membership is not consent: another adult's record stays closed, a guardian's reach over a child of 12 or older is capped because that child may consent for themselves, and the roster itself discloses no more than the viewer may see | All three |
 | Health summary | The nine-field summary, shareable bound to a purpose and a period rather than as a permanently valid document, with an unguessable token. The export is checked against its own bytes for protected content before it is produced | All three |
 | Thuso Kit, capture and the offline queue | Pairing over a named transport, calibration and consumable expiry as separate gates, and four provenance marks — device, hand-entered, patient-reported and derived — carried from the instrument through the assessment into the consultation record and the patient file. A queue that holds readings on the phone, and the four disagreements a queue actually produces: a duplicate, a stale write, a clock skew and a capturer whose standing lapsed between capture and arrival. Three of the four are settled by a clinician; only the clock one is settled by the server | All three |
+| Nurse earnings and payouts | A week's visits with what each one paid, four payout states including one the bank sent back, a reversal and a correction that each name the visit and the reason, the whole split of a visit — the nurse's share, the card fee and what MyThuso keeps — the tax-year total with a statement that nothing was withheld, and a payout-account change that re-verifies and then waits 48 hours. Not one visit amount is written down: a line names a service and the money is that service's nurse share in the catalogue the patient is quoted from | All three |
 | Append-only vetting audit | Who decided, when, on what evidence and what changed. Prepend-only in the preview, and gone on reload | Web |
 | Accessible clinical charts | Every chart carries a spoken summary and the same values as a real table | Passport, doctor review |
 | System states | Loading, service error, offline, permission denied and empty, as shared components used by the real screens and collected in one gallery | All three |
@@ -49,9 +50,9 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Thuso Pass | Accessible trend charts with data tables, timeline, documents, sample prescription and laboratory order, limited sharing/revoke, JSON export | Native charts with tables, records, sharing toggle, native system export | Verified clinical record, scoped grants, signed documents, emergency QR design |
 | Thuso Family | Family cards, add-member preview, guardian invitations with scope/duration/verification and revocation | Native family list, add-member preview and invitation management | Real invitations, verified authority, guardianship proof, diaspora sponsorship |
 | Thuso Routine | Five plan cards with indicative pricing | Five native plan cards | Billing, eligibility, schedules, care pathways |
-| Thuso Wallet | Sample balance/activity and entry dialogs | Native balance/activity and entry screens | Payment provider, vouchers, immutable ledger, sponsorship |
+| Thuso Wallet | Sample balance/activity and entry dialogs; the nurse side is the earnings and payout screen | Native balance/activity and entry screens | Payment provider, vouchers, immutable ledger, sponsorship |
 | Privacy | Switches, sharing, guardian access, access-history sample, request acknowledgement | Native switches, invitations and rights entry screens | Identity verification, lawful-basis records, audited rights fulfilment |
-| Nurse workspace | Schedule, availability toggle, full visit assessment with device capture, the offline queue, onboarding and vetting | Native equivalents | Earnings and payouts, real dispatch integration |
+| Nurse workspace | Schedule, availability toggle, full visit assessment with device capture, the offline queue, weekly earnings and payouts, onboarding and vetting | Native equivalents | A payment provider, a real ledger, bank verification, real dispatch integration |
 | Doctor workspace | Review queue with trend chart, outcome and rationale sign-off | Native queue and review | Secure native consult, real prescriptions, referrals |
 | Partner workspace | Prescription and laboratory order detail with chain of custody and release control | Native fulfilment queue and order detail | Partner APIs, real dispensing, courier integration, result delivery |
 | Control Tower | Dispatch map and assignment gated on vetting, incident triage and log, the vetting queue for all twelve roles | Native dispatch board, incidents and vetting | Live positions, real assignment, paging, escalation, revenue |
@@ -87,12 +88,22 @@ These flows exist on all three platforms, with the same steps, the same wording 
   three different things on the screen at every step, and they stay different in the record.
 - An overdue calibration does not block a reading — it labels it, permanently. An expired consumable does block it,
   because a strip past its date is not a measurement at all.
+- Nothing is deducted from a nurse's share. The card fee and the doctor's review come out of MyThuso's quarter, and
+  the whole split is shown — including what MyThuso keeps — because a marketplace that hides its own cut is asking
+  to be guessed at.
+- A suspension is not a confiscation. A lapsed check stops new visits reaching a nurse; the money for work already
+  done goes out on its normal day. Earnings are never withheld as a sanction, because a platform that can do that
+  makes every complaint a question of whether the complainant can afford to raise it.
+- No tax is withheld, and MyThuso does not advise on it. Both are said on the screen, in those words.
+- A deduction always names the visit it came from and the reason. There is no line that says only ‘adjustment’.
+- Changing a payout account re-verifies the nurse and then waits, and a payout already in flight goes to the account
+  it was authorised against — because account takeover is how a stolen sign-in becomes a stolen payout.
 - Nothing in any of these flows is transmitted, stored or acted upon.
 
 ## Cross-platform consistency
 
-Clinical reference ranges, locale sets, the demo verification codes, the identity check-digit validation, and the whole vetting table — twelve roles, seventy checks, every issuing authority's credential format, every scope of practice and every refusal sentence word for word — are duplicated in three codebases by design — each app is genuinely native. `scripts/check-boundaries.mjs` fails the build if any of them drift apart, because a reference range that differs between iOS and Android is a clinical-safety problem rather than a cosmetic one.
+Clinical reference ranges, locale sets, the demo verification codes, the identity check-digit validation, what a nurse is paid — a visit's amount exists in one file and is derived everywhere else, including in the claim the public page makes about it — and the whole vetting table — twelve roles, seventy checks, every issuing authority's credential format, every scope of practice and every refusal sentence word for word — are duplicated in three codebases by design — each app is genuinely native. `scripts/check-boundaries.mjs` fails the build if any of them drift apart, because a reference range that differs between iOS and Android is a clinical-safety problem rather than a cosmetic one.
 
 ## Next UI increments
 
-Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only today; nurse earnings and payout detail; teleconsultation call UI; prescription substitution and chronic authorisation; employer and sponsor programme administration; a real emergency pathway design; the remaining official languages and a clinical language review of translated copy; South African Sign Language guidance; large-text, screen-reader and low-end device testing on real hardware. None of these are claimed complete.
+Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only today; teleconsultation call UI; prescription substitution and chronic authorisation; employer and sponsor programme administration; a real emergency pathway design; the remaining official languages and a clinical language review of translated copy; South African Sign Language guidance; large-text, screen-reader and low-end device testing on real hardware. None of these are claimed complete.

@@ -17,12 +17,13 @@
     "tokens": "node scripts/emit-tokens.mjs",
     "vetting": "node scripts/emit-vetting.mjs",
     "records": "node scripts/emit-records.mjs",
-    "generate": "npm run tokens && npm run vetting && npm run records",
+    "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings",
     "check": "npm run check -w @mythuso/geo && npm run check -w @mythuso/web && npm run check -w @mythuso/api && node scripts/check-boundaries.mjs",
     "test": "npm run test -w @mythuso/geo && npm run test -w @mythuso/api && playwright test",
     "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0",
     "api": "npm run dev -w @mythuso/api",
-    "test:live": "playwright test tests/live-identity.spec.ts"
+    "test:live": "playwright test tests/live-identity.spec.ts",
+    "earnings": "node scripts/emit-earnings.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

@@ -1,0 +1,111 @@
+{
+ "_note": "What a nurse is paid, and what nobody is allowed to do to it. Read by the web app; generated into Swift and Kotlin by scripts/emit-earnings.mjs. Not one amount for a visit is written down here: a visit line names a service, and the money comes from packages/catalog/services.json, so a nurse's share and the price a patient is quoted cannot drift apart. Only a reversal or a correction carries an amount, because those are not derived from anything — and each one has to say what it is for. Dates are offsets in days from today so the preview never goes stale.",
+
+ "cycle": {
+  "weekEndsOn": "Sunday",
+  "closesOn": "Monday",
+  "paysOn": "Wednesday",
+  "clearsInDays": [1, 2],
+  "note": "A week runs Monday to Sunday, closes on Monday morning and pays on Wednesday. The two days in between are when a reversal can still land, which is the only reason they exist."
+ },
+
+ "states": [
+  { "id": "accruing", "name": "This week", "detail": "Visits are still being added. Nothing is owed yet, and the figure can go down as well as up.", "settled": false },
+  { "id": "closed", "name": "Closed", "detail": "The week is fixed. The amount will not change now unless a visit is reversed.", "settled": false },
+  { "id": "in-transit", "name": "On its way", "detail": "Sent to your bank. It usually clears in one to two business days.", "settled": false },
+  { "id": "paid", "name": "Paid", "detail": "In the account below, on the date shown.", "settled": true },
+  { "id": "failed", "name": "Did not go through", "detail": "Your bank sent it back. It is still owed to you and goes out again with the next run once the account is right.", "settled": false }
+ ],
+
+ "lineKinds": [
+  { "id": "visit", "name": "Visit", "detail": "A completed visit you signed off. Your share of what the patient paid.", "sign": 1 },
+  { "id": "plan-visit", "name": "Care plan visit", "detail": "A visit inside a monthly plan, paid at the same rate as the same visit booked on its own. A plan is a way for the patient to pay; it is not a discount on your work.", "sign": 1 },
+  { "id": "reversal", "name": "Reversed", "detail": "A visit refunded to the patient after it was counted to you. It names the visit and the reason.", "sign": -1 },
+  { "id": "correction", "name": "Correction", "detail": "Something we got wrong, put right. It names what was wrong.", "sign": 1 }
+ ],
+
+ "rules": [
+  { "id": "share-is-not-reduced", "title": "Nothing comes off your share",
+    "sentence": "Your share is three quarters of what the patient paid. The card fee, the doctor's review and everything it costs to run MyThuso come out of MyThuso's quarter — never out of yours." },
+  { "id": "suspension-is-not-confiscation", "title": "A suspension does not touch what you have earned",
+    "sentence": "A lapsed check stops new visits reaching you. It does not touch money you have already earned. Work done is work paid, and the payout goes out on its normal day." },
+  { "id": "accrued-is-not-paid", "title": "This week is an estimate",
+    "sentence": "A visit can still be cancelled and a reading can still be reversed. Nothing on this screen is money until it says paid." },
+  { "id": "no-tax-withheld", "title": "No tax has been taken off",
+    "sentence": "MyThuso withholds no tax. You are paid your full share as an independent contractor, and your provisional tax is yours to arrange. We show you the totals. We do not advise you on them, and nobody here is your accountant." },
+  { "id": "account-change-waits", "title": "Changing your account waits 48 hours",
+    "sentence": "Changing where you are paid re-verifies you and then waits 48 hours. A payout already on its way goes to the old account, because that is the account it was authorised against." },
+  { "id": "every-deduction-is-named", "title": "Anything taken off says why",
+    "sentence": "A deduction names the visit it came from and the reason for it. A line that only says ‘adjustment’ is a line you cannot argue with, so there is no such line." }
+ ],
+
+ "refusals": [
+  { "id": "advise-on-tax", "sentence": "MyThuso will not tell you what to declare or what to put aside. That is between you and SARS, and a platform guessing at it would be doing you harm dressed as a favour." },
+  { "id": "withhold-for-conduct", "sentence": "Earnings are never held back as a penalty. A complaint is handled as a complaint; a payout is handled as a debt. Mixing the two would make every dispute a question of whether you can afford to raise it." },
+  { "id": "pay-a-third-party", "sentence": "A payout goes to an account in your own name. MyThuso will not pay your share to an agency, a recruiter or anybody else on your behalf." },
+  { "id": "lend-against-earnings", "sentence": "MyThuso does not advance money against work you have not done. Thuso Money is a regulated partner product and is not this screen." }
+ ],
+
+ "account": {
+  "holder": "N Mokoena",
+  "bank": "Demo Bank",
+  "maskedNumber": "•••• •••• 4471",
+  "coolingOffHours": 48,
+  "reverify": [
+   "A one-time code to your registered mobile number",
+   "Proof of the account, in your own name",
+   "A second check by an operator, because an account change is how a stolen sign-in becomes a stolen payout"
+  ],
+  "note": "Shown masked, always. A full account number on a screen is a full account number in a screenshot."
+ },
+
+ "taxYear": {
+  "startsOn": "1 March",
+  "label": "2026/27",
+  "note": "The South African tax year. The total below is what has actually reached your account since it started — not what has been earned, because money still on its way is not income you have received."
+ },
+
+ "weeks": [
+  { "id": "w-current", "state": "accruing", "endsInDays": 2, "paysInDays": 5,
+    "lines": [
+     { "kind": "visit", "service": "vitals", "reference": "TH-2048", "onDays": -1, "patient": "L. Molefe", "area": "Rosebank" },
+     { "kind": "visit", "service": "wound", "reference": "TH-2051", "onDays": -1, "patient": "S. Dube", "area": "Parktown" },
+     { "kind": "plan-visit", "service": "injection", "reference": "TH-2053", "onDays": 0, "patient": "N. Molefe", "area": "Rosebank", "plan": "Chronic Routine" }
+    ] },
+  { "id": "w-1", "state": "in-transit", "endsInDays": -5, "paysInDays": 0,
+    "lines": [
+     { "kind": "visit", "service": "vitals", "reference": "TH-2031", "onDays": -11, "patient": "K. Ndlovu", "area": "Rosebank" },
+     { "kind": "visit", "service": "vitals", "reference": "TH-2033", "onDays": -10, "patient": "T. Mabaso", "area": "Melville" },
+     { "kind": "visit", "service": "wound", "reference": "TH-2035", "onDays": -9, "patient": "S. Dube", "area": "Parktown" },
+     { "kind": "visit", "service": "blood", "reference": "TH-2037", "onDays": -8, "patient": "A. Pillay", "area": "Rosebank" },
+     { "kind": "visit", "service": "senior", "reference": "TH-2039", "onDays": -7, "patient": "G. Mokoena", "area": "Melville" },
+     { "kind": "plan-visit", "service": "planning", "reference": "TH-2041", "onDays": -6, "patient": "R. Sithole", "area": "Parktown", "plan": "Family Planning Plan" },
+     { "kind": "visit", "service": "certificate", "reference": "TH-2043", "onDays": -6, "patient": "M. Khoza", "area": "Rosebank" }
+    ] },
+  { "id": "w-2", "state": "failed", "endsInDays": -12, "paysInDays": -7,
+    "failure": "Your bank returned it: the account name did not match the account number. Nothing was lost — it is still owed to you and goes out with Wednesday's run once the account is corrected.",
+    "lines": [
+     { "kind": "visit", "service": "wound", "reference": "TH-2014", "onDays": -18, "patient": "S. Dube", "area": "Parktown" },
+     { "kind": "visit", "service": "postop", "reference": "TH-2016", "onDays": -17, "patient": "J. van Wyk", "area": "Melville" },
+     { "kind": "visit", "service": "mother", "reference": "TH-2018", "onDays": -16, "patient": "P. Khumalo", "area": "Rosebank" },
+     { "kind": "visit", "service": "vitals", "reference": "TH-2020", "onDays": -15, "patient": "K. Ndlovu", "area": "Rosebank" },
+     { "kind": "visit", "service": "injection", "reference": "TH-2022", "onDays": -14, "patient": "M. Khoza", "area": "Parktown" },
+     { "kind": "visit", "service": "blood", "reference": "TH-2024", "onDays": -13, "patient": "A. Pillay", "area": "Rosebank" }
+    ] },
+  { "id": "w-3", "state": "paid", "endsInDays": -19, "paysInDays": -14, "paidOnDays": -14,
+    "lines": [
+     { "kind": "visit", "service": "senior", "reference": "TH-1990", "onDays": -25, "patient": "G. Mokoena", "area": "Melville" },
+     { "kind": "visit", "service": "senior", "reference": "TH-1992", "onDays": -24, "patient": "G. Mokoena", "area": "Melville" },
+     { "kind": "visit", "service": "wound", "reference": "TH-1994", "onDays": -23, "patient": "S. Dube", "area": "Parktown" },
+     { "kind": "visit", "service": "vitals", "reference": "TH-1996", "onDays": -22, "patient": "L. Molefe", "area": "Rosebank" },
+     { "kind": "visit", "service": "certificate", "reference": "TH-1998", "onDays": -21, "patient": "M. Khoza", "area": "Rosebank" },
+     { "kind": "plan-visit", "service": "planning", "reference": "TH-2000", "onDays": -21, "patient": "R. Sithole", "area": "Parktown", "plan": "Family Planning Plan" },
+     { "kind": "visit", "service": "blood", "reference": "TH-2002", "onDays": -20, "patient": "A. Pillay", "area": "Rosebank" },
+     { "kind": "visit", "service": "mother", "reference": "TH-2004", "onDays": -20, "patient": "P. Khumalo", "area": "Rosebank" },
+     { "kind": "reversal", "amount": 224, "reference": "TH-1961", "onDays": -20, "patient": "S. Dube",
+       "reason": "The visit on 12 August was refunded to the patient: the nurse could not gain access to the address and no care was given." },
+     { "kind": "correction", "amount": 75, "reference": "TH-1975", "onDays": -20, "patient": "T. Mabaso",
+       "reason": "Paid at the price of a vitals check when the visit delivered was a wound dressing. This is the difference." }
+    ] }
+ ]
+}
