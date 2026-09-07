@@ -1,0 +1,32 @@
+; MyThuso — the whole zone, for importing into Cloudflare in one step.
+;
+; Captured from the live domains.co.za nameservers on 7 September 2026, before any change, so that
+; moving the website does not take the mail with it. Everything below is unchanged from what is
+; serving today EXCEPT the two website records, which move from the registrar's parking page
+; (169.239.219.58) to the server the app is deployed on.
+;
+; The mail records must stay DNS-only in Cloudflare — grey cloud, never orange. Cloudflare proxies
+; HTTP; it does not proxy SMTP or IMAP, and an orange cloud on mail.mythuso.co.za would stop mail reaching you.
+;
+; Verify after import:   dig +short mythuso.co.za  ->  154.66.198.238
+;                        dig +short MX mythuso.co.za  ->  unchanged
+;                        send yourself an email before you tell anyone the site is live.
+
+$TTL 3600
+
+; ---- the website: this is the only thing that changes ----
+mythuso.co.za.                  IN  A      154.66.198.238
+www.mythuso.co.za.              IN  A      154.66.198.238
+
+; ---- mail: unchanged, and must remain so ----
+mythuso.co.za.                  IN  MX     10 mx1.tld-mx.com.
+mail.mythuso.co.za.             IN  A      169.239.218.78
+webmail.mythuso.co.za.          IN  CNAME  mail.mythuso.co.za.
+smtp.mythuso.co.za.             IN  CNAME  mail.mythuso.co.za.
+imap.mythuso.co.za.             IN  CNAME  mail.mythuso.co.za.
+pop.mythuso.co.za.              IN  CNAME  mail.mythuso.co.za.
+
+; ---- mail authentication: lose any of these and your mail starts landing in spam ----
+mythuso.co.za.                  IN  TXT    "v=spf1 +a:mail.mythuso.co.za +mx include:_spf.tld-mx.com ~all"
+_dmarc.mythuso.co.za.           IN  TXT    "v=DMARC1; p=none;"
+default._domainkey.mythuso.co.za. IN TXT   "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs9k0jv5KaWb9SrLolBes4Ns7VxaYGETjEaPuDLbl258tUrMLMfgTrBeP+6w3lqUZGvuChP9eNfRQYkdRjoa96/Bznr87UZM+Gmh2C1G01h8aoZfuULUmvVQgWbJCW3ALcCcp21K7TRcKV2x3hPW2jSaS8sYlQOizvCGPTkAnjBN/bXkYX5Jmt9dLRv9u5Pbt0" "3RuOEuVax+BoTk8+O27r69msoiYgP33WwqemXAo50gqPqrdYXeLZQm6WzWHt+O8sncSFDKLmOBSgTK9/lTSPW0y6ZBxjl3KZlXoKGaVP7L9gesI7ZLjBXhL1Bm9pP5iRPLQE3SWugbZns1Q6KHPAQIDAQAB;"
