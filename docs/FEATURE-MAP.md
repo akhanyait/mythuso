@@ -200,6 +200,31 @@ Clinical reference ranges, the demo verification codes, the identity check-digit
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only today.
 
+**The redesign of September 2026.** The founder's words were "not serious and modern, a bit
+cartoonish", and the diagnosis was brand drift: the shipped product was a herbal-green system with
+no Deep Indigo in it at all, while the funding proposal names Vital Teal, **Deep Indigo**, Mango,
+Slate and Soft Grey. Indigo carries the interface now; teal and mango are accents that cannot hold
+text on a light ground and are written into `tokens.json` as not-measured with that reasoning beside
+them. The decorative serif is gone — a magazine's judgement on a headline that says who is coming to
+your house. The web type scale was twenty-five arbitrary sizes with an 11px floor and is thirteen
+steps from 13px; Android had twenty-one sizes typed at the call site and eighty-one strings below
+the floor; iOS had 410 fixed point sizes that ignored Dynamic Type entirely. All three read one
+generated scale now. 38 contrast pairs are computed on every build and none fails.
+
+What that pass also found, by looking at screens rather than at source: a profile button drawn 10px
+off the right edge at 390px, a sign-up step number unreadable on its own fill, two family avatars at
+3.98:1 and 3.46:1, three horizontal overflows hidden *inside* `main` where no page-level test could
+see them, a Compose status pill breaking "Vitals" across four lines at the largest font scale, two
+Android tones that had silently fallen through to the indigo default so no reading in range was ever
+teal, a 1MB duplicate logo, no launcher icon at all, and a carousel animating nine bubbles forever
+behind a screen that no longer rendered them.
+
+**What is still not done in the redesign.** The deep clinical screens on both native apps — patient
+file, capture queue, dispensing, vetting, teleconsultation, programmes — took the systemic pass
+(type, spacing, colour, scaling) but not an information-architecture pass; several are still walls of
+equal cards. No screen-reader testing has been done anywhere: VoiceOver and TalkBack semantics were
+written and inspected, never driven. Nothing has been tested on real hardware or a slow connection.
+
 Six items that used to be on this list have moved, and only as far as they have actually gone.
 
 **Prescription substitution and chronic authorisation** is designed, built on all three platforms, and checked — twenty-five ways of breaking it were tried and every one of them fails the build. **None of its clinical wording has been read by a pharmacist**, and one judgement in it is worth a pharmacist's attention rather than an engineer's: the screen has three substitution classes, not the usual "may / may with telling / must not", because section 22F of the Medicines and Related Substances Act 101 of 1965 makes telling the patient a duty on every substitution — so the lowest tier here is *may be substituted, and the patient is told*, and a silent swap is outside the model rather than at the bottom of it. If that reading of section 22F is wrong, the whole shape of the screen is wrong. The medicines chosen to sit in each class — levothyroxine and a stabilised patient in *must not*, an insulin analogue as a biological, a hydrochlorothiazide supply failure as a pharmacist's judgement — are the same kind of judgement and need the same review. What is also not built: Schedule 5 and above, a formulary, any stock system, an actual notification to a prescriber, and the pharmacy's own dispensing record.
