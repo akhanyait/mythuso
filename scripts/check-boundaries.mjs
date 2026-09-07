@@ -763,6 +763,38 @@ for(const outcome of teleconsult.outcomes) {
 if(!unfinishedOutcomes||!realConsultations) throw new Error('The encounter outcomes do not distinguish a consultation from an encounter that was not one, so the record cannot either.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&!o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and did not come back. That is the state this feature is for.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and was re-established. A break in a consultation is a clinical fact, not a reason to start the encounter again.');
+/* What an endless animation is allowed to move.
+   A dead decorative component animated nine circles for weeks behind a screen that had stopped
+   rendering it, and the cost was not the frames — it was four Playwright specs failing at random on
+   whichever click happened to land while something was in flight. Playwright waits for an element's
+   box to hold still across two animation frames before it will act on it, so the hazard is not
+   motion, it is a *box that keeps changing*: width, height, top, left, margin, padding, inset.
+   transform and opacity are composited and move nothing anything else is measured against.
+
+   So an animation that runs forever may only touch the compositor. A finite one may do as it likes:
+   it stops, and the wait ends with it. */
+const composited = /^(transform|opacity|filter|background-position|background-size|box-shadow|color|background-color|border-color|stroke|fill|stroke-dashoffset)$/;
+for(const sheet of ['apps/web/src/styles.css','apps/web/src/landing.css','apps/web/src/map/map.css']) {
+ const css=read(sheet);
+ const frames=new Map();
+ for(const match of css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g)) frames.set(match[1], match[2]);
+ const endless=new Set();
+ for(const match of css.matchAll(/animation:\s*([^;}]*infinite[^;}]*)/g)) {
+  const name=match[1].trim().split(/\s+/).find(word=>frames.has(word));
+  if(!name) throw new Error(`${sheet} has an endless animation whose keyframes are not in this file: "${match[1].trim()}". A rule pointing at keyframes nobody can find is a rule nobody can check.`);
+  endless.add(name);
+ }
+ for(const name of endless) {
+  for(const property of [...frames.get(name).matchAll(/([a-z-]+)\s*:/g)].map(m=>m[1])) {
+   if(!composited.test(property)) throw new Error(`${sheet}: the endless animation "${name}" changes ${property}, which moves the element's box. Playwright waits for a box to hold still before it will click, so a forever-running box change is four flaky specs waiting to happen — it was, and finding that took two sessions. Animate transform or opacity, or give the animation an end.`);
+  }
+ }
+ /* A keyframe block nobody plays is the state the bubbles were in for a week. */
+ for(const name of frames.keys()) {
+  if(!new RegExp(`animation[^;}]*\\b${name}\\b`).test(css)) throw new Error(`${sheet} defines @keyframes ${name} and nothing plays it. That is the state the hero bubbles were in while they were still running — delete it rather than leave it for somebody to wire back up.`);
+ }
+}
+
 /* Where MyThuso works, and what a map of it is allowed to draw.
    Three copies of Johannesburg used to exist — one inside a React component, one inside a SwiftUI
    view, one inside a composable — and they had already drifted. There is one now, and these are the

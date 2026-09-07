@@ -240,7 +240,6 @@ main{padding:0 18px 24px;outline:none;flex:1;min-height:0;overflow-y:auto;oversc
 .hero-dots button{width:8px;height:8px;border-radius:999px;background:var(--teal-mid);transition:width .25s,background .25s}
 .hero-dots button.on{width:24px;background:var(--indigo-deep)}
 .hero-play{margin-left:auto;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--body);background:#ffffffcc;border:1px solid #ffffff}
-@keyframes hero-flow{0%{transform:translateX(-42px)}50%{transform:translateX(40px)}100%{transform:translateX(-42px)}}
 @media(min-width:700px){
  .home-backdrop{height:560px}
  .home-greeting h1{font-size:32px}
