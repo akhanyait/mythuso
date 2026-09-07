@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowRight, Check, CircleAlert, ClipboardList, FlaskConical, Package, Pill as PillIcon, ShieldCheck, ShieldX, Truck } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { StateBlock, StatePicker, type LoadState } from '../components/States';
+import { crossReference } from '../lib/dispensing';
 import { can } from '../lib/vetting';
 import { subjectsByRole } from '../lib/vetting-fixtures';
 /* A partner is a vetted party like any other. Routing a prescription and releasing a result are
@@ -54,7 +55,7 @@ export function PrescriptionDetail({ reference = 'RX-0081' }: { reference?: stri
     { label: 'Delivered to the patient', detail: 'Signature or visit-code handover', state: 'waiting' }
    ]}/>
   </StateBlock>
-  <div className="privacy-note"><ShieldCheck size={19}/>Schedule 5 and above, chronic authorisations and substitution rules are not modelled here. Dispensing requires a registered pharmacist and a valid original script.</div>
+  <div className="privacy-note"><ShieldCheck size={19}/>{crossReference}</div>
  </div>;
 }
 const panel = [

@@ -7,6 +7,8 @@ import { emitEarnings } from './emit-earnings.mjs';
 import { emitSos } from './emit-sos.mjs';
 import { emitTeleconsult } from './emit-teleconsult.mjs';
 import { emitLocales } from './emit-locales.mjs';
+import { emitDispensing } from './emit-dispensing.mjs';
+import { emitProgrammes } from './emit-programmes.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -358,7 +360,9 @@ const generated = [
  { source: 'packages/catalog/earnings.json', command: 'npm run earnings', files: emitEarnings() },
  { source: 'packages/catalog/sos.json', command: 'npm run sos', files: emitSos() },
  { source: 'packages/catalog/teleconsult.json', command: 'npm run teleconsult', files: emitTeleconsult() },
- { source: 'packages/catalog/locales.json', command: 'npm run locales', files: emitLocales() }
+ { source: 'packages/catalog/locales.json', command: 'npm run locales', files: emitLocales() },
+ { source: 'packages/catalog/dispensing.json', command: 'npm run dispensing', files: emitDispensing() },
+ { source: 'packages/catalog/programmes.json', command: 'npm run programmes', files: emitProgrammes() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -834,4 +838,276 @@ for(const forbidden of consent.accessLog.forbiddenColumns) {
  }
 }
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does.`);
+/* Substitution and chronic authorisation.
+
+   Two routine events — a pharmacist hands over something other than what was written, and a repeat
+   runs out — and the checks below exist because both are routine. A screen about a rare emergency
+   gets read carefully; a screen about the thing that happens forty times a day is where a wrong
+   default survives for years.
+
+   The first three are the ones that would matter on their own.
+
+   Nothing that must not be substituted may have been substituted. That is not a UI rule that a
+   button happens to enforce, it is a property of the data, and a fixture that violates it is a
+   demonstration of the wrong thing.
+
+   A substitution never changes the molecule or the strength. What is dispensed has to contain both,
+   written out, or it is a different medicine handed over under the same authority — which is
+   prescribing, done by somebody who is not a prescriber.
+
+   Nothing is handed over without words. Every item carries what is actually said to the patient,
+   and a substituted one carries what is the same about it and what will look different, because
+   "the tablet is white now, not pink" is the sentence that stops somebody taking a dose twice.
+
+   The rest hold the shape of the authorisation — boxed by a date and by a quantity, ending in a
+   review — and hold the four exceptions in section 22F of the Medicines and Related Substances Act
+   101 of 1965 in the register, in the Act's own order, so that a tier cannot quietly appear in which
+   a patient is not told. */
+const dispensing = JSON.parse(read('packages/catalog/dispensing.json'));
+const substitutionClassIds = new Set(dispensing.substitutionClasses.map(c => c.id));
+const groundsById = new Map(dispensing.grounds.map(g => [g.id, g]));
+const recordTypeIds = new Set(records.records.map(r => r.id));
+for(const id of dispensing.recordTypes) {
+ if(!recordTypeIds.has(id)) throw new Error(`packages/catalog/dispensing.json names record type "${id}", which packages/catalog/records.json does not define. A dispensing screen writing into a record type nobody catalogued is a record type nobody gated.`);
+}
+for(const ground of dispensing.grounds) {
+ if(!substitutionClassIds.has(ground.class)) throw new Error(`Substitution ground "${ground.id}" falls into class "${ground.class}", which is not one of the three`);
+}
+/* The four exceptions in the Act, in the Act's own order. They are not decoration on the screen:
+   they are the only lawful reasons an interchangeable medicine is not offered, and a register that
+   has lost one of them is a register that permits a swap the Act does not. */
+const SECTION_22F = [['patient-refused','22F(1)(a)'],['prescriber-forbade','22F(1)(b)'],['declared-not-substitutable','22F(1)(c)'],['price-is-higher','22F(1)(d)']];
+const statutory = dispensing.grounds.filter(g => g.section);
+if(statutory.length !== SECTION_22F.length) throw new Error(`packages/catalog/dispensing.json carries ${statutory.length} statutory substitution grounds. Section 22F has four exceptions, and a fifth one here is an exception somebody invented.`);
+SECTION_22F.forEach(([id, section], index) => {
+ const ground = statutory[index];
+ if(ground.id !== id || ground.section !== section) throw new Error(`Statutory ground ${index + 1} must be ${id} at section ${section}. These are the four exceptions in section 22F of the Medicines and Related Substances Act 101 of 1965, and reordering or renaming one changes which swaps are lawful.`);
+ if(ground.class !== 'must-not') throw new Error(`Section ${section} is an exception to the duty to substitute, so ${id} must fall into "must-not". Anything else turns an exception into a permission.`);
+});
+/* There is no tier in which a patient is not told. Section 22F makes telling a duty on every
+   substitution, so a silent swap is outside this table rather than at the bottom of it — and the
+   thing that keeps it outside is that every item, whatever happened to it, carries words. */
+const substitutedItems = [];
+for(const item of dispensing.prescription.items) {
+ if(!substitutionClassIds.has(item.class)) throw new Error(`Prescription item ${item.id} is in class "${item.class}", which is not one of the three`);
+ for(const ground of [item.ground, item.secondGround].filter(Boolean)) {
+  if(!groundsById.has(ground)) throw new Error(`Prescription item ${item.id} names ground "${ground}", which the register does not define`);
+ }
+ if(!['substituted','as-written','refused-by-patient'].includes(item.outcome)) throw new Error(`Prescription item ${item.id} has an outcome nothing defines: ${item.outcome}`);
+ if(item.class === 'must-not' && item.outcome === 'substituted') throw new Error(`Prescription item ${item.id} must not be substituted and was. That is not a display defect; it is the fixture demonstrating the thing the screen exists to refuse.`);
+ if(!item.patientWords || item.patientWords.length < 80) throw new Error(`Prescription item ${item.id} has no words for the patient, or too few of them to be a sentence anybody could repeat at home. Nothing is handed over without being said.`);
+ const needsReason = dispensing.substitutionClasses.find(c => c.id === item.class).needsWrittenReason;
+ if(needsReason && !item.writtenReason) throw new Error(`Prescription item ${item.id} is a pharmacist's judgement with no written reason. A clinical decision nobody wrote down is a clinical decision nobody can be asked about.`);
+ if(!needsReason && item.writtenReason) throw new Error(`Prescription item ${item.id} carries a written reason for a class that does not take one, which means the class and the item disagree about what kind of decision it was`);
+ if(item.outcome !== 'substituted') continue;
+ substitutedItems.push(item);
+ /* The whole design of the feature. What is handed over has to be the same molecule at the same
+    strength, written out, or the substitution has changed the prescription. */
+ if(!item.dispensed.toLowerCase().includes(item.molecule.toLowerCase())) throw new Error(`Prescription item ${item.id} substitutes ${item.molecule} with "${item.dispensed}", which does not name the same molecule. A substitution that changes the medicine is prescribing.`);
+ if(!item.dispensed.includes(item.strength)) throw new Error(`Prescription item ${item.id} substitutes ${item.strength} with "${item.dispensed}", which does not name the same strength. A substitution that changes the dose is prescribing.`);
+ if(!item.sameness.length || !item.differences.length) throw new Error(`Prescription item ${item.id} was substituted without saying what is the same about it and what will look different. That sentence is how somebody avoids taking a dose twice.`);
+}
+if(!substitutedItems.length) throw new Error('No item on the demo prescription was substituted, so the screen demonstrates none of what it is for');
+if(!dispensing.prescription.items.some(i => i.class === 'must-not')) throw new Error('No item on the demo prescription is one that must not be substituted, so the refusal that matters most is never shown');
+if(!dispensing.prescription.items.some(i => i.outcome === 'refused-by-patient')) throw new Error('No item on the demo prescription was refused by the patient. Section 22F(1)(a) gives that refusal to the person swallowing the tablet, and a screen that never shows it exercised has not shown it exists.');
+/* A substitution is not anonymous. The registration it is signed with is held to the same format
+   the vetting register holds a pharmacist to, so a row of zeros here fails the build. */
+const sapc = vetting.authorities.find(a => a.id === 'sapc');
+const signature = dispensing.prescription.pharmacist.registration.replace(/^SAPC\s+/, '');
+if(!new RegExp(sapc.pattern).test(signature)) throw new Error(`The pharmacist signing a substitution is registered as "${dispensing.prescription.pharmacist.registration}". ${sapc.hint} A substitution carries a real-looking registration or it teaches a reader that the number is decoration.`);
+for(const id of ['prescriber','pharmacy']) {
+ if(!read('apps/web/src/lib/vetting-fixtures.ts').includes(`'${dispensing.prescription[id]}'`)) throw new Error(`packages/catalog/dispensing.json names ${id} ${dispensing.prescription[id]}, who is not on the vetting register. The party dispensing and the party prescribing are vetted parties or the screen is gating on nothing.`);
+}
+/* The authorisation is boxed twice and ends in a review. The interval check is the one worth
+   reading: a minimum gap longer than the supply is a guaranteed run-out, dressed as a safeguard. */
+const auth = dispensing.authorisation;
+if(auth.repeatsUsed >= auth.repeatsAuthorised) throw new Error(`Chronic authorisation ${auth.reference} has no repeats left, so the screen never shows one being asked for`);
+if(!auth.validMonths || !auth.daysPerRepeat) throw new Error(`Chronic authorisation ${auth.reference} is not boxed by both a period and a quantity. A repeat that never expires is a prescription nobody is reviewing.`);
+if(auth.minimumDaysBetween > auth.daysPerRepeat) throw new Error(`Chronic authorisation ${auth.reference} allows one collection every ${auth.minimumDaysBetween} days and supplies ${auth.daysPerRepeat} days at a time, so the patient runs out before they may collect. An interval longer than the supply is a gap with no medicine in it.`);
+if(!auth.endsWith || !/review/i.test(auth.endsWith)) throw new Error(`Chronic authorisation ${auth.reference} does not end in a review. Ending in anything else is a renewal, and a renewal nobody looked at is what this feature exists to refuse.`);
+if('expiresInDays' in auth || 'expiresOn' in auth) throw new Error(`Chronic authorisation ${auth.reference} writes down when it expires. It is authorised on a day for a number of months; the expiry is arithmetic on those two, and a third number is a third thing that can disagree about the day a repeat stops.`);
+/* And that arithmetic is the same arithmetic on all three platforms. The month is the vetting
+   module's month, so an authorisation and a credential that both run six months end together. */
+const MONTH_IN_DAYS = '30.44';
+/* The declaration, not the number anywhere in the file. All three of these files also explain the
+   30.44-day month in a comment, and a check a comment can satisfy is a check that passes on a file
+   which has stopped doing the thing. */
+const monthDeclarations = {
+ 'apps/web/src/lib/dispensing.ts': /const DAYS_PER_MONTH = 30\.44;/,
+ 'apps/ios/MyThuso/Models/Dispensing.swift': /static let daysPerMonth = 30\.44\b/,
+ 'apps/android/app/src/main/java/za/co/mythuso/model/Dispensing.kt': /const val daysPerMonth = 30\.44\b/,
+ 'apps/web/src/lib/vetting.ts': /inMonths = \(months: number\) => inDays\(Math\.round\(months \* 30\.44\)\)/
+};
+for(const [f, declaration] of Object.entries(monthDeclarations)) {
+ if(!declaration.test(read(f))) throw new Error(`${f} no longer works a period out from a ${MONTH_IN_DAYS}-day month. Three platforms computing an authorisation's expiry differently is three answers to when a repeat stops, and a credential that renews on a different month from the authorisation beside it expires on the wrong day.`);
+}
+/* Six rules, rendered word for word on all three platforms rather than paraphrased on any of them. */
+const dispensingScreens = { web: 'apps/web/src/features/Dispensing.tsx', ios: 'apps/ios/MyThuso/Features/DispensingView.swift', android: 'apps/android/app/src/main/java/za/co/mythuso/ui/DispensingScreens.kt' };
+for(const [platform, file] of Object.entries(dispensingScreens)) {
+ const source = read(file);
+ for(const rule of dispensing.rules) {
+  if(!source.includes(rule.id)) throw new Error(`The ${platform} substitution screen does not render the rule "${rule.id}". These are promises made to a patient on three platforms at once.`);
+ }
+ for(const id of ['substitute-the-molecule','override-do-not-substitute']) {
+  if(!source.includes(id)) throw new Error(`The ${platform} substitution screen does not render the refusal "${id}", which is the one an item that must not be substituted is left with instead of a control`);
+ }
+ /* A generated table is only worth having if it is the only one. */
+ if(/(static let (substitutionClasses|grounds|refusals)\b|val (substitutionClasses|substitutionGrounds|dispensingRefusals)\s*[:=])/.test(source)) throw new Error(`${file} declares a substitution table of its own. That table is generated into DispensingData — the screen should read that one.`);
+}
+/* The prescription detail on all three platforms used to end by saying substitution and chronic
+   authorisation were not modelled. They are, and the sentence that replaced it lives in one place
+   rather than three, because three copies of it is exactly what went stale the first time. */
+const orderScreens = { 'apps/web/src/features/Orders.tsx': 'crossReference', 'apps/ios/MyThuso/Features/OrdersView.swift': 'Dispensing.crossReference', 'apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt': 'dispensingCrossReference' };
+for(const [file, reference] of Object.entries(orderScreens)) {
+ const source = read(file);
+ if(!source.includes(reference)) throw new Error(`${file} no longer reads the substitution cross-reference from the contract. It is one sentence on three platforms, so it is written once.`);
+ if(source.includes(dispensing.crossReference)) throw new Error(`${file} writes the substitution cross-reference out again rather than reading it. A second copy is a second thing to change.`);
+}
+for(const f of [...files('apps/web/src'), ...files('apps/ios/MyThuso'), ...files('apps/android/app/src/main')].filter(f => /\.(tsx?|swift|kt)$/.test(f))) {
+ if(/chronic authorisations and substitution rules are not modelled/i.test(read(f))) throw new Error(`${f} still says substitution and chronic authorisation are not modelled. They are — packages/catalog/dispensing.json and the three screens built from it — and a preview that understates what it does is the same defect as one that overstates it.`);
+}
+
+/* Employer and sponsor programme administration.
+
+   Two parties who pay for care and are told, in writing, that paying is not a permission. The
+   checks below are about the one place that promise can quietly stop being true: an aggregate.
+
+   An employer is shown counts of people, and a count of people is a disclosure about every person
+   in it. So the first check is the one that would matter on its own — the suppression rule is run
+   here, over the same fixtures the three apps run it over, and every group that ought to disappear
+   has to actually disappear. A floor that is applied by whoever is drawing the table is a floor
+   somebody can draw around.
+
+   The second is the rule everybody leaves out: no report may leave exactly one group hidden, because
+   one hidden group is the total minus the published ones. And the published groups must not add up
+   to the total, which is the opposite of what a check on a report normally asserts and is the whole
+   reason the other rules are not decorative.
+
+   The rest hold the shape of the two parties: an employer's disclosure list must not contain a word
+   that belongs to a person, a sponsor's statement must not name an amount of its own, and both
+   parties' refusals must be the ones packages/catalog/vetting.json already attached to them. */
+const programmes = JSON.parse(read('packages/catalog/programmes.json'));
+const suppressionFloor = programmes.floor;
+const suppressionReasonIds = new Set(programmes.suppressionReasons.map(r => r.id));
+for(const id of ['below-floor','dominated','secondary']) {
+ if(!suppressionReasonIds.has(id)) throw new Error(`packages/catalog/programmes.json has lost the suppression reason "${id}". A suppressed row that cannot say why it is suppressed is a blank, and a blank reads as an error somebody goes and asks about.`);
+}
+if(suppressionFloor.minimumCohort < 5) throw new Error(`A suppression floor of ${suppressionFloor.minimumCohort} people is not a floor. A department of four is not anonymous and neither is a shift of nine.`);
+if(suppressionFloor.minimumSuppressed < 2) throw new Error('A report may not leave exactly one group hidden: one hidden group is the total minus the published ones. minimumSuppressed is what stops that, and below two it stops nothing.');
+if(suppressionFloor.roundTo < 2) throw new Error('Published counts must be rounded. An exact count that moves by one between two reports names the person who moved it.');
+if(suppressionFloor.dominanceCeiling <= 0.5 || suppressionFloor.dominanceCeiling >= 1) throw new Error(`A dominance ceiling of ${suppressionFloor.dominanceCeiling} is not a ceiling. It has to be above half — one answer covering the group — and below one, or it never fires.`);
+/* The rule itself, run here over the same fixtures the three apps run it over. */
+const roundOff = n => Math.round(n / suppressionFloor.roundTo) * suppressionFloor.roundTo;
+const dominated = c => c.tookPart > 0 && Math.max(c.advisedToSeeADoctor, c.tookPart - c.advisedToSeeADoctor) / c.tookPart >= suppressionFloor.dominanceCeiling;
+const employerIds = new Set(vetting.roles.filter(r => r.id === 'employer').map(r => r.id));
+if(!employerIds.size) throw new Error('packages/catalog/vetting.json no longer has an employer role, so nothing in the programme contract is gated on anything');
+let sawBelowFloor = false, sawDominated = false, sawSecondary = false;
+for(const programme of programmes.programmes) {
+ if(!read('apps/web/src/lib/vetting-fixtures.ts').includes(`'${programme.employer}'`)) throw new Error(`Programme ${programme.id} belongs to ${programme.employer}, who is not on the vetting register. A programme runs for a vetted employer or it runs for nobody.`);
+ if(programme.cohorts.length < 3) throw new Error(`Programme ${programme.id} has ${programme.cohorts.length} groups, which is too few to demonstrate a suppression rule at all`);
+ const rows = programme.cohorts.map(c => ({
+  cohort: c,
+  suppressedBy: c.tookPart < suppressionFloor.minimumCohort || c.eligible < suppressionFloor.minimumCohort ? 'below-floor' : dominated(c) ? 'dominated' : undefined
+ }));
+ for(const c of programme.cohorts) {
+  if(c.tookPart > c.eligible) throw new Error(`Cohort ${c.id} in ${programme.id} has more people taking part than were eligible`);
+  if(c.advisedToSeeADoctor > c.tookPart) throw new Error(`Cohort ${c.id} in ${programme.id} advised more people to see a doctor than took part`);
+ }
+ while(rows.some(r => r.suppressedBy) && rows.filter(r => r.suppressedBy).length < suppressionFloor.minimumSuppressed) {
+  const next = rows.filter(r => !r.suppressedBy).sort((a, b) => a.cohort.tookPart - b.cohort.tookPart)[0];
+  if(!next) break;
+  next.suppressedBy = 'secondary';
+ }
+ for(const row of rows) {
+  if(row.suppressedBy === 'below-floor') sawBelowFloor = true;
+  if(row.suppressedBy === 'dominated') sawDominated = true;
+  if(row.suppressedBy === 'secondary') sawSecondary = true;
+  /* The check that matters. A group under the floor must not be reportable by any route. */
+  if(!row.suppressedBy && (row.cohort.eligible < suppressionFloor.minimumCohort || row.cohort.tookPart < suppressionFloor.minimumCohort)) {
+   throw new Error(`Cohort ${row.cohort.id} in ${programme.id} has fewer than ${suppressionFloor.minimumCohort} people and would be reported. A department of four is not anonymous, and a report that says so anyway names four people.`);
+  }
+ }
+ const hidden = rows.filter(r => r.suppressedBy).length;
+ if(hidden === 1) throw new Error(`Programme ${programme.id} would leave exactly one group hidden, which is the total minus the published ones. The secondary rule exists for this and has not fired.`);
+ if(!hidden) throw new Error(`Programme ${programme.id} suppresses nothing, so it demonstrates none of the rule it exists to demonstrate`);
+ /* And the published rows must not reconcile with the total. This is the opposite of what a check
+    on a report usually asserts, and it is what makes the suppression above real rather than
+    ornamental: if the parts summed to the whole, the hidden rows are one subtraction away. */
+ const totalTookPart = roundOff(programme.cohorts.reduce((t, c) => t + c.tookPart, 0));
+ const published = rows.filter(r => !r.suppressedBy).reduce((t, r) => t + roundOff(r.cohort.tookPart), 0);
+ if(published === totalTookPart) throw new Error(`In programme ${programme.id} the groups shown add up to the total shown, so every suppressed group can be had by subtracting. The suppression is decorative.`);
+}
+if(!sawBelowFloor) throw new Error('No fixture group falls under the floor, so the floor is never seen to do anything');
+if(!sawDominated) throw new Error('No fixture group is dominated by one answer, so the rule that catches "thirteen of fourteen" is never seen to do anything');
+if(!sawSecondary) throw new Error('No fixture programme triggers secondary suppression, so the rule that stops a hidden group being worked out by subtraction is never demonstrated — and it is the one everybody leaves out');
+/* An employer's disclosure list may not contain anything belonging to a person. The forbidden words
+   are the ones a report grows by accident: a name, an identifier, a reading, a diagnosis. */
+const PERSONAL = /\b(name|names|named|identity|id number|reading|readings|result|results|diagnosis|diagnoses|record|records)\b/i;
+for(const item of programmes.employer.sees) {
+ if(PERSONAL.test(item.what)) throw new Error(`An employer is shown "${item.what}", which is a fact about a person rather than a count of people. An employer never receives a named result, and that is not a setting.`);
+}
+for(const item of programmes.sponsor.sees) {
+ if(PERSONAL.test(item.what)) throw new Error(`A sponsor is shown "${item.what}". Paying for care is not a permission: what they paid for is theirs to see, what was found is not.`);
+}
+for(const list of [programmes.employer.neverSees, programmes.sponsor.neverSees]) {
+ if(list.length < 3) throw new Error('A "never sees" list of fewer than three entries is a disclaimer rather than a design');
+}
+/* A statement line names a service and nothing else. What it cost is that service's price in the
+   catalogue — the same row the recipient would have been quoted from if she were paying herself,
+   because a sponsored visit is not a different visit. */
+for(const line of programmes.statement.lines) {
+ if(!serviceById.has(line.service)) throw new Error(`A sponsor statement line names a service that is not in the catalogue: ${line.service}`);
+ if('amount' in line) throw new Error(`A sponsor statement line carries its own amount. A sponsored visit costs what the visit costs in packages/catalog/services.json — there is no second place for that number.`);
+}
+const defaultLineDetail = programmes.sponsor.lineDetail.filter(c => c.isDefault);
+if(defaultLineDetail.length !== 1 || defaultLineDetail[0].id !== 'amount-only') throw new Error('A sponsor\'s statement must default to an amount and a date. A line reading "sexual health screening" discloses more than most diagnoses do, and naming the service is the recipient\'s switch to flip rather than the default.');
+/* The two refusals the vetting table already attached to these parties are the ones this feature
+   has to hold, so they are read from there rather than restated here. */
+const employerGrants = vetting.roles.find(r => r.id === 'employer').grants;
+const sponsorGrants = vetting.roles.find(r => r.id === 'sponsor').grants;
+if(!employerGrants.some(g => /never see who used it|access is never granted/i.test(g.refusal))) throw new Error('packages/catalog/vetting.json no longer promises that an employer may pay for care and never see who used it. That sentence is what the programme report is built to be true of.');
+if(!sponsorGrants.some(g => /payment, not a permission/i.test(g.refusal))) throw new Error('packages/catalog/vetting.json no longer says a sponsorship is a payment and not a permission');
+/* Seven rules and six refusals, rendered word for word on all three platforms. */
+const programmeScreens = { web: 'apps/web/src/features/Programmes.tsx', ios: 'apps/ios/MyThuso/Features/ProgrammesView.swift', android: 'apps/android/app/src/main/java/za/co/mythuso/ui/ProgrammeScreens.kt' };
+for(const [platform, file] of Object.entries(programmeScreens)) {
+ const source = read(file);
+ for(const rule of ['figures-do-not-reconcile','rounded-not-exact','taking-part-is-the-employees','paying-is-not-permission','leaving-does-not-unpublish']) {
+  if(!source.includes(rule)) throw new Error(`The ${platform} programme screen does not render the rule "${rule}". These are promises made to an employee on three platforms at once.`);
+ }
+ for(const id of ['named-result','learn-who-declined','condition-employment','require-the-detail']) {
+  if(!source.includes(id)) throw new Error(`The ${platform} programme screen does not render the refusal "${id}"`);
+ }
+ /* The suppression is done in the app, from unsuppressed counts, or it is done by whoever draws
+    the table. The three reasoning modules are where it lives; a screen with its own copy of the
+    floor is a screen that can be given a different one. */
+ if(new RegExp(`minimumCohort\\s*[:=]\\s*${suppressionFloor.minimumCohort}\\b`).test(source)) throw new Error(`${file} writes the suppression floor out itself. The floor is in packages/catalog/programmes.json and the rule is applied in the reasoning module beside this screen.`);
+}
+const suppressors = ['apps/web/src/lib/programmes.ts','apps/ios/MyThuso/Models/Programmes.swift','apps/android/app/src/main/java/za/co/mythuso/model/Programmes.kt'];
+/* The code, not the prose. Each of these files explains secondary suppression in a comment as well
+   as doing it, and a check the comment satisfies would pass on a module that had stopped. So what is
+   looked for is the value actually written onto a suppressed row, and the two thresholds actually
+   read off the floor. */
+const suppressionParts = [
+ [/(["'])secondary\1/, 'the reason written onto a row hidden so that another cannot be worked out by subtracting'],
+ [/dominanceCeiling/, 'the four-fifths dominance test'],
+ [/roundTo/, 'rounding a published count'],
+ [/minimumCohort/, 'the floor itself'],
+ [/minimumSuppressed/, 'the rule that never leaves exactly one group hidden']
+];
+for(const f of suppressors) {
+ const source = read(f);
+ for(const [pattern, what] of suppressionParts) {
+  if(!pattern.test(source)) throw new Error(`${f} no longer carries ${what}. All three platforms apply the whole suppression rule or an employer's report means something different on one of them — and the one it means something different on is the one somebody will ask for.`);
+ }
+}
+/* And the generated tables carry the counts unsuppressed, because a pre-suppressed table would mean
+   the rule lived in a generator and each app drew whatever it was handed — which is the arrangement
+   in which somebody eventually asks for the unsuppressed version for a board pack. */
+const smallest = programmes.programmes.flatMap(p => p.cohorts).sort((a, b) => a.tookPart - b.tookPart)[0];
+for(const f of ['apps/ios/MyThuso/Models/ProgrammesData.swift','apps/android/app/src/main/java/za/co/mythuso/model/ProgrammesData.kt']) {
+ if(!read(f).includes(`${smallest.eligible}, ${smallest.tookPart}, ${smallest.advisedToSeeADoctor}`) && !read(f).includes(`eligible: ${smallest.eligible}, tookPart: ${smallest.tookPart}`)) {
+  throw new Error(`${f} does not carry the unsuppressed counts for cohort ${smallest.id}. Suppressing in the generator moves the rule out of the app that has to defend it.`);
+ }
+}
+
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}.`);

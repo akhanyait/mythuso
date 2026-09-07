@@ -440,7 +440,11 @@ struct WorkspaceSectionView: View {
                 NavigationLink("Clinical protocols") { FeatureDetail(title: "Clinical protocols") }
                 NavigationLink("Referral pathway") { FeatureDetail(title: "Referral pathway") }
             }
-        case ("Partner", "Orders"): partnerOrders
+        case ("Partner", "Orders"):
+            partnerOrders
+            Section("Substitution and repeats") {
+                NavigationLink("CHR-0114 · Chronic Routine · substitution and repeats") { DispensingView() }
+            }
         case ("Partner", "Collections"):
             Section("Collections") {
                 NavigationLink("Collection schedule") { FeatureDetail(title: "Collection schedule") }
@@ -467,7 +471,7 @@ struct WorkspaceSectionView: View {
         case ("Control Tower", "Quality"):
             Section("Your tools") {
                 NavigationLink("Quality & revenue") { FeatureDetail(title: "Quality & revenue") }
-                NavigationLink("Employer programmes") { FeatureDetail(title: "Employer programmes") }
+                NavigationLink("Employer and sponsor programmes") { ProgrammesView() }
                 NavigationLink("Nurse onboarding & vetting") { VettingApplyView(roleId: "nurse") }
             }
         case (_, "Assessments"):

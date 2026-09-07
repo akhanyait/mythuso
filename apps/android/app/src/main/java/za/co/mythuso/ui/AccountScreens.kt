@@ -255,6 +255,8 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Teleconsultation" -> TeleconsultScreen(store, open = open)
         title.startsWith("Doctor review") -> DoctorReviewScreen(store, title.removePrefix("Doctor review "))
         title.startsWith("Prescription ") -> PrescriptionScreen(title.removePrefix("Prescription "))
+        title == "Substitution & repeats" -> DispensingScreen(store)
+        title == "Employer programmes" -> ProgrammesScreen(store)
         title.startsWith("Laboratory order ") -> LabOrderScreen(title.removePrefix("Laboratory order "))
         title.startsWith("Incident ") -> IncidentDetailScreen(title.removePrefix("Incident "))
         title == "Notifications" -> ScreenColumn {

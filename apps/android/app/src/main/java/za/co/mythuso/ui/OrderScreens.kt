@@ -12,6 +12,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import za.co.mythuso.model.dispensingCrossReference
 import za.co.mythuso.model.seededSubjects
 
 /* An attribution line is where a reader is shown what accountability looks like, so the registration
@@ -82,7 +83,7 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
                 }
             }
         }
-        Note("Schedule 5 and above, chronic authorisations and substitution rules are not modelled here. Dispensing requires a registered pharmacist and a valid original script.")
+        Note(dispensingCrossReference)
     }
 }
 @Composable fun LabOrderScreen(reference: String = "LAB-0023") {

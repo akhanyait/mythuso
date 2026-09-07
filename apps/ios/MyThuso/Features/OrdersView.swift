@@ -75,7 +75,7 @@ struct PrescriptionView: View {
             } else {
                 Section { StateBlock(state: state, subject: "The dispensing partner’s order feed", permission: "partner data sharing", retry: { state = .ready }) { EmptyView() }.listRowInsets(EdgeInsets()) }
             }
-            Section { Text("Schedule 5 and above, chronic authorisations and substitution rules are not modelled here. Dispensing requires a registered pharmacist and a valid original script.").font(.caption).foregroundStyle(.secondary) }
+            Section { Text(Dispensing.crossReference).font(.caption).foregroundStyle(.secondary) }
         }
         .navigationTitle("Prescription").navigationBarTitleDisplayMode(.inline)
     }

@@ -1678,3 +1678,126 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
 .passport-hero h2{font-family:var(--font-display);font-weight:600}
 
 @media(min-width:1000px){.page-intro h1{font-size:32px}}
+/* ---------------------------------------------------------------------------------------------
+   Substitution, chronic authorisation, and programme administration.
+
+   Two screens, one appended block, because they share the same visual grammar: a classification
+   that has to be legible at a glance, a sentence that says why it applies, and a refusal that is
+   allowed to interrupt the layout. The refusal styles are deliberately not quiet — a screen where
+   the thing it will not do is the same weight as the thing it will is a screen where the reader
+   skims past the part that matters. Tone comes from the contract, so a class that changes tone in
+   packages/catalog/dispensing.json changes colour here without anybody editing this file. */
+
+.dispensing,.programmes{display:flex;flex-direction:column;gap:14px}
+.disp-switch{display:grid;gap:12px;border:0;padding:0;margin:0}
+@media(min-width:760px){.disp-switch{grid-template-columns:1fr 1fr;align-items:end}.disp-switch .helper{grid-column:1/-1}}
+
+.disp-columns{display:grid;gap:16px}
+@media(min-width:700px){.disp-columns{grid-template-columns:1fr 1fr}}
+.disp-columns h4{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--faint);margin-bottom:8px}
+.disp-columns ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.disp-columns li{font-size:12.5px;color:var(--body);line-height:1.6;padding-left:15px;position:relative}
+.disp-columns li:before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;background:var(--mint)}
+.disp-columns strong{color:var(--ink);font-weight:600}
+.disp-boundary{display:flex;flex-direction:column;gap:14px}
+
+.disp-classes{display:flex;flex-direction:column;gap:14px}
+.disp-class{display:grid;grid-template-columns:auto 1fr;gap:13px;align-items:start;padding-left:13px;border-left:3px solid var(--line)}
+.disp-class.interchangeable{border-left-color:var(--teal)}
+.disp-class.pharmacist-judgement{border-left-color:var(--amber)}
+.disp-class.must-not{border-left-color:var(--danger)}
+.disp-class strong{display:block;font-size:14px;color:var(--ink)}
+.disp-class p{font-size:12.5px;color:var(--body);line-height:1.6;margin-top:5px}
+.disp-class small{display:block;font-size:11.5px;color:var(--faint);margin-top:6px}
+
+.disp-items{display:flex;flex-direction:column;gap:14px}
+.disp-item{display:flex;flex-direction:column;gap:11px;border-left:4px solid var(--line)}
+.disp-item.interchangeable{border-left-color:var(--teal)}
+.disp-item.pharmacist-judgement{border-left-color:var(--amber)}
+.disp-item.must-not{border-left-color:var(--danger)}
+.disp-item-head{display:flex;gap:13px;align-items:flex-start}
+.disp-item-head>div{flex:1;min-width:0}
+.disp-item-head strong{display:block;font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.4}
+.disp-item-head small{display:block;font-size:12px;color:var(--body);margin-top:4px;line-height:1.5}
+.disp-prescribed{font-size:12.5px;color:var(--body);line-height:1.6}
+.disp-prescribed strong{color:var(--ink);font-weight:600}
+.disp-ground{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--body);line-height:1.6}
+.disp-ground>svg{color:var(--teal);flex-shrink:0;margin-top:3px}
+.disp-ground strong{color:var(--ink);font-weight:600}
+
+/* The words a patient is actually owed. Set as speech rather than as a note: it is meant to be read
+   out, and a paragraph that looks like small print gets summarised instead of said. */
+.disp-telling{background:var(--teal-soft);border-radius:var(--r-control);padding:15px;display:flex;flex-direction:column;gap:11px}
+.disp-telling-head{display:flex;gap:8px;align-items:center;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--teal-deep)}
+.disp-replaces{font-size:12.5px;color:var(--teal-deep);line-height:1.6}
+.disp-words{font-family:var(--font-display);font-size:15.5px;line-height:1.65;color:var(--forest)}
+.disp-telling .disp-columns li:before{background:var(--teal)}
+
+.disp-signed{display:flex;gap:11px;align-items:flex-start;background:var(--canvas);border:1px solid var(--line);border-radius:var(--r-control);padding:14px}
+.disp-signed>svg{color:var(--teal);flex-shrink:0;margin-top:2px}
+.disp-signed strong{display:block;font-size:13px;color:var(--ink)}
+.disp-signed small{display:block;font-size:11.5px;color:var(--faint);margin-top:3px}
+.disp-signed p{font-size:12.5px;color:var(--body);line-height:1.6;margin-top:8px}
+
+.disp-hand em{font-style:normal}
+.disp-hand.is-blocked em{color:var(--faint)}
+
+.disp-rule{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:var(--body);line-height:1.6}
+.disp-rule>svg{color:var(--teal);flex-shrink:0;margin-top:3px}
+.disp-refusal{display:flex;gap:12px;align-items:flex-start;background:var(--danger-soft);border-radius:var(--r-control);padding:14px}
+.disp-refusal>svg{color:var(--danger);flex-shrink:0;margin-top:1px}
+.disp-refusal p{font-size:12.5px;color:#7a2d24;line-height:1.65}
+.disp-refusals{display:flex;flex-direction:column;gap:11px}
+
+.disp-authorisation{display:flex;flex-direction:column;gap:13px}
+.order-head.plain{background:none;padding:0}
+.disp-boxes{display:grid;gap:12px}
+@media(min-width:700px){.disp-boxes{grid-template-columns:repeat(3,1fr)}}
+.disp-box{background:var(--canvas);border-radius:var(--r-control);padding:14px}
+.disp-box span{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:var(--faint)}
+.disp-box strong{display:block;font-size:18px;font-weight:700;color:var(--ink);margin-top:6px;line-height:1.25}
+.disp-box small{display:block;font-size:11.5px;color:var(--body);margin-top:6px;line-height:1.5}
+.disp-ends{display:flex;gap:12px;align-items:flex-start;background:var(--teal-soft);border-radius:var(--r-control);padding:15px}
+.disp-ends>svg{color:var(--teal-deep);flex-shrink:0;margin-top:2px}
+.disp-ends strong{display:block;font-size:13.5px;color:var(--forest)}
+.disp-ends p{font-size:12.5px;color:var(--teal-deep);line-height:1.65;margin-top:6px}
+.disp-handover{margin-top:0}
+
+/* Programme administration. A suppressed row is not a blank: a blank reads as an error and invites
+   somebody to go and ask for the number, so the row keeps its name, says it is not reported, and
+   says why in the contract's own words. It is styled quieter than a published row and not hidden,
+   because the reader is meant to see how much is being withheld. */
+.prog-floor{display:flex;flex-direction:column;gap:14px}
+.prog-floor-grid{display:grid;gap:16px}
+@media(min-width:700px){.prog-floor-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1080px){.prog-floor-grid{grid-template-columns:repeat(4,1fr)}}
+.prog-floor-grid strong{display:block;font-family:var(--font-display);font-size:34px;font-weight:600;color:var(--forest);line-height:1}
+.prog-floor-grid span{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:var(--faint);margin-top:6px}
+.prog-floor-grid p{font-size:12.5px;color:var(--body);line-height:1.6;margin-top:9px}
+
+.prog-report{display:flex;flex-direction:column;gap:13px}
+.prog-table small{color:var(--faint);font-size:11.5px}
+.prog-table tfoot th,.prog-table tfoot td{font-weight:700;color:var(--ink)}
+.prog-suppressed th{color:var(--faint)}
+.prog-suppressed th small{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:var(--amber);margin-top:3px}
+.prog-suppressed td{background:var(--amber-soft);color:#7d5615;font-size:12.5px;line-height:1.6}
+.prog-suppressed td svg{color:var(--amber);vertical-align:-2px;margin-right:8px}
+.prog-reconcile{display:flex;gap:9px;align-items:flex-start;background:var(--canvas);border-radius:var(--r-control);padding:14px;font-size:12.5px;color:var(--body);line-height:1.65}
+.prog-reconcile>svg{color:var(--teal);flex-shrink:0;margin-top:3px}
+
+.prog-list,.prog-steps{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:11px;counter-reset:prog}
+.prog-list li,.prog-steps li{font-size:12.5px;color:var(--body);line-height:1.6}
+.prog-list strong,.prog-steps strong{display:block;font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:3px}
+.prog-list li>svg{color:var(--teal);vertical-align:-2px;margin-right:7px}
+.prog-steps li{counter-increment:prog;padding-left:28px;position:relative}
+.prog-steps li:before{content:counter(prog);position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;background:var(--teal-soft);color:var(--teal-deep);font-size:11px;font-weight:700;display:grid;place-items:center}
+.programmes h4{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--faint)}
+.prog-never{background:var(--danger-soft);border-color:#f2ddd9}
+.prog-never h4{color:#8b3a2d}
+
+.prog-declining,.prog-sponsor{display:flex;flex-direction:column;gap:13px}
+.prog-declining p{font-size:12.5px;color:var(--body);line-height:1.65}
+.record-row.plain{background:none;padding:0;cursor:default}
+.prog-naming em{font-style:normal}
+.prog-statement td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.prog-statement tfoot th,.prog-statement tfoot td{font-weight:700;color:var(--ink)}

@@ -1,0 +1,234 @@
+{
+ "_note": "Handing over something other than what was written, and keeping a repeat alive. Both are routine, and both are where harm hides. Read by the web app; generated into Swift and Kotlin by scripts/emit-dispensing.mjs. The prescription itself, the pharmacy's licence and the prescriber's registration are not restated here — the parties come from packages/catalog/vetting.json and the record types from packages/catalog/records.json, so a lapsed licence stops a dispense on this screen for the same arithmetic that stops it on the dispatch board. Dates are offsets in days from today so the preview never goes stale.",
+
+ "_lawNote": "Section 22F of the Medicines and Related Substances Act 101 of 1965 is the whole shape of the substitution part. It does not permit generic substitution; it requires the pharmacist to tell the patient about an interchangeable multi-source medicine and to dispense it, with four exceptions. So there is no tier here called 'may substitute' with nothing attached to it: the lowest tier is 'may be substituted, and the patient is told', because in South Africa a silent swap is not the mildest form of this feature — it is outside it. Everything below is a design of the law, not the law, and no wording here has been read by a pharmacist.",
+
+ "recordTypes": ["prescription", "dispense", "medicine-collection"],
+
+ "_crossReferenceNote": "The prescription detail on all three platforms used to end by saying that substitution and chronic authorisation were not modelled. They are now, on their own screen, and that sentence had to change in three files at once — so it lives here instead, and the check refuses any of the three that still says the old thing.",
+ "crossReference": "Substitution and chronic authorisation are modelled on the Substitution & repeats screen. Schedule 5 and above is not. Dispensing still needs a registered pharmacist, a current responsible pharmacist and a valid original prescription.",
+
+ "substitutionClasses": [
+  {
+   "id": "interchangeable",
+   "name": "May be substituted, and the patient is told",
+   "shortName": "Told and offered",
+   "detail": "An interchangeable multi-source medicine: the same molecule, the same strength, the same form, a different manufacturer. Section 22F does not merely permit this — it requires the pharmacist to tell the patient about it and to dispense it unless one of the four exceptions applies. The patient hears what it is before it is handed over, and may say no.",
+   "whoDecides": "The pharmacist offers; the patient decides.",
+   "needsWrittenReason": false,
+   "tellsThePrescriber": false,
+   "tone": "teal"
+  },
+  {
+   "id": "pharmacist-judgement",
+   "name": "May be substituted on the pharmacist's own judgement, and the prescriber is told",
+   "shortName": "Pharmacist's judgement",
+   "detail": "The same molecule, strength and form, but the swap is not a routine generic — a supply failure, a different-looking tablet, a change of device or excipient a particular patient will notice. It is a clinical decision, so it carries the pharmacist's name, registration and a written reason, the patient is told what will look different, and the prescriber is informed rather than discovering it at the next review.",
+   "whoDecides": "The pharmacist, by name, with a reason on the record.",
+   "needsWrittenReason": true,
+   "tellsThePrescriber": true,
+   "tone": "amber"
+  },
+  {
+   "id": "must-not",
+   "name": "Must not be substituted here",
+   "shortName": "Prescriber only",
+   "detail": "Nothing on this screen may change this item. Only the prescriber may, and only by writing a new prescription. A pharmacy that cannot supply the exact item written says so and sends the patient back to the prescriber; it does not find the nearest thing.",
+   "whoDecides": "The prescriber, in a new prescription. Nobody here.",
+   "needsWrittenReason": false,
+   "tellsThePrescriber": false,
+   "tone": "danger"
+  }
+ ],
+
+ "grounds": [
+  { "id": "patient-refused", "name": "The patient said no", "section": "22F(1)(a)", "class": "must-not",
+    "detail": "The patient has forbidden the substitution. This one is not the pharmacist's to weigh: a refusal from the person swallowing the tablet ends the question." },
+  { "id": "prescriber-forbade", "name": "The prescriber wrote ‘no substitution’", "section": "22F(1)(b)", "class": "must-not",
+    "detail": "Written by the prescriber in their own hand beside the item. It is a clinical instruction, not a preference, and a pharmacy that overrides it has changed a prescription." },
+  { "id": "declared-not-substitutable", "name": "Declared not substitutable", "section": "22F(1)(c)", "class": "must-not",
+    "detail": "The regulator has declared this medicine one that may not be substituted. Biological medicines sit here: a biosimilar is not a generic, and treating it as one is a different medicine handed over under the same name." },
+  { "id": "price-is-higher", "name": "The alternative costs the patient more", "section": "22F(1)(d)", "class": "must-not",
+    "detail": "The point of the substitution is that it costs the patient less. Where it does not, the reason for it has gone, and the prescribed item is dispensed." },
+  { "id": "narrow-therapeutic-index", "name": "Narrow therapeutic index", "class": "must-not",
+    "detail": "The gap between the dose that works and the dose that harms is small enough that a difference between two products of the same molecule matters. Levothyroxine, warfarin, lithium, digoxin, phenytoin, ciclosporin. A swap here is a dose change nobody intended." },
+  { "id": "patient-stabilised", "name": "The patient is stable on this one", "class": "must-not",
+    "detail": "Somebody whose blood level, INR or thyroid function has been brought right on a particular product is not a candidate for a change of product. The stability is the treatment. Changing it is a clinical decision, and it belongs to whoever will be reading the next set of results." },
+  { "id": "modified-release", "name": "Modified-release formulation", "class": "must-not",
+    "detail": "A modified-release form and an immediate-release form of the same molecule at the same strength are not the same medicine, and two modified-release products are not automatically the same as each other. The release profile is the reason it was prescribed." },
+  { "id": "supply-failure", "name": "The prescribed item cannot be supplied", "class": "pharmacist-judgement",
+    "detail": "The manufacturer's pack is not available. That is a reason to consider an alternative and to say so in writing; it is never on its own a reason strong enough to move an item out of ‘must not’." },
+  { "id": "device-change", "name": "A different device or presentation", "class": "pharmacist-judgement",
+    "detail": "An inhaler, a pen, a pre-filled syringe. The molecule may be identical and the patient still unable to use it, because the technique is different. It is a substitution that comes with teaching or it is not a substitution." },
+  { "id": "multi-source", "name": "An interchangeable multi-source medicine", "class": "interchangeable",
+    "detail": "The ordinary case, and the reason section 22F exists: several manufacturers make the same molecule at the same strength in the same form, one costs the patient less, and the patient is told about it." }
+ ],
+
+ "neverChanges": [
+  { "what": "The molecule", "why": "A different active ingredient is a different medicine. Choosing one is prescribing." },
+  { "what": "The strength", "why": "A different strength is a different dose. Choosing one is prescribing." },
+  { "what": "The route", "why": "By mouth, under the skin, into a vein — each has its own dose. Choosing one is prescribing." },
+  { "what": "The dosing interval", "why": "How often it is taken is part of the prescription, not part of the pack." },
+  { "what": "The quantity authorised", "why": "How much may be handed over was decided by the prescriber and by the authorisation, and neither of them is on this screen." }
+ ],
+ "mayChange": [
+  { "what": "The manufacturer", "why": "Which company made it, where several make the same thing." },
+  { "what": "The brand name on the box", "why": "Which is why the patient is told: the name they were expecting is not the name they will read." },
+  { "what": "How the tablet looks", "why": "A different colour, shape or marking. This is how a patient takes a dose twice, so it is said in words rather than left to be discovered." },
+  { "what": "The pack", "why": "A blister rather than a bottle, or a different count made up to the same total." }
+ ],
+
+ "rules": [
+  { "id": "substitution-is-clinical", "title": "A substitution is a clinical decision, not a stock decision",
+    "sentence": "Running out of a pack is a reason to think about an alternative. It is never on its own a reason to hand one over. What decides is whether this medicine, for this patient, can be changed at all — and for some medicines the answer is no however full the shelf next to it is." },
+  { "id": "patient-is-told-first", "title": "The patient is told, in words, before they accept it",
+    "sentence": "You are told that this is a substitution, what it replaces, what is the same about it and what will look different. You are told before you take it home, not on a label afterwards, and you can say no." },
+  { "id": "substitution-is-signed", "title": "A substitution carries the pharmacist's name",
+    "sentence": "The pharmacist who made the decision is named on it, with their registration, the same way a clinical sign-off is. A change to a prescription that nobody's name is on is a change nobody can be asked about." },
+  { "id": "authorisation-is-boxed", "title": "A chronic authorisation runs out twice over",
+    "sentence": "It has a date it expires and a number of repeats it allows, and it ends on whichever arrives first. A repeat that never expires is a prescription nobody is reviewing." },
+  { "id": "ends-in-a-review", "title": "It ends in a review, not a renewal",
+    "sentence": "When the last repeat is used or the authorisation runs out, it stops. A doctor looks at whether the medicine is still right before there is a new one. Nothing continues by default." },
+  { "id": "early-is-refused-with-a-date", "title": "An early collection is refused with a date",
+    "sentence": "Medicine collected early is medicine somebody has not been taking as prescribed, or is putting aside. The answer is the date it may be collected, and a question about how the last month went — not a silent refill." }
+ ],
+
+ "refusals": [
+  { "id": "software-renewal", "sentence": "No repeat is ever authorised by software. A chronic authorisation is a doctor's decision with a date on it, and a system that extends one because a patient came back is a system prescribing." },
+  { "id": "substitute-the-molecule", "sentence": "A substitution never changes the medicine, its strength or its route. Those are the prescription. Changing one of them is prescribing, and a pharmacist who does it has written a prescription without being a prescriber." },
+  { "id": "silent-substitution", "sentence": "Nothing is handed over as though it were what was written. If it is a substitution the patient is told it is one, told what it replaces, and may refuse it and take the item on the prescription instead." },
+  { "id": "anonymous-substitution", "sentence": "No substitution is recorded without the name and registration of the pharmacist who made it. Not an initial, not a branch, not ‘the pharmacy’." },
+  { "id": "override-do-not-substitute", "sentence": "A ‘no substitution’ written by the prescriber is not an obstacle to be worked around, and there is no button here that overrides it. The route back is the prescriber." },
+  { "id": "stockpile", "sentence": "A repeat cannot be collected before it is due, and the days between collections are not adjustable by the person collecting. Somebody accumulating a chronic medicine at home is the first thing anybody would want to notice." }
+ ],
+
+ "authorisation": {
+  "reference": "CHR-0114",
+  "programme": "Chronic Routine",
+  "condition": "Hypertension, type 2 diabetes and hypothyroidism",
+  "authorisedByDays": -109,
+  "validMonths": 6,
+  "repeatsAuthorised": 5,
+  "repeatsUsed": 2,
+  "daysPerRepeat": 30,
+  "minimumDaysBetween": 25,
+  "lastCollectedDays": -12,
+  "reviewedBy": "D-401",
+  "endsWith": "A review with the prescribing doctor, in person or by teleconsultation, before anything is authorised again. Blood pressure, HbA1c and thyroid function are looked at, and so is whether the patient is still taking it.",
+  "note": "Authorised for six months and for five repeats of thirty days. It ends on whichever runs out first, and on this prescription that is the date rather than the repeats — three repeats remain and there are not ninety days of authorisation left to collect them in.",
+  "quantityNote": "Thirty days at a time, and no more than thirty days at a time. A larger pack is not a convenience: it is a longer gap before anybody looks at the patient again."
+ },
+
+ "prescription": {
+  "reference": "RX-0081",
+  "patient": "Lerato Molefe",
+  "patientBorn": "01/01/1980",
+  "issuedInDays": -12,
+  "prescriber": "D-401",
+  "pharmacy": "P-501",
+  "pharmacist": { "name": "Nadia Abrahams", "registration": "SAPC Y118406", "role": "Responsible pharmacist" },
+  "items": [
+   {
+    "id": "amlodipine",
+    "prescribed": "Norvasc 5 mg tablets",
+    "molecule": "Amlodipine",
+    "strength": "5 mg",
+    "form": "Tablet",
+    "dose": "One tablet each morning",
+    "quantity": "30 tablets",
+    "class": "interchangeable",
+    "ground": "multi-source",
+    "outcome": "substituted",
+    "dispensed": "Amlodipine 5 mg tablets (Aspen)",
+    "sameness": ["The same medicine — amlodipine", "The same strength — 5 mg", "The same form — a tablet by mouth", "The same instruction — one each morning"],
+    "differences": ["A different company made it", "The box says Amlodipine, not Norvasc", "The tablet is white and round, not the one you have been taking"],
+    "patientWords": "This is not the box you had last time. It is the same medicine at the same strength — amlodipine 5 mg, one each morning — made by a different company, and it costs you less. The tablet is white and round rather than the one you know. If you would rather have the one the doctor wrote, say so and you will have it.",
+    "accepted": true,
+    "note": "Take with or without food. Tell somebody if your ankles swell."
+   },
+   {
+    "id": "metformin",
+    "prescribed": "Glucophage 850 mg tablets",
+    "molecule": "Metformin",
+    "strength": "850 mg",
+    "form": "Tablet",
+    "dose": "One tablet twice a day, with meals",
+    "quantity": "60 tablets",
+    "class": "interchangeable",
+    "ground": "patient-refused",
+    "outcome": "refused-by-patient",
+    "dispensed": "Glucophage 850 mg tablets — as written",
+    "sameness": [],
+    "differences": [],
+    "patientWords": "You were offered the same medicine from a different company at a lower price and you said no. That is your decision and it needs no reason. You are getting exactly what the doctor wrote.",
+    "accepted": false,
+    "note": "With food. Stop and get advice if you have a stomach illness with vomiting."
+   },
+   {
+    "id": "levothyroxine",
+    "prescribed": "Eltroxin 100 µg tablets",
+    "molecule": "Levothyroxine",
+    "strength": "100 µg",
+    "form": "Tablet",
+    "dose": "One tablet each morning, thirty minutes before eating",
+    "quantity": "30 tablets",
+    "class": "must-not",
+    "ground": "narrow-therapeutic-index",
+    "secondGround": "patient-stabilised",
+    "outcome": "as-written",
+    "dispensed": "Eltroxin 100 µg tablets — as written",
+    "sameness": [],
+    "differences": [],
+    "patientWords": "This one is not swapped, even for the same medicine from another company. Your thyroid blood test was brought right on this exact product and a change of product can move it again. If this one cannot be supplied you go back to the doctor rather than take a different one.",
+    "accepted": true,
+    "note": "On an empty stomach, well away from calcium or iron."
+   },
+   {
+    "id": "hydrochlorothiazide",
+    "prescribed": "Hydrochlorothiazide 12.5 mg tablets (Adcock Ingram)",
+    "molecule": "Hydrochlorothiazide",
+    "strength": "12.5 mg",
+    "form": "Tablet",
+    "dose": "One tablet each morning",
+    "quantity": "30 tablets",
+    "class": "pharmacist-judgement",
+    "ground": "supply-failure",
+    "outcome": "substituted",
+    "dispensed": "Hydrochlorothiazide 12.5 mg tablets (Sandoz)",
+    "sameness": ["The same medicine — hydrochlorothiazide", "The same strength — 12.5 mg", "The same form and the same instruction"],
+    "differences": ["A different company made it, because the one on the prescription is out of stock nationally", "The tablet is a different shape and is not scored down the middle"],
+    "patientWords": "The company that makes the one on your prescription cannot supply it at the moment. This is the same medicine at the same strength from another company. The tablet is a different shape and has no line across the middle, so do not try to break it in half. Your doctor has been told this was changed and why.",
+    "writtenReason": "Adcock Ingram 12.5 mg out of stock nationally since 14 August; no return date given by the wholesaler. Same molecule, strength and form. Patient counselled on the change of appearance and that the tablet is unscored. Prescriber notified the same day.",
+    "accepted": true,
+    "note": "Take early in the day."
+   },
+   {
+    "id": "insulin-glargine",
+    "prescribed": "Lantus 100 units/mL, SoloStar pen",
+    "molecule": "Insulin glargine",
+    "strength": "100 units/mL",
+    "form": "Pre-filled pen",
+    "dose": "14 units under the skin at night",
+    "quantity": "3 pens",
+    "class": "must-not",
+    "ground": "prescriber-forbade",
+    "secondGround": "declared-not-substitutable",
+    "outcome": "as-written",
+    "dispensed": "Lantus 100 units/mL SoloStar — as written",
+    "sameness": [],
+    "differences": [],
+    "patientWords": "The doctor wrote ‘no substitution’ next to this one in her own hand, and it is a biological medicine besides — the kind where another company's version is a similar medicine rather than the same one, and the pen works differently. Nobody at the pharmacy may change it. If it cannot be supplied, you come back to the doctor.",
+    "accepted": true,
+    "note": "Keep unopened pens in the fridge. The pen in use stays out of the fridge and is thrown away after 28 days."
+   }
+  ]
+ },
+
+ "handover": [
+  { "id": "checked", "label": "Pharmacist check", "detail": "Every item read against the prescription, the allergies and what the patient is already taking." },
+  { "id": "decided", "label": "Substitution decided", "detail": "Each item classed, with the ground for it and the pharmacist's name on anything changed." },
+  { "id": "told", "label": "Patient told", "detail": "What is being handed over, what it replaces, and what will look different — said, not printed." },
+  { "id": "accepted", "label": "Patient accepted or refused", "detail": "A refusal is dispensed as written. It is not an escalation and it needs no reason." },
+  { "id": "recorded", "label": "Recorded", "detail": "What was actually handed over, by whom, against which authorisation and how many repeats are left." }
+ ]
+}
