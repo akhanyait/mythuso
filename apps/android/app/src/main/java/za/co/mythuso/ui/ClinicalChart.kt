@@ -38,10 +38,11 @@ data class Reading(val label: String, val value: Double, val note: String = "—
     val rangeNote = normal?.let { "Indicative reference range ${format(it.start)} to ${format(it.endInclusive)} $unit; the latest reading is ${if (inRange) "inside" else "outside"} that range." } ?: ""
     val summary = "$title. Latest sample reading ${format(latest.value)} $unit on ${latest.label}, $direction the first reading of ${format(first.value)} on ${first.label}. $rangeNote Fictional data."
     CareCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (icon != null) { Icon(icon, null, tint = Indigo, modifier = Modifier.size(17.dp)); Spacer(Modifier.width(8.dp)) }
-            Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            StatusPill(if (inRange) "Within sample range" else "Outside sample range", if (inRange) "teal" else "amber")
+        StatusHeader(if (inRange) "Within sample range" else "Outside sample range", if (inRange) "teal" else "amber") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (icon != null) { Icon(icon, null, tint = Indigo, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(ThusoSpacing.space8)) }
+                Text(title, style = MaterialTheme.typography.titleSmall)
+            }
         }
         Row(verticalAlignment = Alignment.Bottom) {
             Text(format(latest.value), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)

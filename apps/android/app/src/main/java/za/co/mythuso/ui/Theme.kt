@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -150,7 +151,7 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
         )
         if (action != null && onAction != null) TextButton(
             onClick = onAction,
-            modifier = Modifier.heightIn(min = TouchTarget),
+            modifier = Modifier.heightIn(min = TouchTarget).widthIn(max = 180.dp),
             contentPadding = PaddingValues(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space8)
         , shape = ThusoButtonShape) { Text(action, style = MaterialTheme.typography.labelMedium) }
     }
@@ -202,9 +203,38 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
         else -> IndigoSoft to IndigoDeep
     }
     Text(
-        text, style = MaterialTheme.typography.labelSmall, color = fg,
+        text, style = MaterialTheme.typography.labelSmall, color = fg, maxLines = 1, softWrap = false,
         modifier = Modifier.background(bg, CircleShape).padding(horizontal = ThusoSpacing.space12, vertical = 4.dp)
     )
+}
+
+/* A title and the state of the thing it names.
+ *
+ * Beside each other while there is room, and stacked when there is not. At the largest font scales
+ * "Confirmed" is two hundred points wide on a phone that has already given a hundred to the
+ * navigation rail, and a pill that keeps its intrinsic width leaves a card title with sixty — which
+ * Compose spends breaking "Vitals" across four lines. Capping the pill instead only moves the
+ * problem into the pill, which then reads "Co / nfir / me / d". So above the title it goes, where it
+ * has the whole width and the title has the whole width, and neither is broken to fit the other.
+ *
+ * 1.3 is where the two stop fitting on a 393dp phone, which is the phone this is built for. */
+@Composable fun StatusHeader(
+    status: String,
+    tone: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val stacked = LocalDensity.current.fontScale >= 1.3f
+    if (stacked) Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+        StatusPill(status, tone)
+        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4), content = content)
+    } else Row(
+        modifier.fillMaxWidth(), verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4), content = content)
+        StatusPill(status, tone)
+    }
 }
 
 @Composable fun StepDots(step: Int, total: Int, label: String) {

@@ -17,8 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import za.co.mythuso.model.CareService
@@ -91,10 +93,18 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
     /* A band of the brand behind the greeting, not a field the height of the screen: it used to be
        470dp, which is most of a phone, and it sat behind a rotating promotion. */
     val onHome = page == "Home" && detail == null && role == null
-    /* A rail rather than a bottom bar once the window is wide enough for one. 600dp is Material's
-       own compact/medium boundary: below it a thumb reaches the bottom of the screen, above it the
-       bottom of the screen is a long way from where the hand is. */
-    val wide = LocalConfiguration.current.screenWidthDp >= 600
+    /* A rail rather than a bottom bar in two cases.
+       The first is width: 600dp is Material's own compact/medium boundary, and below it a thumb
+       reaches the bottom of the screen while above it the bottom of the screen is a long way from
+       where the hand is.
+       The second is type. A navigation bar is 80dp tall whatever the reader has asked for, and one
+       fifth of a 393dp phone is 78dp wide, so at the largest font scales "Book care" and "Passport"
+       have nowhere to go: they came out as "Book c…", then as two lines spilling out of the top of
+       the bar. A rail gives each label the width of the rail and as many lines as it needs, and it
+       gives back the vertical space that is the scarce thing at that size. The reader who has asked
+       for the largest type is exactly the reader who cannot afford a truncated label. */
+    val fontScale = LocalDensity.current.fontScale
+    val wide = LocalConfiguration.current.screenWidthDp >= 600 || fontScale >= 1.6f
     val destinations: List<Destination> =
         if (role == null) tabs
         else workspaceSections(role).map { Destination(it.name, it.icon, null) }
@@ -125,7 +135,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                         selected = selectedKey == destination.key && detail == null,
                         onClick = { onSelect(destination.key) },
                         icon = { Icon(destination.icon, null) },
-                        label = { Text(label(destination), maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                        label = { Text(label(destination), maxLines = 3, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall) }
                     )
                 }
                 Spacer(Modifier.weight(1f))
@@ -165,7 +175,17 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                                 selected = selectedKey == destination.key && detail == null,
                                 onClick = { onSelect(destination.key) },
                                 icon = { Icon(destination.icon, null) },
-                                label = { Text(label(destination), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                /* Two lines rather than one. These labels are the locale contract's
+                                   own words — "Book care", and longer in isiZulu and Sesotho — and
+                                   at a raised font scale a single line turned that into "Book c…".
+                                   A tab whose name has been cut in half is not a name. */
+                                label = {
+                                    Text(
+                                        label(destination), maxLines = 2, softWrap = true,
+                                        textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
                             )
                         }
                     }

@@ -136,7 +136,7 @@ import androidx.compose.foundation.text.KeyboardActions
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Icon(icon, null, tint = Slate, modifier = Modifier.size(16.dp))
-        Text(text, style = MaterialTheme.typography.labelMedium, color = Slate, maxLines = 1)
+        Text(text, style = MaterialTheme.typography.labelMedium, color = Slate, modifier = Modifier.weight(1f, fill = false))
         Icon(Icons.Outlined.ExpandMore, null, tint = Faint, modifier = Modifier.size(16.dp))
     }
 }
@@ -162,12 +162,9 @@ import androidx.compose.foundation.text.KeyboardActions
                     .clickable { open("Visit: ${visit.service.name} · ${visit.shortWhenText}") }
                     .semantics(mergeDescendants = true) {}
             ) {
-                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                        Text(visit.service.name, style = MaterialTheme.typography.titleLarge, color = Ink)
-                        Text(visit.shortWhenText, style = MaterialTheme.typography.bodyMedium, color = BodyText)
-                    }
-                    StatusPill(visit.status, if (visit.isScheduled) "teal" else "amber")
+                StatusHeader(visit.status, if (visit.isScheduled) "teal" else "amber") {
+                    Text(visit.service.name, style = MaterialTheme.typography.titleLarge, color = Ink)
+                    Text(visit.shortWhenText, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 }
                 /* An arrival estimate belongs to "come now" and to nothing else; a visit booked for a
                    named hour says how long it takes instead, from the catalogue. */
@@ -245,18 +242,14 @@ import androidx.compose.foundation.text.KeyboardActions
                 Triple("Full blood count", "Awaiting doctor review", "With a doctor" to "amber")
             )
             results.forEachIndexed { index, (name, value, status) ->
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.control)).clickable { open("Health Passport") }
+                StatusHeader(
+                    status.first, status.second,
+                    Modifier.clip(RoundedCornerShape(ThusoRadius.control)).clickable { open("Health Passport") }
                         .heightIn(min = TouchTarget).padding(horizontal = ThusoSpacing.space8, vertical = ThusoSpacing.space8)
-                        .semantics(mergeDescendants = true) {},
-                    verticalAlignment = Alignment.CenterVertically
+                        .semantics(mergeDescendants = true) {}
                 ) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                        Text(name, style = MaterialTheme.typography.titleSmall, color = Ink)
-                        Text(value, style = MaterialTheme.typography.bodySmall, color = BodyText)
-                    }
-                    Spacer(Modifier.width(ThusoSpacing.space12))
-                    StatusPill(status.first, status.second)
+                    Text(name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text(value, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
                 if (index < results.size - 1) HorizontalDivider(color = Line)
             }
@@ -358,7 +351,10 @@ fun serviceIcon(id: String) = when (id) {
     val columns = if (LocalConfiguration.current.screenWidthDp >= 600) 2 else 1
     ScreenColumn {
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-            Heading("Care, on your terms", "Professional care at your door", "Choose a service and we’ll match you with the nearest qualified nurse.")
+            /* No eyebrow on this one. "Care, on your terms" above "Professional care at your door"
+               is the same sentence twice, and on the screen somebody opens to choose a service it
+               was three lines of brand voice before the first service. */
+            Heading("", "Professional care at your door", "Choose a service and we’ll match you with the nearest qualified nurse.")
             DemoBadge()
         }
         val filtered = services.filter { it.name.contains(store.careQuery, ignoreCase = true) }
@@ -629,10 +625,8 @@ fun serviceIcon(id: String) = when (id) {
                                     Text(row.month, style = MaterialTheme.typography.labelSmall, color = Faint)
                                 }
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-                                    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-                                        Text(row.title, style = if (row.nurse) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleSmall,
-                                             color = Ink, modifier = Modifier.weight(1f))
-                                        StatusPill(row.status, row.tone)
+                                    StatusHeader(row.status, row.tone) {
+                                        Text(row.title, style = if (row.nurse) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleSmall, color = Ink)
                                     }
                                     IconLine(Icons.Outlined.Schedule, row.time)
                                     IconLine(Icons.Outlined.LocationOn, row.place)
