@@ -11,6 +11,7 @@ import { CardArt, FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
 import type { DemoVisit } from './Booking';
 import { isoIn, labels as schedulingLabels, shortDateOf, shortWhenText, visitEnds, weekdayOf } from '../lib/scheduling';
+import { holdStatus } from '../lib/interpreting';
 export function Services({book,open,query=''}:{book:(s:Service)=>void;open:(s:string)=>void;query?:string}) {
  const [category,setCategory]=useState('All services');
  const [search,setSearch]=useState(query);
@@ -44,7 +45,9 @@ export function Visits({visits,open,book}:{visits:DemoVisit[];open:(s:string)=>v
  const [tab,setTab]=useState('Upcoming');
  const [state,setState]=useState<LoadState>('ready');
  /* What the person actually booked comes first, in the order they booked it. */
- const upcoming:VisitRow[]=[...visits.map(v=>({visit:v,status:v.status,tone:v.kind==='asap'?'amber':''})),
+ /* A held visit is not a confirmed one and does not read like one here either: it carries the
+    contract's own word and the amber tone the pending states use. */
+ const upcoming:VisitRow[]=[...visits.map(v=>({visit:v,status:v.status,tone:v.status===holdStatus||v.kind==='asap'?'amber':''})),
   sample(services[0],'Lerato Molefe','Home visit · Sandton',5,'09:00','Confirmed',''),
   sample(services[1],'Lerato Molefe','Home visit · Sandton',17,'10:00','Pending','amber'),
   sample(services[2],'Thabo Molefe','Home visit · Rivonia',29,'14:00','Scheduled','sky')];

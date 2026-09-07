@@ -1862,6 +1862,6 @@
    "essentialWhenRequired": true,
    "sentence": "The interpreter is the participant the call roster already has. When this requirement is on the account that participant becomes essential: the call does not open without them, and declining them rebooks the consultation rather than continuing it in a language the patient did not choose — which is what the roster already says happens."
   },
-  "notYetBuilt": "None of this is a working service. There is no interpreter roster, no interpreter vetting row and no scheduling that can hold a visit until one is free. What exists is the requirement, the refusals it creates, and the place each of them belongs. An interpreter is a vetted party who hears a whole consultation, and the vetting table does not have a row for one yet."
+  "notYetBuilt": "The arrangements above are built now, in packages/catalog/interpreting.json: an interpreter is a vetted party with six checks of their own, a roster says who is free and when, a visit that needs an interpreter is held rather than dispatched, and a wait nobody can work out says so instead of showing a number. What is still not true is everything underneath it. No interpreter is contacted, no visit is held, the four on the roster are fictional, the accreditation route is drafted rather than confirmed with the body it names, and no Deaf South African and no qualified interpreter has read any of it."
  }
 }

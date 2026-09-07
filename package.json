@@ -17,7 +17,7 @@
     "tokens": "node scripts/emit-tokens.mjs",
     "vetting": "node scripts/emit-vetting.mjs",
     "records": "node scripts/emit-records.mjs",
-    "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes",
+    "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes && npm run interpreting",
     "check": "npm run check -w @mythuso/geo && npm run check -w @mythuso/web && npm run check -w @mythuso/api && node scripts/check-boundaries.mjs",
     "test": "npm run test -w @mythuso/geo && npm run test -w @mythuso/api && playwright test",
     "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0",
@@ -28,7 +28,8 @@
     "teleconsult": "node scripts/emit-teleconsult.mjs",
     "locales": "node scripts/emit-locales.mjs",
     "dispensing": "node scripts/emit-dispensing.mjs",
-    "programmes": "node scripts/emit-programmes.mjs"
+    "programmes": "node scripts/emit-programmes.mjs",
+    "interpreting": "node scripts/emit-interpreting.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

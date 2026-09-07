@@ -110,18 +110,18 @@ function saying(authority: string, outcome: typeof AUTHORITY_OUTCOMES[number], d
 /* ---- The honest default: nothing is integrated -------------------------------------------- */
 
 describe('what the verification layer says about itself', () => {
- test('every authority in the catalogue has an adapter, and eleven of the twelve cannot be asked', () => {
+ test('every authority in the catalogue has an adapter, and twelve of the thirteen cannot be asked', () => {
   const summary = integrationSummary(authorityVerifiers());
-  assert.equal(summary.total, 12);
+  assert.equal(summary.total, 13);
   assert.equal(summary.integrated.length, 0);
-  assert.equal(summary.notIntegrated.length, 12);
-  assert.match(summary.sentence, /None of the 12 issuing authorities/);
+  assert.equal(summary.notIntegrated.length, 13);
+  assert.match(summary.sentence, /None of the 13 issuing authorities/);
 
   /* With a provider contracted, exactly one becomes real and the sentence changes with it rather
      than being a claim somebody edited. */
   const withProvider = integrationSummary(authorityVerifiers({ dha: saying('dha', 'confirmed') }));
   assert.deepEqual(withProvider.integrated, ['dha']);
-  assert.equal(withProvider.notIntegrated.length, 11);
+  assert.equal(withProvider.notIntegrated.length, 12);
  });
 
  test('every not-integrated adapter says what a real integration would need', () => {

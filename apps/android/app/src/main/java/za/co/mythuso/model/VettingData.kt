@@ -28,7 +28,8 @@ val vettingCapabilities = listOf(
     VettingCapability("run-programme", "Run a programme", "Operate an employer or community health programme"),
     VettingCapability("sponsor-care", "Sponsor care", "Pay for another person's visits"),
     VettingCapability("guardian-access", "Hold guardian access", "Act for a minor or a dependent adult"),
-    VettingCapability("host-screening", "Host a screening site", "Receive patients at a community screening location")
+    VettingCapability("host-screening", "Host a screening site", "Receive patients at a community screening location"),
+    VettingCapability("interpret-consultation", "Interpret a consultation", "Join a call or attend a visit as the named interpreter, and hear every word of it")
 )
 
 /* The formats are the ones the issuing bodies actually use, so the phone can say "that is not a
@@ -88,6 +89,11 @@ val vettingAuthorities = listOf(
         "institution", "Issuing institution", "Institution",
         "Qualifications, checked with the institution that issued them", "Certificate number",
         "^[A-Z0-9/-]{4,24}\$", "WITS/2018/44120", "Enter the certificate or diploma number."
+    ),
+    VettingAuthority(
+        "sati", "South African Translators’ Institute", "SATI",
+        "Accreditation as a South African Sign Language interpreter", "Membership or accreditation number",
+        "^[A-Z0-9/-]{4,20}\$", "1002481", "Enter the number exactly as it appears on your SATI accreditation certificate. MyThuso does not assume a format for it."
     ),
     VettingAuthority(
         "internal", "MyThuso Clinical Governance", "MyThuso",
@@ -205,6 +211,21 @@ val vettingRoles = listOf(
             VettingCheck("cold-chain-training", "Cold chain and biohazard training", "Packaging, temperature and spillage handling", "internal", "Training record", 12, "standard"),
             VettingCheck("vehicle", "Vehicle and container", "Roadworthy vehicle and a calibrated transport container", "internal", "Roadworthy certificate and calibration record", 12, "standard"),
             VettingCheck("popia-training", "POPIA and confidentiality", "A courier learns who is ill from an address. That is special personal information", "internal", "Signed undertaking", 12, "standard")
+        )
+    ),
+    VettingRole(
+        "interpreter", "SASL interpreter", "person", "Partner",
+        "Interprets between South African Sign Language and spoken English for a visit or a call, and hears the whole of it.",
+        listOf(
+            VettingGrant("interpret-consultation", "An interpreter whose checks have not passed is never named on a roster, never joins a call and is never sent to a house. There is no once-off exception, because there is no part of a consultation an interpreter does not hear.")
+        ),
+        listOf(
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
+            VettingCheck("sasl-accreditation", "SASL interpreting accreditation", "Accreditation as a South African Sign Language interpreter, verified with the accrediting body", "sati", "Accreditation certificate and current membership", 12, "high"),
+            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years, like anybody else who comes into a patient's home", "saps", "SAPS clearance certificate", 24, "high"),
+            VettingCheck("health-interpreting", "Interpreting in a health setting", "Clinical vocabulary, the boundaries of the role, and how to say that a meaning did not carry rather than smoothing it over", "internal", "Training record", 24, "standard"),
+            VettingCheck("confidentiality-undertaking", "Confidentiality undertaking", "Signed on the same terms as the clinicians. An interpreter hears the consultation itself, not a summary of it, and is held to it as its own check rather than as a line inside another one", "internal", "Signed undertaking", 12, "high"),
+            VettingCheck("popia-training", "POPIA and special personal information", "What health information is under POPIA, and what may never leave the room it was signed in", "internal", "Training record", 12, "standard")
         )
     ),
     VettingRole(
@@ -328,6 +349,11 @@ val vettingScopes: Map<String, ScopeOfPractice> = mapOf(
         "Samples carried",
         "A courier carries only the categories they are trained and equipped for. Cold chain is not a preference.",
         listOf("Ambient samples", "Cold-chain samples", "Biohazard category B")
+    ),
+    "interpreter" to ScopeOfPractice(
+        "Settings interpreted in",
+        "You are only ever booked into a setting you are accredited and trained for. A clinical consultation is not a school meeting, and the Control Tower cannot decide otherwise.",
+        listOf("Clinical consultation", "Home visit", "Mental health", "Sexual and reproductive health", "Paediatric", "Deafblind (tactile) interpreting", "After hours")
     ),
     "corner" to ScopeOfPractice(
         "Services offered",

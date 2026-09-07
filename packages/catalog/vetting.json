@@ -99,6 +99,11 @@
    "id": "host-screening",
    "name": "Host a screening site",
    "detail": "Receive patients at a community screening location"
+  },
+  {
+   "id": "interpret-consultation",
+   "name": "Interpret a consultation",
+   "detail": "Join a call or attend a visit as the named interpreter, and hear every word of it"
   }
  ],
  "authorities": [
@@ -211,6 +216,16 @@
    "pattern": "^[A-Z0-9/-]{4,24}$",
    "example": "WITS/2018/44120",
    "hint": "Enter the certificate or diploma number."
+  },
+  {
+   "id": "sati",
+   "name": "South African Translators’ Institute",
+   "short": "SATI",
+   "verifies": "Accreditation as a South African Sign Language interpreter",
+   "format": "Membership or accreditation number",
+   "pattern": "^[A-Z0-9/-]{4,20}$",
+   "example": "1002481",
+   "hint": "Enter the number exactly as it appears on your SATI accreditation certificate. MyThuso does not assume a format for it."
   },
   {
    "id": "internal",
@@ -814,6 +829,88 @@
      "detail": "A courier learns who is ill from an address. That is special personal information",
      "authority": "internal",
      "evidence": "Signed undertaking",
+     "renewMonths": 12,
+     "risk": "standard"
+    }
+   ]
+  },
+  {
+   "id": "interpreter",
+   "name": "SASL interpreter",
+   "party": "person",
+   "workspace": "Partner",
+   "summary": "Interprets between South African Sign Language and spoken English for a visit or a call, and hears the whole of it.",
+   "scope": {
+    "label": "Settings interpreted in",
+    "note": "You are only ever booked into a setting you are accredited and trained for. A clinical consultation is not a school meeting, and the Control Tower cannot decide otherwise.",
+    "options": [
+     "Clinical consultation",
+     "Home visit",
+     "Mental health",
+     "Sexual and reproductive health",
+     "Paediatric",
+     "Deafblind (tactile) interpreting",
+     "After hours"
+    ]
+   },
+   "grants": [
+    {
+     "capability": "interpret-consultation",
+     "refusal": "An interpreter whose checks have not passed is never named on a roster, never joins a call and is never sent to a house. There is no once-off exception, because there is no part of a consultation an interpreter does not hear."
+    }
+   ],
+   "checks": [
+    {
+     "id": "identity",
+     "name": "Identity",
+     "detail": "Home Affairs verification through an accredited provider",
+     "authority": "dha",
+     "evidence": "Identity document",
+     "renewMonths": null,
+     "risk": "high"
+    },
+    {
+     "id": "sasl-accreditation",
+     "name": "SASL interpreting accreditation",
+     "detail": "Accreditation as a South African Sign Language interpreter, verified with the accrediting body",
+     "authority": "sati",
+     "evidence": "Accreditation certificate and current membership",
+     "renewMonths": 12,
+     "risk": "high"
+    },
+    {
+     "id": "police-clearance",
+     "name": "Police clearance",
+     "detail": "SAPS clearance, renewed every two years, like anybody else who comes into a patient's home",
+     "authority": "saps",
+     "evidence": "SAPS clearance certificate",
+     "renewMonths": 24,
+     "risk": "high"
+    },
+    {
+     "id": "health-interpreting",
+     "name": "Interpreting in a health setting",
+     "detail": "Clinical vocabulary, the boundaries of the role, and how to say that a meaning did not carry rather than smoothing it over",
+     "authority": "internal",
+     "evidence": "Training record",
+     "renewMonths": 24,
+     "risk": "standard"
+    },
+    {
+     "id": "confidentiality-undertaking",
+     "name": "Confidentiality undertaking",
+     "detail": "Signed on the same terms as the clinicians. An interpreter hears the consultation itself, not a summary of it, and is held to it as its own check rather than as a line inside another one",
+     "authority": "internal",
+     "evidence": "Signed undertaking",
+     "renewMonths": 12,
+     "risk": "high"
+    },
+    {
+     "id": "popia-training",
+     "name": "POPIA and special personal information",
+     "detail": "What health information is under POPIA, and what may never leave the room it was signed in",
+     "authority": "internal",
+     "evidence": "Training record",
      "renewMonths": 12,
      "risk": "standard"
     }

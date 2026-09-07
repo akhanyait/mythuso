@@ -76,9 +76,21 @@ clinicians and removable mid-call at a stated cost. The accommodation makes that
 essential rather than inventing a second, quieter way to add somebody who can hear the whole
 consultation.
 
-**None of it is built.** There is no interpreter roster, no vetting row for an interpreter — and an
-interpreter hears an entire consultation, so there should be one — and no scheduling that can hold a
-visit until one is free.
+The arrangements are built now, from `packages/catalog/interpreting.json`, on all three platforms.
+An interpreter is the thirteenth vetted party and is granted one thing; a roster carries free hours
+rather than conclusions; a visit that needs an interpreter and has not got one is held rather than
+dispatched; a wait nobody can work out says so instead of showing a number, under the same rule
+`packages/catalog/sos.json` holds an ambulance's arrival to; cancelling that wait is free and is
+recorded against MyThuso; and withdrawing the interpreter mid-call ends the consultation rather
+than continuing it. `scripts/check-boundaries.mjs` fails the build on twenty-two ways of undoing any
+of that.
+
+**What has not happened is the part that matters most here.** No Deaf South African and no qualified
+interpreter has read any of it. The accreditation route — SATI's accreditation examination — is
+drafted and unconfirmed with SATI, DeafSA or PanSALB, and if it is the wrong body then the check
+hanging off it is the wrong check; the app says so on the screen rather than only in this file. The
+three modes and their scarcity are an engineer's guess at how SASL interpreting is actually arranged
+in South Africa. And nothing contacts an interpreter, holds a real visit or books anybody's time.
 
 ## Large text, screen readers and low-end devices
 

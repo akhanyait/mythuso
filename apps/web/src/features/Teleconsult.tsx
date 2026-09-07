@@ -14,6 +14,10 @@ import {
  media, nameOf, outcomeOf, participants, permitted, recording, reconnect, refusalById, refusals,
  ruleById, sectionsFor, withdrawn, type Attempt, type Participant
 } from '../lib/teleconsult';
+import {
+ participantId as interpreterParticipant, refusalById as interpreterRefusal,
+ useSaslRequirement, withdrawal as interpreterWithdrawal
+} from '../lib/interpreting';
 
 /* The teleconsultation call.
  *
@@ -47,6 +51,16 @@ import {
  * Bandwidth. Sound only is a designed path, not an error toast. What changes on a poor line is not
  * the patient's standing but what the doctor may conclude alone, and the screen says which — held as
  * a set intersection in lib/teleconsult.ts rather than as a judgement taken under pressure.
+ *
+ * The interpreter. Ordinarily one of the optional parties on the roster, asked about like the
+ * others. When the account records the South African Sign Language requirement they stop being
+ * optional: the call does not open without them, the checkbox that adds them cannot be unticked,
+ * and asking them to step out during the call ends the consultation rather than continuing it. That
+ * last one looks harsh written down and is the only honest answer — a consultation the patient
+ * cannot follow is not one they can consent to, and consent to treatment is not a nod. It is not a
+ * punishment either: nothing is charged, the encounter is written up as interrupted like any other,
+ * and the rebooking is on the same screen. There is deliberately no second mechanism for adding an
+ * interpreter; it is this participant or nobody.
  *
  * Nothing connects. No WebRTC, no camera, no microphone, no permission requested and none declared.
  * Every doctor, nurse and patient here is fictional. */
@@ -100,7 +114,9 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
  { reference?: string; patient?: string; onClose?: () => void }) {
  const [stage, setStage] = useState(0);
  const [doctorId, setDoctorId] = useState(doctors[0].id);
- const [present, setPresent] = useState<Record<string, boolean>>({ nurse: true, guardian: false, interpreter: false });
+ /* The requirement is not asked about here. It is on the account, and this screen reads it. */
+ const [saslRequired] = useSaslRequirement();
+ const [chosen, setChosen] = useState<Record<string, boolean>>({ nurse: true, guardian: false, interpreter: false });
  const [consented, setConsented] = useState<Record<string, boolean>>({ doctor: false, nurse: false, guardian: false, interpreter: false });
  const [withdrawnNote, setWithdrawnNote] = useState<string | null>(null);
  const [code, setCode] = useState('');
@@ -115,8 +131,14 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
  const [closed, setClosed] = useState<string | null>(null);
  const [consultation, setConsultation] = useState(false);
 
+ /* An interpreter the account requires is present whatever the roster control says. The control is
+    disabled rather than hidden, because a control that vanishes teaches nobody why. */
+ const present = saslRequired ? { ...chosen, [interpreterParticipant]: true } : chosen;
  const doctor = doctors.find(d => d.id === doctorId)!;
  const consult = mayConsult(doctor);
+ /* Essential when required: the call does not open until the interpreter has been agreed to, the
+    same gate the doctor's own consent is behind. */
+ const interpreterAgreed = !saslRequired || consented[interpreterParticipant];
  const nursePresent = present.nurse && consented.nurse;
  const allowedNow = permitted(connectionId, nursePresent);
  const withheldNow = withdrawn(connectionId, nursePresent);
@@ -171,9 +193,17 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
 
    <fieldset className="chip-set"><legend>Who else is at the address or on the call</legend>
     {optional.map(p => <label key={p.id} className={present[p.id] ? 'chip selected' : 'chip'}>
-     <input type="checkbox" checked={!!present[p.id]} onChange={e => { setPresent({ ...present, [p.id]: e.target.checked }); setConsented({ ...consented, [p.id]: false }); }}/>{p.name}
+     <input type="checkbox" checked={!!present[p.id]} disabled={saslRequired && p.id === interpreterParticipant}
+      onChange={e => { setChosen({ ...chosen, [p.id]: e.target.checked }); setConsented({ ...consented, [p.id]: false }); }}/>{p.name}
     </label>)}
    </fieldset>
+   {saslRequired && <div className="privacy-note" role="status"><Users size={19}/>{interpreterWithdrawal.sentence} {interpreterWithdrawal.why}</div>}
+   {/* The two refusals that belong exactly here, where a relative would otherwise be offered as the
+       answer. Said rather than merely made impossible: the person who needs the reason is the
+       family member standing in the room. */}
+   <div className="tc-refusal"><Ban size={19}/><p><strong>{interpreterRefusal('family-as-interpreter').title}. </strong>{interpreterRefusal('family-as-interpreter').sentence}</p></div>
+   <div className="tc-refusal"><Ban size={19}/><p><strong>{interpreterRefusal('child-as-interpreter').title}. </strong>{interpreterRefusal('child-as-interpreter').sentence}</p></div>
+   <div className="tc-refusal"><Ban size={19}/><p><strong>{interpreterRefusal('written-english-instead').title}. </strong>{interpreterRefusal('written-english-instead').sentence}</p></div>
 
    <Roster present={present} consented={consented} patient={patient} doctor={doctor}/>
 
@@ -193,7 +223,7 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    <div className="button-row">
     {onClose && <button className="secondary" onClick={onClose}><ArrowLeft size={16}/>Leave</button>}
     {consult.allowed
-     ? <button className="primary" disabled={!consented.doctor} onClick={() => setStage(1)}>Check identity<ArrowRight size={16}/></button>
+     ? <button className="primary" disabled={!consented.doctor || !interpreterAgreed} onClick={() => setStage(1)}>Check identity<ArrowRight size={16}/></button>
      : <button className="primary" onClick={() => { setClosed('clinician-refused'); setStage(4); }}>Rebook with a doctor whose registration is current<ArrowRight size={16}/></button>}
    </div>
   </div>
@@ -273,7 +303,14 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
 
    <SectionTitle title="In the room"/>
    <Roster present={present} consented={consented} patient={patient} doctor={doctor}
-    onAsk={id => { setConsented({ ...consented, [id]: false }); setWithdrawnNote(consentItems.find(c => c.participant === id)!.revokedMidCall); }}/>
+    onAsk={id => {
+     setConsented({ ...consented, [id]: false });
+     setWithdrawnNote(consentItems.find(c => c.participant === id)!.revokedMidCall);
+     /* Withdrawal is one action and no confirmation step, like every other consent here. What is
+        different is what it does: an interpreter the patient needs leaving the call ends the
+        consultation, because what is left is a conversation the patient cannot follow. */
+     if (id === interpreterParticipant && saslRequired && interpreterWithdrawal.endsTheConsultation) finish('interpreter-withdrawn');
+    }}/>
    {withdrawnNote && <div className="privacy-note" role="status"><DoorOpen size={19}/>{withdrawnNote}</div>}
 
    <SectionTitle title="The line"/>
@@ -330,6 +367,7 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    <h3>{outcome.name}</h3>
    <Pill tone={outcome.countsAsConsultation ? 'teal' : 'amber'}>{outcome.countsAsConsultation ? 'Counts as a consultation' : 'Not a consultation'}</Pill>
    <p className="muted">{outcome.record}</p>
+   {closed === 'interpreter-withdrawn' && <div className="privacy-note alert" role="status"><ShieldX size={19}/>{interpreterWithdrawal.sentence} {interpreterWithdrawal.why} {interpreterWithdrawal.notAPunishment}</div>}
    <div className="review-line"><span>Charged</span><strong>{outcome.charged ? 'Yes — a consultation was held' : 'No'}</strong></div>
    {!outcome.charged && <p className="helper">{refusalById('charge-for-a-failure').sentence}</p>}
 
@@ -357,7 +395,7 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
     <div className="tc-refusal" key={r.id}><Ban size={19}/><p>{r.sentence}</p></div>)}</div>
    <EmptyNote>{ruleById('no-media-in-this-build').sentence} Nothing was transmitted, no encounter was written and no clinician was notified.</EmptyNote>
    <div className="button-row">
-    <button className="secondary" onClick={() => { setStage(0); setClosed(null); setDecisionReached(false); setResumed(false); setEverDropped(false); setConnectionId('video'); setCode(''); setCodeError(''); setIdentityConfirmed(false); setConsented({ doctor: false, nurse: false, guardian: false, interpreter: false }); setWithdrawnNote(null); }}><ArrowLeft size={16}/>Start again</button>
+    <button className="secondary" onClick={() => { setStage(0); setClosed(null); setDecisionReached(false); setResumed(false); setEverDropped(false); setConnectionId('video'); setCode(''); setCodeError(''); setIdentityConfirmed(false); setConsented({ doctor: false, nurse: false, guardian: false, interpreter: false }); setWithdrawnNote(null); setChosen({ nurse: true, guardian: false, interpreter: false }); }}><ArrowLeft size={16}/>Start again</button>
     {onClose && <button className="primary" onClick={onClose}>Close<Check size={17}/></button>}
    </div>
   </div>}

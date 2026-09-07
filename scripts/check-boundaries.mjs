@@ -10,6 +10,7 @@ import { emitLocales } from './emit-locales.mjs';
 import { emitDispensing } from './emit-dispensing.mjs';
 import { emitProgrammes } from './emit-programmes.mjs';
 import { clinicalIdentifiers, tablesIn } from './clinical-tables.mjs';
+import { emitInterpreting } from './emit-interpreting.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -390,7 +391,8 @@ const generated = [
  { source: 'packages/catalog/teleconsult.json', command: 'npm run teleconsult', files: emitTeleconsult() },
  { source: 'packages/catalog/locales.json', command: 'npm run locales', files: emitLocales() },
  { source: 'packages/catalog/dispensing.json', command: 'npm run dispensing', files: emitDispensing() },
- { source: 'packages/catalog/programmes.json', command: 'npm run programmes', files: emitProgrammes() }
+ { source: 'packages/catalog/programmes.json', command: 'npm run programmes', files: emitProgrammes() },
+ { source: 'packages/catalog/interpreting.json', command: 'npm run interpreting', files: emitInterpreting() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -1175,4 +1177,127 @@ for(const f of ['apps/ios/MyThuso/Models/ProgrammesData.swift','apps/android/app
  }
 }
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}.`);
+const SOS_ESTIMATE_RULE = 'estimate-says-when-it-does-not-know';
+if(!sos.rules.some(r => r.id === SOS_ESTIMATE_RULE)) throw new Error(`packages/catalog/sos.json no longer carries the "${SOS_ESTIMATE_RULE}" rule. It is the one an interpreter's wait is held to as well.`);
+/* ---- The interpreter -----------------------------------------------------------------------------
+
+   packages/catalog/locales.json says what is owed to a Deaf patient. packages/catalog/interpreting.json
+   is what carries it out, and the ten checks below are the parts of it that are worth failing a build
+   over rather than reviewing by eye.
+
+   The first three are about who an interpreter is. An interpreter hears an entire consultation —
+   the history, the examination and the part the patient nearly did not say — so they are a vetted
+   party like anybody else who comes into a house, and they are granted exactly one thing. A row that
+   quietly acquired the clinical record would be the worst kind of drift here, because it would look
+   like an improvement.
+
+   The next three are about the wait. The rule is not new: packages/catalog/sos.json already holds an
+   ambulance's arrival to it, under the same id. What is enforced here is that all three platforms
+   can still answer "I do not know" — a function whose signature cannot return nothing is a function
+   somebody will one day make return a number, and the number will be one a person plans a day off
+   work around.
+
+   The rest are about the refusals: that they are rendered rather than merely written down, that the
+   accommodation cannot become chargeable, and that the accreditation route cannot start claiming a
+   confirmation nobody gave — the same rule the locale table is held to. */
+const interpreting = JSON.parse(read('packages/catalog/interpreting.json'));
+const interpreterRole = vetting.roles.find(r => r.id === interpreting.roleId);
+if(!interpreterRole) throw new Error(`The interpreting contract names a vetted role "${interpreting.roleId}" that packages/catalog/vetting.json does not have. An interpreter who is not on the vetting table is an unvetted person hearing a whole consultation.`);
+if(!rosterParticipants.has(interpreting.participantId)) throw new Error(`The interpreting contract names a call participant "${interpreting.participantId}" the teleconsultation roster does not have. An interpreter added by a second mechanism is an interpreter nobody consented to.`);
+if(interpreting.requirementId !== signLanguage.requirement.id) throw new Error(`The interpreting contract answers a requirement "${interpreting.requirementId}" and the sign-language accommodation raises "${signLanguage.requirement.id}". One of them is not the thing the other switches on.`);
+
+/* An interpreter goes into a stranger's home and hears everything said in it. Three of these are
+   what any other party entering a house is held to, and the fourth is this role's own: a
+   confidentiality undertaking as its own check rather than a line inside a training record. */
+for(const required of ['identity', 'police-clearance', 'sasl-accreditation', 'confidentiality-undertaking']) {
+ if(!interpreterRole.checks.some(c => c.id === required)) throw new Error(`The ${interpreterRole.name} role has no "${required}" check. An interpreter hears the whole consultation and comes into the house to do it; the checks are the same ones everybody else who does either is held to.`);
+}
+/* The one that would look like an improvement. An interpreter interprets; they are not given the
+   record, then or afterwards, and hearing a consultation is not reading one. */
+const recordCapabilities = ['view-patient-summary', 'view-clinical-record', 'view-protected-record', 'view-results', 'write-clinical-note'];
+for(const grant of interpreterRole.grants) {
+ if(recordCapabilities.includes(grant.capability)) throw new Error(`The ${interpreterRole.name} role is granted "${grant.capability}". ${interpreting.refusals.find(r => r.id === 'interpreter-opens-the-record').sentence}`);
+}
+
+/* The wait, and the three signatures that have to be able to say they do not know. A function that
+   cannot return nothing is a function that will be made to return something.
+
+   The parameter list is spelled out in each pattern rather than wildcarded, because each of those
+   three files quotes its own signature in the comment that explains it — and a check satisfied by
+   the comment about a declaration is the check this file warns about twice already. */
+const waitSignatures = [
+ ['web', 'apps/web/src/lib/interpreting.ts', /export function firstFree\(mode:[\s\S]*?\): FreeSlot \| null \{/],
+ ['ios', 'apps/ios/MyThuso/Models/Interpreting.swift', /static func firstFree\(mode:[\s\S]*?\) -> FreeSlot\? \{/],
+ ['android', 'apps/android/app/src/main/java/za/co/mythuso/model/Interpreting.kt', /fun firstFree\(mode:[\s\S]*?\): FreeSlot\? =/]
+];
+for(const [platform,file,signature] of waitSignatures) {
+ if(!existsSync(file)) throw new Error(`The ${platform} app has no interpreter availability model (${file}). The accommodation is not optional on one platform.`);
+ if(!signature.test(read(file))) throw new Error(`${platform} (${file}) no longer has a firstFree that can return nothing. An estimate that cannot admit it does not know is an estimate that will be made up, and ${SOS_ESTIMATE_RULE} says the same thing about an ambulance.`);
+}
+/* And the generator writes down no wait at all. The hours are emitted; which one answers a request
+   is worked out three times from them, so the arithmetic cannot quietly move into a build script. */
+for(const file of emitInterpreting()) {
+ if(/(nextFree|waitDays|firstFree)\b/.test(file.content)) throw new Error(`${file.path} carries a resolved wait. The generator emits free hours and never a conclusion, because a screen handed a number never has to decide whether it knows one.`);
+}
+/* The honest-estimate rule, in the words it already has elsewhere. Both contracts carry it under
+   the same id on purpose: an estimate honest on one screen and confident on another is worse than
+   either. */
+if(!interpreting.rules.some(r => r.id === SOS_ESTIMATE_RULE)) throw new Error(`The interpreting contract does not carry the "${SOS_ESTIMATE_RULE}" rule that packages/catalog/sos.json carries for an ambulance's arrival. There is one rule about a number nobody can work out, and it applies to both.`);
+for(const word of ['zero', 'not know']) {
+ if(!interpreting.estimate.unknown.toLowerCase().includes(word) && !interpreting.estimate.unknownDetail.toLowerCase().includes(word)) {
+  throw new Error(`The unknown-wait sentence no longer says what it will not do ("${word}"). It says it does not know, and it says it never shows zero, because both are things a reader has to be told rather than left to infer from a blank.`);
+ }
+}
+
+/* The status word, in one place. "Held for an interpreter" is a literal in the Visit type because a
+   status has to be a literal for the type to be worth anything; this is what stops there being two
+   of them. */
+if(!read('apps/web/src/lib/scheduling.ts').includes(`'${interpreting.hold.status}'`)) throw new Error(`The Visit type in apps/web/src/lib/scheduling.ts does not carry the status "${interpreting.hold.status}" from the interpreting contract. A held visit that cannot be typed is a held visit that gets dispatched.`);
+
+/* Cancelling because MyThuso could not staff the accommodation is free, and it is MyThuso's
+   cancellation. Both halves, because either one alone is the failure. */
+if(interpreting.cancellation.fee !== 0) throw new Error(`Cancelling a visit held for an interpreter costs ${interpreting.cancellation.fee}. It costs nothing: the wait is not something the patient did.`);
+if(interpreting.cancellation.attributedTo === 'patient' || /patient/i.test(interpreting.cancellation.attributedTo)) throw new Error('A visit cancelled because no interpreter was available is recorded against MyThuso. A service that files its own failures under the patient\'s name stops being able to see them.');
+if(interpreting.cost.charged !== false) throw new Error('The interpreter contract makes the accommodation chargeable. An accommodation that is billed is a fee for being Deaf.');
+
+/* Withdrawing the interpreter ends the consultation rather than continuing without one, and the
+   roster is where it happens — the same participant, the same question, the same one action. */
+if(interpreting.withdrawal.endsTheConsultation !== true) throw new Error('Withdrawing consent to the interpreter no longer ends the consultation. A consultation the patient cannot follow is not one they can consent to, so it stops and is rebooked.');
+if(!read('apps/web/src/features/Teleconsult.tsx').includes('interpreterWithdrawal.endsTheConsultation')) throw new Error('The teleconsultation screen no longer ends the call when the interpreter is asked to leave. The rule is in packages/catalog/interpreting.json and the screen has to be the thing that obeys it.');
+
+/* The refusals are the substance of this whole feature, and they are rendered on all three
+   platforms rather than merely written down: a refusal nobody reads is a rule nobody follows, and
+   the person who needs the reason is the relative in the room offering to interpret.
+
+   The declaration, not the word — the same trap the clinical-language gate above avoids. A check
+   that a file mentions "refusals" is satisfied by the comment at the top explaining why it used to
+   render them. */
+const interpreterSurfaces = [
+ ['web', 'apps/web/src/features/Interpreting.tsx', /refusals\.map\(/],
+ ['ios', 'apps/ios/MyThuso/Features/InterpretingView.swift', /ForEach\(Interpreting\.refusals\)/],
+ ['android', 'apps/android/app/src/main/java/za/co/mythuso/ui/InterpretingScreens.kt', /interpretingRefusals\.forEach/]
+];
+for(const [platform,file,rendering] of interpreterSurfaces) {
+ if(!existsSync(file)) throw new Error(`${platform} has no interpreter screen (${file}). The accommodation is not optional on one platform.`);
+ if(!rendering.test(read(file))) throw new Error(`${platform} (${file}) no longer renders the refusals out of the contract. Making an option absent teaches nobody: the person who needs the reason is the family member offering to interpret.`);
+}
+/* And three of them are named on the call roster itself, which is the one place a relative is
+   actually being offered as the answer. Both directions are checked, because the screen asks for
+   them by id: an id the contract loses is a blank where the reason goes. */
+const namedOnTheCall = ['family-as-interpreter', 'child-as-interpreter', 'written-english-instead'];
+const callScreen = read('apps/web/src/features/Teleconsult.tsx');
+for(const id of namedOnTheCall) {
+ const refusal = interpreting.refusals.find(r => r.id === id);
+ if(!refusal) throw new Error(`The teleconsultation roster asks for the refusal "${id}" and the interpreting contract no longer has it, so the screen would render a blank where the reason goes.`);
+ if(!callScreen.includes(id)) throw new Error(`The teleconsultation roster no longer says "${refusal.title}". It is said there rather than only on the interpreter screen because the roster is where somebody would otherwise offer a relative.`);
+}
+/* Drafted until somebody says otherwise, in the same terms the locale table uses. A route presented
+   as confirmed without a name, an organisation and a day is the failure this whole mechanism exists
+   to prevent, and here it would be an interpreter refused on a number MyThuso guessed the shape of. */
+const accreditation = interpreting.accreditation;
+if(!vetting.authorities.some(a => a.id === accreditation.authorityId)) throw new Error(`The interpreting contract names an issuing authority "${accreditation.authorityId}" that the vetting register does not have`);
+const accreditationConfirmed = accreditation.confirmedBy && accreditation.confirmedOrganisation && accreditation.confirmedOn;
+if(!accreditationConfirmed && !accreditation.uncertainty) throw new Error(`The ${accreditation.short} accreditation route is not confirmed and does not say so. A drafted route that does not announce itself is exactly the claim the locale table is not allowed to make.`);
+if(accreditationConfirmed && !accreditation.route) throw new Error(`The ${accreditation.short} accreditation route claims a confirmation without saying what was confirmed`);
+
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. That interpreter is now a vetted party with ${interpreterRole.checks.length} checks of their own and one capability, granted nothing that opens a record; ${interpreting.roster.length} of them carry hours rather than a conclusion, so all three platforms work out for themselves which hour answers a request and all three can still return nothing — a visit with no interpreter is held rather than dispatched and carries the contract's own word for it on all three, cancelling one costs ${interpreting.cancellation.fee} and is recorded against ${interpreting.cancellation.attributedTo} rather than the patient, and the ${interpreting.refusals.length} refusals — a family member, a child, English written at somebody — are on the screen rather than only in the file. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}.`);

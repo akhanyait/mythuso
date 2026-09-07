@@ -154,6 +154,15 @@ struct LanguageView: View {
                 }
                 Text(ThusoLanguageNotes.signLanguageNotBuilt).font(.caption).foregroundStyle(.secondary)
             }
+            /* The arrangements themselves, one screen along: the roster, the hold, the wait that
+               says when it does not know, and the refusals. They are not on this screen because
+               this screen is where a language is chosen, and an interpreter is not a language
+               setting — it is who else is in the room. */
+            Section {
+                NavigationLink(Interpreting.labels.heading) { InterpretingView() }
+            } footer: {
+                Text(Interpreting.rule("one-roster").sentence).font(.caption)
+            }
         }
         .navigationTitle("Language").navigationBarTitleDisplayMode(.inline)
     }

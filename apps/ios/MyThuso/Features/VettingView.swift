@@ -1,7 +1,7 @@
 import SwiftUI
 
 /* Vetting is the gate the whole marketplace rests on, so this is a real pipeline with real refusals
-   rather than a list of names: an applicant flow for every one of the twelve vetted parties, a
+   rather than a list of names: an applicant flow for every one of the thirteen vetted parties, a
    status screen that resolves its own state against today's date, and a queue where a decision
    taken here is the same record dispatch and the clinical queue ask before they offer an action.
 
@@ -101,7 +101,7 @@ struct VettingDirectoryView: View {
         List {
             Section {
                 DemoBadge()
-                Text("Twelve parties are vetted, not only nurses.").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                Text("Thirteen parties are vetted, not only nurses.").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Text("Each one is refused something specific until its checks pass, and each check is renewed on its own cadence by the authority that issued it.")
                     .font(.caption).foregroundStyle(.secondary)
                 StatePicker(title: "Preview the vetting feed state", state: $feed)
@@ -205,7 +205,7 @@ struct CheckDefinitionRow: View {
     }
 }
 
-// MARK: - Applying, for any of the twelve roles
+// MARK: - Applying, for any of the thirteen roles
 
 struct VettingApplyView: View {
     var roleId: String = "nurse"

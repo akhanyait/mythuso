@@ -466,7 +466,7 @@ struct WorkspaceSectionView: View {
             Section("Vetting") {
                 NavigationLink("Vetting queue") { VettingConsoleView() }
                 NavigationLink("Renewals due") { VettingRenewalsView() }
-                NavigationLink("All twelve vetted parties") { VettingDirectoryView() }
+                NavigationLink("All thirteen vetted parties") { VettingDirectoryView() }
             }
         case ("Control Tower", "Quality"):
             Section("Your tools") {

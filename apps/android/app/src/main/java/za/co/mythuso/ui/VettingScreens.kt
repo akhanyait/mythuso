@@ -102,7 +102,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                     HorizontalDivider(color = Line)
                     MenuRow("Decision log", "Append-only, including the lapses nobody decided", Icons.Outlined.History) { open("Vetting decision log") }
                     HorizontalDivider(color = Line)
-                    MenuRow(thuso(Phrase.VETTING_APPLY, store.locale), "Any of the twelve vetted roles", Icons.Outlined.PersonAdd) { open("Apply for vetting") }
+                    MenuRow(thuso(Phrase.VETTING_APPLY, store.locale), "Any of the thirteen vetted roles", Icons.Outlined.PersonAdd) { open("Apply for vetting") }
                 }
                 FlowRowChips(listOf("All roles") + vettingRoles.map { it.name }, setOf(filter)) { filter = it }
                 summaries.forEach { (subject, summary) ->
@@ -293,7 +293,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
 }
 
 /* ---- The applicant flow ------------------------------------------------------------------------
-   The same six steps for all twelve roles, because the questions are the same questions: who are
+   The same six steps for all thirteen roles, because the questions are the same questions: who are
    you, what are you registered to do, what can you show for it, and what are you undertaking. What
    changes is which authority is asked, and that is data rather than a screen per role. */
 @Composable fun VettingApplicationScreen(store: PreviewStore, initialRole: String?, open: (String) -> Unit, close: () -> Unit) {

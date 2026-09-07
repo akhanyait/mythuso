@@ -69,7 +69,13 @@ export type Visit = {
  date?: string;
  start?: string;
  payment: string;
- status: 'Confirmed' | 'Looking for a nurse';
+ /* "Held for an interpreter" is the third status and it is not a confirmation. It is the word in
+    packages/catalog/interpreting.json, checked against it, because a visit the account required an
+    interpreter for and has not got one is not dispatched — it waits. */
+ status: 'Confirmed' | 'Looking for a nurse' | 'Held for an interpreter';
+ /** Set when the account records the SASL requirement: which interpreter, or the fact that nobody
+     within the offered window is free. Resolved in lib/interpreting.ts, never typed on a screen. */
+ interpreter?: { mode: string; name?: string; iso?: string; slot?: string };
 };
 
 export const visitEnds = (visit: Visit) => (visit.start ? endTime(visit.start, visit.service.duration) : undefined);

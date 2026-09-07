@@ -1,7 +1,7 @@
 import schema from '../../../../packages/catalog/vetting.json';
 import { validateSaId } from './identity';
 
-/* Vetting is the gate the whole marketplace rests on. Twelve parties are vetted — not only nurses —
+/* Vetting is the gate the whole marketplace rests on. Thirteen parties are vetted — not only nurses —
    and every one of them is refused something specific until their checks pass. The roles, the
    checks, the issuing authorities and the renewal cadences are data in
    packages/catalog/vetting.json so that web, iOS and Android cannot quietly disagree about who is

@@ -2,7 +2,7 @@ import Combine
 import Foundation
 
 /* Vetting is the gate the whole marketplace rests on, so it is a real pipeline with real refusals
-   rather than a list of names. Twelve parties are vetted — not only nurses — and each one is
+   rather than a list of names. Thirteen parties are vetted — not only nurses — and each one is
    refused something specific, in its own words, until its checks pass.
 
    The roles, checks, issuing authorities, credential formats and refusal sentences are described
@@ -65,7 +65,7 @@ struct VettedRole: Identifiable, Hashable {
 }
 
 enum Vetting {
-    /* The capabilities, the issuing authorities and their credential formats, the twelve roles
+    /* The capabilities, the issuing authorities and their credential formats, the thirteen roles
        with their refusal sentences and checks, and the scopes of practice are generated into
        VettingData.swift from packages/catalog/vetting.json. Everything below is the reasoning
        about that table, which is not data and is not generated. */

@@ -24,6 +24,7 @@ import { InviteGuardian, sampleInvitations, type Invitation } from './features/G
 import { Texture } from './components/HeroCarousel';
 import { Access } from './features/Access';
 import { LocaleContext, locales, useT, clinicalRule, signLanguage, missingSets, type LocaleCode } from './lib/i18n';
+import { useSaslRequirement } from './lib/interpreting';
 import { currentPerson, endSession, probe } from './lib/auth';
 import { type Service } from './lib/catalog';
 const navigation=[['Overview',House],['Book a nurse',Stethoscope],['My visits',CalendarDays],['Health Passport',Activity],['My family',Users],['Care plans',HeartHandshake],['Thuso Wallet',CreditCard],['Explore MyThuso',LayoutGrid]] as const;
@@ -144,7 +145,9 @@ function modalBody(p:BodyProps){
    communication requirement on the account instead, and the written language stays a separate
    choice — because a Deaf patient reads a written language too, and it is not English by default. */
 function LanguageChoice({locale,setLocale,close}:{locale:LocaleCode;setLocale:(l:LocaleCode)=>void;close:()=>void}){
- const [sasl,setSasl]=useState(false);
+ /* Not local state: the requirement travels with the account, so it is set here and read by
+    booking, the call roster and the access screen out of lib/interpreting.ts. */
+ const [sasl,setSasl]=useSaslRequirement();
  const chosen=locales.find(l=>l.code===locale);
  const absent=missingSets(locale);
  return <div className="form-stack"><p className="muted">{clinicalRule.sentence}</p>

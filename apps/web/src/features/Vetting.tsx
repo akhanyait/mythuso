@@ -346,7 +346,7 @@ function AuditTrail({ log }: { log: VettingEvent[] }) {
 }
 
 /* ---- The applicant flow -------------------------------------------------------------------
-   One flow for twelve roles, because the checks, the issuing authorities and the renewal cadences
+   One flow for thirteen roles, because the checks, the issuing authorities and the renewal cadences
    are data. A separate screen per role would drift from the console that has to decide it. */
 type Step = 'role' | 'credential' | 'scope' | 'evidence' | 'declarations' | 'attestation';
 const stepLabels: Record<Step, string> = {
@@ -387,7 +387,7 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
   <Pill>{role ? `${role.name} vetting preview` : 'Vetting preview'}</Pill>
   {now === 'role' ? <>
    <h3>Who is applying?</h3>
-   <p className="muted">Twelve parties are vetted, not only nurses. Each one is refused something specific until its checks pass.</p>
+   <p className="muted">Thirteen parties are vetted, not only nurses. Each one is refused something specific until its checks pass.</p>
    {roles.map(r => <button className="record-row" key={r.id} aria-pressed={chosen === r.id} onClick={() => { setChosen(r.id); setCredential(''); setTouched(false); setScope([]); setReady([]); setStep(1); }}>
     <span className="service-icon"><Users size={20}/></span>
     <span><strong>{r.name}</strong><small>{r.summary}</small><small>{r.checks.length} checks · {r.grants.length} thing{r.grants.length === 1 ? '' : 's'} it is refused until they pass</small></span>

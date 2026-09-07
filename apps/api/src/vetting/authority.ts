@@ -335,7 +335,21 @@ const DHA = unreachable('dha', {
  note: 'The adapter is built: signed requests, a signature-verified idempotent callback, a sandbox that runs without secrets, and a refusal to sandbox in production. What is missing is a contract and a key, which is the only honest thing left to be missing.'
 });
 
-const STUBS: readonly AuthorityVerifier[] = [SANC, HPCSA, SAPC, SANAS, SAPS, DHA, CIPC, RTMC, SAHPRA, INSURER, INSTITUTION, INTERNAL];
+/* SATI. The accrediting body for the SASL interpreting check, and the one adapter here whose
+   *authority* is drafted rather than only its integration. SATI runs an accreditation examination
+   and publishes a member directory; MyThuso has written the interpreter's accreditation check
+   against that route and nobody at SATI, DeafSA or PanSALB has confirmed that it is the right one.
+   So this adapter says two things are missing rather than one, which is the honest count: an
+   arrangement to ask, and an answer about whether SATI is who to ask. */
+const SATI = unreachable('sati', {
+ route: 'none',
+ needs: 'First, confirmation from SATI — or from whoever actually accredits South African Sign Language interpreters — that accreditation runs through them at all. Then a confirmation arrangement with that body. The published member directory is a snapshot and shows membership rather than accreditation standing.',
+ latency: 'Unknown, because the route is unknown. A directory lookup would be seconds; a written confirmation would be days.',
+ holds: 'The membership or accreditation number as it appears on the certificate, and the interpreter\'s name. MyThuso deliberately holds no assumption about the number\'s format — guessing one is how a real interpreter is told their real number is invalid.',
+ note: 'This is the only authority in the register whose identity is a draft. If SASL accreditation runs elsewhere, this row is the wrong one and the check hanging on it is the wrong check — which is written down here, in the vetting contract and on the interpreter screen, so it can be corrected by somebody who knows rather than discovered by an interpreter who is refused.'
+});
+
+const STUBS: readonly AuthorityVerifier[] = [SANC, HPCSA, SAPC, SANAS, SAPS, DHA, CIPC, RTMC, SAHPRA, INSURER, INSTITUTION, SATI, INTERNAL];
 
 /**
  * The registry, checked while it is built.

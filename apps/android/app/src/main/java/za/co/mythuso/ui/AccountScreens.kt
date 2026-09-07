@@ -158,6 +158,8 @@ import za.co.mythuso.model.mokoenaHousehold
             MenuRow("Privacy & settings", "Your data and app preferences", Icons.Outlined.Tune) { open("Privacy & settings") }
             HorizontalDivider(color = Line)
             MenuRow("Language", "Read MyThuso your way", Icons.Outlined.Language) { open("Language") }
+            HorizontalDivider(color = Line)
+            MenuRow("Interpreters", "South African Sign Language: who is free, and what happens when nobody is", Icons.Outlined.Language) { open("Interpreters") }
         }
         CareCard {
             MenuRow("First-run & recovery", "Sign-up, one-time code and lost access", Icons.Outlined.PersonAdd) { firstRun() }
@@ -216,6 +218,7 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Care plans" -> PlansScreen(open)
         title == "Thuso Wallet" -> WalletScreen(open)
         title == "Language" -> LanguageScreen(store)
+        title == "Interpreters" -> InterpretingScreen()
         title == "System states" -> SystemStatesScreen()
         title == "Roadmap" -> RoadmapScreen(store, open)
         title == "First-run & recovery" -> firstRun()

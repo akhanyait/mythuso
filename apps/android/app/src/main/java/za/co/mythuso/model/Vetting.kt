@@ -12,7 +12,7 @@ import java.util.Locale
 
 /*
  * Vetting is the gate the whole marketplace rests on, so it is a real pipeline with real refusals
- * rather than a list of names. Twelve parties are vetted — not only nurses — and each one is
+ * rather than a list of names. Thirteen parties are vetted — not only nurses — and each one is
  * refused something specific, in words, until its checks pass.
  *
  * The roles, checks, issuing authorities and renewal cadences are described once, as data, in
@@ -41,7 +41,7 @@ data class VettingRole(
     val summary: String, val grants: List<VettingGrant>, val checks: List<VettingCheck>
 )
 
-/* The capabilities, the issuing authorities and their credential formats, the twelve roles with
+/* The capabilities, the issuing authorities and their credential formats, the thirteen roles with
    their refusal sentences and checks, and the scopes of practice are generated into VettingData.kt
    from packages/catalog/vetting.json. Everything in this file is the reasoning about that table,
    which is not data and is not generated. */

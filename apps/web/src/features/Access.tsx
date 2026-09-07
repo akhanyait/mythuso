@@ -1,6 +1,7 @@
 import { CircleAlert, Ear, Globe, Languages, ShieldCheck, Stethoscope, X } from 'lucide-react';
 import { SectionTitle } from '../components/UI';
 import { clinicalRule, fallbackRule, locales, sets, signLanguage, translationHonesty } from '../lib/i18n';
+import { Interpreting } from './Interpreting';
 /* Language and access, as a screen rather than as a paragraph in a settings dialog.
  *
  * Three things are on this page because they are the three things MyThuso currently owes a reader
@@ -18,8 +19,10 @@ import { clinicalRule, fallbackRule, locales, sets, signLanguage, translationHon
  * And South African Sign Language, which is not in the table above it and says why. What is owed to
  * a Deaf patient is arrangements — a booking that will not complete without an interpreter, a nurse
  * told before she leaves, an interpreter named on the call roster — and six things that must never
- * happen. None of it is built. Writing down what is owed before it exists is the only way the shape
- * of it survives contact with a deadline.
+ * happen. Writing down what is owed before it exists is the only way the shape of it survives
+ * contact with a deadline, and the section under this one is what was written down being carried
+ * out: a vetted interpreter, a roster, a visit held rather than dispatched, and a wait that says
+ * when it does not know. What is still not built is said there rather than here.
  */
 export function Access() {
  const drafted = locales.filter(locale => !locale.reviewed);
@@ -63,5 +66,10 @@ export function Access() {
    {signLanguage.mustNeverHappen.map(rule => <div className="access-rule never" key={rule.id}><X size={19}/><span>{rule.sentence}</span></div>)}
    <div className="empty-note">{signLanguage.notYetBuilt}</div>
   </section>
+
+  {/* The accommodation itself, on the same page as the guidance that describes it. Two screens
+      would let the promise and the arrangement drift apart, which is precisely the failure the
+      paragraph above spent six sentences on. */}
+  <Interpreting/>
  </>;
 }

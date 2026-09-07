@@ -29,7 +29,8 @@ extension Vetting {
         .init(id: "run-programme", name: "Run a programme", detail: "Operate an employer or community health programme"),
         .init(id: "sponsor-care", name: "Sponsor care", detail: "Pay for another person's visits"),
         .init(id: "guardian-access", name: "Hold guardian access", detail: "Act for a minor or a dependent adult"),
-        .init(id: "host-screening", name: "Host a screening site", detail: "Receive patients at a community screening location")
+        .init(id: "host-screening", name: "Host a screening site", detail: "Receive patients at a community screening location"),
+        .init(id: "interpret-consultation", name: "Interpret a consultation", detail: "Join a call or attend a visit as the named interpreter, and hear every word of it")
     ]
     /* The formats are the ones the issuing bodies actually use, so the preview can say "that is not
        a SANC number" locally, without sending anything anywhere. The numbers entered are fictional. */
@@ -67,6 +68,9 @@ extension Vetting {
         .init(id: "institution", name: "Issuing institution", short: "Institution",
               verifies: "Qualifications, checked with the institution that issued them", format: "Certificate number",
               pattern: "^[A-Z0-9/-]{4,24}$", example: "WITS/2018/44120", hint: "Enter the certificate or diploma number."),
+        .init(id: "sati", name: "South African Translators’ Institute", short: "SATI",
+              verifies: "Accreditation as a South African Sign Language interpreter", format: "Membership or accreditation number",
+              pattern: "^[A-Z0-9/-]{4,20}$", example: "1002481", hint: "Enter the number exactly as it appears on your SATI accreditation certificate. MyThuso does not assume a format for it."),
         .init(id: "internal", name: "MyThuso Clinical Governance", short: "MyThuso",
               verifies: "Training, references and undertakings held by MyThuso", format: "Recorded internally",
               pattern: "", example: "", hint: "This check is completed by MyThuso and has nothing for you to enter.")
@@ -170,6 +174,19 @@ extension Vetting {
                     .init(id: "vehicle", name: "Vehicle and container", detail: "Roadworthy vehicle and a calibrated transport container", authority: "internal", evidence: "Roadworthy certificate and calibration record", renewMonths: 12, risk: "standard"),
                     .init(id: "popia-training", name: "POPIA and confidentiality", detail: "A courier learns who is ill from an address. That is special personal information", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard")
                    ]),
+        VettedRole(id: "interpreter", name: "SASL interpreter", party: "person", workspace: "Partner",
+                   summary: "Interprets between South African Sign Language and spoken English for a visit or a call, and hears the whole of it.",
+                   grants: [
+                    .init(capability: "interpret-consultation", refusal: "An interpreter whose checks have not passed is never named on a roster, never joins a call and is never sent to a house. There is no once-off exception, because there is no part of a consultation an interpreter does not hear.")
+                   ],
+                   checks: [
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
+                    .init(id: "sasl-accreditation", name: "SASL interpreting accreditation", detail: "Accreditation as a South African Sign Language interpreter, verified with the accrediting body", authority: "sati", evidence: "Accreditation certificate and current membership", renewMonths: 12, risk: "high"),
+                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years, like anybody else who comes into a patient's home", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high"),
+                    .init(id: "health-interpreting", name: "Interpreting in a health setting", detail: "Clinical vocabulary, the boundaries of the role, and how to say that a meaning did not carry rather than smoothing it over", authority: "internal", evidence: "Training record", renewMonths: 24, risk: "standard"),
+                    .init(id: "confidentiality-undertaking", name: "Confidentiality undertaking", detail: "Signed on the same terms as the clinicians. An interpreter hears the consultation itself, not a summary of it, and is held to it as its own check rather than as a line inside another one", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "high"),
+                    .init(id: "popia-training", name: "POPIA and special personal information", detail: "What health information is under POPIA, and what may never leave the room it was signed in", authority: "internal", evidence: "Training record", renewMonths: 12, risk: "standard")
+                   ]),
         VettedRole(id: "operator", name: "Control Tower operator", party: "person", workspace: "Control Tower",
                    summary: "Dispatches nurses, triages incidents and escalates.",
                    grants: [
@@ -261,6 +278,8 @@ extension Vetting {
                         options: ["Full blood count", "Fasting glucose", "HbA1c", "Lipogram", "Urea and electrolytes", "Liver function", "Urine dipstick"]),
         "courier": RoleScope(label: "Samples carried", note: "A courier carries only the categories they are trained and equipped for. Cold chain is not a preference.",
                         options: ["Ambient samples", "Cold-chain samples", "Biohazard category B"]),
+        "interpreter": RoleScope(label: "Settings interpreted in", note: "You are only ever booked into a setting you are accredited and trained for. A clinical consultation is not a school meeting, and the Control Tower cannot decide otherwise.",
+                        options: ["Clinical consultation", "Home visit", "Mental health", "Sexual and reproductive health", "Paediatric", "Deafblind (tactile) interpreting", "After hours"]),
         "corner": RoleScope(label: "Services offered", note: "A site offers only what its inspection covers. A room that passed for screening has not passed for vaccination.",
                         options: ["Screening", "Identity recovery", "Vaccination support"])
     ]
