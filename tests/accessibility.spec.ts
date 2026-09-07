@@ -111,6 +111,25 @@ const audit = async (page: Page, where: string) => {
   expect(await undersizedText(page, MIN_TEXT), `${where} renders text under ${MIN_TEXT}px, which is the smallest size the type scale declares`).toEqual([]);
 };
 
+/* The five patient screens the home's restructure did not reach. Health Passport was already
+   audited below; the other four were not, and Privacy & settings was where that showed — its three
+   sharing switches were 50x30, the only controls left in the app under the floor the token file
+   sets, on the screen where a person turns data sharing on and off. An audit that visits four of
+   five screens is an audit of four screens. */
+const patientSurfaces = ['Health Passport', 'My family', 'Care plans', 'Thuso Wallet', 'Privacy & settings'] as const;
+const openPatientSurface = async (page: Page, name: string) => {
+  const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
+  if (await sidebar.isVisible()) {
+    const entry = sidebar.getByRole('button', { name, exact: true });
+    if (await entry.count()) { await entry.click(); return; }
+    await page.locator('button.settings-link').filter({ hasText: name }).first().click();
+    return;
+  }
+  if (name === 'Health Passport') { await page.locator('.tabbar button').nth(3).click(); return; }
+  await page.locator('.tabbar button').nth(4).click();
+  await page.locator('.menu-row').filter({ hasText: name }).first().click();
+};
+
 /* The sidebar on a desktop, the More tab on a phone. Both reach the same page. */
 const openLanguageAndAccess = async (page: Page) => {
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
@@ -133,6 +152,25 @@ test.describe('at a 320px viewport', () => {
     await audit(page, 'Book a nurse at 320px');
     await page.locator('.tabbar button').nth(3).click();
     await audit(page, 'Health Passport at 320px');
+  });
+
+  /* One load, then the shell's own navigation — five reloads of a single-page app to reach five of
+     its own pages is five seconds of nothing, and a slow test starves the ones beside it. */
+  test('my family, care plans, the wallet and privacy hold together too', async ({ page }) => {
+    await page.goto('/');
+    for (const surface of patientSurfaces) {
+      await openPatientSurface(page, surface);
+      await audit(page, `${surface} at 320px`);
+    }
+  });
+
+  test('the passport reads in all four of its sections', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('.tabbar button').nth(3).click();
+    for (const section of ['Records', 'Medications', 'More']) {
+      await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: section, exact: true }).click();
+      await audit(page, `Health Passport · ${section} at 320px`);
+    }
   });
 
   test('the language dialog says which languages nobody has read, and stays inside the screen', async ({ page }) => {
@@ -188,6 +226,15 @@ test.describe('at 200% zoom', () => {
     await page.getByRole('button', { name: /Thuso SOS/ }).click();
     await expect(page.getByRole('dialog').locator('.sos-emergency')).toContainText('10177');
     await audit(page, 'Thuso SOS at 200%');
+  });
+
+  test('the five patient screens reflow rather than scroll sideways', async ({ page }) => {
+    await page.goto('/');
+    await zoomedTo200(page);
+    for (const surface of patientSurfaces) {
+      await openPatientSurface(page, surface);
+      await audit(page, `${surface} at 200%`);
+    }
   });
 
   test('the nurse workspace holds together', async ({ page }) => {

@@ -59,12 +59,18 @@ export function InviteGuardian({ onInvite, onClose }: { onInvite: (i: Invitation
   </>}
  </div>;
 }
+/* Four statuses, one badge shape. "Active" used to be a teal pill and everything else a bare
+   uppercase caption, so two invitations in the same list were told apart by two different kinds of
+   thing rather than by two different words. The word still carries the meaning — the tone only
+   repeats it — because a status a reader has to see in colour is a status half of them cannot. */
+const invitationTone = (status: Invitation['status']) =>
+ status === 'Active' ? 'teal' : status === 'Revoked' ? 'danger' : 'amber';
 export function InvitationList({ invitations, onRevoke }: { invitations: Invitation[]; onRevoke: (id: string) => void }) {
  return <div className="panel">
-  {invitations.map(i => <div className="record-row static" key={i.id}>
+  {invitations.map(i => <div className="record-row static invitation-row" key={i.id}>
    <span className="service-icon"><ShieldCheck size={20}/></span>
    <span><strong>{i.name} · {i.relationship}</strong><small>{i.scope} · Ends: {i.expires}</small><small>{i.id}</small></span>
-   <Pill tone={i.status === 'Active' ? 'teal' : 'plain'}>{i.status}</Pill>
+   <Pill tone={invitationTone(i.status)}>{i.status}</Pill>
    <button className="secondary" disabled={i.status === 'Revoked'} onClick={() => onRevoke(i.id)}><UserRoundX size={15}/>{i.status === 'Revoked' ? 'Revoked' : 'Revoke'}</button>
   </div>)}
   <p className="helper">Revoking takes effect immediately and the other person is told. Anything they already saw cannot be un-seen, which is why scope matters more than revocation.</p>
