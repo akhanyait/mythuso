@@ -311,7 +311,7 @@ struct WorkspaceView: View {
                 }
                 Section("Your tools") {
                     NavigationLink("Clinical protocols") { FeatureDetail(title: "Clinical protocols") }
-                    NavigationLink("Teleconsultation") { FeatureDetail(title: "Teleconsultation") }
+                    NavigationLink("Teleconsultation") { TeleconsultView() }
                     NavigationLink("Referral pathway") { FeatureDetail(title: "Referral pathway") }
                 }
             } else {

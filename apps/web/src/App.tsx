@@ -13,6 +13,7 @@ import { VisitAssessment, DoctorReview } from './features/Clinical';
 import { ThusoKit } from './features/Kit';
 import { Earnings } from './features/Earnings';
 import { ThusoSos } from './features/Sos';
+import { Teleconsult } from './features/Teleconsult';
 import { LabOrderDetail, PrescriptionDetail } from './features/Orders';
 import { IncidentDetail, NurseVetting } from './features/Dispatch';
 import { VettingApplication } from './features/Vetting';
@@ -63,6 +64,7 @@ function modalTitle(modal:string){
  if(modal.startsWith('Laboratory order ')) return 'Laboratory order';
  if(modal.startsWith('Incident ')) return 'Incident';
  if(modal.startsWith('Doctor review')) return 'Clinical review';
+ if(modal==='Teleconsultation'||modal==='Teleconsultation call') return 'Teleconsultation';
  if(isKit(modal)) return 'Thuso Kit';
  if(modal==='Weekly payouts'||modal==='Earnings & payouts') return 'Earnings & payouts';
  if(modal==='Thuso SOS'||modal==='Emergency & urgent care') return 'Thuso SOS';
@@ -99,6 +101,7 @@ function modalBody(p:BodyProps){
  if(modal==='Weekly payouts'||modal==='Earnings & payouts') return <Earnings/>;
  if(modal==='Thuso SOS'||modal==='Emergency & urgent care') return <ThusoSos/>;
  if(modal==='Consultation record') return <ConsultationRecord onClose={p.close}/>;
+ if(modal==='Teleconsultation'||modal==='Teleconsultation call') return <Teleconsult onClose={p.close}/>;
  if(modal==='Household record') return <HouseholdRecord/>;
  if(modal==='Health summary') return <HealthSummary/>;
  if(modal==='Vetting application') return <VettingApplication onClose={p.close}/>;

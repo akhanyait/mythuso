@@ -24,6 +24,7 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Patient file | A clinician-facing record: a permanent summary header, eight tabs over 42 record types, a visual overview and a filterable timeline. Every tab, action and field group asks `can()` first, and a refusal shows its written reason rather than an absence | All three |
 | Protected categories | Sexual and reproductive health, mental health, HIV, substance use, termination of pregnancy and social support are classified in the contract. They never become a header chip, never appear in a summary or an export, and are released by the patient entry by entry — never by a scope. The notice that says so is constant, because a notice that appeared only where there was something to hide would be the disclosure it prevents | All three |
 | Consultation record | One structure for every encounter, written in long form or in SOAP — the same fields either way, so there is no second copy to drift. A nurse's assessment and a doctor's diagnosis are different fields, not the same field with a warning | All three |
+| Teleconsultation call | The encounter between the review queue and the record. A roster naming everyone who can see and hear the patient — doctor on video, nurse in the room, guardian, interpreter — each consented to separately and each removable mid-call at a cost stated before the question. Recording asked as a second question and refused outright in the preview, with what it would keep, for how long and who could open it written down. A four-rung connection ladder where sound only is a designed path and what the doctor may conclude shrinks with the line. A dropped call held open for ninety seconds on both screens, with the doctor calling back. And seven encounter outcomes, worked out rather than chosen, of which five are not consultations and cannot write an assessment, a plan or a charge | All three |
 | Household record | Members, shared appointments, scheme dependants, immunisations and medicine collections due. Membership is not consent: another adult's record stays closed, a guardian's reach over a child of 12 or older is capped because that child may consent for themselves, and the roster itself discloses no more than the viewer may see | All three |
 | Health summary | The nine-field summary, shareable bound to a purpose and a period rather than as a permanently valid document, with an unguessable token. The export is checked against its own bytes for protected content before it is produced | All three |
 | Thuso Kit, capture and the offline queue | Pairing over a named transport, calibration and consumable expiry as separate gates, and four provenance marks — device, hand-entered, patient-reported and derived — carried from the instrument through the assessment into the consultation record and the patient file. A queue that holds readings on the phone, and the four disagreements a queue actually produces: a duplicate, a stale write, a clock skew and a capturer whose standing lapsed between capture and arrival. Three of the four are settled by a clinician; only the clock one is settled by the server | All three |
@@ -54,7 +55,7 @@ These flows exist on all three platforms, with the same steps, the same wording 
 | Thuso Wallet | Sample balance/activity and entry dialogs; the nurse side is the earnings and payout screen | Native balance/activity and entry screens | Payment provider, vouchers, immutable ledger, sponsorship |
 | Privacy | Switches, sharing, guardian access, access-history sample, request acknowledgement | Native switches, invitations and rights entry screens | Identity verification, lawful-basis records, audited rights fulfilment |
 | Nurse workspace | Schedule, availability toggle, full visit assessment with device capture, the offline queue, weekly earnings and payouts, onboarding and vetting | Native equivalents | A payment provider, a real ledger, bank verification, real dispatch integration |
-| Doctor workspace | Review queue with trend chart, outcome and rationale sign-off | Native queue and review | Secure native consult, real prescriptions, referrals |
+| Doctor workspace | Review queue with trend chart, outcome and rationale sign-off, and the teleconsultation call with its roster, consent, connection ladder and encounter outcomes | Native queue, review and call | A media transport, real prescriptions, referrals |
 | Partner workspace | Prescription and laboratory order detail with chain of custody and release control | Native fulfilment queue and order detail | Partner APIs, real dispensing, courier integration, result delivery |
 | Control Tower | Dispatch map and assignment gated on vetting, incident triage and log, the vetting queue for all twelve roles | Native dispatch board, incidents and vetting | Live positions, real assignment, paging, escalation, revenue |
 | Localisation | Shell, navigation and primary actions in four languages | Same four languages natively | Clinical language review, remaining official languages, SASL guidance |
@@ -118,6 +119,21 @@ These flows exist on all three platforms, with the same steps, the same wording 
 - No fictional phone number may appear on the emergency pathway. Every other screen in this preview
   is fictional on purpose; that one is checked digit by digit against the numbers South Africa
   actually uses, and nothing in any app dials any of them.
+- A consultation is not a private appointment with a doctor. Everyone who can see or hear the patient is
+  named before the call opens, with where they are standing and what they can hear, and anyone except the
+  doctor can be asked to leave mid-call without a reason. Nobody observes for training, ever.
+- Consent to be treated is not consent to be recorded. The preview offers no recording and no switch for
+  one — a control this build cannot honour would teach a patient to grant it — and says instead what a
+  recording would be for, who could open it and that it would be destroyed after thirty days.
+- A dropped call is not a finished one. The encounter stays open, the doctor calls back rather than the
+  patient redialling, and an encounter that never reached a decision is written into the record as an
+  interrupted encounter with no assessment, no plan and no signature. There is no button on any of the
+  three platforms that would close it as a completed consultation, and it is never charged for.
+- Sound only is not an error state. What a poor line takes away is not the patient's standing but what the
+  doctor may conclude alone, and the screen names each thing withdrawn. A doctor on a screen examines
+  nobody: anything felt or measured is the nurse's finding, under her registration.
+- A doctor whose HPCSA registration has lapsed cannot open a call, and is refused in the clinical queue's
+  own words rather than in a second sentence written for video.
 - Nothing in any of these flows is transmitted, stored or acted upon.
 
 ## Cross-platform consistency
@@ -127,3 +143,4 @@ Clinical reference ranges, locale sets, the demo verification codes, the identit
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only today; teleconsultation call UI; prescription substitution and chronic authorisation; employer and sponsor programme administration; the remaining official languages and a clinical language review of translated copy; South African Sign Language guidance; large-text, screen-reader and low-end device testing on real hardware. None of these are claimed complete.
+Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only today; prescription substitution and chronic authorisation; employer and sponsor programme administration; a real emergency pathway design; the remaining official languages and a clinical language review of translated copy; South African Sign Language guidance; large-text, screen-reader and low-end device testing on real hardware. None of these are claimed complete.

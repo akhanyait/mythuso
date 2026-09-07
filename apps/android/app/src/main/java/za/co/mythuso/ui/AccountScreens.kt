@@ -241,6 +241,7 @@ import za.co.mythuso.model.mokoenaHousehold
         title.startsWith("Apply for vetting") ->
             VettingApplicationScreen(store, title.removePrefix("Apply for vetting").removePrefix(": ").ifEmpty { null }, open) { open("Vetting pipeline") }
         title == "Live dispatch board" -> DispatchBoardScreen(store, open)
+        title == "Teleconsultation" -> TeleconsultScreen(store, open = open)
         title.startsWith("Doctor review") -> DoctorReviewScreen(store, title.removePrefix("Doctor review "))
         title.startsWith("Prescription ") -> PrescriptionScreen(title.removePrefix("Prescription "))
         title.startsWith("Laboratory order ") -> LabOrderScreen(title.removePrefix("Laboratory order "))

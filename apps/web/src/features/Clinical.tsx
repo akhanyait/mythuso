@@ -30,6 +30,10 @@ export function flagOf(id: ObsId, raw: string) {
  if (value > spec.range[1]) return 'high' as const;
  return 'normal' as const;
 }
+/* One identity check in MyThuso, and this is the number it is demonstrated with. The nurse asks for
+   it at the door and the doctor asks for it at the start of a teleconsultation — the same code read
+   the same way, so a patient learns one thing rather than two. Exported rather than retyped there. */
+export const demoVisitCode = '482190';
 const stages = ['Identity', 'Consent', 'Observations', 'Findings', 'Sign-off'] as const;
 export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molefe', onClose }: { reference?: string; patient?: string; onClose: () => void }) {
  const [stage, setStage] = useState(0);
@@ -94,7 +98,7 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
    <p className="helper" id="otp-help" role="status">{otpError || 'The code changes for every visit and expires when the visit ends.'}</p>
    <label className="checkbox"><input type="checkbox" checked={idSeen} onChange={e => setIdSeen(e.target.checked)}/><span>I have seen the patient’s identity document or a household member has confirmed identity.</span></label>
    <div className="privacy-note"><KeyRound size={19}/>If the code fails, the visit does not start. The nurse contacts the Control Tower instead of proceeding.</div>
-   <div className="button-row"><button className="secondary" onClick={onClose}><ArrowLeft size={16}/>Leave</button><button className="primary" disabled={otp.length < 6 || !idSeen} onClick={() => otp === '482190' ? setStage(1) : setOtpError('That code doesn’t match this visit. Call the Control Tower before continuing.')}>Confirm identity<ArrowRight size={16}/></button></div>
+   <div className="button-row"><button className="secondary" onClick={onClose}><ArrowLeft size={16}/>Leave</button><button className="primary" disabled={otp.length < 6 || !idSeen} onClick={() => otp === demoVisitCode ? setStage(1) : setOtpError('That code doesn’t match this visit. Call the Control Tower before continuing.')}>Confirm identity<ArrowRight size={16}/></button></div>
   </div> : stage === 1 ? <div className="form-stack">
    <h3>Consent, in plain words.</h3>
    <p className="muted">Read these aloud. {patient.split(' ')[0]} can decline any part and still receive the rest of the visit.</p>

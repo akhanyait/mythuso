@@ -5,6 +5,7 @@ import { emitVetting } from './emit-vetting.mjs';
 import { emitRecords } from './emit-records.mjs';
 import { emitEarnings } from './emit-earnings.mjs';
 import { emitSos } from './emit-sos.mjs';
+import { emitTeleconsult } from './emit-teleconsult.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -155,7 +156,8 @@ const generated = [
  { source: 'packages/catalog/vetting.json', command: 'npm run vetting', files: emitVetting() },
  { source: 'packages/catalog/records.json', command: 'npm run records', files: emitRecords() },
  { source: 'packages/catalog/earnings.json', command: 'npm run earnings', files: emitEarnings() },
- { source: 'packages/catalog/sos.json', command: 'npm run sos', files: emitSos() }
+ { source: 'packages/catalog/sos.json', command: 'npm run sos', files: emitSos() },
+ { source: 'packages/catalog/teleconsult.json', command: 'npm run teleconsult', files: emitTeleconsult() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -425,4 +427,119 @@ for(const [platform,[file,first,sells]] of Object.entries(sosScreens)) {
 }
 
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells.`);
+/* The teleconsultation call. Five invariants, and only one of them is about wording.
+
+   Nothing here connects. Neither native app declares a camera or a microphone permission and no
+   call screen reaches for one, so "we never asked" stays a true sentence rather than one somebody
+   forgot to delete when they wired up a media SDK.
+
+   Recording is a second question. It is optional, it is revocable, and — this is the arithmetic
+   rather than the promise — a build that declares no microphone may not offer to record at all.
+
+   The degradation ladder shrinks. What a poor line permits must be a subset of what a good one
+   permits, and a dropped line permits nothing. A degraded state that let a doctor conclude
+   something a working one did not would be a screen inviting a decision on less evidence.
+
+   An encounter that did not reach a decision is not a consultation, does not write the assessment
+   or the plan, and is not charged for. This is the whole feature. The failure it is written against
+   is not somebody typing the wrong sentence — it is a half-finished encounter sitting in a record
+   looking exactly like a finished one until a clinician relies on it a year later.
+
+   And there is one identity check in MyThuso. The doctor asks for the same six-digit visit code the
+   nurse asks for at the door, and refuses in the same words, on all three platforms. */
+const teleconsult=JSON.parse(read('packages/catalog/teleconsult.json'));
+/* The web splits the call across a screen and the reasoning behind it; the natives keep the
+   reasoning in a model file beside the view. Each platform is read whole, because what is being
+   compared is the answer the call gives, not where it lives. */
+const teleconsultSources={
+ web: ['apps/web/src/features/Teleconsult.tsx','apps/web/src/lib/teleconsult.ts'],
+ ios: ['apps/ios/MyThuso/Features/TeleconsultView.swift','apps/ios/MyThuso/Models/Teleconsult.swift'],
+ android: ['apps/android/app/src/main/java/za/co/mythuso/ui/TeleconsultScreens.kt','apps/android/app/src/main/java/za/co/mythuso/model/Teleconsult.kt']
+};
+const mediaApis=/\b(getUserMedia|RTCPeerConnection|MediaRecorder|AVCaptureDevice|AVAudioRecorder|MediaProjection|CameraX|Manifest\.permission\.(CAMERA|RECORD_AUDIO))\b/;
+for(const [platform,paths] of Object.entries(teleconsultSources)) {
+ for(const file of paths) {
+  if(!existsSync(file)) throw new Error(`The ${platform} app has no teleconsultation screen (${file}). The call is not optional on one platform.`);
+  if(mediaApis.test(read(file))) throw new Error(`The ${platform} teleconsultation screen reaches for media (${file}). This build captures nothing and the screens say so — an app that says "we never asked" while holding a camera handle is lying to the patient rather than to the reviewer.`);
+ }
+}
+if(/android\.permission\.(CAMERA|RECORD_AUDIO)/.test(read('apps/android/app/src/main/AndroidManifest.xml'))) throw new Error('The Android manifest declares a camera or microphone permission. The teleconsultation screens tell the patient neither is declared.');
+if(/INFOPLIST_KEY_NS(Camera|Microphone)UsageDescription/.test(read('apps/ios/MyThuso.xcodeproj/project.pbxproj'))) throw new Error('The iOS target declares a camera or microphone usage description. The teleconsultation screens tell the patient neither is declared.');
+if(teleconsult.media.declared) throw new Error('packages/catalog/teleconsult.json says media is declared. Nothing in this repository declares it, so the screens would be describing a build that does not exist.');
+if(!teleconsult.media.states.some(s=>s.id==='never-asked')||!teleconsult.media.states.some(s=>s.id==='refused')) {
+ throw new Error('The media posture must tell "we never asked" from "you refused". One screen for both tells a patient their answer did not matter.');
+}
+/* Consent is per person, optional where the person is optional, and always revocable. A consent
+   item that cannot be taken back in the middle of a call is a signature, not a consent. */
+for(const item of teleconsult.consent) {
+ if(!item.revocable||!item.revokedMidCall) throw new Error(`Consent item ${item.id} cannot be withdrawn mid-call, or does not say what happens when it is. Consent that only runs one way is not consent.`);
+}
+const recordConsent=teleconsult.consent.find(c=>c.id==='record-the-call');
+if(!recordConsent) throw new Error('There is no separate consent to record a teleconsultation. Consent to be treated would then be consent to be recorded, which is the one thing this feature exists to keep apart.');
+if(recordConsent.required) throw new Error('Consent to a recording is marked required. Refusing to be recorded has to be costless, and a required question is not a question.');
+if(teleconsult.recording.offeredInPreview&&!teleconsult.media.declared) throw new Error('The teleconsultation contract offers recording in a build that declares no microphone. A control that cannot do what it says teaches a patient to grant it anyway.');
+if(!(teleconsult.recording.whenItExists.keptForDays>0)) throw new Error('The recording policy does not say how long a recording is kept. "Until further notice" is a retention schedule nobody consented to.');
+if(!teleconsult.recording.whenItExists.whoMayView.length) throw new Error('The recording policy does not say who may view a recording.');
+for(const p of teleconsult.participants) {
+ if(p.consentQuestion&&!p.ifDeclined) throw new Error(`Participant ${p.id} is asked for consent without saying what declining costs. A patient cannot weigh a question whose answer has undisclosed consequences.`);
+ if(p.consentQuestion&&!teleconsult.consent.some(c=>c.participant===p.id)) throw new Error(`Participant ${p.id} is asked a consent question that no consent item can carry or withdraw.`);
+ if(!p.essential&&!p.mayBeAskedToLeave) throw new Error(`Participant ${p.id} is not essential to the consultation and still cannot be asked to leave.`);
+ if(p.essential&&p.mayBeAskedToLeave) throw new Error(`Participant ${p.id} is essential and can be asked to leave, which are two different screens pretending to be one.`);
+}
+/* The ladder. Ordered best first, each rung a subset of the one above it, and the bottom rung
+   permitting nothing at all. */
+const teleconsultLimitIds=new Set(teleconsult.clinicalLimits.map(l=>l.id));
+const ladder=[...teleconsult.connection].sort((a,b)=>b.fidelity-a.fidelity);
+for(const state of ladder) {
+ if(!state.patientSees||!state.doctorSees) throw new Error(`Connection state ${state.id} does not say what both ends see. A patient staring at a frozen picture while the doctor's screen says something else is the failure this is written against.`);
+ for(const id of state.permits) if(!teleconsultLimitIds.has(id)) throw new Error(`Connection state ${state.id} permits ${id}, which is not a clinical limit anything defines`);
+}
+for(let i=1;i<ladder.length;i++) {
+ const above=new Set(ladder[i-1].permits);
+ const gained=ladder[i].permits.filter(id=>!above.has(id));
+ if(gained.length) throw new Error(`"${ladder[i].name}" permits ${gained.join(', ')}, which "${ladder[i-1].name}" does not. A worse line cannot allow a doctor to conclude more than a better one.`);
+}
+if(ladder[ladder.length-1].permits.length) throw new Error(`The worst connection state ("${ladder[ladder.length-1].name}") still permits something. A line that is down permits nothing, which is why there is no button to close an encounter while it is.`);
+const audioOnly=teleconsult.connection.find(c=>c.id==='audio');
+if(!audioOnly) throw new Error('There is no sound-only connection state. Bandwidth in South Africa is the ordinary case, not an error toast.');
+for(const id of ['see-the-patient','assess-visible']) if(audioOnly.permits.includes(id)) throw new Error(`Sound only permits ${id}. A doctor who cannot see the patient does not assess what they cannot see.`);
+if(!(teleconsult.reconnect.holdSeconds>0)||!(teleconsult.reconnect.attempts>0)) throw new Error('The reconnection protocol does not say how long anybody waits or how many times anybody tries.');
+/* The invariant the whole feature is built around. */
+const consultationSectionIds=new Set(records.consultation.sections.map(s=>s.id));
+let unfinishedOutcomes=0, realConsultations=0;
+for(const outcome of teleconsult.outcomes) {
+ if(!outcome.record) throw new Error(`Encounter outcome ${outcome.id} does not say what it writes into the record.`);
+ for(const id of outcome.writes) if(!consultationSectionIds.has(id)) throw new Error(`Encounter outcome ${outcome.id} writes "${id}", which is not a section of the consultation record in packages/catalog/records.json`);
+ if(!outcome.reachedDecision&&outcome.countsAsConsultation) throw new Error(`Encounter outcome "${outcome.id}" reached no decision and is still counted as a consultation. A half-finished encounter that can be called a consultation is the failure this feature exists to prevent.`);
+ if(outcome.countsAsConsultation) { realConsultations++; continue; }
+ unfinishedOutcomes++;
+ for(const id of ['assessment','plan']) if(outcome.writes.includes(id)) throw new Error(`Encounter outcome "${outcome.id}" is not a consultation and still writes the ${id}. Nobody may sign a decision they did not get to make.`);
+ if(outcome.charged) throw new Error(`Encounter outcome "${outcome.id}" is not a consultation and is charged for. Making a patient pay for their own bad signal puts the cost of South African bandwidth on the person least able to fix it.`);
+}
+if(!unfinishedOutcomes||!realConsultations) throw new Error('The encounter outcomes do not distinguish a consultation from an encounter that was not one, so the record cannot either.');
+if(!teleconsult.outcomes.some(o=>o.connectionLost&&!o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and did not come back. That is the state this feature is for.');
+if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and was re-established. A break in a consultation is a clinical fact, not a reason to start the encounter again.');
+/* One identity check, one refusal sentence, three platforms — and the same code the nurse is asked
+   for at the door, so a patient learns it once. */
+const doorRefusal='That code doesn’t match this visit. Call the Control Tower before continuing.';
+if(teleconsult.identity.failure!==doorRefusal) throw new Error('The teleconsultation identity refusal is not the nurse\'s. Two different sentences for the same failed code is two different products.');
+if(!read(clinicalSources.web).includes(doorRefusal)) throw new Error('The visit-code refusal has moved in the nurse assessment, and the teleconsultation contract still quotes the old one.');
+if(!read('apps/web/src/features/Clinical.tsx').includes("export const demoVisitCode = '482190'")) throw new Error('The demo visit code is no longer exported from apps/web/src/features/Clinical.tsx, so the teleconsultation screen has nowhere to read it from but a copy of its own.');
+for(const [platform,paths] of Object.entries(teleconsultSources)) {
+ const file=paths[0], source=paths.map(read).join('\n');
+ if(!source.includes('482190')&&!source.includes('demoVisitCode')) throw new Error(`The ${platform} teleconsultation screen does not use the visit code the nurse asks for at the door (${file}). There is one identity check in MyThuso, and a second one invented for video is a second thing to get wrong.`);
+ /* The refusal a lapsed doctor sees has to be the clinical queue's, which means asking the vetting
+    table rather than writing a sentence. D-402's HPCSA registration is lapsed in the fixtures. */
+ if(!source.includes('sign-clinical-review')) throw new Error(`The ${platform} teleconsultation screen does not ask the vetting table whether this doctor may consult (${file}). A doctor refused in different words by the queue and by the call believes neither.`);
+}
+/* Nobody is named in the contract. A participant carries a role into the vetting register and the
+   screen resolves the party from there, so a registration number lives in one place. Naming the
+   council is fine and necessary — "their HPCSA registration" is what the patient is told to look
+   for. What may not appear is a person: a title with a name after it, or a credential in the format
+   an issuing authority actually uses. */
+const namedInContract=/(\bDr [A-Z]|\bSister [A-Z]|\bBrother [A-Z]|SANC \d|HPCSA [A-Z]{2}\d)/;
+if(namedInContract.test(JSON.stringify(teleconsult))) throw new Error('packages/catalog/teleconsult.json names a clinician or a registration. Parties come from packages/catalog/vetting.json, or the roster becomes a second copy of the vetting record — and the copy is the one the patient reads.');
+for(const p of teleconsult.participants) if(p.roleId&&!roleIds.has(p.roleId)) throw new Error(`Teleconsultation participant ${p.id} carries a vetted role nothing defines: ${p.roleId}`);
+
+
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge.`);

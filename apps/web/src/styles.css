@@ -1737,3 +1737,69 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
  .sos-failures{grid-template-columns:repeat(2,minmax(0,1fr))}
  .sos-rules{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* ---- Teleconsultation call --------------------------------------------------------------
+   The roster is the load-bearing element: a list of people, each with where they are standing and
+   what they can hear, and one of them possibly greyed out because the patient asked them to leave.
+   Everything else here is the same components the rest of the app uses. Nothing on this screen is a
+   video surface, because there is no video. */
+.tc-roster{display:grid;gap:10px}
+.tc-person{display:flex;gap:13px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);padding:15px 16px}
+.tc-person.is-out{background:var(--canvas);opacity:.72}
+.tc-person>div{flex:1;min-width:0}
+.tc-person strong{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;color:var(--ink);font-size:14px;font-weight:600}
+.tc-person strong em{font-style:normal;font-size:11px;font-weight:600;color:var(--teal);letter-spacing:.2px}
+.tc-person small{display:block;font-size:11.5px;color:var(--faint);margin-top:3px;line-height:1.5}
+.tc-person .text-button{white-space:nowrap;align-self:center}
+.tc-person .pill.plain{align-self:center;white-space:nowrap}
+.tc-out-note{font-size:12px;line-height:1.6;color:var(--body);margin-top:8px}
+.tc-avatar{width:38px;height:38px;border-radius:var(--r-tile);background:var(--teal-soft);color:var(--teal);display:grid;place-items:center;flex-shrink:0}
+.tc-consent+.tc-consent{border-top:1px solid var(--line);padding-top:12px}
+.tc-identity+.tc-identity{margin-top:12px}
+.tc-ends{display:grid;gap:10px;margin-top:12px}
+.tc-ends p{font-size:12.5px;line-height:1.65;color:var(--body);margin-top:9px}
+/* The same switch shape as the earnings preview picker: a radio with a visible label carrying the
+   focus ring, because a control a keyboard reaches and nobody can see is not a control. */
+.tc-switch{border:0;padding:0;margin:12px 0 0;display:flex;gap:8px;flex-wrap:wrap}
+.tc-switch label{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:9px 15px;font-size:12.5px;font-weight:600;color:var(--body);cursor:pointer}
+.tc-switch label.selected{border-color:var(--teal);background:var(--teal-soft);color:var(--teal-deep)}
+.tc-switch input{position:absolute;width:1px;height:1px;margin:-1px;opacity:0;clip:rect(0 0 0 0)}
+.tc-switch label:has(:focus-visible){outline:3px solid var(--gold);outline-offset:3px}
+.tc-switch .helper{flex-basis:100%;margin-top:2px}
+.tc-media{display:flex;gap:12px;align-items:flex-start;background:var(--canvas);border:1px solid var(--line);border-radius:var(--r-card);padding:16px}
+.tc-media strong{display:block;color:var(--ink);font-size:14px}
+.tc-media p{font-size:12.5px;line-height:1.65;color:var(--body);margin-top:6px}
+.tc-recording{display:flex;gap:12px;align-items:flex-start;background:var(--amber-soft);color:#7d5512;border-radius:var(--r-card);padding:16px}
+.tc-recording strong{display:block;font-size:14px}
+.tc-recording p{font-size:12.5px;line-height:1.65;margin-top:7px}
+/* A dropped line is the most important state on the screen, so it gets the most space and a real
+   clock rather than a label that says "reconnecting". */
+.tc-dropped{display:flex;gap:14px;align-items:flex-start;background:var(--danger-soft);color:#8f3a30;border-radius:var(--r-card);padding:17px;margin-top:12px}
+.tc-dropped p{font-size:12.5px;line-height:1.65;margin-bottom:8px}
+.tc-dropped .helper{color:inherit;opacity:.85}
+.tc-hold{display:grid;place-items:center;text-align:center;min-width:96px;padding:12px 10px;background:rgba(255,255,255,.55);border-radius:var(--r-tile)}
+.tc-hold strong{font-size:24px;letter-spacing:-.6px;font-variant-numeric:tabular-nums;margin-top:6px}
+.tc-hold small{font-size:10.5px;line-height:1.4;margin-top:4px}
+.tc-limits{display:grid;gap:9px;margin-top:12px}
+.tc-limit{display:flex;gap:11px;align-items:flex-start;border-radius:var(--r-tile);padding:13px 15px}
+.tc-limit.ok{background:var(--teal-soft)}
+.tc-limit.no{background:var(--canvas)}
+.tc-limit svg{flex-shrink:0;margin-top:2px}
+.tc-limit.ok svg{color:var(--teal)}
+.tc-limit.no svg{color:var(--danger)}
+.tc-limit strong{display:block;font-size:13px;color:var(--ink)}
+.tc-limit small{display:block;font-size:11.5px;line-height:1.55;color:var(--body);margin-top:3px}
+.tc-refusal{display:flex;gap:11px;align-items:flex-start;background:var(--canvas);border-radius:var(--r-tile);padding:14px 16px}
+.tc-refusal svg{color:var(--danger);flex-shrink:0;margin-top:1px}
+.tc-refusal p{font-size:12.5px;line-height:1.6;color:var(--forest)}
+.tc-refusals{display:grid;gap:10px}
+.tc-outcome-icon{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:var(--amber-soft);color:#7d5512;margin-bottom:4px}
+.tc-sections{width:100%;margin-top:12px}
+.tc-sections td{white-space:nowrap}
+.tc-sections td svg{vertical-align:-2px;margin-right:6px}
+.tc-sections tr.negative td{color:var(--faint)}
+@media(min-width:700px){
+ .tc-ends{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .tc-limits{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .tc-refusals{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
