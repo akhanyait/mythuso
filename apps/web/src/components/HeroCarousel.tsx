@@ -75,7 +75,7 @@ export function HeroCarousel({ navigate }: Props) {
      </div>
      <div className="hero-figure">
       <img
-       src={shown === 'cutout' ? `/banners/${slide.photo}-cutout.png` : shown === 'photo' ? `/banners/${slide.photo}.jpg` : slide.art}
+       src={shown === 'cutout' ? `/banners/${slide.photo}-cutout.webp` : shown === 'photo' ? `/banners/${slide.photo}.jpg` : slide.art}
        alt="" className={shown === 'photo' ? 'hero-photo' : 'hero-art'}
        onError={() => setLayer(l => ({ ...l, [slide.id]: shown === 'cutout' ? 'photo' : 'art' }))}/>
      </div>

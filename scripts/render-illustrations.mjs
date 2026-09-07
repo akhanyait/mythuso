@@ -3,6 +3,7 @@
    rasterises the same files into iOS and Android drawables so the apps cannot drift apart.
    Run: node scripts/render-illustrations.mjs   (needs the repo's Playwright chromium) */
 import { chromium } from '@playwright/test';
+import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 const targets = [
  { name: 'nurse', width: 188, height: 224 },
@@ -34,22 +35,49 @@ for (const { name, width, height, ios, android, web } of targets) {
  console.log(`rendered ${name}`);
 }
 /* Hero photography follows the same one-source rule: packages/banners is the original and every
-   app bundle is copied from it. The cut-outs are what the design actually wants — a person on
+   app bundle is derived from it. The cut-outs are what the design actually wants — a person on
    transparency, free to rise above the banner's top edge — so those are the ones the native apps
-   carry. The flat .jpg crops stay for the web's fallback chain only. */
+   carry. The flat .jpg crops stay for the web's fallback chain only.
+
+   They are *encoded*, not copied. A photograph with an alpha channel stored as PNG-24 is the worst
+   case that format has: three of these were 1.1 to 1.5 MB each, and four images were 77% of the
+   whole Android release APK and most of the compiled iOS asset catalogue. Both platforms have a
+   native format that does this properly — WebP on Android, HEIC on Apple — and each cuts them by
+   about ninety per cent with the alpha channel intact, which is the part that matters: the edge of
+   a cut-out is the one thing that must not be touched.
+
+   sips is macOS-only, which is not a new constraint — the iOS app cannot be built anywhere else
+   either. Where it is missing the PNG is copied through and the message says so, rather than the
+   build silently shipping something different from what it claims. */
 mkdirSync('apps/web/public/banners', { recursive: true });
 mkdirSync('apps/android/app/src/main/res/drawable-nodpi', { recursive: true });
+const encodeWebp = (from, to) => {
+ const result = spawnSync('python3', ['-c',
+  'import sys\nfrom PIL import Image\nImage.open(sys.argv[1]).convert("RGBA").save(sys.argv[2], "WEBP", quality=82, method=6)',
+  from, to], { encoding: 'utf8' });
+ if (result.status !== 0) throw new Error(`Could not encode ${to}: ${result.stderr || result.error}`);
+};
+const encodeHeic = (from, to) => {
+ const result = spawnSync('sips', ['-s', 'format', 'heic', from, '--out', to], { encoding: 'utf8' });
+ return result.status === 0;
+};
 if (existsSync('packages/banners')) {
  for (const file of readdirSync('packages/banners').filter(f => /\.(jpg|png)$/.test(f))) {
-  copyFileSync(`packages/banners/${file}`, `apps/web/public/banners/${file}`);
-  if (!file.endsWith('-cutout.png')) continue;             // native ships only the cut-outs
+  if (!file.endsWith('-cutout.png')) { copyFileSync(`packages/banners/${file}`, `apps/web/public/banners/${file}`); continue; }
+  const source = `packages/banners/${file}`;
   const name = file.replace('-cutout.png', '');
-  copyFileSync(`packages/banners/${file}`, `apps/android/app/src/main/res/drawable-nodpi/banner_${name.replace(/-/g, '_')}.png`);
+  /* The web gets WebP too: the same 1.4 MB was going down a South African mobile connection on
+     every first visit to the landing page. The .jpg fallback below it is unchanged. */
+  encodeWebp(source, `apps/web/public/banners/${name}-cutout.webp`);
+  encodeWebp(source, `apps/android/app/src/main/res/drawable-nodpi/banner_${name.replace(/-/g, '_')}.webp`);
   const set = `apps/ios/MyThuso/Assets.xcassets/Banner${name.split('-').map(p => p[0].toUpperCase() + p.slice(1)).join('')}.imageset`;
   mkdirSync(set, { recursive: true });
-  copyFileSync(`packages/banners/${file}`, `${set}/${file}`);
-  writeFileSync(`${set}/Contents.json`, JSON.stringify({ images: [{ idiom: 'universal', scale: '1x' }, { idiom: 'universal', scale: '2x' }, { filename: file, idiom: 'universal', scale: '3x' }], info: { author: 'xcode', version: 1 } }, null, 1));
-  console.log(`copied banner cut-out ${name}`);
+  const heic = `${name}-cutout.heic`;
+  const encoded = encodeHeic(source, `${set}/${heic}`);
+  const filename = encoded ? heic : file;
+  if (!encoded) { copyFileSync(source, `${set}/${file}`); console.log(`  sips is unavailable, so ${name} stays a PNG on iOS`); }
+  writeFileSync(`${set}/Contents.json`, JSON.stringify({ images: [{ idiom: 'universal', scale: '1x' }, { idiom: 'universal', scale: '2x' }, { filename, idiom: 'universal', scale: '3x' }], info: { author: 'xcode', version: 1 } }, null, 1));
+  console.log(`encoded banner cut-out ${name}`);
  }
 }
 await browser.close();

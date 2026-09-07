@@ -276,6 +276,11 @@ async function openExplore(page: Page) {
   await page.locator('main').getByRole('button').filter({ hasText: /Explore|Hlola/ }).first().click();
 }
 test('the hero rotates on its own, and can be stopped', async ({ page }) => {
+  /* Twenty of the next thirty seconds are spent waiting on purpose: twelve for the banner to
+     advance by itself and eight more proving it does not advance once stopped, which is the whole
+     of WCAG 2.2.2. Against the default budget that left almost nothing for the rest of the journey
+     and the test failed under load rather than on its merits. */
+  test.setTimeout(60_000);
   // the carousel lives on Explore, not on the returning patient's home, where an auto-rotating
   // promotion stood between them and the thing they opened the app to do
   await page.goto('/');

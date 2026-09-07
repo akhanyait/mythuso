@@ -4,9 +4,9 @@ import { Texture } from '../components/HeroCarousel';
 import { ServiceIcon } from '../components/UI';
 import { businessModel, liveServices, money, services } from '../lib/catalog';
 import { useCountUp, useReveal, useScrollProgress, useSpotlight } from '../lib/motion';
-const nurse = '/banners/feel-better-cutout.png';
-const family = '/banners/care-that-comes-to-you-cutout.png';
-const elder = '/banners/one-safe-place-cutout.png';
+const nurse = '/banners/feel-better-cutout.webp';
+const family = '/banners/care-that-comes-to-you-cutout.webp';
+const elder = '/banners/one-safe-place-cutout.webp';
 /* In development Vite serves the app at / and this page at /landing.html. In production nginx puts
    the public page at / and the app at /app, which is the right way round for a marketing site. */
 const appHref = import.meta.env.DEV ? '/' : '/app';

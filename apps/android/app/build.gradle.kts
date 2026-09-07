@@ -10,7 +10,10 @@ android {
     buildFeatures { compose = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
-    buildTypes { release { isMinifyEnabled = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt")) } }
+    /* R8 is what keeps material-icons-extended honest: the library carries thousands of icons and this
+       app draws 84, so the debug build is 23 MB and the shrunk release build's whole dex is 2.7 MB.
+       Resource shrinking removes what the code no longer references. */
+    buildTypes { release { isMinifyEnabled = true; isShrinkResources = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt")) } }
     /* Lint runs on every build, and the accessibility checks it can make statically are errors
        rather than warnings — a warning in a build log is a thing nobody reads twice. It does not
        catch much: most of these screens are Compose, and Compose accessibility is largely beyond
