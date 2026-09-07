@@ -133,7 +133,7 @@ import za.co.mythuso.model.*
             when (outcome) {
                 is InterpreterOutcome.Matched -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Outlined.CheckCircle, null, tint = Teal)
+                        Icon(Icons.Outlined.CheckCircle, null, tint = Indigo)
                         Text(interpretingLabels.matched, style = MaterialTheme.typography.titleMedium, color = Ink)
                     }
                     Text(Interpreting.waitSentence(outcome), style = MaterialTheme.typography.bodyMedium, color = Ink)
@@ -141,7 +141,7 @@ import za.co.mythuso.model.*
                 }
                 is InterpreterOutcome.Held -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Outlined.HourglassEmpty, null, tint = Amber)
+                        Icon(Icons.Outlined.HourglassEmpty, null, tint = MangoInk)
                         Text("${interpretingLabels.noneFree} — ${interpretingLabels.heldBadge}", style = MaterialTheme.typography.titleMedium, color = Ink)
                     }
                     Text(Interpreting.waitSentence(outcome), style = MaterialTheme.typography.bodyMedium, color = Ink)

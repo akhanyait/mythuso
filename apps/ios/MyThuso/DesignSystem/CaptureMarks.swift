@@ -22,17 +22,17 @@ import SwiftUI
 extension Provenance {
     var tint: Color {
         switch self {
-        case .device: return ThusoTheme.teal
-        case .manual: return ThusoTheme.sky
-        case .patientReported: return ThusoTheme.forest
-        case .derived: return ThusoTheme.tealDeep
+        case .device: return ThusoTheme.indigo
+        case .manual: return ThusoTheme.info
+        case .patientReported: return ThusoTheme.slate
+        case .derived: return ThusoTheme.indigoDeep
         }
     }
     var wash: Color {
         switch self {
-        case .device: return ThusoTheme.tealSoft
-        case .manual: return ThusoTheme.skySoft
-        case .patientReported: return ThusoTheme.mint
+        case .device: return ThusoTheme.indigoSoft
+        case .manual: return ThusoTheme.infoSoft
+        case .patientReported: return ThusoTheme.accentSoft
         case .derived: return ThusoTheme.canvas
         }
     }
@@ -98,12 +98,12 @@ struct CaveatNote: View {
             VStack(alignment: .leading, spacing: 5) {
                 ForEach(caveats, id: \.self) { caveat in
                     Label(caveat, systemImage: "exclamationmark.circle")
-                        .font(.caption2).foregroundStyle(ThusoTheme.amber)
+                        .font(.caption2).foregroundStyle(ThusoTheme.mangoInk)
                 }
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.amberSoft, in: RoundedRectangle(cornerRadius: 10))
+            .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 10))
             .accessibilityElement(children: .combine)
         }
     }
@@ -174,7 +174,7 @@ struct TwoClocksRow: View {
                 let hours = abs(drift) / 3600
                 Label("This phone’s clock was \(String(format: "%.1f", hours)) hours \(drift > 0 ? "ahead of" : "behind") the receipt. Nobody was asked about it — the receipt time orders the record and the phone’s time is kept as what the phone believed.",
                       systemImage: "clock.badge.exclamationmark")
-                    .font(.caption2).foregroundStyle(ThusoTheme.amber)
+                    .font(.caption2).foregroundStyle(ThusoTheme.mangoInk)
             }
         }
         .accessibilityElement(children: .combine)

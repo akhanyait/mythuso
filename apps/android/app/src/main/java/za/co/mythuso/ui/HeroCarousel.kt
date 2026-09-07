@@ -72,7 +72,7 @@ import za.co.mythuso.model.heroSlides
             slides.forEachIndexed { position, slide ->
                 Box(
                     Modifier.width(if (position == pager.currentPage) 24.dp else 8.dp).height(8.dp)
-                        .background(if (position == pager.currentPage) Teal else Line, CircleShape)
+                        .background(if (position == pager.currentPage) Indigo else Line, CircleShape)
                         .clickable { playing = false }
                         .semantics {
                             contentDescription = "Highlight ${position + 1} of ${slides.size}: ${slide.title.replace("\n", " ")}"
@@ -119,7 +119,7 @@ import za.co.mythuso.model.heroSlides
             Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 20.dp, end = 14.dp, bottom = 16.dp, top = 82.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Text(slide.title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Forest, lineHeight = 28.sp, modifier = Modifier.fillMaxWidth(0.5f))
+            Text(slide.title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Slate, lineHeight = 28.sp, modifier = Modifier.fillMaxWidth(0.5f))
             Text(slide.body, fontSize = 12.5.sp, color = BodyText, lineHeight = 18.sp, modifier = Modifier.fillMaxWidth(0.5f).padding(top = 8.dp))
             Button(onClick = onAction, shape = CircleShape, modifier = Modifier.padding(top = 13.dp)) {
                 Text(slide.cta, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
@@ -130,14 +130,14 @@ import za.co.mythuso.model.heroSlides
                 slide.trust.forEachIndexed { spot, label ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Box(Modifier.size(32.dp).background(Color.White.copy(alpha = 0.78f), CircleShape), Alignment.Center) {
-                            Icon(trustIcon(slide.symbols[spot]), null, tint = Teal, modifier = Modifier.size(15.dp))
+                            Icon(trustIcon(slide.symbols[spot]), null, tint = Indigo, modifier = Modifier.size(15.dp))
                         }
                         Text(label, fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF42655B), textAlign = TextAlign.Center, lineHeight = 12.sp)
                     }
                 }
             }
             Text(
-                slide.caption, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = TealDeep,
+                slide.caption, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = IndigoDeep,
                 modifier = Modifier.padding(top = 10.dp).background(Color.White.copy(alpha = 0.88f), CircleShape).padding(horizontal = 13.dp, vertical = 7.dp)
             )
         }
@@ -192,7 +192,7 @@ private fun trustIcon(name: String) = when (name) {
             val t = clock * bubble.frequency + bubble.phase
             val breathe = 1f + 0.14f * sin(t * 1.3f)
             drawCircle(
-                Teal.copy(alpha = if (position % 3 == 0) 0.07f else 0.10f),
+                Indigo.copy(alpha = if (position % 3 == 0) 0.07f else 0.10f),
                 bubble.radius * density * breathe,
                 Offset(
                     bubble.x * size.width + sin(t) * bubble.travelX * density,
@@ -210,7 +210,7 @@ private fun trustIcon(name: String) = when (name) {
                     size.width + 30f + slide, size.height * (lift - 0.30f)
                 )
             }
-            drawPath(path, Teal.copy(alpha = 0.16f), style = Stroke(width = 2.5f * density, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+            drawPath(path, Indigo.copy(alpha = 0.16f), style = Stroke(width = 2.5f * density, cap = androidx.compose.ui.graphics.StrokeCap.Round))
         }
     }
 }

@@ -139,7 +139,7 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
         Text("Saying no", style = MaterialTheme.typography.titleLarge, color = Ink)
         CareCard {
             Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
-                Icon(Icons.Outlined.VisibilityOff, null, tint = Teal)
+                Icon(Icons.Outlined.VisibilityOff, null, tint = Indigo)
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(programmeDeclining.headline, style = MaterialTheme.typography.titleMedium, color = Ink)
                     Note(programmeDeclining.note)
@@ -221,13 +221,13 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
 @Composable private fun ReportRow(row: ReportedCohort) {
     if (row.suppressedBy != null) {
         Column(
-            Modifier.fillMaxWidth().background(AmberSoft, RoundedCornerShape(14.dp)).padding(13.dp),
+            Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(14.dp)).padding(13.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Text(row.cohort.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Faint)
-            Text("NOT REPORTED", style = MaterialTheme.typography.labelSmall, color = Amber)
+            Text("NOT REPORTED", style = MaterialTheme.typography.labelSmall, color = MangoInk)
             Text(Programmes.suppressionReason(row.suppressedBy).sentence,
-                style = MaterialTheme.typography.bodyMedium, color = Forest)
+                style = MaterialTheme.typography.bodyMedium, color = Slate)
         }
     } else {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
@@ -240,7 +240,7 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
 
 @Composable private fun Figure(value: String, label: String, why: String) {
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Text(value, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Forest)
+        Text(value, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Slate)
         Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = Faint)
         Text(why, style = MaterialTheme.typography.bodyMedium, color = BodyText)
     }
@@ -255,8 +255,8 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
 
 @Composable private fun StepRow(number: Int, step: ProgrammeStep) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-        Text("$number", style = MaterialTheme.typography.labelSmall, color = TealDeep,
-            modifier = Modifier.background(TealSoft, RoundedCornerShape(10.dp)).padding(horizontal = 7.dp, vertical = 3.dp))
+        Text("$number", style = MaterialTheme.typography.labelSmall, color = IndigoDeep,
+            modifier = Modifier.background(IndigoSoft, RoundedCornerShape(10.dp)).padding(horizontal = 7.dp, vertical = 3.dp))
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(step.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
             Text(step.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
@@ -266,17 +266,17 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
 
 @Composable private fun ProgrammeAlert(text: String) {
     Row(
-        Modifier.fillMaxWidth().background(AmberSoft, RoundedCornerShape(14.dp)).padding(14.dp),
+        Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(14.dp)).padding(14.dp),
         horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top
     ) {
-        Icon(Icons.Outlined.Info, null, tint = Amber)
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = Forest)
+        Icon(Icons.Outlined.Info, null, tint = MangoInk)
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = Slate)
     }
 }
 
 @Composable private fun ProgrammeRefusalRow(item: ProgrammeRefusal) {
     Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
         Icon(Icons.Outlined.Block, null, tint = Danger)
-        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Forest)
+        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Slate)
     }
 }

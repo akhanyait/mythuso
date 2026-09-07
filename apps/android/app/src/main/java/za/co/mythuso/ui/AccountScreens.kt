@@ -126,12 +126,12 @@ import za.co.mythuso.model.mokoenaHousehold
             .border(1.dp, Line, RoundedCornerShape(18.dp)).clickable(onClick = click).padding(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
     ) {
-        Icon(icon, null, tint = Teal)
+        Icon(icon, null, tint = Indigo)
         Spacer(Modifier.height(8.dp))
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Forest, textAlign = TextAlign.Center, lineHeight = 15.sp)
+        Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Slate, textAlign = TextAlign.Center, lineHeight = 15.sp)
     }
 }
-@Composable fun ToolRow(name: String, click: () -> Unit) { Row(Modifier.fillMaxWidth().clickable(onClick = click).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) { Text(name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium); Icon(Icons.Outlined.ChevronRight, null, tint = Teal) } }
+@Composable fun ToolRow(name: String, click: () -> Unit) { Row(Modifier.fillMaxWidth().clickable(onClick = click).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) { Text(name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium); Icon(Icons.Outlined.ChevronRight, null, tint = Indigo) } }
 @Composable fun MoreScreen(open: (String) -> Unit, firstRun: () -> Unit) {
     ScreenColumn {
         Heading("", "More", "")
@@ -270,7 +270,7 @@ import za.co.mythuso.model.mokoenaHousehold
             DemoBadge()
             Heading("MyThuso", title, "Connected to your care journey.")
             CareCard {
-                Icon(Icons.Outlined.VerifiedUser, null, tint = Teal)
+                Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo)
                 if (title.startsWith("Visit:")) {
                     Text("Confirmed · Demo"); Text("Sister Naledi Mokoena · Registered nurse"); Text("Have your medication list ready.")
                 }
@@ -306,8 +306,8 @@ import za.co.mythuso.model.mokoenaHousehold
     }
 }
 @Composable fun PrivacyScreen(store: PreviewStore, open: (String) -> Unit) { ScreenColumn { Heading("Your privacy matters", "Your data. Your choices.", "Demo preferences reset when the app restarts."); CareCard { Setting("Care reminders", store.reminders) { store.reminders = it }; Setting("Wearable readings", store.wearableSharing) { store.wearableSharing = it }; Setting("Product updates", store.marketing) { store.marketing = it } }; CareCard { listOf("Access history", "Request a correction", "Request account deletion", "Information Officer").forEach { item -> ToolRow(item) { open(item) } } }; Text("Production POPIA compliance requires governance, lawful processing, verified technical controls and a clinical retention schedule. These are UI previews.", style = MaterialTheme.typography.bodySmall) } }
-@Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); listOf(Triple("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), Triple("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), Triple("Thuso Mom", "R249 / month", "Pregnancy and baby’s first year"), Triple("Thuso Senior", "R699 / month", "Weekly care and family support"), Triple("Thuso Recover", "Custom pricing", "Personalised recovery support")).forEach { (name, price, description) -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Teal); Text(name, style = MaterialTheme.typography.titleLarge); Text(description); Text(price, style = MaterialTheme.typography.headlineSmall, color = Teal); OutlinedButton(onClick = { open(name) }) { Text("Explore plan") } } } } }
-@Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Forest); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
+@Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); listOf(Triple("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), Triple("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), Triple("Thuso Mom", "R249 / month", "Pregnancy and baby’s first year"), Triple("Thuso Senior", "R699 / month", "Weekly care and family support"), Triple("Thuso Recover", "Custom pricing", "Personalised recovery support")).forEach { (name, price, description) -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Indigo); Text(name, style = MaterialTheme.typography.titleLarge); Text(description); Text(price, style = MaterialTheme.typography.headlineSmall, color = Indigo); OutlinedButton(onClick = { open(name) }) { Text("Explore plan") } } } } }
+@Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Slate); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
 /* A clinical workspace navigates as itself.
  *
  * Every role used to open one long screen under the patient's own bottom bar, so a nurse on a

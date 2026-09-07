@@ -179,7 +179,7 @@ private data class ConsultationSignature(
                         if (heading.id == "O") readings.forEach { reading ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                                 Text(reading.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                                Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Forest)
+                                Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Slate)
                                 ProvenanceMark(reading.provenance)
                             }
                         }
@@ -198,7 +198,7 @@ private data class ConsultationSignature(
         }
         if (neverGranted.isNotEmpty()) CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Outlined.MedicalServices, null, tint = Teal)
+                Icon(Icons.Outlined.MedicalServices, null, tint = Indigo)
                 Text("Not on this form at all", style = MaterialTheme.typography.titleSmall, color = Ink)
             }
             Text(
@@ -212,7 +212,7 @@ private data class ConsultationSignature(
         val signed = signature
         if (signed != null) CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Outlined.VerifiedUser, null, tint = Teal)
+                Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo)
                 Text("Demo consultation signed.", style = MaterialTheme.typography.titleMedium)
             }
             ReviewLine("Clinician", signed.name)
@@ -261,12 +261,12 @@ private data class ConsultationSignature(
            to change what a reading was — it gets to say what it makes of it, which is the free field
            underneath. */
         if (section.id == "observations" && decision.allowed && readings.isNotEmpty()) {
-            Text("Readings captured on this visit", style = MaterialTheme.typography.labelLarge, color = Forest)
+            Text("Readings captured on this visit", style = MaterialTheme.typography.labelLarge, color = Slate)
             readings.forEach { reading ->
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                         Text(reading.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                        Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Forest)
+                        Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Slate)
                         ProvenanceMark(reading.provenance)
                     }
                     if (reading.state != CaptureState.STORED) StatusPill(reading.state.label, "sky")

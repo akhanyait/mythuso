@@ -29,14 +29,14 @@ struct ClinicalChart: View {
     var body: some View {
         CareCard {
             HStack(alignment: .top) {
-                if let symbol { Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(ThusoTheme.teal) }
+                if let symbol { Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(ThusoTheme.indigo) }
                 Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Spacer()
                 Text(inRange ? "Within sample range" : "Outside sample range")
                     .font(.caption2.weight(.semibold))
                     .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(inRange ? ThusoTheme.sage : Color(red: 0.98, green: 0.94, blue: 0.90), in: Capsule())
-                    .foregroundStyle(inRange ? ThusoTheme.forest : Color(red: 0.59, green: 0.33, blue: 0.17))
+                    .foregroundStyle(inRange ? ThusoTheme.slate : Color(red: 0.59, green: 0.33, blue: 0.17))
             }
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(format(latest.value)).font(.system(size: 30, weight: .semibold, design: .rounded))
@@ -62,7 +62,7 @@ struct ClinicalChart: View {
                     Text("Fictional data, not a medical record.").font(.caption2).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8)
                 }
             } label: {
-                Text(showTable ? "Hide readings" : "Show readings as a table").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.teal)
+                Text(showTable ? "Hide readings" : "Show readings as a table").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
             }
         }
     }
@@ -87,10 +87,10 @@ struct ClinicalChart: View {
                         let next = point(index, reading.value)
                         index == 0 ? path.move(to: next) : path.addLine(to: next)
                     }
-                }.stroke(ThusoTheme.teal, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                }.stroke(ThusoTheme.indigo, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
                 ForEach(Array(readings.enumerated()), id: \.element) { index, reading in
-                    Circle().fill(index == readings.count - 1 ? .white : ThusoTheme.teal)
-                        .overlay(Circle().stroke(ThusoTheme.teal, lineWidth: index == readings.count - 1 ? 2 : 0))
+                    Circle().fill(index == readings.count - 1 ? .white : ThusoTheme.indigo)
+                        .overlay(Circle().stroke(ThusoTheme.indigo, lineWidth: index == readings.count - 1 ? 2 : 0))
                         .frame(width: index == readings.count - 1 ? 9 : 6)
                         .position(point(index, reading.value))
                 }

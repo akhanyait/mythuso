@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 @Composable fun ReviewLine(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = Forest)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = Slate)
     }
 }
 @Composable fun Note(text: String) {

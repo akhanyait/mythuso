@@ -114,13 +114,13 @@ struct DispatchMap: View {
                         RoundedRectangle(cornerRadius: 3)
                             .fill(assigned[job.id] != nil ? Color(red: 0.184, green: 0.612, blue: 0.490) : Color(red: 0.851, green: 0.604, blue: 0.271))
                             .frame(width: 12, height: 12)
-                            .overlay { if job.id == selected { Circle().stroke(ThusoTheme.forest, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 26, height: 26) } }
+                            .overlay { if job.id == selected { Circle().stroke(ThusoTheme.slate, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 26, height: 26) } }
                             .position(x: point.x * size, y: point.y * size)
                     }
                 }
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
-                        Text(zone.name).font(.system(size: 10, weight: .semibold)).foregroundStyle(ThusoTheme.forest.opacity(0.75))
+                        Text(zone.name).font(.system(size: 10, weight: .semibold)).foregroundStyle(ThusoTheme.slate.opacity(0.75))
                             .position(x: point.x * size, y: (point.y - zone.radius) * size + 8)
                     }
                 }
@@ -269,7 +269,7 @@ struct DispatchNurseRow: View {
                         /* Amber, not red: nothing is being refused here. The nurse can still be
                            assigned — the board just will not pretend to know when she will arrive. */
                         Label(reason, systemImage: "location.slash")
-                            .font(.caption2).foregroundStyle(ThusoTheme.amber)
+                            .font(.caption2).foregroundStyle(ThusoTheme.mangoInk)
                             .accessibilityHidden(true)
                     }
                 }
@@ -283,7 +283,7 @@ struct DispatchNurseRow: View {
             if !refused.isEmpty { Text(refused).font(.caption2).foregroundStyle(ThusoTheme.danger) }
             if let subject {
                 NavigationLink("Why") { VettingStatusView(subjectId: subject.id) }
-                    .font(.caption2).foregroundStyle(ThusoTheme.teal)
+                    .font(.caption2).foregroundStyle(ThusoTheme.indigo)
             }
         }
         .padding(.vertical, 3)
@@ -336,7 +336,7 @@ struct IncidentDetailView: View {
                 Button("Add demo action to the log") { log.append(action); action = "" }.disabled(action.isEmpty)
             }
             if !log.isEmpty {
-                Section("Demo incident log") { ForEach(log, id: \.self) { Label($0, systemImage: "checkmark.circle.fill").foregroundStyle(ThusoTheme.teal) } }
+                Section("Demo incident log") { ForEach(log, id: \.self) { Label($0, systemImage: "checkmark.circle.fill").foregroundStyle(ThusoTheme.indigo) } }
             }
             Section { Text("Incident logs are append-only and reviewed weekly. Nothing here is recorded, paged or sent.").font(.caption).foregroundStyle(.secondary) }
         }

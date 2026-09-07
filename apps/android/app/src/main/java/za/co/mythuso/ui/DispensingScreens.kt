@@ -162,7 +162,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
                     (step.id == "recorded" && handed.size == rx.items.size))
                 Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
                     Icon(if (done) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked, null,
-                        tint = if (done) Teal else Faint)
+                        tint = if (done) Indigo else Faint)
                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(step.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
                         Text(step.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
@@ -199,7 +199,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             if (collectTried) {
                 val answer = Dispensing.collectionAnswer
                 if (answer.allowed) {
-                    Text(answer.reason, style = MaterialTheme.typography.bodyMedium, color = Forest)
+                    Text(answer.reason, style = MaterialTheme.typography.bodyMedium, color = Slate)
                 } else {
                     Alert(answer.reason)
                     Text(Dispensing.rule("early-is-refused-with-a-date").sentence,
@@ -210,13 +210,13 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
                 Alert("This is the last repeat. It is said now, not at the counter next month.")
             }
             Column(
-                Modifier.fillMaxWidth().background(TealSoft, RoundedCornerShape(14.dp)).padding(14.dp),
+                Modifier.fillMaxWidth().background(IndigoSoft, RoundedCornerShape(14.dp)).padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text("What happens at the end", style = MaterialTheme.typography.titleMedium, color = Forest)
-                Text(auth.endsWith, style = MaterialTheme.typography.bodyMedium, color = Forest)
+                Text("What happens at the end", style = MaterialTheme.typography.titleMedium, color = Slate)
+                Text(auth.endsWith, style = MaterialTheme.typography.bodyMedium, color = Slate)
                 Text(Dispensing.rule("ends-in-a-review").sentence,
-                    style = MaterialTheme.typography.bodyMedium, color = Forest)
+                    style = MaterialTheme.typography.bodyMedium, color = Slate)
             }
         }
 
@@ -287,17 +287,17 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
    are set as speech rather than as small print. */
 @Composable private fun Telling(item: PrescriptionItem) {
     Column(
-        Modifier.fillMaxWidth().background(TealSoft, RoundedCornerShape(14.dp)).padding(14.dp),
+        Modifier.fillMaxWidth().background(IndigoSoft, RoundedCornerShape(14.dp)).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Hearing, null, tint = TealDeep)
-            Text(Dispensing.headline(item), style = MaterialTheme.typography.labelLarge, color = TealDeep)
+            Icon(Icons.Outlined.Hearing, null, tint = IndigoDeep)
+            Text(Dispensing.headline(item), style = MaterialTheme.typography.labelLarge, color = IndigoDeep)
         }
         if (item.wasSubstituted) {
-            Text("It replaces ${item.prescribed}.", style = MaterialTheme.typography.bodyMedium, color = TealDeep)
+            Text("It replaces ${item.prescribed}.", style = MaterialTheme.typography.bodyMedium, color = IndigoDeep)
         }
-        Text(item.patientWords, style = MaterialTheme.typography.bodyLarge, color = Forest)
+        Text(item.patientWords, style = MaterialTheme.typography.bodyLarge, color = Slate)
         if (item.sameness.isNotEmpty()) {
             Text("THE SAME", style = MaterialTheme.typography.labelSmall, color = Faint)
             item.sameness.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = BodyText) }
@@ -309,7 +309,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 
 @Composable private fun GroundRow(ground: SubstitutionGround) {
     Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Top) {
-        Icon(Icons.Outlined.Info, null, tint = Teal)
+        Icon(Icons.Outlined.Info, null, tint = Indigo)
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(if (ground.section == null) ground.name else "${ground.name} · section ${ground.section}",
                 style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Ink)
@@ -320,7 +320,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 
 @Composable private fun Bullet(what: String, why: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Top) {
-        Text("•", color = Teal)
+        Text("•", color = Indigo)
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(what, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Ink)
             Text(why, style = MaterialTheme.typography.bodySmall, color = BodyText)
@@ -341,17 +341,17 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 
 @Composable private fun Alert(text: String) {
     Row(
-        Modifier.fillMaxWidth().background(AmberSoft, RoundedCornerShape(14.dp)).padding(14.dp),
+        Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(14.dp)).padding(14.dp),
         horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top
     ) {
-        Icon(Icons.Outlined.CalendarMonth, null, tint = Amber)
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = Forest)
+        Icon(Icons.Outlined.CalendarMonth, null, tint = MangoInk)
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = Slate)
     }
 }
 
 @Composable private fun DispensingRefusalRow(item: DispensingRefusal) {
     Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
         Icon(Icons.Outlined.Block, null, tint = Danger)
-        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Forest)
+        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Slate)
     }
 }

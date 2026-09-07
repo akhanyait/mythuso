@@ -176,7 +176,7 @@ struct SosView: View {
                 Image(systemName: "cross.case.fill").font(.system(size: 23)).foregroundStyle(ThusoTheme.danger)
                 VStack(alignment: .leading, spacing: 6) {
                     Text(Sos.emergency.headline).font(.system(size: 19, weight: .bold)).foregroundStyle(ThusoTheme.danger)
-                    Text(Sos.emergency.lead).font(.system(size: 13.5)).foregroundStyle(ThusoTheme.forest)
+                    Text(Sos.emergency.lead).font(.system(size: 13.5)).foregroundStyle(ThusoTheme.slate)
                 }
             }
             ForEach(Sos.emergency.numbers) { number in
@@ -194,7 +194,7 @@ struct SosView: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("\(number.name). \(number.number). \(number.whenToUse)")
             }
-            Text(Sos.emergency.notAnAmbulance).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+            Text(Sos.emergency.notAnAmbulance).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
             Text(Sos.emergency.previewNote).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
         }
         .padding(18).frame(maxWidth: .infinity, alignment: .leading)
@@ -233,14 +233,14 @@ struct SosView: View {
             } label: {
                 HStack(spacing: 11) {
                     Image(systemName: none ? "checkmark.square.fill" : "square")
-                        .font(.system(size: 18)).foregroundStyle(none ? ThusoTheme.teal : ThusoTheme.line)
+                        .font(.system(size: 18)).foregroundStyle(none ? ThusoTheme.indigo : ThusoTheme.line)
                     Text(Sos.redFlags.noneLabel).font(.system(size: 13.5, weight: .medium)).foregroundStyle(ThusoTheme.ink)
                     Spacer(minLength: 0)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            Text(Sos.routing.isNotTriage).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+            Text(Sos.routing.isNotTriage).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
         }
     }
 
@@ -248,7 +248,7 @@ struct SosView: View {
         let outcome = Sos.outcome("emergency-services")
         return VStack(alignment: .leading, spacing: 11) {
             Text(outcome.headline).font(.system(size: 17, weight: .bold)).foregroundStyle(ThusoTheme.danger)
-            Text(outcome.detail).font(.system(size: 13)).foregroundStyle(ThusoTheme.forest)
+            Text(outcome.detail).font(.system(size: 13)).foregroundStyle(ThusoTheme.slate)
             ForEach(Array(answers.flagged).sorted(), id: \.self) { id in
                 if let condition = Sos.condition(id) {
                     Text("• \(condition.name)").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
@@ -321,7 +321,7 @@ struct SosView: View {
             Text(outcome.detail).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
             Text(failure.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
             Text(failure.what).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
-            Text(failure.instead).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+            Text(failure.instead).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
             if failureId == "vetting" {
                 ForEach(candidates.filter { !$0.decision.allowed }) { candidate in
                     Text("\(candidate.subject.name): \(candidate.decision.reason ?? "")")
@@ -336,7 +336,7 @@ struct SosView: View {
             }
         }
         .padding(18).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.amberSoft, in: RoundedRectangle(cornerRadius: 18))
+        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 18))
     }
 
     private var offer: some View {
@@ -358,7 +358,7 @@ struct SosView: View {
                 StatusPill(text: Sos.targetLabel, tone: "amber")
             }
             Text(Sos.target.statement).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
-            Text(Sos.target.whenItCannotBeMet).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+            Text(Sos.target.whenItCannotBeMet).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
             Text(Sos.target.estimateIsNotTheTarget).font(.footnote).foregroundStyle(ThusoTheme.faint)
         }
     }
@@ -389,7 +389,7 @@ struct SosView: View {
                 }
                 Text(Sos.target.arrivalUnknown).font(.footnote).foregroundStyle(ThusoTheme.body)
                 Text(Sos.rule("urgency-does-not-relax-vetting").sentence)
-                    .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+                    .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
             }
         }
     }
@@ -401,7 +401,7 @@ struct SosView: View {
             Text(Sos.standDown.title).font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
                 Text(Sos.standDown.statement).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
-                Text(Sos.standDown.chargeRule).font(.footnote).foregroundStyle(ThusoTheme.forest)
+                Text(Sos.standDown.chargeRule).font(.footnote).foregroundStyle(ThusoTheme.slate)
                 if let stoodDown, let reason = Sos.standDown.reasons.first(where: { $0.id == stoodDown }) {
                     Text("Stood down · \(reason.label)").font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
                     Text(Sos.standDown.nurseNote).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
@@ -413,11 +413,11 @@ struct SosView: View {
                         Button(reason.label) { stoodDown = reason.id }.buttonStyle(QuietButton())
                     }
                     Toggle("Preview: nobody answers the callback", isOn: $unanswered)
-                        .font(.system(size: 12.5)).tint(ThusoTheme.teal)
+                        .font(.system(size: 12.5)).tint(ThusoTheme.indigo)
                     if unanswered {
-                        Text(Sos.standDown.noAnswerRule).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+                        Text(Sos.standDown.noAnswerRule).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
                             .padding(13).frame(maxWidth: .infinity, alignment: .leading)
-                            .background(ThusoTheme.amberSoft, in: RoundedRectangle(cornerRadius: 14))
+                            .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
                     }
                 }
             }
@@ -435,7 +435,7 @@ struct SosView: View {
                 CareCard {
                     Text(failure.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
                     Text(failure.what).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
-                    Text(failure.instead).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+                    Text(failure.instead).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
                 }
             }
         }
@@ -446,7 +446,7 @@ struct SosView: View {
             Text("Where and when").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
             CareCard {
                 Text(Sos.coverage.statement).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
-                Text(Sos.coverage.areas.joined(separator: " · ")).font(.system(size: 13, weight: .medium)).foregroundStyle(ThusoTheme.forest)
+                Text(Sos.coverage.areas.joined(separator: " · ")).font(.system(size: 13, weight: .medium)).foregroundStyle(ThusoTheme.slate)
                 row("Hours", "\(Sos.coverage.hours.days), \(Sos.coverage.hours.opensAt)–\(Sos.coverage.hours.closesAt)")
                 Text(Sos.coverage.hours.note).font(.footnote).foregroundStyle(ThusoTheme.faint)
                 Text(Sos.coverage.honestNote).font(.footnote).foregroundStyle(ThusoTheme.body)
@@ -465,7 +465,7 @@ struct SosView: View {
                 ForEach(Sos.alert.honesty) { note in
                     Text(note.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
                 }
-                Text(Sos.alert.notCover).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+                Text(Sos.alert.notCover).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
             }
         }
     }
@@ -476,7 +476,7 @@ struct SosView: View {
             CareCard {
                 Text(Sos.record.statement).font(.system(size: 13)).foregroundStyle(ThusoTheme.body)
                 ForEach(Sos.record.kept, id: \.self) { item in
-                    Label(item, systemImage: "checkmark.seal").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+                    Label(item, systemImage: "checkmark.seal").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
                 }
                 ForEach(Sos.record.notKept, id: \.self) { item in
                     Label(item, systemImage: "nosign").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
@@ -504,7 +504,7 @@ struct SosView: View {
                 CareCard {
                     HStack(alignment: .top, spacing: 11) {
                         Image(systemName: "nosign").font(.system(size: 16)).foregroundStyle(ThusoTheme.danger)
-                        Text(refusal.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+                        Text(refusal.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
                     }
                 }
             }

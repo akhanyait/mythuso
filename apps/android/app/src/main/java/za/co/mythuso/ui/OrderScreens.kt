@@ -30,7 +30,7 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Icon(
                     when (step.state) { "done" -> Icons.Outlined.CheckCircle; "active" -> Icons.Outlined.RadioButtonChecked; else -> Icons.Outlined.RadioButtonUnchecked },
-                    null, tint = if (step.state == "waiting") MaterialTheme.colorScheme.onSurfaceVariant else Teal
+                    null, tint = if (step.state == "waiting") MaterialTheme.colorScheme.onSurfaceVariant else Indigo
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(step.label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)

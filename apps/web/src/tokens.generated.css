@@ -2,29 +2,32 @@
    Do not edit by hand — run `npm run tokens`. The build fails if this file and the token source
    disagree, so an edit here is lost rather than merely wrong. */
 :root{
- --teal:#0e7c6b;
- --teal-deep:#0a6357;
- --teal-soft:#e4f2ed;
- --mint:#d3ebe1;
- --forest:#123a32;
- --ink:#10241f;
- --body:#5b6b66;
- --faint:#5f706a;
- --line:#e7eeeb;
- --canvas:#f4f8f7;
+ --indigo:#1e3a8a;
+ --indigo-deep:#172f6f;
+ --indigo-soft:#eef2ff;
+ --teal:#14b8a6;
+ --teal-ink:#0f766e;
+ --teal-soft:#e6faf6;
+ --accent-soft:#ccfbef;
+ --mango:#ffb347;
+ --mango-ink:#92400e;
+ --mango-soft:#fff4e3;
+ --ink:#0f172a;
+ --slate:#1e293b;
+ --body:#475569;
+ --faint:#5d6b80;
+ --line:#e2e8f0;
+ --canvas:#f1f5f9;
  --surface:#ffffff;
- --amber:#8a5e12;
- --amber-soft:#fbf0dc;
- --sky:#3c6e9f;
- --sky-soft:#e7f0fa;
- --danger:#a6392e;
- --danger-soft:#fbedeb;
- --gold:#e0a93f;
- --focus:#e0a93f;
- --focus-edge:#10241f;
- --r-card:18px;
- --r-control:12px;
- --r-tile:14px;
+ --danger:#b42318;
+ --danger-soft:#fef3f2;
+ --info:#175cd3;
+ --info-soft:#eff4ff;
+ --focus:#ffb347;
+ --focus-edge:#0f172a;
+ --r-card:12px;
+ --r-control:10px;
+ --r-tile:10px;
  --r-pill:999px;
  --space-4:4px;
  --space-8:8px;
@@ -34,9 +37,9 @@
  --space-24:24px;
  --space-32:32px;
  --space-40:40px;
- --shadow:0 1px 2px #102d2609,0 8px 24px #102d260d;
- --shadow-raised:0 10px 30px #102d261a;
+ --shadow:0 1px 2px rgba(15,23,42,.06);
+ --shadow-raised:0 4px 16px rgba(15,23,42,.10);
  --font-text:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
- --font-display:Fraunces,"Iowan Old Style","Palatino Linotype",Georgia,serif;
+ --font-display:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
  --motion-duration:180ms;
 }

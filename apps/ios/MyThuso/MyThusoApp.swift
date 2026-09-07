@@ -2,7 +2,7 @@ import SwiftUI
 
 @main struct MyThusoApp: App {
     @StateObject private var store = PreviewStore()
-    var body: some Scene { WindowGroup { RootView().environmentObject(store).tint(ThusoTheme.teal) } }
+    var body: some Scene { WindowGroup { RootView().environmentObject(store).tint(ThusoTheme.indigo) } }
 }
 struct RootView: View {
     @EnvironmentObject private var store: PreviewStore

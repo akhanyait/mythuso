@@ -79,7 +79,7 @@ import za.co.mythuso.model.*
             }
             2 -> {
                 Heading("Verify", "Check your messages.", "In this preview the code is 240924.")
-                Text("Verification code", style = MaterialTheme.typography.labelLarge, color = Forest)
+                Text("Verification code", style = MaterialTheme.typography.labelLarge, color = Slate)
                 CodeBoxes(code, { code = it; codeError = "" }, invalid = codeError.isNotEmpty(), label = "Verification code")
                 if (codeError.isNotEmpty()) Note(codeError)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -149,7 +149,7 @@ import za.co.mythuso.model.*
         if (submitted) {
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Outlined.VerifiedUser, null, tint = Teal)
+                    Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo)
                     Text("We’ve started your recovery", style = MaterialTheme.typography.titleMedium)
                 }
                 ReviewLine("Reference", "REC-0042 · Demo")
@@ -165,7 +165,7 @@ import za.co.mythuso.model.*
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             Text(title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge)
                             Note(body)
-                            Text(wait, style = MaterialTheme.typography.labelSmall, color = Teal)
+                            Text(wait, style = MaterialTheme.typography.labelSmall, color = Indigo)
                         }
                     }
                 }
@@ -250,7 +250,7 @@ import za.co.mythuso.model.*
         CareCard {
             if (state == LoadState.READY) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Outlined.CheckCircle, null, tint = Teal)
+                    Icon(Icons.Outlined.CheckCircle, null, tint = Indigo)
                     Text("The real content, with nothing standing in for it.")
                 }
             } else {

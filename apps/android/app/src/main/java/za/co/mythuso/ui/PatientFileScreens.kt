@@ -91,11 +91,11 @@ private fun grantSentence(roleId: String, capability: String): String? =
         CareCard {
             Text("The same file, through different eyes", style = MaterialTheme.typography.titleMedium)
             Note("Every tab, action and field group below asks the vetting module whether this party may see it. Change the viewer and watch the file change shape — that is the demonstration, and it is the only way to tell whether a refusal was designed or assumed.")
-            Text("Open the file of", style = MaterialTheme.typography.labelLarge, color = Forest)
+            Text("Open the file of", style = MaterialTheme.typography.labelLarge, color = Slate)
             FlowRowChips(filePatients.map { it.name }, setOf(patient.name)) { name ->
                 patientId = filePatients.first { it.name == name }.id; notice = ""
             }
-            Text(thuso(Phrase.VIEWING_AS, store.locale), style = MaterialTheme.typography.labelLarge, color = Forest)
+            Text(thuso(Phrase.VIEWING_AS, store.locale), style = MaterialTheme.typography.labelLarge, color = Slate)
             /* The chip carries the role as well as the name, because “Kagiso Molefe” does not tell a
                reviewer that the next tap is a Control Tower operator, and that is the whole point of
                the switch. */
@@ -240,10 +240,10 @@ private fun grantSentence(roleId: String, capability: String): String? =
             RefusalBody("The patient summary is not open to this viewer", decision)
         } else {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-                Box(Modifier.size(46.dp).background(TealSoft, CircleShape), Alignment.Center) {
+                Box(Modifier.size(46.dp).background(IndigoSoft, CircleShape), Alignment.Center) {
                     Text(
                         patient.name.split(" ").mapNotNull { it.firstOrNull() }.take(2).joinToString(""),
-                        fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TealDeep
+                        fontSize = 16.sp, fontWeight = FontWeight.Bold, color = IndigoDeep
                     )
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -269,8 +269,8 @@ private fun grantSentence(roleId: String, capability: String): String? =
 @Composable private fun HeaderChip(key: String, value: String, tone: String) {
     val (background, foreground) = when (tone) {
         "danger" -> DangerSoft to Danger
-        "amber" -> AmberSoft to Amber
-        else -> TealSoft to TealDeep
+        "amber" -> MangoSoft to MangoInk
+        else -> IndigoSoft to IndigoDeep
     }
     Column(
         Modifier.background(background, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 8.dp)
@@ -307,7 +307,7 @@ private val withheldCategorySentence: String = run {
     else "${decision.reason.orEmpty()} Ask the patient, or the clinician they released it to."
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.Lock, null, tint = Teal)
+            Icon(Icons.Outlined.Lock, null, tint = Indigo)
             Text("A category is withheld from this header.", style = MaterialTheme.typography.titleSmall, color = Ink)
         }
         Text(recordSummaryCard.withheld, style = MaterialTheme.typography.bodyMedium)
@@ -335,7 +335,7 @@ private val withheldCategorySentence: String = run {
 
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.CalendarMonth, null, tint = Teal, modifier = Modifier.size(17.dp))
+            Icon(Icons.Outlined.CalendarMonth, null, tint = Indigo, modifier = Modifier.size(17.dp))
             Text("Last visit", style = MaterialTheme.typography.labelLarge, color = BodyText)
         }
         if (clinical.allowed) {
@@ -346,7 +346,7 @@ private val withheldCategorySentence: String = run {
     }
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.EventAvailable, null, tint = Teal, modifier = Modifier.size(17.dp))
+            Icon(Icons.Outlined.EventAvailable, null, tint = Indigo, modifier = Modifier.size(17.dp))
             Text("Next appointment", style = MaterialTheme.typography.labelLarge, color = BodyText)
         }
         val next = patient.nextAppointment
@@ -358,7 +358,7 @@ private val withheldCategorySentence: String = run {
     }
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.Medication, null, tint = Teal, modifier = Modifier.size(17.dp))
+            Icon(Icons.Outlined.Medication, null, tint = Indigo, modifier = Modifier.size(17.dp))
             Text("Current medication", style = MaterialTheme.typography.labelLarge, color = BodyText)
         }
         when {
@@ -463,7 +463,7 @@ private val withheldCategorySentence: String = run {
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(icon, null, tint = Teal, modifier = Modifier.size(15.dp))
+            Icon(icon, null, tint = Indigo, modifier = Modifier.size(15.dp))
             Text(name, fontSize = 11.sp, color = BodyText)
         }
         Text(value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Ink)
@@ -504,8 +504,8 @@ private val withheldCategorySentence: String = run {
     ) {
         TileIcon(
             if (decision.allowed) Icons.Outlined.Description else Icons.Outlined.Lock,
-            if (decision.allowed) Teal else Danger,
-            if (decision.allowed) TealSoft else DangerSoft, 36.dp
+            if (decision.allowed) Indigo else Danger,
+            if (decision.allowed) IndigoSoft else DangerSoft, 36.dp
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
@@ -581,7 +581,7 @@ private val withheldCategorySentence: String = run {
     val past = visible.filter { it.stopped != null }
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.Warning, null, tint = if (patient.allergies.isNotEmpty()) Danger else Amber)
+            Icon(Icons.Outlined.Warning, null, tint = if (patient.allergies.isNotEmpty()) Danger else MangoInk)
             Text(if (patient.allergies.isNotEmpty()) "Allergies" else "No allergy has been recorded", style = MaterialTheme.typography.titleSmall, color = Ink)
         }
         Text(
@@ -659,7 +659,7 @@ private val withheldCategorySentence: String = run {
                             row.value + (row.flag?.let { " · $it" } ?: ""),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = if (row.flag != null) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (row.flag != null) Amber else Forest
+                            color = if (row.flag != null) MangoInk else Slate
                         )
                     }
                     Note("Reference range ${row.range}")
@@ -754,7 +754,7 @@ private val withheldCategorySentence: String = run {
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("${line.code} · ${line.service}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink, modifier = Modifier.weight(1f))
-                    Text(rands(line.amount), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Forest)
+                    Text(rands(line.amount), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Slate)
                 }
                 Note("${shortDate(line.at)} · ${line.payer}")
                 StatusPill(line.status, if (line.status == "Rejected") "danger" else "quiet")

@@ -104,7 +104,7 @@ struct ThusoKitView: View {
             }
             VettingRefusalNote(decision: mayWrite)
             NavigationLink("Open this nurse’s vetting") { VettingStatusView(subjectId: subject.id) }
-                .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.teal)
+                .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
         }
     }
 
@@ -216,9 +216,9 @@ struct ThusoKitView: View {
             Text("Into the visit assessment, with its origin, its instrument and the calibration it was taken under; then onto this phone’s store as captured; then sealed and queued when the nurse signs off. It is in the record only once a server has accepted it, and this build has no server.")
                 .font(.caption).foregroundStyle(ThusoTheme.body)
             NavigationLink("Open the visit assessment") { VisitAssessmentView(reference: visitReference, patient: patient) }
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.teal)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
             NavigationLink("Open what is waiting on this phone") { CaptureQueueView() }
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.teal)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
         }
     }
 }
@@ -279,7 +279,7 @@ struct KitReadingSheet: View {
                 Text(device.qualifier.why).font(.caption).foregroundStyle(.secondary)
                 if qualifier.isEmpty {
                     Text("Nothing is read until this is answered. It is not a field the form can guess for you, and a reading the record cannot say the \(device.qualifier.label.lowercased()) for is a reading nobody can correct for afterwards.")
-                        .font(.caption).foregroundStyle(ThusoTheme.amber)
+                        .font(.caption).foregroundStyle(ThusoTheme.mangoInk)
                 }
             }
             if let instrument, instrument.calibration.standing == .outOfDate {

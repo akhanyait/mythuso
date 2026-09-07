@@ -24,7 +24,7 @@ struct VettingProgressRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ProgressView(value: summary.progress)
-                .tint(summary.cleared ? ThusoTheme.teal : ThusoTheme.amber)
+                .tint(summary.cleared ? ThusoTheme.indigo : ThusoTheme.mangoInk)
             Text("\(summary.passed) of \(summary.total) checks in date")
                 .font(.caption).foregroundStyle(.secondary)
         }
@@ -319,7 +319,7 @@ struct VettingApplyView: View {
                     HStack {
                         Text(item).foregroundStyle(ThusoTheme.ink)
                         Spacer()
-                        if scope.contains(item) { Image(systemName: "checkmark").foregroundStyle(ThusoTheme.teal) }
+                        if scope.contains(item) { Image(systemName: "checkmark").foregroundStyle(ThusoTheme.indigo) }
                     }
                 }
                 .accessibilityAddTraits(scope.contains(item) ? [.isSelected] : [])
@@ -369,7 +369,7 @@ struct VettingApplyView: View {
     @ViewBuilder private var attestationStage: some View {
         if let submitted, let subject = vetting.subject(submitted) {
             Section {
-                Label("Demo application submitted", systemImage: "checkmark.seal.fill").foregroundStyle(ThusoTheme.teal)
+                Label("Demo application submitted", systemImage: "checkmark.seal.fill").foregroundStyle(ThusoTheme.indigo)
                 Text("\(subject.name) now appears in the vetting queue as \(subject.id). Nothing was transmitted and nobody was notified.")
                     .font(.subheadline).foregroundStyle(.secondary)
                 NavigationLink("Open the status of this application") { VettingStatusView(subjectId: subject.id) }
@@ -435,14 +435,14 @@ struct CredentialField: View {
                     .accessibilityHint(authority.hint)
                 if entered {
                     Image(systemName: result.ok ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundStyle(result.ok ? ThusoTheme.teal : ThusoTheme.danger)
+                        .foregroundStyle(result.ok ? ThusoTheme.indigo : ThusoTheme.danger)
                         .accessibilityHidden(true)
                 }
             }
             if entered, let reason = result.reason {
                 Text(reason).font(.caption).foregroundStyle(ThusoTheme.danger)
             } else if entered && authority.id == "dha" {
-                Text(validateSaId(value).message).font(.caption).foregroundStyle(ThusoTheme.teal)
+                Text(validateSaId(value).message).font(.caption).foregroundStyle(ThusoTheme.indigo)
             } else {
                 Text("Used for \(usedFor.joined(separator: ", ")).").font(.caption2).foregroundStyle(.secondary)
             }
@@ -475,7 +475,7 @@ struct EvidenceSlot: View {
                     .font(.caption2).foregroundStyle(.secondary)
             }
             if attached {
-                Label("\(check.evidence) attached · demo file", systemImage: "paperclip").font(.caption2).foregroundStyle(ThusoTheme.teal)
+                Label("\(check.evidence) attached · demo file", systemImage: "paperclip").font(.caption2).foregroundStyle(ThusoTheme.indigo)
             }
         }
         .padding(.vertical, 4)
@@ -556,7 +556,7 @@ struct VettingStatusView: View {
                 }
                 ForEach(summary.awaitingSecond) { standing in
                     Label("\(standing.check.name) — verified by \(standing.record.decidedBy ?? "a reviewer"), waiting for a second", systemImage: "person.2")
-                        .font(.subheadline).foregroundStyle(ThusoTheme.amber)
+                        .font(.subheadline).foregroundStyle(ThusoTheme.mangoInk)
                 }
                 Text("A high-risk check is not verified on one person's say-so, so a file can look complete and still be refused.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -590,7 +590,7 @@ struct CheckStandingRow: View {
             }
             if check.isHighRisk {
                 Text(record.secondedBy.map { "Seconded by \($0)" } ?? "Awaiting a second reviewer — a different person to the one who verified it")
-                    .font(.caption2).foregroundStyle(record.secondedBy == nil ? ThusoTheme.amber : .secondary)
+                    .font(.caption2).foregroundStyle(record.secondedBy == nil ? ThusoTheme.mangoInk : .secondary)
             }
             if record.expiresOn != nil {
                 Text("\(vettingDate(record.expiresOn)) · \(expiryPhrase(record.expiresOn))")
@@ -628,7 +628,7 @@ struct CheckStandingRow: View {
             }
             .padding(.top, 6)
         } label: {
-            Text("Reviewer actions").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.teal)
+            Text("Reviewer actions").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
         }
     }
 }

@@ -19,7 +19,7 @@ struct InviteGuardianView: View {
     ]
     var body: some View {
         Form {
-            Section { Text("Step \(step + 1) of 4 · \(["Who", "What they see", "For how long", "Review"][step])").font(.caption).foregroundStyle(ThusoTheme.teal) }
+            Section { Text("Step \(step + 1) of 4 · \(["Who", "What they see", "For how long", "Review"][step])").font(.caption).foregroundStyle(ThusoTheme.indigo) }
             switch step {
             case 0:
                 Section("Who are you inviting?") {
@@ -38,7 +38,7 @@ struct InviteGuardianView: View {
                     ForEach(scopes, id: \.0) { option in
                         Button { scope = option.0 } label: {
                             HStack(alignment: .top, spacing: 12) {
-                                Image(systemName: scope == option.0 ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.teal)
+                                Image(systemName: scope == option.0 ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.indigo)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(option.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                                     Text(option.1).font(.caption).foregroundStyle(.secondary)
@@ -90,7 +90,7 @@ struct SystemStatesView: View {
             }
             Section("The chosen state") {
                 if state == .ready {
-                    Label("The real content, with nothing standing in for it.", systemImage: "checkmark.circle").foregroundStyle(ThusoTheme.teal)
+                    Label("The real content, with nothing standing in for it.", systemImage: "checkmark.circle").foregroundStyle(ThusoTheme.indigo)
                 } else {
                     StateBlock(state: state, subject: "Your laboratory results", permission: "Apple Health access", retry: { state = .ready }) { EmptyView() }
                         .listRowInsets(EdgeInsets())

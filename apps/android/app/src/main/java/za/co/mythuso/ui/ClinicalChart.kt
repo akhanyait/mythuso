@@ -39,13 +39,13 @@ data class Reading(val label: String, val value: Double, val note: String = "—
     val summary = "$title. Latest sample reading ${format(latest.value)} $unit on ${latest.label}, $direction the first reading of ${format(first.value)} on ${first.label}. $rangeNote Fictional data."
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (icon != null) { Icon(icon, null, tint = Teal, modifier = Modifier.size(17.dp)); Spacer(Modifier.width(8.dp)) }
+            if (icon != null) { Icon(icon, null, tint = Indigo, modifier = Modifier.size(17.dp)); Spacer(Modifier.width(8.dp)) }
             Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             Surface(color = if (inRange) Sage else Color(0xFFFAF0E6), shape = RoundedCornerShape(6.dp)) {
                 Text(
                     if (inRange) "Within sample range" else "Outside sample range",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (inRange) Forest else Color(0xFF96552C),
+                    color = if (inRange) Slate else Color(0xFF96552C),
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
@@ -76,18 +76,18 @@ data class Reading(val label: String, val value: Double, val note: String = "—
             readings.forEachIndexed { index, reading ->
                 if (index == 0) path.moveTo(x(index), y(reading.value)) else path.lineTo(x(index), y(reading.value))
             }
-            drawPath(path, Teal, style = Stroke(width = 4f))
+            drawPath(path, Indigo, style = Stroke(width = 4f))
             readings.forEachIndexed { index, reading ->
                 val last = index == readings.lastIndex
-                drawCircle(if (last) Color.White else Teal, if (last) 7f else 5f, Offset(x(index), y(reading.value)))
-                if (last) drawCircle(Teal, 7f, Offset(x(index), y(reading.value)), style = Stroke(width = 3f))
+                drawCircle(if (last) Color.White else Indigo, if (last) 7f else 5f, Offset(x(index), y(reading.value)))
+                if (last) drawCircle(Indigo, 7f, Offset(x(index), y(reading.value)), style = Stroke(width = 3f))
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Note(first.label); Note(latest.label)
         }
         TextButton(onClick = { showTable = !showTable }) {
-            Icon(Icons.Outlined.TableChart, null, tint = Teal)
+            Icon(Icons.Outlined.TableChart, null, tint = Indigo)
             Spacer(Modifier.width(8.dp))
             Text(if (showTable) "Hide readings" else "Show readings as a table")
         }

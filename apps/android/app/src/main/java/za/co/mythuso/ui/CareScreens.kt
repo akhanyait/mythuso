@@ -41,7 +41,7 @@ import androidx.compose.foundation.text.KeyboardActions
     )
 }
 private val tileTints = listOf(
-    Teal to TealSoft,
+    Indigo to IndigoSoft,
     Color(0xFFB5814F) to Color(0xFFFBEEE3),
     Color(0xFFA97392) to Color(0xFFF6E9F0),
     Color(0xFF5C81AB) to Color(0xFFE6EEFA)
@@ -102,7 +102,7 @@ private val tileTints = listOf(
                         DropdownMenuItem(
                             text = { Text(area) },
                             onClick = { store.careArea = area; areaMenu = false },
-                            trailingIcon = { if (area == store.careArea) Icon(Icons.Outlined.Check, null, tint = Teal) }
+                            trailingIcon = { if (area == store.careArea) Icon(Icons.Outlined.Check, null, tint = Indigo) }
                         )
                     }
                 }
@@ -121,9 +121,9 @@ private val tileTints = listOf(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(7.dp)
     ) {
-        Icon(icon, null, tint = Forest, modifier = Modifier.size(17.dp))
-        Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Forest, lineHeight = 18.sp)
-        Icon(Icons.Outlined.ExpandMore, null, tint = Forest, modifier = Modifier.size(15.dp))
+        Icon(icon, null, tint = Slate, modifier = Modifier.size(17.dp))
+        Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Slate, lineHeight = 18.sp)
+        Icon(Icons.Outlined.ExpandMore, null, tint = Slate, modifier = Modifier.size(15.dp))
     }
 }
 
@@ -131,7 +131,7 @@ private val tileTints = listOf(
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 23.sp, modifier = Modifier.weight(1f))
         Text(
-            action, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Teal, lineHeight = 18.sp,
+            action, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Indigo, lineHeight = 18.sp,
             modifier = Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onAction)
                 .heightIn(min = 48.dp).padding(horizontal = 8.dp, vertical = 15.dp)
         )
@@ -215,7 +215,7 @@ private val tileTints = listOf(
                     Text(service.detail, fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
                 }
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("R${service.price}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Forest, lineHeight = 19.sp)
+                    Text("R${service.price}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Slate, lineHeight = 19.sp)
                     Text("${service.duration} min", fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
                 }
                 Icon(Icons.Outlined.ChevronRight, null, tint = BodyText.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
@@ -287,7 +287,7 @@ private val tileTints = listOf(
 @Composable private fun PassportPromo(store: PreviewStore, open: (String) -> Unit) {
     Box(
         Modifier.fillMaxWidth().heightIn(min = 160.dp).clip(RoundedCornerShape(18.dp))
-            .background(Brush.linearGradient(listOf(Color(0xFF12564B), Teal)))
+            .background(Brush.linearGradient(listOf(Color(0xFF12564B), Indigo)))
             .clickable { open("Health Passport") }.padding(22.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -301,8 +301,8 @@ private val tileTints = listOf(
 }
 @Composable fun NurseRow(trailing: @Composable (() -> Unit)? = null) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(11.dp)) {
-        Box(Modifier.size(42.dp).background(Mint, CircleShape), Alignment.Center) {
-            Text("SN", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TealDeep)
+        Box(Modifier.size(42.dp).background(AccentSoft, CircleShape), Alignment.Center) {
+            Text("SN", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = IndigoDeep)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text("Sister Naledi Mokoena", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
@@ -347,7 +347,7 @@ fun serviceIcon(id: String) = when (id) {
                         Text(service.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink, lineHeight = 19.sp)
                         Text(service.detail, fontSize = 11.sp, color = BodyText, lineHeight = 16.sp)
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("From R${service.price}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Forest, modifier = Modifier.weight(1f))
+                            Text("From R${service.price}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Slate, modifier = Modifier.weight(1f))
                             Icon(Icons.Outlined.ChevronRight, null, tint = BodyText.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
                         }
                     }
@@ -392,7 +392,7 @@ fun serviceIcon(id: String) = when (id) {
                             }
                             Text("R${service.price}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
                         }
-                        Text("Who is this visit for?", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Forest)
+                        Text("Who is this visit for?", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Slate)
                         (listOf("Lerato Molefe") + store.family).forEach { name ->
                             Row(
                                 Modifier.fillMaxWidth().clickable { person = name }.semantics { selected = person == name },
@@ -423,8 +423,8 @@ fun serviceIcon(id: String) = when (id) {
                             days.forEachIndexed { index, offered ->
                                 Column(
                                     Modifier.widthIn(min = 66.dp).heightIn(min = 72.dp).padding(vertical = 4.dp)
-                                        .background(if (day == index) Teal else Color.White, RoundedCornerShape(14.dp))
-                                        .border(1.dp, if (day == index) Teal else Line, RoundedCornerShape(14.dp))
+                                        .background(if (day == index) Indigo else Color.White, RoundedCornerShape(14.dp))
+                                        .border(1.dp, if (day == index) Indigo else Line, RoundedCornerShape(14.dp))
                                         .clickable { day = index }
                                         .semantics { selected = day == index; contentDescription = Scheduling.longDate(offered.date) },
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -441,8 +441,8 @@ fun serviceIcon(id: String) = when (id) {
                                 row.forEach { time ->
                                     Box(
                                         Modifier.weight(1f).height(48.dp)
-                                            .background(if (slot == time) Teal else Color.White, RoundedCornerShape(12.dp))
-                                            .border(1.dp, if (slot == time) Teal else Line, RoundedCornerShape(12.dp))
+                                            .background(if (slot == time) Indigo else Color.White, RoundedCornerShape(12.dp))
+                                            .border(1.dp, if (slot == time) Indigo else Line, RoundedCornerShape(12.dp))
                                             .clickable { slot = time }.semantics { selected = slot == time },
                                         Alignment.Center
                                     ) { Text(time, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (slot == time) Color.White else BodyText) }
@@ -452,7 +452,7 @@ fun serviceIcon(id: String) = when (id) {
                         Note("${Scheduling.longDate(chosen.date)} · $slot – $endTime (${service.duration} minutes)")
                         } else {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.Bolt, null, tint = Amber, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Outlined.Bolt, null, tint = MangoInk, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Note("We look for the nearest nurse who is free. Nobody is dispatched in this preview.")
                             }
@@ -576,13 +576,13 @@ fun serviceIcon(id: String) = when (id) {
         }
         Box(
             Modifier.fillMaxWidth().heightIn(min = 190.dp).clip(RoundedCornerShape(18.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF12564B), Teal)))
+                .background(Brush.linearGradient(listOf(Color(0xFF12564B), Indigo)))
         ) {
             Image(painterResource(R.drawable.mythuso_family), null, Modifier.align(Alignment.BottomEnd).height(150.dp), contentScale = ContentScale.Fit)
             Column(Modifier.padding(20.dp).fillMaxWidth(0.66f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Text("Care that fits\nyour life.", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Color.White, lineHeight = 28.sp)
                 Text("Easy booking. Trusted professionals.", fontSize = 13.sp, color = Color(0xFFC9E5DB), lineHeight = 18.sp)
-                Button(onClick = { open("Book care") }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = TealDeep)) {
+                Button(onClick = { open("Book care") }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = IndigoDeep)) {
                     Text("Book another visit"); Spacer(Modifier.width(9.dp)); Icon(Icons.Outlined.ArrowForward, null, Modifier.size(16.dp))
                 }
             }

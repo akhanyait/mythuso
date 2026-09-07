@@ -64,13 +64,13 @@ private fun provenanceIcon(provenance: Provenance): ImageVector = when (provenan
 }
 @Composable fun ProvenanceMark(provenance: Provenance) {
     Row(
-        Modifier.background(TealSoft, CircleShape).padding(horizontal = 9.dp, vertical = 5.dp)
+        Modifier.background(IndigoSoft, CircleShape).padding(horizontal = 9.dp, vertical = 5.dp)
             .semantics(mergeDescendants = true) { contentDescription = provenance.label },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-        Icon(provenanceIcon(provenance), null, tint = TealDeep, modifier = Modifier.size(13.dp))
-        Text(provenance.shortLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = TealDeep)
+        Icon(provenanceIcon(provenance), null, tint = IndigoDeep, modifier = Modifier.size(13.dp))
+        Text(provenance.shortLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = IndigoDeep)
     }
 }
 @Composable private fun CalibrationPill(state: CalibrationState) {
@@ -122,7 +122,7 @@ private fun stateTone(state: CaptureState) = when (state) {
         }
         reading.caveats.forEach { caveat ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.Info, null, tint = Amber, modifier = Modifier.size(15.dp))
+                Icon(Icons.Outlined.Info, null, tint = MangoInk, modifier = Modifier.size(15.dp))
                 Text(caveat, style = MaterialTheme.typography.bodySmall, color = BodyText)
             }
         }
@@ -180,7 +180,7 @@ private fun stateTone(state: CaptureState) = when (state) {
         Heading("Thuso Kit", "Connected diagnostic capture.", "$visit · $patient. Six instruments, each with what it measures, how it would connect and when it was last calibrated.")
         CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Outlined.BluetoothDisabled, null, tint = Teal)
+                Icon(Icons.Outlined.BluetoothDisabled, null, tint = Indigo)
                 Text("Nothing here connects.", style = MaterialTheme.typography.titleMedium)
             }
             Text(
@@ -294,7 +294,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         Note(calibrationWording(paired.calibration))
         if (paired.state == CalibrationState.OUT_OF_DATE) Text(
             "This instrument is out of calibration and it still takes readings. A nurse in a home with one blood-pressure monitor needs the number; what she must not have is the number without the caveat, so the caveat is written onto every reading it produces and travels with them into the record.",
-            style = MaterialTheme.typography.bodyMedium, color = Amber
+            style = MaterialTheme.typography.bodyMedium, color = MangoInk
         )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(onClick = toggle) { Text(if (expanded) "Close" else "Take a reading") }
@@ -304,20 +304,20 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
 
         HorizontalDivider(color = Line)
         if (paired.instrument.measures.size > 1) {
-            Text("What are you measuring?", style = MaterialTheme.typography.labelLarge, color = Forest)
+            Text("What are you measuring?", style = MaterialTheme.typography.labelLarge, color = Slate)
             FlowRowChips(paired.instrument.measures.map { measureLabels[it] ?: it }, setOf(measureLabels[measure] ?: measure)) { chosen ->
                 measure = paired.instrument.measures.first { (measureLabels[it] ?: it) == chosen }
             }
         }
         /* The limitation, at the moment of the reading. */
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-            Icon(Icons.Outlined.Info, null, tint = Amber, modifier = Modifier.size(17.dp))
+            Icon(Icons.Outlined.Info, null, tint = MangoInk, modifier = Modifier.size(17.dp))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("What this instrument cannot decide for you", style = MaterialTheme.typography.labelLarge, color = Ink)
                 Text(paired.instrument.note, style = MaterialTheme.typography.bodyMedium)
             }
         }
-        Text(paired.instrument.records.label, style = MaterialTheme.typography.labelLarge, color = Forest)
+        Text(paired.instrument.records.label, style = MaterialTheme.typography.labelLarge, color = Slate)
         Note(paired.instrument.records.why)
         FlowRowChips(paired.instrument.records.options, setOfNotNull(detail.ifEmpty { null })) { option -> detail = option }
         if (detail.isEmpty()) Note("The reading is not taken until this is answered. It is recorded with the number, because it cannot be recovered from the number afterwards.")
@@ -377,14 +377,14 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         /* offlineNeverServesStaleSilently, first thing on the screen and in words. */
         CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Outlined.Storage, null, tint = Teal)
+                Icon(Icons.Outlined.Storage, null, tint = Indigo)
                 Text("Read from this phone, ${ageText(capture.readAtMillis)}", style = MaterialTheme.typography.titleMedium)
             }
             Text(capture.where, style = MaterialTheme.typography.bodyMedium)
             ReviewLine("Survives", capture.survives)
             ReviewLine("Does not survive", capture.doesNotSurvive)
             Note("It is not encrypted. A file in this app’s private storage is private to this app and no more than that, which is enough for fictional readings and is not enough for real ones — the controls that would be needed first are in docs/PRIVACY-AND-SECURITY.md.")
-            if (capture.storeNote.isNotEmpty()) Text(capture.storeNote, style = MaterialTheme.typography.bodyMedium, color = Amber)
+            if (capture.storeNote.isNotEmpty()) Text(capture.storeNote, style = MaterialTheme.typography.bodyMedium, color = MangoInk)
             OutlinedButton(onClick = { capture.reload() }) { Text("Re-read the store") }
             Note("Re-reading loads the file again and updates the line above. It is the same read the app does on the way in, which is how you can tell the queue is on the disk and not in memory: close the app entirely, open it again, and the entries are still here.")
         }
@@ -434,7 +434,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             if (controls) {
                 Note("None of this is in the product. It exists so a reviewer can see the states a phone with no internet permission can never reach on its own.")
                 Setting("Pretend a connection is available", capture.pretendConnected) { capture.pretendConnected = it }
-                Text("Set this phone’s clock wrong", style = MaterialTheme.typography.labelLarge, color = Forest)
+                Text("Set this phone’s clock wrong", style = MaterialTheme.typography.labelLarge, color = Slate)
                 Note("A phone that has been offline for a week may have drifted, or been set by hand. Anything taken while it is wrong keeps the wrong time as what the phone believed, and the server’s receipt time is what orders it.")
                 FlowRowChips(listOf("Correct", "3 hours slow", "40 minutes fast", "2 days slow"), setOf(when (capture.clockOffsetMinutes) {
                     -180L -> "3 hours slow"; 40L -> "40 minutes fast"; -2880L -> "2 days slow"; else -> "Correct"
@@ -524,7 +524,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
     val capture = store.capture
     HorizontalDivider(color = Line)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(Icons.Outlined.Balance, null, tint = Amber)
+        Icon(Icons.Outlined.Balance, null, tint = MangoInk)
         Text(conflict.name, style = MaterialTheme.typography.titleSmall, color = Ink)
     }
     Text(conflict.detail, style = MaterialTheme.typography.bodyMedium)
@@ -539,7 +539,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                 it.id != reading.id && it.visit == reading.visit && it.observationId == reading.observationId && !it.superseded
             }
             if (other == null) { Note("The other reading is no longer in this queue, so there is nothing to choose between."); return }
-            Text("Both readings, side by side", style = MaterialTheme.typography.labelLarge, color = Forest)
+            Text("Both readings, side by side", style = MaterialTheme.typography.labelLarge, color = Slate)
             Note("Neither is presented as the better one and neither is a correction of the other. They are two things that happened, and a clinician says which stands.")
             listOf(other, reading).forEach { candidate ->
                 Column(
@@ -565,7 +565,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             val summary = capturer?.let { summarise(it) }
             val lapsed = summary?.lapsed.orEmpty()
             val lapsedOn = capturer?.records?.firstOrNull { record -> lapsed.any { it.id == record.checkId } }?.expiresOn
-            Text("Taken while cleared, arriving after the clearance ran out", style = MaterialTheme.typography.labelLarge, color = Forest)
+            Text("Taken while cleared, arriving after the clearance ran out", style = MaterialTheme.typography.labelLarge, color = Slate)
             ReviewLine("Captured by", "${reading.byName} · ${reading.byReference}")
             ReviewLine("Standing today", summary?.status?.label ?: "—")
             if (lapsed.isNotEmpty()) ReviewLine("What lapsed", lapsed.joinToString(" and ") { it.name })
@@ -591,7 +591,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             Note("Restoring the capturer’s own clearance resolves this too, and better: the reading then files on the registration it was taken under. That decision belongs in the Control Tower’s vetting pipeline, not here.")
         }
         "stale-write" -> {
-            Text("The record moved on while this waited", style = MaterialTheme.typography.labelLarge, color = Forest)
+            Text("The record moved on while this waited", style = MaterialTheme.typography.labelLarge, color = Slate)
             ReviewLine("Visit", reading.visit)
             ReviewLine("What changed", "A clinician signed the record for this visit while the entry was queued.")
             Text(

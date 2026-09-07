@@ -77,7 +77,7 @@ struct HealthSummaryView: View {
                 } label: {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: option.id == purposeId ? "largecircle.fill.circle" : "circle")
-                            .foregroundStyle(ThusoTheme.teal)
+                            .foregroundStyle(ThusoTheme.indigo)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(option.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                             Text("\(option.fields.count) of \(Records.summaryCard.fields.count) fields · valid \(option.hours) hours · \(option.recipient)")
@@ -145,7 +145,7 @@ struct HealthSummaryView: View {
     @ViewBuilder private func scannerNote(_ share: SummaryShare) -> some View {
         let initials = member.name.split(separator: " ").compactMap(\.first).map(String.init).joined(separator: ".")
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "checkmark.shield").font(.system(size: 17)).foregroundStyle(ThusoTheme.teal)
+            Image(systemName: "checkmark.shield").font(.system(size: 17)).foregroundStyle(ThusoTheme.indigo)
             VStack(alignment: .leading, spacing: 5) {
                 Text("What a scanner would read.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Text("The reference above, and nothing else — it is 100 random bits from the system’s cryptographic generator, not your patient number and not a number anyone can count up to. Someone holding it is answered with your initials (\(initials).), whether the summary is valid, expired or revoked, what it was made for, and when it stops. Not your name, not your date of birth, not one clinical word.")
@@ -156,7 +156,7 @@ struct HealthSummaryView: View {
         }
         .padding(15)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.tealSoft, in: RoundedRectangle(cornerRadius: 14))
+        .background(ThusoTheme.indigoSoft, in: RoundedRectangle(cornerRadius: 14))
         .accessibilityElement(children: .combine)
     }
 
@@ -176,7 +176,7 @@ struct HealthSummaryView: View {
                         .padding(15).frame(maxWidth: .infinity, minHeight: 50)
                         .background(.white, in: RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(ThusoTheme.line, lineWidth: 1))
-                        .foregroundStyle(ThusoTheme.forest)
+                        .foregroundStyle(ThusoTheme.slate)
                 }
                 .accessibilityLabel("Export this summary through the share sheet")
                 Text("It goes to the system share sheet and nowhere else — no file is written, and \(share.purpose.fields.count) of \(Records.summaryCard.fields.count) fields travel with it. The artefact says who made it, for whom, for what, and when it stops being valid.")

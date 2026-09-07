@@ -89,7 +89,7 @@ struct ProgrammesView: View {
 
     private func figure(_ value: String, _ label: String, _ why: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(value).font(.system(size: 30, weight: .bold)).foregroundStyle(ThusoTheme.forest)
+            Text(value).font(.system(size: 30, weight: .bold)).foregroundStyle(ThusoTheme.slate)
             Text(label.uppercased()).font(.system(size: 11, weight: .bold)).foregroundStyle(ThusoTheme.faint)
             Text(why).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
         }
@@ -139,12 +139,12 @@ struct ProgrammesView: View {
         if let reason = row.suppressedBy {
             VStack(alignment: .leading, spacing: 5) {
                 Text(row.cohort.name).font(.system(size: 13.5, weight: .semibold)).foregroundStyle(ThusoTheme.faint)
-                Text("NOT REPORTED").font(.system(size: 11, weight: .bold)).foregroundStyle(ThusoTheme.amber)
+                Text("NOT REPORTED").font(.system(size: 11, weight: .bold)).foregroundStyle(ThusoTheme.mangoInk)
                 Text(Programmes.suppressionReason(reason).sentence)
-                    .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+                    .font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
             }
             .padding(13).frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.amberSoft, in: RoundedRectangle(cornerRadius: 14))
+            .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
             .accessibilityElement(children: .combine)
         } else {
             HStack(alignment: .top) {
@@ -215,8 +215,8 @@ struct ProgrammesView: View {
 
     private func step0(_ number: Int, _ step: ProgrammeStep) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Text("\(number)").font(.system(size: 11, weight: .bold)).foregroundStyle(ThusoTheme.tealDeep)
-                .frame(width: 20, height: 20).background(ThusoTheme.tealSoft, in: Circle())
+            Text("\(number)").font(.system(size: 11, weight: .bold)).foregroundStyle(ThusoTheme.indigoDeep)
+                .frame(width: 20, height: 20).background(ThusoTheme.indigoSoft, in: Circle())
             VStack(alignment: .leading, spacing: 3) {
                 Text(step.label).font(.system(size: 13.5, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
                 Text(step.detail).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
@@ -302,17 +302,17 @@ struct ProgrammesView: View {
 
     private func alert(_ text: String) -> some View {
         HStack(alignment: .top, spacing: 11) {
-            Image(systemName: "shield.slash").font(.system(size: 16)).foregroundStyle(ThusoTheme.amber)
-            Text(text).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+            Image(systemName: "shield.slash").font(.system(size: 16)).foregroundStyle(ThusoTheme.mangoInk)
+            Text(text).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
         }
         .padding(14).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.amberSoft, in: RoundedRectangle(cornerRadius: 14))
+        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
     }
 
     private func refusal(_ item: ProgrammeRefusal) -> some View {
         HStack(alignment: .top, spacing: 11) {
             Image(systemName: "nosign").font(.system(size: 16)).foregroundStyle(ThusoTheme.danger)
-            Text(item.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+            Text(item.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
         }
     }
 }

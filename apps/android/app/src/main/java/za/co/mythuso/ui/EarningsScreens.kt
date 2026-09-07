@@ -84,13 +84,13 @@ private fun rand(amount: Int): String {
 
         Column(
             Modifier.fillMaxWidth()
-                .background(if (dispatchable.allowed) TealSoft else AmberSoft, RoundedCornerShape(18.dp))
+                .background(if (dispatchable.allowed) IndigoSoft else MangoSoft, RoundedCornerShape(18.dp))
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
                 Icon(if (dispatchable.allowed) Icons.Outlined.Verified else Icons.Outlined.WarningAmber, null,
-                    tint = if (dispatchable.allowed) Teal else Amber)
+                    tint = if (dispatchable.allowed) Indigo else MangoInk)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(if (dispatchable.allowed) "Cleared for visits" else "You will not be sent new visits",
                         style = MaterialTheme.typography.titleMedium, color = Ink)
@@ -100,7 +100,7 @@ private fun rand(amount: Int): String {
                         style = MaterialTheme.typography.bodyMedium, color = BodyText
                     )
                     if (!dispatchable.allowed) Text(Earnings.rule("suspension-is-not-confiscation").sentence,
-                        style = MaterialTheme.typography.bodyMedium, color = Forest)
+                        style = MaterialTheme.typography.bodyMedium, color = Slate)
                 }
             }
         }
@@ -127,13 +127,13 @@ private fun rand(amount: Int): String {
                 },
                 horizontalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                Bar(Teal, split.nurse)
-                Bar(Gold, split.payment)
-                Bar(Mint, split.platform)
+                Bar(Indigo, split.nurse)
+                Bar(Mango, split.payment)
+                Bar(AccentSoft, split.platform)
             }
-            Legend(Teal, rand(split.nurse), "Yours · ${(split.nurseShareOfPrice * 100).roundToInt()}% of the price")
-            Legend(Gold, rand(split.payment), "The card fee, paid by MyThuso")
-            Legend(Mint, rand(split.platform), "What MyThuso keeps")
+            Legend(Indigo, rand(split.nurse), "Yours · ${(split.nurseShareOfPrice * 100).roundToInt()}% of the price")
+            Legend(Mango, rand(split.payment), "The card fee, paid by MyThuso")
+            Legend(AccentSoft, rand(split.platform), "What MyThuso keeps")
             Text(Earnings.rule("share-is-not-reduced").sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             Note("Across the nine services at launch that is ${rand(Earnings.shareLow)} to ${rand(Earnings.shareHigh)} a visit — the same range the public page advertises, read from the same catalogue.")
         }
@@ -174,8 +174,8 @@ private fun rand(amount: Int): String {
                     Note("Before anything changes, we check it is you. Nothing here is sent.")
                     payoutAccount.reverify.forEach { step ->
                         Row(horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.Top) {
-                            Icon(Icons.Outlined.Lock, null, tint = Teal)
-                            Text(step, style = MaterialTheme.typography.bodyMedium, color = Forest)
+                            Icon(Icons.Outlined.Lock, null, tint = Indigo)
+                            Text(step, style = MaterialTheme.typography.bodyMedium, color = Slate)
                         }
                     }
                     OutlinedTextField(code, { code = it.filter(Char::isDigit).take(6) },
@@ -231,7 +231,7 @@ private fun rand(amount: Int): String {
 @Composable private fun Refusal(item: PayRefusal) {
     Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.Top) {
         Icon(Icons.Outlined.Block, null, tint = Danger)
-        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Forest)
+        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Slate)
     }
 }
 
@@ -268,7 +268,7 @@ private fun rand(amount: Int): String {
                             color = if (line.amount < 0) Danger else Ink)
                     }
                     Text("${line.reference} · ${line.patient}", style = MaterialTheme.typography.bodySmall, color = Faint)
-                    line.plan?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Teal) }
+                    line.plan?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Indigo) }
                     line.reason?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = BodyText) }
                 }
             }

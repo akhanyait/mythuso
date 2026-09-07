@@ -120,10 +120,10 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
             CareCard {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TileIcon(if (out) Icons.Outlined.MeetingRoom else Icons.Outlined.Person,
-                        if (out) BodyText else Teal, if (out) Canvas else TealSoft, 38.dp)
+                        if (out) BodyText else Indigo, if (out) Canvas else IndigoSoft, 38.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(displayName(person), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (out) Faint else Ink)
-                        Text(person.name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Teal)
+                        Text(person.name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Indigo)
                         Text(person.place, fontSize = 11.5.sp, color = Faint)
                         Text("Can see: ${person.sees}", fontSize = 11.5.sp, color = Faint, lineHeight = 16.sp)
                         Text("Can hear: ${person.hears}", fontSize = 11.5.sp, color = Faint, lineHeight = 16.sp)
@@ -146,7 +146,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
         Row(Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(14.dp)).padding(14.dp),
             horizontalArrangement = Arrangement.spacedBy(11.dp)) {
             Icon(Icons.Outlined.Block, null, tint = Danger)
-            Text(item.sentence, fontSize = 12.5.sp, color = Forest, lineHeight = 19.sp)
+            Text(item.sentence, fontSize = 12.5.sp, color = Slate, lineHeight = 19.sp)
         }
     }
 
@@ -257,7 +257,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 Text("Recording is a second question, and the answer here is no.", style = MaterialTheme.typography.titleMedium)
                 Text(Teleconsult.rule("recording-is-separate").sentence, fontSize = 13.sp, color = BodyText, lineHeight = 19.sp)
                 CareCard {
-                    Text(callRecording.decision, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Amber)
+                    Text(callRecording.decision, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MangoInk)
                     Text(callRecording.why, fontSize = 12.5.sp, color = BodyText, lineHeight = 19.sp)
                 }
                 Text("What happens instead", style = MaterialTheme.typography.titleMedium)
@@ -273,7 +273,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     Row2("Who could open it", "Three, and no more")
                     callRecording.whenItExists.whoMayView.forEach {
                         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                            Icon(Icons.Outlined.Lock, null, tint = Teal); Text(it, fontSize = 12.5.sp, color = Forest, lineHeight = 19.sp)
+                            Icon(Icons.Outlined.Lock, null, tint = Indigo); Text(it, fontSize = 12.5.sp, color = Slate, lineHeight = 19.sp)
                         }
                     }
                     Row2("Kept for", "${callRecording.whenItExists.keptForDays} days")
@@ -290,7 +290,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                    review sees two screens rather than one with a different word in it. */
                 CareCard {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        TileIcon(Icons.Outlined.VideocamOff, Teal, TealSoft, 38.dp)
+                        TileIcon(Icons.Outlined.VideocamOff, Indigo, IndigoSoft, 38.dp)
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             Text(Teleconsult.mediaState(mediaState).name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Ink)
                             Text(Teleconsult.mediaState(mediaState).detail, fontSize = 12.5.sp, color = BodyText, lineHeight = 19.sp)
@@ -356,9 +356,9 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
 
                 Text("What this doctor may conclude, right now", style = MaterialTheme.typography.titleMedium)
                 Teleconsult.permitted(connectionId, nursePresent).forEach { limit ->
-                    Row(Modifier.fillMaxWidth().background(TealSoft, RoundedCornerShape(14.dp)).padding(13.dp),
+                    Row(Modifier.fillMaxWidth().background(IndigoSoft, RoundedCornerShape(14.dp)).padding(13.dp),
                         horizontalArrangement = Arrangement.spacedBy(11.dp)) {
-                        Icon(Icons.Outlined.Check, null, tint = Teal)
+                        Icon(Icons.Outlined.Check, null, tint = Indigo)
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(limit.name, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Ink)
                             Text(limit.detail, fontSize = 11.5.sp, color = BodyText, lineHeight = 17.sp)
@@ -412,7 +412,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                             Text(section.name, fontSize = 13.sp, color = if (written) Ink else Faint, modifier = Modifier.weight(1f))
                             Text(if (written) "Yes" else "Not reached", fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold, color = if (written) Teal else Faint)
+                                fontWeight = FontWeight.SemiBold, color = if (written) Indigo else Faint)
                         }
                     }
                 }

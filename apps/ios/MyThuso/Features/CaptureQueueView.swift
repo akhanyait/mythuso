@@ -87,8 +87,8 @@ struct CaptureQueueView: View {
         CareCard {
             HStack(spacing: 12) {
                 TileIcon(symbol: kit.onlyHereCount == 0 ? "checkmark.seal" : "iphone",
-                         tint: kit.onlyHereCount == 0 ? ThusoTheme.teal : ThusoTheme.sky,
-                         background: kit.onlyHereCount == 0 ? ThusoTheme.tealSoft : ThusoTheme.skySoft)
+                         tint: kit.onlyHereCount == 0 ? ThusoTheme.indigo : ThusoTheme.info,
+                         background: kit.onlyHereCount == 0 ? ThusoTheme.indigoSoft : ThusoTheme.infoSoft)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(kit.onlyHereCount == 0 ? "Nothing is waiting" : "\(kit.onlyHereCount) reading\(kit.onlyHereCount == 1 ? "" : "s") on this phone")
                         .font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
@@ -137,7 +137,7 @@ struct CaptureQueueView: View {
             }
             if let setAside = kit.setAside {
                 Label("A ledger that would not parse was kept as \(setAside) rather than deleted.", systemImage: "archivebox")
-                    .font(.caption2).foregroundStyle(ThusoTheme.amber)
+                    .font(.caption2).foregroundStyle(ThusoTheme.mangoInk)
             }
             Text(kit.ledgerPath).font(.system(size: 9, design: .monospaced)).foregroundStyle(ThusoTheme.faint)
                 .textSelection(.enabled)
@@ -292,7 +292,7 @@ struct ConflictResolutionView: View {
                     }
                     if settled {
                         CareCard {
-                            Label("Decided", systemImage: "checkmark.seal.fill").font(.headline).foregroundStyle(ThusoTheme.teal)
+                            Label("Decided", systemImage: "checkmark.seal.fill").font(.headline).foregroundStyle(ThusoTheme.indigo)
                             Text("Nothing was merged and nothing was deleted. Both readings are still in the file above, and the record says who decided and why.")
                                 .font(.caption).foregroundStyle(ThusoTheme.body)
                             Button("Back to the queue") { dismiss() }.buttonStyle(QuietButton())
@@ -423,7 +423,7 @@ struct ConflictResolutionView: View {
             }
             VettingRefusalNote(decision: can(capturer, "write-clinical-note"))
             NavigationLink("Open her vetting") { VettingStatusView(subjectId: capturer.id) }
-                .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.teal)
+                .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
         }
     }
 }

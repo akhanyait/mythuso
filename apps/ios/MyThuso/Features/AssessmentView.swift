@@ -209,7 +209,7 @@ struct VisitAssessmentView: View {
             Section {
                 if !statedNothing.isEmpty {
                     Text("\(statedNothing.count) reading\(statedNothing.count == 1 ? " has" : "s have") a number and no origin. \(CaptureRules.provenanceIsRequired)")
-                        .font(.caption).foregroundStyle(ThusoTheme.amber)
+                        .font(.caption).foregroundStyle(ThusoTheme.mangoInk)
                     /* One deliberate act covering many rows, rather than a default covering them
                        silently. She is still saying it — she is only saying it once. */
                     Button("Everything I typed, I read off my own instrument") {
@@ -302,7 +302,7 @@ struct VisitAssessmentView: View {
                     HStack {
                         Text(symptom).foregroundStyle(ThusoTheme.ink)
                         Spacer()
-                        if symptoms.contains(symptom) { Image(systemName: "checkmark").foregroundStyle(ThusoTheme.teal) }
+                        if symptoms.contains(symptom) { Image(systemName: "checkmark").foregroundStyle(ThusoTheme.indigo) }
                     }
                 }
                 .accessibilityAddTraits(symptoms.contains(symptom) ? [.isSelected] : [])
@@ -327,7 +327,7 @@ struct VisitAssessmentView: View {
     @ViewBuilder private var signOffStage: some View {
         if signed {
             Section {
-                Label("Demo assessment closed", systemImage: "checkmark.seal.fill").foregroundStyle(ThusoTheme.teal)
+                Label("Demo assessment closed", systemImage: "checkmark.seal.fill").foregroundStyle(ThusoTheme.indigo)
                 /* This used to say nothing had been written. It is no longer true and it must not
                    be left standing: readings are now written to a file on this phone, and a screen
                    that reassures a nurse about the wrong thing is worse than one that says nothing. */
@@ -356,7 +356,7 @@ struct VisitAssessmentView: View {
             if !statedNothing.isEmpty {
                 Section {
                     Text("\(statedNothing.map { $0.label.lowercased() }.joined(separator: ", ")) \(statedNothing.count == 1 ? "has" : "have") a number and no origin, so \(statedNothing.count == 1 ? "it is" : "they are") not in the list above and will not be filed. Go back and say where \(statedNothing.count == 1 ? "it" : "they") came from, or leave the field empty.")
-                        .font(.caption).foregroundStyle(ThusoTheme.amber)
+                        .font(.caption).foregroundStyle(ThusoTheme.mangoInk)
                 }
             }
             Section {

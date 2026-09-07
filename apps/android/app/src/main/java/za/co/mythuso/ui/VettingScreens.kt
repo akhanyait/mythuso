@@ -278,7 +278,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
         capabilityDecisions(subject).forEach { (capability, _, decision) ->
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(if (decision.allowed) Icons.Outlined.CheckCircle else Icons.Outlined.Block, null, tint = if (decision.allowed) Teal else Danger)
+                    Icon(if (decision.allowed) Icons.Outlined.CheckCircle else Icons.Outlined.Block, null, tint = if (decision.allowed) Indigo else Danger)
                     Text(capability.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Ink, modifier = Modifier.weight(1f))
                     StatusPill(if (decision.allowed) "Allowed" else "Refused", if (decision.allowed) "teal" else "danger")
                 }
@@ -332,7 +332,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
             Heading("Vetting", "Application lodged", "Nothing was transmitted, and no register was contacted.")
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Outlined.Schedule, null, tint = Teal)
+                    Icon(Icons.Outlined.Schedule, null, tint = Indigo)
                     Text("$applicant · ${role?.name}", style = MaterialTheme.typography.titleMedium)
                 }
                 Text("You are refused everything on the list below until each check passes. That is the honest position, and it is what the applicant is told rather than “your application is being processed”.", style = MaterialTheme.typography.bodyMedium)

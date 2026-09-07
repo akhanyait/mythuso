@@ -387,7 +387,7 @@ struct ConsultationRecordView: View {
     @ViewBuilder private func signedBlock(_ signature: ConsultationSignature) -> some View {
         CareCard {
             Label("Demo consultation signed.", systemImage: "checkmark.seal.fill")
-                .font(.headline).foregroundStyle(ThusoTheme.teal)
+                .font(.headline).foregroundStyle(ThusoTheme.indigo)
             FieldRow(label: "Clinician", value: signature.name)
             FieldRow(label: "Council registration", value: signature.reference)
             FieldRow(label: "Role", value: signature.role)

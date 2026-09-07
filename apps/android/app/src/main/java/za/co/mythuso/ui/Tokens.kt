@@ -7,31 +7,34 @@ package za.co.mythuso.ui
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-val Teal = Color(0xFF0E7C6B)
-val TealDeep = Color(0xFF0A6357)
-val TealSoft = Color(0xFFE4F2ED)
-val Mint = Color(0xFFD3EBE1)
-val Forest = Color(0xFF123A32)
-val Ink = Color(0xFF10241F)
-val BodyText = Color(0xFF5B6B66)
-val Faint = Color(0xFF5F706A)
-val Line = Color(0xFFE7EEEB)
-val Canvas = Color(0xFFF4F8F7)
+val Indigo = Color(0xFF1E3A8A)
+val IndigoDeep = Color(0xFF172F6F)
+val IndigoSoft = Color(0xFFEEF2FF)
+val Teal = Color(0xFF14B8A6)
+val TealInk = Color(0xFF0F766E)
+val TealSoft = Color(0xFFE6FAF6)
+val AccentSoft = Color(0xFFCCFBEF)
+val Mango = Color(0xFFFFB347)
+val MangoInk = Color(0xFF92400E)
+val MangoSoft = Color(0xFFFFF4E3)
+val Ink = Color(0xFF0F172A)
+val Slate = Color(0xFF1E293B)
+val BodyText = Color(0xFF475569)
+val Faint = Color(0xFF5D6B80)
+val Line = Color(0xFFE2E8F0)
+val Canvas = Color(0xFFF1F5F9)
 val SurfaceWhite = Color(0xFFFFFFFF)
-val Amber = Color(0xFF8A5E12)
-val AmberSoft = Color(0xFFFBF0DC)
-val Sky = Color(0xFF3C6E9F)
-val SkySoft = Color(0xFFE7F0FA)
-val Danger = Color(0xFFA6392E)
-val DangerSoft = Color(0xFFFBEDEB)
-val Gold = Color(0xFFE0A93F)
-val Focus = Color(0xFFE0A93F)
-val FocusEdge = Color(0xFF10241F)
+val Danger = Color(0xFFB42318)
+val DangerSoft = Color(0xFFFEF3F2)
+val Info = Color(0xFF175CD3)
+val InfoSoft = Color(0xFFEFF4FF)
+val Focus = Color(0xFFFFB347)
+val FocusEdge = Color(0xFF0F172A)
 
 object ThusoRadius {
-    val card = 18.dp
-    val control = 12.dp
-    val tile = 14.dp
+    val card = 12.dp
+    val control = 10.dp
+    val tile = 10.dp
     val pill = 999.dp
 }
 object ThusoSpacing {

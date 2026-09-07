@@ -64,7 +64,7 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
             }
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(icon, null, tint = Teal)
+                    Icon(icon, null, tint = Indigo)
                     Text(heading, style = MaterialTheme.typography.titleMedium)
                 }
                 Text(body, style = MaterialTheme.typography.bodyMedium)
@@ -95,7 +95,7 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
 @Composable fun EmptyStateCard(title: String, message: String) {
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.Inbox, null, tint = Teal)
+            Icon(Icons.Outlined.Inbox, null, tint = Indigo)
             Text(title, style = MaterialTheme.typography.titleMedium)
         }
         Text(message, style = MaterialTheme.typography.bodyMedium)

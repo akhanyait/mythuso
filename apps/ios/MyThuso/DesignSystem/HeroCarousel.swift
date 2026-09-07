@@ -38,7 +38,7 @@ struct HeroCarousel: View {
                         withAnimation(.easeInOut(duration: 0.35)) { index = position }
                         playing = false
                     } label: {
-                        Capsule().fill(position == index ? ThusoTheme.teal : ThusoTheme.line)
+                        Capsule().fill(position == index ? ThusoTheme.indigo : ThusoTheme.line)
                             .frame(width: position == index ? 24 : 8, height: 8)
                     }
                     .accessibilityLabel("Highlight \(position + 1) of \(slides.count): \(slides[position].title.replacingOccurrences(of: "\n", with: " "))")
@@ -74,25 +74,25 @@ struct HeroCarousel: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {
-                Text(slide.title).font(.system(size: 24, weight: .bold)).foregroundStyle(ThusoTheme.forest).fixedSize(horizontal: false, vertical: true)
+                Text(slide.title).font(.system(size: 24, weight: .bold)).foregroundStyle(ThusoTheme.slate).fixedSize(horizontal: false, vertical: true)
                 Text(slide.body).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body).padding(.top, 8).fixedSize(horizontal: false, vertical: true)
                 Button { onAction(position) } label: {
                     HStack(spacing: 9) { Text(slide.cta).font(.system(size: 14, weight: .semibold)); Image(systemName: "arrow.right").font(.system(size: 13, weight: .semibold)) }
                         .padding(.horizontal, 20).padding(.vertical, 13)
-                        .background(ThusoTheme.teal, in: Capsule()).foregroundStyle(.white)
+                        .background(ThusoTheme.indigo, in: Capsule()).foregroundStyle(.white)
                 }
                 .padding(.top, 15)
                 HStack(alignment: .top, spacing: 2) {
                     ForEach(Array(slide.trust.enumerated()), id: \.offset) { spot, label in
                         VStack(spacing: 6) {
-                            Image(systemName: slide.symbols[spot]).font(.system(size: 14)).foregroundStyle(ThusoTheme.teal)
+                            Image(systemName: slide.symbols[spot]).font(.system(size: 14)).foregroundStyle(ThusoTheme.indigo)
                                 .frame(width: 32, height: 32).background(.white.opacity(0.78), in: Circle())
                             Text(label).font(.system(size: 10, weight: .semibold)).foregroundStyle(Color(red: 0.26, green: 0.40, blue: 0.36))
                                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                         }.frame(maxWidth: .infinity)
                     }
                 }.padding(.top, 14)
-                Text(slide.caption).font(.system(size: 11, weight: .semibold)).foregroundStyle(ThusoTheme.tealDeep)
+                Text(slide.caption).font(.system(size: 11, weight: .semibold)).foregroundStyle(ThusoTheme.indigoDeep)
                     .padding(.horizontal, 14).padding(.vertical, 8)
                     .background(.white.opacity(0.88), in: Capsule())
                     .padding(.top, 12)
@@ -132,7 +132,7 @@ struct HeroTexture: View {
             ZStack {
                 LinearGradient(colors: plate, startPoint: .topLeading, endPoint: .bottomTrailing)
                 ForEach(Array(bubbles.enumerated()), id: \.offset) { position, bubble in
-                    Circle().fill(ThusoTheme.teal.opacity(position % 3 == 0 ? 0.07 : 0.10))
+                    Circle().fill(ThusoTheme.indigo.opacity(position % 3 == 0 ? 0.07 : 0.10))
                         .frame(width: bubble.r * 2, height: bubble.r * 2)
                         .scaleEffect(drift ? bubble.scale : 2 - bubble.scale)
                         .position(x: bubble.x * geo.size.width, y: bubble.y * geo.size.height)
@@ -156,6 +156,6 @@ struct HeroTexture: View {
                           control1: CGPoint(x: width * 0.32, y: height * (lift - 0.22)),
                           control2: CGPoint(x: width * 0.62, y: height * (lift + 0.10)))
         }
-        .stroke(ThusoTheme.teal.opacity(0.16), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+        .stroke(ThusoTheme.indigo.opacity(0.16), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
     }
 }

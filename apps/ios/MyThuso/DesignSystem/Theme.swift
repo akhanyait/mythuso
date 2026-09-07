@@ -26,7 +26,7 @@ struct CareHeading: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !eyebrow.isEmpty {
-                Text(eyebrow.uppercased()).font(.caption2.weight(.bold)).tracking(1.5).foregroundStyle(ThusoTheme.teal)
+                Text(eyebrow.uppercased()).font(.caption2.weight(.bold)).tracking(1.5).foregroundStyle(ThusoTheme.indigo)
             }
             Text(title).font(.system(size: 26, weight: .bold)).foregroundStyle(ThusoTheme.ink)
             if !subtitle.isEmpty { Text(subtitle).font(.subheadline).foregroundStyle(ThusoTheme.body) }
@@ -39,7 +39,7 @@ struct CareButton: ButtonStyle {
         configuration.label
             .font(.system(size: 15, weight: .semibold))
             .padding(15).frame(maxWidth: .infinity, minHeight: 50)
-            .background(ThusoTheme.teal.opacity(configuration.isPressed ? 0.82 : 1), in: RoundedRectangle(cornerRadius: 12))
+            .background(ThusoTheme.indigo.opacity(configuration.isPressed ? 0.82 : 1), in: RoundedRectangle(cornerRadius: 12))
             .foregroundStyle(.white)
     }
 }
@@ -48,16 +48,16 @@ struct QuietButton: ButtonStyle {
         configuration.label
             .font(.system(size: 15, weight: .semibold))
             .padding(15).frame(maxWidth: .infinity, minHeight: 50)
-            .background(configuration.isPressed ? ThusoTheme.tealSoft : .white, in: RoundedRectangle(cornerRadius: 12))
+            .background(configuration.isPressed ? ThusoTheme.indigoSoft : .white, in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(ThusoTheme.line, lineWidth: 1))
-            .foregroundStyle(ThusoTheme.forest)
+            .foregroundStyle(ThusoTheme.slate)
     }
 }
 /// A soft tinted square holding a symbol — the repeating unit of the whole design.
 struct TileIcon: View {
     let symbol: String
-    var tint: Color = ThusoTheme.teal
-    var background: Color = ThusoTheme.tealSoft
+    var tint: Color = ThusoTheme.indigo
+    var background: Color = ThusoTheme.indigoSoft
     var size: CGFloat = 44
     var body: some View {
         Image(systemName: symbol).font(.system(size: size * 0.44, weight: .medium))
@@ -70,14 +70,14 @@ struct StatusPill: View {
     var tone: String = "teal"
     private var colors: (Color, Color) {
         switch tone {
-        case "amber": return (ThusoTheme.amberSoft, ThusoTheme.amber)
-        case "sky": return (ThusoTheme.skySoft, ThusoTheme.sky)
+        case "amber": return (ThusoTheme.mangoSoft, ThusoTheme.mangoInk)
+        case "sky": return (ThusoTheme.infoSoft, ThusoTheme.info)
         /* A refusal has to be able to look like one. Vetting says "lapsed" and "declined" often
            enough that the pill needs a tone for it, and a quiet one for what nobody has done yet. */
         case "danger": return (ThusoTheme.danger.opacity(0.11), ThusoTheme.danger)
         case "quiet": return (ThusoTheme.canvas, ThusoTheme.body)
         case "light": return (Color.white.opacity(0.18), Color(red: 0.91, green: 0.96, blue: 0.94))
-        default: return (ThusoTheme.tealSoft, ThusoTheme.tealDeep)
+        default: return (ThusoTheme.indigoSoft, ThusoTheme.indigoDeep)
         }
     }
     var body: some View {
@@ -92,12 +92,12 @@ struct StepDots: View {
     let label: String
     var body: some View {
         HStack(spacing: 10) {
-            Text("Step \(step) of \(total)").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.teal)
+            Text("Step \(step) of \(total)").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.indigo)
             Text(label).font(.system(size: 12)).foregroundStyle(ThusoTheme.body)
             Spacer()
             HStack(spacing: 6) {
                 ForEach(1...total, id: \.self) { index in
-                    Capsule().fill(index <= step ? ThusoTheme.teal : ThusoTheme.line)
+                    Capsule().fill(index <= step ? ThusoTheme.indigo : ThusoTheme.line)
                         .frame(width: index == step ? 20 : 8, height: 8)
                 }
             }
@@ -126,12 +126,12 @@ struct CodeBoxes: View {
                         .frame(maxWidth: .infinity, minHeight: 56)
                         .background(.white, in: RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(
-                            invalid ? ThusoTheme.danger : (focused && index == min(code.count, length - 1) ? ThusoTheme.teal : ThusoTheme.line),
+                            invalid ? ThusoTheme.danger : (focused && index == min(code.count, length - 1) ? ThusoTheme.indigo : ThusoTheme.line),
                             lineWidth: 1.5))
                 }
                 if code.count == length && !invalid {
                     Image(systemName: "checkmark").font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
-                        .frame(width: 34, height: 34).background(ThusoTheme.teal, in: Circle())
+                        .frame(width: 34, height: 34).background(ThusoTheme.indigo, in: Circle())
                 }
             }
             .allowsHitTesting(false)
@@ -144,7 +144,7 @@ struct CodeBoxes: View {
 struct DemoBadge: View {
     var body: some View {
         Label("Design preview · Fictional data", systemImage: "circle.fill")
-            .font(.caption2.weight(.medium)).foregroundStyle(ThusoTheme.teal)
+            .font(.caption2.weight(.medium)).foregroundStyle(ThusoTheme.indigo)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -155,8 +155,8 @@ struct MenuRow: View {
     var danger = false
     var body: some View {
         HStack(spacing: 13) {
-            TileIcon(symbol: symbol, tint: danger ? ThusoTheme.danger : ThusoTheme.teal,
-                     background: danger ? ThusoTheme.danger.opacity(0.1) : ThusoTheme.tealSoft, size: 38)
+            TileIcon(symbol: symbol, tint: danger ? ThusoTheme.danger : ThusoTheme.indigo,
+                     background: danger ? ThusoTheme.danger.opacity(0.1) : ThusoTheme.indigoSoft, size: 38)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).font(.system(size: 15, weight: .semibold)).foregroundStyle(danger ? ThusoTheme.danger : ThusoTheme.ink)
                 if !subtitle.isEmpty { Text(subtitle).font(.system(size: 12)).foregroundStyle(ThusoTheme.body) }

@@ -103,7 +103,7 @@ private val Flag = Color(0xFF9B6231)
             0 -> {
                 Text("Confirm you’re at the right door.", style = MaterialTheme.typography.titleMedium)
                 Note("Ask ${patient.substringBefore(' ')} for the six-digit code in the MyThuso app. In this preview the code is 482190.")
-                Text("Visit code", style = MaterialTheme.typography.labelLarge, color = Forest)
+                Text("Visit code", style = MaterialTheme.typography.labelLarge, color = Slate)
                 CodeBoxes(otp, { otp = it; otpError = "" }, invalid = otpError.isNotEmpty(), label = "Visit code")
                 Note(otpError.ifEmpty { "The code changes for every visit and expires when the visit ends." })
                 Setting("I have seen the patient’s identity document, or a household member has confirmed identity.", identitySeen) { identitySeen = it }
@@ -163,7 +163,7 @@ private val Flag = Color(0xFF9B6231)
                             supportingText = { Text(message ?: "Indicative range ${observation.low}–${observation.high}", color = if (message != null) Flag else MaterialTheme.colorScheme.onSurfaceVariant) }
                         )
                         if (values[observation.id].orEmpty().isNotBlank()) Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                            Text("Where did this come from?", style = MaterialTheme.typography.labelLarge, color = Forest)
+                            Text("Where did this come from?", style = MaterialTheme.typography.labelLarge, color = Slate)
                             FlowRowChips(
                                 listOf(Provenance.MANUAL.label, Provenance.PATIENT_REPORTED.label),
                                 setOfNotNull(origin?.label)
@@ -238,7 +238,7 @@ private val Flag = Color(0xFF9B6231)
                 if (signed) {
                     CareCard {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Icon(Icons.Outlined.VerifiedUser, null, tint = Teal); Text("Demo assessment closed.", style = MaterialTheme.typography.titleMedium)
+                            Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo); Text("Demo assessment closed.", style = MaterialTheme.typography.titleMedium)
                         }
                         Note("Nothing was transmitted, no record was written and no clinician was notified. In production this becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration.")
                     }
@@ -253,16 +253,16 @@ private val Flag = Color(0xFF9B6231)
                         captured.forEach { observation ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                                 Text(observation.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                                Text("${rawOf(observation)} ${observation.unit}${if (flag(observation) != null) " ⚠" else ""}", style = MaterialTheme.typography.bodyMedium, color = Forest)
+                                Text("${rawOf(observation)} ${observation.unit}${if (flag(observation) != null) " ⚠" else ""}", style = MaterialTheme.typography.bodyMedium, color = Slate)
                                 originOf(observation)?.let { ProvenanceMark(it) }
                             }
                             kitFor(observation)?.takeIf { it.caveats.isNotEmpty() }?.let { kit ->
-                                Text(kit.caveats.first(), style = MaterialTheme.typography.bodySmall, color = Amber)
+                                Text(kit.caveats.first(), style = MaterialTheme.typography.bodySmall, color = MangoInk)
                             }
                         }
                         if (mapValue != null) Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                             Text("Mean arterial pressure", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                            Text("%.0f mmHg".format(mapValue), style = MaterialTheme.typography.bodyMedium, color = Forest)
+                            Text("%.0f mmHg".format(mapValue), style = MaterialTheme.typography.bodyMedium, color = Slate)
                             ProvenanceMark(Provenance.DERIVED)
                         }
                         ReviewLine("Symptoms", if (symptoms.isEmpty()) "None recorded" else symptoms.sorted().joinToString(", "))

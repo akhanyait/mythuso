@@ -293,7 +293,7 @@ val incidents = listOf(
             Text("Demo incident log", style = MaterialTheme.typography.titleMedium)
             log.forEach { entry ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(Icons.Outlined.CheckCircle, null, tint = Teal); Text(entry, style = MaterialTheme.typography.bodyMedium)
+                    Icon(Icons.Outlined.CheckCircle, null, tint = Indigo); Text(entry, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }

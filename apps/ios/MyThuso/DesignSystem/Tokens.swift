@@ -5,31 +5,34 @@
 import SwiftUI
 
 enum ThusoTheme {
-    static let teal = Color(red: 0.055, green: 0.486, blue: 0.420)       // #0E7C6B
-    static let tealDeep = Color(red: 0.039, green: 0.388, blue: 0.341)   // #0A6357
-    static let tealSoft = Color(red: 0.894, green: 0.949, blue: 0.929)   // #E4F2ED
-    static let mint = Color(red: 0.827, green: 0.922, blue: 0.882)       // #D3EBE1
-    static let forest = Color(red: 0.071, green: 0.227, blue: 0.196)     // #123A32
-    static let ink = Color(red: 0.063, green: 0.141, blue: 0.122)        // #10241F
-    static let body = Color(red: 0.357, green: 0.420, blue: 0.400)       // #5B6B66
-    static let faint = Color(red: 0.373, green: 0.439, blue: 0.416)      // #5F706A
-    static let line = Color(red: 0.906, green: 0.933, blue: 0.922)       // #E7EEEB
-    static let canvas = Color(red: 0.957, green: 0.973, blue: 0.969)     // #F4F8F7
+    static let indigo = Color(red: 0.118, green: 0.227, blue: 0.541)     // #1E3A8A
+    static let indigoDeep = Color(red: 0.090, green: 0.184, blue: 0.435) // #172F6F
+    static let indigoSoft = Color(red: 0.933, green: 0.949, blue: 1.000) // #EEF2FF
+    static let teal = Color(red: 0.078, green: 0.722, blue: 0.651)       // #14B8A6
+    static let tealInk = Color(red: 0.059, green: 0.463, blue: 0.431)    // #0F766E
+    static let tealSoft = Color(red: 0.902, green: 0.980, blue: 0.965)   // #E6FAF6
+    static let accentSoft = Color(red: 0.800, green: 0.984, blue: 0.937) // #CCFBEF
+    static let mango = Color(red: 1.000, green: 0.702, blue: 0.278)      // #FFB347
+    static let mangoInk = Color(red: 0.573, green: 0.251, blue: 0.055)   // #92400E
+    static let mangoSoft = Color(red: 1.000, green: 0.957, blue: 0.890)  // #FFF4E3
+    static let ink = Color(red: 0.059, green: 0.090, blue: 0.165)        // #0F172A
+    static let slate = Color(red: 0.118, green: 0.161, blue: 0.231)      // #1E293B
+    static let body = Color(red: 0.278, green: 0.333, blue: 0.412)       // #475569
+    static let faint = Color(red: 0.365, green: 0.420, blue: 0.502)      // #5D6B80
+    static let line = Color(red: 0.886, green: 0.910, blue: 0.941)       // #E2E8F0
+    static let canvas = Color(red: 0.945, green: 0.961, blue: 0.976)     // #F1F5F9
     static let surface = Color(red: 1.000, green: 1.000, blue: 1.000)    // #FFFFFF
-    static let amber = Color(red: 0.541, green: 0.369, blue: 0.071)      // #8A5E12
-    static let amberSoft = Color(red: 0.984, green: 0.941, blue: 0.863)  // #FBF0DC
-    static let sky = Color(red: 0.235, green: 0.431, blue: 0.624)        // #3C6E9F
-    static let skySoft = Color(red: 0.906, green: 0.941, blue: 0.980)    // #E7F0FA
-    static let danger = Color(red: 0.651, green: 0.224, blue: 0.180)     // #A6392E
-    static let dangerSoft = Color(red: 0.984, green: 0.929, blue: 0.922) // #FBEDEB
-    static let gold = Color(red: 0.878, green: 0.663, blue: 0.247)       // #E0A93F
-    static let focus = Color(red: 0.878, green: 0.663, blue: 0.247)      // #E0A93F
-    static let focusEdge = Color(red: 0.063, green: 0.141, blue: 0.122)  // #10241F
+    static let danger = Color(red: 0.706, green: 0.137, blue: 0.094)     // #B42318
+    static let dangerSoft = Color(red: 0.996, green: 0.953, blue: 0.949) // #FEF3F2
+    static let info = Color(red: 0.090, green: 0.361, blue: 0.827)       // #175CD3
+    static let infoSoft = Color(red: 0.937, green: 0.957, blue: 1.000)   // #EFF4FF
+    static let focus = Color(red: 1.000, green: 0.702, blue: 0.278)      // #FFB347
+    static let focusEdge = Color(red: 0.059, green: 0.090, blue: 0.165)  // #0F172A
 }
 enum ThusoRadius {
-    static let card: CGFloat = 18
-    static let control: CGFloat = 12
-    static let tile: CGFloat = 14
+    static let card: CGFloat = 12
+    static let control: CGFloat = 10
+    static let tile: CGFloat = 10
     static let pill: CGFloat = 999
 }
 enum ThusoSpacing {

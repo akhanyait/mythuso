@@ -124,13 +124,13 @@ struct InterpretingView: View {
             switch outcome {
             case .matched(let free):
                 Label(Interpreting.labels.matched, systemImage: "checkmark.circle")
-                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.teal)
+                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.indigo)
                 Text(Interpreting.waitSentence(outcome)).font(.subheadline).foregroundStyle(ThusoTheme.ink)
                 Text("The visit is confirmed with \(free.interpreter.name) named on it. Nothing is booked in this preview.")
                     .font(.caption).foregroundStyle(ThusoTheme.body)
             case .held:
                 Label("\(Interpreting.labels.noneFree) — \(Interpreting.labels.heldBadge)", systemImage: "hourglass")
-                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.amber)
+                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(ThusoTheme.mangoInk)
                 Text(Interpreting.waitSentence(outcome)).font(.subheadline).foregroundStyle(ThusoTheme.ink)
                 Text(Interpreting.hold.sentence).font(.caption).foregroundStyle(ThusoTheme.body)
                 Text(Interpreting.hold.whatHappensNext).font(.caption).foregroundStyle(ThusoTheme.body)

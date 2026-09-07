@@ -88,7 +88,7 @@ struct TeleconsultView: View {
                 DemoBadge()
                 if stage < 4 {
                     Text("Step \(stage + 1) of \(callStages.count) · \(callStages[stage])")
-                        .font(.caption).foregroundStyle(ThusoTheme.teal)
+                        .font(.caption).foregroundStyle(ThusoTheme.indigo)
                 }
                 CareHeading(eyebrow: "Doctor workspace", title: "Teleconsultation",
                             subtitle: "\(reference) · \(patient)")
@@ -209,7 +209,7 @@ struct TeleconsultView: View {
         Text(Teleconsult.rule("recording-is-separate").sentence).font(.footnote).foregroundStyle(ThusoTheme.body)
         CareCard {
             Label(Teleconsult.recording.decision, systemImage: "record.circle.fill")
-                .font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.amber)
+                .font(.system(size: 14, weight: .semibold)).foregroundStyle(ThusoTheme.mangoInk)
             Text(Teleconsult.recording.why).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.body)
         }
         Text("What happens instead").font(.system(size: 17, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
@@ -226,7 +226,7 @@ struct TeleconsultView: View {
             Text(Teleconsult.recording.whenItExists.whileRecording).font(.footnote).foregroundStyle(ThusoTheme.body)
             row("Who could open it", "Three, and no more")
             ForEach(Teleconsult.recording.whenItExists.whoMayView, id: \.self) { who in
-                Label(who, systemImage: "lock").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+                Label(who, systemImage: "lock").font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
             }
             row("Kept for", "\(Teleconsult.recording.whenItExists.keptForDays) days")
             Text(Teleconsult.recording.whenItExists.afterwards).font(.footnote).foregroundStyle(ThusoTheme.body)
@@ -356,7 +356,7 @@ struct TeleconsultView: View {
                     Text(entry.section.name).font(.system(size: 13)).foregroundStyle(entry.written ? ThusoTheme.ink : ThusoTheme.faint)
                     Spacer(minLength: 8)
                     Label(entry.written ? "Yes" : "Not reached", systemImage: entry.written ? "checkmark" : "lock")
-                        .font(.system(size: 12)).foregroundStyle(entry.written ? ThusoTheme.teal : ThusoTheme.faint)
+                        .font(.system(size: 12)).foregroundStyle(entry.written ? ThusoTheme.indigo : ThusoTheme.faint)
                 }
             }
         }
@@ -394,12 +394,12 @@ struct TeleconsultView: View {
             CareCard {
                 HStack(alignment: .top, spacing: 12) {
                     TileIcon(symbol: out ? "figure.walk.departure" : "person.fill",
-                             tint: out ? ThusoTheme.faint : ThusoTheme.teal,
-                             background: out ? ThusoTheme.canvas : ThusoTheme.tealSoft, size: 38)
+                             tint: out ? ThusoTheme.faint : ThusoTheme.indigo,
+                             background: out ? ThusoTheme.canvas : ThusoTheme.indigoSoft, size: 38)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(displayName(person)).font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(out ? ThusoTheme.faint : ThusoTheme.ink)
-                        Text(person.name).font(.system(size: 11, weight: .semibold)).foregroundStyle(ThusoTheme.teal)
+                        Text(person.name).font(.system(size: 11, weight: .semibold)).foregroundStyle(ThusoTheme.indigo)
                         Text(person.place).font(.system(size: 11.5)).foregroundStyle(ThusoTheme.faint)
                         Text("Can see: \(person.sees)").font(.system(size: 11.5)).foregroundStyle(ThusoTheme.faint)
                         Text("Can hear: \(person.hears)").font(.system(size: 11.5)).foregroundStyle(ThusoTheme.faint)
@@ -421,7 +421,7 @@ struct TeleconsultView: View {
     private func limitRow(_ limit: ClinicalLimit, allowed: Bool) -> some View {
         HStack(alignment: .top, spacing: 11) {
             Image(systemName: allowed ? "checkmark.circle.fill" : "nosign")
-                .font(.system(size: 15)).foregroundStyle(allowed ? ThusoTheme.teal : ThusoTheme.danger)
+                .font(.system(size: 15)).foregroundStyle(allowed ? ThusoTheme.indigo : ThusoTheme.danger)
             VStack(alignment: .leading, spacing: 3) {
                 Text(limit.name).font(.system(size: 13, weight: .medium)).foregroundStyle(ThusoTheme.ink)
                 Text(limit.needs == "nurse" && !nursePresent
@@ -431,13 +431,13 @@ struct TeleconsultView: View {
             }
         }
         .padding(13).frame(maxWidth: .infinity, alignment: .leading)
-        .background(allowed ? ThusoTheme.tealSoft : ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
+        .background(allowed ? ThusoTheme.indigoSoft : ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 14))
     }
 
     private func refusalCard(_ item: CallRefusal) -> some View {
         HStack(alignment: .top, spacing: 11) {
             Image(systemName: "nosign").font(.system(size: 16)).foregroundStyle(ThusoTheme.danger)
-            Text(item.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.forest)
+            Text(item.sentence).font(.system(size: 12.5)).foregroundStyle(ThusoTheme.slate)
         }
         .padding(14).frame(maxWidth: .infinity, alignment: .leading)
         .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: 14))

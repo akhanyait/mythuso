@@ -140,9 +140,9 @@ struct HouseholdView: View {
         CareCard {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 12) {
-                    Text(member.initials).font(.system(size: 15, weight: .bold)).foregroundStyle(ThusoTheme.tealDeep)
+                    Text(member.initials).font(.system(size: 15, weight: .bold)).foregroundStyle(ThusoTheme.indigoDeep)
                         .frame(width: 44, height: 44)
-                        .background(member.relation == "Child" ? ThusoTheme.amberSoft : ThusoTheme.tealSoft, in: Circle())
+                        .background(member.relation == "Child" ? ThusoTheme.mangoSoft : ThusoTheme.indigoSoft, in: Circle())
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(member.name).font(.system(size: 16, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
@@ -178,13 +178,13 @@ struct HouseholdView: View {
        it stood on would be another one. */
     @ViewBuilder private var withheldNotice: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "lock").font(.system(size: 17)).foregroundStyle(ThusoTheme.amber)
+            Image(systemName: "lock").font(.system(size: 17)).foregroundStyle(ThusoTheme.mangoInk)
             Text("Every record here has parts only the person themselves can release. This line stands on all of them, whether or not there is anything behind it — a notice that appeared only where there was something to hide would be the disclosure it is meant to prevent, and a count of the records it stood on would be another one.")
                 .font(.footnote).foregroundStyle(ThusoTheme.body)
         }
         .padding(15)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.amberSoft, in: RoundedRectangle(cornerRadius: 14))
+        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("A category is withheld from every record in this household. Every record here has parts only the person themselves can release. This notice stands on all of them, whether or not there is anything behind it.")
     }
@@ -347,7 +347,7 @@ struct SummaryCardView: View {
             }
         }
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "lock").font(.system(size: 17)).foregroundStyle(ThusoTheme.amber)
+            Image(systemName: "lock").font(.system(size: 17)).foregroundStyle(ThusoTheme.mangoInk)
             VStack(alignment: .leading, spacing: 5) {
                 Text("Withheld from every summary.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                 Text(Records.summaryCard.withheld).font(.footnote).foregroundStyle(ThusoTheme.body)
@@ -356,7 +356,7 @@ struct SummaryCardView: View {
         }
         .padding(15)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.amberSoft, in: RoundedRectangle(cornerRadius: 14))
+        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: 14))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Withheld from every summary. \(Records.summaryCard.withheld) The categories are \(householdProtectedCategories.joined(separator: ", ")). This notice reads the same on every summary this app produces.")
     }

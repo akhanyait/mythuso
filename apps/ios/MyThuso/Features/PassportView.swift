@@ -50,15 +50,15 @@ struct PassportView: View {
                     HStack(spacing: 10) {
                         actionTile("Share record", "square.and.arrow.up") { share = true }
                         ShareLink(item: "MyThuso fictional passport: BP 118/78 mmHg, pulse 72 bpm, glucose 5.2 mmol/L. Demo only, not a medical record.") {
-                            VStack(spacing: 8) { Image(systemName: "arrow.down.doc").font(.system(size: 19)).foregroundStyle(ThusoTheme.teal)
-                                Text("Export sample").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.forest) }
+                            VStack(spacing: 8) { Image(systemName: "arrow.down.doc").font(.system(size: 19)).foregroundStyle(ThusoTheme.indigo)
+                                Text("Export sample").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.slate) }
                                 .frame(maxWidth: .infinity, minHeight: 80)
                                 .background(.white, in: RoundedRectangle(cornerRadius: 18))
                                 .overlay(RoundedRectangle(cornerRadius: 18).stroke(ThusoTheme.line, lineWidth: 1))
                         }
                         NavigationLink { FeatureDetail(title: "Your care team") } label: {
-                            VStack(spacing: 8) { Image(systemName: "person.2").font(.system(size: 19)).foregroundStyle(ThusoTheme.teal)
-                                Text("Doctors").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.forest) }
+                            VStack(spacing: 8) { Image(systemName: "person.2").font(.system(size: 19)).foregroundStyle(ThusoTheme.indigo)
+                                Text("Doctors").font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.slate) }
                                 .frame(maxWidth: .infinity, minHeight: 80)
                                 .background(.white, in: RoundedRectangle(cornerRadius: 18))
                                 .overlay(RoundedRectangle(cornerRadius: 18).stroke(ThusoTheme.line, lineWidth: 1))
@@ -73,8 +73,8 @@ struct PassportView: View {
     private func actionTile(_ title: String, _ symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                Image(systemName: symbol).font(.system(size: 19)).foregroundStyle(ThusoTheme.teal)
-                Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.forest)
+                Image(systemName: symbol).font(.system(size: 19)).foregroundStyle(ThusoTheme.indigo)
+                Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(ThusoTheme.slate)
             }
             .frame(maxWidth: .infinity, minHeight: 80)
             .background(.white, in: RoundedRectangle(cornerRadius: 18))
@@ -120,7 +120,7 @@ struct FamilyView: View {
                 }
                 ForEach($store.invitations) { $invitation in
                     VStack(alignment: .leading, spacing: 6) {
-                        HStack { Text("\(invitation.name) · \(invitation.relationship)").font(.subheadline.weight(.semibold)); Spacer(); Text(invitation.status).font(.caption).foregroundStyle(invitation.status == "Active" ? ThusoTheme.teal : .secondary) }
+                        HStack { Text("\(invitation.name) · \(invitation.relationship)").font(.subheadline.weight(.semibold)); Spacer(); Text(invitation.status).font(.caption).foregroundStyle(invitation.status == "Active" ? ThusoTheme.indigo : .secondary) }
                         Text("\(invitation.scope) · Ends: \(invitation.expires)").font(.caption).foregroundStyle(.secondary)
                         Button("Revoke") { invitation.status = "Revoked" }.font(.caption).disabled(invitation.status == "Revoked")
                     }
@@ -143,10 +143,10 @@ struct PrivacyView: View {
 }
 struct PlansView: View {
     private let plans = [("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), ("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), ("Thuso Mom", "R249 / month", "Support for pregnancy and baby’s first year"), ("Thuso Senior", "R699 / month", "Weekly care and family support"), ("Thuso Recover", "Custom pricing", "Personalised post-discharge support")]
-    var body: some View { ScrollView { VStack(alignment: .leading, spacing: 18) { CareHeading(eyebrow: "Thuso Routine", title: "A healthier rhythm.", subtitle: "Proposal pricing · Phase 2–3 preview"); ForEach(plans, id: \.0) { plan in NavigationLink { FeatureDetail(title: plan.0) } label: { CareCard { Image(systemName: "heart").foregroundStyle(ThusoTheme.teal); Text(plan.0).font(.title2.weight(.semibold)); Text(plan.2).font(.subheadline).foregroundStyle(.secondary); Text(plan.1).font(.title3) } }.buttonStyle(.plain) } }.padding(20) }.background(ThusoTheme.canvas).navigationTitle("Care plans") }
+    var body: some View { ScrollView { VStack(alignment: .leading, spacing: 18) { CareHeading(eyebrow: "Thuso Routine", title: "A healthier rhythm.", subtitle: "Proposal pricing · Phase 2–3 preview"); ForEach(plans, id: \.0) { plan in NavigationLink { FeatureDetail(title: plan.0) } label: { CareCard { Image(systemName: "heart").foregroundStyle(ThusoTheme.indigo); Text(plan.0).font(.title2.weight(.semibold)); Text(plan.2).font(.subheadline).foregroundStyle(.secondary); Text(plan.1).font(.title3) } }.buttonStyle(.plain) } }.padding(20) }.background(ThusoTheme.canvas).navigationTitle("Care plans") }
 }
 struct WalletView: View {
-    var body: some View { List { Section { Label("THUSO WALLET", systemImage: "creditcard").foregroundStyle(ThusoTheme.teal); Text("R500.00").font(.largeTitle.weight(.semibold)); Text("Demo balance · No financial account").font(.caption).foregroundStyle(.secondary) }; Section { NavigationLink("Top up") { FeatureDetail(title: "Top up wallet") }; NavigationLink("Sponsor care") { VettingStatusView(subjectId: "S-021") } }; Section("Sample activity") { LabeledContent("Family care credit", value: "+ R500"); LabeledContent("Vitals visit", value: "− R249") } }.navigationTitle("Thuso Wallet") }
+    var body: some View { List { Section { Label("THUSO WALLET", systemImage: "creditcard").foregroundStyle(ThusoTheme.indigo); Text("R500.00").font(.largeTitle.weight(.semibold)); Text("Demo balance · No financial account").font(.caption).foregroundStyle(.secondary) }; Section { NavigationLink("Top up") { FeatureDetail(title: "Top up wallet") }; NavigationLink("Sponsor care") { VettingStatusView(subjectId: "S-021") } }; Section("Sample activity") { LabeledContent("Family care credit", value: "+ R500"); LabeledContent("Vitals visit", value: "− R249") } }.navigationTitle("Thuso Wallet") }
 }
 struct NotificationsView: View {
     var body: some View { List { Section("Sample notifications") { Label("Your Saturday visit is confirmed.", systemImage: "calendar"); Label("Your visit summary is ready.", systemImage: "doc.text"); Label("Explore regular check-ins with Thuso Routine.", systemImage: "heart") } }.navigationTitle("Notifications") }
@@ -362,7 +362,7 @@ struct WorkspaceShell: View {
                     .tag(entry.id)
             }
         }
-        .tint(ThusoTheme.teal)
+        .tint(ThusoTheme.indigo)
     }
 }
 

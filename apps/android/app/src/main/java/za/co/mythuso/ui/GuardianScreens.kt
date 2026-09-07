@@ -31,7 +31,7 @@ import za.co.mythuso.model.PreviewStore
         "Full Health Passport" to "Everything you can see. Appropriate for a guardian of a child, or where you have chosen to share fully."
     )
     ScreenColumn {
-        Text("Step ${step + 1} of 4 · ${listOf("Who", "What they see", "For how long", "Review")[step]}", style = MaterialTheme.typography.labelMedium, color = Teal)
+        Text("Step ${step + 1} of 4 · ${listOf("Who", "What they see", "For how long", "Review")[step]}", style = MaterialTheme.typography.labelMedium, color = Indigo)
         when (step) {
             0 -> {
                 Heading("Thuso Family", "Who are you inviting?", "They receive an invitation on their own phone and choose whether to accept. You can withdraw it at any time.")
@@ -117,7 +117,7 @@ import za.co.mythuso.model.PreviewStore
             Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("${invitation.name} · ${invitation.relationship}", fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                    Text(invitation.status, style = MaterialTheme.typography.labelMedium, color = if (invitation.status == "Active") Teal else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(invitation.status, style = MaterialTheme.typography.labelMedium, color = if (invitation.status == "Active") Indigo else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Note("${invitation.scope} · Ends: ${invitation.expires}")
                 TextButton(onClick = { store.invitations[index] = invitation.copy(status = "Revoked") }, enabled = invitation.status != "Revoked") { Text("Revoke") }

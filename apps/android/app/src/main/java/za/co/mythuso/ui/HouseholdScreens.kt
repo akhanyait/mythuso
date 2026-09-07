@@ -205,11 +205,11 @@ private val householdRecordType = recordTypeById("household")
             verticalArrangement = Arrangement.spacedBy(13.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-                Box(Modifier.size(46.dp).background(if (member.relation == "Child") AmberSoft else TealSoft, CircleShape), Alignment.Center) {
+                Box(Modifier.size(46.dp).background(if (member.relation == "Child") MangoSoft else IndigoSoft, CircleShape), Alignment.Center) {
                     Text(
                         member.name.split(" ").mapNotNull { it.firstOrNull() }.take(2).joinToString(""),
                         fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                        color = if (member.relation == "Child") Amber else TealDeep
+                        color = if (member.relation == "Child") MangoInk else IndigoDeep
                     )
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -249,7 +249,7 @@ private val householdRecordType = recordTypeById("household")
             "whether or not anything is held behind it, and no count of them is given."
     }) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.Lock, null, tint = Teal)
+            Icon(Icons.Outlined.Lock, null, tint = Indigo)
             Text("A category is withheld from every record here.", style = MaterialTheme.typography.titleSmall, color = Ink)
         }
         Text("Every record in this household has parts only the person themselves can release. This line stands on all of them, whether or not there is anything behind it — a notice that appeared only where there was something to hide would be the disclosure it is meant to prevent, and a count of the records it stood on would be another one.",
@@ -349,7 +349,7 @@ private val householdRecordType = recordTypeById("household")
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = BodyText)
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = Forest)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = Slate)
     }
 }
 
@@ -364,10 +364,10 @@ private val householdRecordType = recordTypeById("household")
         verticalArrangement = Arrangement.spacedBy(9.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.Lock, null, tint = TealDeep, modifier = Modifier.size(18.dp))
-            Text("Withheld from every summary.", style = MaterialTheme.typography.titleSmall, color = TealDeep)
+            Icon(Icons.Outlined.Lock, null, tint = IndigoDeep, modifier = Modifier.size(18.dp))
+            Text("Withheld from every summary.", style = MaterialTheme.typography.titleSmall, color = IndigoDeep)
         }
-        Text(recordSummaryCard.withheld, style = MaterialTheme.typography.bodyMedium, color = Forest)
+        Text(recordSummaryCard.withheld, style = MaterialTheme.typography.bodyMedium, color = Slate)
         CategoryChips()
     }
 }
@@ -402,7 +402,7 @@ private val householdRecordType = recordTypeById("household")
         CareCard {
             Text("Share this summary", style = MaterialTheme.typography.titleMedium)
             Note("A summary that is valid forever is a summary you have lost. Choose what it is for; the purpose chooses the fields and the hours.")
-            Text("What is this summary for?", style = MaterialTheme.typography.labelLarge, color = Forest)
+            Text("What is this summary for?", style = MaterialTheme.typography.labelLarge, color = Slate)
             FlowRowChips(sharePurposes.map { it.name }, setOf(purpose.name)) { name ->
                 purposeId = sharePurposes.first { it.name == name }.id
                 val chosen = sharePurposes.first { it.name == name }
@@ -487,15 +487,15 @@ private val householdRecordType = recordTypeById("household")
 @Composable private fun ColumnScope.ScannerNote(member: HouseholdMember) {
     val initials = member.name.split(" ").mapNotNull { it.firstOrNull() }.joinToString(".") + "."
     Column(
-        Modifier.fillMaxWidth().background(SkySoft, MaterialTheme.shapes.medium).padding(14.dp),
+        Modifier.fillMaxWidth().background(InfoSoft, MaterialTheme.shapes.medium).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(9.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.QrCode2, null, tint = Sky, modifier = Modifier.size(18.dp))
-            Text("What a scanner would read.", style = MaterialTheme.typography.titleSmall, color = Sky)
+            Icon(Icons.Outlined.QrCode2, null, tint = Info, modifier = Modifier.size(18.dp))
+            Text("What a scanner would read.", style = MaterialTheme.typography.titleSmall, color = Info)
         }
         Text("The reference above, and nothing else — 100 bits from the device’s own secure generator, not your patient number and not a number anyone can count up to. Someone holding it is answered with your initials ($initials), whether the summary is valid, expired or revoked, what it was made for, and when it stops. Not your name, not your date of birth, not one clinical word.",
-            style = MaterialTheme.typography.bodyMedium, color = Forest)
+            style = MaterialTheme.typography.bodyMedium, color = Slate)
         Text("No code is drawn here. The picture would only be a way to lose the reference, and the reference is the part that matters.",
             style = MaterialTheme.typography.bodySmall, color = BodyText)
     }

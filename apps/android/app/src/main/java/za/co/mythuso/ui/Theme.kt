@@ -39,16 +39,16 @@ import androidx.compose.ui.unit.sp
    colour is converted from hex once, by a machine, rather than three times by hand. Only the alias
    below is a design decision rather than a token: sage is what the clinical chart calls the soft
    teal it fills an in-range reading with. */
-val Sage = TealSoft
+val Sage = IndigoSoft
 
 @Composable fun ThusoTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = lightColorScheme(
-            primary = Teal, onPrimary = Color.White,
-            primaryContainer = TealSoft, onPrimaryContainer = TealDeep,
-            secondary = Forest, onSecondary = Color.White,
-            secondaryContainer = TealSoft, onSecondaryContainer = TealDeep,
-            tertiary = Teal, tertiaryContainer = Mint, onTertiaryContainer = TealDeep,
+            primary = Indigo, onPrimary = Color.White,
+            primaryContainer = IndigoSoft, onPrimaryContainer = IndigoDeep,
+            secondary = Slate, onSecondary = Color.White,
+            secondaryContainer = IndigoSoft, onSecondaryContainer = IndigoDeep,
+            tertiary = Indigo, tertiaryContainer = AccentSoft, onTertiaryContainer = IndigoDeep,
             background = Canvas, surface = Color.White, onBackground = Ink, onSurface = Ink,
             surfaceVariant = Canvas, onSurfaceVariant = BodyText,
             outline = Line, outlineVariant = Line, error = Danger
@@ -66,42 +66,42 @@ val Sage = TealSoft
 }
 @Composable fun Heading(eyebrow: String, title: String, subtitle: String) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (eyebrow.isNotEmpty()) Text(eyebrow.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp, color = Teal)
+        if (eyebrow.isNotEmpty()) Text(eyebrow.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp, color = Indigo)
         Text(title, fontSize = 26.sp, fontWeight = FontWeight.Bold, lineHeight = 31.sp, color = Ink)
         if (subtitle.isNotEmpty()) Text(subtitle, fontSize = 13.sp, color = BodyText, lineHeight = 20.sp)
     }
 }
 @Composable fun DemoBadge() {
-    Text("●  Design preview · Fictional data", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Teal)
+    Text("●  Design preview · Fictional data", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Indigo)
 }
 /** A soft tinted square holding a symbol — the repeating unit of the whole design. */
-@Composable fun TileIcon(icon: ImageVector, tint: Color = Teal, background: Color = TealSoft, size: Dp = 44.dp) {
+@Composable fun TileIcon(icon: ImageVector, tint: Color = Indigo, background: Color = IndigoSoft, size: Dp = 44.dp) {
     Box(Modifier.size(size).background(background, RoundedCornerShape(size * 0.32f)), Alignment.Center) {
         Icon(icon, null, tint = tint, modifier = Modifier.size(size * 0.46f))
     }
 }
 @Composable fun StatusPill(text: String, tone: String = "teal") {
     val (bg, fg) = when (tone) {
-        "amber" -> AmberSoft to Amber
-        "sky" -> SkySoft to Sky
+        "amber" -> MangoSoft to MangoInk
+        "sky" -> InfoSoft to Info
         /* A refusal is not a warning. Vetting needs a pill that says so without shouting. */
         "danger" -> Danger.copy(alpha = 0.10f) to Danger
         "quiet" -> Canvas to BodyText
         "light" -> Color.White.copy(alpha = 0.18f) to Color(0xFFE8F5EF)
-        else -> TealSoft to TealDeep
+        else -> IndigoSoft to IndigoDeep
     }
     Text(text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = fg,
         modifier = Modifier.background(bg, CircleShape).padding(horizontal = 10.dp, vertical = 5.dp))
 }
 @Composable fun StepDots(step: Int, total: Int, label: String) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("Step $step of $total", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Teal)
+        Text("Step $step of $total", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Indigo)
         Spacer(Modifier.width(10.dp))
         Text(label, fontSize = 12.sp, color = BodyText, modifier = Modifier.weight(1f))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             (1..total).forEach { index ->
                 Box(Modifier.width(if (index == step) 20.dp else 8.dp).height(8.dp)
-                    .background(if (index <= step) Teal else Line, CircleShape))
+                    .background(if (index <= step) Indigo else Line, CircleShape))
             }
         }
     }
@@ -112,7 +112,7 @@ val Sage = TealSoft
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(13.dp)
     ) {
-        TileIcon(icon, if (danger) Danger else Teal, if (danger) Danger.copy(alpha = 0.10f) else TealSoft, 38.dp)
+        TileIcon(icon, if (danger) Danger else Indigo, if (danger) Danger.copy(alpha = 0.10f) else IndigoSoft, 38.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = if (danger) Danger else Ink)
             if (subtitle.isNotEmpty()) Text(subtitle, fontSize = 12.sp, color = BodyText, lineHeight = 17.sp)
@@ -145,12 +145,12 @@ val Sage = TealSoft
                 Box(
                     Modifier.weight(1f).height(56.dp)
                         .background(Color.White, RoundedCornerShape(12.dp))
-                        .border(1.5.dp, if (invalid) Danger else if (active) Teal else Line, RoundedCornerShape(12.dp)),
+                        .border(1.5.dp, if (invalid) Danger else if (active) Indigo else Line, RoundedCornerShape(12.dp)),
                     Alignment.Center
                 ) { Text(code.getOrNull(index)?.toString() ?: "", fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = Ink) }
             }
             if (code.length == length && !invalid) {
-                Box(Modifier.size(34.dp).background(Teal, CircleShape), Alignment.Center) {
+                Box(Modifier.size(34.dp).background(Indigo, CircleShape), Alignment.Center) {
                     Icon(Icons.Outlined.Check, null, tint = Color.White, modifier = Modifier.size(18.dp))
                 }
             }
