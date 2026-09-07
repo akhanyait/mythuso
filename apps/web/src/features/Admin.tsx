@@ -55,7 +55,11 @@ function Overview({ vetting }: { vetting: VettingState }) {
    <Kpi icon={CircleAlert} label="Open incidents" value="3" note="1 critical · SLA acknowledged within 5 minutes" tone="flagged"/>
   </div>
   <SectionTitle title="Against the funding plan"/>
-  <div className="panel">
+  {/* Five columns of figures cannot be squeezed into 320 pixels, and they were not: the table sat
+      four hundred and thirty wide inside a panel that could not hold it, so the last two columns
+      were cut off with nothing on the screen saying so. It scrolls now, which is the pattern the
+      patient file and the vetting register already use for the same problem. */}
+  <div className="panel table-scroll">
    {/* Every column after the first is a figure, and the point of the table is reading one down
        against the one under it. Left-aligned they could not be: 30, 100, 300, 600, 1000 all began
        at the same pixel and ended five apart. */}
@@ -123,7 +127,7 @@ function Catalogue() {
    <Kpi icon={TrendingUp} label="Average platform margin" value={money(Math.round(rows.reduce((t, s) => t + platformMargin(s), 0) / rows.length))} note="After the nurse and payment costs"/>
    <Kpi icon={CircleAlert} label="Below R40 a visit" value={String(thin.length)} note="Too thin to carry support, insurance and review" tone={thin.length ? 'flagged' : ''}/>
   </div>
-  <div className="panel">
+  <div className="panel table-scroll">
    <table className="result-table admin-table">
     <caption>Change a price to see what the platform is left with. Nurse share follows the proposal's 75%.</caption>
     <thead><tr><th scope="col">Service</th><th scope="col">Phase</th><th scope="col">Price</th><th scope="col">Nurse</th><th scope="col">Platform keeps</th></tr></thead>
@@ -152,7 +156,7 @@ function Growth() {
    <Kpi icon={Landmark} label="B2B lines" value={String(businessModel.network.length)} note="Contracted revenue in the proposal"/>
   </div>
   <SectionTitle title="Subscriptions"/>
-  <div className="panel"><table className="result-table admin-table">
+  <div className="panel table-scroll"><table className="result-table admin-table">
    <thead><tr><th scope="col">Plan</th><th scope="col">Price</th><th scope="col">Active</th><th scope="col">Monthly</th><th scope="col">Phase</th></tr></thead>
    <tbody>{subs.map(s => <tr key={s.id}>
     <th scope="row">{s.name}</th><td>{s.price ? `${money(s.price)}/m` : 'Per package'}</td>
@@ -167,7 +171,7 @@ function Growth() {
    <strong>{p.price ? money(p.price) : 'Sponsored'}</strong>
   </div>)}</div>
   <SectionTitle title="Network and B2B"/>
-  <div className="panel"><table className="result-table admin-table">
+  <div className="panel table-scroll"><table className="result-table admin-table">
    <thead><tr><th scope="col">Product</th><th scope="col">Buyer</th><th scope="col">Revenue</th><th scope="col">Phase</th></tr></thead>
    <tbody>{businessModel.network.map(n => <tr key={n.id}>
     <th scope="row">{n.product}</th><td>{n.buyer}</td><td>{n.revenue}</td><td>Phase {n.phase}</td>
