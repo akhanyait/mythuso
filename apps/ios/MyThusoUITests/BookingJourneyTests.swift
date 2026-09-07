@@ -129,10 +129,12 @@ final class BookingJourneyTests: XCTestCase {
                       "the review's Time row does not read “\(start) – \(end)”, which is what the previous step promised")
 
         // MARK: Confirm
+        /* Scrolled to, not just tapped. The review grew when the workspaces and the interpreter
+           requirement landed, and a plain tap on an element below the fold hits nothing. */
         let consent = app.switches.firstMatch
         XCTAssertTrue(consent.exists, "the review has no preview-consent switch")
-        consent.tap()
-        app.buttons["Confirm & book"].tap()
+        XCTAssertTrue(tapAfterScrolling(app, consent), "the preview-consent switch could not be reached")
+        XCTAssertTrue(tapAfterScrolling(app, app.buttons["Confirm & book"]), "Confirm & book could not be reached")
         XCTAssertTrue(app.staticTexts["Your demo visit is booked."].waitForExistence(timeout: 20), "the booking did not confirm")
 
         // MARK: What came out of it, on the visit list

@@ -46,6 +46,11 @@ export function emitTokens(root = '') {
  const tokens = JSON.parse(readFileSync(root + SOURCE, 'utf8'));
  const colours = Object.entries(tokens.color);
  const radii = Object.entries(tokens.radius);
+ /* The type scale and the motion duration used to reach the stylesheet and stop there, so both
+    native apps typed the six sizes out by hand — and both, independently, reached past the top of
+    the scale for a 22 that did not exist. A number that only one of three platforms can read is a
+    number the other two will invent. */
+ const type = Object.entries(tokens.typography.scale);
  const spacing = tokens.spacing;
 
  /* ---- Web ------------------------------------------------------------------------------------
@@ -78,6 +83,19 @@ ${radii.map(([name, value]) => `    static let ${name}: CGFloat = ${value}`).joi
 enum ThusoSpacing {
 ${spacing.map(value => `    static let space${value}: CGFloat = ${value}`).join('\n')}
 }
+/// The type scale, in points. SwiftUI text should be a semantic style so it answers Dynamic Type;
+/// these are for the places that genuinely need a measurement — a glyph sized from its own tile,
+/// a chart label, a @ScaledMetric base.
+enum ThusoType {
+${type.map(([name, value]) => `    static let ${name}: CGFloat = ${value}`).join('\n')}
+    static let minimumBody: CGFloat = ${tokens.typography.minimumBody}
+    /// Nothing in any of the three apps renders text below this.
+    static let minimumRendered: CGFloat = ${tokens.typography.minimumRendered}
+}
+enum ThusoMotion {
+    static let duration: TimeInterval = ${tokens.motion.durationMs / 1000}
+    static let respectsReducedMotion = ${tokens.motion.respectReducedMotion}
+}
 `;
 
  /* ---- Android --------------------------------------------------------------------------------
@@ -87,6 +105,7 @@ package za.co.mythuso.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 ${colours.map(([name, hex]) => `val ${composeNames[name] ?? pascal(name)} = Color(0xFF${hex.replace('#', '').toUpperCase()})`).join('\n')}
 
@@ -95,6 +114,17 @@ ${radii.map(([name, value]) => `    val ${name} = ${value}.dp`).join('\n')}
 }
 object ThusoSpacing {
 ${spacing.map(value => `    val space${value} = ${value}.dp`).join('\n')}
+}
+/** The type scale, in sp, so it scales with the reader's font size setting. */
+object ThusoType {
+${type.map(([name, value]) => `    val ${name} = ${value}.sp`).join('\n')}
+    val minimumBody = ${tokens.typography.minimumBody}.sp
+    /** Nothing in any of the three apps renders text below this. */
+    val minimumRendered = ${tokens.typography.minimumRendered}.sp
+}
+object ThusoMotion {
+    const val durationMs = ${tokens.motion.durationMs}
+    const val respectsReducedMotion = ${tokens.motion.respectReducedMotion}
 }
 `;
 

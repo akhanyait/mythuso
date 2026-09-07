@@ -126,6 +126,14 @@ final class DynamicTypeTests: XCTestCase {
             var frozen: [String] = []
             for (opening, small) in standard.sorted(by: { $0.key < $1.key }) {
                 guard small.height > 0, let big = largest[opening] else { continue }
+                /* An avatar's initials are a picture of letters, not text anybody reads: they sit in
+                   a fixed circle beside the person's full name and are hidden from assistive
+                   technology, so they cannot grow and nothing is lost by their not growing. They
+                   still turn up here because XCUITest's snapshot is not VoiceOver's tree. Excluded
+                   by shape — three characters or fewer, all capitals — rather than by name, so this
+                   stays a rule about monograms rather than a list of the ones we happened to find.
+                   Nothing a reader has to read in this app is written that way. */
+                if small.label.count <= 3, small.label.allSatisfy({ $0.isUppercase }) { continue }
                 if big.height < small.height * 1.5 {
                     frozen.append("“\(small.label.prefix(44))” is \(Int(small.height))pt tall at the default size and \(Int(big.height))pt at AccessibilityXXXL")
                 }

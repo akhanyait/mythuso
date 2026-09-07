@@ -6,6 +6,7 @@ package za.co.mythuso.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 val Indigo = Color(0xFF1E3A8A)
 val IndigoDeep = Color(0xFF172F6F)
@@ -49,4 +50,21 @@ object ThusoSpacing {
     val space24 = 24.dp
     val space32 = 32.dp
     val space40 = 40.dp
+}
+/** The type scale, in sp, so it scales with the reader's font size setting. */
+object ThusoType {
+    val screenTitle = 28.sp
+    val sectionTitle = 18.sp
+    val heading = 22.sp
+    val cardTitle = 16.sp
+    val body = 15.sp
+    val caption = 13.sp
+    val metric = 32.sp
+    val minimumBody = 14.sp
+    /** Nothing in any of the three apps renders text below this. */
+    val minimumRendered = 13.sp
+}
+object ThusoMotion {
+    const val durationMs = 180
+    const val respectsReducedMotion = true
 }

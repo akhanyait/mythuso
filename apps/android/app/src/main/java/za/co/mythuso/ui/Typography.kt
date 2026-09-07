@@ -16,24 +16,16 @@ import androidx.compose.ui.unit.sp
  * file sets `minimumRendered` to the caption size deliberately so that the two cannot disagree.
  * Eighty-one strings on these screens used to sit below it.
  *
- * These numbers are typed here rather than generated because scripts/emit-tokens.mjs writes colour,
- * radius and spacing into Tokens.kt and stops there — the type scale reaches CSS and no further. The
- * generator should own them, and until it does this file is the one place on Android that says them.
+ * The numbers themselves are not here. scripts/emit-tokens.mjs writes the scale into Tokens.kt as
+ * ThusoType, alongside colour, radius and spacing, and this file spends them. It used to type them
+ * out, which is how both native apps came to reach past the top of the scale for a 22 that the
+ * contract did not have — a step nobody can find is a step everybody invents. It has one now.
  *
  * Line heights are the scale's own, not multipliers: at the largest font scales a ratio computed
  * from a size the reader has already enlarged compounds, and rows built for it clip. Tracking is
  * negative on the two display sizes and zero everywhere else, which is what stops a large heading in
  * a sans-serif from reading as a poster.
  */
-object ThusoType {
-    val metric = 32.sp
-    val screenTitle = 28.sp
-    val sectionTitle = 18.sp
-    val cardTitle = 16.sp
-    val body = 15.sp
-    val caption = 13.sp
-}
-
 private fun style(size: Int, height: Int, weight: FontWeight, tracking: Double = 0.0) =
     TextStyle(fontSize = size.sp, lineHeight = height.sp, fontWeight = weight, letterSpacing = tracking.sp)
 

@@ -48,3 +48,22 @@ enum ThusoSpacing {
     static let space32: CGFloat = 32
     static let space40: CGFloat = 40
 }
+/// The type scale, in points. SwiftUI text should be a semantic style so it answers Dynamic Type;
+/// these are for the places that genuinely need a measurement — a glyph sized from its own tile,
+/// a chart label, a @ScaledMetric base.
+enum ThusoType {
+    static let screenTitle: CGFloat = 28
+    static let sectionTitle: CGFloat = 18
+    static let heading: CGFloat = 22
+    static let cardTitle: CGFloat = 16
+    static let body: CGFloat = 15
+    static let caption: CGFloat = 13
+    static let metric: CGFloat = 32
+    static let minimumBody: CGFloat = 14
+    /// Nothing in any of the three apps renders text below this.
+    static let minimumRendered: CGFloat = 13
+}
+enum ThusoMotion {
+    static let duration: TimeInterval = 0.18
+    static let respectsReducedMotion = true
+}
