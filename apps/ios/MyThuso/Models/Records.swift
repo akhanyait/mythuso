@@ -39,7 +39,14 @@ extension Records {
     static func types(in areaId: String) -> [RecordType] { types.filter { $0.area == areaId } }
     static var protectedTypes: [RecordType] { types.filter { $0.sensitivity == .protected } }
     /// The categories the header refuses to name, held as the contract's list rather than as prose.
-    static var protectedCategories: [String] { sensitivity(.protected).categories }
+    /* The contract's named categories, plus the record types that are protected in their own right —
+       a type is a category the moment it is the only thing in it. Composed once, here, because a
+       notice that names seven things on one screen and eight on the next is a reader wondering which
+       screen is lying to them. Web computes the same list the same way. */
+    static var protectedCategories: [String] {
+        var seen = Set<String>()
+        return (sensitivity(.protected).categories + protectedTypes.map(\.name)).filter { seen.insert($0).inserted }
+    }
 }
 
 private let sensitivityRank: [RecordSensitivity: Int] = [.routine: 0, .clinical: 1, .protected: 2]

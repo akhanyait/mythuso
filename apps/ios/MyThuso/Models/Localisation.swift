@@ -28,6 +28,11 @@ enum ThusoString: String {
        refusal sentences, the clinical sections — stays in English for the same reason the
        credential requirements do. */
     case patientFile, consultationRecord, viewingAs, openFileOf
+    /* The household and the shareable summary are two more ways into the record, so the way in is
+       localised and what is inside them is not. The nine summary fields, the refusal sentences and
+       the withheld categories come from the record contract in English, for the same reason a
+       credential requirement does. */
+    case household, healthSummary
 }
 private let table: [ThusoLocale: [ThusoString: String]] = [
     .english: [
@@ -42,7 +47,8 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .vettingApply: "Apply to join", .vettingRenewals: "Renewals due",
         .vettingRefused: "What is refused until this passes",
         .patientFile: "Patient file", .consultationRecord: "Consultation record",
-        .viewingAs: "Viewing as", .openFileOf: "Open the file of"
+        .viewingAs: "Viewing as", .openFileOf: "Open the file of",
+        .household: "Household", .healthSummary: "Health summary"
     ],
     .zulu: [
         .home: "Ikhaya", .bookCare: "Bhukha", .visits: "Ukuvakashelwa", .passport: "Iphasiphothi", .more: "Okuningi",
@@ -56,7 +62,8 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .vettingApply: "Faka isicelo", .vettingRenewals: "Ukuvuselelwa okudingekayo",
         .vettingRefused: "Okwenqatshelwe uze uphase",
         .patientFile: "Ifayela lesiguli", .consultationRecord: "Irekhodi lokubonana nodokotela",
-        .viewingAs: "Ubuka njenge", .openFileOf: "Vula ifayela lika"
+        .viewingAs: "Ubuka njenge", .openFileOf: "Vula ifayela lika",
+        .household: "Umuzi", .healthSummary: "Isifinyezo sezempilo"
     ],
     .sesotho: [
         .home: "Lehae", .bookCare: "Behela", .visits: "Diketelo", .passport: "Phasepoto", .more: "Tse ding",
@@ -70,7 +77,8 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .vettingApply: "Etsa kopo", .vettingRenewals: "Dintjhafatso tse tlang",
         .vettingRefused: "Se hannweng ho fihlela sena se feta",
         .patientFile: "Faele ya mokudi", .consultationRecord: "Tlaleho ya ho bonana le ngaka",
-        .viewingAs: "O shebella jwaloka", .openFileOf: "Bula faele ya"
+        .viewingAs: "O shebella jwaloka", .openFileOf: "Bula faele ya",
+        .household: "Lelapa", .healthSummary: "Kakaretso ya bophelo"
     ],
     .afrikaans: [
         .home: "Tuis", .bookCare: "Bespreek", .visits: "Besoeke", .passport: "Paspoort", .more: "Meer",
@@ -84,7 +92,8 @@ private let table: [ThusoLocale: [ThusoString: String]] = [
         .vettingApply: "Doen aansoek", .vettingRenewals: "Hernuwings wat verval",
         .vettingRefused: "Wat geweier word totdat dit slaag",
         .patientFile: "Pasiëntlêer", .consultationRecord: "Konsultasierekord",
-        .viewingAs: "Besigtig as", .openFileOf: "Open die lêer van"
+        .viewingAs: "Besigtig as", .openFileOf: "Open die lêer van",
+        .household: "Huishouding", .healthSummary: "Gesondheidsopsomming"
     ]
 ]
 func thuso(_ key: ThusoString, _ locale: ThusoLocale) -> String {

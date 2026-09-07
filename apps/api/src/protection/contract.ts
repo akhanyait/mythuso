@@ -26,7 +26,7 @@
    One root key, and never used directly. HKDF derives a separate key per job, so the key that seals
    a record cannot also generate the index that finds it — a compromise of one purpose does not hand
    over the others. Versioned, because rotation that cannot be described is rotation nobody does. */
-export type KeyPurpose = 'record' | 'index' | 'audit' | 'share';
+export type KeyPurpose = 'record' | 'index' | 'audit' | 'share' | 'bootstrap';
 export type KeyVersion = number;
 export type KeyRing = {
  /** The version new writes are sealed under. Older versions stay readable until re-wrapped. */

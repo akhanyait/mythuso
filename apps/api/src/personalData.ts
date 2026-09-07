@@ -301,6 +301,13 @@ export const HOLDINGS: Holding[] = [
   basis: 'workforce-vetting'
  },
  {
+  label: 'The record of the founding ceremony, if you were one of the first two',
+  table: 'vetting_bootstrap_ceremonies',
+  disposition: 'retain',
+  because: 'MyThuso\'s vetting rule is that a high-risk check needs two different reviewers. The very first reviewers had nobody to check them, so two named people cleared them by hand at a console, under a one-time authorisation. This holds the fingerprint of that authorisation, when it was used, who used it, and who was seeded — never the authorisation itself. It is what stops the same authorisation being used a second time, and it is the record an auditor asks for when they want to know where the first trust on this platform came from.',
+  basis: 'audit-integrity'
+ },
+ {
   label: 'Which renewal reminders you have already had',
   table: 'vetting_renewal_notices',
   disposition: 'retain',

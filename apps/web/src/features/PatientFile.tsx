@@ -7,8 +7,8 @@ import { can, roleById, subjectStatusLabels, summarise, type Decision, type Vett
 import { subjectsByRole } from '../lib/vetting-fixtures';
 import { money } from '../lib/catalog';
 import {
- ageFrom, canAny, canOpen, canOpenTab, consultationSections, fileActions, fileTabs, isProtected, longDate,
- patients, recordById, releaseRefusal, shortDate, soap, summaryCard, timelineFor,
+ ageFrom, canOpen, canOpenRecord, canOpenTab, consultationSections, fileActions, fileTabs, isProtected, longDate,
+ patients, protectedCategories, recordById, releaseRefusal, shortDate, soap, summaryCard, timelineFor,
  type PatientRecord, type Sensitive, type TimelineEntry
 } from '../lib/records';
 
@@ -194,6 +194,13 @@ function SummaryHeader({ patient, viewer }: { patient: PatientRecord; viewer: Ve
    up only when there was something behind it would disclose the thing it is hiding, as surely as
    a chip reading "Chronic: HIV" would. So there is no count, no category name and no difference
    between one patient and the next. */
+/* The categories are the contract's, so the sentence is assembled from them rather than typed out
+   beside them: a category added to records.json is named here without anybody editing this screen.
+   Only the casing is ours, and an initialism keeps its capitals — “hIV” would be a category nobody
+   recognises in the one sentence that has to be recognised. */
+const withheldCategories = protectedCategories.map((term, i) => i === 0 || term[1]?.toUpperCase() === term[1] ? term : term[0].toLowerCase() + term.slice(1));
+const withheldSentence = withheldCategories.length < 2 ? withheldCategories.join('')
+ : `${withheldCategories.slice(0, -1).join(', ')} and ${withheldCategories[withheldCategories.length - 1]}`;
 function WithheldNotice({ viewer }: { viewer: VettingSubject }) {
  const decision = can(viewer, 'view-protected-record');
  const ask = decision.allowed
@@ -204,7 +211,7 @@ function WithheldNotice({ viewer }: { viewer: VettingSubject }) {
   <div>
    <strong>A category is withheld from this header.</strong>
    <p>{summaryCard.withheld}</p>
-   <p>Sexual and reproductive health, mental health, HIV, substance use, termination of pregnancy and social support are never a chip — and this notice stands on every file, whether or not anything is held behind it.</p>
+   <p>{withheldSentence} are never a chip — and this notice stands on every file, whether or not anything is held behind it.</p>
    <p className="helper">{ask}</p>
   </div>
  </div>;
@@ -215,10 +222,12 @@ function WithheldNotice({ viewer }: { viewer: VettingSubject }) {
    purpose: a wall of text is read by nobody standing in a doorway. */
 function Overview({ patient, viewer, notice, setNotice, go }: { patient: PatientRecord; viewer: VettingSubject; notice: string; setNotice: (s: string) => void; go: (t: string) => void }) {
  const clinical = can(viewer, 'view-clinical-record');
- /* The medicine card is reached the way the Medication tab is reached, not through the summary
+ /* The medicine card is reached the way a prescription is reached, not through the summary
     capability: a pharmacy holds neither the clinical record nor a reason to be told "no medicine
-    is visible" when what it actually holds is dispense. */
- const medicines = canAny(viewer, ['view-clinical-record', 'dispense']);
+    is visible" when what it actually holds is dispense. Asked of the record type rather than of a
+    pair of capabilities written out again here — the contract says which two open a prescription,
+    and a second copy of that answer is a place for the two to disagree. */
+ const medicines = canOpenRecord(viewer, 'prescription');
  const latest = patient.vitals[patient.vitals.length - 1];
  const recent = timelineFor(patient).filter(e => canOpen(viewer, e).allowed).slice(0, 4);
  const label = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
@@ -293,11 +302,20 @@ function Overview({ patient, viewer, notice, setNotice, go }: { patient: Patient
 function Timeline({ patient, viewer }: { patient: PatientRecord; viewer: VettingSubject }) {
  const [filter, setFilter] = useState('All records');
  const all = timelineFor(patient).filter(e => canOpen(viewer, e).allowed || !isProtected(e));
+ /* The chips are named by what this viewer can actually see, never by the contract's full list of
+    record types. A “Referrals” chip that filters to nothing tells the reader a referral exists,
+    which is precisely the disclosure the withheld entry was there to prevent — so a type every one
+    of whose entries is protected and unreleased has already left `all`, and leaves the chips with
+    it. The line under them says the asymmetry is deliberate, rather than leaving it to be found. */
  const kinds = ['All records', ...Array.from(new Set(all.map(e => recordById(e.typeId)?.name ?? e.typeId)))];
- const rows = all.filter(e => filter === 'All records' || (recordById(e.typeId)?.name ?? e.typeId) === filter);
+ /* A chip that has gone is a chip that cannot still be selected. Change the viewer or the patient
+    and the choice made under the old one would otherwise survive its own chip, emptying a timeline
+    that is not empty and blaming the record for it. */
+ const chosen = kinds.includes(filter) ? filter : 'All records';
+ const rows = all.filter(e => chosen === 'All records' || (recordById(e.typeId)?.name ?? e.typeId) === chosen);
  return <>
   <div className="tabs" role="group" aria-label="Filter by record type">
-   {kinds.map(k => <button key={k} className={filter === k ? 'selected' : ''} aria-pressed={filter === k} onClick={() => setFilter(k)}>{k}</button>)}
+   {kinds.map(k => <button key={k} className={chosen === k ? 'selected' : ''} aria-pressed={chosen === k} onClick={() => setFilter(k)}>{k}</button>)}
   </div>
   <p className="helper"><LockKeyhole size={14}/>Protected entries are not listed here, on any patient, for any viewer without a release. A locked line would say one exists, which is the disclosure this class exists to prevent.</p>
   <div className="panel">

@@ -69,8 +69,12 @@ const idValidators = ['apps/web/src/features/Onboarding.tsx','apps/ios/MyThuso/M
 for(const file of idValidators) if(!/check digit/.test(read(file))) throw new Error(`Identity-number check-digit validation is missing from ${file}`);
 /* An attribution line is where a reader is being shown what accountability looks like. A placeholder
    registration number there is the one place a preview should not be fictional twice over. */
-for(const [platform,file] of Object.entries(clinicalSources)) {
- if(/SANC 0{4,}/.test(read(file))) throw new Error(`A placeholder registration number is back in the ${platform} sign-off (${file}). Read it from the vetting record.`);
+const attributionSources = { ...clinicalSources,
+ 'web orders': 'apps/web/src/features/Orders.tsx',
+ 'ios orders': 'apps/ios/MyThuso/Features/OrdersView.swift',
+ 'android orders': 'apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt' };
+for(const [platform,file] of Object.entries(attributionSources)) {
+ if(/(SANC|HPCSA) 0{4,}/.test(read(file))) throw new Error(`A placeholder registration number is back in the ${platform} attribution (${file}). Read it from the vetting record.`);
 }
 const demoCodes = [['240924','sign-up verification code',Object.values(onboardingSources)],
                    ['482190','visit code',Object.values(clinicalSources)],

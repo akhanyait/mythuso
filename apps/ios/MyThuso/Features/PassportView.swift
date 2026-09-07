@@ -128,6 +128,10 @@ struct FamilyView: View {
                 }
                 NavigationLink("Invite someone") { InviteGuardianView() }
                 NavigationLink("Guardian verification") { VettingStatusView(subjectId: "G-031") }
+                /* A household is where somebody would look for this, and where the guardian flow's
+                   promise is easiest to undo — so it is reachable from here, not only from the
+                   design-review list. */
+                NavigationLink("The household record") { HouseholdView() }
             }
             Section { Text("Paying for care does not grant access to someone’s health records. Revoking takes effect immediately and the other person is told.").font(.caption).foregroundStyle(.secondary) }
         }.navigationTitle("Your circle of care")
@@ -193,6 +197,10 @@ struct MoreView: View {
                     row(thuso(.patientFile, store.locale), "Eight tabs, gated on vetting — the same file four different ways", "folder.badge.person.crop") { PatientFileView() }
                     Divider().overlay(ThusoTheme.line)
                     row(thuso(.consultationRecord, store.locale), "One structure for every encounter, in long form or SOAP", "square.and.pencil") { ConsultationRecordView() }
+                    Divider().overlay(ThusoTheme.line)
+                    row(thuso(.household, store.locale), "One household, and what each member may see of the others", "house") { HouseholdView() }
+                    Divider().overlay(ThusoTheme.line)
+                    row(thuso(.healthSummary, store.locale), "The shareable summary, bound to a purpose and a period", "square.and.arrow.up") { HealthSummaryView() }
                     Divider().overlay(ThusoTheme.line)
                     row("System states", "Loading, error, offline and denied", "square.stack.3d.up") { SystemStatesView() }
                     Divider().overlay(ThusoTheme.line)

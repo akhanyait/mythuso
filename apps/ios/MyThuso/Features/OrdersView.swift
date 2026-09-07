@@ -1,5 +1,14 @@
 import SwiftUI
 
+/* An attribution line is where a reader is being shown what accountability looks like, so the
+   registration on it is read from the vetting record rather than typed as a row of zeros. A
+   preview is allowed one layer of fiction; a placeholder registration under a real doctor’s name
+   would be two, and the second one teaches a reader that the number is decoration. If the party is
+   not on the register the line says so, which is the honest answer and not a number. */
+@MainActor func attributedTo(_ subjectId: String) -> String {
+    guard let subject = VettingStore.shared.subject(subjectId) else { return "Not on the vetting register" }
+    return "\(subject.name) · \(subject.reference)"
+}
 struct TimelineStep: Identifiable {
     let label: String, detail: String, at: String, state: String
     var id: String { label }
@@ -37,7 +46,7 @@ struct PrescriptionView: View {
                 Text(reference).font(.title2.weight(.semibold))
                 Text("Issued 4 September · Valid for 6 months · Awaiting pharmacist").font(.caption).foregroundStyle(.secondary)
                 LabeledContent("Patient", value: "Lerato Molefe · 01/01/1980")
-                LabeledContent("Prescriber", value: "Dr. A. Dlamini · HPCSA 0000000 (demo)")
+                LabeledContent("Prescriber", value: attributedTo("D-401"))
                 LabeledContent("Pharmacy", value: "Rosebank community pharmacy")
             }
             Section { StatePicker(title: "Preview the pharmacy connection state", state: $state) }
@@ -83,7 +92,7 @@ struct LabOrderView: View {
                 DemoBadge()
                 Text(reference).font(.title2.weight(.semibold))
                 Text("Requested 4 September · Fasting panel · \(released ? "Released to patient" : "Awaiting release")").font(.caption).foregroundStyle(.secondary)
-                LabeledContent("Requested by", value: "Dr. A. Dlamini · HPCSA 0000000 (demo)")
+                LabeledContent("Requested by", value: attributedTo("D-401"))
                 LabeledContent("Collected by", value: "Sister Naledi Mokoena")
                 LabeledContent("Sample seal", value: "SEAL-77341 · Intact on receipt")
             }

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import catalogue from '../../../packages/catalog/vetting.json' with { type: 'json' };
-import { createProtectionModule, EXPIRY_WARNING_DAYS } from '../src/protection/index.ts';
+import { createProtectionModule, mintBootstrapAuthorisation, EXPIRY_WARNING_DAYS } from '../src/protection/index.ts';
 import {
  VettingVault, dedupeKey, documentField, expiryFrom, hashOf, noticesFor,
  openVettingStore, roleChecks, vettingSource, type Actor
@@ -28,17 +28,27 @@ function harness(options: { keys?: string; current?: string } = {}) {
  const now = () => clock;
  const db = new DatabaseSync(':memory:');
  const store = openVettingStore(db);
- const protection = createProtectionModule({
-  environment: 'development',
+ const config = {
+  environment: 'development' as const,
   protectionKeys: options.keys ?? `1:${randomBytes(32).toString('hex')}`,
   ...(options.current ? { protectionKeyCurrent: options.current } : {}),
   protectionIndexVersion: '1'
- }, db, { vetting: vettingSource(store), releases: { find: () => null }, now })!;
- const vault = new VettingVault({ gate: protection.gate, audit: protection.audit, store, now });
+ };
+ const protection = createProtectionModule(config, db, { vetting: vettingSource(store), releases: { find: () => null }, now })!;
+ const vault = new VettingVault({ gate: protection.gate, audit: protection.audit, bootstrap: protection.bootstrap, store, now });
  return {
-  db, store, vault, protection, now,
+  db, store, vault, protection, now, config,
   advance: (ms: number) => { clock += ms; },
-  at: () => clock
+  at: () => clock,
+  /* What an operator would produce at the console, minted against the same key ring the service is
+     running on and against the harness's own clock — so a test can let one expire without waiting. */
+  authorise: (grant: { parties?: { id: string; roleId: string }[]; decidedBy?: string; secondedBy?: string; minutes?: number } = {}) =>
+   mintBootstrapAuthorisation(config, {
+    parties: grant.parties ?? [{ id: 'admin-1', roleId: 'admin' }, { id: 'admin-2', roleId: 'admin' }],
+    decidedBy: grant.decidedBy ?? 'founder',
+    secondedBy: grant.secondedBy ?? 'director',
+    ...(grant.minutes !== undefined ? { minutes: grant.minutes } : {})
+   }, now).token
  };
 }
 
@@ -46,14 +56,18 @@ const reviewer = (id: string): Actor => ({ id, role: 'admin', purpose: 'vetting'
 const themselves = (id: string, role: string): Actor => ({ id, role, purpose: 'subject-access' });
 
 /**
- * The seeded pair, exactly as an operator would perform it: two reviewers, each submitting their own
- * documents through the gate (subject access needs no standing, which is what makes that possible),
- * and the decision on those first checks taken by hand by two named people who are not yet parties
- * themselves. Everything after this goes through the gate.
+ * The seeded pair, exactly as an operator would perform it: an authorisation minted at the console,
+ * two reviewers seeded under it, each submitting their own documents through the gate (subject
+ * access needs no standing, which is what makes that possible), and the decision on those first
+ * checks taken by hand by the two named people the authorisation names — neither of whom is a party.
+ * Two authorisations, because that is the real shape of it: the certificates arrive in between.
+ * Everything after this goes through the gate.
  */
 function reviewers(h: ReturnType<typeof harness>) {
- h.vault.bootstrap({ id: 'admin-1', roleId: 'admin' });
- h.vault.bootstrap({ id: 'admin-2', roleId: 'admin' });
+ const seeding = h.vault.openBootstrap(h.authorise());
+ seeding.seed({ id: 'admin-1', roleId: 'admin' });
+ seeding.seed({ id: 'admin-2', roleId: 'admin' });
+ seeding.close();
  for (const id of ['admin-1', 'admin-2']) {
   for (const check of roleChecks('admin')) {
    const submitted = h.vault.submit({
@@ -61,12 +75,13 @@ function reviewers(h: ReturnType<typeof harness>) {
     filename: `${check.id}.pdf`, document: PDF, issuedOn: iso(START - 30 * DAY)
    });
    assert.ok(submitted.ok, submitted.ok ? '' : submitted.reason);
-   h.vault.bootstrapDecision(id, check.id, {
-    decidedBy: 'founder', ...(check.risk === 'high' ? { secondedBy: 'director' } : {}),
-    issuedOn: iso(START - 30 * DAY)
-   });
   }
  }
+ const deciding = h.vault.openBootstrap(h.authorise());
+ for (const id of ['admin-1', 'admin-2']) {
+  for (const check of roleChecks('admin')) deciding.decide(id, check.id, { issuedOn: iso(START - 30 * DAY) });
+ }
+ deciding.close();
  return h;
 }
 
@@ -446,12 +461,160 @@ describe('deciding a check', () => {
 
  test('the bootstrap closes behind itself', () => {
   const h = reviewers(harness());
-  assert.throws(() => h.vault.bootstrap({ id: 'admin-9', roleId: 'admin' }), /no longer a bootstrap/);
+  /* A third party, properly authorised, and still refused: the register already holds the pair who
+     can review each other's work, so there is nothing left for a bootstrap to do about anybody new. */
+  assert.throws(
+   () => h.vault.openBootstrap(h.authorise({ parties: [{ id: 'admin-9', roleId: 'admin' }] })).seed({ id: 'admin-9', roleId: 'admin' }),
+   /no longer a bootstrap/
+  );
   /* Still open for the pair itself — a decision on their own checks is what a bootstrap is for. */
-  assert.ok(h.vault.bootstrapDecision('admin-1', 'identity', { decidedBy: 'founder', secondedBy: 'director' }));
+  const ceremony = h.vault.openBootstrap(h.authorise());
+  assert.ok(ceremony.decide('admin-1', 'identity'));
   /* And closed the moment a third party exists, which is the moment the pair could have done it. */
   h.vault.enrol(reviewer('admin-1'), { id: 'nurse-9', roleId: 'nurse' });
-  assert.throws(() => h.vault.bootstrapDecision('admin-1', 'identity', { decidedBy: 'founder', secondedBy: 'director' }), /no longer a bootstrap/);
+  assert.throws(() => ceremony.decide('admin-1', 'identity'), /no longer a bootstrap/);
+  assert.throws(() => h.vault.openBootstrap(h.authorise()), /no longer a bootstrap/);
+ });
+});
+
+/* ---- The one decision nobody reviews ------------------------------------------------------------ */
+
+/**
+ * The bootstrap is a real hole, and these are the walls around it rather than a claim that it is
+ * closed. What is being tested is that it cannot be walked into: not without an authorisation
+ * somebody minted at a console, not twice with the same one, not after the clock has run out, not
+ * once there are real reviewers, and never quietly.
+ */
+describe('the bootstrap, and what it takes to reach it', () => {
+ /* Read straight out of the chain's own table. What a person looking for a bootstrap would grep. */
+ const auditRows = (h: ReturnType<typeof harness>) =>
+  (h.db.prepare('SELECT event, reason, allowed FROM protected_access_log ORDER BY seq').all() as { event: string; reason: string; allowed: number }[])
+   .filter(row => row.event.startsWith('vetting.bootstrap'));
+
+ test('without an authorisation there is no bootstrap at all', () => {
+  const h = harness();
+  assert.throws(() => h.vault.openBootstrap(''), /not a bootstrap authorisation/);
+  assert.throws(() => h.vault.openBootstrap('mythuso-bootstrap-v1.eyJ9.deadbeef'), /not signed by this server/);
+  /* A token minted against somebody else's key ring is the case that matters: it is well formed, it
+     says all the right things, and this server has never authorised it. */
+  const elsewhere = mintBootstrapAuthorisation(
+   { environment: 'development', protectionKeys: `1:${randomBytes(32).toString('hex')}`, protectionIndexVersion: '1' },
+   { parties: [{ id: 'admin-1', roleId: 'admin' }], decidedBy: 'founder', secondedBy: 'director' }, h.now
+  ).token;
+  assert.throws(() => h.vault.openBootstrap(elsewhere), /not signed by this server/);
+  assert.equal(h.store.partiesCount(), 0);
+  /* And every one of those attempts is in the chain, refused, by fingerprint. */
+  assert.equal(auditRows(h).length, 3);
+  assert.ok(auditRows(h).every(row => row.event === 'vetting.bootstrap.refused' && row.allowed === 0));
+ });
+
+ test('an authorisation is spent once, and a restart does not hand it back', () => {
+  const h = harness();
+  const authorisation = h.authorise();
+  h.vault.openBootstrap(authorisation).seed({ id: 'admin-1', roleId: 'admin' });
+  assert.throws(() => h.vault.openBootstrap(authorisation), /already been spent/);
+  /* Rebuilt around the same database, exactly as `systemctl restart` would leave it: the record of
+     what has been spent is in the register rather than in this process. */
+  const restarted = new VettingVault({
+   gate: h.protection.gate, audit: h.protection.audit, bootstrap: h.protection.bootstrap,
+   store: openVettingStore(h.db), now: h.now
+  });
+  assert.throws(() => restarted.openBootstrap(authorisation), /already been spent/);
+  assert.equal(h.store.partiesCount(), 1);
+ });
+
+ test('an authorisation runs out, part-way through if it has to', () => {
+  const h = harness();
+  const ceremony = h.vault.openBootstrap(h.authorise({ minutes: 15 }));
+  ceremony.seed({ id: 'admin-1', roleId: 'admin' });
+  h.advance(16 * 60 * 1000);
+  assert.throws(() => ceremony.seed({ id: 'admin-2', roleId: 'admin' }), /expired at/);
+  /* What was done before the clock ran out stands. The rest needs a fresh authorisation, which is a
+     second trip to the console and a second line in the log — as it should be. */
+  assert.equal(h.store.partiesCount(), 1);
+  h.vault.openBootstrap(h.authorise({ minutes: 15 })).seed({ id: 'admin-2', roleId: 'admin' });
+  assert.equal(h.store.partiesCount(), 2);
+ });
+
+ test('the authorisation names who is deciding and who is being seeded, and the ceremony accepts nobody else', () => {
+  const h = harness();
+  const ceremony = h.vault.openBootstrap(h.authorise({ parties: [{ id: 'admin-1', roleId: 'admin' }] }));
+  assert.throws(() => ceremony.seed({ id: 'admin-2', roleId: 'admin' }), /covers admin-1, and not admin-2/);
+  assert.throws(() => ceremony.seed({ id: 'admin-1', roleId: 'nurse' }), /not as Registered nurse/);
+  ceremony.seed({ id: 'admin-1', roleId: 'admin' });
+  h.vault.submit({ actor: themselves('admin-1', 'admin'), partyId: 'admin-1', checkId: 'identity', filename: 'id.pdf', document: PDF });
+  const decided = ceremony.decide('admin-1', 'identity');
+  /* Both names come off the authorisation. Neither was passed to the call that used them. */
+  assert.equal(decided.decidedBy, 'founder');
+  assert.equal(decided.secondedBy, 'director');
+ });
+
+ test('one person cannot authorise themselves to decide twice', () => {
+  assert.throws(() => harness().authorise({ decidedBy: 'founder', secondedBy: 'founder' }), /different person/);
+ });
+
+ test('a bootstrap still refuses to verify a check with no document on file', () => {
+  const h = harness();
+  const ceremony = h.vault.openBootstrap(h.authorise());
+  ceremony.seed({ id: 'admin-1', roleId: 'admin' });
+  assert.throws(() => ceremony.decide('admin-1', 'identity'), /not allowed to skip the evidence/);
+ });
+
+ test('every bootstrap is in the chain under its own kind, and it is the easiest thing in there to find', () => {
+  const h = reviewers(harness());
+  const rows = auditRows(h);
+  /* Two ceremonies opened and closed, two parties seeded, and every admin check decided. */
+  assert.equal(rows.filter(row => row.event === 'vetting.bootstrap.opened').length, 2);
+  assert.equal(rows.filter(row => row.event === 'vetting.bootstrap.closed').length, 2);
+  assert.equal(rows.filter(row => row.event === 'vetting.bootstrap.enrolled').length, 2);
+  assert.equal(rows.filter(row => row.event === 'vetting.bootstrap.verified').length, 2 * roleChecks('admin').length);
+  assert.ok(rows.every(row => row.event.startsWith('vetting.bootstrap.')));
+  /* Every decision says out loud that nobody reviewed it, and names both people who took it. */
+  for (const row of rows.filter(r => r.event === 'vetting.bootstrap.verified')) {
+   assert.match(row.reason, /outside the gate, by founder and director/);
+   assert.match(row.reason, /Nobody reviewed this decision/);
+  }
+  assert.ok(h.protection.audit.verify().intact);
+ });
+
+ test('a bootstrapped decision does not look like an ordinary one, and a re-review clears it', () => {
+  const h = reviewers(harness());
+  const admin = h.vault.standing('admin-1')!;
+  assert.ok(admin.checks.every(check => check.bootstrapped));
+  assert.equal(h.vault.restingOnBootstrap().length, 2 * roleChecks('admin').length);
+  assert.equal(h.vault.bootstrapStanding().ceremonies, 2);
+
+  /* A nurse cleared through the gate afterwards is not marked, which is the half that makes the mark
+     mean anything. */
+  clearedNurse(h, 'nurse-1');
+  assert.ok(h.vault.standing('nurse-1')!.checks.every(check => !check.bootstrapped));
+
+  /* The re-review: the other founding reviewer decides it again, through the gate, against her own
+     current standing. The mark comes off and the list gets one shorter. */
+  const evidence = h.store.findEvidenceFor('admin-1', 'identity')!;
+  const before = h.vault.restingOnBootstrap().length;
+  const redecided = h.vault.decide({ actor: reviewer('admin-2'), evidenceId: evidence.id, decision: 'verified' });
+  assert.ok(redecided.ok, redecided.ok ? '' : redecided.reason);
+  assert.equal(redecided.ok && redecided.evidence.bootstrapped, false);
+  assert.equal(h.vault.restingOnBootstrap().length, before - 1);
+  assert.ok(!h.vault.restingOnBootstrap().some(check => check.partyId === 'admin-1' && check.checkId === 'identity'));
+
+  /* A new document does the same, for the same reason: the decision it belonged to is gone. */
+  const other = h.store.findEvidenceFor('admin-2', 'identity')!;
+  assert.ok(h.store.findEvidence(other.id)!.bootstrappedAt !== null);
+  h.vault.submit({ actor: themselves('admin-2', 'admin'), partyId: 'admin-2', checkId: 'identity', filename: 'id-2.pdf', document: PDF });
+  assert.equal(h.store.findEvidence(other.id)!.bootstrappedAt, null);
+ });
+
+ test('the health check can be told there is something standing on a bootstrap, without being told who', () => {
+  const h = reviewers(harness());
+  const standing = h.vault.bootstrapStanding();
+  assert.equal(standing.ceremonies, 2);
+  assert.equal(standing.restingOnBootstrap, 2 * roleChecks('admin').length);
+  assert.equal(standing.lastCeremonyAt, new Date(START).toISOString());
+  /* Counts and a date. Nothing in it names a party, a person or an authorisation. */
+  assert.equal(JSON.stringify(standing).includes('admin-1'), false);
+  assert.equal(JSON.stringify(standing).includes('founder'), false);
  });
 });
 
@@ -524,7 +687,7 @@ describe('renewal warnings', () => {
    id: 'E-1', partyId: 'P-1', roleId: 'nurse', checkId: 'police-clearance', authority: 'saps',
    risk: 'high' as const, renewMonths: 24, state: 'verified' as const, issuedOn: null,
    expiresOn: iso(START + 5 * DAY), decidedAt: null, decidedBy: null, secondedAt: null,
-   secondedBy: null, declinedReason: null, createdAt: START
+   secondedBy: null, declinedReason: null, bootstrappedAt: null, createdAt: START
   };
   const { send, superseded } = noticesFor(evidence, 'Police clearance', START, new Set());
   assert.equal(send?.milestoneDays, 14);

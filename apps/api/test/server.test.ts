@@ -137,3 +137,45 @@ describe('what production refuses to start with', () => {
     assert.equal(config.cookieSecure, true);
   });
 });
+
+/**
+ * The bootstrap, from the outside.
+ *
+ * Two things are being asked. First, that the health check can see a founding ceremony the way it
+ * can see a broken chain — it is the one decision on the platform with nobody checking it, so a new
+ * one appearing on a running server should be as visible as a log somebody edited. Second, and more
+ * important, that there is no way in from here at all: the vault's bootstrap takes an authorisation
+ * signed from the key ring, and nothing that arrives over HTTP has ever held key material.
+ */
+describe('the bootstrap is not reachable over HTTP', () => {
+  const keyed = loadConfig({
+    MYTHUSO_ENV: 'development', MYTHUSO_AUTH_PEPPER: 'k'.repeat(40),
+    MYTHUSO_PROTECTION_KEYS: `1:${'a1'.repeat(32)}`, MYTHUSO_PROTECTION_INDEX_VERSION: '1'
+  } as NodeJS.ProcessEnv);
+  let keyedServer: Server, keyedStore: Store, keyedBase: string;
+  before(async () => {
+    keyedStore = openStore(':memory:');
+    keyedServer = createServer(createApp(keyed, keyedStore));
+    await new Promise<void>(resolve => keyedServer.listen(0, '127.0.0.1', resolve));
+    const address = keyedServer.address();
+    keyedBase = `http://127.0.0.1:${typeof address === 'object' && address ? address.port : 0}`;
+  });
+  after(() => { keyedServer.close(); keyedStore.close(); });
+
+  test('the health check is told how much stands on a bootstrap, and nothing about who', async () => {
+    const body = await (await fetch(`${keyedBase}/health/audit`)).json() as Record<string, unknown>;
+    assert.equal(body.configured, true);
+    assert.equal(body.intact, true);
+    assert.deepEqual(body.bootstrap, { ceremonies: 0, lastCeremonyAt: null, restingOnBootstrap: 0 });
+  });
+
+  test('there is no route that seeds a party or decides a check', async () => {
+    for (const path of ['/vetting/bootstrap', '/vetting/parties', '/admin/bootstrap', '/vetting/evidence']) {
+      const response = await fetch(`${keyedBase}${path}`, {
+        method: 'POST', headers: { 'content-type': 'application/json', origin: ORIGIN },
+        body: JSON.stringify({ id: 'admin-1', roleId: 'admin' })
+      });
+      assert.equal(response.status, 404, `${path} answered ${response.status}`);
+    }
+  });
+});

@@ -7,6 +7,7 @@
  * exists to close, and the hole all three sibling projects turned out to have.
  */
 import { createProtection, parseRootKeys } from './crypto.ts';
+import { createBootstrapAuthority } from './bootstrap.ts';
 import { AccessGate, type ReleaseRegister, type VettingSource } from './gate.ts';
 import { HashChainAudit, sqliteAuditStore, type Database } from './audit.ts';
 import { createRotation, type SealedColumn } from './rotation.ts';
@@ -21,6 +22,12 @@ export { EXPIRY_WARNING_DAYS, resolveState, standingOf, neverGranted } from './g
 export type { CheckState, CheckRecord, ActorVetting, VettingSource, ReleaseRegister, Standing } from './gate.ts';
 export type { SealedColumn, Rotation, RotationReport, RotationStanding, ColumnStanding } from './rotation.ts';
 export { printRotation } from './rotation.ts';
+
+/* The one authorisation in the service that is produced by a person at a console rather than by a
+   request. Minting takes the key ring, so it happens here, on this side of the wall; what the
+   vetting module is handed is the verifier, which can check a signature and do nothing else. */
+export { mintBootstrapAuthorisation, bootstrapFingerprint, BOOTSTRAP_MINUTES, BOOTSTRAP_MINUTES_MAX } from './bootstrap.ts';
+export type { BootstrapAuthority, BootstrapAuthorisation, BootstrapGrant, BootstrapVerdict } from './bootstrap.ts';
 
 export type { ProtectionConfig } from './crypto.ts';
 import type { ProtectionConfig } from './crypto.ts';
@@ -73,6 +80,10 @@ export function createProtectionModule(config: ProtectionConfig, db: Database, s
  /* The rotation gets the ring, not the record crypto: it re-wraps data keys and never opens a
     payload, so the job that rotates the database is not a job that can read the database. */
  const rotation = createRotation(keys, db, sources.sealedColumns ?? []);
- return { gate, audit, rotation, keyVersions: keys.versions, currentKeyVersion: keys.current };
+ /* The bootstrap verifier, built here from the ring and handed out. It holds a derived key for one
+    purpose and exposes no way to reach it, which is what lets the vetting module check an operator's
+    authorisation without becoming a module that can open a sealed value. */
+ const bootstrap = createBootstrapAuthority(keys);
+ return { gate, audit, rotation, bootstrap, keyVersions: keys.versions, currentKeyVersion: keys.current };
 }
 export type ProtectionModule = NonNullable<ReturnType<typeof createProtectionModule>>;

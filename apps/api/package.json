@@ -10,6 +10,7 @@
     "check": "tsc -b",
     "test": "node --test \"test/**/*.test.ts\"",
     "sweep": "node src/retention.ts",
-    "rotate": "node src/rotate.ts"
+    "rotate": "node src/rotate.ts",
+    "bootstrap": "node src/bootstrap.ts"
   }
 }

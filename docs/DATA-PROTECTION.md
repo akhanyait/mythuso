@@ -23,6 +23,7 @@ whether to trust the platform with health information, the section you want is
 | Sealed values for it to rotate | **Built.** `apps/api/src/vetting/` holds the workforce evidence — certificates, clearances, identity documents — every one of them sealed through the gate and registered with the rotation by the module that owns the table |
 | The protection module wired into the service | **Built.** `apps/api/src/config.ts` reads and validates `MYTHUSO_PROTECTION_KEYS`, `apps/api/src/server.ts` constructs the module, the gate decides every read of vetting evidence and the subject-access route, and `GET /health/audit` answers with `verify()`'s own shape |
 | A second copy of a key | **Not built and nothing can build it for you.** It is a ceremony: [the key ceremony](#the-key-ceremony) |
+| The first two reviewers, and who cleared them | **Made small rather than closed.** `apps/api/src/vetting` still has a bootstrap, because somebody has to clear the first reviewer. It now takes a signed, single-use, fifteen-minute authorisation minted at a console, it names the parties and the two people deciding, every step of it is a distinct entry in the audit chain, and every check it decided is marked as standing on it until a real reviewer decides it again. What it is not is closed: see [the bootstrap ceremony](#the-bootstrap-ceremony) |
 | The keys checked at deploy time | **Built.** `deploy/deploy.sh` refuses to finish if the service is enabled and a key is missing, malformed, placeholder text, duplicated, shared between the two secrets, or present under the web root or the backups — and it never prints one. [deploy/README.md](../deploy/README.md#what-the-deploy-checks-about-the-keys) lists what it asks |
 | Audit chain integrity watched | **Built on this side** — `deploy/ops/mythuso-healthcheck.sh` asks every five minutes. It needs an endpoint the service does not have yet; see [what this assumes](#what-this-assumes-about-code-that-is-not-merged-yet) |
 
@@ -215,6 +216,129 @@ systemctl restart mythuso-api && /opt/mythuso/ops/mythuso-healthcheck.sh
 
 A ceremony that ends before a sealed value has been opened is a ceremony that may have written a
 typo into the only copy of a key.
+
+## The bootstrap ceremony
+
+The vetting rule is that a high-risk check is not verified until two different people say so. Somebody
+has to clear the first of those people, and there is nobody to do it. No arrangement of code closes
+that circle — the first trust has to come from outside the system — so MyThuso has a bootstrap: a way
+to seed the first two parties and decide their own checks outside the gate. This section is where
+that trust comes from, what it costs, and what is written down about it.
+
+It is **not** a key ceremony and it touches no key material: nothing is generated, printed or read.
+It is a separate act on a separate day, and it takes about twenty minutes. What it has in common with
+the key ceremony is the shape — two people, one register entry, and a written procedure so that the
+one thing nobody reviews is at least the same thing every time.
+
+**Who is present.** The same two as the key ceremony: whoever administers the server, and the
+Information Officer named in [Privacy and security](PRIVACY-AND-SECURITY.md) — or a second director
+where those are one person. Their names are not decoration. Both go into the hash-chained audit
+against every check they decide, as the decider and the second, and they stay there.
+
+**What they need with them.** Each party's own certificates, as files on the machine — identity
+document, police clearance, references, the role letter, the POPIA undertaking. A bootstrap may skip
+the reviewer; it may not skip the evidence, and the command refuses a check with nothing on file.
+
+**1. Mint the authorisation, both present.**
+
+```sh
+cd /opt/mythuso/api
+npm run bootstrap -- authorise --party admin-1:admin --party admin-2:admin \
+  --decided-by 'G. Makinana' --seconded-by 'N. Dlamini'
+```
+
+It prints a fingerprint and a token. The token is signed from the key ring, names those two parties
+and those two people, is good for fifteen minutes and can be spent exactly once. Copy it; do not
+retype it. Write the **fingerprint** in the register entry and never the token — a token in a
+register is a spare key in a filing cabinet, even after it has expired.
+
+Two parties and not one, for the reason the whole module keeps returning to: a register seeded with
+one person is a register one person can clear everybody in.
+
+**2. Seed the pair.** A dry run first, which spends nothing:
+
+```sh
+npm run bootstrap -- seed --authorisation "$TOKEN"
+npm run bootstrap -- seed --authorisation "$TOKEN" --commit
+```
+
+**3. Put the certificates in.** These are ordinary submissions — through the gate, sealed, audited,
+each person about their own file — and they need no authorisation at all, because subject access
+needs no vetting standing. That is deliberate: it is what lets the first two people, who are cleared
+for nothing, put their own documents in.
+
+```sh
+cat police-clearance.pdf | npm run bootstrap -- submit --party admin-1 \
+  --check police-clearance --filename police-clearance.pdf --issued-on 2026-01-14 --commit
+```
+
+**4. Mint a second authorisation, and decide.** A second one, because the first was spent in step 2
+and the certificates arrive in between — sometimes weeks in between, which is the honest shape of it.
+
+```sh
+npm run bootstrap -- authorise --party admin-1:admin --party admin-2:admin \
+  --decided-by 'G. Makinana' --seconded-by 'N. Dlamini'
+npm run bootstrap -- decide --authorisation "$SECOND"            # what it would verify
+npm run bootstrap -- decide --authorisation "$SECOND" --commit
+```
+
+Both people read each certificate before this line is run. What the platform records is that they
+said they did; it has no way to know whether they looked.
+
+**5. Write the register entry.** Date, which server, both names, the **fingerprint of each
+authorisation**, which parties were seeded, which checks were decided, and the audit chain head the
+command prints at the end. Keep it with the company's minutes, beside the key ceremony's entry. The
+head hash is the part that makes it evidence: it pins the log to what it said that evening, and
+comparing it later is the only way to notice a log that was recomputed.
+
+**6. Prove it, and see what it left behind.**
+
+```sh
+npm run bootstrap -- standing
+curl -s http://127.0.0.1:8787/health/audit
+/opt/mythuso/ops/mythuso-healthcheck.sh
+```
+
+`standing` lists every check that is still resting on the bootstrap, who decided it and when.
+`/health/audit` reports the same in numbers — how many ceremonies this register has ever seen, when
+the last one was, and how many checks stand on one — with no name in it.
+
+**7. Converge, and put a date on it.** Every check decided in step 4 was decided by nobody the
+platform had checked. As soon as there are two more reviewers who were enrolled through the gate,
+they should decide those founding checks again — an ordinary `decide()`, against their own current
+standing — and each one that is re-reviewed drops off the `standing` list. **Set the date when you
+write the register entry.** A bootstrap nobody ever went back to is the escape hatch quietly becoming
+the normal case, and the list exists so that "we meant to" is a question somebody can actually ask.
+
+### What an auditor should ask for
+
+- The register entry, with both authorisation fingerprints and the chain head from that evening.
+- `npm run bootstrap -- standing`: what is still standing on a decision nobody reviewed, and since when.
+- The audit rows. Every bootstrap is a `vetting.bootstrap.*` entry — `opened`, `enrolled`, `verified`,
+  `closed`, and `refused` for every attempt that was turned away — so the whole ceremony is one grep,
+  and each verification says in words that nobody reviewed it.
+- That the chain verifies from its origin, and that its head still follows from the one in the register.
+- The certificates themselves, opened through the gate, which leaves its own audit rows naming the
+  person who asked.
+- For each founding check: the date it was re-reviewed, or the reason it has not been.
+
+### What remains a matter of trust
+
+This is the part the code does not reach, and it should not be read as smaller than it is.
+
+- **That those two people are who the register says, and both were actually there.** Nothing in the
+  software knows. The signature across the envelope flap is the model: it is evidence, not security.
+- **That they read the certificates.** The platform records a claim, and the claim is theirs.
+- **That whoever minted the authorisation was one of them.** The signing key is derived from the same
+  ring the running service holds, so anybody who can read `/etc/mythuso/api.env`, or execute code
+  inside the service, can mint one — which is true of every key on this machine and is written up in
+  [the threat model](#the-threat-model). A second, independent signer would change that, and there is
+  no second machine to hold one.
+- **That the first trust comes from outside the system at all.** It does. What the authorisation buys
+  is that a bootstrap cannot happen by accident, cannot happen from a web request, cannot happen twice
+  on one authorisation, cannot happen quietly, and cannot be mistaken afterwards for an ordinary
+  verification. That is a hole made small, visible and accountable. It is not a hole that has been
+  closed, and nothing in this repository should be read as saying it has.
 
 ## Rotation
 
@@ -550,7 +674,10 @@ memory of a Node process — every version of it, because the old ones have to b
 records to open — since there is no other way to open a sealed value on demand. Anybody
 who can execute code inside that process — remote code execution, a poisoned dependency, a debugger
 attached as root, `/proc/<pid>/mem`, a core dump — has the key and everything it opens, and the
-module stops none of it. What limits the exposure is not cryptographic: the service has **no
+module stops none of it. That now includes minting a bootstrap authorisation and seeding themselves a
+reviewer: the signing key is derived from the same ring. It would be one `vetting.bootstrap.opened`
+entry in the chain and one line on the health check, which is the difference between an attack that
+is noticed and one that is not — and it is the whole of the difference, so it is not overstated here. What limits the exposure is not cryptographic: the service has **no
 dependencies at all**, only `node:http`, `node:crypto` and `node:sqlite`, so there is no supply chain
 to poison, which is a real mitigation and the main one; it runs as an unprivileged user under a unit
 with `NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome`, `PrivateTmp`, `PrivateDevices` and a
@@ -599,6 +726,7 @@ and every one-time code, and the mail relay sees the body of every alert, which 
 | Per-patient key derivation | **Matters more than it looks.** There is already a data key per value, but they are all wrapped under one derived record key; wrapping a patient's under a key of their own would make erasure a matter of destroying that key — the one erasure that also reaches the backup archives, because a destroyed key un-reads the archives too. The current erasure deletes rows and leaves a tombstone, and an archive still holds the person for a fortnight |
 | Forward secrecy for data at rest | **Nearly meaningless here.** A clinical record must be readable next year by definition; there is no session to protect. Named only because it appears on checklists and its absence is not a finding |
 | Automated rotation | **Correctly absent.** An unwatched rotation against a key with one escrow copy is a way of losing everything on a schedule. Rotation should stay a decision a person makes on a morning, with a second person present |
+| A second, independent signer for a bootstrap authorisation | **Would matter, and there is nothing to hold one.** The authorisation that opens the founding ceremony is signed from the key ring the service itself holds, so root can mint one. A signer on a second machine — or a printed one-time value held by the Information Officer alone — would make a bootstrap need two people who cannot be the same person, which is the rule the platform enforces on everybody else. Revisit alongside the HSM question, not before |
 | Logging of reads of the key file | Nothing records who read `/etc/mythuso/api.env`. `auditd` would, cheaply. Not built, and worth doing before there are two people with root |
 | Publishing the audit head hash off the machine | The change that would make the audit chain evidence against a determined operator. Not built; see the threat model |
 | Encrypted, off-site backups | Not built, deliberately and visibly, and the clinical-table refusal is what holds the position together. See [backups](#backups-and-the-refusal-that-keeps-them-honest) |
@@ -614,7 +742,9 @@ description:
   own shape — `{"configured":true,"intact":true,"length":N,"head":"…"}` or
   `{"configured":true,"intact":false,"brokenAt":"…","length":N}` — and with no record content in it.
   With no keys configured it answers `{"configured":false}` rather than pretending to a verdict.
-  `deploy/ops/mythuso-healthcheck.sh` reads it as written.
+  `deploy/ops/mythuso-healthcheck.sh` reads it as written. It now also carries
+  `"bootstrap":{"ceremonies":N,"lastCeremonyAt":"…","restingOnBootstrap":N}` — counts and a date,
+  never a name — which the health check does not read yet.
 - **`apps/api/src/config.ts` reads `MYTHUSO_PROTECTION_KEYS`** and hands it to `parseRootKeys` at
   start-up, so a malformed key ring is a service that refuses to start rather than one that turns out
   hours later to hold nothing it can read. The deploy decides whether to *require* the keys by
@@ -623,6 +753,20 @@ description:
   `apps/api/src/protection/rotation.ts`, run by `npm run rotate`. Steps 5 and 6 of
   [rotation](#rotation) both have commands, and the count is an indexed `key_version` column rather
   than a scan.
+
+**What the health check should be taught to ask, and has not been.** `/health/audit` now answers with
+the bootstrap counts, and `deploy/ops/mythuso-healthcheck.sh` ignores them. Two lines are owed there,
+both of them the same shape as the audit-length ratchet already in that file:
+
+- **Ratchet `ceremonies`.** Remember it in `/var/lib/mythuso/health/bootstrap-ceremonies` and alert
+  when it goes *up* on a running server. The founding ceremonies happen once, during installation; a
+  new one appearing afterwards is either an operator seeding a reviewer without telling anybody, or
+  somebody who reached the key ring. It deserves the same paging as a broken chain.
+- **Note `restingOnBootstrap` when it is not zero,** as a note rather than an alert — it is a normal
+  state for a new platform and an abnormal one for a platform a year old. A note is what keeps the
+  question in front of somebody without training them to ignore the file.
+
+Neither is written here, because `deploy/` was not this change's to edit.
 
 One assumption is worth adding in their place, because it is the shape of the next disagreement:
 **every module that owns a table of sealed values registers it with the rotation.** The vetting
@@ -645,7 +789,15 @@ finishing it, and the audit chain verifying before and after. That is where the 
 described in [rotation](#rotation) was found — it passed every unit test and failed the first time a
 person read the command's output.
 
-None of it has been run against the server. No deploy was performed, no key was generated on the
+The bootstrap was exercised end to end on a workstation, against a real key ring and a real database:
+an authorisation minted, a dry run that spent nothing, two parties seeded, ten certificates submitted
+through the gate, ten checks decided, the same authorisation refused when it was presented a second
+time, and `standing` listing exactly the ten checks that were left resting on it. The refusals — an
+unsigned token, a token from another server's ring, an expired one, one presented once the register
+holds real reviewers — are covered by `apps/api/test/vetting.test.ts` rather than by hand.
+
+None of it has been run against the server, and **the bootstrap ceremony has not been performed** —
+that is a decision for two people at a console, not for a commit. No deploy was performed, no key was generated on the
 box, no unit was installed or reloaded, `systemd-analyze verify` was not available to check the unit
 file, and `/health/audit` has been called only on a workstation. The systemd directives
 added to `mythuso-api.service` are therefore unverified in place: they will take effect only after a

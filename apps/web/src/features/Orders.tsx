@@ -9,6 +9,11 @@ import { subjectsByRole } from '../lib/vetting-fixtures';
    dispatch board asks rather than trusting that a partner on the list is a partner in good standing. */
 const pharmacies = subjectsByRole('pharmacy');
 const laboratories = subjectsByRole('laboratory');
+/* Both screens attribute the order to a doctor, and the attribution line is where a reader is shown
+   what accountability looks like — so the registration is the one on the vetting record rather than
+   a row of zeros. A placeholder there is the one place a preview should not be fictional twice
+   over: fictional doctor, real-looking number, nothing behind either. */
+const prescriber = subjectsByRole('doctor').find(d => d.id === 'D-401')!;
 type Step = { label: string; detail: string; at?: string; state: 'done' | 'active' | 'waiting' };
 function Timeline({ steps }: { steps: Step[] }) {
  return <ol className="timeline">{steps.map(s => <li key={s.label} className={s.state}>
@@ -30,7 +35,7 @@ export function PrescriptionDetail({ reference = 'RX-0081' }: { reference?: stri
   <Pill>Fictional prescription</Pill>
   <div className="order-head"><span className="service-icon"><PillIcon size={22}/></span><div><h3>{reference}</h3><p className="muted">Issued 4 September · Valid for 6 months</p></div><Pill tone="plain">Awaiting pharmacist</Pill></div>
   <div className="review-line"><span>Patient</span><strong>Lerato Molefe · 01/01/1980</strong></div>
-  <div className="review-line"><span>Prescriber</span><strong>Dr. A. Dlamini · HPCSA 0000000 (demo)</strong></div>
+  <div className="review-line"><span>Prescriber</span><strong>{prescriber.name} · {prescriber.reference}</strong></div>
   <label>Dispensing pharmacy<select value={chosen} onChange={e => { setChosen(e.target.value); setChecked([]); }}>
    {pharmacies.map(p => <option key={p.id} value={p.id}>{p.name} · {p.reference}</option>)}
   </select></label>
@@ -67,7 +72,7 @@ export function LabOrderDetail({ reference = 'LAB-0023' }: { reference?: string 
  return <div className="form-stack">
   <Pill>Fictional laboratory order</Pill>
   <div className="order-head"><span className="service-icon"><FlaskConical size={22}/></span><div><h3>{reference}</h3><p className="muted">Requested 4 September · Fasting panel</p></div><Pill tone="plain">{released ? 'Released to patient' : 'Awaiting release'}</Pill></div>
-  <div className="review-line"><span>Requested by</span><strong>Dr. A. Dlamini · HPCSA 0000000 (demo)</strong></div>
+  <div className="review-line"><span>Requested by</span><strong>{prescriber.name} · {prescriber.reference}</strong></div>
   <div className="review-line"><span>Collected by</span><strong>Sister Naledi Mokoena · At home, Rosebank</strong></div>
   <div className="review-line"><span>Sample seal</span><strong>SEAL-77341 · Intact on receipt</strong></div>
   <label>Testing laboratory<select value={chosen} onChange={e => { setChosen(e.target.value); setReleased(false); }}>

@@ -3,12 +3,14 @@
  *
  * ── One door, and it is somebody else's ──────────────────────────────────────────────────────
  *
- * Nothing in this file can seal a value or open one. It holds a `Gate` and an `AuditChain` and
- * nothing else from the protection module — no key ring, no record crypto, no import of
+ * Nothing in this file can seal a value or open one. It holds a `Gate`, an `AuditChain` and a
+ * verifier for one operator authorisation — no key ring, no record crypto, no import of
  * protection/crypto, which scripts/check-boundaries.mjs fails the build over. Every document goes in
  * through `gate.protect()` and comes out through `gate.reveal()`, both of which build the binding
  * from the request rather than accepting one, decide before they act, and write the audit entry
- * before any plaintext exists.
+ * before any plaintext exists. The verifier is the third thing and the smallest: it checks a
+ * signature and can do nothing else — not derive a key, not open a value, not mint the authorisation
+ * it checks.
  *
  * That is deliberate to the point of being inconvenient. It would have been a shorter file if this
  * module held its own sealer for "just the evidence table" — and that is exactly the shape the three
@@ -19,25 +21,31 @@
  * ── What is real here, and what is not ───────────────────────────────────────────────────────
  *
  * Real: the documents are sealed, the reads are gated and audited, the expiry is arithmetic resolved
- * on every read, a high-risk check needs two different people, a substituted file is detected, and
- * a renewal warning survives a night the sweep did not run.
+ * on every read, a high-risk check needs two different people, a substituted file is detected, a
+ * renewal warning survives a night the sweep did not run, and the one decision nobody reviews — the
+ * bootstrap — takes an authorisation somebody minted at a console, is spent once, and leaves every
+ * check it decided marked as standing on it until a real reviewer looks again.
  *
  * Not real: no credential is checked against an issuing authority. There is no SANC integration, no
  * accredited Home Affairs provider, no SAPS lookup. "Verified" means a named reviewer looked at a
  * document the platform can still produce and said so. That is a workflow, and it is worth having —
  * but it is not the register confirming anything, and this module never says that it is.
+ *
+ * And underneath the bootstrap there is a floor no code reaches: the first two people are trusted
+ * because somebody outside this system trusts them. What is here makes that act deliberate, bounded,
+ * single-use and loud in the log. It does not make it checked.
  */
 import { createHash, randomUUID } from 'node:crypto';
 /* The envelope encoding is reached through the same door as everything else. This file knows that a
    sealed value has a shape and that the database wants one blob; it knows nothing about what is in
    it, and it cannot open one. */
-import { decodeSealedValue, encodeSealedValue, standingOf, type AccessRequest, type AuditChain, type Gate, type Standing } from '../protection/index.ts';
+import { decodeSealedValue, encodeSealedValue, standingOf, type AccessRequest, type AuditChain, type BootstrapAuthorisation, type BootstrapAuthority, type Gate, type Standing } from '../protection/index.ts';
 import type { Actor, Answer, Evidence, EvidenceVersion, Party, ResolvedEvidence } from './contract.ts';
 import { daysUntil, expiryFrom, noticesFor, resolve, type RenewalNotice } from './expiry.ts';
 import { catalogueCheck, roleChecks, roleName, type VettingStore } from './store.ts';
 
 export { openVettingStore, vettingSource, SEALED_COLUMNS, roleChecks, roleName } from './store.ts';
-export type { VettingStore } from './store.ts';
+export type { VettingStore, BootstrapCeremonyRecord } from './store.ts';
 export * from './contract.ts';
 export { RENEWAL_MILESTONES, daysUntil, expiryFrom, noticesFor, resolve, severityFor, dedupeKey } from './expiry.ts';
 export type { RenewalNotice, NoticeSeverity } from './expiry.ts';
@@ -46,12 +54,43 @@ export type { RenewalNotice, NoticeSeverity } from './expiry.ts';
 const RECORD_TYPE = 'vetting-evidence';
 const CAPABILITY = 'review-vetting';
 /* How many parties the bootstrap may seed. Two, because one reviewer cannot satisfy a rule that
-   requires two different ones — see bootstrap(). */
+   requires two different ones — see openBootstrap(). */
 const BOOTSTRAP_PARTIES = 2;
 /** A version's field name. Each version is its own field, so version 1's bytes cannot open as version 2's. */
 export const documentField = (versionNumber: number): string => `document.v${versionNumber}`;
 
-export type Deps = { gate: Gate; audit: AuditChain; store: VettingStore; now?: () => number };
+export type Deps = {
+ gate: Gate; audit: AuditChain; store: VettingStore;
+ /* Required rather than optional, and required for the same reason everything else here refuses by
+    default: a vault assembled without a verifier would be a vault that cannot check an
+    authorisation, and the tempting thing to do with one of those is let the bootstrap through. */
+ bootstrap: BootstrapAuthority;
+ now?: () => number;
+};
+
+/** Refusal of a bootstrap. Its own type, because it is the one refusal that is never a mistake by a user. */
+export class BootstrapRefused extends Error {}
+
+/**
+ * The founding ceremony, once an authorisation has opened it.
+ *
+ * It exists as an object rather than as two methods on the vault so that "a bootstrap" is one thing
+ * with a beginning and an end — opened by one authorisation, spent when it is opened, closed by the
+ * clock, by `close()`, or by a third party appearing in the register. Two methods anybody could call
+ * are a door standing open; this is a door somebody has to be let through.
+ */
+export type BootstrapCeremony = {
+ /** Sixteen characters identifying the authorisation this was opened with. For the register entry. */
+ readonly fingerprint: string;
+ readonly decidedBy: string;
+ readonly secondedBy: string;
+ readonly expiresAt: number;
+ /** Seed one of the parties the authorisation names, and nobody else. */
+ seed(party: { id: string; roleId: string; reference?: string }): Party;
+ /** Verify one of their own checks, by the two people the authorisation names, and nobody else. */
+ decide(partyId: string, checkId: string, dates?: { issuedOn?: string; expiresOn?: string }): Evidence;
+ close(): void;
+};
 
 export type SubmitRequest = {
  actor: Actor;
@@ -78,76 +117,106 @@ export class VettingVault {
  readonly #gate: Gate;
  readonly #audit: AuditChain;
  readonly #store: VettingStore;
+ readonly #bootstrap: BootstrapAuthority;
  readonly #now: () => number;
  constructor(deps: Deps) {
   this.#gate = deps.gate;
   this.#audit = deps.audit;
   this.#store = deps.store;
+  this.#bootstrap = deps.bootstrap;
   this.#now = deps.now ?? (() => Date.now());
  }
 
  /**
-  * The first two parties, and only the first two.
+  * The founding ceremony: the first two parties, and their own first checks.
   *
-  * Somebody has to be in the register before the gate can check anybody against it, and the honest
-  * name for that is a bootstrap rather than an ordinary call that happens to skip the check.
+  * Somebody has to be in the register before the gate can check anybody against it, and somebody has
+  * to clear the first person who can clear anybody. There is no arrangement of code that closes that
+  * circle by itself, and the honest name for the way out of it is a bootstrap rather than an
+  * ordinary call that happens to skip the check.
   *
-  * Two, and not one, for the reason this whole module keeps coming back to: a high-risk check needs
-  * a second, different reviewer, so a register seeded with one person is a register one person can
-  * clear everybody in. Seeding the pair means the rule is true from the first decision taken through
-  * the gate rather than from the second.
+  * What *can* be done is to make it small, deliberate and impossible to reach by accident:
   *
-  * The window closes by itself and cannot be re-opened: the moment there is a third party — which is
-  * the moment the pair could have enrolled them through the gate — both of these refuse.
+  *  · **It takes an authorisation somebody minted at a console.** A signed, single-use, time-boxed
+  *    token from the key ring — see protection/bootstrap.ts. Without one, this refuses. A route, a
+  *    job, a stray script or a compromised request has nothing to present, because nothing that
+  *    arrives over HTTP has ever held key material.
+  *  · **The names come out of the authorisation, never off the call.** Whoever minted it stated
+  *    which parties are being seeded and which two people are deciding; the ceremony will accept no
+  *    others, so what ends up in the audit chain is what somebody committed to beforehand.
+  *  · **Two parties, and not one.** A register seeded with one person is a register one person can
+  *    clear everybody in. Seeding the pair makes the second-reviewer rule true from the first
+  *    decision taken through the gate rather than from the second.
+  *  · **Every check still needs a document.** The pair submit their own certificates through the
+  *    gate like anybody else — subject access needs no standing, which is what lets a person whose
+  *    clearance has lapsed upload the new one — and only the decision is taken by hand.
+  *  · **It closes and does not re-open.** When the token expires, when `close()` is called, when the
+  *    register holds a third party — which is the moment the pair could have done it through the
+  *    gate — and permanently for that authorisation, which is spent at the door rather than on the
+  *    way out, so a ceremony that fails half-way through does not hand it back.
+  *
+  * What none of that reaches is the floor underneath it: the two people at the console are trusted
+  * because somebody outside this system trusts them, and no code changes that. docs/DATA-PROTECTION.md
+  * says who they are, what they must record, and what an auditor should ask them for.
   */
- bootstrap(party: { id: string; roleId: string; reference?: string }): Party {
-  if (this.#store.partiesCount() >= BOOTSTRAP_PARTIES) {
-   throw new Error(`The vetting register already holds ${BOOTSTRAP_PARTIES} parties, which is a pair who can review each other's work. This is no longer a bootstrap: enrol through enrol(), which the gate decides about.`);
+ openBootstrap(authorisation: string): BootstrapCeremony {
+  const at = this.#now();
+  const fingerprint = this.#bootstrap.fingerprint(authorisation);
+  const refuse: (reason: string, actorId?: string) => never = (reason, actorId) => {
+   /* A refused bootstrap is written down as loudly as a performed one. Somebody presenting a token
+      this server did not sign, or one that was spent last March, is either an operator with the
+      wrong terminal or the beginning of an incident, and neither is discovered by nobody looking. */
+   this.#audit.append({
+    event: 'vetting.bootstrap.refused', ...(actorId ? { actorId } : {}), capability: CAPABILITY,
+    purpose: 'vetting', recordType: RECORD_TYPE, recordId: fingerprint, field: 'authorisation',
+    allowed: false, reason
+   });
+   throw new BootstrapRefused(reason);
+  };
+
+  if (this.#store.partiesCount() > BOOTSTRAP_PARTIES) {
+   refuse(`The vetting register holds more than ${BOOTSTRAP_PARTIES} parties, so there are real reviewers and this is no longer a bootstrap. Enrol through enrol() and decide through decide(), both of which the gate decides about.`);
   }
-  return this.#put(party);
+  const verdict = this.#bootstrap.verify(authorisation, at);
+  if (!verdict.ok) refuse(verdict.reason);
+  const grant = verdict.authorisation;
+  /* Spent here, at the door, rather than on the first thing the ceremony does. An authorisation that
+     is only consumed once it has succeeded is one a failed ceremony hands back to whoever is
+     holding it. */
+  if (!this.#store.spendBootstrap({
+   fingerprint, openedAt: at, expiresAt: grant.expiresAt,
+   decidedBy: grant.decidedBy, secondedBy: grant.secondedBy, parties: grant.parties.map(party => party.id)
+  })) {
+   refuse('This bootstrap authorisation has already been spent on this register. An authorisation opens one ceremony, once. Mint another, with the second person present.', grant.decidedBy);
+  }
+  this.#audit.append({
+   event: 'vetting.bootstrap.opened', actorId: grant.decidedBy, capability: CAPABILITY, purpose: 'vetting',
+   recordType: RECORD_TYPE, recordId: fingerprint, field: 'authorisation', allowed: true,
+   reason: `Bootstrap ceremony opened outside the gate by ${grant.decidedBy} and ${grant.secondedBy}, to seed ${grant.parties.map(party => `${party.id} as ${roleName(party.roleId)}`).join(' and ')}. Authorisation ${fingerprint}, good until ${new Date(grant.expiresAt).toISOString()}.`
+  });
+  return this.#ceremony(grant);
  }
 
  /**
-  * The first reviewer's own checks, decided by whoever performs the bootstrap.
+  * What is still standing on the escape hatch.
   *
-  * Somebody has to clear the first person who can clear anybody, and there is no arrangement of code
-  * that makes that circle close by itself. What can be done is to keep everything else true while it
-  * is open: this refuses once there is a second party in the register, and it still refuses to mark
-  * a check verified with no document on file. The first reviewer submits her own certificates
-  * through the gate like anybody else — subject access needs no standing, which is what lets a
-  * person whose clearance has lapsed upload the new one — and only the decision is taken by hand,
-  * by two people, and written in the register beside the key ceremony.
+  * A party cleared during the bootstrap and never looked at since is a fact somebody should be able
+  * to ask about — an auditor, the Information Officer, or the pair themselves once there are enough
+  * real reviewers to re-check each other's founding checks. It is not a refusal and it does not
+  * withdraw anything: it is the list that should be getting shorter.
   */
- bootstrapDecision(partyId: string, checkId: string, by: { decidedBy: string; secondedBy?: string; issuedOn?: string; expiresOn?: string }): Evidence {
-  if (this.#store.partiesCount() > BOOTSTRAP_PARTIES) {
-   throw new Error(`The vetting register holds more than ${BOOTSTRAP_PARTIES} parties, so this is no longer a bootstrap. Decide through decide(), which the gate decides about.`);
-  }
-  const evidence = this.#store.findEvidenceFor(partyId, checkId);
-  if (!evidence) throw new Error(`No ${checkId} check is open against ${partyId}.`);
-  if (!this.#store.countVersions(evidence.id)) {
-   throw new Error(`There is no document on file for ${checkId}. A bootstrap is allowed to skip the reviewer; it is not allowed to skip the evidence.`);
-  }
-  if (evidence.risk === 'high' && !by.secondedBy) {
-   throw new Error(`${this.#checkName(evidence)} is high-risk and needs a second, different reviewer. A bootstrap does not suspend that rule — it is the rule most worth not suspending.`);
-  }
-  if (by.secondedBy && by.secondedBy === by.decidedBy) {
-   throw new Error('A second reviewer is a different person.');
-  }
-  const at = this.#now();
-  const issuedOn = by.issuedOn ?? evidence.issuedOn;
-  const next: Evidence = {
-   ...evidence, state: 'verified', issuedOn,
-   expiresOn: by.expiresOn ?? (issuedOn ? expiryFrom(issuedOn, evidence.renewMonths) : evidence.expiresOn),
-   decidedAt: at, decidedBy: by.decidedBy,
-   secondedAt: by.secondedBy ? at : null, secondedBy: by.secondedBy ?? null, declinedReason: null
+ restingOnBootstrap(at: number = this.#now()): ResolvedEvidence[] {
+  return this.#store.bootstrapped().map(evidence => this.#resolve(evidence, at));
+ }
+
+ /** The same question in numbers, for the health check. Counts and dates only — never a name. */
+ bootstrapStanding(): { ceremonies: number; lastCeremonyAt: string | null; restingOnBootstrap: number } {
+  const ceremonies = this.#store.ceremonies();
+  return {
+   ceremonies: ceremonies.length,
+   lastCeremonyAt: ceremonies.length ? new Date(ceremonies[0]!.openedAt).toISOString() : null,
+   restingOnBootstrap: this.#store.bootstrapped().length
   };
-  this.#store.saveEvidence(next);
-  this.#audit.append({
-   event: 'vetting.bootstrap', actorId: by.decidedBy, capability: CAPABILITY, purpose: 'vetting',
-   recordType: RECORD_TYPE, recordId: evidence.id, subjectId: partyId, field: 'state', allowed: true,
-   reason: `${this.#checkName(next)} verified during the bootstrap, outside the gate, by ${by.decidedBy}${by.secondedBy ? ` and ${by.secondedBy}` : ''}`
-  });
-  return next;
  }
 
  /** Enrolling somebody is a vetting decision, so it goes through the gate like every other one. */
@@ -221,7 +290,10 @@ export class VettingVault {
    state: 'submitted',
    issuedOn: request.issuedOn ?? evidence.issuedOn,
    expiresOn: request.expiresOn ?? (request.issuedOn ? expiryFrom(request.issuedOn, evidence.renewMonths) : evidence.expiresOn),
-   decidedAt: null, decidedBy: null, secondedAt: null, secondedBy: null, declinedReason: null
+   decidedAt: null, decidedBy: null, secondedAt: null, secondedBy: null, declinedReason: null,
+   /* A new document clears the bootstrap mark with the decision it belonged to. Nothing is standing
+      on the escape hatch any more once the decision it took has been dropped. */
+   bootstrappedAt: null
   };
   this.#store.saveEvidence(next);
   this.#log('vetting.submitted', request.actor, evidence.id, party.id, field, `${check.name}: ${check.evidence}, version ${versionNumber}`);
@@ -301,7 +373,12 @@ export class VettingVault {
       expressed about the thing in front of them now. */
    secondedAt: null,
    secondedBy: null,
-   declinedReason: request.decision === 'declined' ? (request.reason ?? null) : null
+   declinedReason: request.decision === 'declined' ? (request.reason ?? null) : null,
+   /* The re-review. A decision taken here went through the gate, was decided against the reviewer's
+      own current standing, and is now an ordinary decision — so the mark comes off, and the list of
+      what still rests on the bootstrap gets one shorter. Seconding does not do this and should not:
+      agreeing with a decision is not taking it again, and the decision is what was never reviewed. */
+   bootstrappedAt: null
   };
   this.#store.saveEvidence(next);
   if (request.decision === 'declined') this.#store.decline(evidence.partyId, at, request.reason ?? 'Declined.');
@@ -386,7 +463,7 @@ export class VettingVault {
     id: '', partyId, roleId: party.roleId, checkId: check.id, authority: check.authority,
     risk: check.risk === 'high' ? 'high' : 'standard', renewMonths: check.renewMonths,
     state: 'outstanding', issuedOn: null, expiresOn: null, decidedAt: null, decidedBy: null,
-    secondedAt: null, secondedBy: null, declinedReason: null, createdAt: party.createdAt
+    secondedAt: null, secondedBy: null, declinedReason: null, bootstrappedAt: null, createdAt: party.createdAt
    }, at);
   });
   return {
@@ -452,6 +529,100 @@ export class VettingVault {
 
  /* ---- Internals ------------------------------------------------------------------------------ */
 
+ /* The ceremony itself. Everything it can do is checked twice: once at the door, against the
+    authorisation, and again on every call, against the clock and the register — because a ceremony
+    opened legitimately at 22:05 must not still be seeding parties at midnight. */
+ #ceremony(grant: BootstrapAuthorisation): BootstrapCeremony {
+  let open = true;
+  const refuse: (reason: string) => never = reason => {
+   this.#audit.append({
+    event: 'vetting.bootstrap.refused', actorId: grant.decidedBy, capability: CAPABILITY, purpose: 'vetting',
+    recordType: RECORD_TYPE, recordId: grant.fingerprint, field: 'authorisation', allowed: false, reason
+   });
+   throw new BootstrapRefused(reason);
+  };
+  const guard = (): void => {
+   if (!open) refuse('This bootstrap ceremony has been closed. An authorisation opens one ceremony, once.');
+   if (this.#now() >= grant.expiresAt) {
+    open = false;
+    refuse(`This bootstrap authorisation expired at ${new Date(grant.expiresAt).toISOString()}, part-way through the ceremony. What was done before then stands and is in the log; the rest needs a fresh authorisation.`);
+   }
+  };
+  const covers = (partyId: string): void => {
+   if (!grant.parties.some(party => party.id === partyId)) {
+    refuse(`This authorisation covers ${grant.parties.map(party => party.id).join(' and ')}, and not ${partyId}. The parties are named when the authorisation is minted, so that the ceremony cannot quietly seed somebody else.`);
+   }
+  };
+  return {
+   fingerprint: grant.fingerprint,
+   decidedBy: grant.decidedBy,
+   secondedBy: grant.secondedBy,
+   expiresAt: grant.expiresAt,
+   seed: party => {
+    guard();
+    covers(party.id);
+    if (!grant.parties.some(named => named.id === party.id && named.roleId === party.roleId)) {
+     refuse(`This authorisation seeds ${party.id} as ${roleName(grant.parties.find(named => named.id === party.id)!.roleId)}, not as ${roleName(party.roleId)}. The role decides which checks the party owes, so it is part of what was authorised.`);
+    }
+    if (this.#store.partiesCount() >= BOOTSTRAP_PARTIES) {
+     refuse(`The vetting register already holds ${BOOTSTRAP_PARTIES} parties, which is a pair who can review each other's work. This is no longer a bootstrap: enrol through enrol(), which the gate decides about.`);
+    }
+    /* The same refusal enrol() gives. A role the catalogue has never heard of owes no checks, and a
+       party owing no checks is a party who is cleared for everything the moment they exist. */
+    if (!roleChecks(party.roleId).length) {
+     refuse(`packages/catalog/vetting.json has no role "${party.roleId}", so there is no set of checks to hold this party to.`);
+    }
+    const created = this.#put(party);
+    this.#audit.append({
+     event: 'vetting.bootstrap.enrolled', actorId: grant.decidedBy, capability: CAPABILITY, purpose: 'vetting',
+     recordType: RECORD_TYPE, recordId: party.id, subjectId: party.id, field: 'enrolment', allowed: true,
+     reason: `Seeded as ${roleName(party.roleId)} during the bootstrap, outside the gate, by ${grant.decidedBy} and ${grant.secondedBy} under authorisation ${grant.fingerprint}`
+    });
+    return created;
+   },
+   decide: (partyId, checkId, dates = {}) => {
+    guard();
+    covers(partyId);
+    if (this.#store.partiesCount() > BOOTSTRAP_PARTIES) {
+     refuse(`The vetting register holds more than ${BOOTSTRAP_PARTIES} parties, so this is no longer a bootstrap. Decide through decide(), which the gate decides about.`);
+    }
+    const evidence = this.#store.findEvidenceFor(partyId, checkId);
+    if (!evidence) refuse(`No ${checkId} check is open against ${partyId}.`);
+    if (!this.#store.countVersions(evidence.id)) {
+     refuse(`There is no document on file for ${checkId}. A bootstrap is allowed to skip the reviewer; it is not allowed to skip the evidence.`);
+    }
+    const at = this.#now();
+    const issuedOn = dates.issuedOn ?? evidence.issuedOn;
+    /* Both names go on it, whatever the risk level. Two people are in the room by the terms of the
+       authorisation, both of them looked at the certificate, and recording only one of them would
+       understate who is accountable for the one decision nobody else reviewed. */
+    const next: Evidence = {
+     ...evidence, state: 'verified', issuedOn,
+     expiresOn: dates.expiresOn ?? (issuedOn ? expiryFrom(issuedOn, evidence.renewMonths) : evidence.expiresOn),
+     decidedAt: at, decidedBy: grant.decidedBy,
+     secondedAt: at, secondedBy: grant.secondedBy, declinedReason: null,
+     bootstrappedAt: at
+    };
+    this.#store.saveEvidence(next);
+    this.#audit.append({
+     event: 'vetting.bootstrap.verified', actorId: grant.decidedBy, capability: CAPABILITY, purpose: 'vetting',
+     recordType: RECORD_TYPE, recordId: evidence.id, subjectId: partyId, field: 'state', allowed: true,
+     reason: `${this.#checkName(next)} verified during the bootstrap, outside the gate, by ${grant.decidedBy} and ${grant.secondedBy} under authorisation ${grant.fingerprint}. Nobody reviewed this decision.`
+    });
+    return next;
+   },
+   close: () => {
+    if (!open) return;
+    open = false;
+    this.#audit.append({
+     event: 'vetting.bootstrap.closed', actorId: grant.decidedBy, capability: CAPABILITY, purpose: 'vetting',
+     recordType: RECORD_TYPE, recordId: grant.fingerprint, field: 'authorisation', allowed: true,
+     reason: `Bootstrap ceremony under authorisation ${grant.fingerprint} closed. ${this.#store.bootstrapped().length} checks now stand on it and are owed a re-review.`
+    });
+   }
+  };
+ }
+
  #request(actor: Actor, recordId: string, subjectId: string, field: string): AccessRequest {
   /* The capability is fixed. There is exactly one that opens this record type, so accepting one
      from the caller would only ever be accepting a wrong one. */
@@ -469,6 +640,7 @@ export class VettingVault {
    resolved,
    daysRemaining: daysUntil(evidence.expiresOn, at),
    awaitingSecondReviewer: evidence.risk === 'high' && (resolved === 'verified' || resolved === 'expiring') && !evidence.secondedBy,
+   bootstrapped: evidence.bootstrappedAt !== null,
    versions: evidence.id ? this.#store.countVersions(evidence.id) : 0
   };
  }

@@ -80,7 +80,11 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     sealedColumns: SEALED_COLUMNS,
     now
   });
-  const vetting = protection ? new VettingVault({ gate: protection.gate, audit: protection.audit, store: vettingStore, now }) : null;
+  /* The vault is constructed here and no route below reaches its bootstrap. It cannot be reached
+     from one either: opening the founding ceremony takes an authorisation signed from the key ring,
+     and nothing arriving over HTTP has ever held key material. The command that mints one is
+     src/bootstrap.ts, run at a console by two people. */
+  const vetting = protection ? new VettingVault({ gate: protection.gate, audit: protection.audit, bootstrap: protection.bootstrap, store: vettingStore, now }) : null;
   /* What an erasure cannot reach, asked rather than assumed. With no protection keys there is no
      vault, so there is nothing it could be holding and nothing to say about it. */
   const erasure = new Erasure(store, now, vetting ? [{ retainedFor: personId => vetting.retainedFor(personId) }] : []);
@@ -259,10 +263,20 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
      is still no health information, which is the half that decides which controls apply. */
   routes.set('GET /health', (_req, res) => send(res, 200, { ok: true, environment: config.environment, holds: 'identity and workforce vetting, no health information' }));
   /* The audit chain's own integrity, for the health check that runs every five minutes. It returns
-     whether the chain follows and where it stops following — never an entry, and never a value. */
+     whether the chain follows and where it stops following — never an entry, and never a value.
+
+     Beside it, the bootstrap: how many founding ceremonies this register has ever seen, when the
+     last one was, and how many checks are still standing on one. A broken chain is woken for
+     because somebody may be editing the record of who read what; a *new* bootstrap ceremony on a
+     running server deserves the same attention, because it is the one decision on the platform with
+     nobody checking it. Counts and a date only — no party, no name, no fingerprint: this endpoint
+     answers on the loopback to a script, and what it is for is noticing, not reading. */
   routes.set('GET /health/audit', (_req, res) => {
     if (!protection) return send(res, 200, { configured: false, note: 'No protection keys are configured, so there is no chain to verify.' });
-    send(res, 200, { configured: true, ...protection.audit.verify() });
+    send(res, 200, {
+      configured: true, ...protection.audit.verify(),
+      ...(vetting ? { bootstrap: vetting.bootstrapStanding() } : {})
+    });
   });
 
   return async function handle(req: IncomingMessage, res: ServerResponse) {

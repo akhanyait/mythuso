@@ -103,6 +103,15 @@ export type Evidence = {
  secondedAt: number | null;
  secondedBy: string | null;
  declinedReason: string | null;
+ /**
+  * When this check was decided by a bootstrap — outside the gate, by two people nobody had vetted,
+  * because there was nobody to vet them. Null on everything decided the ordinary way.
+  *
+  * It is a timestamp rather than a flag so the answer to "how long has this been resting on the
+  * escape hatch" is in the row, and it is cleared by a fresh decision through the gate rather than
+  * kept as history: the question this column answers is what is standing on a bootstrap *now*.
+  */
+ bootstrappedAt: number | null;
  createdAt: number;
 };
 
@@ -116,6 +125,12 @@ export type ResolvedEvidence = Evidence & {
  daysRemaining: number | null;
  /** True where the check is high-risk, otherwise passing, and nobody has agreed with the first reviewer yet. */
  awaitingSecondReviewer: boolean;
+ /**
+  * True where this decision came from the bootstrap and nobody has re-reviewed it since. Carried on
+  * every read rather than left in the database, because a bootstrapped verification that looks
+  * exactly like an ordinary one is the escape hatch quietly becoming the normal case.
+  */
+ bootstrapped: boolean;
  versions: number;
 };
 

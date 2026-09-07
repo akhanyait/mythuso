@@ -12,6 +12,14 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import za.co.mythuso.model.seededSubjects
+
+/* An attribution line is where a reader is shown what accountability looks like, so the registration
+   on it is read from the vetting record rather than typed here — a placeholder council number under
+   a prescription is the one place a preview should not be fictional twice over. The party is
+   fictional; the number is the one the vetting pipeline actually holds for them, and the format is
+   the one the HPCSA issues. */
+private val prescriber: String = seededSubjects.first { it.id == "D-401" }.let { "${it.name} · ${it.reference}" }
 
 data class TimelineStep(val label: String, val detail: String, val at: String = "", val state: String = "waiting")
 
@@ -44,7 +52,7 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
         Heading("Fictional prescription", reference, "Issued 4 September · Valid for 6 months · Awaiting pharmacist")
         CareCard {
             ReviewLine("Patient", "Lerato Molefe · 01/01/1980")
-            ReviewLine("Prescriber", "Dr. A. Dlamini · HPCSA 0000000 (demo)")
+            ReviewLine("Prescriber", prescriber)
             ReviewLine("Dispensing pharmacy", "Rosebank community pharmacy")
         }
         StatePicker("Preview the pharmacy connection state", state) { state = it }
@@ -90,7 +98,7 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
         DemoBadge()
         Heading("Fictional laboratory order", reference, "Requested 4 September · Fasting panel · ${if (released) "Released to patient" else "Awaiting release"}")
         CareCard {
-            ReviewLine("Requested by", "Dr. A. Dlamini · HPCSA 0000000 (demo)")
+            ReviewLine("Requested by", prescriber)
             ReviewLine("Collected by", "Sister Naledi Mokoena · At home, Rosebank")
             ReviewLine("Sample seal", "SEAL-77341 · Intact on receipt")
         }

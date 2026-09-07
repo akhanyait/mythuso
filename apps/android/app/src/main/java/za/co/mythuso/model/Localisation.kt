@@ -12,11 +12,12 @@ enum class ThusoLocale(val code: String, val native: String) {
    translated. The credentials inside them are not: “SANC registration” is the name of a thing on a
    certificate, and translating it would invent a document that does not exist.
 
-   The patient file and the consultation record are named the same way. Opening them is navigation,
-   so the route is translated; the eight sections inside them, every FHIR resource name and every
-   refusal sentence are the record and vetting contracts speaking, and those stay in English until a
-   clinical language review says otherwise. */
-enum class Phrase { HOME, BOOK_CARE, VISITS, PASSPORT, MORE, GREETING, GREETING_SUB, TAGLINE, HERO_TITLE, HERO_BODY, HERO_TRUST, BOOK_NURSE, OPEN_PASSPORT, NEXT_VISIT, HELP_WITH, LANGUAGE, PREVIEW_BADGE, VETTING, VETTING_STATUS, VETTING_APPLY, VETTING_RENEWALS, VETTING_PROGRESS, PATIENT_FILE, CONSULTATION_RECORD, VIEWING_AS }
+   The patient file, the consultation record, the household record and the health summary are named
+   the same way. Opening them is navigation, so the route is translated; the eight sections inside
+   them, every FHIR resource name, every protected-category name and every refusal sentence are the
+   record and vetting contracts speaking, and those stay in English until a clinical language review
+   says otherwise. A refusal a family half-understands is worse than one they have to read twice. */
+enum class Phrase { HOME, BOOK_CARE, VISITS, PASSPORT, MORE, GREETING, GREETING_SUB, TAGLINE, HERO_TITLE, HERO_BODY, HERO_TRUST, BOOK_NURSE, OPEN_PASSPORT, NEXT_VISIT, HELP_WITH, LANGUAGE, PREVIEW_BADGE, VETTING, VETTING_STATUS, VETTING_APPLY, VETTING_RENEWALS, VETTING_PROGRESS, PATIENT_FILE, CONSULTATION_RECORD, HOUSEHOLD_RECORD, HEALTH_SUMMARY, VIEWING_AS }
 private val english = mapOf(
     Phrase.HOME to "Home", Phrase.BOOK_CARE to "Book care", Phrase.VISITS to "Visits", Phrase.PASSPORT to "Passport", Phrase.MORE to "More",
     Phrase.GREETING to "Hello, Lerato", Phrase.GREETING_SUB to "Here for you. And the people you love.",
@@ -27,7 +28,8 @@ private val english = mapOf(
     Phrase.LANGUAGE to "Language", Phrase.PREVIEW_BADGE to "Design preview · Fictional data",
     Phrase.VETTING to "Vetting", Phrase.VETTING_STATUS to "Vetting status", Phrase.VETTING_APPLY to "Start an application",
     Phrase.VETTING_RENEWALS to "Renewals due", Phrase.VETTING_PROGRESS to "checks passing",
-    Phrase.PATIENT_FILE to "Patient file", Phrase.CONSULTATION_RECORD to "Consultation record", Phrase.VIEWING_AS to "Viewing as"
+    Phrase.PATIENT_FILE to "Patient file", Phrase.CONSULTATION_RECORD to "Consultation record",
+    Phrase.HOUSEHOLD_RECORD to "Household record", Phrase.HEALTH_SUMMARY to "Health summary", Phrase.VIEWING_AS to "Viewing as"
 )
 private val phrases: Map<ThusoLocale, Map<Phrase, String>> = mapOf(
     ThusoLocale.ENGLISH to english,
@@ -41,7 +43,8 @@ private val phrases: Map<ThusoLocale, Map<Phrase, String>> = mapOf(
         Phrase.LANGUAGE to "Ulimi", Phrase.PREVIEW_BADGE to "Isibonelo sedizayini · Idatha eqanjiwe",
         Phrase.VETTING to "Ukuhlolwa", Phrase.VETTING_STATUS to "Isimo sokuhlolwa", Phrase.VETTING_APPLY to "Qala isicelo",
         Phrase.VETTING_RENEWALS to "Ukuvuselelwa okusalindile", Phrase.VETTING_PROGRESS to "ukuhlolwa okuphumelele",
-        Phrase.PATIENT_FILE to "Ifayela lesiguli", Phrase.CONSULTATION_RECORD to "Irekhodi lokubonana nodokotela", Phrase.VIEWING_AS to "Ubuka njengo"
+        Phrase.PATIENT_FILE to "Ifayela lesiguli", Phrase.CONSULTATION_RECORD to "Irekhodi lokubonana nodokotela",
+        Phrase.HOUSEHOLD_RECORD to "Irekhodi lomndeni", Phrase.HEALTH_SUMMARY to "Isifinyezo sempilo", Phrase.VIEWING_AS to "Ubuka njengo"
     ),
     ThusoLocale.SESOTHO to mapOf(
         Phrase.HOME to "Lehae", Phrase.BOOK_CARE to "Behela", Phrase.VISITS to "Diketelo", Phrase.PASSPORT to "Phasepoto", Phrase.MORE to "Tse ding",
@@ -53,7 +56,8 @@ private val phrases: Map<ThusoLocale, Map<Phrase, String>> = mapOf(
         Phrase.LANGUAGE to "Puo", Phrase.PREVIEW_BADGE to "Ponelopele ya moralo · Datha ya boiqapelo",
         Phrase.VETTING to "Tlhahlobo", Phrase.VETTING_STATUS to "Boemo ba tlhahlobo", Phrase.VETTING_APPLY to "Qala kopo",
         Phrase.VETTING_RENEWALS to "Dintjhafatso tse tlang", Phrase.VETTING_PROGRESS to "ditlhahlobo tse fetileng",
-        Phrase.PATIENT_FILE to "Faele ya mokudi", Phrase.CONSULTATION_RECORD to "Rekoto ya ho bona ngaka", Phrase.VIEWING_AS to "O shebella e le"
+        Phrase.PATIENT_FILE to "Faele ya mokudi", Phrase.CONSULTATION_RECORD to "Rekoto ya ho bona ngaka",
+        Phrase.HOUSEHOLD_RECORD to "Rekoto ya lelapa", Phrase.HEALTH_SUMMARY to "Kakaretso ya bophelo", Phrase.VIEWING_AS to "O shebella e le"
     ),
     ThusoLocale.AFRIKAANS to mapOf(
         Phrase.HOME to "Tuis", Phrase.BOOK_CARE to "Bespreek", Phrase.VISITS to "Besoeke", Phrase.PASSPORT to "Paspoort", Phrase.MORE to "Meer",
@@ -65,7 +69,8 @@ private val phrases: Map<ThusoLocale, Map<Phrase, String>> = mapOf(
         Phrase.LANGUAGE to "Taal", Phrase.PREVIEW_BADGE to "Ontwerpvoorskou · Fiktiewe data",
         Phrase.VETTING to "Keuring", Phrase.VETTING_STATUS to "Keuringstatus", Phrase.VETTING_APPLY to "Begin ’n aansoek",
         Phrase.VETTING_RENEWALS to "Hernuwings wat wag", Phrase.VETTING_PROGRESS to "kontroles geslaag",
-        Phrase.PATIENT_FILE to "Pasiëntlêer", Phrase.CONSULTATION_RECORD to "Konsultasierekord", Phrase.VIEWING_AS to "Bekyk as"
+        Phrase.PATIENT_FILE to "Pasiëntlêer", Phrase.CONSULTATION_RECORD to "Konsultasierekord",
+        Phrase.HOUSEHOLD_RECORD to "Huishoudingrekord", Phrase.HEALTH_SUMMARY to "Gesondheidsopsomming", Phrase.VIEWING_AS to "Bekyk as"
     )
 )
 fun thuso(phrase: Phrase, locale: ThusoLocale): String = phrases[locale]?.get(phrase) ?: english[phrase] ?: phrase.name

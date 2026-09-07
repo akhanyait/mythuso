@@ -35,7 +35,12 @@ fun recordsInArea(areaId: String): List<RecordType> = recordTypes.filter { it.ar
 val protectedRecordTypes: List<RecordType> = recordTypes.filter { it.sensitivity == "protected" }
 /* The categories are read from the contract rather than split out of the sentence that describes
    them, so a category added there is withheld here without anyone editing a screen. */
-val protectedCategories: List<String> = recordSensitivityById("protected")?.categories.orEmpty()
+/* The contract's named categories, plus the record types protected in their own right — a type is a
+   category the moment it is the only thing in it. Composed once, here, because a notice naming seven
+   things on one screen and eight on the next leaves a reader wondering which screen is lying. Web
+   and iOS compose the same list the same way. */
+val protectedCategories: List<String> =
+    (recordSensitivityById("protected")?.categories.orEmpty() + protectedRecordTypes.map { it.name }).distinct()
 
 /* ---- Sensitivity -----------------------------------------------------------------------------
    An entry is at least as sensitive as its type, and may be more. Nothing may be less. */

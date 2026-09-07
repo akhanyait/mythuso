@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.sp
 import za.co.mythuso.R
 import androidx.compose.ui.unit.dp
 import za.co.mythuso.model.PreviewStore
+import za.co.mythuso.model.householdMemberById
+import za.co.mythuso.model.mokoenaHousehold
 
 @Composable fun PassportScreen(open: (String) -> Unit) {
     var tab by remember { mutableStateOf("Overview") }
@@ -163,6 +165,10 @@ import za.co.mythuso.model.PreviewStore
             MenuRow("Patient file", "The clinician-facing record, and what each viewer is refused", Icons.Outlined.FolderShared) { open("Patient file") }
             HorizontalDivider(color = Line)
             MenuRow("Consultation record", "One structure for every encounter, in long form or SOAP", Icons.Outlined.EditNote) { open("Consultation record") }
+            HorizontalDivider(color = Line)
+            MenuRow("Household record", "One household, and what each member may see of the others", Icons.Outlined.Groups) { open("Household record") }
+            HorizontalDivider(color = Line)
+            MenuRow("Health summary", "The shareable summary, bound to a purpose and a period", Icons.Outlined.Share) { open("Health summary") }
         }
         CareCard {
             listOf("Nurse" to "Visits, assessment and vetting", "Doctor" to "Review queue and sign-off",
@@ -206,6 +212,14 @@ import za.co.mythuso.model.PreviewStore
            putting them behind the same door would blur whose record is whose. */
         title == "Patient file" -> PatientFileScreen(store, open)
         title == "Consultation record" -> ConsultationRecordScreen(store)
+        /* The household and the summary a person hands out of it. Both are about several people at
+           once, which is exactly why they are separate routes: a screen that opened a household and
+           a record in the same breath would be the back door the whole design is written to close. */
+        title == "Household record" -> HouseholdRecordScreen(store, open)
+        title == "Health summary" -> HealthSummaryScreen(store)
+        title.startsWith("Health summary: ") -> HealthSummaryScreen(
+            store, householdMemberById(title.removePrefix("Health summary: ")) ?: mokoenaHousehold.members[0]
+        )
         /* Vetting is reachable from every workspace, because every workspace is somebody who was
            vetted to be there. The routes carry the party, not a copy of their record. */
         title == "Nurse onboarding & vetting" -> VettingApplicationScreen(store, "nurse", open) { open("Nurse workspace") }

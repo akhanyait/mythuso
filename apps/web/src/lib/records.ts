@@ -26,7 +26,7 @@ import { can, roleById, type Decision, type VettingSubject } from './vetting';
 
 export type SensitivityId = 'routine' | 'clinical' | 'protected';
 export type Area = typeof schema.areas[number];
-export type Sensitivity = { id: SensitivityId; name: string; detail: string; guardianDefault: string; summaryHeader: string };
+export type Sensitivity = { id: SensitivityId; name: string; detail: string; guardianDefault: string; summaryHeader: string; categories?: string[] };
 export type RecordType = { id: string; name: string; area: string; fhir: string; sensitivity: SensitivityId; gatedBy: string[]; summary: string };
 export type ConsultationSection = { id: string; name: string; required: boolean; note?: string; gatedBy?: string };
 export type SoapStep = typeof schema.consultation.soap[number];
@@ -47,6 +47,16 @@ export const recordById = (id: string) => recordTypes.find(r => r.id === id);
 export const sensitivityById = (id: SensitivityId) => sensitivities.find(s => s.id === id)!;
 export const recordsInArea = (areaId: string) => recordTypes.filter(r => r.area === areaId);
 export const protectedTypes = recordTypes.filter(r => r.sensitivity === 'protected');
+/* The categories the header and the household summary refuse to name, held as the contract's own
+   list rather than as prose in a component: a category added to records.json is named on every
+   screen that names them without anybody editing one. The protected record types are folded in as
+   well, because a record type is a category the moment it is the only thing in it. It lives here
+   rather than in a feature file so both readers take the same list — lib/records.ts imports no
+   feature, so there is nothing to cycle back on. */
+export const protectedCategories: string[] = [...new Set([
+ ...(sensitivityById('protected').categories ?? []),
+ ...protectedTypes.map(r => r.name)
+])];
 
 /* ---- Sensitivity ------------------------------------------------------------------------ */
 const rank: Record<SensitivityId, number> = { routine: 0, clinical: 1, protected: 2 };

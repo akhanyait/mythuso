@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
-import { createProtectionModule } from '../src/protection/index.ts';
+import { createProtectionModule, mintBootstrapAuthorisation } from '../src/protection/index.ts';
 import { SEALED_COLUMNS, VettingVault, openVettingStore, roleChecks, vettingSource, type Actor } from '../src/vetting/index.ts';
 
 const START = Date.UTC(2026, 8, 7, 8, 0, 0);
@@ -23,24 +23,40 @@ const reviewer = (id: string): Actor => ({ id, role: 'admin', purpose: 'vetting'
  */
 function wire(db: DatabaseSync, keys: string, current?: string) {
  const store = openVettingStore(db);
- const protection = createProtectionModule({
-  environment: 'development', protectionKeys: keys,
+ const config = {
+  environment: 'development' as const, protectionKeys: keys,
   ...(current ? { protectionKeyCurrent: current } : {}), protectionIndexVersion: '1'
- }, db, { vetting: vettingSource(store), releases: { find: () => null }, sealedColumns: SEALED_COLUMNS, now: () => START })!;
- return { store, protection, vault: new VettingVault({ gate: protection.gate, audit: protection.audit, store, now: () => START }) };
+ };
+ const protection = createProtectionModule(config, db, { vetting: vettingSource(store), releases: { find: () => null }, sealedColumns: SEALED_COLUMNS, now: () => START })!;
+ return {
+  store, protection, config,
+  vault: new VettingVault({ gate: protection.gate, audit: protection.audit, bootstrap: protection.bootstrap, store, now: () => START }),
+  /* The console act, minted against this ring. A rotation fixture needs real sealed documents, and
+     the only way to a real sealed document is through a bootstrap that was properly authorised. */
+  authorise: () => mintBootstrapAuthorisation(config, {
+   parties: [{ id: 'admin-1', roleId: 'admin' }, { id: 'admin-2', roleId: 'admin' }],
+   decidedBy: 'founder', secondedBy: 'director'
+  }, () => START).token
+ };
 }
 
 /** A pair of reviewers and a nurse, so there are real sealed documents in a real column. */
 function seeded(db: DatabaseSync, documents = 3) {
  const wired = wire(db, KEY_1);
- wired.vault.bootstrap({ id: 'admin-1', roleId: 'admin' });
- wired.vault.bootstrap({ id: 'admin-2', roleId: 'admin' });
+ const seeding = wired.vault.openBootstrap(wired.authorise());
+ seeding.seed({ id: 'admin-1', roleId: 'admin' });
+ seeding.seed({ id: 'admin-2', roleId: 'admin' });
+ seeding.close();
  for (const id of ['admin-1', 'admin-2']) {
   for (const check of roleChecks('admin')) {
    wired.vault.submit({ actor: themselves(id, 'admin'), partyId: id, checkId: check.id, filename: `${check.id}.pdf`, document: Buffer.from(`document for ${id}/${check.id}`), issuedOn: iso(START) });
-   wired.vault.bootstrapDecision(id, check.id, { decidedBy: 'founder', ...(check.risk === 'high' ? { secondedBy: 'director' } : {}), issuedOn: iso(START) });
   }
  }
+ const deciding = wired.vault.openBootstrap(wired.authorise());
+ for (const id of ['admin-1', 'admin-2']) {
+  for (const check of roleChecks('admin')) deciding.decide(id, check.id, { issuedOn: iso(START) });
+ }
+ deciding.close();
  wired.vault.enrol(reviewer('admin-1'), { id: 'nurse-1', roleId: 'nurse' });
  for (const check of roleChecks('nurse').slice(0, documents)) {
   wired.vault.submit({ actor: themselves('nurse-1', 'nurse'), partyId: 'nurse-1', checkId: check.id, filename: `${check.id}.pdf`, document: Buffer.from(`nurse document for ${check.id}`) });

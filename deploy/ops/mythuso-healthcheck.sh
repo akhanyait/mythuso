@@ -140,6 +140,27 @@ if systemctl is-enabled --quiet mythuso-api.service 2>/dev/null; then
         else
           problems+=("the audit chain reports intact but no entry count this can read: $audit_body")
         fi
+        # The bootstrap is the one decision on this platform nobody reviews: it is what clears the
+        # very first reviewer, when there is no second reviewer to check them. It is meant to happen
+        # once, at a console, with two people present — so on a running server the count rising is
+        # either an operator act nobody was told about, or somebody who reached the key ring. Either
+        # deserves the same paging as a broken chain. Removing this file by hand is how a legitimate
+        # second ceremony is acknowledged: rm /var/lib/mythuso/health/bootstrap-ceremonies
+        ceremonies=$(printf '%s' "$audit_body" | sed -n 's/.*"ceremonies":\([0-9]*\).*/\1/p')
+        if printf '%s' "$ceremonies" | grep -qE '^[0-9]+$'; then
+          known=$(cat "$STATE/bootstrap-ceremonies" 2>/dev/null || echo "$ceremonies")
+          if [ "$ceremonies" -gt "${known:-0}" ]; then
+            problems+=("A BOOTSTRAP CEREMONY HAS RUN — the register went from ${known} to ${ceremonies}. Nobody reviews a bootstrap. If this was not you, read docs/DATA-PROTECTION.md before touching anything")
+          else
+            echo "$ceremonies" > "$STATE/bootstrap-ceremonies"
+          fi
+        fi
+        # Not an alert. A party still standing on the escape hatch is a fact somebody should be able
+        # to ask about, not a fault — it clears when a real reviewer decides the check again.
+        resting=$(printf '%s' "$audit_body" | sed -n 's/.*"restingOnBootstrap":\([0-9]*\).*/\1/p')
+        if printf '%s' "$resting" | grep -qE '^[1-9][0-9]*$'; then
+          notes+=("$resting vetting decision(s) still rest on the bootstrap and have never been re-reviewed")
+        fi
       else
         broken=$(printf '%s' "$audit_body" | sed -n 's/.*"brokenAt":"\([^"]*\)".*/\1/p')
         problems+=("THE AUDIT CHAIN DOES NOT VERIFY — the first entry that does not follow is ${broken:-not named}. Do not clear it: preserve the database and read docs/DATA-PROTECTION.md")

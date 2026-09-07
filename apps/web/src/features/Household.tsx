@@ -4,6 +4,7 @@ import { Pill } from '../components/UI';
 import contract from '../../../../packages/catalog/records.json';
 import { can, daysUntil, formatDate, formatEventTime, inDays, inMonths, roleById, type CheckRecord, type CheckState, type VettingSubject } from '../lib/vetting';
 import { subjectById } from '../lib/vetting-fixtures';
+import { protectedCategories } from '../lib/records';
 
 /* A household is the one screen whose whole purpose is showing several people's health at once,
    which makes it the easiest place in the product to undo everything the guardian flow promises.
@@ -309,18 +310,6 @@ const summaryFields: Record<string, (m: Member) => { label: string; value: strin
 export const summaryValues = (member: Member, fields: readonly string[]) =>
  contract.summaryCard.fields.filter(f => fields.includes(f) && summaryFields[f]).map(f => summaryFields[f](member));
 
-/* The withheld list is the same on every summary of every person, and is taken from the contract's
-   own sentence so a category added there is refused here without anyone editing this file. Naming
-   only the categories a person actually has would turn the honesty of the notice into the leak it
-   was written to prevent — the list is constant precisely so that its presence discloses nothing. */
-/* The contract names the protected categories explicitly, so a category added there is withheld
-   here without anyone editing a screen. The records marked protected are folded in as well, because
-   a record type is a category the moment it is the only thing in it. */
-export const protectedCategories: string[] = [...new Set([
- ...(contract.sensitivity.find(s => s.id === 'protected')?.categories ?? []),
- ...contract.records.filter(r => r.sensitivity === 'protected').map(r => r.name)
-])];
-
 /* A shared summary is bound to a purpose and to a period, and the purpose chooses the fields. A
    pharmacist dispensing this afternoon needs allergies and medicines; they do not need where the
    patient was last seen or by whom. An undated summary with every field in it is the artefact that
@@ -368,6 +357,10 @@ export function buildSharedSummary(member: Member, share: Share) {
  };
 }
 
+/* The withheld list is the same on every summary of every person, and is read from the contract in
+   lib/records.ts so a category added there is refused here without anyone editing this file. Naming
+   only the categories a person actually has would turn the honesty of the notice into the leak it
+   was written to prevent — the list is constant precisely so that its presence discloses nothing. */
 export function SummaryCard({ member, fields }: { member: Member; fields: readonly string[] }) {
  return <>
   {summaryValues(member, fields).map(f => <div className="review-line" key={f.label}><span>{f.label}</span><strong>{f.value}</strong></div>)}

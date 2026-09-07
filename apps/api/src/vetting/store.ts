@@ -57,8 +57,10 @@ CREATE TABLE IF NOT EXISTS vetting_evidence (
  authority TEXT NOT NULL, risk TEXT NOT NULL, renew_months INTEGER,
  state TEXT NOT NULL, issued_on TEXT, expires_on TEXT,
  decided_at INTEGER, decided_by TEXT, seconded_at INTEGER, seconded_by TEXT, declined_reason TEXT,
+ bootstrapped_at INTEGER,
  created_at INTEGER NOT NULL,
  UNIQUE (party_id, check_id));
+CREATE INDEX IF NOT EXISTS vetting_evidence_bootstrapped ON vetting_evidence (bootstrapped_at);
 CREATE INDEX IF NOT EXISTS vetting_evidence_party ON vetting_evidence (party_id);
 CREATE INDEX IF NOT EXISTS vetting_evidence_expiry ON vetting_evidence (expires_on);
 CREATE TABLE IF NOT EXISTS vetting_evidence_versions (
@@ -73,6 +75,14 @@ CREATE TABLE IF NOT EXISTS vetting_renewal_notices (
  dedupe_key TEXT PRIMARY KEY, evidence_id TEXT NOT NULL, milestone_days INTEGER NOT NULL,
  at INTEGER NOT NULL, delivered INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS vetting_renewal_notices_evidence ON vetting_renewal_notices (evidence_id);
+/* Every bootstrap authorisation that has ever been spent on this database, by the sixteen characters
+   that identify it and never by the token itself. The primary key is what makes an authorisation
+   single-use: spending one is an insert, and the second attempt collides. It survives a restart,
+   which an in-memory set would not — and "it worked after I restarted the service" is exactly how a
+   one-shot control becomes a standing one. */
+CREATE TABLE IF NOT EXISTS vetting_bootstrap_ceremonies (
+ fingerprint TEXT PRIMARY KEY, opened_at INTEGER NOT NULL, expires_at INTEGER NOT NULL,
+ decided_by TEXT NOT NULL, seconded_by TEXT NOT NULL, parties TEXT NOT NULL);
 `;
 
 /**
@@ -102,6 +112,16 @@ export const catalogueCheck = (roleId: string, checkId: string): CatalogueCheck 
  roleChecks(roleId).find(check => check.id === checkId);
 export const roleName = (roleId: string): string => ROLES.get(roleId)?.name ?? roleId;
 
+/** One founding ceremony, as it can be asked about afterwards. Never the token, only its fingerprint. */
+export type BootstrapCeremonyRecord = {
+ fingerprint: string;
+ openedAt: number;
+ expiresAt: number;
+ decidedBy: string;
+ secondedBy: string;
+ parties: string[];
+};
+
 export type VettingStore = {
  putParty(party: Party): void;
  findParty(id: string): Party | null;
@@ -124,6 +144,12 @@ export type VettingStore = {
  recordNotice(dedupeKey: string, evidenceId: string, milestoneDays: number, at: number, delivered: boolean): void;
  /** Everything held about one party, for the erasure answer and for the subject's own copy. */
  partiesCount(): number;
+ /** Spend a bootstrap authorisation. False where this one has already been spent — see the schema. */
+ spendBootstrap(ceremony: BootstrapCeremonyRecord): boolean;
+ /** Every founding ceremony this database has seen, newest first. Short by construction. */
+ ceremonies(): BootstrapCeremonyRecord[];
+ /** Checks still standing on a decision nobody reviewed. The question an auditor asks. */
+ bootstrapped(): Evidence[];
 };
 
 const asNumber = (value: unknown): number | null => value === null || value === undefined ? null : Number(value);
@@ -146,7 +172,8 @@ function toEvidence(raw: unknown): Evidence {
   state: String(row.state) as StoredState, issuedOn: asText(row.issued_on), expiresOn: asText(row.expires_on),
   decidedAt: asNumber(row.decided_at), decidedBy: asText(row.decided_by),
   secondedAt: asNumber(row.seconded_at), secondedBy: asText(row.seconded_by),
-  declinedReason: asText(row.declined_reason), createdAt: Number(row.created_at)
+  declinedReason: asText(row.declined_reason), bootstrappedAt: asNumber(row.bootstrapped_at),
+  createdAt: Number(row.created_at)
  };
 }
 function toVersion(raw: unknown): EvidenceVersion {
@@ -157,11 +184,20 @@ function toVersion(raw: unknown): EvidenceVersion {
   keyVersion: Number(row.key_version), uploadedBy: String(row.uploaded_by), uploadedAt: Number(row.uploaded_at)
  };
 }
-const EVIDENCE_COLUMNS = 'id, party_id, role_id, check_id, authority, risk, renew_months, state, issued_on, expires_on, decided_at, decided_by, seconded_at, seconded_by, declined_reason, created_at';
+const EVIDENCE_COLUMNS = 'id, party_id, role_id, check_id, authority, risk, renew_months, state, issued_on, expires_on, decided_at, decided_by, seconded_at, seconded_by, declined_reason, bootstrapped_at, created_at';
 const VERSION_COLUMNS = 'id, evidence_id, version_number, filename, bytes, content_hash, key_version, uploaded_by, uploaded_at';
 
 export function openVettingStore(db: Database): VettingStore {
  db.exec(SCHEMA);
+ /* A database created before the bootstrap was made accountable has the evidence table without its
+    bootstrapped_at column, and CREATE TABLE IF NOT EXISTS will not add one. Adding it here means an
+    existing register gains the column on the next start rather than on the next hand-written
+    migration — and the rows already in it read as null, which is the truthful answer: nothing knows
+    whether they were bootstrapped, and a column that guessed would be worse than one that admits it. */
+ const columns = db.prepare('PRAGMA table_info(vetting_evidence)').all() as { name: string }[];
+ if (!columns.some(column => String(column.name) === 'bootstrapped_at')) {
+  db.exec('ALTER TABLE vetting_evidence ADD COLUMN bootstrapped_at INTEGER');
+ }
  const first = <T>(rows: unknown[], map: (raw: unknown) => T): T | null => rows.length ? map(rows[0]) : null;
  const findParty = (id: string): Party | null => first(db.prepare('SELECT * FROM vetting_parties WHERE id = ?').all(id), toParty);
  const findEvidenceFor = (partyId: string, checkId: string): Evidence | null =>
@@ -197,12 +233,13 @@ export function openVettingStore(db: Database): VettingStore {
     authority: check.authority, risk: check.risk === 'high' ? 'high' : 'standard',
     renewMonths: check.renewMonths, state: 'outstanding',
     issuedOn: null, expiresOn: null, decidedAt: null, decidedBy: null,
-    secondedAt: null, secondedBy: null, declinedReason: null, createdAt: at
+    secondedAt: null, secondedBy: null, declinedReason: null, bootstrappedAt: null, createdAt: at
    };
-   db.prepare(`INSERT INTO vetting_evidence (${EVIDENCE_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+   db.prepare(`INSERT INTO vetting_evidence (${EVIDENCE_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(evidence.id, evidence.partyId, evidence.roleId, evidence.checkId, evidence.authority, evidence.risk,
      evidence.renewMonths, evidence.state, evidence.issuedOn, evidence.expiresOn, evidence.decidedAt,
-     evidence.decidedBy, evidence.secondedAt, evidence.secondedBy, evidence.declinedReason, evidence.createdAt);
+     evidence.decidedBy, evidence.secondedAt, evidence.secondedBy, evidence.declinedReason,
+     evidence.bootstrappedAt, evidence.createdAt);
    return evidence;
   },
   findEvidence(id) {
@@ -217,9 +254,9 @@ export function openVettingStore(db: Database): VettingStore {
   },
   saveEvidence(evidence) {
    db.prepare(`UPDATE vetting_evidence SET state = ?, issued_on = ?, expires_on = ?, decided_at = ?, decided_by = ?,
-    seconded_at = ?, seconded_by = ?, declined_reason = ? WHERE id = ?`)
+    seconded_at = ?, seconded_by = ?, declined_reason = ?, bootstrapped_at = ? WHERE id = ?`)
     .run(evidence.state, evidence.issuedOn, evidence.expiresOn, evidence.decidedAt, evidence.decidedBy,
-     evidence.secondedAt, evidence.secondedBy, evidence.declinedReason, evidence.id);
+     evidence.secondedAt, evidence.secondedBy, evidence.declinedReason, evidence.bootstrappedAt, evidence.id);
   },
   addVersion(version, document) {
    db.prepare(`INSERT INTO vetting_evidence_versions
@@ -254,6 +291,28 @@ export function openVettingStore(db: Database): VettingStore {
   partiesCount() {
    const row = db.prepare('SELECT COUNT(*) AS n FROM vetting_parties').all()[0] as { n: number | bigint };
    return Number(row.n);
+  },
+  spendBootstrap(ceremony) {
+   /* The insert is the control. A plain INSERT rather than INSERT OR IGNORE, because a second
+      attempt on the same authorisation is not a duplicate to be tidied away — it is the thing this
+      table exists to refuse, and it should be impossible to write it and carry on. */
+   if (db.prepare('SELECT fingerprint FROM vetting_bootstrap_ceremonies WHERE fingerprint = ?').all(ceremony.fingerprint).length) return false;
+   db.prepare('INSERT INTO vetting_bootstrap_ceremonies (fingerprint, opened_at, expires_at, decided_by, seconded_by, parties) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(ceremony.fingerprint, ceremony.openedAt, ceremony.expiresAt, ceremony.decidedBy, ceremony.secondedBy, ceremony.parties.join(', '));
+   return true;
+  },
+  ceremonies() {
+   return db.prepare('SELECT * FROM vetting_bootstrap_ceremonies ORDER BY opened_at DESC').all().map(raw => {
+    const row = raw as Record<string, unknown>;
+    return {
+     fingerprint: String(row.fingerprint), openedAt: Number(row.opened_at), expiresAt: Number(row.expires_at),
+     decidedBy: String(row.decided_by), secondedBy: String(row.seconded_by),
+     parties: String(row.parties).split(',').map(part => part.trim()).filter(Boolean)
+    };
+   });
+  },
+  bootstrapped() {
+   return db.prepare(`SELECT ${EVIDENCE_COLUMNS} FROM vetting_evidence WHERE bootstrapped_at IS NOT NULL ORDER BY bootstrapped_at, party_id, check_id`).all().map(toEvidence);
   }
  };
 }
