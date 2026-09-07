@@ -19,7 +19,13 @@
 set -euo pipefail
 
 TARGET="${TARGET:-liqzar-server}"
-HOST="${HOST:-mythuso.liqzar.co.za}"
+# MyThuso's own domain is the home for MyThuso's marketing. It defaulted to a liqzar subdomain
+# only because mythuso.co.za was pointing at the registrar's parking page when this was written,
+# which was a reason to move it rather than a reason to settle for somewhere else.
+HOST="${HOST:-mythuso.co.za}"
+# Extra names the same site answers to. server_name gets these as well; every Host-header check
+# below stays on $HOST alone, because a Host header carries one name.
+ALIASES="${ALIASES:-www.mythuso.co.za}"
 ROOT=/var/www/mythuso
 OPS=/opt/mythuso/ops
 IGNORE="$(dirname "$0")/.deployignore"
@@ -82,8 +88,10 @@ say "Checking $TARGET before touching it"
 ssh "$TARGET" "test -d /etc/nginx/sites-enabled && command -v nginx >/dev/null" \
   || { echo "nginx not found on $TARGET"; exit 1; }
 # A site file for this host that we did not write is a collision, not a redeploy.
-ssh "$TARGET" "! grep -rlF ' $HOST;' /etc/nginx/sites-enabled/ 2>/dev/null | grep -qv mythuso.conf" \
-  || { echo "another nginx site already claims $HOST — stopping rather than guessing"; exit 1; }
+for name in $HOST $ALIASES; do
+  ssh "$TARGET" "! grep -rlE 'server_name[^;]*[ ]${name}[ ;]' /etc/nginx/sites-enabled/ 2>/dev/null | grep -qv mythuso.conf" \
+    || { echo "another nginx site already claims $name — stopping rather than guessing"; exit 1; }
+done
 
 say "Publishing to $ROOT"
 # The directories the scheduled jobs are confined to. They are made here rather than by the scripts
@@ -131,7 +139,7 @@ ssh "$TARGET" "set -e
 ssh "$TARGET" "printf 'MYTHUSO_HOST=%s\n' '$HOST' > /etc/mythuso/host.env && chmod 0644 /etc/mythuso/host.env"
 
 say "Installing the nginx site for $HOST"
-sed "s/__HOST__/$HOST/g" deploy/nginx/mythuso.conf \
+sed "s/__HOST__/$HOST${ALIASES:+ $ALIASES}/g" deploy/nginx/mythuso.conf \
   | ssh "$TARGET" "cat > /etc/nginx/sites-available/mythuso.conf && ln -sfn /etc/nginx/sites-available/mythuso.conf /etc/nginx/sites-enabled/mythuso.conf"
 
 say "Testing the whole nginx configuration"

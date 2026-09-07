@@ -5,7 +5,7 @@ nginx site file and `/opt/mythuso/ops`, tests the configuration before reloading
 nothing else on the host.
 
 ```sh
-./deploy/deploy.sh                        # liqzar-server, mythuso.liqzar.co.za
+./deploy/deploy.sh                        # liqzar-server, mythuso.co.za
 HOST=mythuso.co.za ./deploy/deploy.sh     # somewhere else
 ```
 
