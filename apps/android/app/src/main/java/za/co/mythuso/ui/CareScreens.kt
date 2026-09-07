@@ -294,9 +294,11 @@ import androidx.compose.foundation.text.KeyboardActions
         }
         /* Booking for somebody opens their booking, never their record. What you may see of another
            person is decided in My family, under consent, and nowhere on this screen. */
-        TonedCard(background = Canvas) {
+        /* Tinted rather than left on the page ground, which is the colour it was already sitting on:
+           a panel the colour of the thing behind it is not a panel. */
+        TonedCard {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-                Icon(Icons.Outlined.VerifiedUser, null, tint = Faint, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo, modifier = Modifier.size(18.dp))
                 Text("Booking for someone opens their booking, never their record. What you may see is decided in My family.",
                      style = MaterialTheme.typography.bodySmall, color = BodyText)
             }

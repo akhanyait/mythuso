@@ -219,11 +219,15 @@ import za.co.mythuso.model.mokoenaHousehold
         }
         Section("Workspaces") {
             CareCard(padding = ThusoSpacing.space8) {
-                listOf("Nurse" to "Visits, assessment and vetting", "Doctor" to "Review queue and sign-off",
-                       "Partner" to "Pharmacy and laboratory orders", "Control Tower" to "Dispatch, incidents and vetting").forEachIndexed { index, (role, detail) ->
-                    MenuRow("$role workspace", detail, Icons.Outlined.MedicalServices) { open("$role workspace") }
-                    if (index < 3) HorizontalDivider(color = Line)
-                }
+                /* Each role takes the symbol its own workspace opens on, rather than four rows of the
+                   same medical bag — a list where every row has the same mark is a list nobody can
+                   scan. */
+                workspaceRoles.zip(listOf("Visits, assessment and vetting", "Review queue and sign-off",
+                                          "Pharmacy and laboratory orders", "Dispatch, incidents and vetting"))
+                    .forEachIndexed { index, (role, detail) ->
+                        MenuRow("$role workspace", detail, workspaceSections(role).first().icon) { open("$role workspace") }
+                        if (index < workspaceRoles.size - 1) HorizontalDivider(color = Line)
+                    }
             }
             Note("A role preview for design review. Nothing here authenticates anybody or grants access to a record.")
         }
@@ -485,12 +489,17 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
         else -> route
     }
     ScreenColumn {
+        /* No eyebrow naming the workspace: the app bar above already says which one this is, and a
+           screen that says "Control Tower workspace" twice — once in small capitals underneath
+           itself — is spending the reader's first line on something they have just read. */
         if (landing) {
-            DemoBadge()
-            Heading("$role workspace", section, "Role preview for design review, not authentication.")
+            Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+                Heading("", section, "Role preview for design review, not authentication.")
+                DemoBadge()
+            }
             WorkspaceUrgency(role)
         } else {
-            Heading("$role workspace", section, "")
+            Heading("", section, "")
         }
         when {
             role == "Nurse" && section == "Schedule" -> {
