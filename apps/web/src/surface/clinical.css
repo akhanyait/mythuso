@@ -50,10 +50,8 @@
  --pane-line: color-mix(in srgb, var(--charcoal) 7%, transparent);
  --pane-shadow: 0 1px 2px color-mix(in srgb, var(--charcoal) 4%, transparent),
                 0 12px 32px -12px color-mix(in srgb, var(--charcoal) 12%, transparent);
- /* The panel radius. glass.css reads --r-panel and falls back to the same figure surface.css draws
-    .s-panel at, so this declares the number the system is already using rather than inventing a
-    second one. tokens.json has no panel radius; it is asked for in the report. */
- --r-panel: 18px;
+ /* --r-panel is a real token now — it was added to tokens.json once two agents had asked for the
+    same missing value an hour apart. Nothing to restate here. */
 }
 /* THE BLUR BUDGET. A backdrop-filter is a separate compositor pass over everything behind the
    element, and glass.css says plainly that it is expensive on the mid-range Android handsets this
