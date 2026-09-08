@@ -196,13 +196,20 @@ private fun trustIcon(name: String) = when (name) {
         2 -> listOf(AccentSoft, Canvas)
         else -> listOf(IndigoSoft, Canvas)
     }
-    val transition = rememberInfiniteTransition(label = "hero")
-    // One slow clock; each bubble reads it at its own frequency and phase so nothing moves in step.
-    val phase by transition.animateFloat(
-        0f, (2 * Math.PI).toFloat(),
-        infiniteRepeatable(tween(22000, easing = LinearEasing), RepeatMode.Restart), label = "phase"
-    )
-    val clock = if (reduceMotion) 0f else phase
+    /* One slow clock; each bubble reads it at its own frequency and phase so nothing moves in step.
+       Started only when motion is wanted. Pinning the value to zero is not the same as not running:
+       the transition kept asking for every frame for as long as the home was open, and redrew this
+       whole Canvas each time to paint an identical picture. Nothing moved on screen, so it read as
+       correct — the cost was a phone getting warm in the pocket of somebody who had turned motion
+       off, which is the person least likely to be paying for it by choice. */
+    val clock = if (reduceMotion) 0f else {
+        val transition = rememberInfiniteTransition(label = "hero")
+        val phase by transition.animateFloat(
+            0f, (2 * Math.PI).toFloat(),
+            infiniteRepeatable(tween(22000, easing = LinearEasing), RepeatMode.Restart), label = "phase"
+        )
+        phase
+    }
     // x, y and radius as a fraction of the plate, then travel, frequency and starting phase.
     val bubbles = listOf(
         Bubble(0.13f, 0.76f, 30f, 17f, -24f, 1.0f, 0.0f),
