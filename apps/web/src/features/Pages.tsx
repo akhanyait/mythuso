@@ -230,13 +230,15 @@ const walletActivity=[['Family care credit','+ R500','8 September'],['Vitals & c
 export function WalletPage({open}:{open:(s:string)=>void}){
  const state:LoadState=useOffline()?'offline':'ready';
  return <><PageHeading eyebrow="THUSO WALLET" title="A little care, set aside." description="Support your own care or give someone a helping hand."/>
+ {/* Before the balance, not after it. The number in the hero is the thing on this screen a person
+     would most reasonably take for money they have. */}
+ <NotConnected of="payments"/>
  <div className="wallet-hero"><Wallet size={26}/><span>Balance</span><h2>R500<span>.00</span></h2><div className="button-row"><button className="secondary" onClick={()=>open('Top up wallet')}><Plus size={17}/>Top up</button><button className="secondary" onClick={()=>open('Sponsor care')}><Users size={17}/>Sponsor care</button></div></div>
  <SectionTitle title="Recent activity"/>
  <StateBlock state={state} subject="Your wallet activity" permission="your payment provider">
   {walletActivity.length?<div className="panel">{walletActivity.map(([n,p,d])=><div className="record-row static" key={n}><span className="service-icon"><Wallet size={20}/></span><span><strong>{n}</strong><small>{d}</small></span><strong className="ledger">{p}</strong></div>)}</div>
    :<EmptyState title="Nothing has moved yet" body="Top-ups, sponsored visits and refunds appear here, each with the date and what it was for."/>}
  </StateBlock>
- <NotConnected of="payments"/>
  </>}
 export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOnboarding:()=>void;navigate:(s:string)=>void}){return <>
  <div className="page-intro"><div className="eyebrow">The MyThuso family</div><h1>More ways to be cared for.</h1><p>Explore the complete vision. Availability follows the proposal’s phased roadmap.</p></div>
