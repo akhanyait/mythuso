@@ -61,7 +61,7 @@ test('family addition, sharing revocation and export',async({page})=>{
    used to be asserted here — "NURSE WORKSPACE · DEMO" — went with the workspace picker: there is
    no role switching left for it to disclaim, and a section is now headed by what it is for. */
 test('each clinical workspace opens at its own work, and no horizontal overflow',async({page})=>{
-  for(const [role,first] of [['Nurse','Schedule'],['Doctor','Review queue'],['Partner','Orders'],['Control Tower','Dispatch']] as const) {
+  for(const [role,first] of [['Nurse',/\d{4}$/],['Doctor',/^Review queue$/],['Partner',/^Orders$/],['Control Tower',/^Dispatch$/]] as const) {
     await openWorkspace(page,role);
     await expect(page.getByText(role.toUpperCase(),{exact:true}).first()).toBeVisible();
     await expect(page.getByRole('heading',{level:1})).toHaveText(first);

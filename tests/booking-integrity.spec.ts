@@ -157,7 +157,8 @@ test('a clinical workspace navigates as itself, not as the patient shop', async 
   /* A nurse's schedule leads with her date rather than with the word "Schedule": the section name
      is in the navigation beside it, and the heading is where the screen says what it is about. */
   for (const [role, first, expected] of [
-    ['Nurse', 'Schedule', 'Earnings & payouts'],
+    // her screen leads with her date, not with the name of the section she is in
+    ['Nurse', /\d{4}$/, 'Earnings & payouts'],
     ['Doctor', 'Review queue', 'Teleconsultation'],
     ['Partner', 'Orders', 'Collections'],
     ['Control Tower', 'Dispatch', 'Incidents']] as const) {
@@ -172,6 +173,11 @@ test('a clinical workspace navigates as itself, not as the patient shop', async 
     // no patient chrome came with it: no location picker, no help card, no other person's profile
     await expect(page.locator('.location-button')).toHaveCount(0);
     await expect(page.locator('.help-card')).toHaveCount(0);
-    await expect(page.getByText('Lerato Molefe')).toHaveCount(0);
+    /* Not "her name appears nowhere", and not "there is no avatar" — a nurse's schedule names the
+       patient she is visiting next, and the avatar in the bar is her own. What must not happen is
+       the patient's *account* coming with the workspace: the signed-in identity belongs to the
+       clinician, not to somebody they are treating. Before the split it was Lerato Molefe's "LM"
+       sitting over every clinical screen. */
+    await expect(page.locator('.topbar .avatar')).not.toHaveText('LM');
   }
 });

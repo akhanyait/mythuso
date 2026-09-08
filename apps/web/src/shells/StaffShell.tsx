@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, ChevronRight, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, MapPin, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
-import { Modal, Pill, SectionTitle } from '../components/UI';
+import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
+import { Modal, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
-import { roleExtras, sectionDoor, sectionWorkflow } from '../features/Pages';
+import { NurseSchedule, ReviewQueue, roleExtras, sectionDoor, sectionWorkflow } from '../features/Pages';
 import { DispatchBoard, IncidentBoard } from '../features/Dispatch';
 import { FulfilmentQueue } from '../features/Orders';
 import { VisitAssessment, DoctorReview } from '../features/Clinical';
@@ -317,38 +317,25 @@ const metricsFor: Record<StaffRole, readonly (readonly [string, string, string])
    is, and what state it is in are three different questions, and a reader scanning a queue answers
    the third one first — so it is a badge in its own column at the end of the row, aligned down the
    list, instead of the last few words of a sentence. */
-const queueRows: Partial<Record<StaffRole, readonly (readonly [string, string, string, string])[]>> = {
- Nurse: [['09:00', 'Vitals & chronic check', 'Rosebank', ''], ['11:30', 'Wound care', 'Parktown', ''], ['14:00', 'Mother & baby', 'Melville', '']],
- Doctor: [['TH-2048', 'Vitals assessment', 'Awaiting review', 'amber'], ['TH-2045', 'Wound follow-up', 'Routine review', ''], ['TH-2041', 'Prescription request', 'Awaiting review', 'amber']]
-};
 const BOARDS = ['Schedule', 'Review queue', 'Dispatch', 'Incidents', 'Orders', 'Collections', 'Results'];
 
 function StaffSection({ role, section, open }: { role: StaffRole; section: string; open: (m: string) => void }) {
- const nurse = role === 'Nurse';
- const doctor = role === 'Doctor';
- const [available, setAvailable] = useState(true);
  const board = BOARDS.includes(section);
- const rows = queueRows[role] ?? [];
+ /* The sections rendered by a feature component that draws its own <h1>. */
+ const headsItself = section === 'Dispatch' || section === 'Orders' || section === 'Collections'
+  || section === 'Results' || section === 'Schedule' || section === 'Review queue';
  return <>
-  <div className="page-intro"><div><div className="eyebrow">{role.toUpperCase()}</div><h1>{section}</h1><p>{sectionBlurb[section] ?? sectionDoor[section] ?? ''}</p></div></div>
+  {/* Two sections head themselves, and better than this can: the dispatch board and the fulfilment
+      queue carry a live subtitle counting what is actually waiting. The shell gives them the role
+      eyebrow and gets out of the way, because two h1 elements on one page is not a heading, it is a
+      reader having to guess which one is the page. */}
+  <div className="page-intro"><div><div className="eyebrow">{role.toUpperCase()}</div>
+   {headsItself ? null : <><h1>{section}</h1><p>{sectionBlurb[section] ?? sectionDoor[section] ?? ''}</p></>}</div></div>
   {board && <div className="metric-grid">{metricsFor[role].map(([k, v, note]) =>
    <div className="panel metric" key={k}><span>{k}</span><strong>{v}</strong><small>{note}</small></div>)}</div>}
-  {section === 'Schedule' || section === 'Review queue' ? <>
-   <div className="section-title"><h2>{nurse ? 'Your visit schedule' : 'Clinical review queue'}</h2>
-    {nurse && <button className="secondary" onClick={() => setAvailable(!available)}><span className={`status-dot ${available ? '' : 'offline'}`}/>{available ? 'Available for visits' : 'Off duty'}</button>}</div>
-   <div className="panel queue">{rows.map(([ref, what, where, tone]) =>
-    <button className="queue-row" key={ref} onClick={() => open(doctor ? `Doctor review: ${ref}` : `${role} case: ${ref} · ${what} · ${where}`)}>
-     <span className="service-icon">{doctor ? <FileText size={22}/> : <Activity size={22}/>}</span>
-     <span className="queue-ref">{ref}</span>
-     <span className="queue-what"><strong>{what}</strong><small>{doctor ? 'AI support only · Clinician sign-off required' : 'Demonstration record · No live actions'}</small></span>
-     {doctor ? <Pill tone={tone}>{where}</Pill> : <span className="queue-where"><MapPin size={14}/>{where}</span>}
-     <ChevronRight size={18}/></button>)}</div>
-   {/* The strip above says twelve are awaiting review and the list under it holds three. Both are
-       fictional, and a screen that shows a count next to a list it is not the count of should say
-       so rather than leave a reader to work out which of the two is lying. */}
-   <p className="helper">{rows.length} demonstration {rows.length === 1 ? 'case' : 'cases'}. The counts above are fictional and are not a total of this list.</p>
-   {nurse && <><SectionTitle title="Start a visit"/><div className="panel"><button className="record-row" onClick={() => open('Visit assessment')}><span className="service-icon"><ClipboardPlus size={22}/></span><span><strong>Visit assessment · TH-2048</strong><small>Identity check, consent, observations, findings and sign-off</small></span><ArrowRight size={18}/></button></div></>}
-  </> : section === 'Dispatch' ? <DispatchBoard/>
+  {section === 'Schedule' ? <NurseSchedule open={open}/>
+   : section === 'Review queue' ? <ReviewQueue open={open}/>
+: section === 'Dispatch' ? <DispatchBoard/>
    : section === 'Incidents' ? <><SectionTitle title="Open incidents"/><IncidentBoard open={open}/></>
     : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue open={open}/>
      : <div className="panel workflow-door">

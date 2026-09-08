@@ -3,11 +3,9 @@ import { Activity, ArrowRight, ArrowUpRight, Bell, Bluetooth, Check, ChevronRigh
 import { EmptyNote, Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
-import { EmptyState, Skeleton, StateBlock, loadStates, stateLabels, useOffline, type LoadState } from '../components/States';
+import { EmptyState, StateBlock, useOffline, type LoadState } from '../components/States';
 import { InvitationList, type Invitation } from './Guardian';
-import { DispatchBoard, IncidentBoard } from './Dispatch';
 import { HeroCarousel } from '../components/HeroCarousel';
-import { FulfilmentQueue } from './Orders';
 import { FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
 import type { DemoVisit } from './Booking';
@@ -266,23 +264,11 @@ export function MoreHub({navigate,open,onSignOut}:{navigate:(s:string)=>void;ope
   <div className="menu-list danger"><button className="menu-row" onClick={onSignOut}><span className="tile-icon"><LogOut size={19}/></span><span><strong>Log out</strong><small>Signs you out and returns to the sign-in screen</small></span></button></div>
   <div className="trust-footer"><span>MyThuso · Akhanya IT Innovations</span><span>Help. Health. Home.</span></div>
  </>}
-export function SystemStates(){
- const [state,setState]=useState<LoadState>('loading');
- return <div className="form-stack">
-  <Pill>State gallery</Pill>
-  <p className="muted">Every screen that will talk to a clinical, payment, partner or device integration needs these designed up front. Pick a state to see the shared components that carry it.</p>
-  <div className="tabs" role="group" aria-label="Choose a state">{loadStates.map(s=><button key={s} className={state===s?'selected':''} aria-pressed={state===s} onClick={()=>setState(s)}>{stateLabels[s]}</button>)}</div>
-  <div className="panel">
-   {state==='ready'?<div className="record-row static"><span className="service-icon"><Check size={20}/></span><span><strong>Loaded</strong><small>The real content, with nothing standing in for it.</small></span></div>
-   :<StateBlock state={state} subject="Your laboratory results" permission="Health Connect access" onRetry={()=>setState('ready')}><span/></StateBlock>}
-  </div>
-  <h3>Skeleton while care information loads</h3>
-  <div className="panel"><Skeleton rows={3}/></div>
-  <h3>Nothing here yet</h3>
-  <EmptyState title="No visits yet" body="When you book your first visit it appears here, with the nurse’s name and what to have ready." action="Book a nurse"/>
-  <div className="privacy-note"><ShieldCheck size={19}/>An error state never blames the patient, never loses what they typed, and always says what happens next.</div>
- </div>;
-}
+/* SystemStates is gone. A gallery of loading, error, offline, denied and empty is a thing for the
+   people building the product, not for somebody looking for a nurse, and it was the last reason a
+   demo pill sat on every screen. What it proved is held better now: check-boundaries.mjs asserts at
+   source that all five exist and that each still says something a person can act on, and
+   tests/states.spec.ts drives offline and a failed request from the real condition. */
 /* A clinical workspace is not a shop. The nurse, doctor, partner and Control Tower each get their
    own navigation from App.tsx; this renders the section that navigation asked for, and leads with
    what the role has to act on rather than with a catalogue of things to buy. */
@@ -343,7 +329,7 @@ const reviewQueue: Review[] = [
  { ref: 'TH-2041', what: 'Prescription request · Thabo Molefe', from: 'Sister Palesa Khumalo · repeat, last issued 28 August', waited: '1 h 05 m', minutes: 65, flag: 'Out of range' },
  { ref: 'TH-2045', what: 'Wound follow-up · Nomsa Molefe', from: 'Sister Naledi Mokoena · day 6, photograph attached', waited: '22 m', minutes: 22, flag: '' }
 ];
-function NurseSchedule({ open }: { open: (s: string) => void }) {
+export function NurseSchedule({ open }: { open: (s: string) => void }) {
  const [available, setAvailable] = useState(true);
  const [next, ...later] = nurseDay;
  const ends = endTime(next.start, next.service.duration);
@@ -387,7 +373,7 @@ function NurseSchedule({ open }: { open: (s: string) => void }) {
   </> : <EmptyState title="You are off duty" body="Nothing is sent to a nurse who is off duty, and going off duty never cancels a visit you have already accepted. Turn availability back on when you are ready." action="Go available" onAction={() => setAvailable(true)}/>}
  </>;
 }
-function ReviewQueue({ open }: { open: (s: string) => void }) {
+export function ReviewQueue({ open }: { open: (s: string) => void }) {
  const [flaggedOnly, setFlaggedOnly] = useState(false);
  const rows = flaggedOnly ? reviewQueue.filter(r => r.flag) : reviewQueue;
  const flagged = reviewQueue.filter(r => r.flag).length;
@@ -418,25 +404,9 @@ function ReviewQueue({ open }: { open: (s: string) => void }) {
    : <EmptyState title="Nothing is flagged" body="Every case in the queue is inside its reference range. Switch back to everything to work the queue in the order it arrived." action="Show everything" onAction={() => setFlaggedOnly(false)}/>}
  </>;
 }
-export function Workspace({role,page,open}:{role:string;page:string;open:(s:string)=>void}) {
- const section=roleSections[role]?.includes(page)?page:roleSections[role]?.[0]??'Schedule';
- return <>
- {section==='Schedule'?<NurseSchedule open={open}/>
- :section==='Review queue'?<ReviewQueue open={open}/>
- :section==='Dispatch'?<DispatchBoard/>
- :section==='Incidents'?<><SectionTitle title="Open incidents"/><IncidentBoard open={open}/></>
- :section==='Orders'||section==='Collections'||section==='Results'?<FulfilmentQueue open={open}/>
- :<div className="panel workflow-door">
-  <span className="tile-icon"><ShieldCheck size={22}/></span>
-  <h2>{section}</h2>
-  <p>{sectionDoor[section]??'This workflow is drawn but not yet a screen of its own.'}</p>
-  {/* The section keeps its own capitalisation: these are the names of screens, and "open vetting"
-      reads as an instruction to vet somebody rather than as the name of the thing behind the door. */}
-  <button className="primary" onClick={() => open(sectionWorkflow[section]??section)}>Open {section}<ArrowRight size={17}/></button>
- </div>}
- {/* Secondary by construction. These were two cards with the same shield on them, the same white
-     surface and the same shadow as the queue above — so a screen whose entire purpose is the queue
-     ended on two equally-weighted boxes. A list of links is what they are. */}
- <SectionTitle title="More tools"/>
- <div className="tool-links">{(roleExtras[role]??[]).map(t=><button className="tool-link" key={t} onClick={()=>open(t)}>{t}<ArrowUpRight size={16}/></button>)}</div></>}
+/* Workspace is gone. It drew all four clinical screens the same way and headed each of them
+   "NURSE WORKSPACE · DEMO", and apps/web/src/shells/StaffShell.tsx composes its own sections now.
+   Deleting it is also what keeps mapbox-gl out of the patient's bundle: it imported Dispatch and
+   Orders, and LiveMap's side-effect CSS import meant Rollup kept the whole chain in every entry
+   that could reach this file — which the patient's can. */
 export function Notifications(){return <div className="notification-list">{[[Check,'Your visit is confirmed','Sister Naledi is scheduled for Saturday, 09:00.'],[FileText,'Your visit summary is ready','Sister Naledi\u2019s notes and the doctor\u2019s review are on your Passport.'],[Sparkles,'A little reminder','Explore regular check-ins with Thuso Routine.'],[Bell,'Someone asked for access','Kagiso asked to help with your bookings. Review what he would see.']].map(([Icon,title,body])=>{const I=Icon as typeof Bell;return <div className="record-row" key={String(title)}><I size={21}/><span><strong>{String(title)}</strong><small>{String(body)}</small></span></div>;})}<NotConnected of="messaging"/></div>}

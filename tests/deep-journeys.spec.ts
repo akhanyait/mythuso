@@ -226,21 +226,11 @@ test('the shell can be read in isiZulu, Sesotho and Afrikaans', async ({ page })
     else await expect(page.locator('.tabbar')).toContainText(tabLabel);
   }
 });
-/* The gallery is no longer a card on a patient's Explore page — a list of loading states is a
-   thing for the people building the product, not for somebody looking for a nurse. It is reached
-   from the design-review menu the shell keeps for exactly that. */
-test('the state gallery covers loading, error, offline, denied and empty', async ({ page }) => {
-  await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^System states/ }).click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog.getByRole('status', { name: 'Loading care information' }).first()).toBeVisible();
-  await dialog.getByRole('button', { name: 'Service error', exact: true }).click();
-  await expect(dialog.getByRole('alert')).toContainText('We couldn’t load this just now');
-  await dialog.getByRole('button', { name: 'Try again' }).click();
-  await expect(dialog.getByText('The real content, with nothing standing in for it.')).toBeVisible();
-  await expect(dialog.getByRole('heading', { name: 'No visits yet' })).toBeVisible();
-});
+/* The state gallery is gone, and so is this journey. It was the last thing holding a demo pill on
+   every screen, and what it proved is now held in two better places: check-boundaries.mjs asserts
+   at source that all five states exist and that each still says something a person can act on, and
+   tests/states.spec.ts drives offline and a failed request from the real condition on the access
+   log. A gallery could only ever prove the five could be rendered by a button that rendered them. */
 test('new surfaces do not overflow the viewport or throw', async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));

@@ -55,7 +55,10 @@ export async function goExplore(page: Page) {
 }
 export async function openFirstRun(page: Page) {
   await goExplore(page);
-  await page.locator('.module-card').filter({ hasText: 'First-run & recovery' }).click();
+  /* The design-review card called "First-run & recovery" is gone with the rest of the scaffolding.
+     Sign-up is reached the way a person reaches it: the highlighted card that offers to set the
+     account up. */
+  await page.locator('.module-card').filter({ hasText: 'Set up your account' }).click();
 }
 export async function openModule(page: Page, name: string) {
   await goExplore(page);
