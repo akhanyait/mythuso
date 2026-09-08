@@ -837,6 +837,13 @@ for(const file of ['apps/web/src/components/NotConnected.tsx','apps/web/src/lib/
  if(!existsSync(file)) throw new Error(`${file} is missing. It is how a screen asks whether a capability is connected.`);
 }
 if(!read('apps/web/src/components/NotConnected.tsx').includes('noticeFor')) throw new Error('NotConnected no longer reads the contract, so what it renders is anybody\'s guess.');
+/* Two class names are load-bearing outside the code that writes them: tests/states.spec.ts drives
+   the offline and error states from real conditions and finds them by class, and it is the only
+   thing that can prove those states are reachable at all — a source check passes just as happily
+   when every call site is pinned to 'ready' forever. Renaming either silently turns that suite
+   green-and-blind, which is worse than red. */
+if(!/className=\{`not-connected/.test(read('apps/web/src/components/NotConnected.tsx'))) throw new Error('NotConnected no longer renders the class "not-connected". tests/states.spec.ts finds the not-connected state by that class, and a renamed selector does not fail that test — it stops testing.');
+if(!/className=\{`state-block \$\{state\}`\}/.test(read('apps/web/src/components/States.tsx'))) throw new Error('StateBlock no longer renders "state-block <state>". tests/states.spec.ts finds .state-block.offline and .state-block.error that way, and those two assertions are the only proof in the suite that any of the five states can still be reached.');
 void inventedNotices;
 
 /* What an endless animation is allowed to move.
