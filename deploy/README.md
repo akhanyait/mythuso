@@ -35,11 +35,48 @@ That check is the point of the script. Do not skip it by running the steps by ha
 | Path | What |
 |---|---|
 | `/` | The public landing page |
-| `/app/` | The app preview — runs with no backend, exactly as it does locally |
+| `/app/` | Patients and families — runs with no backend, exactly as it does locally |
+| `/staff/` | The clinical workspaces: nurse, doctor, pharmacy partner, Control Tower |
+| `/admin/` | The back office |
 | `/assets/` | Hashed bundles, cached for a year; HTML is never cached |
 | `/opt/mythuso/ops` | The scheduled jobs and their systemd units, reinstalled on every deploy |
 | `/etc/mythuso/host.env` | The host the health check should be asking about, written by the deploy |
 | `/etc/mythuso/key.fingerprint` | One `name fingerprint` line per key this host holds. Not the keys, and not secret — it is how a key that changed without anybody rotating it becomes visible |
+
+### Four audiences on one host, and the one-line change when DNS moves
+
+Each audience is its own build with its own bundle — `index.html`, `staff.html`, `admin.html` and
+`landing.html`, declared in `apps/web/vite.config.ts`. They are served from paths on one host rather
+than from `staff.mythuso.co.za` and `admin.mythuso.co.za` for two reasons that are both temporary:
+`mythuso.co.za` is still being pointed at this box (see `deploy/dns/`), and a second name needs its
+own certificate before anything is served on it. Nothing in the applications assumes a path.
+
+When the apex is resolving here and certificates exist, the split is a change to
+`deploy/nginx/mythuso.conf` and nothing else. Copy the block, and in the copy replace
+
+```nginx
+server_name __HOST__;
+...
+location = /staff { return 301 /staff/; }
+location /staff/  { try_files /staff.html =404; }
+```
+
+with
+
+```nginx
+server_name staff.mythuso.co.za;
+...
+location / { try_files /staff.html =404; }
+```
+
+— the same for `admin` — and add both names to `ALIASES` in `deploy/deploy.sh` and to
+`deploy/dns/mythuso.co.za.zone`. The `location /app/` and `location = /` blocks stay where they are.
+
+**A path is not access control, and neither is a subdomain.** `/staff/` and `/admin/` are `noindex`
+and are not linked from the landing page, which keeps them out of a search result and out of
+nobody's way. There is no account behind either of them yet — the sign-in screen on each says so in
+the contract's own words, from `packages/catalog/capabilities.json` — and until there is, the honest
+description of both is "unlisted", never "restricted".
 
 ### What may never be deployed
 

@@ -151,6 +151,10 @@ ssh "$TARGET" "systemctl reload nginx"
 say "Verifying by Host header, so this works before DNS does"
 ssh "$TARGET" "curl -sf -H 'Host: $HOST' http://127.0.0.1/ -o /dev/null -w 'landing  %{http_code}\n'"
 ssh "$TARGET" "curl -sf -H 'Host: $HOST' http://127.0.0.1/app/ -o /dev/null -w 'app      %{http_code}\n'"
+# Four audiences, four entries, four things that can be published broken. A deploy that only checks
+# the one page it was written for is a deploy that finds out about the other three from a user.
+ssh "$TARGET" "curl -sf -H 'Host: $HOST' http://127.0.0.1/staff/ -o /dev/null -w 'staff    %{http_code}\n'"
+ssh "$TARGET" "curl -sf -H 'Host: $HOST' http://127.0.0.1/admin/ -o /dev/null -w 'admin    %{http_code}\n'"
 
 # Only when it has been turned on. Until step four of deploy/README.md the correct state of the
 # identity service is "not running", and a deploy that reported that as a failure would teach
