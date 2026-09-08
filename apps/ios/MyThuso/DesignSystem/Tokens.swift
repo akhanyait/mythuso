@@ -21,7 +21,7 @@ enum ThusoTheme {
     static let ink = Color(red: 0.059, green: 0.090, blue: 0.165)        // #0F172A
     static let slate = Color(red: 0.118, green: 0.161, blue: 0.231)      // #1E293B
     static let body = Color(red: 0.278, green: 0.333, blue: 0.412)       // #475569
-    static let faint = Color(red: 0.365, green: 0.420, blue: 0.502)      // #5D6B80
+    static let faint = Color(red: 0.349, green: 0.404, blue: 0.482)      // #59677B
     static let line = Color(red: 0.886, green: 0.910, blue: 0.941)       // #E2E8F0
     static let canvas = Color(red: 0.945, green: 0.961, blue: 0.976)     // #F1F5F9
     static let surface = Color(red: 1.000, green: 1.000, blue: 1.000)    // #FFFFFF
