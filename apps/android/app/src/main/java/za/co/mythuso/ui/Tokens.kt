@@ -52,6 +52,7 @@ val FocusEdge = Color(0xFF0F172A)
 
 object ThusoRadius {
     val card = 12.dp
+    val panel = 18.dp
     val control = 10.dp
     val tile = 10.dp
     val pill = 999.dp

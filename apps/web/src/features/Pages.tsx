@@ -12,6 +12,7 @@ import type { DemoVisit } from './Booking';
 import { endTime, isoIn, labels as schedulingLabels, longDateOf, shortDateOf, visitEnds, weekdayOf } from '../lib/scheduling';
 import { holdStatus } from '../lib/interpreting';
 import { activity as walletActivity, balance as walletBalance, topUpAmounts } from '../lib/wallet';
+import businessModel from '../../../../packages/catalog/business-model.json';
 /* One service, one card, one symbol.
  *
  * Each card used to carry the service's icon twice — once in a tinted tile at the top left and
@@ -262,7 +263,24 @@ export function Family({open,members,invitations,onRevoke}:{open:(s:string)=>voi
    for today, and the honest answer for all five is the same. The first card keeps its tint, which
    marks it without promising it. One column on a phone — at two-up the names wrapped to two lines
    and the buttons landed at five different heights. */
-const plans=[['Chronic Routine','199','Monthly check-ins, doctor review and adherence support.'],['Family Planning Plan','99','Scheduled injection visits and discreet reminders.'],['Thuso Mom','249','Support through pregnancy and baby’s first year.'],['Thuso Senior','699','Weekly visits, medication support and family reports.'],['Thuso Recover','Custom','A personal care plan for your recovery at home.']] as const;
+/* The five plans a patient can see, derived rather than typed. The prices used to be written here —
+   199, 99, 249, 699 — beside the same five numbers in packages/catalog/business-model.json, which is
+   where the funding proposal's commercial model actually lives. Two copies of a subscription price
+   is how a landing page ends up advertising one figure while the app charges another. The
+   description is the product's own words for a patient; the money is the contract's. */
+const planCopy: Record<string, string> = {
+ chronic: 'Monthly check-ins, doctor review and adherence support.',
+ planning: 'Scheduled injection visits and discreet reminders.',
+ mom: 'Support through pregnancy and baby\u2019s first year.',
+ senior: 'Weekly visits, medication support and family reports.',
+ recover: 'A personal care plan for your recovery at home.'
+};
+const plans = ['chronic', 'planning', 'mom', 'senior', 'recover'].map(id => {
+ const plan = businessModel.subscriptions.find(s => s.id === id)!;
+ /* Thuso Recover has no price in the contract — it is sold per package, to patients and to
+    hospitals — and 'Custom' is how that is said on a card rather than a number nobody set. */
+ return [plan.name, plan.price === null ? 'Custom' : String(plan.price), planCopy[id]] as const;
+});
 /* What each plan actually contains, and the one thing it is not. "Explore plan" used to open a
    dialog that said the plan was on the roadmap and offered a Got it button — the end of a journey
    that had barely started. A person choosing between five plans wants three answers: what is in it,

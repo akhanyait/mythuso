@@ -786,6 +786,23 @@ for(const outcome of teleconsult.outcomes) {
 if(!unfinishedOutcomes||!realConsultations) throw new Error('The encounter outcomes do not distinguish a consultation from an encounter that was not one, so the record cannot either.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&!o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and did not come back. That is the state this feature is for.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and was re-established. A break in a consultation is a clinical fact, not a reason to start the encounter again.');
+/* A subscription price lives in the commercial model and nowhere else.
+   The five plan prices were typed into the patient's care-plans screen beside the same five numbers
+   in packages/catalog/business-model.json, which is where the funding proposal's own model lives.
+   Two copies of a subscription price is how a landing page comes to advertise one figure while the
+   app charges another — and these are the recurring revenue lines a funder is being asked to
+   believe in. */
+{
+ const model = JSON.parse(read('packages/catalog/business-model.json'));
+ const priced = model.subscriptions.filter(s => s.price !== null).map(s => s.price);
+ for(const file of ['apps/web/src/features/Pages.tsx','apps/web/src/features/Landing.tsx']) {
+  const code = read(file).replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.replace(/(^|\s)\/\/.*$/, '')).join('\n');
+  for(const price of priced) {
+   if(new RegExp(`['\`]${price}['\`]`).test(code)) throw new Error(`${file} writes the subscription price ${price} as a literal. It is in packages/catalog/business-model.json, which is the funding proposal's own commercial model — derive it from there, or the page and the plan will one day disagree about what a person pays every month.`);
+  }
+ }
+}
+
 /* Glass, and the one thing that makes it checkable.
    A translucent surface has no colour of its own, so a contrast figure measured against it is a
    guess about whatever happens to be behind it. Every glass surface therefore resolves to a

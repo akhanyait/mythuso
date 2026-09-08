@@ -49,6 +49,7 @@ enum ThusoTheme {
 }
 enum ThusoRadius {
     static let card: CGFloat = 12
+    static let panel: CGFloat = 18
     static let control: CGFloat = 10
     static let tile: CGFloat = 10
     static let pill: CGFloat = 999

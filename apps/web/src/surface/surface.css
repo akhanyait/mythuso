@@ -106,7 +106,7 @@
 .s-panel {
  background: var(--surface);
  border: 1px solid var(--stone);
- border-radius: 18px;
+ border-radius: var(--r-panel);
  padding: var(--space-20);
 }
 .s-panel.quiet { background: var(--cloud); border-color: transparent; }

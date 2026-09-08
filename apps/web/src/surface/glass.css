@@ -37,7 +37,7 @@
 /* ---- A frosted panel ---- */
 .glass {
  position: relative;
- border-radius: var(--r-panel, 18px);
+ border-radius: var(--r-panel);
  /* The floor first, so a browser without backdrop-filter — and a reader who asked for less
     transparency — gets the exact colour the contrast figures were measured against. */
  background: var(--glass-floor);
