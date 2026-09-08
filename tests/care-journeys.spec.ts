@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openWorkspace } from './nav';
 /* The shell is a bottom tab bar on phones and a sidebar from 1000px up, so navigation in the
    tests goes through whichever one this project actually renders. */
 /* Tab-bar labels are translated, so the phone path addresses tabs by position, not by text. */
@@ -56,13 +57,14 @@ test('family addition, sharing revocation and export',async({page})=>{
   const download=page.waitForEvent('download');await page.getByRole('button',{name:'Export sample passport'}).click();
   expect((await download).suggestedFilename()).toBe('mythuso-demo-passport.json');
 });
-test('role workspaces and no horizontal overflow',async({page})=>{
-  await page.goto('/');
-  for(const role of ['Nurse','Doctor','Partner','Control Tower']) {
-    await page.locator('button.demo-pill').click();
-    await page.getByRole('dialog').getByRole('button',{name:/^Preview workspaces/}).click();
-    await page.getByRole('dialog').getByRole('button').filter({has:page.getByText(role,{exact:true})}).click();
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+/* Each clinical workspace opens at its own first section, from its own entry. The heading that
+   used to be asserted here — "NURSE WORKSPACE · DEMO" — went with the workspace picker: there is
+   no role switching left for it to disclaim, and a section is now headed by what it is for. */
+test('each clinical workspace opens at its own work, and no horizontal overflow',async({page})=>{
+  for(const [role,first] of [['Nurse','Schedule'],['Doctor','Review queue'],['Partner','Orders'],['Control Tower','Dispatch']] as const) {
+    await openWorkspace(page,role);
+    await expect(page.getByText(role.toUpperCase(),{exact:true}).first()).toBeVisible();
+    await expect(page.getByRole('heading',{level:1})).toHaveText(first);
   }
   expect(await page.evaluate(()=>(()=>{const el=document.querySelector('main')??document.documentElement;return el.scrollWidth<=el.clientWidth;})())).toBe(true);
 });

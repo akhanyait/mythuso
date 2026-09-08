@@ -1,7 +1,11 @@
 import { expect, type Page } from '@playwright/test';
 /* The shell is a sidebar from 1000px and a tab bar below it, and since the workspaces got their own
    navigation both carry role sections rather than the patient's tabs. Journeys go through whichever
-   one the viewport actually renders. */
+   one the viewport actually renders.
+
+   Both are matched by accessible name rather than by visible text: a clinical tab shows a short
+   label — "Earnings", "Repeats", "Consult" — under an accessible name that is the whole section, so
+   a journey can name the section once and reach it on either viewport. */
 export async function goSection(page: Page, name: string) {
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (await sidebar.isVisible()) {
@@ -13,11 +17,47 @@ export async function goSection(page: Page, name: string) {
     await page.locator('button.settings-link').filter({ hasText: name }).first().click();
     return;
   }
-  const tab = page.locator('.tabbar button').filter({ hasText: name });
+  /* By accessible name rather than visible text: a clinical tab shows a short label and carries the
+     whole section name for a screen reader, so "Earnings & payouts" is never what is drawn. */
+  const tab = page.locator('.tabbar').getByRole('button', { name, exact: true });
   if (await tab.count()) { await tab.first().click(); return; }
-  /* On a phone the same destinations live behind More. */
+  /* And on a phone the rest of the patient's sections live behind More. */
   await page.locator('.tabbar button').last().click();
   const row = page.locator('.menu-row').filter({ hasText: name });
   await expect(row.first()).toBeVisible();
   await row.first().click();
+}
+
+/* The three applications, each at its own entry.
+ *
+ * There is no workspace picker inside the product any more — a role is what an account carries, and
+ * the only reason a journey gets to choose one here is that the identity service is switched off,
+ * which is exactly what the signed-out staff screen says on itself. */
+export async function openWorkspace(page: Page, role: string) {
+  await page.goto('/staff.html');
+  await page.locator('.staff-signin-roles .record-row').filter({ has: page.getByText(role, { exact: true }) }).click();
+  await expect(page.getByRole('navigation', { name: 'Primary' }).or(page.getByRole('navigation', { name: 'Main navigation' })).first()).toBeVisible();
+}
+export async function openAdminConsole(page: Page) {
+  await page.goto('/admin.html');
+  await page.locator('.staff-signin-roles .record-row').click();
+  await expect(page.getByRole('heading', { name: 'Operations console' })).toBeVisible();
+}
+
+/* Explore MyThuso is the patient's roadmap page and the door to the first-run flow, the state
+   gallery and the module previews. It is a sidebar entry on a wide screen and lives behind More on
+   a phone, which is why it needs a helper of its own rather than goSection. */
+export async function goExplore(page: Page) {
+  const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
+  if (await sidebar.isVisible()) { await sidebar.getByRole('button', { name: 'Explore MyThuso', exact: true }).click(); return; }
+  await page.locator('.tabbar button').nth(4).click();
+  await page.locator('.menu-row').filter({ hasText: 'Explore MyThuso' }).first().click();
+}
+export async function openFirstRun(page: Page) {
+  await goExplore(page);
+  await page.locator('.module-card').filter({ hasText: 'First-run & recovery' }).click();
+}
+export async function openModule(page: Page, name: string) {
+  await goExplore(page);
+  await page.locator('.module-card').filter({ has: page.getByRole('heading', { name, exact: true }) }).click();
 }

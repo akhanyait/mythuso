@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openWorkspace } from './nav';
 /* Employer and sponsor programme administration.
  *
  * These journeys check the four things that make the screen a design rather than a dashboard: that
@@ -6,9 +7,10 @@ import { test, expect, type Page } from '@playwright/test';
  * treated the same way, that the published groups deliberately do not add up to the total, and that
  * a sponsor is shown what they paid for and never what was found. */
 const openProgrammes = async (page: Page) => {
-  await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^Programme administration/ }).click();
+  /* The design-review menu that used to open this is gone. Employer programmes is one of the
+     Control Tower's More tools, which is where an operator would look for it. */
+  await openWorkspace(page, 'Control Tower');
+  await page.getByRole('button', { name: 'Employer programmes' }).click();
   return page.getByRole('dialog');
 };
 const row = (d: ReturnType<Page['getByRole']>, name: string) => d.locator('.prog-table tbody tr').filter({ hasText: name });

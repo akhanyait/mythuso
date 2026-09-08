@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { goSection } from './nav';
+import { goSection, openAdminConsole, openFirstRun, openWorkspace } from './nav';
 /* Tab-bar labels are translated, so the phone path addresses tabs by position, not by text. */
 const tabOrder = ['Overview', 'Book a nurse', 'My visits', 'Health Passport', 'More'];
 const tab = (page: Page, index: number) => page.locator('.tabbar button').nth(index);
@@ -11,22 +11,15 @@ async function navigate(page: Page, name: string) {
   await tab(page, 4).click();
   await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
 }
-/* Each workspace now leads with the thing it is about — a nurse's date, a doctor's queue, a
-   controller's board, a partner's orders — instead of a shouted workspace eyebrow over a paragraph
-   saying the same thing again. The arrival check is that heading. */
-const landsOn: Record<string, RegExp> = {
-  Nurse: /\d{4}$/, Doctor: /^Review queue$/, Partner: /^Orders$/, 'Control Tower': /^Dispatch$/
-};
+/* A workspace is its own application at its own entry now, so a journey opens it rather than
+   switching into it. The eyebrow it lands on is the role; the heading is the section. */
 async function switchRole(page: Page, role: string) {
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
-  await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText(role, { exact: true }) }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(landsOn[role]);
+  await openWorkspace(page, role);
+  await expect(page.getByText(role.toUpperCase(), { exact: true }).first()).toBeVisible();
 }
 test('sign-up refuses a bad code and a bad ID number, then completes', async ({ page }) => {
   await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^First-run flow/ }).click();
+  await openFirstRun(page);
   await page.getByRole('radio', { name: 'isiZulu' }).check();
   await page.getByRole('button', { name: 'Create my account' }).click();
   await expect(page.getByRole('button', { name: 'Send my code' })).toBeDisabled();
@@ -59,8 +52,7 @@ test('sign-up refuses a bad code and a bad ID number, then completes', async ({ 
 });
 test('account recovery offers a route that does not need the lost phone', async ({ page }) => {
   await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^First-run flow/ }).click();
+  await openFirstRun(page);
   await page.getByRole('button', { name: 'I’ve lost access to my account' }).click();
   await expect(page.getByRole('button', { name: 'Start recovery' })).toBeDisabled();
   await page.getByRole('radio', { name: /Ask my trusted contact/ }).check();
@@ -159,11 +151,11 @@ test('partner orders show chain of custody and every integration state', async (
   await expect(dialog.getByText('Visible in the Health Passport with an explanation')).toBeVisible();
 });
 test('vetting refuses a malformed credential, and states the refusal it is under', async ({ page }) => {
-  await page.goto('/');
   await switchRole(page, 'Nurse');
+  /* Her own vetting application is a section of her workspace rather than a door that opens a
+     dialog, so the journey reads the screen rather than a modal over it. */
   await goSection(page, 'Vetting');
-  await page.locator('main').getByRole('button', { name: /Vetting/ }).click();
-  const dialog = page.getByRole('dialog');
+  const dialog = page.locator('main');
   // the credential the role hangs on is checked for the shape the issuing body actually uses
   await expect(dialog.getByRole('button', { name: 'Continue' })).toBeDisabled();
   await dialog.getByLabel('SANC registration number').fill('2001');
@@ -182,10 +174,7 @@ test('vetting refuses a malformed credential, and states the refusal it is under
   await expect(dialog).toContainText('passing is not something you can do for yourself');
 });
 test('an identity number is checked against its own check digit, not just its length', async ({ page }) => {
-  await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
-  await page.getByRole('dialog').getByRole('button').filter({ hasText: 'Admin console' }).click();
+  await openAdminConsole(page);
   await page.getByRole('button', { name: 'Vetting', exact: true }).click();
   await page.getByRole('button', { name: /Preview an application/ }).click();
   const dialog = page.getByRole('dialog');
@@ -199,7 +188,6 @@ test('an identity number is checked against its own check digit, not just its le
   await expect(dialog).toContainText('Sponsorship is a payment, not a permission.');
 });
 test('a doctor whose registration has lapsed cannot sign, and is told which check refused it', async ({ page }) => {
-  await page.goto('/');
   await switchRole(page, 'Doctor');
   await page.getByRole('button', { name: /TH-2048/ }).click();
   const dialog = page.getByRole('dialog');
@@ -268,8 +256,8 @@ test('new surfaces do not overflow the viewport or throw', async ({ page }, test
   // controller reaches names the suburb rather than a street
   await expect(page.locator('.map-pin.visit-waiting').first()).toBeVisible();
   await page.screenshot({ path: `test-results/dispatch-${testInfo.project.name}.png` });
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^First-run flow/ }).click();
+  await page.goto('/');
+  await openFirstRun(page);
   await expect(page.getByRole('heading', { name: 'Care that comes to you.' })).toBeVisible();
   await page.screenshot({ path: `test-results/onboarding-${testInfo.project.name}.png` });
   expect(await page.evaluate(() => (() => { const el = document.querySelector('main') ?? document.documentElement; return el.scrollWidth <= el.clientWidth; })())).toBe(true);

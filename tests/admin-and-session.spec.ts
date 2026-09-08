@@ -1,12 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openAdminConsole, openFirstRun } from './nav';
 const tab = (page: Page, index: number) => page.locator('.tabbar button').nth(index);
-async function openAdmin(page: Page) {
-  await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
-  await page.getByRole('dialog').getByRole('button').filter({ hasText: 'Admin console' }).click();
-  await expect(page.getByRole('heading', { name: 'Operations console' })).toBeVisible();
-}
+const openAdmin = openAdminConsole;
 test('signing out really closes the account, and signing back in restores it', async ({ page }) => {
   await page.goto('/');
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
@@ -23,8 +18,7 @@ test('signing out really closes the account, and signing back in restores it', a
 });
 test('signing out from the sign-in screen can start a new account instead', async ({ page }) => {
   await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^First-run flow/ }).click();
+  await openFirstRun(page);
   await page.getByRole('button', { name: 'Skip for now and look around' }).click();
   await expect(page.getByRole('heading', { name: 'Hello, Lerato' })).toBeVisible();
 });

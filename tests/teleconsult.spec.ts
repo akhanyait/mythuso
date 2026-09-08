@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
-import { goSection } from './nav';
+import { goSection, openWorkspace } from './nav';
 /* The teleconsultation call.
  *
  * These journeys check the four things that make this a design rather than a video window: that
@@ -10,9 +10,7 @@ import { goSection } from './nav';
  * assessment or a plan, and is not charged for. */
 const openCall = async (page: Page) => {
   await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
-  await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText('Doctor', { exact: true }) }).click();
+  await openWorkspace(page, 'Doctor');
   await goSection(page, 'Teleconsultation');
   return page.locator('main');
 };

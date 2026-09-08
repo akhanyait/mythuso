@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { goSection, openModule, openWorkspace } from './nav';
 /* Thuso Kit: pairing, capture, the offline queue and the four conflicts a queue actually produces.
    The point of these three journeys is not that the screens render. It is that a reading carries
    where it came from — device, hand or patient — all the way from the instrument to the
@@ -7,8 +8,7 @@ const overflow = (page: Page) => page.evaluate(() => { const el = document.query
 test('kit surface: pair, capture, queue, all four conflicts', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^Thuso Kit/ }).click();
+  await openModule(page, 'Thuso Kit');
   const d = page.getByRole('dialog');
   await expect(d.locator('.not-connected')).toContainText('No device is connected');
   await expect(d.getByText(/This queue is held in memory/)).toBeVisible();
@@ -55,10 +55,7 @@ test('kit surface: pair, capture, queue, all four conflicts', async ({ page }) =
 });
 test('assessment carries provenance through to the consultation', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-  await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
-  await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText('Nurse', { exact: true }) }).click();
+  await openWorkspace(page, 'Nurse');
   await page.getByRole('button', { name: 'Start this visit' }).click();
   const d = page.getByRole('dialog');
   await d.getByLabel('Visit code, digit 1 of 6').fill('482190');
@@ -100,10 +97,9 @@ test('assessment carries provenance through to the consultation', async ({ page 
 });
 test('patient file vitals carry origins', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-  await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
-  await page.getByRole('dialog').getByRole('button').filter({ hasText: 'Patient file' }).click();
+  /* The patient file is the doctor's patient-context section now, not a workspace in the picker. */
+  await openWorkspace(page, 'Doctor');
+  await goSection(page, 'Patient context');
   await expect(page.locator('.pf-vital').filter({ hasText: 'Blood pressure' }).locator('.prov-device')).toBeVisible();
   await expect(page.locator('.pf-vital').filter({ hasText: 'Weight' }).locator('.prov-patient-reported')).toBeVisible();
   await expect(overflow(page)).resolves.toBe(true);

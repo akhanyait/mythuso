@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openAdminConsole, openWorkspace } from './nav';
 import { readFileSync } from 'node:fs';
 /* Large text, small screens, and the controls a finger has to hit — measured rather than asserted.
  *
@@ -237,14 +238,20 @@ test.describe('at 200% zoom', () => {
     }
   });
 
+  /* The screen this whole exercise started from: a nurse's schedule at 07:00, on a phone, at
+     twice the text size. It is a separate application at a separate entry now, so the audit opens
+     it rather than switching the patient shell into it. */
   test('the nurse workspace holds together', async ({ page }) => {
-    await page.goto('/');
     await zoomedTo200(page);
-    const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
-    if (await sidebar.isVisible()) await page.locator('.account-switch').click();
-    else { await page.locator('.tabbar button').nth(4).click(); await page.getByRole('button', { name: /^Preview workspaces/ }).click(); }
-    await page.getByRole('dialog').getByRole('button', { name: /^Nurse/ }).click();
+    await openWorkspace(page, 'Nurse');
     await audit(page, 'Nurse workspace at 200%');
+  });
+  test('the clinical sign-in and the back office hold together', async ({ page }) => {
+    await zoomedTo200(page);
+    await page.goto('/staff.html');
+    await audit(page, 'Clinical sign-in at 200%');
+    await openAdminConsole(page);
+    await audit(page, 'Operations console at 200%');
   });
 });
 

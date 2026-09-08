@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { goSection } from './nav';
+import { goSection, openWorkspace } from './nav';
 /* Substitution and chronic authorisation.
  *
  * These journeys check the four things that make the screen a design rather than a list: that an
@@ -7,10 +7,7 @@ import { goSection } from './nav';
  * before the patient has been told what it is in words, that the decision carries a name and a
  * registration, and that a repeat is refused with a date rather than quietly filled. */
 const openDispensing = async (page: Page) => {
-  await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
-  await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText('Partner', { exact: true }) }).click();
+  await openWorkspace(page, 'Partner');
   await goSection(page, 'Substitution & repeats');
   return page.locator('main');
 };
@@ -98,10 +95,7 @@ test('a lapsed pharmacist or a lapsed prescriber closes the screen, in the regis
 });
 
 test('the prescription detail points at this screen rather than saying it does not exist', async ({ page }) => {
-  await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
-  await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText('Partner', { exact: true }) }).click();
+  await openWorkspace(page, 'Partner');
   await goSection(page, 'Orders');
   await page.locator('.record-row').filter({ hasText: 'RX-0081' }).click();
   const dialog = page.getByRole('dialog');

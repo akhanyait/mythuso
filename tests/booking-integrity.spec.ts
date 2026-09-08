@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openWorkspace } from './nav';
 /* The booking journey, and the six defects it used to carry.
  *
  * These are written against behaviour a person can observe — a weekday that matches its date, a
@@ -146,25 +147,31 @@ test('a clinical workspace navigates as itself, not as the patient shop', async 
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
   const bar = page.locator('.tabbar');
-  const entries = async () => (await nav.isVisible() ? nav : bar).locator('button').allInnerTexts();
+  /* A clinical tab shows "Earnings" and is named "Earnings & payouts", because a full section name
+     does not fit in a fifth of a 390px screen without wrapping to two lines — which is what made
+     the nurse's workspace look broken. Read the name, not the label. */
+  const entries = async () => (await nav.isVisible() ? nav : bar)
+    .locator('button').evaluateAll(els => els.map(el => el.getAttribute('aria-label') ?? (el as HTMLElement).innerText));
   const patient = await entries();
   expect(patient.join(' ')).toMatch(/Book/);
   /* A nurse's schedule leads with her date rather than with the word "Schedule": the section name
      is in the navigation beside it, and the heading is where the screen says what it is about. */
   for (const [role, first, expected] of [
-    ['Nurse', /\d{4}$/, 'Earnings & payouts'],
-    ['Doctor', /^Review queue$/, 'Teleconsultation'],
-    ['Partner', /^Orders$/, 'Collections'],
-    ['Control Tower', /^Dispatch$/, 'Incidents']] as const) {
-    await page.locator('button.demo-pill').click();
-    await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
-    await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText(role, { exact: true }) }).click();
+    ['Nurse', 'Schedule', 'Earnings & payouts'],
+    ['Doctor', 'Review queue', 'Teleconsultation'],
+    ['Partner', 'Orders', 'Collections'],
+    ['Control Tower', 'Dispatch', 'Incidents']] as const) {
+    await openWorkspace(page, role);
     const shown = (await entries()).join(' ');
     expect(shown, `${role} should navigate by its own work`).toContain(expected);
     // and none of the patient's shopping stays behind
     expect(shown).not.toContain('Thuso Wallet');
     expect(shown).not.toContain('Care plans');
-    // switching lands on that role's own first section rather than leaving a patient page behind
+    // and the workspace opens on its own first section, never on a patient page
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(first);
+    // no patient chrome came with it: no location picker, no help card, no other person's profile
+    await expect(page.locator('.location-button')).toHaveCount(0);
+    await expect(page.locator('.help-card')).toHaveCount(0);
+    await expect(page.getByText('Lerato Molefe')).toHaveCount(0);
   }
 });

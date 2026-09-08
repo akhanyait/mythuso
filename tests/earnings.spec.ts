@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { goSection } from './nav';
+import { goSection, openWorkspace } from './nav';
 /* Nurse earnings and payouts.
  *
  * The landing page tells the public that a nurse keeps three quarters of every visit. These
@@ -7,11 +7,8 @@ import { goSection } from './nav';
  * the nurse's own screen is the catalogue's arithmetic, and that a suspension moves the banner
  * without moving a single figure. */
 const openEarnings = async (page: Page) => {
-  await page.goto('/');
-  await page.locator('button.demo-pill').click();
-  await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
-  await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText('Nurse', { exact: true }) }).click();
-  // the nurse workspace navigates by its own sections now; "Weekly payouts" is "Earnings & payouts"
+  await openWorkspace(page, 'Nurse');
+  // the nurse workspace navigates by its own sections; "Weekly payouts" is "Earnings & payouts"
   await goSection(page, 'Earnings & payouts');
   return page.locator('main');
 };
