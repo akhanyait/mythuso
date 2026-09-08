@@ -1,0 +1,169 @@
+/* The dashboard language.
+ *
+ * docs/DESIGN-LANGUAGE.md describes the ground and the palette; this file is the components that
+ * make it recognisable. The reference is a dashboard, and what makes it read as one is not the
+ * colours — it is four specific pieces, and a surface that has the palette but not these does not
+ * look like the thing the founder pointed at:
+ *
+ *   1. A metric is a status chip floating ABOVE a large thin numeral, with a small label beneath.
+ *      Not a label above a bold number, which is what every card in this product does today. The
+ *      contrast between one large light figure and small dense labels is most of the calm.
+ *   2. Navigation is a pill row — icon, label, and a circular arrow at the trailing edge. The
+ *      active row is a filled charcoal pill.
+ *   3. Separation is a hairline and a lighter fill, never a shadow.
+ *   4. Sage appears as a fill in charts and highlight panels, and never as a word.
+ *
+ * Inter here has no 300 axis and font-synthesis is off, so "light" is 400 against labels at 600.
+ * That is genuinely lighter than the 650 it replaces, and it is not the reference's hairline. A 300
+ * axis in the subset would close the gap; it is written up rather than faked. */
+
+/* ---- The ground ---- */
+.surface {
+ background: var(--mist);
+ color: var(--charcoal);
+}
+
+/* ---- A metric: chip above, thin numeral, label below ---- */
+.s-metrics {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+ gap: var(--space-24) var(--space-16);
+ padding: var(--space-24) 0 var(--space-20);
+}
+
+.s-metric { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); min-width: 0; }
+
+.s-metric-chip {
+ align-self: flex-start;
+ background: var(--surface);
+ border: 1px solid var(--stone);
+ border-radius: var(--r-pill);
+ padding: 3px 10px;
+ font-size: 13px;
+ font-weight: 500;
+ color: var(--charcoal);
+ white-space: nowrap;
+}
+/* The one chip that carries weight: a value out of range, filled rather than outlined. */
+.s-metric-chip.flagged { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+
+.s-metric-value {
+ display: flex;
+ align-items: baseline;
+ gap: 6px;
+ font-size: 40px;
+ font-weight: 400;
+ letter-spacing: -1.5px;
+ line-height: 1.05;
+ font-variant-numeric: tabular-nums;
+ color: var(--charcoal);
+}
+.s-metric-value small { font-size: 16px; font-weight: 400; letter-spacing: 0; color: var(--charcoal); }
+.s-metric-label { font-size: 13px; color: var(--faint); }
+
+@media (min-width: 900px) { .s-metric-value { font-size: 48px; } }
+
+/* ---- Navigation: a pill row with a trailing circular arrow ---- */
+.s-nav { display: flex; flex-direction: column; gap: var(--space-8); }
+
+.s-nav-row {
+ display: flex;
+ align-items: center;
+ gap: var(--space-12);
+ width: 100%;
+ min-height: 48px;
+ padding: 0 6px 0 16px;
+ border: 0;
+ border-radius: var(--r-pill);
+ background: var(--cloud);
+ color: var(--charcoal);
+ font-size: 15px;
+ font-weight: 500;
+ text-align: left;
+ cursor: pointer;
+}
+.s-nav-row > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The trailing circle. It is decorative on an inactive row and inverts with the active one, which
+   is what makes the active row read as a place you are rather than a button you could press. */
+.s-nav-row i {
+ display: grid;
+ place-items: center;
+ width: 36px;
+ height: 36px;
+ flex-shrink: 0;
+ border-radius: var(--r-pill);
+ background: transparent;
+ color: var(--faint);
+}
+.s-nav-row[aria-current='page'] { background: var(--charcoal); color: var(--surface); }
+.s-nav-row[aria-current='page'] i { background: var(--surface); color: var(--charcoal); }
+.s-nav-row:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
+
+/* ---- Panels: a hairline and a lighter fill, never a shadow ---- */
+.s-panel {
+ background: var(--surface);
+ border: 1px solid var(--stone);
+ border-radius: 18px;
+ padding: var(--space-20);
+}
+.s-panel.quiet { background: var(--cloud); border-color: transparent; }
+/* The one panel a screen is about. Sage as a ground, charcoal on it at 11.11:1. */
+.s-panel.lead { background: var(--pale-sage); border-color: transparent; }
+
+.s-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-12); }
+.s-panel-head h2, .s-panel-head h3 { font-size: 16px; font-weight: 600; margin: 0; }
+.s-panel-head p { font-size: 13px; color: var(--faint); margin: 2px 0 0; }
+
+/* The small circular affordance at a card's trailing edge. */
+.s-open {
+ width: 44px; height: 44px; flex-shrink: 0;
+ display: grid; place-items: center;
+ border: 1px solid var(--stone);
+ border-radius: var(--r-pill);
+ background: var(--surface);
+ color: var(--charcoal);
+ cursor: pointer;
+}
+.s-open:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
+
+/* ---- A row of rounded segments, rather than one continuous bar ---- */
+.s-segments { display: flex; gap: 5px; align-items: center; }
+.s-segments i {
+ flex: 1;
+ height: 12px;
+ border-radius: 6px;
+ background: var(--cloud);
+}
+.s-segments i.on { background: var(--soft-sage); }
+.s-segments i.now { background: var(--sage-slate); }
+
+/* ---- A search field: a pill, with the button as its own circle ---- */
+.s-search { display: flex; align-items: center; gap: var(--space-8); }
+.s-search-go {
+ width: 48px; height: 48px; flex-shrink: 0;
+ display: grid; place-items: center;
+ border: 1px solid var(--stone);
+ border-radius: var(--r-pill);
+ background: var(--surface);
+ color: var(--charcoal);
+ cursor: pointer;
+}
+.s-search input {
+ flex: 1; min-width: 0;
+ min-height: 48px;
+ padding: 0 20px;
+ border: 1px solid var(--stone);
+ border-radius: var(--r-pill);
+ background: var(--surface);
+ font-size: 15px;
+ color: var(--charcoal);
+}
+.s-search input::placeholder { color: var(--faint); }
+.s-search input:focus-visible,
+.s-search-go:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
+
+/* The workspace ground. Scoped rather than global: the surface sweep has not reached the patient
+   shell or the older screens yet, and a global ground change would leave every unswept card
+   floating on a colour it was never measured against. */
+.workspace.surface { background: var(--mist); }

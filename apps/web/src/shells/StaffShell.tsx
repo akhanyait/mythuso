@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
 import { Modal, SectionTitle } from '../components/UI';
+import { Metric, Metrics } from '../surface/Surface';
 import { NotConnected } from '../components/NotConnected';
 import { NurseSchedule, ReviewQueue, roleExtras, sectionDoor, sectionWorkflow } from '../features/Pages';
 import { DispatchBoard, IncidentBoard } from '../features/Dispatch';
@@ -230,7 +231,7 @@ function StaffWorkspace({ role, onSignOut }: { role: StaffRole; onSignOut: () =>
     <button className="settings-link" onClick={signOut}><LogOut size={18}/>Sign out</button>
    </div>
   </aside>
-  <div className="workspace">
+  <div className="workspace surface">
    <header className="topbar staff-topbar">
     <div className="staff-who">
      <span className="avatar small">{who.initials}</span>
@@ -307,11 +308,15 @@ const sectionBlurb: Record<string, string> = {
 /* Urgency first: what is waiting, how long it has waited, and what to do about it. Counted only on
    the sections that are a board — a strip of a nurse's earnings above a page about protocols is
    three numbers with nothing to do with the screen under them. */
-const metricsFor: Record<StaffRole, readonly (readonly [string, string, string])[]> = {
- Nurse: [['Next visit', '09:00', 'Rosebank · in 40 minutes'], ['Today’s visits', '3', 'One awaiting sign-off'], ['This week so far', 'R 598', 'Pays Wednesday']],
- Doctor: [['Awaiting review', '12', 'Longest waiting 3 h 20 m'], ['Priority reviews', '2', 'Flagged out of range'], ['Reviewed today', '18', 'Median 4 m 10 s']],
- Partner: [['Open orders', '8', '2 past their collection window'], ['Scheduled collections', '4', 'Next 11:15'], ['Ready for release', '3', 'Awaiting a clinician']],
- 'Control Tower': [['Active visits', '24', '3 running late'], ['Available nurses', '18', '4 off duty'], ['Open incidents', '3', '1 severity high']]
+/* label, figure, unit, chip, flagged — the reference's order rather than this product's. The chip
+   floats above the figure and says how it is going; the label sits under it and says what it is.
+   `flagged` fills the chip charcoal, and exactly one per screen is the point of it. */
+type Metric = readonly [string, string, string, string, boolean, string?];
+const metricsFor: Record<StaffRole, readonly Metric[]> = {
+ Nurse: [['Next visit', '09:00', '', 'Rosebank · 40 min', false], ['Today’s visits', '3', '', 'One to sign off', false], ['This week', '598', '', 'Pays Wednesday', false, 'R ']],
+ Doctor: [['Awaiting review', '12', '', 'Longest 3 h 20 m', false], ['Priority reviews', '2', '', 'Out of range', true], ['Reviewed today', '18', '', 'Median 4 m 10 s', false]],
+ Partner: [['Open orders', '8', '', '2 past window', true], ['Collections', '4', '', 'Next 11:15', false], ['Ready for release', '3', '', 'Awaiting a clinician', false]],
+ 'Control Tower': [['Active visits', '24', '', '3 running late', false], ['Available nurses', '18', '', '4 off duty', false], ['Open incidents', '3', '', '1 severity high', true]]
 };
 /* Three columns rather than one bold string with two middle dots in it. A reference, what the case
    is, and what state it is in are three different questions, and a reader scanning a queue answers
@@ -331,8 +336,8 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
       reader having to guess which one is the page. */}
   <div className="page-intro"><div><div className="eyebrow">{role.toUpperCase()}</div>
    {headsItself ? null : <><h1>{section}</h1><p>{sectionBlurb[section] ?? sectionDoor[section] ?? ''}</p></>}</div></div>
-  {board && <div className="metric-grid">{metricsFor[role].map(([k, v, note]) =>
-   <div className="panel metric" key={k}><span>{k}</span><strong>{v}</strong><small>{note}</small></div>)}</div>}
+  {board && <Metrics>{metricsFor[role].map(([label, value, unit, chip, flagged, prefix]) =>
+   <Metric key={label} label={label} value={value} unit={unit || undefined} prefix={prefix} chip={chip} flagged={flagged}/>)}</Metrics>}
   {section === 'Schedule' ? <NurseSchedule open={open}/>
    : section === 'Review queue' ? <ReviewQueue open={open}/>
 : section === 'Dispatch' ? <DispatchBoard/>

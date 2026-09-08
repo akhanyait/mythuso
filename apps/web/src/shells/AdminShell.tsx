@@ -82,7 +82,7 @@ function AdminWorkspace({ onSignOut }: { onSignOut: () => void }) {
     <button className="settings-link" onClick={signOut}><LogOut size={18}/>Sign out</button>
    </div>
   </aside>
-  <div className="workspace">
+  <div className="workspace surface">
    <header className="topbar staff-topbar">
     <div className="staff-who">{who}</div>
     <div className="breadcrumb">Back office<span>/</span><strong>Operations console</strong></div>
