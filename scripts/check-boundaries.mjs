@@ -783,10 +783,22 @@ if(!declared) throw new Error('apps/web/src/components/States.tsx no longer decl
 for(const state of ['ready','loading','error','offline','denied']) {
  if(!new RegExp(`'${state}'`).test(declared)) throw new Error(`apps/web/src/components/States.tsx no longer declares the "${state}" state. Every screen that will one day reach a clinical, payment or device integration needs all five designed before that integration lands, not improvised at three in the morning when it does.`);
 }
-/* Each one has to say something a person can act on. "Something went wrong" is the failure this
-   catches: it tells a reader nothing and tells the care team nothing. */
+/* Each one has to say something a person can act on, *in its own branch*. "Something went wrong"
+   is the failure this catches: it tells a reader nothing and tells the care team nothing.
+
+   Bound to the branch rather than to the file. Searching the whole file passes on a phrase that
+   survives in a comment, or in a neighbouring state's copy — which is the same whole-file hole this
+   check was rewritten once already to close, and it was still open one line below. The body
+   expression is one nested ternary in state order, so each phrase must fall between its own test
+   and the next one. */
+const body=states.match(/const body\s*=([\s\S]*?);\n/)?.[1];
+if(!body) throw new Error('apps/web/src/components/States.tsx no longer builds a `body` for its states, so there is nothing to check the wording of.');
+const at=needle=>body.indexOf(needle);
 for(const [state, must] of [['offline','stays available'],['denied','never blocks a visit'],['error','nothing was lost']]) {
- if(!states.includes(must)) throw new Error(`The "${state}" state no longer tells the reader what it means for them — the sentence containing "${must}" is gone. A state that only names itself is a state that helps nobody.`);
+ if(at(must)<0) throw new Error(`The "${state}" state no longer tells the reader what it means for them — the sentence containing "${must}" is gone from the body of the state block. A state that only names itself is a state that helps nobody.`);
+}
+if(!(at("'offline'")<at('stays available')&&at('stays available')<at("'denied'")&&at("'denied'")<at('never blocks a visit')&&at('never blocks a visit')<at('nothing was lost'))) {
+ throw new Error('The state sentences are no longer in their own branches in apps/web/src/components/States.tsx — one of them has moved, so a reader who is offline may be reading the copy written for a refused permission. Each phrase must sit between its own state test and the next.');
 }
 if(!/export function EmptyState/.test(states)) throw new Error('EmptyState is gone from apps/web/src/components/States.tsx. Empty is the fifth state and the one a new account sees first.');
 /* The picker that made four of these five reachable is a development control and is being removed
