@@ -25,6 +25,14 @@ enum ThusoTheme {
     static let line = Color(red: 0.886, green: 0.910, blue: 0.941)       // #E2E8F0
     static let canvas = Color(red: 0.945, green: 0.961, blue: 0.976)     // #F1F5F9
     static let surface = Color(red: 1.000, green: 1.000, blue: 1.000)    // #FFFFFF
+    static let mist = Color(red: 0.941, green: 0.941, blue: 0.941)       // #F0F0F0
+    static let cloud = Color(red: 0.898, green: 0.898, blue: 0.898)      // #E5E5E5
+    static let stone = Color(red: 0.863, green: 0.867, blue: 0.859)      // #DCDDDB
+    static let charcoal = Color(red: 0.110, green: 0.110, blue: 0.110)   // #1C1C1C
+    static let sageSlate = Color(red: 0.557, green: 0.608, blue: 0.573)  // #8E9B92
+    static let mutedSage = Color(red: 0.620, green: 0.675, blue: 0.608)  // #9EAC9B
+    static let softSage = Color(red: 0.698, green: 0.753, blue: 0.667)   // #B2C0AA
+    static let paleSage = Color(red: 0.784, green: 0.835, blue: 0.733)   // #C8D5BB
     static let danger = Color(red: 0.706, green: 0.137, blue: 0.094)     // #B42318
     static let dangerSoft = Color(red: 0.996, green: 0.953, blue: 0.949) // #FEF3F2
     static let info = Color(red: 0.090, green: 0.361, blue: 0.827)       // #175CD3
