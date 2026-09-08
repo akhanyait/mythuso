@@ -3,7 +3,8 @@ import { Activity, ArrowRight, CalendarDays, ClipboardPlus, FileText, FlaskConic
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
 import { CalibrationCaveat, CalibrationTag, ProvenanceTag } from '../components/Provenance';
 import { ClinicalChart } from '../components/Chart';
-import { EmptyState, StateBlock, StatePicker, type LoadState } from '../components/States';
+import { EmptyState } from '../components/States';
+import { NotConnected } from '../components/NotConnected';
 import { can, roleById, subjectStatusLabels, summarise, type Decision, type VettingSubject } from '../lib/vetting';
 import { subjectsByRole } from '../lib/vetting-fixtures';
 import { money } from '../lib/catalog';
@@ -58,7 +59,6 @@ export function PatientFile({ open }: { open: (s: string) => void }) {
  const [patientId, setPatientId] = useState(patients[0].id);
  const [viewerId, setViewerId] = useState(viewers[0].id);
  const [tabName, setTabName] = useState(fileTabs[0].name);
- const [state, setState] = useState<LoadState>('ready');
  const [notice, setNotice] = useState('');
  const patient = patients.find(p => p.id === patientId)!;
  const viewer = viewers.find(v => v.id === viewerId)!;
@@ -70,14 +70,15 @@ export function PatientFile({ open }: { open: (s: string) => void }) {
  const move = (name: string) => { setTabName(name); setNotice(''); };
  return <>
   <div className="page-intro">
-   <div className="eyebrow">Clinical · design preview</div>
+   <div className="eyebrow">Clinical</div>
    <h1>Patient file</h1>
-   <p>The file a nurse or a doctor opens about somebody else. Fictional patients, fictional numbers; nothing here is a record and nothing reaches a service.</p>
+   <p>The file a nurse or a doctor opens about somebody else — and the sections each of them is refused.</p>
   </div>
+  <NotConnected of="clinical-records"/>
 
   <section className="panel pf-review">
-   <div className="pf-review-heading"><Pill tone="plain">Design review</Pill><h2>The same file, through different eyes</h2></div>
-   <p className="muted">Every tab, action and field group below asks the vetting module whether this party may see it. Change the viewer and watch the file change shape — that is the demonstration, and it is the only way to tell whether a refusal was designed or assumed.</p>
+   <div className="pf-review-heading"><h2>The same file, through different eyes</h2></div>
+   <p className="muted">Every tab, action and field group below asks the vetting module whether this party may see it. Change the viewer and the file changes shape, because a refusal that is only written down is a refusal nobody has tested.</p>
    <div className="pf-review-controls">
     <label className="inline-field">Open the file of
      <select value={patientId} onChange={e => { setPatientId(e.target.value); setNotice(''); }}>{patients.map(p => <option key={p.id} value={p.id}>{p.name} · {p.id}</option>)}</select>
@@ -102,9 +103,7 @@ export function PatientFile({ open }: { open: (s: string) => void }) {
 
   <p role="status" aria-live="polite" className="visually-hidden">{patient.name}, {patient.id}. Viewing as {viewer.name}, {role?.name.toLowerCase()}. {tabName} is {decision.allowed ? 'open' : 'refused'}. {refused} of {fileTabs.length} sections are refused to this viewer.</p>
 
-  <StatePicker label="Preview how this file behaves when the record service is unavailable" value={state} onChange={setState}/>
-  <StateBlock state={state} subject="This patient file" permission="clinical record access" onRetry={() => setState('ready')}>
-   <p className="pf-holds">{tab.holds}</p>
+  <p className="pf-holds">{tab.holds}</p>
    {!decision.allowed ? <Refusal title={`${tabName} — not open to this viewer`} decision={decision}/>
     : tabName === 'Overview' ? <Overview patient={patient} viewer={viewer} notice={notice} setNotice={setNotice} go={move}/>
      : tabName === 'Timeline' ? <Timeline patient={patient} viewer={viewer}/>
@@ -114,8 +113,7 @@ export function PatientFile({ open }: { open: (s: string) => void }) {
          : tabName === 'Referrals' ? <Referrals patient={patient} viewer={viewer}/>
           : tabName === 'Documents' ? <Documents patient={patient} viewer={viewer}/>
            : <Billing patient={patient} viewer={viewer}/>}
-   <p className="helper pf-not-built"><ShieldCheck size={14}/>{tab.notBuilt}</p>
-  </StateBlock>
+  <p className="helper pf-not-built"><ShieldCheck size={14}/>{tab.notBuilt}</p>
  </>;
 }
 
@@ -290,7 +288,7 @@ function Overview({ patient, viewer, notice, setNotice, go }: { patient: Patient
     const Icon = action.label === 'New consultation' ? Stethoscope : action.label === 'Prescription' ? ClipboardPlus : action.label === 'Referral' ? Send : action.label === 'Upload document' ? Upload : MapPin;
     return <li key={action.label}>
      {allowed.allowed
-      ? <button className="pf-action" onClick={() => setNotice(`${action.label} would open here for ${patient.name}. This preview writes nothing, sends nothing and dispenses nothing.`)}><Icon size={20}/><strong>{action.label}</strong><small>{action.detail}</small></button>
+      ? <button className="pf-action" onClick={() => setNotice(`${action.label} would open here for ${patient.name}.`)}><Icon size={20}/><strong>{action.label}</strong><small>{action.detail}</small></button>
       : <div className="pf-action refused"><LockKeyhole size={20}/><strong>{action.label}</strong><small>{allowed.reason}</small></div>}
     </li>;
    })}
@@ -409,7 +407,7 @@ function Results({ patient, viewer, open }: { patient: PatientRecord; viewer: Ve
   {rows.length ? rows.map(report => <section className="panel space-top" key={report.id}>
    <div className="order-head"><span className="service-icon"><FlaskConical size={21}/></span><div><h3>{report.name}</h3><p className="muted">{report.source} · {shortDate(report.at)}</p></div><Pill>{report.status}</Pill><ReleasedTag item={report}/></div>
    <div className="table-scroll"><table className="result-table">
-    <caption>Fictional results. Reference ranges are indicative and are not a validated early-warning score.</caption>
+    <caption>Reference ranges are indicative and are not a validated early-warning score.</caption>
     <thead><tr><th scope="col">Analyte</th><th scope="col">Result</th><th scope="col">Reference range</th></tr></thead>
     <tbody>{report.rows.map(row => <tr key={row.name} className={row.flag ? 'flagged-row' : ''}><th scope="row">{row.name}</th><td>{row.value}{row.flag ? ` · ${row.flag}` : ''}</td><td>{row.range}</td></tr>)}</tbody>
    </table></div>
@@ -462,7 +460,7 @@ function Billing({ patient, viewer }: { patient: PatientRecord; viewer: VettingS
  return <>
   <div className="privacy-note alert"><Receipt size={19}/><span><strong>A code is not anonymous.</strong> Finance sees a service code and an amount and never a diagnosis in words — but a code can be looked up. A claim line for a protected service is withheld here for the same reason the words are.</span></div>
   {rows.length ? <div className="panel table-scroll"><table className="result-table">
-   <caption>Fictional claim lines. Nothing has been submitted to a scheme and no payment has been taken.</caption>
+   <caption>Claim lines, with what each was for and what the scheme has answered.</caption>
    <thead><tr><th scope="col">Date</th><th scope="col">Code</th><th scope="col">Service</th><th scope="col">Amount</th><th scope="col">Status</th></tr></thead>
    <tbody>{rows.map(line => <tr key={line.id} className={line.status === 'Rejected' ? 'flagged-row' : ''}>
     <th scope="row">{shortDate(line.at)}</th><td>{line.code}</td><td>{line.service}<br/><small>{line.payer}</small>{line.note && <><br/><small>{line.note}</small></>}</td><td>{money(line.amount)}</td><td>{line.status}</td>

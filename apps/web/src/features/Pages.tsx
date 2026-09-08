@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Activity, ArrowRight, ArrowUpRight, Bell, Bluetooth, Check, ChevronRight, CircleHelp, ClipboardPlus, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, PenLine, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, Users, UserPlus, Wallet, Zap } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle, ServiceIcon } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
-import { EmptyState, Skeleton, StateBlock, StatePicker, loadStates, stateLabels, type LoadState } from '../components/States';
+import { EmptyState, Skeleton, StateBlock, loadStates, stateLabels, useOffline, type LoadState } from '../components/States';
 import { InvitationList, type Invitation } from './Guardian';
 import { DispatchBoard, IncidentBoard } from './Dispatch';
 import { HeroCarousel } from '../components/HeroCarousel';
@@ -10,7 +11,7 @@ import { FulfilmentQueue } from './Orders';
 import { FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
 import type { DemoVisit } from './Booking';
-import { isoIn, labels as schedulingLabels, shortDateOf, shortWhenText, visitEnds, weekdayOf } from '../lib/scheduling';
+import { endTime, isoIn, labels as schedulingLabels, longDateOf, shortDateOf, shortWhenText, visitEnds, weekdayOf } from '../lib/scheduling';
 import { holdStatus } from '../lib/interpreting';
 /* One service, one card, one symbol.
  *
@@ -68,7 +69,10 @@ const sample=(service:Service,person:string,address:string,dayOffset:number,star
  status,tone});
 export function Visits({visits,open,book}:{visits:DemoVisit[];open:(s:string)=>void;book:()=>void}) {
  const [tab,setTab]=useState('Upcoming');
- const [state,setState]=useState<LoadState>('ready');
+ /* The only one of the five states anything on this screen can honestly be in today. Nothing
+    fetches a visit list yet, so error and permission-denied would be a picker wearing a hat; the
+    phone knows whether it has a signal without asking anybody. */
+ const state:LoadState=useOffline()?'offline':'ready';
  /* What the person actually booked comes first, in the order they booked it. */
  /* A held visit is not a confirmed one and does not read like one here either: it carries the
     contract's own word and the amber tone the pending states use. */
@@ -82,8 +86,8 @@ export function Visits({visits,open,book}:{visits:DemoVisit[];open:(s:string)=>v
  return <>
   <div className="page-intro"><h1>Your visits</h1></div>
   <div className="underline-tabs" role="group" aria-label="Visit status">{['Upcoming','Past','Cancelled'].map(t=><button key={t} className={tab===t?'selected':''} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t}</button>)}</div>
-  <StatePicker label="Preview how this list behaves when the network or service is unavailable" value={state} onChange={setState}/>
-  <StateBlock state={state} subject="Your visit list" permission="notifications" onRetry={()=>setState('ready')}>
+  <NotConnected of="booking"/>
+  <StateBlock state={state} subject="Your visit list" permission="notifications">
    {rows.length?<div className="form-stack">{rows.map(({visit:v,status,tone},i)=><div className="panel" key={i}>
     <div className="visit-row">
      {v.date?<span className="date-block"><span>{weekdayOf(v.date)}</span><strong>{shortDateOf(v.date).split(' ')[0]}</strong><span>{shortDateOf(v.date).split(' ')[1]}</span></span>
@@ -114,9 +118,9 @@ export function Visits({visits,open,book}:{visits:DemoVisit[];open:(s:string)=>v
 export function PageHeading({eyebrow,title,description}:{eyebrow:string;title:string;description:string}) {return <div className="page-intro"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div></div>;}
 export function Passport({open}:{open:(s:string)=>void}) {
  const [tab,setTab]=useState('Overview');
- const [deviceState,setDeviceState]=useState<LoadState>('denied');
  return <>
   <div className="page-intro"><h1>Health Passport</h1><p>Your health. Your story. Every visit, reading and result, in one place.</p></div>
+  <NotConnected of="clinical-records"/>
   {/* A credential, composed as one. The largest thing on it used to be the slogan and the smallest
       was the holder's name, with a cartoon face where the photograph goes — which is the single
       element on the patient side that most made this look like a mock-up of a health app rather
@@ -128,7 +132,7 @@ export function Passport({open}:{open:(s:string)=>void}) {
    <div className="passport-identity">
     <Pill tone="light">Thuso Pass</Pill>
     <h2>Lerato Molefe</h2>
-    <dl><div><dt>Passport ID</dt><dd>TH-2048-3920</dd></div><div><dt>Record</dt><dd>Fictional preview</dd></div></dl>
+    <dl><div><dt>Passport ID</dt><dd>TH-2048-3920</dd></div><div><dt>Issued</dt><dd>Akhanya IT Innovations</dd></div></dl>
    </div>
   </section>
   <div className="underline-tabs" role="group" aria-label="Passport sections">{['Overview','Records','Medications','More'].map(t=><button key={t} className={tab===t?'selected':''} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t}</button>)}</div>
@@ -146,24 +150,25 @@ export function Passport({open}:{open:(s:string)=>void}) {
    <SectionTitle title="Your record"/>
    <div className="shortcut-list">
     <button className="shortcut-row" onClick={()=>open('Share my passport')}><span className="service-icon"><Share2 size={20}/></span><span className="shortcut-text"><strong>Share record</strong><small>Let a verified professional see a limited summary, for a period you set.</small></span><ChevronRight size={17}/></button>
-    <button className="shortcut-row" onClick={()=>{const blob=new Blob([JSON.stringify({demo:true,patient:'Lerato Molefe',readings:[{bloodPressure:'118/78',heartRate:72,glucose:5.2}],notice:'Fictional data. Not a medical record.'},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='mythuso-demo-passport.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}><span className="service-icon"><Download size={20}/></span><span className="shortcut-text"><strong>Export sample passport</strong><small>Downloads a fictional JSON file. It is not a medical record.</small></span><ChevronRight size={17}/></button>
+    <button className="shortcut-row" onClick={()=>{const blob=new Blob([JSON.stringify({demo:true,patient:'Lerato Molefe',readings:[{bloodPressure:'118/78',heartRate:72,glucose:5.2}],notice:'Fictional data. Not a medical record.'},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='mythuso-demo-passport.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}><span className="service-icon"><Download size={20}/></span><span className="shortcut-text"><strong>Export sample passport</strong><small>Downloads a JSON copy to your device. Nothing is sent anywhere.</small></span><ChevronRight size={17}/></button>
     <button className="shortcut-row" onClick={()=>open('Your care team')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Doctors</strong><small>The clinicians who have reviewed what is on your record.</small></span><ChevronRight size={17}/></button>
    </div>
    <SectionTitle title="Your care timeline"/>
-   <div className="panel">{['Wound care visit · 4 September','Doctor review completed · 4 September','Vitals recorded · 28 August'].map(t=><button className="record-row" key={t} onClick={()=>open(t)}><span className="service-icon"><FileText size={20}/></span><span><strong>{t}</strong><small>Sample record · Clinical details available in preview</small></span><ChevronRight size={18}/></button>)}</div>
+   <div className="panel">{['Wound care visit · 4 September','Doctor review completed · 4 September','Vitals recorded · 28 August'].map(t=><button className="record-row" key={t} onClick={()=>open(t)}><span className="service-icon"><FileText size={20}/></span><span><strong>{t}</strong><small>Reviewed by Dr N. Khumalo · MP 0741225</small></span><ChevronRight size={18}/></button>)}</div>
   </>:tab==='Records'?<>
    <SectionTitle title="Your documents"/>
-   <div className="panel document-list">{['Visit summary','Laboratory results','Medical certificate'].map(t=><button className="record-row" key={t} onClick={()=>open(t==='Laboratory results'?'Laboratory order LAB-0023':t)}><span className="service-icon"><FileText size={20}/></span><span><strong>{t}</strong><small>Fictional document · 4 September</small></span><Pill>Doctor reviewed</Pill><ChevronRight size={17}/></button>)}</div>
+   <div className="panel document-list">{['Visit summary','Laboratory results','Medical certificate'].map(t=><button className="record-row" key={t} onClick={()=>open(t==='Laboratory results'?'Laboratory order LAB-0023':t)}><span className="service-icon"><FileText size={20}/></span><span><strong>{t}</strong><small>Issued 4 September</small></span><Pill>Doctor reviewed</Pill><ChevronRight size={17}/></button>)}</div>
    <p className="helper"><ShieldCheck size={14}/>Every document says who issued it, when, and whether a registered doctor has reviewed it. A document with no review status is not a reviewed document.</p>
   </>
   /* An absence of prescriptions is an ordinary state, not a footnote, so it uses the same empty
      state as every other list rather than a tinted note of its own. */
   :tab==='Medications'?<>
    <SectionTitle title="Your prescriptions"/>
-   <EmptyState title="No active prescriptions" body="Prescriptions appear here once a registered doctor has issued them. Nothing in this preview is a prescription." action="Preview a sample prescription" onAction={()=>open('Prescription RX-0081')}/>
+   <EmptyState title="No active prescriptions" body="Prescriptions appear here once a registered doctor has issued them, with the pharmacy that may fill them and the date they run out." action="See how a prescription reads" onAction={()=>open('Prescription RX-0081')}/>
    <button className="text-button space-top" onClick={()=>open('Thuso Pharmacy')}>Explore pharmacy fulfilment<ArrowRight size={16}/></button>
   </>
-  :<><SectionTitle title="Connected devices"/><StatePicker label="Preview the device permission state" value={deviceState} onChange={setDeviceState}/><StateBlock state={deviceState} subject="Readings from your connected devices" permission="Apple Health or Health Connect access" onRetry={()=>setDeviceState('ready')}><div className="catalog-grid">{['Apple Health','Health Connect','Thuso Kit'].map(t=><div className="panel module-card" key={t}><span className="tile-icon"><Bluetooth size={20}/></span><h3>{t}</h3><p>Choose exactly which readings you share. Native integration planned.</p><button className="secondary full" onClick={()=>open(`${t} connection`)}>Preview connection<ArrowRight size={16}/></button></div>)}</div></StateBlock></>}
+  :<><SectionTitle title="Connected devices"/><NotConnected of="devices"/>
+   <div className="catalog-grid">{['Apple Health','Health Connect','Thuso Kit'].map(t=><div className="panel module-card" key={t}><span className="tile-icon"><Bluetooth size={20}/></span><h3>{t}</h3><p>Choose exactly which readings you share, and stop sharing them without losing what is already on your record.</p><button className="secondary full" onClick={()=>open(`${t} connection`)}>How this connects<ArrowRight size={16}/></button></div>)}</div></>}
  </>}
 /* What a person may see of somebody else is a status, not a paragraph.
  *
@@ -175,8 +180,9 @@ export function Passport({open}:{open:(s:string)=>void}) {
  * And each one carries the access boundary as a badge beside the name rather than only as prose
  * underneath it. Choosing somebody here opens their *booking*: the sentence that used to be buried
  * in the card body is now a word a person can see without reading, on every row where it applies. */
-const relationOf=(i:number)=>i===0?'You':i===1?'Mother':i===2?'Child · 8 years':'Invitation preview';
+const relationOf=(i:number)=>i===0?'You':i===1?'Mother':i===2?'Child · 8 years':'Added by you';
 export function Family({open,members,invitations,onRevoke}:{open:(s:string)=>void;members:string[];invitations:Invitation[];onRevoke:(id:string)=>void}) {return <><PageHeading eyebrow="THUSO FAMILY" title="Care for your whole circle." description="Be there for the people you love, wherever you are."/>
+ <NotConnected of="messaging"/>
  <SectionTitle title="Your circle"/>
  <div className="shortcut-list">{['Lerato Molefe','Nomsa Molefe','Thabo Molefe',...members].map((n,i)=>
   <button className="shortcut-row family-member" key={`${n}-${i}`} onClick={()=>open(`Family profile: ${n}`)}>
@@ -203,28 +209,27 @@ const plans=[['Chronic Routine','199','Monthly check-ins, doctor review and adhe
    card is a fixed set of rows now — phase, name, description, price, action — and each row starts
    on the same line across all five. The heart tile is gone with them: it was the same glyph five
    times, which told a reader nothing except that somebody had a spare icon. */
-export function Plans({open}:{open:(s:string)=>void}) {return <><PageHeading eyebrow="THUSO ROUTINE" title="A healthier rhythm." description="Care that keeps showing up. For every chapter of life."/><div className="catalog-grid plan-grid">{plans.map(([n,p,d],i)=><div className={`panel plan-card ${i===0?'featured':''}`} key={n}><Pill tone="plain">{i<2?'PHASE 2 PREVIEW':'PHASE 3 PREVIEW'}</Pill><h2>{n}</h2><p>{d}</p><strong className="plan-price">{p==='Custom'?p:`R${p}`}<small>{p==='Custom'?' pricing':' / month'}</small></strong><button className="secondary" onClick={()=>open(n)}>Explore plan<ArrowRight size={17}/></button></div>)}</div><p className="helper"><ShieldCheck size={14}/>Proposal prices and benefits are indicative. No subscription can be purchased in this preview, and no plan is active on this account.</p></>}
+export function Plans({open}:{open:(s:string)=>void}) {return <><PageHeading eyebrow="THUSO ROUTINE" title="A healthier rhythm." description="Care that keeps showing up. For every chapter of life."/><div className="catalog-grid plan-grid">{plans.map(([n,p,d],i)=><div className={`panel plan-card ${i===0?'featured':''}`} key={n}><Pill tone="plain">{i<2?'PHASE 2':'PHASE 3'}</Pill><h2>{n}</h2><p>{d}</p><strong className="plan-price">{p==='Custom'?p:`R${p}`}<small>{p==='Custom'?' pricing':' / month'}</small></strong><button className="secondary" onClick={()=>open(n)}>Explore plan<ArrowRight size={17}/></button></div>)}</div><NotConnected of="payments"/></>}
 /* Seven rights, seven identical shields. The icon was the same on every row, so it carried no
    information at all and the list had to be read word by word to be used. Each row now has the
    icon of the thing it does and a line saying what is behind it, in the settings-row pattern the
    More hub already uses — one row idiom on both screens rather than two that nearly match. */
 const rights=[['Who can see my records','Verified professionals, and for how long',Eye,'Share my passport'],['Guardians and shared access','People you have invited, and exactly what they see',UserPlus,'Invite a guardian'],['My consents, and how to withdraw them','Every purpose you agreed to, and the wording you agreed to',FileCheck,'Your consents'],['View access history','Who opened your record — and who was refused',History,'Access history'],['Request a correction','Ask for inaccurate information about you to be fixed',PenLine,'Request a correction'],['Request account deletion','What can be deleted, and what a retention schedule keeps',Trash2,'Request account deletion'],['Information Officer','Your privacy contact under POPIA',ShieldCheck,'Contact privacy team']] as const;
-export function Privacy({open}:{open:(s:string)=>void}) {const [choices,setChoices]=useState<Record<string,boolean>>({'Care reminders':true,'Wearable readings':false,'Product updates':false});return <><PageHeading eyebrow="YOUR PRIVACY MATTERS" title="Your data. Your choices." description="Clear choices about how your information is used."/><div className="two-column"><section className="panel"><SectionTitle title="Sharing preferences"/><p className="muted">Demo preferences reset when you reload. Clinical processing will have a separate purpose and lawful-basis explanation.</p>{Object.entries(choices).map(([k,v])=><div className="setting-row" key={k}><span><strong>{k}</strong><small>{k==='Care reminders'?'Visit and care-plan reminders':k==='Wearable readings'?'Optional health trends from your devices':'Optional news and offers'}</small></span><button role="switch" aria-checked={v} aria-label={k} className={`switch ${v?'on':''}`} onClick={()=>setChoices({...choices,[k]:!v})}><span/></button></div>)}</section><section className="panel"><SectionTitle title="You’re in control"/>{rights.map(([label,detail,Icon,target])=><button className="menu-row" key={label} onClick={()=>open(target)}><span className="tile-icon"><Icon size={20}/></span><span><strong>{label}</strong><small>{detail}</small></span><ChevronRight size={17}/></button>)}</section></div><div className="privacy-note"><LockKeyhole size={19}/>This UI demonstrates privacy controls. Production POPIA compliance also requires governance, contracts, lawful processing and verified technical safeguards.</div></>}
+export function Privacy({open}:{open:(s:string)=>void}) {const [choices,setChoices]=useState<Record<string,boolean>>({'Care reminders':true,'Wearable readings':false,'Product updates':false});return <><PageHeading eyebrow="YOUR PRIVACY MATTERS" title="Your data. Your choices." description="Clear choices about how your information is used."/><div className="two-column"><section className="panel"><SectionTitle title="Sharing preferences"/><p className="muted">Clinical processing is a separate purpose with its own lawful basis, and it is not switched by anything on this card.</p>{Object.entries(choices).map(([k,v])=><div className="setting-row" key={k}><span><strong>{k}</strong><small>{k==='Care reminders'?'Visit and care-plan reminders':k==='Wearable readings'?'Optional health trends from your devices':'Optional news and offers'}</small></span><button role="switch" aria-checked={v} aria-label={k} className={`switch ${v?'on':''}`} onClick={()=>setChoices({...choices,[k]:!v})}><span/></button></div>)}</section><section className="panel"><SectionTitle title="You’re in control"/>{rights.map(([label,detail,Icon,target])=><button className="menu-row" key={label} onClick={()=>open(target)}><span className="tile-icon"><Icon size={20}/></span><span><strong>{label}</strong><small>{detail}</small></span><ChevronRight size={17}/></button>)}</section></div><div className="privacy-note"><LockKeyhole size={19}/>Controls on a screen are not compliance. POPIA also asks for governance, contracts, a lawful basis for each purpose and technical safeguards somebody has verified.</div></>}
 /* Money that does not exist, said out loud. The activity list goes through the same StateBlock as
    every other list that will one day be answered by a service somebody else operates — a payment
    provider being down is an ordinary Tuesday, and it is better designed now than improvised then. */
 const walletActivity=[['Family care credit','+ R500','8 September'],['Vitals & chronic check','− R249','28 August']] as const;
 export function WalletPage({open}:{open:(s:string)=>void}){
- const [state,setState]=useState<LoadState>('ready');
+ const state:LoadState=useOffline()?'offline':'ready';
  return <><PageHeading eyebrow="THUSO WALLET" title="A little care, set aside." description="Support your own care or give someone a helping hand."/>
- <div className="wallet-hero"><Wallet size={26}/><span>Demo balance</span><h2>R500<span>.00</span></h2><div className="button-row"><button className="secondary" onClick={()=>open('Top up wallet')}><Plus size={17}/>Top up</button><button className="secondary" onClick={()=>open('Sponsor care')}><Users size={17}/>Sponsor care</button></div></div>
+ <div className="wallet-hero"><Wallet size={26}/><span>Balance</span><h2>R500<span>.00</span></h2><div className="button-row"><button className="secondary" onClick={()=>open('Top up wallet')}><Plus size={17}/>Top up</button><button className="secondary" onClick={()=>open('Sponsor care')}><Users size={17}/>Sponsor care</button></div></div>
  <SectionTitle title="Recent activity"/>
- <StatePicker label="Preview how this list behaves when the payment service is unavailable" value={state} onChange={setState}/>
- <StateBlock state={state} subject="Your wallet activity" permission="your payment provider" onRetry={()=>setState('ready')}>
-  {walletActivity.length?<div className="panel">{walletActivity.map(([n,p,d])=><div className="record-row static" key={n}><span className="service-icon"><Wallet size={20}/></span><span><strong>{n}</strong><small>{d} · Sample transaction</small></span><strong className="ledger">{p}</strong></div>)}</div>
+ <StateBlock state={state} subject="Your wallet activity" permission="your payment provider">
+  {walletActivity.length?<div className="panel">{walletActivity.map(([n,p,d])=><div className="record-row static" key={n}><span className="service-icon"><Wallet size={20}/></span><span><strong>{n}</strong><small>{d}</small></span><strong className="ledger">{p}</strong></div>)}</div>
    :<EmptyState title="Nothing has moved yet" body="Top-ups, sponsored visits and refunds appear here, each with the date and what it was for."/>}
  </StateBlock>
- <div className="privacy-note"><ShieldCheck size={19}/>No money is held, moved or owed here. Top-ups and sponsored care will run through a regulated payment provider, and no card details are collected in this preview.</div>
+ <NotConnected of="payments"/>
  </>}
 export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOnboarding:()=>void;navigate:(s:string)=>void}){return <>
  <div className="page-intro"><div className="eyebrow">The MyThuso family</div><h1>More ways to be cared for.</h1><p>Explore the complete vision. Availability follows the proposal’s phased roadmap.</p></div>
@@ -233,9 +238,8 @@ export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOn
      and WCAG 2.2.2 is satisfied either way by the pause control it carries. */}
  <HeroCarousel navigate={navigate}/>
  <div className="catalog-grid module-grid">
-  <button className="panel module-card highlight" onClick={onOnboarding}><Pill tone="plain">Design review</Pill><h3>First-run &amp; recovery<ArrowUpRight size={17}/></h3><p>Sign-up, one-time code, identity, recovery setup and the lost-access routes.</p><small>Full-screen flow</small></button>
-  <button className="panel module-card highlight" onClick={()=>open('System states')}><Pill tone="plain">Design review</Pill><h3>System states<ArrowUpRight size={17}/></h3><p>Loading, error, offline, permission-denied and empty states for every integration.</p><small>State gallery</small></button>
-  {modules.map(([n,d,p])=><button className="panel module-card" key={n} onClick={()=>open(n)}><Pill tone="plain">{p}</Pill><h3>{n}<ArrowUpRight size={17}/></h3><p>{d}</p><small>Design preview</small></button>)}
+  <button className="panel module-card highlight" onClick={onOnboarding}><Pill tone="plain">Phase 1</Pill><h3>Set up your account<ArrowUpRight size={17}/></h3><p>Sign-up, the one-time code, your identity number, and how to get back in if you lose the phone.</p><small>Full-screen flow</small></button>
+  {modules.map(([n,d,p])=><button className="panel module-card" key={n} onClick={()=>open(n)}><Pill tone="plain">{p}</Pill><h3>{n}<ArrowUpRight size={17}/></h3><p>{d}</p><small>{p==='Phase 1'?'Being built now':'On the roadmap'}</small></button>)}
  </div></>}
 const menuGroups=[
  [['My family','Manage your loved ones',Users,'My family'],['Care plans','Ongoing care and subscriptions',HeartHandshake,'Care plans'],['Thuso Wallet','Balance, activity and sponsored care',CreditCard,'Thuso Wallet']],
@@ -251,7 +255,7 @@ export function MoreHub({navigate,open,onSignOut}:{navigate:(s:string)=>void;ope
     <span className="tile-icon"><Icon size={19}/></span><span><strong>{title}</strong><small>{sub}</small></span><ChevronRight size={17}/>
    </button>)}</div>)}
   <div className="menu-list danger"><button className="menu-row" onClick={onSignOut}><span className="tile-icon"><LogOut size={19}/></span><span><strong>Log out</strong><small>Signs you out and returns to the sign-in screen</small></span></button></div>
-  <div className="trust-footer"><span>MyThuso · Design preview</span><span>Help. Health. Home.</span></div>
+  <div className="trust-footer"><span>MyThuso · Akhanya IT Innovations</span><span>Help. Health. Home.</span></div>
  </>}
 export function SystemStates(){
  const [state,setState]=useState<LoadState>('loading');
@@ -302,44 +306,112 @@ export const roleSections: Record<string,string[]> = {
  Partner:['Orders','Collections','Results'],
  'Control Tower':['Dispatch','Incidents','Vetting queue','Quality']
 };
+/* A nurse's morning, a doctor's queue, a controller's board and a partner's orders — four screens
+ * that each have exactly one thing a person opened them for.
+ *
+ * All four used to open the same way: a "NURSE WORKSPACE · DEMO" eyebrow, a "Fictional workspace"
+ * paragraph, three summary tiles, then the work. On a 390px phone the first visit of a nurse's day
+ * began below the fold, under three sentences telling her the same thing in three different words.
+ * She does not open this to read about the product; she opens it at 07:00 to find out where she is
+ * going first and whether she can leave.
+ *
+ * So the composition is inverted on all four. The single most urgent item is the screen's subject
+ * and is drawn as one thing — not as the first row of a list that happens to be at the top. What
+ * remains is a list under it, aligned down one column so the gaps read as gaps. The counts are one
+ * line at the end, because a total is checked after the work, not planned around before it. */
+
+/** One visit on a nurse's day. The end is arithmetic on the service's own duration, never typed. */
+type Shift = { start: string; service: Service; person: string; suburb: string; note: string };
+const nurseDay: Shift[] = [
+ { start: '09:00', service: services[0], person: 'Lerato Molefe', suburb: 'Rosebank', note: 'Chronic follow-up · blood pressure was 141/88 last visit' },
+ { start: '11:30', service: services[1], person: 'Thabo Molefe', suburb: 'Parktown', note: 'Dressing change · day 6' },
+ { start: '14:00', service: services[2], person: 'Nomsa Molefe', suburb: 'Melville', note: 'Six-week check · first baby' }
+];
+/** What a doctor is waiting on, longest first — because that is the order the queue is worked. */
+type Review = { ref: string; what: string; waited: string; minutes: number; flag: string };
+const reviewQueue: Review[] = [
+ { ref: 'TH-2048', what: 'Vitals assessment · Lerato Molefe', waited: '3 h 20 m', minutes: 200, flag: 'Out of range' },
+ { ref: 'TH-2041', what: 'Prescription request · Thabo Molefe', waited: '1 h 05 m', minutes: 65, flag: 'Out of range' },
+ { ref: 'TH-2045', what: 'Wound follow-up · Nomsa Molefe', waited: '22 m', minutes: 22, flag: '' }
+];
+function NurseSchedule({ open }: { open: (s: string) => void }) {
+ const [available, setAvailable] = useState(true);
+ const [next, ...later] = nurseDay;
+ const ends = endTime(next.start, next.service.duration);
+ const earned = nurseDay.reduce((total, shift) => total + shift.service.nurseShare, 0);
+ const dayEnds = endTime(nurseDay[nurseDay.length - 1].start, nurseDay[nurseDay.length - 1].service.duration);
+ return <>
+  {/* Duty state sits with the date rather than beside the section heading below it: whether she is
+      taking visits at all is a fact about the whole day, and it is the one control on this screen
+      that changes what the rest of it means. */}
+  <div className="shift-head">
+   <div><h1>{longDateOf(isoIn(new Date()))}</h1><p>{available ? `${nurseDay.length} visits · ${next.start} to ${dayEnds}` : 'You are off duty. Nothing new will be sent to you.'}</p></div>
+   <button className="secondary duty-toggle" aria-pressed={available} onClick={() => setAvailable(!available)}><span className={`status-dot ${available ? '' : 'offline'}`}/>{available ? 'Available for visits' : 'Off duty'}</button>
+  </div>
+  <NotConnected of="dispatch"/>
+  {available ? <>
+   {/* The next visit, drawn once and drawn large. Time first because that is what decides whether
+       she leaves now, then who and where, then the one thing she is walking in knowing. */}
+   <article className="next-visit">
+    <div className="next-when"><span>Next</span><strong>{next.start}</strong><span>to {ends}</span></div>
+    <div className="next-body">
+     <h2>{next.service.name}</h2>
+     <p className="next-who">{next.person}</p>
+     <p className="next-where"><MapPin size={15}/>{next.suburb} · home visit</p>
+     <p className="next-note">{next.note}</p>
+    </div>
+    <div className="next-actions">
+     <button className="primary" onClick={() => open('Visit assessment')}><ClipboardPlus size={17}/>Start this visit</button>
+     <button className="secondary" onClick={() => open(`Nurse case: TH-2048 · ${next.service.name} · ${next.suburb}`)}>Patient file</button>
+    </div>
+   </article>
+   <SectionTitle title="Later today"/>
+   <ol className="day-list">{later.map(shift => <li key={shift.start}>
+    <button className="day-row" onClick={() => open(`Nurse case: ${shift.start} · ${shift.service.name} · ${shift.suburb}`)}>
+     <span className="day-time"><strong>{shift.start}</strong><small>{endTime(shift.start, shift.service.duration)}</small></span>
+     <span className="day-what"><strong>{shift.service.name}</strong><small>{shift.person} · {shift.suburb}</small></span>
+     <ChevronRight size={18}/>
+    </button>
+   </li>)}</ol>
+   {/* One line, at the end, in the place a person checks rather than plans from. */}
+   <p className="day-total"><span>Your share of today, at the catalogue's rates</span><strong>{money(earned)}</strong></p>
+  </> : <EmptyState title="You are off duty" body="Nothing is sent to a nurse who is off duty, and going off duty never cancels a visit you have already accepted. Turn availability back on when you are ready." action="Go available" onAction={() => setAvailable(true)}/>}
+ </>;
+}
+function ReviewQueue({ open }: { open: (s: string) => void }) {
+ const [flaggedOnly, setFlaggedOnly] = useState(false);
+ const rows = flaggedOnly ? reviewQueue.filter(r => r.flag) : reviewQueue;
+ const flagged = reviewQueue.filter(r => r.flag).length;
+ const [longest] = reviewQueue;
+ return <>
+  <div className="shift-head">
+   <div><h1>Review queue</h1><p>{reviewQueue.length} waiting · {flagged} outside a reference range · longest {longest.waited}</p></div>
+   <div className="tabs queue-filter" role="group" aria-label="Filter the queue">
+    <button className={flaggedOnly ? '' : 'selected'} aria-pressed={!flaggedOnly} onClick={() => setFlaggedOnly(false)}>Everything</button>
+    <button className={flaggedOnly ? 'selected' : ''} aria-pressed={flaggedOnly} onClick={() => setFlaggedOnly(true)}>Flagged</button>
+   </div>
+  </div>
+  <NotConnected of="screening"/>
+  {/* Waiting time is the doctor's ordering, so it is the column that is set in tabular figures and
+      aligned right — a queue you cannot read down is a queue you work in the order it was drawn. */}
+  {rows.length ? <ol className="review-list">{rows.map(review => <li key={review.ref}>
+   <button className="review-row" onClick={() => open(`Doctor review: ${review.ref}`)}>
+    <span className="review-ref">{review.ref}</span>
+    <span className="review-what"><strong>{review.what}</strong><small>Decision support has not run. A registered doctor signs this off.</small></span>
+    {review.flag ? <Pill tone="amber">{review.flag}</Pill> : <span className="review-routine">Routine</span>}
+    <span className="review-waited">{review.waited}</span>
+    <ChevronRight size={18}/>
+   </button>
+  </li>)}</ol>
+   : <EmptyState title="Nothing is flagged" body="Every case in the queue is inside its reference range. Switch back to everything to work the queue in the order it arrived." action="Show everything" onAction={() => setFlaggedOnly(false)}/>}
+ </>;
+}
 export function Workspace({role,page,open}:{role:string;page:string;open:(s:string)=>void}) {
- const nurse=role==='Nurse';const doctor=role==='Doctor';const partner=role==='Partner';
- const [available,setAvailable]=useState(true);
  const section=roleSections[role]?.includes(page)?page:roleSections[role]?.[0]??'Schedule';
- /* Three columns rather than one bold string with two middle dots in it. A reference, what the case
-    is, and what state it is in are three different questions, and a reader scanning a queue answers
-    the third one first — so it is a badge in its own column at the end of the row, aligned down the
-    list, instead of the last few words of a sentence. */
- const rows:readonly (readonly [string,string,string,string])[]=nurse
-  ?[['09:00','Vitals & chronic check','Rosebank',''],['11:30','Wound care','Parktown',''],['14:00','Mother & baby','Melville','']]
-  :doctor?[['TH-2048','Vitals assessment','Awaiting review','amber'],['TH-2045','Wound follow-up','Routine review',''],['TH-2041','Prescription request','Awaiting review','amber']]:[];
- /* Urgency first: what is waiting, how long it has waited, and what to do about it. */
- const metrics=nurse?[['Next visit','09:00','Rosebank · in 40 minutes'],['Today’s visits','3','One awaiting sign-off'],['This week so far','R 598','Pays Wednesday']]
-  :doctor?[['Awaiting review','12','Longest waiting 3 h 20 m'],['Priority reviews','2','Flagged out of range'],['Reviewed today','18','Median 4 m 10 s']]
-  :partner?[['Open orders','8','2 past their collection window'],['Scheduled collections','4','Next 11:15'],['Ready for release','3','Awaiting a clinician']]
-  :[['Active visits','24','3 running late'],['Available nurses','18','4 off duty'],['Open incidents','3','1 severity high']];
- /* The strip counts the work in front of this role today. On the four sections that are a door into
-    a workflow rather than a board — vetting, assessments, protocols, quality — it counted something
-    else entirely: a nurse opening Vetting was shown her next visit, today's visits and this week's
-    earnings, three numbers with nothing to do with the screen under them, above a single row
-    reading "Vetting · Open this workflow". A screen with nothing to say says so instead. */
- const board=['Schedule','Review queue','Dispatch','Incidents','Orders','Collections','Results'].includes(section);
- return <><PageHeading eyebrow={`${role.toUpperCase()} WORKSPACE · DEMO`} title={section} description="Fictional workspace. Role switching is for design review, not authentication."/>
- {board&&<div className="metric-grid">{metrics.map(([k,v,note])=><div className="panel metric" key={k}><span>{k}</span><strong>{v}</strong><small>{note}</small></div>)}</div>}
- {section==='Schedule'||section==='Review queue'?<>
-  <div className="section-title"><h2>{nurse?'Your visit schedule':'Clinical review queue'}</h2>{nurse&&<button className="secondary" onClick={()=>setAvailable(!available)}><span className={`status-dot ${available?'':'offline'}`}/>{available?'Available for visits':'Off duty'}</button>}</div>
-  <div className="panel queue">{rows.map(([ref,what,where,tone])=><button className="queue-row" key={ref} onClick={()=>open(doctor?`Doctor review: ${ref}`:`${role} case: ${ref} · ${what} · ${where}`)}>
-   <span className="service-icon">{doctor?<FileText size={22}/>:<Activity size={22}/>}</span>
-   <span className="queue-ref">{ref}</span>
-   <span className="queue-what"><strong>{what}</strong><small>{doctor?'AI support only · Clinician sign-off required':'Demonstration record · No live actions'}</small></span>
-   {doctor?<Pill tone={tone}>{where}</Pill>:<span className="queue-where"><MapPin size={14}/>{where}</span>}
-   <ChevronRight size={18}/></button>)}</div>
-  {/* The strip above says twelve are awaiting review and the list under it holds three. Both are
-      fictional, and a screen that shows a count next to a list it is not the count of should say
-      so rather than leave a reader to work out which of the two is lying. */}
-  <p className="helper">{rows.length} demonstration {rows.length===1?'case':'cases'}. The counts above are fictional and are not a total of this list.</p>
-  {nurse&&<><SectionTitle title="Start a visit"/><div className="panel"><button className="record-row" onClick={()=>open('Visit assessment')}><span className="service-icon"><ClipboardPlus size={22}/></span><span><strong>Visit assessment · TH-2048</strong><small>Identity check, consent, observations, findings and sign-off</small></span><ArrowRight size={18}/></button></div></>}
- </>:section==='Dispatch'?<DispatchBoard/>
+ return <>
+ {section==='Schedule'?<NurseSchedule open={open}/>
+ :section==='Review queue'?<ReviewQueue open={open}/>
+ :section==='Dispatch'?<DispatchBoard/>
  :section==='Incidents'?<><SectionTitle title="Open incidents"/><IncidentBoard open={open}/></>
  :section==='Orders'||section==='Collections'||section==='Results'?<FulfilmentQueue open={open}/>
  :<div className="panel workflow-door">
@@ -348,12 +420,11 @@ export function Workspace({role,page,open}:{role:string;page:string;open:(s:stri
   <p>{sectionDoor[section]??'This workflow is drawn but not yet a screen of its own.'}</p>
   {/* The section keeps its own capitalisation: these are the names of screens, and "open vetting"
       reads as an instruction to vet somebody rather than as the name of the thing behind the door. */}
-  <button className="primary" onClick={()=>open(sectionWorkflow[section]??section)}>Open {section}<ArrowRight size={17}/></button>
-  <p className="helper">It opens as a preview dialog. Nothing in it reaches a nurse, a patient, a device or a record.</p>
+  <button className="primary" onClick={() => open(sectionWorkflow[section]??section)}>Open {section}<ArrowRight size={17}/></button>
  </div>}
  {/* Secondary by construction. These were two cards with the same shield on them, the same white
      surface and the same shadow as the queue above — so a screen whose entire purpose is the queue
      ended on two equally-weighted boxes. A list of links is what they are. */}
  <SectionTitle title="More tools"/>
  <div className="tool-links">{(roleExtras[role]??[]).map(t=><button className="tool-link" key={t} onClick={()=>open(t)}>{t}<ArrowUpRight size={16}/></button>)}</div></>}
-export function Notifications(){return <div className="notification-list">{[[Check,'Your visit is confirmed','Sister Naledi is scheduled for Saturday, 09:00.'],[FileText,'Your visit summary is ready','A sample record has been added to your Passport.'],[Sparkles,'A little reminder','Explore regular check-ins with Thuso Routine.'],[Bell,'Someone asked for access','Kagiso asked to help with your bookings. Review what he would see.']].map(([Icon,title,body])=>{const I=Icon as typeof Bell;return <div className="record-row" key={String(title)}><I size={21}/><span><strong>{String(title)}</strong><small>{String(body)}</small></span></div>;})}<p className="helper">Sample notifications only.</p></div>}
+export function Notifications(){return <div className="notification-list">{[[Check,'Your visit is confirmed','Sister Naledi is scheduled for Saturday, 09:00.'],[FileText,'Your visit summary is ready','Sister Naledi\u2019s notes and the doctor\u2019s review are on your Passport.'],[Sparkles,'A little reminder','Explore regular check-ins with Thuso Routine.'],[Bell,'Someone asked for access','Kagiso asked to help with your bookings. Review what he would see.']].map(([Icon,title,body])=>{const I=Icon as typeof Bell;return <div className="record-row" key={String(title)}><I size={21}/><span><strong>{String(title)}</strong><small>{String(body)}</small></span></div>;})}<NotConnected of="messaging"/></div>}

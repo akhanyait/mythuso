@@ -72,7 +72,7 @@ const rotas: Record<string, { label: string; note: string; nurses: OnCall[] }> =
    the reader can see it. On this screen that rule matters more than anywhere else in the app: a
    made-up arrival time is what keeps somebody at a window instead of on the phone to 10177. */
 function etaFor(nurse: OnCall, to: LatLng | null): Eta {
- const measured = etaFromRoute(routeUnavailable('No routing provider is connected in this preview.'));
+ const measured = etaFromRoute(routeUnavailable('No routing provider is connected, so no road route can be drawn or timed.'));
  if (measured.minutes !== null) return measured;
  if (!to) return noEta('No address has been chosen yet, so there is nothing to measure to.');
  if (!nurse.at) return noEta('This nurse’s phone is not sharing a position, so there is nothing to measure from.');

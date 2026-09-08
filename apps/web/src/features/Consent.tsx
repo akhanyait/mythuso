@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Ban, Check, Clock, Eye, Fingerprint, ShieldAlert, ShieldCheck, X } from 'lucide-react';
+import { Ban, Check, Clock, Eye, Fingerprint, ShieldAlert, ShieldCheck, X } from 'lucide-react';
 import { Pill } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
+import { StateBlock, type LoadState } from '../components/States';
 import {
  accessLog, asDate, asMoment, authorises, basisName, careStanding, currentVersion, effectiveOn,
  fetchAccessLog, fetchStanding, optionalPurposes, previewAccesses, previewStandings, purposeById,
@@ -72,7 +74,7 @@ export function ConsentCentre() {
  };
 
  return <div className="consent-centre">
-  <Pill>{loaded.live ? 'Consent register connected' : 'Design preview'}</Pill>
+  {loaded.live ? <Pill>Consent register connected</Pill> : <NotConnected of="accounts"/>}
   <p className="muted">{why}</p>
   <p className="muted">{rules.consentIsToAVersion}</p>
   <div className={care.mayReceiveCare ? 'privacy-note' : 'consent-blocked'} role="status">
@@ -170,13 +172,33 @@ function PurposeCard({ purpose, standing, onDecide }: {
  * reading was made under rather than leaving "why were they allowed to" unanswered.
  */
 export function AccessHistory() {
- const loaded = withPreview(fetchAccessLog, previewAccesses);
- const entries: AccessEntry[] = loaded.value;
+ /* The one screen in the app whose state comes from something that actually answers. The four
+    outcomes fetchAccessLog now distinguishes map onto four of the five shared states, and the
+    fifth — permission-denied — is what the server will return once there is a session to deny.
+    Nothing here is simulated: pull the network cable and this goes offline. */
+ const [attempt, setAttempt] = useState(0);
+ const [state, setState] = useState<LoadState>('loading');
+ const [entries, setEntries] = useState<AccessEntry[]>(previewAccesses);
+ const [live, setLive] = useState(false);
+ useEffect(() => {
+  let cancelled = false;
+  setState('loading');
+  void (async () => {
+   const answer = await fetchAccessLog();
+   if (cancelled) return;
+   if (answer.kind === 'answered') { setEntries(answer.value); setLive(true); setState('ready'); }
+   else if (answer.kind === 'offline') setState('offline');
+   else if (answer.kind === 'failed') setState('error');
+   else { setLive(false); setState('ready'); }
+  })();
+  return () => { cancelled = true; };
+ }, [attempt]);
  const refused = entries.filter(entry => entry.outcome === 'refused').length;
  return <div className="access-log">
-  <Pill>{loaded.live ? 'Access log connected' : 'Design preview'}</Pill>
+  {live ? <Pill>Access log connected</Pill> : <NotConnected of="accounts"/>}
   <p className="muted">{accessLog.why}</p>
   <div className="privacy-note"><Eye size={19}/>{accessLog.subjectMayRead}</div>
+  <StateBlock state={state} subject="Your access history" permission="access to your record" onRetry={() => setAttempt(attempt + 1)}>
   <p className="helper" role="status">{entries.length} {entries.length === 1 ? 'entry' : 'entries'}, {refused} of them refused. {rules.aRefusedAccessIsRecordedToo}</p>
   <ul className="access-list">
    {entries.map(entry => <li key={entry.auditId ?? `${entry.at}-${entry.recordType}`} className={`access-row is-${entry.outcome}`}>
@@ -194,6 +216,6 @@ export function AccessHistory() {
    <ul>{accessLog.neverRecords.map(line => <li key={line}>{line}</li>)}</ul>
   </div>
   <p className="helper">{rules.theAccessLogIsNotTheSignInLog} {accessLog.retention}</p>
-  {!loaded.live && loaded.ready && <div className="empty-note">These entries are fictional and held in this browser tab only. With the identity service running, this screen reads the real append-only log on the server. <button className="text-button" onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}>Back to the top<ArrowRight size={14}/></button></div>}
+  </StateBlock>
  </div>;
 }

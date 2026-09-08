@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeftRight, Ban, CheckCheck, CircleAlert, Cloud, CloudOff, GitMerge, History, Inbox, Lock, Radio, Send, ShieldCheck, ShieldX, Undo2, UserCheck } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
-import { StateBlock, StatePicker, type LoadState } from '../components/States';
+import { NotConnected } from '../components/NotConnected';
 import { CalibrationTag, ProvenanceLegend, ProvenanceTag } from '../components/Provenance';
 import { KitCapture, type CaptureField } from './KitCapture';
 import { observations } from './Clinical';
@@ -75,7 +75,6 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
  const [signed, setSigned] = useState(false);
  const [entries, setEntries] = useState<Capture[]>(seed);
  const [sending, setSending] = useState(false);
- const [state, setState] = useState<LoadState>('ready');
  const [notice, setNotice] = useState('');
  const capturer = subjectById(capturerId)!;
  const mayCapture = can(capturer, 'write-clinical-note');
@@ -113,10 +112,11 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
 
  return <div className="form-stack kit-surface">
   <div className="page-intro">
-   <div className="eyebrow">Thuso Kit · design preview</div>
+   <div className="eyebrow">Thuso Kit</div>
    <h1>Connected capture, and what it owes a reading</h1>
-   <p>Where a reading came from, which instrument took it, whether that instrument is in calibration, and what becomes of work done in a house with no signal. Fictional patients and invented readings; nothing is measured, transmitted or filed.</p>
+   <p>Where a reading came from, which instrument took it, whether that instrument is in calibration, and what becomes of work done in a house with no signal.</p>
   </div>
+  <NotConnected of="devices"/>
 
   <SectionTitle title="Four origins, and none of them a lesser version of another"/>
   <div className="panel">
@@ -134,9 +134,7 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
     : <div className="privacy-note alert" role="status"><ShieldX size={19}/>{mayCapture.reason}</div>}
   </div>
 
-  <StatePicker label="Preview how the kit behaves when the record service is unavailable" value={state} onChange={setState}/>
-  <StateBlock state={state} subject="The kit" permission="Bluetooth access" onRetry={() => setState('ready')}>
-   <KitCapture fields={kitFields} capturer={capturer} verb="Hold it on this device"
+  <KitCapture fields={kitFields} capturer={capturer} verb="Hold it on this device"
     onCapture={c => { setEntries(list => [c, ...list]); setNotice(`${c.label} captured. It is held on this device and exists nowhere else.`); }}/>
 
    <SectionTitle title="Waiting to send"/>
@@ -151,7 +149,7 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
 
     {/* The rule this preview owes and does not meet, said in the one place a reader would
         otherwise assume it did. */}
-    <div className="privacy-note alert"><Inbox size={19}/><span><strong>This queue is held in memory and nothing else.</strong> Reload the page and every entry in it is gone. That is deliberate: <code>scripts/check-boundaries.mjs</code> fails the build on the browser’s local storage, session storage and IndexedDB across the whole web app, so a design preview cannot leave patient readings on a reviewer’s machine. What a real implementation owes is the contract’s own sentence — “{rules.queuedIsNotLost}” — and this one does not meet it. It is owed, not met.</span></div>
+    <div className="privacy-note alert"><Inbox size={19}/><span><strong>This queue is held in memory and nothing else.</strong> Reload the page and every entry in it is gone. That is deliberate: <code>scripts/check-boundaries.mjs</code> fails the build on the browser’s local storage, session storage and IndexedDB across the whole web app, so this app cannot leave patient readings on the machine it was opened on. What a real implementation owes is the contract’s own sentence — “{rules.queuedIsNotLost}” — and this one does not meet it. It is owed, not met.</span></div>
 
     {held.length > 0 && <>
      {held.map(entry => <QueueRow key={entry.id} entry={entry}/>)}
@@ -196,11 +194,10 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
      </div>;
     })}
     {/* An empty state is worth explaining rather than filling. */}
-    <p className="helper"><Ban size={13}/><span>Nothing here produces a server refusal, and one has not been invented to fill the row. The refusals this preview designs happen earlier — a reading whose cuff nobody recorded is never taken, a nurse who is not cleared never captures — or they are put in front of a clinician instead of being thrown back. A real server refuses for reasons a preview with no server does not have: a visit that no longer exists, a payload it cannot read, a version it does not support. The state is designed and left at zero.</span></p>
+    <p className="helper"><Ban size={13}/><span>Nothing here produces a server refusal, and one has not been invented to fill the row. The refusals designed here happen earlier — a reading whose cuff nobody recorded is never taken, a nurse who is not cleared never captures — or they are put in front of a clinician instead of being thrown back. A server refuses for reasons nothing on this device can produce: a visit that no longer exists, a payload it cannot read, a version it does not support. The state is designed and left at zero.</span></p>
    </div>
-  </StateBlock>
 
-  <div className="privacy-note"><Radio size={19}/>Nothing on this screen reaches an instrument, a record or a server. The instruments, their calibration cadences, the six states and the four conflicts are read from <code>packages/catalog/capture.json</code>, so web, iOS and Android cannot quietly disagree about what a reading is.</div>
+  <div className="privacy-note"><Radio size={19}/>The instruments, their calibration cadences, the six states and the four conflicts are read from <code>packages/catalog/capture.json</code>, so web, iOS and Android cannot quietly disagree about what a reading is.</div>
   {onClose && <button className="primary full" onClick={onClose}>Close</button>}
  </div>;
 }

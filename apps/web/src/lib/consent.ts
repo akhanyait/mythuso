@@ -1,4 +1,5 @@
 import contract from '../../../../packages/catalog/consent.json';
+import { probe } from './auth';
 
 /**
  * Consent, and the log of who opened a record — the reasoning, held apart from the screen.
@@ -191,10 +192,31 @@ export async function sendDecision(path: 'give' | 'withdraw', purposeId: string,
  } catch { return false; }
 }
 
-export async function fetchAccessLog(): Promise<AccessEntry[] | null> {
+/* Four different facts used to leave this function as the same `null`: the device has no signal,
+   the service answered badly, the service is not running at all, and the request simply failed.
+   The screen showed fixtures for all four as though nothing had happened — which is the one thing a
+   log of who opened your health record must never do. It is a discriminated answer now, and the
+   access-log screen renders a different state for each.
+
+   `no-service` is deliberately not an error. The identity service is installed and switched off
+   until DNS, TLS and an SMS provider exist (deploy/README.md), so a request that cannot find it is
+   the expected outcome rather than a failure, and the screen says so with the contract's own
+   sentence instead of an alert nobody can act on. */
+export type Answer<T> =
+ | { kind: 'answered'; value: T }
+ | { kind: 'offline' }
+ | { kind: 'failed' }
+ | { kind: 'no-service' };
+
+export async function fetchAccessLog(): Promise<Answer<AccessEntry[]>> {
+ if (typeof navigator !== 'undefined' && navigator.onLine === false) return { kind: 'offline' };
  try {
   const response = await fetch('/api/consent/access-log', { credentials: 'same-origin', signal: AbortSignal.timeout(1500) });
-  if (!response.ok) return null;
-  return (await response.json() as { entries: AccessEntry[] }).entries;
- } catch { return null; }
+  if (!response.ok) return await whyNot();
+  return { kind: 'answered', value: (await response.json() as { entries: AccessEntry[] }).entries };
+ } catch { return await whyNot(); }
 }
+
+/* Is there a service there at all? The same /api/health probe lib/auth.ts uses, asked only after
+   something has already gone wrong, so the ordinary path costs one request rather than two. */
+const whyNot = async (): Promise<Answer<never>> => (await probe()) ? { kind: 'failed' } : { kind: 'no-service' };

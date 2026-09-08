@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ArrowRight, Check, CircleAlert, Clock3, MapPin, Radio, Route, ShieldAlert, ShieldCheck, TriangleAlert } from 'lucide-react';
-import { Pill } from '../components/UI';
-import { StateBlock, StatePicker, type LoadState } from '../components/States';
+import { NotConnected } from '../components/NotConnected';
 import { VettingApplication } from './Vetting';
 import { can, type VettingSubject } from '../lib/vetting';
 import { seededSubjects } from '../lib/vetting-fixtures';
@@ -51,7 +50,7 @@ const province = provinceFor(mapWindow.centre)?.name ?? 'South Africa';
    here. What the board does instead is ask a different question, by name, and print the answer with
    its basis attached to it: how far is that in a straight line, at a speed the code can point at. */
 const routeFor = (_nurse: Nurse, _job: Job): RouteResult =>
- routeUnavailable('No routing provider is connected in this preview.');
+ routeUnavailable('No routing provider is connected, so no road route can be drawn or timed.');
 function etaFor(nurse: Nurse, job: Job): Eta {
  const measured = etaFromRoute(routeFor(nurse, job));
  if (measured.minutes !== null) return measured;
@@ -79,7 +78,6 @@ const basisLine = (eta: Eta) =>
    appears — hiding her would leave an operator wondering where she went — but she cannot be
    assigned, and the refusal is on the row rather than in a tooltip. */
 export function DispatchBoard({ subjects = seededSubjects }: { subjects?: VettingSubject[] } = {}) {
- const [state, setState] = useState<LoadState>('ready');
  const [selected, setSelected] = useState(initialJobs[0].id);
  const [assigned, setAssigned] = useState<Record<string, string>>({});
  const job = initialJobs.find(j => j.id === selected)!;
@@ -116,13 +114,15 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
    onSelect: () => setSelected(j.id)
   }))
  ];
- const summary = `Demonstration dispatch map of ${coverage.city}, ${province}. ${initialJobs.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting${unlocated ? `, ${unlocated} not drawn because no position is being shared` : ''}. All positions are fictional.`;
+ const summary = `Dispatch map of ${coverage.city}, ${province}. ${initialJobs.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting${unlocated ? `, ${unlocated} not drawn because no position is being shared` : ''}.`;
  return <>
-  <StatePicker label="Preview the dispatch feed state" value={state} onChange={setState}/>
-  <StateBlock state={state} subject="The live dispatch feed" permission="location sharing from nurse devices" onRetry={() => setState('ready')}>
-   <div className="dispatch-grid">
+  <div className="shift-head">
+   <div><h1>Dispatch</h1><p>{initialJobs.length} visits awaiting a nurse · {dispatchable} cleared for dispatch{refused ? ` · ${refused} refused by vetting` : ''}</p></div>
+  </div>
+  <NotConnected of="dispatch"/>
+  <div className="dispatch-grid">
     <div className="panel map-panel">
-     <div className="section-title"><h2>Live dispatch · Demo</h2><Pill><span className="status-dot"/>Fictional positions</Pill></div>
+     <div className="section-title"><h2>{coverage.city}</h2></div>
      <LiveMap markers={markers} summary={summary} height={340}/>
      {/* The key is the contract's list of marks, not a second list typed beside the map. The two
          used to be written separately, and when the pins started reading the contract the key went
@@ -151,11 +151,10 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
        : <button className="secondary" disabled aria-label={`Cannot be assigned — ${n.name}. ${decision.reason}`}>Cannot be assigned</button>}
      </div>)}
      <div className="privacy-note"><ShieldCheck size={19}/>Vetting is asked before a name is offered, not after. The Control Tower has no override for a lapsed clearance — there is no button here that would let one be granted.</div>
-     <div className="privacy-note"><Radio size={19}/>Estimated arrival is a straight-line guess in this preview. Real dispatch weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse.</div>
+     <div className="privacy-note"><Radio size={19}/>Estimated arrival is a straight-line distance, not a road route. Assignment weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse — none of which a straight line knows.</div>
      <div className="privacy-note"><Route size={19}/>No routing provider is connected, so no road route is drawn and no arrival time is claimed from one. When one is added, a route it cannot give will be shown as unavailable rather than replaced by the straight line above.</div>
     </div>
-   </div>
-  </StateBlock>
+  </div>
  </>;
 }
 const incidents = [
@@ -168,7 +167,7 @@ export function IncidentBoard({ open }: { open: (s: string) => void }) {
   <span className={`service-icon severity-${i.severity.toLowerCase()}`}>{i.severity === 'Critical' ? <ShieldAlert size={21}/> : <TriangleAlert size={21}/>}</span>
   <span><strong>{i.id} · {i.title}</strong><small>{i.severity} · {i.area} · Opened {i.opened} · {i.status}</small></span>
   <ArrowRight size={17}/>
- </button>)}<p className="helper">Sample incidents. No live escalation, paging or emergency dispatch is connected.</p></div>;
+ </button>)}<NotConnected of="dispatch" tone="inline"/></div>;
 }
 export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?: string; onClose: () => void }) {
  const incident = incidents.find(i => i.id === reference) ?? incidents[1];
@@ -177,8 +176,8 @@ export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?:
  const [notes, setNotes] = useState('');
  const [logged, setLogged] = useState<string[]>([]);
  return <div className="form-stack">
-  <Pill tone="plain">Incident management preview</Pill>
   <h3>{incident.id} · {incident.title}</h3>
+  <NotConnected of="dispatch"/>
   <div className="review-line"><span>Opened</span><strong>{incident.opened} · {incident.area}</strong></div>
   <div className="review-line"><span>Reported by</span><strong>Sister Palesa Khumalo · N-108</strong></div>
   <label>Severity<select value={severity} onChange={e => setSeverity(e.target.value)}><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label>
@@ -186,10 +185,10 @@ export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?:
   <label>Immediate action<select value={action} onChange={e => setAction(e.target.value)}><option value="">Choose an action…</option>
    <option>Call the nurse now</option><option>Advise nurse to call emergency services</option><option>Escalate to the on-call clinical lead</option><option>Notify the patient’s emergency contact</option><option>Reassign the visit</option><option>Stand down — no further action</option></select></label>
   <label>Handover note<textarea value={notes} onChange={e => setNotes(e.target.value.slice(0, 600))} placeholder="What happened, what you did, what the next shift must know…"/></label>
-  <button className="secondary" disabled={!action} onClick={() => { setLogged([...logged, `${new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })} · ${action}`]); setAction(''); }}><Check size={16}/>Add demo action to the log</button>
-  {logged.length > 0 && <ol className="timeline" aria-label="Demo incident log">{logged.map(l => <li className="done" key={l}><span className="timeline-dot"><Check size={12}/></span><div><strong>{l.split(' · ')[1]}</strong><em>{l.split(' · ')[0]} · Demo entry</em></div></li>)}</ol>}
-  <div className="privacy-note"><ShieldCheck size={19}/>Incident logs are append-only and reviewed weekly. Nothing here is recorded, paged or sent.</div>
-  <button className="primary full" onClick={onClose}>Close demo incident<ArrowRight size={16}/></button>
+  <button className="secondary" disabled={!action} onClick={() => { setLogged([...logged, `${new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })} · ${action}`]); setAction(''); }}><Check size={16}/>Add this action to the log</button>
+  {logged.length > 0 && <ol className="timeline" aria-label="Incident log">{logged.map(l => <li className="done" key={l}><span className="timeline-dot"><Check size={12}/></span><div><strong>{l.split(' · ')[1]}</strong><em>{l.split(' · ')[0]} · You, as duty controller</em></div></li>)}</ol>}
+  <div className="privacy-note"><ShieldCheck size={19}/>An incident log is append-only. An entry may be corrected by a later entry and never by editing the one before it.</div>
+  <button className="primary full" onClick={onClose}>Close this incident<ArrowRight size={16}/></button>
  </div>;
 }
 /* Nurse vetting is one role in a twelve-role module now, so this is the same flow with the role

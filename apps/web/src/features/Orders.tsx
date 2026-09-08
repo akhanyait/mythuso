@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowRight, Check, CircleAlert, ClipboardList, FlaskConical, Package, Pill as PillIcon, ShieldCheck, ShieldX, Truck } from 'lucide-react';
-import { Pill } from '../components/UI';
-import { StateBlock, StatePicker, type LoadState } from '../components/States';
+import { Pill, SectionTitle } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import { crossReference } from '../lib/dispensing';
 import { can } from '../lib/vetting';
 import { subjectsByRole } from '../lib/vetting-fixtures';
@@ -27,13 +27,11 @@ const medicines = [
  { name: 'Hydrochlorothiazide 12.5 mg', form: 'Tablet', dose: 'One tablet each morning', quantity: '30 tablets', repeats: '5 repeats', note: 'Take early in the day.' }
 ];
 export function PrescriptionDetail({ reference = 'RX-0081' }: { reference?: string }) {
- const [state, setState] = useState<LoadState>('ready');
  const [checked, setChecked] = useState<string[]>([]);
  const [chosen, setChosen] = useState(pharmacies[0].id);
  const pharmacy = pharmacies.find(p => p.id === chosen)!;
  const mayDispense = can(pharmacy, 'dispense');
  return <div className="form-stack">
-  <Pill>Fictional prescription</Pill>
   <div className="order-head"><span className="service-icon"><PillIcon size={22}/></span><div><h3>{reference}</h3><p className="muted">Issued 4 September · Valid for 6 months</p></div><Pill tone="plain">Awaiting pharmacist</Pill></div>
   <div className="review-line"><span>Patient</span><strong>Lerato Molefe · 01/01/1980</strong></div>
   <div className="review-line"><span>Prescriber</span><strong>{prescriber.name} · {prescriber.reference}</strong></div>
@@ -41,20 +39,18 @@ export function PrescriptionDetail({ reference = 'RX-0081' }: { reference?: stri
    {pharmacies.map(p => <option key={p.id} value={p.id}>{p.name} · {p.reference}</option>)}
   </select></label>
   {!mayDispense.allowed && <div className="privacy-note alert" role="status"><ShieldX size={19}/>{mayDispense.reason}</div>}
-  <StatePicker label="Preview the pharmacy connection state" value={state} onChange={setState}/>
-  <StateBlock state={state} subject="The dispensing partner’s order feed" permission="partner data sharing" onRetry={() => setState('ready')}>
-   <div className="panel">{medicines.map(m => <div className="medicine-row" key={m.name}>
+  <NotConnected of="dispensing"/>
+  <div className="panel">{medicines.map(m => <div className="medicine-row" key={m.name}>
     <label className="checkbox"><input type="checkbox" disabled={!mayDispense.allowed} checked={checked.includes(m.name)} onChange={e => setChecked(e.target.checked ? [...checked, m.name] : checked.filter(x => x !== m.name))} aria-label={`Mark ${m.name} checked by pharmacist`}/><span/></label>
     <div><strong>{m.name}</strong><small>{m.form} · {m.dose}</small><small>{m.quantity} · {m.repeats}</small><em>{m.note}</em></div>
-   </div>)}</div>
-   <Timeline steps={[
+  </div>)}</div>
+  <Timeline steps={[
     { label: 'Prescribed', detail: 'Signed by the reviewing doctor', at: '4 September, 11:41', state: 'done' },
     { label: 'Sent to pharmacy', detail: mayDispense.allowed ? 'Encrypted transfer to the dispensing partner' : 'Held. The script is not routed to a pharmacy that cannot lawfully fill it', at: mayDispense.allowed ? '4 September, 11:42' : undefined, state: mayDispense.allowed ? 'done' : 'waiting' },
-    { label: 'Pharmacist check', detail: `${checked.length} of ${medicines.length} items checked in this preview`, state: mayDispense.allowed ? 'active' : 'waiting' },
+    { label: 'Pharmacist check', detail: `${checked.length} of ${medicines.length} items checked by the pharmacist`, state: mayDispense.allowed ? 'active' : 'waiting' },
     { label: 'Dispensed and sealed', detail: 'Tamper-evident seal number recorded', state: 'waiting' },
     { label: 'Delivered to the patient', detail: 'Signature or visit-code handover', state: 'waiting' }
-   ]}/>
-  </StateBlock>
+  ]}/>
   <div className="privacy-note"><ShieldCheck size={19}/>{crossReference}</div>
  </div>;
 }
@@ -65,13 +61,11 @@ const panel = [
  { test: 'Total cholesterol', result: 5.8, unit: 'mmol/L', range: '< 5.0', flag: 'High' }
 ];
 export function LabOrderDetail({ reference = 'LAB-0023' }: { reference?: string }) {
- const [state, setState] = useState<LoadState>('ready');
  const [released, setReleased] = useState(false);
  const [chosen, setChosen] = useState(laboratories[0].id);
  const laboratory = laboratories.find(l => l.id === chosen)!;
  const mayRelease = can(laboratory, 'release-lab-result');
  return <div className="form-stack">
-  <Pill>Fictional laboratory order</Pill>
   <div className="order-head"><span className="service-icon"><FlaskConical size={22}/></span><div><h3>{reference}</h3><p className="muted">Requested 4 September · Fasting panel</p></div><Pill tone="plain">{released ? 'Released to patient' : 'Awaiting release'}</Pill></div>
   <div className="review-line"><span>Requested by</span><strong>{prescriber.name} · {prescriber.reference}</strong></div>
   <div className="review-line"><span>Collected by</span><strong>Sister Naledi Mokoena · At home, Rosebank</strong></div>
@@ -88,16 +82,14 @@ export function LabOrderDetail({ reference = 'LAB-0023' }: { reference?: string 
    { label: 'Results verified', detail: 'Checked by the laboratory’s reviewing pathologist', at: '5 September, 07:30', state: 'done' },
    { label: 'Released to the patient', detail: released ? 'Visible in the Health Passport with an explanation' : mayRelease.allowed ? 'Held until the requesting doctor releases them' : 'Held. Accreditation lapsed, and a held result stays held', state: released ? 'done' : 'active' }
   ]}/>
-  <StatePicker label="Preview the laboratory connection state" value={state} onChange={setState}/>
-  <StateBlock state={state} subject="The laboratory result feed" permission="partner data sharing" onRetry={() => setState('ready')}>
-   <table className="result-table">
-    <caption>Fictional results. Reference ranges are illustrative and vary by laboratory, age and sex.</caption>
-    <thead><tr><th scope="col">Test</th><th scope="col">Result</th><th scope="col">Reference range</th><th scope="col">Flag</th></tr></thead>
-    <tbody>{panel.map(r => <tr key={r.test} className={r.flag ? 'flagged-row' : ''}><th scope="row">{r.test}</th><td>{r.result} {r.unit}</td><td>{r.range} {r.unit}</td><td>{r.flag ?? 'Within range'}</td></tr>)}</tbody>
-   </table>
-  </StateBlock>
+  <NotConnected of="dispensing"/>
+  <table className="result-table">
+   <caption>Reference ranges are indicative and vary by laboratory, age and sex.</caption>
+   <thead><tr><th scope="col">Test</th><th scope="col">Result</th><th scope="col">Reference range</th><th scope="col">Flag</th></tr></thead>
+   <tbody>{panel.map(r => <tr key={r.test} className={r.flag ? 'flagged-row' : ''}><th scope="row">{r.test}</th><td>{r.result} {r.unit}</td><td>{r.range} {r.unit}</td><td>{r.flag ?? 'Within range'}</td></tr>)}</tbody>
+  </table>
   <div className="privacy-note"><CircleAlert size={19}/>Abnormal results are never pushed to a patient without a clinician’s explanation. Release is a deliberate clinical act, not an automatic notification.</div>
-  <button className={released ? 'secondary' : 'primary'} disabled={!mayRelease.allowed} aria-describedby={mayRelease.allowed ? undefined : 'release-refusal'} onClick={() => setReleased(!released)}>{released ? 'Withdraw demo release' : <>Release with an explanation<ArrowRight size={16}/></>}</button>
+  <button className={released ? 'secondary' : 'primary'} disabled={!mayRelease.allowed} aria-describedby={mayRelease.allowed ? undefined : 'release-refusal'} onClick={() => setReleased(!released)}>{released ? 'Withdraw the release' : <>Release with an explanation<ArrowRight size={16}/></>}</button>
   {!mayRelease.allowed && <p className="helper" id="release-refusal" role="status">Accreditation is not a badge on a partner page. It is the thing that decides whether this button does anything.</p>}
  </div>;
 }
@@ -108,9 +100,26 @@ export function FulfilmentQueue({ open }: { open: (s: string) => void }) {
   { id: 'LAB-0023', kind: 'Laboratory', detail: 'Fasting panel · Results verified', icon: FlaskConical },
   { id: 'LAB-0019', kind: 'Laboratory', detail: 'Sample in transit · Seal intact', icon: Truck }
  ];
- return <div className="panel">{rows.map(r => <button className="record-row" key={r.id} onClick={() => open(r.kind === 'Prescription' ? `Prescription ${r.id}` : `Laboratory order ${r.id}`)}>
-  <span className="service-icon"><r.icon size={21}/></span>
-  <span><strong>{r.id} · {r.kind}</strong><small>{r.detail}</small></span>
-  <ClipboardList size={18}/>
- </button>)}</div>;
+ /* Two queues, not one list of four. A pharmacist filling scripts and a courier chasing samples
+    are different people doing different work, and a single undivided list made the reader sort it
+    themselves on every visit to the screen. The waiting count leads each group because that is the
+    number the partner is measured on. */
+ const groups = [
+  { title: 'Prescriptions', rows: rows.filter(r => r.kind === 'Prescription') },
+  { title: 'Laboratory', rows: rows.filter(r => r.kind === 'Laboratory') }
+ ];
+ return <>
+  <div className="shift-head">
+   <div><h1>Orders</h1><p>{rows.length} open · {rows.filter(r => r.detail.includes('Awaiting')).length} waiting on somebody here</p></div>
+  </div>
+  <NotConnected of="dispensing"/>
+  {groups.map(group => <section key={group.title}>
+   <SectionTitle title={`${group.title} · ${group.rows.length}`}/>
+   <div className="panel">{group.rows.map(r => <button className="record-row" key={r.id} onClick={() => open(r.kind === 'Prescription' ? `Prescription ${r.id}` : `Laboratory order ${r.id}`)}>
+    <span className="service-icon"><r.icon size={21}/></span>
+    <span><strong>{r.id}</strong><small>{r.detail}</small></span>
+    <ClipboardList size={18}/>
+   </button>)}</div>
+  </section>)}
+ </>;
 }

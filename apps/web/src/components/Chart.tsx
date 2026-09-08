@@ -22,11 +22,11 @@ export function ClinicalChart({ title, unit, readings, normal, format = n => Str
  const Trend = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
  const direction = delta > 0 ? 'higher than' : delta < 0 ? 'lower than' : 'unchanged from';
  const inRange = !normal || (latest.value >= normal[0] && latest.value <= normal[1]);
- const summary = `${title}. Latest sample reading ${format(latest.value)} ${unit} on ${latest.label}, ${direction} the first reading of ${format(first.value)} on ${first.label}. ${normal ? `Indicative reference range ${format(normal[0])} to ${format(normal[1])} ${unit}; the latest reading is ${inRange ? 'inside' : 'outside'} that range.` : ''} Fictional data.`;
+ const summary = `${title}. Latest reading ${format(latest.value)} ${unit} on ${latest.label}, ${direction} the first reading of ${format(first.value)} on ${first.label}. ${normal ? `Indicative reference range ${format(normal[0])} to ${format(normal[1])} ${unit}; the latest reading is ${inRange ? 'inside' : 'outside'} that range.` : ''}`;
  return <div className="panel chart-card">
   <div className="chart-head">
    <span className="chart-title">{icon}{title}</span>
-   <span className={`chart-flag ${inRange ? '' : 'watch'}`}>{inRange ? 'Within sample range' : 'Outside sample range'}</span>
+   <span className={`chart-flag ${inRange ? '' : 'watch'}`}>{inRange ? 'Within range' : 'Outside range'}</span>
   </div>
   <div className="chart-value"><strong>{format(latest.value)}</strong><small>{unit}</small><span className="chart-trend"><Trend size={14} aria-hidden="true"/>{delta === 0 ? 'No change' : `${delta > 0 ? '+' : ''}${format(delta)} since ${first.label}`}</span></div>
   <svg className="chart-plot" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={summary}>
@@ -39,7 +39,7 @@ export function ClinicalChart({ title, unit, readings, normal, format = n => Str
   <button className="text-button" aria-expanded={showTable} aria-controls={tableId} onClick={() => setShowTable(!showTable)}><Table2 size={15}/>{showTable ? 'Hide readings' : 'Show readings as a table'}</button>
   <div id={tableId} hidden={!showTable}>
    <table className="chart-table">
-    <caption>Sample {title.toLowerCase()} readings. Fictional data, not a medical record.</caption>
+    <caption>{title} readings, oldest first, with the reference range this reading is judged against.</caption>
     <thead><tr><th scope="col">Date</th><th scope="col">{title} ({unit})</th><th scope="col">Note</th></tr></thead>
     <tbody>{readings.map(r => <tr key={r.label}><th scope="row">{r.label}</th><td>{format(r.value)}</td><td>{r.note ?? '—'}</td></tr>)}</tbody>
    </table>

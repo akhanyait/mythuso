@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, BadgeCheck, CalendarClock, Check, CircleAlert, ClipboardList, Clock3, FileText, RotateCcw, ScrollText, ShieldCheck, ShieldX, UserRoundCheck, UserRoundX, Users } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
 import { StepHead } from '../components/Steps';
-import { EmptyState, StateBlock, StatePicker, type LoadState } from '../components/States';
+import { EmptyState } from '../components/States';
+import { NotConnected } from '../components/NotConnected';
 import { useT } from '../lib/i18n';
 import {
  authorityById, capabilityById, checkById, checkStateLabels, daysUntil, decisions, eventLabels, formatDate, formatEventTime, scopeFor,
@@ -142,7 +143,6 @@ export function VettingConsole({ vetting, open }: { vetting: VettingState; open:
  const [roleFilter, setRoleFilter] = useState('all');
  const [statusFilter, setStatusFilter] = useState<'all' | SubjectStatus>('all');
  const [selected, setSelected] = useState(subjects[0].id);
- const [feed, setFeed] = useState<LoadState>('ready');
  const rows = useMemo(() => subjects
   .map(s => ({ subject: s, summary: summarise(s) }))
   .filter(r => roleFilter === 'all' || r.subject.roleId === roleFilter)
@@ -156,6 +156,7 @@ export function VettingConsole({ vetting, open }: { vetting: VettingState; open:
  const shown = rows.find(r => r.subject.id === selected) ?? rows[0];
  const views: [View, string][] = [['queue', t('vetting.queue')], ['renewals', t('vetting.renewals')], ['audit', t('vetting.audit')]];
  return <>
+  <NotConnected of="credential-verification"/>
   <div className="metric-grid">
    <Metric icon={UserRoundCheck} label="Cleared" value={String((counts.cleared ?? 0) + (counts.expiring ?? 0))} note={`${counts.expiring ?? 0} of them with a renewal due`}/>
    <Metric icon={ClipboardList} label="In progress" value={String(counts['in-progress'] ?? 0)} note="Refused the work of the role until every check passes"/>
@@ -187,9 +188,7 @@ export function VettingConsole({ vetting, open }: { vetting: VettingState; open:
      </select>
     </label>
    </div>
-   <StatePicker label="Preview the vetting queue state" value={feed} onChange={setFeed}/>
-   <StateBlock state={feed} subject="The vetting queue" permission="access to the vetting queue" onRetry={() => setFeed('ready')}>
-    {rows.length ? <div className="vetting-grid">
+   {rows.length ? <div className="vetting-grid">
      <div className="panel">
       <div className="section-title"><h2>{t('vetting.parties')}</h2><Pill tone="plain">{rows.length} of {subjects.length}</Pill></div>
       {rows.map(({ subject, summary }) => <button className="record-row" key={subject.id} aria-pressed={shown?.subject.id === subject.id} onClick={() => setSelected(subject.id)}>
@@ -206,8 +205,7 @@ export function VettingConsole({ vetting, open }: { vetting: VettingState; open:
       </button>)}
      </div>
      {shown && <SubjectDetail key={shown.subject.id} subject={shown.subject} vetting={vetting}/>}
-    </div> : <EmptyState title="Nobody matches those filters" body="Widen the role or the status to see the rest of the queue. Nothing has been hidden from you — 32 fictional parties are held here in total."/>}
-   </StateBlock>
+    </div> : <EmptyState title="Nobody matches those filters" body="Widen the role or the status to see the rest of the queue. Nothing has been hidden from you."/>}
   </> : view === 'renewals' ? <RenewalsDue subjects={subjects} onOpen={id => { setSelected(id); setView('queue'); setRoleFilter('all'); setStatusFilter('all'); }}/> : <AuditTrail log={log}/>}
  </>;
 }
@@ -379,12 +377,12 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
  if (sent) return <div className="form-stack">
   <div className="success-icon"><BadgeCheck size={30}/></div>
   <h3>Nothing was submitted.</h3>
-  <p className="muted">This preview has no vetting queue behind it, no document store and nobody to send an application to. What it does have is the shape of the real thing: {role?.checks.length} checks, each with an issuing authority, an evidence requirement and a renewal date, decided by a named reviewer and — where the risk is high — a second one.</p>
+  <p className="muted">The shape of the real thing: {role?.checks.length} checks, each with an issuing authority, an evidence requirement and a renewal date, decided by a named reviewer and — where the risk is high — a second one.</p>
   <button className="primary full" onClick={onClose}>Close<ArrowRight size={16}/></button>
  </div>;
  return <div className="form-stack">
   {steps.length > 1 && <StepHead step={Math.min(step, steps.length - 1) + 1} total={steps.length} label={stepLabels[now]}/>}
-  <Pill>{role ? `${role.name} vetting preview` : 'Vetting preview'}</Pill>
+  <NotConnected of="credential-verification"/>
   {now === 'role' ? <>
    <h3>Who is applying?</h3>
    <p className="muted">Thirteen parties are vetted, not only nurses. Each one is refused something specific until its checks pass.</p>
@@ -401,7 +399,7 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
     <label>{anchor.name} number
      <input value={credential} onChange={e => { setCredential(e.target.value.toUpperCase()); setTouched(true); }} onBlur={() => setTouched(true)} placeholder={authority.format} aria-describedby="credential-help" aria-invalid={touched && !result.ok}/>
     </label>
-    <p className="helper" id="credential-help" role="status">{touched && !result.ok ? result.reason : `${authority.name} · ${authority.format}. Use a fictional number, for example ${authority.example}.`}</p>
+    <p className="helper" id="credential-help" role="status">{touched && !result.ok ? result.reason : `${authority.name} · ${authority.format}. For example ${authority.example}.`}</p>
    </> : <EmptyNote>{authority.hint} There is nothing for you to type at this step.</EmptyNote>}
    <div className="privacy-note"><ShieldCheck size={19}/>{role.grants[0].refusal}</div>
    <div className="button-row"><button className="secondary" onClick={back}><ArrowLeft size={16}/>Back</button>
@@ -429,7 +427,7 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
      <label className="checkbox"><input type="checkbox" checked={ready.includes(check.id)} onChange={e => setReady(e.target.checked ? [...ready, check.id] : ready.filter(x => x !== check.id))} aria-label={`I have ${check.evidence} to hand`}/><span/></label>
     </div>;
    })}
-   <div className="privacy-note"><CircleAlert size={19}/>Nothing is uploaded. This preview has no document store, and a certified copy of your identity document is not something to leave sitting in a browser.</div>
+   <div className="privacy-note"><CircleAlert size={19}/>Nothing is uploaded from this screen. A certified copy of your identity document is not something to leave sitting in a browser.</div>
    <div className="button-row"><button className="secondary" onClick={back}><ArrowLeft size={16}/>Back</button>
     <button className="primary" onClick={next}>Continue<ArrowRight size={16}/></button></div>
   </> : now === 'declarations' && role ? <>
@@ -454,7 +452,7 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
     ? 'Re-vetting runs on a schedule, not once at sign-up. A lapsed SANC registration or police clearance removes a nurse from dispatch automatically, without anyone here having to notice.'
     : 'Re-vetting runs on a schedule, not once at sign-up. A lapsed registration, licence or clearance withdraws this role’s permissions automatically, without anyone here having to notice.'}</div>
    <div className="button-row"><button className="secondary" onClick={back}><ArrowLeft size={16}/>Back</button>
-    <button className="primary" disabled={!attested} onClick={() => setSent(true)}><Check size={16}/>Submit demo application</button></div>
+    <button className="primary" disabled={!attested} onClick={() => setSent(true)}><Check size={16}/>Submit application</button></div>
   </> : null}
  </div>;
 }
