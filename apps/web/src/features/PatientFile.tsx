@@ -259,8 +259,14 @@ function Overview({ patient, viewer, notice, setNotice, go }: { patient: Patient
       { icon: <Thermometer size={16}/>, name: 'Temperature', value: latest.temperature.toFixed(1), unit: '°C', source: latest.sources.temperature },
       { icon: <Weight size={16}/>, name: 'Weight', value: latest.weight.toFixed(1), unit: 'kg', source: latest.sources.weight },
       { icon: <Wind size={16}/>, name: 'Oxygen saturation', value: String(latest.oxygen), unit: '%', source: latest.sources.oxygen }].map(v =>
-     <li key={v.name} className="panel pf-vital"><span>{v.icon}{v.name}</span><strong>{v.value}<small>{v.unit}</small></strong>
+     /* Where the reading came from, then the reading, then what it is — the same order the metric
+        the rest of this product now uses puts them in. It was the other way round: the name in
+        small dense text above a bold figure, which is the arrangement the design brief singles out
+        as the one to stop making. The provenance tag is the chip. */
+     <li key={v.name} className="pf-vital">
       <span className="prov-row"><ProvenanceTag source={v.source}/><CalibrationTag source={v.source}/></span>
+      <strong>{v.value}<small>{v.unit}</small></strong>
+      <span className="pf-vital-name">{v.icon}{v.name}</span>
      </li>)}
    </ul>
    {Object.values(latest.sources).filter((s, i, all) => all.findIndex(o => o.serial === s.serial) === i).map(s => <CalibrationCaveat key={s.serial ?? s.provenance} source={s}/>)}

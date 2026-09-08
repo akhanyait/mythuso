@@ -1,0 +1,859 @@
+@import './glass.css';
+
+/* The clinical estate, on the glass.
+ *
+ * surface/glass.css is the brief and the discipline; docs/DESIGN-LANGUAGE.md is the palette and the
+ * shapes. This sheet is what carries the rest of the clinical surface — fourteen feature screens
+ * and two shells — onto that language without rewriting fourteen files of markup.
+ *
+ * Why a sheet rather than edits to styles.css: styles.css is the legacy stylesheet every entry
+ * loads, including the patient app and the landing page, which are other sessions' work this week.
+ * A rule changed there lands on all four builds at once. Everything here is scoped to `.clinical` —
+ * a class the two clinical shells put on their root — so the patient surfaces keep exactly the
+ * styles they were measured against, and the rules below win over styles.css by being one class
+ * more specific rather than by shouting.
+ *
+ * The five moves, in the order a reader notices them:
+ *
+ *   1. The ground is `.aurora`: a slow mesh of three pale tints, so a frosted panel has something
+ *      to refract. A frosted panel over a flat colour reads as a grey card.
+ *   2. Every card is glass — the floor colour, a hairline, a light-catching top edge, and a blur
+ *      where the handset can afford one.
+ *   3. Navigation is a column of pills, the active one filled charcoal, with the trailing circle
+ *      inverted. It is the single most recognisable element of the reference.
+ *   4. Every figure is a Metric: a chip above a large thin numeral with a small label beneath.
+ *   5. Chrome stops being indigo. Indigo still means something — a link, an information notice —
+ *      but it no longer paints the furniture, because a colour on everything says nothing.
+ *
+ * Sage is a fill and never a label: at 2.54:1 the darkest of the four clears nothing as text.
+ * Everything read here is --charcoal or --faint, both measured in tokens.json. Nothing below 13px,
+ * nothing outside the type scale.
+ *
+ * THE FLOOR RULE, restated where it can be broken. Every ground colour this sheet paints under a
+ * glass surface is lighter than --glass-floor-ground, which is what makes the contrast figures true
+ * wherever a panel happens to sit. The one ground that is darker is --pale-sage, on the lead card
+ * and the sign-in panel, and nothing frosted is ever put on top of either: they are solid, and
+ * charcoal on them measures 11.11.
+ */
+
+/* ---- The frosted recipe, declared once -----------------------------------------------------
+ *
+ * glass.css owns `.glass` and is shared with a parallel session, so it cannot grow a selector list
+ * of this product's legacy class names. What it can be is *read*: the two states a frosted surface
+ * has — the opaque floor, and the tinted blur where a browser and a reader both allow one — are
+ * declared here as two custom properties, and every clinical card below is those two properties.
+ * The colours are glass.css's own tokens, so a change to the palette moves both. The 72% and the
+ * 20px are the one duplication, and they are in this block alone rather than on forty selectors. */
+.clinical {
+ --pane: var(--glass-floor);
+ --pane-blur: none;
+ --pane-line: color-mix(in srgb, var(--charcoal) 7%, transparent);
+ --pane-shadow: 0 1px 2px color-mix(in srgb, var(--charcoal) 4%, transparent),
+                0 12px 32px -12px color-mix(in srgb, var(--charcoal) 12%, transparent);
+ /* The panel radius. glass.css reads --r-panel and falls back to the same figure surface.css draws
+    .s-panel at, so this declares the number the system is already using rather than inventing a
+    second one. tokens.json has no panel radius; it is asked for in the report. */
+ --r-panel: 18px;
+}
+/* THE BLUR BUDGET. A backdrop-filter is a separate compositor pass over everything behind the
+   element, and glass.css says plainly that it is expensive on the mid-range Android handsets this
+   product is for. So the tint and the blur are two properties rather than one: `--pane` is what a
+   surface is filled with and every glassy thing takes it, and `--pane-blur` is applied by hand to
+   the six surfaces large enough for a blur to show anything — the panel, the two lists, the sidebar
+   identity, the tab bar and the sign-in rows. A chip thirty pixels tall refracts nothing; what it
+   costs is a compositor layer, and a screen carrying forty of them costs forty. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+ @media (prefers-reduced-transparency: no-preference) {
+  .clinical {
+   --pane: color-mix(in srgb, var(--surface) 72%, transparent);
+   --pane-blur: blur(20px) saturate(140%);
+   /* Quieter: a panel inside a panel is context rather than subject, and recedes towards the
+      ground instead of drawing a second frosted box on a frosted box. */
+   --pane-quiet: color-mix(in srgb, var(--surface) 55%, transparent);
+  }
+ }
+}
+
+/* ---- The luminous ground ---------------------------------------------------------------------
+   `.aurora` is on the shell itself, so the mesh is behind every panel on every screen. Everything
+   between the shell and the panels goes transparent: the workspace, the top bar and the scrolling
+   column each painted their own flat colour, which put a seam across every clinical screen an inch
+   below the breadcrumb and left nothing for the glass to refract. */
+.clinical .workspace, .clinical .workspace.surface, .clinical .topbar, .clinical main { background: none; }
+
+/* A deeper mesh than the shared `.aurora`, because a clinical shell is a full-height column with a
+   fixed sidebar over it and the general one was tuned for a page that scrolls. Four blooms rather
+   than three, placed so the light falls across the sidebar and out to the right of the work — which
+   is what gives a frosted panel something to refract, and the difference between glass and a grey
+   card.
+   Every stop is lighter than --glass-floor-ground, including the mint one: --glow at 30% over white
+   composites to about #e9f4f0, which is lighter in every channel that matters than the #e9eee6 the
+   contrast figures are measured against. That is the floor rule, and it is the reason the mint is
+   mixed toward white rather than used at full strength. */
+.clinical.app-shell {
+ background-color: var(--aurora-cool);
+ background-image:
+  radial-gradient(46% 40% at 6% 2%, var(--aurora-warm) 0%, transparent 62%),
+  radial-gradient(42% 38% at 94% -4%, color-mix(in srgb, var(--glow) 30%, var(--surface)) 0%, transparent 64%),
+  radial-gradient(40% 36% at 82% 58%, var(--aurora-sage) 0%, transparent 66%),
+  radial-gradient(64% 48% at 26% 106%, var(--surface) 0%, transparent 70%);
+ background-attachment: fixed;
+}
+.clinical.onboarding {
+ background-color: var(--aurora-cool);
+ background-image:
+  radial-gradient(50% 44% at 4% 0%, var(--aurora-warm) 0%, transparent 62%),
+  radial-gradient(46% 40% at 96% 6%, color-mix(in srgb, var(--glow) 30%, var(--surface)) 0%, transparent 64%),
+  radial-gradient(60% 50% at 60% 100%, var(--surface) 0%, transparent 70%);
+}
+
+/* Text on the ground. `ink`, `body` and `slate` are measured against --surface and --canvas and
+   were never measured against the aurora; charcoal and faint are, so the ground's own copy uses
+   those two and nothing else. */
+.clinical .page-intro h1, .clinical .section-title h2, .clinical h1, .clinical h2, .clinical h3 { color: var(--charcoal); }
+.clinical .page-intro p, .clinical p.muted, .clinical .helper, .clinical .shift-head p { color: var(--faint); }
+.clinical .breadcrumb { color: var(--faint); }
+.clinical .breadcrumb strong { color: var(--charcoal); }
+.clinical .app-footer { color: var(--faint); }
+.clinical .app-footer button { color: var(--charcoal); }
+
+/* An eyebrow is chrome, so it stops being indigo. It is the quietest thing on the screen and it was
+   the loudest coloured one. */
+.clinical .eyebrow { color: var(--faint); font-weight: 600; }
+
+/* ---- Order: the head before the figures -------------------------------------------------------
+   Six sections draw their own <h1> — the schedule, the review queue, the dispatch board, the
+   fulfilment queue and the two new partner boards — and the shell puts the metrics strip above
+   whatever follows. The result was three large numerals landing above the heading that says what
+   screen you are on, which is the one ordering the reference never uses: the greeting comes first,
+   then the figures.
+   The fragments flatten, so every one of these is a direct child of <main> and can simply be
+   ordered. Children are flex-fixed so a scroll container cannot compress them. */
+.clinical main { display: flex; flex-direction: column; }
+.clinical main > * { flex: 0 0 auto; }
+.clinical main > .page-intro { order: -2; }
+.clinical main > .shift-head { order: -1; }
+
+/* ---- Air --------------------------------------------------------------------------------------
+   The reference is not dense, and the airiness is what makes a small amount of information feel
+   considered rather than thin. One rhythm: 24 between a thing and the next thing, 32 before a new
+   section, 20 inside a card. */
+.clinical main { padding: 0 var(--space-16) var(--space-40); }
+.clinical .page-intro { margin-bottom: var(--space-24); }
+.clinical .shift-head { margin-bottom: var(--space-24); }
+.clinical .s-metrics { padding: var(--space-8) 0 var(--space-24); }
+.clinical .section-title { margin: var(--space-32) 0 var(--space-16); }
+.clinical .section-title:first-child,
+.clinical .page-intro + .section-title,
+.clinical .underline-tabs + .section-title,
+.clinical .tabs + .section-title,
+.clinical .s-metrics + .section-title { margin-top: 0; }
+
+@media (min-width: 1000px) {
+ .clinical main { padding: 0 var(--space-32) var(--space-40); }
+ .clinical .topbar { padding: var(--space-20) var(--space-32) var(--space-12); }
+}
+
+/* ---- Headings ---------------------------------------------------------------------------------
+   Emphasis is size and space, never weight. Nothing is bold here; the display sizes carry it. */
+.clinical .page-intro h1, .clinical .shift-head h1 { font-weight: 500; letter-spacing: -1px; }
+.clinical .section-title h2 { font-size: 18px; font-weight: 500; letter-spacing: -.3px; }
+
+/* ---- Navigation: a column of pills -------------------------------------------------------------
+   The surface layer draws the row; what is here is the sidebar it sits in, which was a white column
+   with a hairline down its right edge and is now the aurora showing through, so the pills are the
+   only shapes in it. */
+@media (min-width: 1000px) {
+ /* 292 rather than 250. "Earnings & payouts" and "Consultation records" are the two longest
+    sections in the product and a pill row spends 36px of its width on the trailing circle; at the
+    old width both of them ellipsised, which is a navigation that cannot say where it goes. */
+ .clinical .sidebar {
+  background: none;
+  border-right: 0;
+  padding: var(--space-24) var(--space-12) var(--space-20);
+  width: 296px;
+  gap: 0;
+ }
+ .clinical.app-shell { padding-left: 296px; }
+ /* "Substitution & repeats" and "Consultation records" are the two longest sections in the product,
+    and a pill spends 36 pixels of its width on the trailing circle. Tightening the leading padding
+    and the gap is what stops both of them ellipsising — a navigation that cannot say where it goes
+    is worse than one that is a few pixels less airy. */
+ .clinical .s-nav-row { padding-left: var(--space-12); gap: var(--space-8); }
+ .clinical .nav-label { color: var(--faint); font-weight: 600; letter-spacing: 1.4px; margin: var(--space-24) var(--space-12) var(--space-12); }
+ /* The trailing circle is 36px inside a 48px row, so the row itself is the target and the circle is
+    decoration. Nothing here is a control smaller than the row it is on. */
+ .clinical .s-nav { gap: var(--space-8); }
+ .clinical .sidebar-bottom { padding-top: var(--space-24); }
+ .clinical .settings-link {
+  border-radius: var(--r-pill);
+  padding: var(--space-12) var(--space-16);
+  color: var(--charcoal);
+  font-size: 15px;
+  font-weight: 500;
+ }
+ .clinical .settings-link:hover { background: var(--pane); }
+ /* Two navigations for one state is one too many. From here up the console's sections are the
+    sidebar's pills; the strip inside the console is what a phone gets instead. */
+ .clinical .console-tabs { display: none; }
+}
+/* An inactive pill is glass on the aurora rather than a flat grey chip, so the column reads as the
+   same material as the work beside it. The active one stays charcoal — it is the only filled shape
+   in the sidebar and that is what makes it say where you are. */
+.clinical .s-nav-row { background: var(--pane); border: 1px solid var(--pane-line); }
+.clinical .s-nav-row:hover { background: color-mix(in srgb, var(--surface) 88%, transparent); }
+.clinical .s-nav-row[aria-current='page'] { background: var(--charcoal); border-color: var(--charcoal); }
+.clinical .s-nav-row[aria-current='page']:hover { background: var(--ink); }
+
+/* Who is signed in. A statement, not a control — so it is the one pane in the sidebar that is
+   frosted rather than filled, sitting on the ground like the pills under it. */
+.clinical .staff-id {
+ background: var(--pane);
+ backdrop-filter: var(--pane-blur);
+ -webkit-backdrop-filter: var(--pane-blur);
+ border: 1px solid var(--pane-line);
+ border-radius: var(--r-panel);
+ padding: var(--space-12);
+ gap: var(--space-12);
+}
+.clinical .staff-id strong { font-weight: 600; color: var(--charcoal); font-size: 14px; }
+.clinical .staff-id small, .clinical .staff-who small { color: var(--faint); }
+.clinical .staff-who strong { color: var(--charcoal); }
+.clinical .staff-credential { color: var(--faint); margin: var(--space-12) var(--space-4) 0; }
+.clinical .staff-credential.stop { color: var(--danger); }
+
+/* The monogram. Accent-soft mint on every avatar in the product was the loudest colour on a
+   clinical screen and it identified nobody; a hairline circle on the glass does the same job
+   without competing with the work. */
+.clinical .avatar { background: var(--pane); border: 1px solid var(--pane-line); color: var(--charcoal); box-shadow: none; }
+.clinical .topbar .avatar.small { box-shadow: none; }
+
+/* ---- The top bar ------------------------------------------------------------------------------
+   A frosted circle, no fill and no shadow — the reference's icon buttons exactly, and the same
+   shape the surface layer's .s-open already draws. */
+.clinical .icon-button {
+ background: var(--pane);
+ border: 1px solid var(--pane-line);
+ box-shadow: none;
+ color: var(--charcoal);
+}
+.clinical .icon-button:hover { background: color-mix(in srgb, var(--surface) 88%, transparent); }
+
+/* The disclosure. It is the one sentence on the screen that must never be missed, and it was a
+   white lozenge with a shadow floating on a white-ish ground. Frosted, hairlined, quiet — but the
+   only outlined pill in the row. */
+.clinical .demo-pill {
+ background: var(--pane);
+ border: 1px solid var(--pane-line);
+ box-shadow: none;
+ color: var(--charcoal);
+ font-weight: 500;
+}
+.clinical .topbar .demo-pill { background: var(--pane); border-color: var(--pane-line); color: var(--charcoal); }
+/* Outside the top bar it is a block-level <p> in a flex column, so it stretched to the full width
+   of the workspace and read as a banner rather than as the aside it is. It hugs its sentence. */
+.clinical .workspace > .demo-pill { align-self: flex-start; margin: 0 var(--space-16) var(--space-16); }
+@media (min-width: 1000px) { .clinical .workspace > .demo-pill { margin: 0 var(--space-32) var(--space-20); } }
+
+/* ---- Cards: frosted, hairlined, one whisper of a shadow ---------------------------------------
+   The whole product was white rounded boxes with one shadow each, which is the defect the design
+   brief names: a screen where every card looks the same has no hierarchy. Glass gives it back —
+   the ground moves under a panel, so a panel is visibly a layer rather than a box. */
+.clinical .panel,
+.clinical .staff-blank,
+.clinical .earn-account,
+.clinical .earn-split {
+ background: var(--pane);
+ backdrop-filter: var(--pane-blur);
+ -webkit-backdrop-filter: var(--pane-blur);
+ border: 1px solid var(--pane-line);
+ border-radius: var(--r-panel);
+ box-shadow: var(--pane-shadow);
+ padding: var(--space-16);
+ position: relative;
+}
+/* The highlight along the top edge — the one line that makes a panel read as glass rather than as a
+   pale card. It is light catching an edge; it carries no text and takes no clicks. */
+.clinical .panel::before,
+.clinical .staff-blank::before {
+ content: '';
+ position: absolute;
+ inset: 0 0 auto;
+ height: 1px;
+ border-radius: inherit;
+ background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--glass-edge) 70%, transparent) 22%, color-mix(in srgb, var(--glass-edge) 70%, transparent) 78%, transparent);
+ pointer-events: none;
+}
+/* Air is what makes this language read as considered, but not at 320px: a row inside a card there
+   has about 250 pixels to hold an icon, a name, a reason and a button, and every pixel of padding
+   comes out of the reason. Generous from the width where there is room to be generous. */
+@media (min-width: 700px) { .clinical .panel { padding: var(--space-24); } }
+
+/* A panel nested inside a panel is context, not a second subject: it recedes rather than drawing a
+   second frosted box on a frosted box, and it loses the edge highlight, which only ever belongs to
+   the topmost layer. */
+.clinical .panel .panel { background: var(--pane-quiet, color-mix(in srgb, var(--surface) 40%, transparent)); border-color: transparent; box-shadow: none; }
+.clinical .panel .panel::before { display: none; }
+
+.clinical .staff-blank h2 { color: var(--charcoal); font-weight: 500; font-size: 20px; }
+.clinical .staff-blank p { color: var(--faint); }
+
+/* The two lists a clinical screen is mostly made of — a nurse's later visits and a doctor's queue.
+   They were white boxes with a shadow; they are the same frosted pane as a panel, and a row inside
+   one is separated by a hairline rather than by an inset shadow. */
+.clinical .day-list, .clinical .review-list {
+ background: var(--pane);
+ backdrop-filter: var(--pane-blur);
+ -webkit-backdrop-filter: var(--pane-blur);
+ border: 1px solid var(--pane-line);
+ border-radius: var(--r-panel);
+ box-shadow: var(--pane-shadow);
+ padding: var(--space-8);
+}
+.clinical .day-list > li + li > .day-row, .clinical .review-list > li + li > .review-row { box-shadow: 0 -1px 0 var(--pane-line); }
+.clinical .day-row, .clinical .review-row { color: var(--faint); border-radius: var(--r-control); }
+.clinical .day-row:hover, .clinical .review-row:hover { background: color-mix(in srgb, var(--surface) 90%, transparent); box-shadow: none; }
+.clinical .day-row strong, .clinical .review-row strong, .clinical .review-ref { color: var(--charcoal); }
+.clinical .day-time strong { font-weight: 500; }
+.clinical .day-total { border-top-color: var(--pane-line); color: var(--faint); }
+.clinical .day-total > strong { color: var(--charcoal); font-weight: 400; letter-spacing: -.6px; }
+.clinical .review-routine, .clinical .review-waited { color: var(--faint); }
+/* The next visit is the one card on the schedule that is the screen's subject; a duty toggle beside
+   the date is a control on the whole day and reads as a chip rather than a button. */
+.clinical .duty-toggle { border-radius: var(--r-pill); }
+
+/* ---- Figures ----------------------------------------------------------------------------------
+   Metric carries the shape. What is here is the two places a figure is drawn by a screen rather
+   than by the component: the chart card's own reading, and the patient file's observation strip. */
+.clinical .pf-vitals { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: var(--space-16); }
+/* The provenance chip above a reading carries a serial number, which has no spaces in it and so
+   cannot wrap on its own. It breaks anywhere rather than pushing its column open. */
+.clinical .pf-vital .prov em { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.clinical .pf-vital {
+ display: flex;
+ flex-direction: column;
+ align-items: flex-start;
+ gap: var(--space-4);
+ background: none;
+ border: 0;
+ box-shadow: none;
+ padding: 0;
+}
+.clinical .pf-vital::before { display: none; }
+.clinical .pf-vital > strong {
+ display: flex;
+ align-items: baseline;
+ gap: 6px;
+ font-size: 36px;
+ font-weight: 400;
+ letter-spacing: -1.4px;
+ line-height: 1.05;
+ font-variant-numeric: tabular-nums;
+ color: var(--charcoal);
+}
+.clinical .pf-vital > strong small { font-size: 16px; font-weight: 400; letter-spacing: 0; color: var(--charcoal); }
+.clinical .pf-vital-name { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--faint); }
+.clinical .pf-vital-name svg { color: var(--charcoal); }
+.clinical .pf-vital .prov-row { order: -1; }
+
+/* The three overview cards. Key above, figure large and thin, detail beneath — the same shape as a
+   Metric, on a card, because each of them carries two lines of context a Metric has no room for. */
+.clinical .pf-cards { gap: var(--space-16); margin-bottom: var(--space-24); }
+.clinical .pf-card-key { color: var(--faint); font-weight: 600; letter-spacing: .6px; }
+.clinical .pf-card-key svg { color: var(--charcoal); }
+.clinical .pf-card > strong { font-size: 24px; font-weight: 400; letter-spacing: -.8px; color: var(--charcoal); }
+.clinical .pf-card > p { color: var(--charcoal); }
+.clinical .pf-card > small { color: var(--faint); }
+
+/* A console's figure: a Metric with the sentence it is measured against under it. The strip is
+   wider-tracked than a bare Metrics grid because those sentences need about 200px before they start
+   breaking into two-word lines.
+   min() rather than a bare track: `minmax(210px, 1fr)` cannot go under 210 even when the column it
+   is in is 163 wide, which is a 320px phone scrolling sideways on a console. */
+.clinical .c-figures .s-metrics { grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr)); }
+/* The same floor on the surface layer's own grid, and a chip that wraps rather than pushing its
+   column open. "On its way, or waiting on a bank" is wider than any track a 320px screen has. */
+.clinical .s-metrics { grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); }
+.clinical .s-metric-chip { white-space: normal; background: var(--pane); border-color: var(--pane-line); }
+.clinical .s-metric-chip.flagged { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+/* It carries `panel metric` too, because the console journeys read those class names. It is not a
+   card, so the card comes back off: a figure sits on the ground beside the other figures. */
+.clinical .c-figure, .clinical .c-figure.panel {
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-8);
+ min-width: 0;
+ background: none;
+ border: 0;
+ border-radius: 0;
+ box-shadow: none;
+ padding: 0;
+}
+.clinical .c-figure::before, .clinical .c-figure.panel::before { display: none; }
+.clinical .c-figure > small { font-size: 13px; line-height: 1.5; color: var(--faint); }
+
+/* ---- Charts: a soft sage area, a thin line, no shouting ---------------------------------------
+   The gradient the reference fades its areas with is done as an alpha mask over a flat sage fill:
+   the same picture, no SVG defs required.
+   The line stays charcoal rather than sage. Sage measures 2.89:1 against a white card, and the line
+   is the one mark on this drawing that carries the data — SC 1.4.11 wants 3:1 of a graphic that
+   means something. So sage fills and charcoal draws, which is the palette's own rule pointed at a
+   chart. */
+.clinical .chart-card { gap: var(--space-12); }
+.clinical .chart-title { color: var(--charcoal); font-weight: 500; font-size: 14px; }
+.clinical .chart-title svg { color: var(--charcoal); }
+/* The status chip, outlined like a Metric's — and filled charcoal for the one reading that is out
+   of range, which is the whole of what "flagged" means in this language. */
+.clinical .chart-flag {
+ background: var(--pane);
+ border: 1px solid var(--pane-line);
+ color: var(--charcoal);
+ font-weight: 500;
+ padding: 3px 10px;
+}
+.clinical .chart-flag.watch { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+.clinical .chart-value strong { font-size: 36px; font-weight: 400; letter-spacing: -1.4px; color: var(--charcoal); }
+.clinical .chart-value small, .clinical .chart-trend { color: var(--faint); }
+.clinical .chart-plot { height: 72px; }
+.clinical .chart-band { fill: var(--cloud); }
+.clinical .chart-area {
+ fill: var(--soft-sage);
+ mask-image: linear-gradient(to bottom, var(--charcoal), transparent);
+ -webkit-mask-image: linear-gradient(to bottom, var(--charcoal), transparent);
+}
+.clinical .chart-line { stroke: var(--charcoal); stroke-width: 1.5; }
+.clinical .chart-dot { fill: var(--charcoal); }
+.clinical .chart-dot.latest { fill: var(--surface); stroke: var(--charcoal); stroke-width: 2; }
+.clinical .chart-axis { color: var(--faint); }
+/* Two charts do not want three columns. At 200% zoom on a laptop the fixed three-column track put
+   a 169px card under a title and a status chip that together need 194, so the head clipped. */
+.clinical .chart-grid { gap: var(--space-16); grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
+
+/* The earnings split bar and the vetting progress bar are the same idea as the reference's
+   segmented progress: rounded pieces on a track, sage where the value is. Only the nurse's own
+   share keeps a colour of its own, because that share is the subject of the screen. */
+.clinical .earn-bar { height: 14px; gap: var(--space-4); }
+.clinical .earn-bar i { border-radius: var(--r-pill); }
+.clinical .earn-bar i.yours { background: var(--charcoal); }
+.clinical .earn-bar i.fee { background: var(--muted-sage); }
+.clinical .earn-bar i.platform { background: var(--pale-sage); }
+.clinical .earn-legend .key { border-radius: var(--r-pill); }
+.clinical .earn-legend .key.yours { background: var(--charcoal); }
+.clinical .earn-legend .key.fee { background: var(--muted-sage); }
+.clinical .earn-legend .key.platform { background: var(--pale-sage); }
+.clinical .earn-legend strong { color: var(--charcoal); font-weight: 500; font-size: 18px; }
+.clinical .earn-legend small { color: var(--faint); }
+/* The credential gauge is charcoal rather than sage, and deliberately so. It carries role="img"
+   with a label — it is a meaningful graphic, and SC 1.4.11 wants 3:1 of one. Soft sage measures
+   1.91:1 against a white card and 1.51:1 against its own track, so a bar drawn in it says how many
+   checks are passing to everybody except the reader who most needs to be told. Sage fills a chart
+   under a charcoal line, where the line carries the reading; it does not carry a gauge on its own. */
+.clinical .vetting-progress { background: var(--cloud); border-radius: var(--r-pill); }
+.clinical .vetting-progress > div { background: var(--charcoal); }
+
+/* ---- The one panel a screen is about ----------------------------------------------------------
+   Sage as a ground, charcoal on it at 11.11:1, and solid rather than frosted — the thing you are
+   meant to read first should be the most substantial object on the screen, which is the opposite of
+   how glass is usually misused. One per screen: the nurse's standing when she is cleared, and the
+   split of a visit she is looking at. Where the standing is a refusal it keeps the warning ground,
+   because that is meaning rather than chrome. */
+.clinical .earn-standing.ok { background: var(--pale-sage); color: var(--charcoal); border-radius: var(--r-panel); }
+.clinical .earn-standing.ok svg { color: var(--charcoal); }
+.clinical .earn-standing { border-radius: var(--r-panel); padding: var(--space-20); }
+.clinical .earn-standing strong { font-weight: 600; }
+
+/* ---- Rows -------------------------------------------------------------------------------------
+   A row is separated by a hairline, and its tile is a circle on the glass. Every row in this
+   product carried an indigo-tinted square, which is what the design brief means by a colour that
+   has stopped carrying information: when every row has one, none of them says anything. The
+   severity and check-state tiles keep their colour, because those do. */
+.clinical .record-row { color: var(--faint); padding: var(--space-16) 0; border-radius: var(--r-control); }
+.clinical .record-row + .record-row { border-top-color: var(--pane-line); }
+.clinical .record-row strong { color: var(--charcoal); font-weight: 500; font-size: 15px; }
+.clinical .record-row small { color: var(--faint); }
+.clinical .record-row > svg { color: var(--charcoal); }
+.clinical .service-icon, .clinical .tile-icon {
+ background: color-mix(in srgb, var(--charcoal) 6%, transparent);
+ color: var(--charcoal);
+ border-radius: var(--r-pill);
+}
+/* And the tiles that are not decoration. A severity and a check state are the two things on these
+   boards a reader sorts by before they read a word, so they keep the colour they had — the rule the
+   design brief states is that colour stops being chrome, not that it stops meaning anything. This
+   block has to sit after the one above it: a plain `.severity-critical` is a class shorter than
+   `.clinical .service-icon`, so quieting the decorative tile had quietly taken the red off a
+   critical incident. */
+.clinical .severity-critical, .clinical .check-declined { background: var(--danger-soft); color: var(--danger); }
+.clinical .severity-high, .clinical .check-in-review { background: var(--mango-soft); color: var(--mango-ink); }
+.clinical .severity-medium, .clinical .check-outstanding { background: var(--cloud); color: var(--charcoal); }
+.clinical .check-verified { background: var(--pale-sage); color: var(--charcoal); }
+.clinical .review-line { border-bottom-color: var(--pane-line); color: var(--faint); padding: var(--space-12) 0; }
+.clinical .review-line strong { color: var(--charcoal); font-weight: 500; }
+.clinical .review-line strong.flagged { color: var(--danger); }
+
+/* A note that explains a refusal or a rule. A quieter pane, no border, charcoal icon. It was a
+   canvas box with an indigo icon on every one of them, on screens carrying five at a time. */
+.clinical .privacy-note {
+ background: color-mix(in srgb, var(--charcoal) 4%, transparent);
+ border: 0;
+ border-radius: var(--r-panel);
+ color: var(--charcoal);
+ padding: var(--space-16);
+}
+.clinical .privacy-note > svg { color: var(--charcoal); }
+.clinical .privacy-note.alert { background: var(--mango-soft); border: 1px solid var(--mango-ink); color: var(--mango-ink); }
+.clinical .privacy-note.alert > svg { color: var(--mango-ink); }
+.clinical .empty-note { background: color-mix(in srgb, var(--charcoal) 4%, transparent); border-radius: var(--r-panel); color: var(--charcoal); padding: var(--space-16); }
+.clinical .earn-rule { color: var(--faint); }
+.clinical .earn-rule svg { color: var(--charcoal); }
+.clinical .earn-standing .earn-rule svg { color: inherit; }
+
+/* The contract's not-connected notice. Never softened and never removed — what changes is that its
+   marker stops being the same indigo as every icon around it, so it reads as the one edge on the
+   screen rather than as more chrome. */
+.clinical .not-connected {
+ background: color-mix(in srgb, var(--charcoal) 4%, transparent);
+ border: 0;
+ border-left: 3px solid var(--charcoal);
+ border-radius: var(--r-panel);
+ color: var(--charcoal);
+ padding: var(--space-12) var(--space-16);
+}
+.clinical .not-connected > svg { color: var(--charcoal); }
+.clinical .not-connected.inline { background: none; border-left: 2px solid var(--pane-line); border-radius: 0; }
+
+/* ---- Controls ---------------------------------------------------------------------------------
+   The primary action is charcoal on these screens. Indigo stays for meaning — an information mark,
+   a link out — and stops being the colour of every button, because a workspace where the "Assign"
+   on a dispatch row and the "Got it" on a dialog are painted identically is one where the colour
+   has stopped meaning "this is the thing to press". Fully round, as the reference's are. */
+.clinical .primary, .clinical .secondary, .clinical .ghost, .clinical a.primary { border-radius: var(--r-pill); font-weight: 500; }
+.clinical .primary, .clinical a.primary { background: var(--charcoal); color: var(--surface); }
+.clinical .primary:hover:not(:disabled), .clinical a.primary:hover { background: var(--ink); }
+.clinical .secondary { background: var(--pane); border-color: var(--pane-line); color: var(--charcoal); }
+.clinical .secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--surface) 90%, transparent); border-color: var(--pane-line); }
+.clinical .ghost { background: color-mix(in srgb, var(--charcoal) 5%, transparent); color: var(--charcoal); }
+.clinical .text-button { color: var(--charcoal); text-decoration: underline; text-underline-offset: 3px; }
+
+.clinical .tabs > button { border-color: var(--pane-line); background: var(--pane); color: var(--charcoal); font-weight: 500; }
+.clinical .tabs > button.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+/* A strip that scrolls sideways must not also shrink what is in it. These are flex children of an
+   overflow-x container, so they were being squeezed to 44px and clipping their own labels at 200%
+   zoom — "Compliance" arriving as "Compl". They scroll now, which is what the strip is for.
+   And they sit clear of the 44px floor rather than exactly on it. A tab whose content measures
+   43.99 and whose min-width is 44 lands on the boundary, and the target audit failed on it about
+   one run in three — a control that is the right size only after rounding is not the right size. */
+.clinical .underline-tabs > button { flex: 0 0 auto; min-height: 46px; padding-left: var(--space-8); padding-right: var(--space-8); }
+.clinical .underline-tabs { gap: var(--space-8); }
+.clinical .underline-tabs { border-bottom-color: var(--pane-line); }
+.clinical .underline-tabs > button { color: var(--faint); font-weight: 500; }
+.clinical .underline-tabs > button.selected { color: var(--charcoal); font-weight: 600; }
+.clinical .underline-tabs > button.selected:after { background: var(--charcoal); }
+.clinical .chip { border-color: var(--pane-line); background: var(--pane); color: var(--charcoal); }
+.clinical .chip.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+.clinical .chip input { accent-color: var(--charcoal); }
+.clinical .earn-preview-switch label { border-color: var(--pane-line); color: var(--charcoal); }
+.clinical .earn-preview-switch label.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+
+/* Fields. A frosted control on the glass, so a form does not turn into a wall of white boxes. */
+.clinical input, .clinical select, .clinical textarea {
+ border-color: var(--pane-line);
+ background: var(--pane);
+ color: var(--charcoal);
+ border-radius: var(--r-control);
+}
+.clinical input::placeholder, .clinical textarea::placeholder { color: var(--faint); }
+.clinical label { color: var(--charcoal); }
+
+/* A field is as wide as the thing it holds, not as wide as the workspace. An eight-digit
+   registration number in an 1100-pixel box is a control that tells a reader nothing about what it
+   wants, and the caret starts a screen's width away from where they are looking. Textareas keep
+   more room because what goes in them is prose. */
+.clinical .form-stack > label, .clinical .assessment > label { max-width: 520px; }
+.clinical .form-stack > label:has(textarea), .clinical .assessment > label:has(textarea) { max-width: 720px; }
+
+/* Links and pills that were carrying the interface. A "More tools" link is a pill on the ground and
+   was an indigo-hovering box; a plain pill is a caption and was uppercase indigo. */
+.clinical .tool-link { border-color: var(--pane-line); color: var(--charcoal); background: var(--pane); font-weight: 500; }
+.clinical .tool-link:hover { background: color-mix(in srgb, var(--surface) 90%, transparent); border-color: var(--pane-line); color: var(--charcoal); }
+.clinical .tool-link svg { color: var(--charcoal); }
+.clinical .pill { background: var(--pane); border: 1px solid var(--pane-line); color: var(--charcoal); font-weight: 500; }
+.clinical .pill.plain { background: none; border: 0; color: var(--faint); }
+
+/* A disabled control is not a faded one. Forty-five per cent of charcoal on the aurora is a grey
+   nobody can name and the button stops looking like a button at all; a flat wash with faint on it —
+   a pair the token file measures — says "here, but not yet" without going translucent. */
+.clinical .primary:disabled, .clinical .secondary:disabled, .clinical .ghost:disabled {
+ opacity: 1;
+ background: var(--cloud);
+ border-color: var(--stone);
+ color: var(--faint);
+}
+
+/* A pair of actions is a pair of actions, not two half-page slabs. At 1100px of workspace the row
+   was drawing two 550-pixel buttons, which is the widest thing on the screen sitting under the
+   narrowest column of text on it. */
+.clinical .button-row { max-width: 520px; gap: var(--space-12); }
+.clinical .form-stack > .primary.full, .clinical .form-stack > .secondary.full { max-width: 520px; }
+
+/* Steps. The counter and the dots were the indigo that used to carry the interface; the dot you are
+   on is charcoal now, and the ones behind it are the hairline colour. */
+.clinical .step-head span { color: var(--charcoal); }
+.clinical .step-head em { color: var(--faint); }
+.clinical .step-dots i { background: var(--stone); }
+.clinical .step-dots i.on, .clinical .step-dots i.now { background: var(--charcoal); }
+.clinical .stepper b { background: var(--cloud); color: var(--charcoal); }
+.clinical .stepper .current { color: var(--charcoal); }
+.clinical .stepper .current b { background: var(--charcoal); color: var(--surface); }
+
+/* ---- The one card a screen is about -----------------------------------------------------------
+   The nurse's next visit. It is the single thing she opened the app to find out, and it was a
+   saturated navy block — the loudest object in the product, on the screen that has to be read at
+   arm's length from a kitchen counter. Sage as a ground and charcoal on it at 11.11:1 keeps it the
+   one card that is not glass without shouting, and a soft luminance behind it lifts it off the
+   ground rather than a shadow doing the work. Nothing frosted is ever placed on top of it: sage is
+   darker than the floor every contrast figure was measured against. */
+.clinical .next-visit {
+ background: var(--pale-sage);
+ color: var(--charcoal);
+ border-radius: var(--r-panel);
+ box-shadow: none;
+ padding: var(--space-24);
+}
+.clinical .next-when > span:first-child { color: var(--charcoal); font-weight: 600; }
+.clinical .next-when > strong { font-weight: 400; letter-spacing: -1.6px; }
+.clinical .next-when > span:last-child,
+.clinical .next-where, .clinical .next-note { color: var(--charcoal); }
+.clinical .next-body h2 { color: var(--charcoal); font-weight: 500; }
+.clinical .next-who { color: var(--charcoal); }
+.clinical .next-note { border-top-color: var(--sage-slate); }
+/* Both actions were inverted for a navy ground: the primary was white-on-indigo and the secondary
+   was a white wash at 12% alpha. On sage they are the same two buttons as everywhere else — the
+   thing to press is charcoal, and the other one is a hairline on solid white, because a translucent
+   control here would be glass on a ground darker than the floor. */
+.clinical .next-actions > .primary { background: var(--charcoal); color: var(--surface); border: 1px solid var(--charcoal); }
+.clinical .next-actions > .primary:hover { background: var(--ink); color: var(--surface); }
+.clinical .next-actions > .secondary { background: var(--surface); border-color: var(--stone); color: var(--charcoal); }
+.clinical .next-actions > .secondary:hover { background: var(--mist); }
+
+/* The header chips on a patient file. Four tinted lozenges in a row is the pattern the brief calls
+   out: when every chip is coloured, the one that says "Penicillin — rash and facial swelling" is
+   not. A quiet wash for the ordinary ones; the warning and the refusal keep theirs. */
+.clinical .pf-chip { background: color-mix(in srgb, var(--charcoal) 5%, transparent); border-radius: var(--r-control); }
+.clinical .pf-chip > span { color: var(--faint); opacity: 1; }
+.clinical .pf-chip > strong { color: var(--charcoal); }
+
+/* ---- Timelines and tables ---------------------------------------------------------------------
+   A step that has happened is charcoal; one that has not is a hairline ring on the card. */
+.clinical .timeline li:not(:last-child):before { background: var(--stone); }
+.clinical .timeline-dot { border-color: var(--stone); background: var(--surface); color: var(--surface); }
+.clinical .timeline li.done .timeline-dot { background: var(--charcoal); border-color: var(--charcoal); }
+.clinical .timeline li.active .timeline-dot { border-color: var(--charcoal); box-shadow: 0 0 0 4px var(--cloud); }
+.clinical .timeline strong { color: var(--charcoal); font-weight: 500; }
+.clinical .timeline small, .clinical .timeline em { color: var(--faint); }
+.clinical .timeline li.waiting strong { color: var(--faint); }
+
+.clinical .admin-table th, .clinical .admin-table td,
+.clinical .chart-table th, .clinical .chart-table td,
+.clinical .result-table th, .clinical .result-table td,
+.clinical .prog-table th, .clinical .prog-table td { border-bottom-color: var(--pane-line); color: var(--charcoal); }
+.clinical .chart-table thead th, .clinical .result-table thead th,
+.clinical .admin-table thead th, .clinical .prog-table thead th { color: var(--faint); font-weight: 600; }
+.clinical .chart-table caption, .clinical .result-table caption { color: var(--faint); }
+
+/* ---- Everything that was mint, indigo-soft or shadowed for decoration -------------------------- */
+.clinical .success-icon { background: var(--pale-sage); color: var(--charcoal); }
+/* On and off, at 6 pixels. Two sages a millimetre apart is not a difference anybody can see at that
+   size; charcoal against the hairline colour is. The word beside it says the same thing either way,
+   which is the rule — colour is never the only difference between two states. */
+.clinical .status-dot { background: var(--charcoal); }
+.clinical .status-dot.offline { background: var(--stone); }
+.clinical .demo-pill > .status-dot { background: var(--charcoal); }
+.clinical .map-key i { border-radius: var(--r-pill); }
+.clinical .livemap-canvas { border-color: var(--pane-line); border-radius: var(--r-panel); }
+.clinical .livemap-note { color: var(--faint); }
+
+/* The staff door. Same language as the workspace behind it, so signing in does not look like a
+   different product from the one being signed in to. The left panel is the lead card of the screen
+   and takes the sage ground; the form beside it is the aurora with glass on it. */
+.clinical .onboard-panel { background: var(--pale-sage); color: var(--charcoal); }
+.clinical .onboard-panel h2, .clinical .onboard-panel p, .clinical .onboard-note { color: var(--charcoal); }
+/* Solid, not frosted: it sits on sage, which is darker than the floor. */
+.clinical .onboard-note { background: var(--surface); border-color: var(--stone); border-radius: var(--r-panel); }
+.clinical .onboard-note svg { color: var(--charcoal); }
+.clinical .staff-signin-roles .record-row {
+ border-color: var(--pane-line);
+ border-radius: var(--r-panel);
+ background: var(--pane);
+ backdrop-filter: var(--pane-blur);
+ -webkit-backdrop-filter: var(--pane-blur);
+ padding: var(--space-16);
+}
+.clinical .staff-signin-roles .record-row:hover { background: color-mix(in srgb, var(--surface) 90%, transparent); }
+.clinical .staff-signin-roles .record-row + .record-row { border-top: 1px solid var(--pane-line); }
+
+/* ---- The rest of the indigo that was furniture --------------------------------------------------
+ *
+ * Each screen grew its own tinted boxes, and together they are the defect the design brief names:
+ * a colour applied to every panel, every icon and every good state has stopped saying anything, so
+ * the one place indigo would have meant something — an information mark on a rule the reader has to
+ * take seriously — is indistinguishable from the tile beside it.
+ *
+ * What keeps its colour is what carries information a reader would otherwise have to guess: a
+ * severity, a lapsed check, a calibration overdue, a refusal, and the four provenance icons, which
+ * are four different facts about where a reading came from and are deliberately drawn at one size
+ * and four tints. Everything below was chrome.
+ */
+.clinical .prov-legend em { color: var(--charcoal); }
+.clinical .prov-legend strong { color: var(--charcoal); }
+.clinical .kit-device.paired { background: color-mix(in srgb, var(--charcoal) 5%, transparent); border-color: transparent; }
+
+.clinical .state-icon { background: color-mix(in srgb, var(--charcoal) 6%, transparent); color: var(--charcoal); }
+.clinical .code-input .code-ok { background: var(--charcoal); color: var(--surface); }
+.clinical .alloc-bar > div { background: var(--charcoal); }
+
+/* The patient file's own furniture. */
+.clinical .pf-scope > svg, .clinical .pf-withheld .pf-refusal-icon,
+.clinical .pf-not-built > svg, .clinical .pf-action svg { color: var(--charcoal); }
+.clinical button.pf-action:hover { border-color: var(--pane-line); background: color-mix(in srgb, var(--surface) 90%, transparent); }
+.clinical .pf-sections li.filled:before { background: var(--charcoal); }
+
+/* Teleconsultation and interpreting. A matched interpreter is a good outcome and takes the sage
+   ground; held and unknown keep the warning and the refusal they already had. */
+.clinical .tc-avatar { background: color-mix(in srgb, var(--charcoal) 6%, transparent); color: var(--charcoal); border-radius: var(--r-pill); }
+.clinical .tc-person strong em { color: var(--faint); }
+.clinical .tc-switch label { border-color: var(--pane-line); color: var(--charcoal); }
+.clinical .tc-switch label.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+.clinical .tc-limit.ok { background: color-mix(in srgb, var(--charcoal) 4%, transparent); }
+.clinical .tc-limit.ok svg { color: var(--charcoal); }
+.clinical .interp-outcome { border-color: var(--pane-line); border-radius: var(--r-panel); }
+.clinical .interp-outcome.matched { background: var(--pale-sage); border-color: transparent; }
+.clinical .interp-outcome strong { color: var(--charcoal); }
+.clinical .interp-outcome p { color: var(--charcoal); }
+.clinical .access-row .access-mark, .clinical .access-rule svg { color: var(--charcoal); }
+.clinical .locale-choice label.selected, .clinical .choice-row.selected,
+.clinical .date-chip.selected, .clinical .time-chip.selected {
+ background: var(--charcoal); border-color: var(--charcoal); color: var(--surface);
+}
+
+/* Dispensing and programmes. Eight tinted boxes between them, on screens whose subject is a
+   statutory refusal drawn in red beneath. */
+.clinical .disp-telling, .clinical .disp-ends { background: color-mix(in srgb, var(--charcoal) 4%, transparent); border-radius: var(--r-panel); }
+.clinical .disp-telling-head, .clinical .disp-replaces, .clinical .disp-ends p, .clinical .disp-ends > svg { color: var(--charcoal); }
+.clinical .disp-ground > svg, .clinical .disp-signed > svg, .clinical .disp-rule > svg { color: var(--charcoal); }
+.clinical .disp-telling .disp-columns li:before { background: var(--charcoal); }
+.clinical .disp-class.interchangeable, .clinical .disp-item.interchangeable { border-left-color: var(--charcoal); }
+.clinical .prog-reconcile > svg, .clinical .prog-list li > svg { color: var(--charcoal); }
+.clinical .prog-steps li:before { background: color-mix(in srgb, var(--charcoal) 6%, transparent); color: var(--charcoal); }
+
+/* ---- The phone ---------------------------------------------------------------------------------
+   Below 1000px the sidebar is gone and the tab bar is the navigation. The active tab is charcoal,
+   like the pill it replaces, and the bar itself is frosted so the work scrolls under it rather than
+   behind a white wall. */
+.clinical .tabbar {
+ background: color-mix(in srgb, var(--surface) 82%, transparent);
+ backdrop-filter: var(--pane-blur);
+ -webkit-backdrop-filter: var(--pane-blur);
+ border-top-color: var(--pane-line);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+ .clinical .tabbar { background: var(--glass-floor); }
+}
+.clinical .tabbar button { color: var(--faint); font-weight: 500; }
+.clinical .tabbar button.active { color: var(--charcoal); }
+.clinical .tabbar button.active .tab-icon { background: var(--charcoal); color: var(--surface); }
+
+/* ---- The dialog ---------------------------------------------------------------------------------
+   A modal is the one surface in this product that may not be frosted: it sits in the top layer over
+   a scrim, and a translucent sheet there composites over whatever the scrim is rather than over the
+   ground the contrast figures were measured against. So the sheet is solid, and it is solid in
+   exactly the floor colour — the same #f9faf8 every frosted panel resolves to. The blur goes where
+   it belongs, which is the backdrop: the workspace behind it is what gets frosted, and that is the
+   whole of the depth this treatment is for. */
+.clinical .modal {
+ background: var(--glass-floor);
+ color: var(--charcoal);
+ border-radius: var(--r-panel) var(--r-panel) 0 0;
+ border: 1px solid var(--pane-line);
+ box-shadow: 0 -2px 40px -12px color-mix(in srgb, var(--charcoal) 30%, transparent);
+}
+@media (min-width: 1000px) { .clinical .modal { border-radius: var(--r-panel); } }
+.clinical .modal::backdrop {
+ background: color-mix(in srgb, var(--charcoal) 26%, transparent);
+ -webkit-backdrop-filter: blur(10px);
+ backdrop-filter: blur(10px);
+}
+@media (prefers-reduced-transparency: reduce) {
+ .clinical .modal::backdrop { background: color-mix(in srgb, var(--charcoal) 45%, transparent); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+.clinical .modal-heading h2 { font-size: 20px; font-weight: 500; letter-spacing: -.4px; color: var(--charcoal); }
+.clinical .modal-heading .icon-button { background: color-mix(in srgb, var(--charcoal) 5%, transparent); border-color: transparent; }
+/* A panel inside the dialog is on the floor colour, not on the aurora, so it stops being frosted
+   and becomes the plain white card it is over a solid ground. */
+.clinical .modal .panel { background: var(--surface); border-color: var(--pane-line); backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; }
+/* Except the one panel the dialog is about, which keeps its sage ground wherever it is drawn. It has
+   to be said again here because the rule above is one class more specific than the one below it. */
+.clinical .modal .next-step { background: var(--pale-sage); color: var(--charcoal); border-color: transparent; }
+.clinical .modal input, .clinical .modal select, .clinical .modal textarea { background: var(--surface); }
+.clinical .modal .secondary { background: var(--surface); }
+
+/* ---- What a screen produces next ------------------------------------------------------------
+   The panel a flow ends on: an icon, what the next thing is, and the door to it. It is the shape
+   that closed four dead ends — a signed decision, a filled script, a sent visit — so it is drawn
+   once and reads the same in all of them. */
+.clinical .next-step {
+ display: flex;
+ flex-wrap: wrap;
+ align-items: flex-start;
+ gap: var(--space-16);
+ background: var(--pale-sage);
+ color: var(--charcoal);
+ border: 0;
+ box-shadow: none;
+}
+.clinical .next-step::before { display: none; }
+.clinical .next-step > div { flex: 1 1 260px; min-width: 0; }
+.clinical .next-step h3 { font-size: 16px; font-weight: 600; color: var(--charcoal); }
+.clinical .next-step p { font-size: 14px; line-height: 1.6; margin-top: var(--space-4); color: var(--charcoal); }
+.clinical .next-step .service-icon { background: var(--surface); color: var(--charcoal); }
+.clinical .next-step .primary { flex: 0 0 auto; }
+
+/* The board's own after-state. It is a section rather than a panel so the heading counts what is in
+   it, and it sits under the grid where an operator's eye already is. */
+.clinical .dispatch-sent { max-width: 1080px; margin-top: var(--space-32); }
+
+/* ---- Motion -----------------------------------------------------------------------------------
+ *
+ * Everything on a clinical screen arrives the same way: a short rise into place, staggered so the
+ * head lands before the figures and the figures before the work. `rise` and the three durations
+ * come from glass.css, which is where the one easing curve in this product lives.
+ *
+ * Only the first four children are staggered. A dispatch board has twenty; animating all of them
+ * is a screen that takes two seconds to settle, and Playwright waits for a box to hold still before
+ * it will click one. Everything here is finite, and touches transform and opacity only. */
+.clinical main > * { animation: rise var(--t-enter) var(--ease-soft) both; }
+.clinical main > *:nth-child(2) { animation-delay: 40ms; }
+.clinical main > *:nth-child(3) { animation-delay: 80ms; }
+.clinical main > *:nth-child(n+4) { animation-delay: 120ms; }
+.clinical .sidebar .s-nav-row { animation: rise var(--t-enter) var(--ease-soft) both; }
+
+/* And none of it happens to somebody who asked for stillness. styles.css already collapses every
+   duration globally; this says it in the file that starts the animations, so removing that global
+   rule cannot quietly turn these back on. */
+@media (prefers-reduced-motion: reduce) {
+ .clinical main > *, .clinical .sidebar .s-nav-row { animation: none; }
+}
+
+/* ---- What in styles.css this supersedes --------------------------------------------------------
+ *
+ * Nothing below is edited there — four builds share that file — but on a clinical screen these no
+ * longer decide anything, and they can be deleted once the patient surfaces have moved too:
+ *
+ *   .metric-grid and .panel.metric. Every clinical use of them is now Metrics/Metric from the
+ *   surface layer, wrapped in .c-figure so the console journeys' selectors keep working.
+ *   .panel's box-shadow and --r-card radius, .privacy-note's border, .not-connected's indigo rule,
+ *   .empty-note's indigo ground, .service-icon's indigo-soft tile, .primary/.secondary/.tabs/.chip
+ *   indigo, .underline-tabs' indigo underline, .chart-area's --indigo-wash and .chart-line's
+ *   --indigo, .timeline's indigo dots, .avatar's --accent-soft, .icon-button's shadow,
+ *   .demo-pill's shadow, and the desktop `nav button` block, which no clinical shell renders.
+ */

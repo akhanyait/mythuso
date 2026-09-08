@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
 import { Modal, SectionTitle } from '../components/UI';
-import { Metric, Metrics } from '../surface/Surface';
+import { Metric, Metrics, NavRow } from '../surface/Surface';
+import '../surface/clinical.css';
 import { NotConnected } from '../components/NotConnected';
 import { NurseSchedule, ReviewQueue, roleExtras, sectionDoor, sectionWorkflow } from '../features/Pages';
-import { DispatchBoard, IncidentBoard } from '../features/Dispatch';
-import { FulfilmentQueue } from '../features/Orders';
-import { VisitAssessment, DoctorReview } from '../features/Clinical';
+import { DispatchBoard, IncidentBoard, QualityBoard, controlTowerCounts } from '../features/Dispatch';
+import { FulfilmentQueue, partnerCounts } from '../features/Orders';
+import { ClinicalProtocols, ReferralPathway, VisitAssessment, DoctorReview } from '../features/Clinical';
 import { ThusoKit } from '../features/Kit';
 import { Earnings } from '../features/Earnings';
 import { Dispensing } from '../features/Dispensing';
@@ -16,7 +17,7 @@ import { ConsultationRecord } from '../features/Consultation';
 import { PatientFile } from '../features/PatientFile';
 import { LabOrderDetail, PrescriptionDetail } from '../features/Orders';
 import { IncidentDetail, NurseVetting } from '../features/Dispatch';
-import { VettingApplication } from '../features/Vetting';
+import { VettingApplication, VettingQueue } from '../features/Vetting';
 import { t } from '../lib/i18n';
 import { probe, startSignIn, verifyCode, endSession } from '../lib/auth';
 import { EXPIRY_WARNING_DAYS, roleById, subjectStatusLabels, summarise } from '../lib/vetting';
@@ -151,7 +152,7 @@ function StaffSignIn({ onOpen }: { onOpen: (role: StaffRole) => void }) {
   if (!verified.ok) return setError(verified.message);
   setPerson(verified.person.name ?? verified.person.phone);
  };
- return <div className="onboarding">
+ return <div className="onboarding clinical aurora">
   <div className="onboard-panel">
    <img src="/logo.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
    <h2>MyThuso for clinicians.</h2>
@@ -205,7 +206,7 @@ function StaffWorkspace({ role, onSignOut }: { role: StaffRole; onSignOut: () =>
     lapsed overnight needs to be told before she reads a schedule she is no longer dispatchable
     against — the arithmetic is in lib/vetting, and this is where it becomes a sentence. */
  const stopped = who.stopped;
- return <div className="app-shell">
+ return <div className="app-shell clinical aurora">
   <a href="#main" className="skip-link">{t('shell.skip', 'en-ZA')}</a>
   <aside className="sidebar">
    <button className="brand" onClick={home}><img src="/logo.svg" alt="MyThuso — Help. Health. Home."/></button>
@@ -220,10 +221,12 @@ function StaffWorkspace({ role, onSignOut }: { role: StaffRole; onSignOut: () =>
        and the heading in the main column says it again. Three of the same word on one screen is
        what a label costs when it is chosen for symmetry rather than for a reader. */}
    <div className="nav-label">WORKSPACE</div>
-   <nav aria-label="Main navigation">{sections.map(({ id, icon: Icon }) =>
-    <button key={id} aria-current={section === id ? 'page' : undefined} className={section === id ? 'active' : ''} onClick={() => go(id)}>
-     <Icon size={19} strokeWidth={1.8}/><span>{id}</span>
-    </button>)}</nav>
+   {/* Pill rows, and the one you are on is a filled charcoal pill with the trailing circle
+       inverted. A plain list of rows with a tinted active state told a reader which entry was
+       selected; the pill tells them where they are, which is the thing a workspace has to say
+       before anything else on the screen means anything. */}
+   <nav className="s-nav" aria-label="Main navigation">{sections.map(({ id, icon: Icon }) =>
+    <NavRow key={id} icon={<Icon size={19} strokeWidth={1.8}/>} label={id} current={section === id} onClick={() => go(id)}/>)}</nav>
    <div className="sidebar-bottom">
     {/* No help card, no wallet, no language picker. The shell strings a picker would switch are the
         patient's navigation, and clinical wording is never translated at all — lib/i18n.ts is where
@@ -255,7 +258,7 @@ function StaffWorkspace({ role, onSignOut }: { role: StaffRole; onSignOut: () =>
      <span className="tab-icon"><Icon size={21} strokeWidth={1.9}/></span><span className="tab-label">{short}</span>
     </button>)}</nav>
   </div>
-  {modal && <Modal title={staffModalTitle(modal)} onClose={() => setModal(null)}>{staffModalBody(modal, () => setModal(null))}</Modal>}
+  {modal && <Modal title={staffModalTitle(modal)} onClose={() => setModal(null)}>{staffModalBody(modal, () => setModal(null), setModal)}</Modal>}
  </div>;
 }
 
@@ -267,13 +270,15 @@ function renderSection(role: StaffRole, section: string, open: (m: string) => vo
   if (section === 'Vetting') return <VettingApplication roleId="nurse" onClose={home}/>;
  }
  if (role === 'Doctor') {
+  if (section === 'Protocols') return <ClinicalProtocols/>;
   if (section === 'Teleconsultation') return <Teleconsult/>;
   if (section === 'Patient context') return <PatientFile open={open}/>;
   if (section === 'Consultation records') return <ConsultationRecord/>;
  }
  if (role === 'Partner' && section === 'Substitution & repeats') return <Dispensing/>;
  if (role === 'Control Tower') {
-  if (section === 'Vetting queue') return <NurseVetting onClose={home}/>;
+  if (section === 'Vetting queue') return <VettingQueue open={open}/>;
+  if (section === 'Quality') return <QualityBoard open={open}/>;
  }
  return <StaffSection role={role} section={section} open={open}/>;
 }
@@ -312,37 +317,63 @@ const sectionBlurb: Record<string, string> = {
    floats above the figure and says how it is going; the label sits under it and says what it is.
    `flagged` fills the chip charcoal, and exactly one per screen is the point of it. */
 type Metric = readonly [string, string, string, string, boolean, string?];
-const metricsFor: Record<StaffRole, readonly Metric[]> = {
- Nurse: [['Next visit', '09:00', '', 'Rosebank · 40 min', false], ['Today’s visits', '3', '', 'One to sign off', false], ['This week', '598', '', 'Pays Wednesday', false, 'R ']],
- Doctor: [['Awaiting review', '12', '', 'Longest 3 h 20 m', false], ['Priority reviews', '2', '', 'Out of range', true], ['Reviewed today', '18', '', 'Median 4 m 10 s', false]],
- Partner: [['Open orders', '8', '', '2 past window', true], ['Collections', '4', '', 'Next 11:15', false], ['Ready for release', '3', '', 'Awaiting a clinician', false]],
- 'Control Tower': [['Active visits', '24', '', '3 running late', false], ['Available nurses', '18', '', '4 off duty', false], ['Open incidents', '3', '', '1 severity high', true]]
+/* Counted from the boards they sit above wherever the board is in this territory, rather than typed
+   beside them. They were typed, and they had drifted: the partner's strip said eight open orders
+   over a queue of four, and the Control Tower's said one high-severity incident over a board
+   listing one critical and one high. A figure a reader can disprove by looking at the screen under
+   it is worse than no figure.
+   The nurse's and the doctor's still carry typed sample figures, because the schedule and the
+   review queue are drawn from features/Pages.tsx, which does not export its rows. What is fixed is
+   that they no longer contradict what is on the screen: three visits, three cases waiting, two of
+   them flagged. */
+const metricsOf = (role: StaffRole): readonly Metric[] => {
+ if (role === 'Partner') { const c = partnerCounts();
+  return [['Open orders', String(c.open), '', c.pastWindow ? `${c.pastWindow} past its window` : 'All inside their windows', c.pastWindow > 0],
+          ['Collections', String(c.collections), '', `Next ${c.nextCollection}`, false],
+          ['Ready for release', String(c.readyForRelease), '', 'Awaiting a clinician', false]]; }
+ if (role === 'Control Tower') { const c = controlTowerCounts();
+  return [['Visits on the board', String(c.waiting), '', 'Awaiting a nurse', false],
+          ['Nurses on duty', String(c.nurses), '', `${c.offDuty} off duty`, false],
+          ['Open incidents', String(c.incidents), '', c.critical ? `${c.critical} critical` : `${c.high} high`, c.critical > 0]]; }
+ if (role === 'Doctor')
+  return [['Awaiting review', '3', '', 'Longest 3 h 20 m', false], ['Priority reviews', '2', '', 'Out of range', true], ['Reviewed today', '18', '', 'Median 4 m 10 s', false]];
+ return [['Next visit', '09:00', '', 'Rosebank · 40 min', false], ['Today’s visits', '3', '', 'One to sign off', false], ['This week', '598', '', 'Pays Wednesday', false, 'R ']];
 };
 /* Three columns rather than one bold string with two middle dots in it. A reference, what the case
    is, and what state it is in are three different questions, and a reader scanning a queue answers
    the third one first — so it is a badge in its own column at the end of the row, aligned down the
    list, instead of the last few words of a sentence. */
 const BOARDS = ['Schedule', 'Review queue', 'Dispatch', 'Incidents', 'Orders', 'Collections', 'Results'];
+/* The sections that draw their own <h1>. Two h1 elements on one page is not a heading, it is a
+   reader having to guess which one is the page. */
+const HEADS_ITSELF = [...BOARDS, 'Protocols', 'Quality', 'Vetting queue'];
 
 function StaffSection({ role, section, open }: { role: StaffRole; section: string; open: (m: string) => void }) {
  const board = BOARDS.includes(section);
  /* The sections rendered by a feature component that draws its own <h1>. */
- const headsItself = section === 'Dispatch' || section === 'Orders' || section === 'Collections'
-  || section === 'Results' || section === 'Schedule' || section === 'Review queue';
+ const headsItself = HEADS_ITSELF.includes(section);
+ /* Protocols and Quality draw their own page-intro, eyebrow included, because they are whole screens
+    rather than boards the shell tops. Everything else keeps the shell's eyebrow — a board that heads
+    itself still has to say which workspace it belongs to. */
+ const ownsIntro = section === 'Protocols' || section === 'Quality' || section === 'Vetting queue';
  return <>
   {/* Two sections head themselves, and better than this can: the dispatch board and the fulfilment
       queue carry a live subtitle counting what is actually waiting. The shell gives them the role
       eyebrow and gets out of the way, because two h1 elements on one page is not a heading, it is a
       reader having to guess which one is the page. */}
-  <div className="page-intro"><div><div className="eyebrow">{role.toUpperCase()}</div>
-   {headsItself ? null : <><h1>{section}</h1><p>{sectionBlurb[section] ?? sectionDoor[section] ?? ''}</p></>}</div></div>
-  {board && <Metrics>{metricsFor[role].map(([label, value, unit, chip, flagged, prefix]) =>
+  {!ownsIntro && <div className="page-intro"><div><div className="eyebrow">{role.toUpperCase()}</div>
+   {headsItself ? null : <><h1>{section}</h1><p>{sectionBlurb[section] ?? sectionDoor[section] ?? ''}</p></>}</div></div>}
+  {board && <Metrics>{metricsOf(role).map(([label, value, unit, chip, flagged, prefix]) =>
    <Metric key={label} label={label} value={value} unit={unit || undefined} prefix={prefix} chip={chip} flagged={flagged}/>)}</Metrics>}
   {section === 'Schedule' ? <NurseSchedule open={open}/>
    : section === 'Review queue' ? <ReviewQueue open={open}/>
 : section === 'Dispatch' ? <DispatchBoard/>
    : section === 'Incidents' ? <><SectionTitle title="Open incidents"/><IncidentBoard open={open}/></>
-    : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue open={open}/>
+    : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
+     /* The last fallback. Protocols and Quality used to land here — a card whose only control
+        opened a dialog saying nothing happens — and both are screens of their own now. What is left
+        is the shape a section takes when it genuinely has nothing behind it, which is worth keeping
+        drawn so a reviewer can tell a gap from an oversight. */
      : <div className="panel workflow-door">
       <span className="tile-icon"><ShieldCheck size={22}/></span>
       <h2>{section}</h2>
@@ -365,6 +396,8 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
    the list of screens a patient must never be made to download, and keeping the two routers apart
    is what stops one import creeping back and undoing the split. */
 function staffModalTitle(modal: string) {
+ if (modal.startsWith('Nurse case: TH-')) return 'Patient file';
+ if (modal === 'Substitution & repeats' || modal === 'Substitution') return 'Substitution & repeats';
  if (modal.startsWith('Prescription ')) return 'Prescription';
  if (modal.startsWith('Laboratory order ')) return 'Laboratory order';
  if (modal.startsWith('Incident ')) return 'Incident';
@@ -375,21 +408,49 @@ function staffModalTitle(modal: string) {
  if (modal === 'Teleconsultation call') return 'Teleconsultation';
  return modal;
 }
-function staffModalBody(modal: string, close: () => void) {
- if (modal === 'Visit assessment' || modal.startsWith('Nurse case:')) return <VisitAssessment onClose={close}/>;
- if (modal.startsWith('Doctor review') || modal.startsWith('Doctor case:')) return <DoctorReview onClose={close}/>;
- if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={modal.replace('Prescription ', '')}/>;
- if (modal.startsWith('Laboratory order ') || modal === 'Laboratory results') return <LabOrderDetail reference={modal.replace('Laboratory order ', '')}/>;
+/* `open` as well as `close`, because a screen reached from here can produce the next one. A doctor
+   who signs "issue a prescription" is offered the prescription; the router that knows what a
+   prescription is called is this one, so the door is handed down rather than duplicated inside the
+   feature. */
+function staffModalBody(modal: string, close: () => void, open: (m: string) => void) {
+ /* Two different things used to arrive here under one name. The nurse's schedule opens a visit
+    assessment from "Start this visit" and the patient's file from "Patient file", and both were
+    routed to the assessment — so the one button on that card that is not about starting the visit
+    opened the visit. The visit reference distinguishes them: a case named after a visit is a file,
+    a case named after a time is the visit at that time. */
+ if (modal.startsWith('Nurse case: TH-')) return <PatientFile open={open}/>;
+ if (modal === 'Visit assessment' || modal.startsWith('Nurse case:')) return <VisitAssessment {...visitFrom(modal)} onClose={close}/>;
+ if (modal.startsWith('Doctor review') || modal.startsWith('Doctor case:')) return <DoctorReview reference={referenceIn(modal) ?? undefined} open={open} onClose={close}/>;
+ if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={referenceIn(modal) ?? undefined} open={open}/>;
+ if (modal.startsWith('Laboratory order ') || modal === 'Laboratory results') return <LabOrderDetail reference={referenceIn(modal) ?? undefined}/>;
  if (modal.startsWith('Incident ') || modal === 'Incident management') return <IncidentDetail reference={modal.replace('Incident ', '')} onClose={close}/>;
  if (modal === 'Nurse onboarding & vetting' || modal === 'Nurse vetting') return <NurseVetting onClose={close}/>;
  if (modal === 'Vetting application') return <VettingApplication onClose={close}/>;
  if (modal === 'Thuso Kit' || modal === 'Thuso Kit connection' || modal === 'Diagnostic kit') return <ThusoKit onClose={close}/>;
  if (modal === 'Weekly payouts' || modal === 'Earnings & payouts') return <Earnings/>;
+ if (modal === 'Substitution & repeats' || modal === 'Substitution') return <Dispensing/>;
+ /* "Clinical protocols" is in two roles' More tools and was the roadmap fallback in both. It is a
+    screen now, and the same screen — a protocol that differs by which door you came through is two
+    protocols. */
+ if (modal === 'Clinical protocols') return <ClinicalProtocols/>;
+ if (modal === 'Referral pathway') return <ReferralPathway/>;
  if (modal === 'Employer programmes' || modal === 'Programme administration') return <Programmes/>;
  if (modal === 'Consultation record') return <ConsultationRecord onClose={close}/>;
  if (modal === 'Teleconsultation' || modal === 'Teleconsultation call') return <Teleconsult onClose={close}/>;
  return <StaffDetail title={modal} close={close}/>;
 }
+/* "Nurse case: 11:30 · Wound care · Parktown" is a row on the schedule, and the assessment it opens
+   used to be the 09:00 one every time — the same patient, the same reference, whichever row was
+   pressed. The row already carries what it needs; this reads it rather than inventing a screen. */
+const dayPeople: Record<string, string> = { '11:30': 'Thabo Molefe', '14:00': 'Nomsa Molefe' };
+function visitFrom(modal: string): { reference?: string; patient?: string } {
+ const time = modal.match(/Nurse case: (\d{2}:\d{2})/)?.[1];
+ return time ? { reference: `TH-2048 · ${time}`, patient: dayPeople[time] ?? 'Lerato Molefe' } : {};
+}
+/* A reference is TH- or INC- followed by digits. Pulled out rather than sliced at a fixed offset,
+   because "Doctor review: TH-2041" and "Doctor case: TH-2041" are the same case under two names. */
+const referenceIn = (modal: string) => modal.match(/\b(TH|INC|RX|LAB)-\d+/)?.[0] ?? null;
+
 /* The fallback, and it says the same thing every time because the same thing is true every time: a
    name on a list is not a screen. It names what the workflow will be for so that a reviewer can
    tell a gap from an oversight. */

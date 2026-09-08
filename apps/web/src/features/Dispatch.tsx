@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { ArrowRight, Check, CircleAlert, Clock3, MapPin, Radio, Route, ShieldAlert, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Check, CircleAlert, Clock3, MapPin, Radio, Route, ShieldAlert, ShieldCheck, TriangleAlert, Undo2 } from 'lucide-react';
+import { SectionTitle } from '../components/UI';
+import { Metric, Metrics } from '../surface/Surface';
 import { NotConnected } from '../components/NotConnected';
 import { VettingApplication } from './Vetting';
 import { can, type VettingSubject } from '../lib/vetting';
@@ -78,9 +80,27 @@ const basisLine = (eta: Eta) =>
    appears — hiding her would leave an operator wondering where she went — but she cannot be
    assigned, and the refusal is on the row rather than in a tooltip. */
 export function DispatchBoard({ subjects = seededSubjects }: { subjects?: VettingSubject[] } = {}) {
- const [selected, setSelected] = useState(initialJobs[0].id);
+ const [selected, setSelected] = useState<string>(initialJobs[0].id);
  const [assigned, setAssigned] = useState<Record<string, string>>({});
+ /* Assigning used to change a word on a row and nothing else: the visit stayed in "Awaiting
+    assignment", the counts stayed the same, and nothing anywhere on the screen said what would
+    happen to it next. A board is a thing that moves.
+    It moves in three places now, and the confirmation stays where the operator's hand already is:
+    the row they pressed still reads "Assigned" and the status line above it still names the nurse,
+    because a confirmation that jumps somewhere else is a confirmation nobody reads. What is added
+    is the tab marked done, the count in the heading, and the list below with what would happen to
+    the visit next — and a deliberate way on to the next one still waiting, rather than the screen
+    deciding for them. */
+ const waiting = initialJobs.filter(j => !assigned[j.id]);
+ const dispatched = initialJobs.filter(j => assigned[j.id]);
  const job = initialJobs.find(j => j.id === selected)!;
+ const nextWaiting = initialJobs.find(j => j.id !== job.id && !assigned[j.id]);
+ const send = (id: string, nurse: string) =>
+  setAssigned(current => ({ ...current, [id]: current[id] === nurse ? '' : nurse }));
+ const recall = (id: string) => {
+  setAssigned(current => { const rest = { ...current }; delete rest[id]; return rest; });
+  setSelected(id);
+ };
  const gate = (name: string) => {
   const subject = subjects.find(s => s.name === name);
   return subject ? can(subject, 'take-visit') : { allowed: false, reason: 'No vetting record. Nobody without one is offered a visit.', blockedBy: [] };
@@ -114,10 +134,10 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
    onSelect: () => setSelected(j.id)
   }))
  ];
- const summary = `Dispatch map of ${coverage.city}, ${province}. ${initialJobs.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting${unlocated ? `, ${unlocated} not drawn because no position is being shared` : ''}.`;
+ const summary = `Dispatch map of ${coverage.city}, ${province}. ${waiting.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting${unlocated ? `, ${unlocated} not drawn because no position is being shared` : ''}.`;
  return <>
   <div className="shift-head">
-   <div><h1>Dispatch</h1><p>{initialJobs.length} visits awaiting a nurse · {dispatchable} cleared for dispatch{refused ? ` · ${refused} refused by vetting` : ''}</p></div>
+   <div><h1>Dispatch</h1><p>{waiting.length ? `${waiting.length} visits awaiting a nurse` : 'Every visit has a nurse'} · {dispatchable} cleared for dispatch{refused ? ` · ${refused} refused by vetting` : ''}{dispatched.length ? ` · ${dispatched.length} sent` : ''}</p></div>
   </div>
   <NotConnected of="dispatch"/>
   <div className="dispatch-grid">
@@ -133,8 +153,14 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
      {unlocated > 0 && <p className="helper">{unlocated === 1 ? 'One nurse has no pin, because that device is not sharing a position.' : `${unlocated} nurses have no pin, because those devices are not sharing a position.`} They are in the list with the reason given, and can still be assigned from it.</p>}
     </div>
     <div className="panel">
-     <div className="section-title"><h2>Awaiting assignment</h2></div>
-     <div className="tabs" role="group" aria-label="Visits awaiting assignment">{initialJobs.map(j => <button key={j.id} className={selected === j.id ? 'selected' : ''} aria-pressed={selected === j.id} onClick={() => setSelected(j.id)}>{j.id}</button>)}</div>
+     <div className="section-title"><h2>{waiting.length ? `Awaiting assignment · ${waiting.length}` : 'Nothing waiting'}</h2></div>
+     {/* A visit that has been sent stays on the strip with a tick rather than vanishing from it. An
+         operator working a board needs to see what they have already done as well as what is left,
+         and a row that disappears the moment it is pressed is how a double assignment happens. */}
+     <div className="tabs" role="group" aria-label="Visits on the board">{initialJobs.map(j =>
+      <button key={j.id} className={selected === j.id ? 'selected' : ''} aria-pressed={selected === j.id} onClick={() => setSelected(j.id)}>
+       {assigned[j.id] && <Check size={14}/>}{j.id}
+      </button>)}</div>
      <div className="review-line"><span>Service</span><strong>{job.service}</strong></div>
      <div className="review-line"><span>Area</span><strong><MapPin size={14}/> {job.area}</strong></div>
      <div className="review-line"><span>Window</span><strong><Clock3 size={14}/> {job.window}</strong></div>
@@ -147,14 +173,34 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
       <span><strong>{n.name}</strong><small>{n.area} · {n.status} · {arrivalLine(eta)}</small><small>{basisLine(eta)}</small><small>{n.skills.join(' · ')}</small>
        {!decision.allowed && <small className="flagged">{decision.reason}</small>}</span>
       {decision.allowed
-       ? <button className={assigned[job.id] === n.name ? 'secondary' : 'primary'} disabled={n.status !== 'Available'} onClick={() => setAssigned({ ...assigned, [job.id]: assigned[job.id] === n.name ? '' : n.name })}>{assigned[job.id] === n.name ? <><Check size={15}/>Assigned</> : 'Assign'}</button>
+       ? <button className={assigned[job.id] === n.name ? 'secondary' : 'primary'} disabled={n.status !== 'Available'} onClick={() => send(job.id, n.name)}>{assigned[job.id] === n.name ? <><Check size={15}/>Assigned</> : 'Assign'}</button>
        : <button className="secondary" disabled aria-label={`Cannot be assigned — ${n.name}. ${decision.reason}`}>Cannot be assigned</button>}
      </div>)}
      <div className="privacy-note"><ShieldCheck size={19}/>Vetting is asked before a name is offered, not after. The Control Tower has no override for a lapsed clearance — there is no button here that would let one be granted.</div>
      <div className="privacy-note"><Radio size={19}/>Estimated arrival is a straight-line distance, not a road route. Assignment weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse — none of which a straight line knows.</div>
+     {assigned[job.id] && <div className="panel next-step">
+      <span className="service-icon"><BadgeCheck size={22}/></span>
+      <div><h3>{job.id} is with {assigned[job.id]}.</h3>
+       <p>{nextWaiting ? `${waiting.length} still waiting on this board.` : 'Nothing else on this board is waiting.'} What would happen to this one next is in the list at the foot of the screen.</p></div>
+      {nextWaiting && <button className="primary" onClick={() => setSelected(nextWaiting.id)}>Next visit waiting<ArrowRight size={16}/></button>}
+     </div>}
      <div className="privacy-note"><Route size={19}/>No routing provider is connected, so no road route is drawn and no arrival time is claimed from one. When one is added, a route it cannot give will be shown as unavailable rather than replaced by the straight line above.</div>
     </div>
   </div>
+  {/* Where an assigned visit goes, and what would happen to it next if any of this were connected.
+      A board that only ever shows what is waiting cannot tell an operator whether the thing they
+      just did worked — and "worked" here means a specific sequence of five things, none of which
+      MyThuso can do yet. Saying them in order is what makes the gap legible rather than invisible. */}
+  {dispatched.length > 0 && <section className="dispatch-sent">
+   <div className="section-title"><h2>Sent · {dispatched.length}</h2></div>
+   <div className="panel">{dispatched.map(j => <div className="record-row static" key={j.id}>
+    <span className="service-icon check-verified"><BadgeCheck size={21}/></span>
+    <span><strong>{j.id} · {j.service}</strong><small>{assigned[j.id]} · {j.area} · {j.window}</small>
+     <small>Next: the nurse is offered the visit and accepts it, the patient is told who is coming, a six-digit visit code is issued to the patient for the doorstep, the nurse's arrival is tracked against the window, and the visit opens as an assessment when she is there.</small></span>
+    <button className="secondary" onClick={() => recall(j.id)}><Undo2 size={15}/>Recall</button>
+   </div>)}</div>
+   <div className="privacy-note"><Radio size={19}/>Nothing above has been sent. No nurse is notified, no patient is told, no code is issued and no visit is opened — dispatch is not connected, and an assignment here moves a row on this screen and nothing else.</div>
+  </section>}
  </>;
 }
 const incidents = [
@@ -162,6 +208,17 @@ const incidents = [
  { id: 'INC-015', title: 'Patient reported chest pain during a routine visit', severity: 'Critical', area: 'Parktown', opened: '10:31', status: 'Escalated' },
  { id: 'INC-016', title: 'Sample seal found damaged on courier handover', severity: 'High', area: 'Rosebank', opened: '11:04', status: 'Open' }
 ];
+/* Counted from the same arrays the boards draw, for the same reason: the strip above a dispatch
+   board said "3 open incidents · 1 severity high" while the board under it listed one critical and
+   one high. Both were typed, and they disagreed. */
+export const controlTowerCounts = () => ({
+ waiting: initialJobs.length,
+ nurses: nurses.filter(n => n.status !== 'Off duty').length,
+ offDuty: nurses.filter(n => n.status === 'Off duty').length,
+ incidents: incidents.length,
+ critical: incidents.filter(i => i.severity === 'Critical').length,
+ high: incidents.filter(i => i.severity === 'High').length
+});
 export function IncidentBoard({ open }: { open: (s: string) => void }) {
  return <div className="panel">{incidents.map(i => <button className="record-row" key={i.id} onClick={() => open(`Incident ${i.id}`)}>
   <span className={`service-icon severity-${i.severity.toLowerCase()}`}>{i.severity === 'Critical' ? <ShieldAlert size={21}/> : <TriangleAlert size={21}/>}</span>
@@ -196,4 +253,69 @@ export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?:
    keep in step with packages/catalog/vetting.json. */
 export function NurseVetting({ onClose }: { onClose: () => void }) {
  return <VettingApplication roleId="nurse" onClose={onClose}/>;
+}
+
+/* ---- The board a board asks for -----------------------------------------------------------------
+ *
+ * "Quality" was a card with a button that opened a dialog saying nothing happens. It is the section
+ * the Control Tower is measured on, and the four things in it are not a mystery: what went wrong,
+ * how long people waited, what patients said afterwards, and what any of that is worth.
+ *
+ * The incident figures are counted from the same array the incident board draws, so this screen and
+ * that one cannot disagree. The arrival, complaint and revenue figures are sample data and are
+ * marked as such — a quality board that quietly mixes counted numbers with invented ones is the
+ * worst of the two, so the ones that are counted say so and the ones that are not say that.
+ */
+const arrivals = [
+ { window: 'Inside the booked window', visits: 71, of: 84 },
+ { window: 'Up to 15 minutes late', visits: 9, of: 84 },
+ { window: 'More than 15 minutes late', visits: 3, of: 84 },
+ { window: 'Did not arrive', visits: 1, of: 84 }
+];
+const complaints = [
+ { id: 'CX-0031', what: 'Nurse arrived without the dressing pack the visit needed', state: 'Upheld · kit list changed for wound care', severity: 'Medium' },
+ { id: 'CX-0032', what: 'Patient was not told the visit had been reassigned', state: 'Upheld · notification is a gap, not a mistake', severity: 'Medium' },
+ { id: 'CX-0033', what: 'Charged for a visit the patient says did not happen', state: 'Open · with finance and the Control Tower', severity: 'High' }
+];
+export function QualityBoard({ open }: { open: (s: string) => void }) {
+ const critical = incidents.filter(i => i.severity === 'Critical').length;
+ const high = incidents.filter(i => i.severity === 'High').length;
+ const onTime = arrivals[0];
+ const upheld = complaints.filter(c => c.state.startsWith('Upheld')).length;
+ return <>
+  <div className="page-intro"><div className="eyebrow">CONTROL TOWER</div>
+   <h1>Quality</h1>
+   <p>Complaints, incidents, arrival times and what they move — the numbers a board asks for before it asks for anything else.</p></div>
+  {/* One filled chip on the screen, and it is the incident with a critical on it. Two flagged
+      figures is two things shouting, and the whole of what `flagged` means is "this one". */}
+  <Metrics>
+   <Metric label="Arrived inside the window" value={String(Math.round(onTime.visits / onTime.of * 100))} unit="%" chip={`${onTime.visits} of ${onTime.of} visits`}/>
+   <Metric label="Open incidents" value={String(incidents.length)} chip={critical ? `${critical} critical` : `${high} high`} flagged={critical > 0}/>
+   <Metric label="Complaints this week" value={String(complaints.length)} chip={`${upheld} upheld`}/>
+   <Metric label="Visits not arrived" value={String(arrivals[3].visits)} chip="Each one is an incident"/>
+  </Metrics>
+  <NotConnected of="dispatch"/>
+  <SectionTitle title="Arrival against the booked window"/>
+  <div className="panel table-scroll">
+   <table className="result-table">
+    <caption>Sample data. Nothing in this build measures an arrival, because no visit is dispatched and no nurse’s position is being read.</caption>
+    <thead><tr><th scope="col">Arrival</th><th scope="col">Visits</th><th scope="col">Share</th></tr></thead>
+    <tbody>{arrivals.map(a => <tr key={a.window} className={a.window === 'Did not arrive' ? 'flagged-row' : ''}>
+     <th scope="row">{a.window}</th><td>{a.visits}</td><td>{Math.round(a.visits / a.of * 100)}%</td>
+    </tr>)}</tbody>
+   </table>
+  </div>
+  <div className="privacy-note"><Clock3 size={19}/>A window is what the patient was told, so it is what lateness is measured against — never the time the visit was assigned, which is a number the Control Tower controls and could improve by moving.</div>
+
+  <SectionTitle title="Complaints"/>
+  <div className="panel">{complaints.map(c => <div className="record-row static" key={c.id}>
+   <span className={`service-icon severity-${c.severity.toLowerCase()}`}><TriangleAlert size={21}/></span>
+   <span><strong>{c.id} · {c.what}</strong><small>{c.state}</small></span>
+  </div>)}</div>
+  <div className="privacy-note"><ShieldCheck size={19}/>A complaint upheld against a nurse never touches money she has already earned. Suspension stops what is sent to her next; it does not reach backwards into a payout.</div>
+
+  <SectionTitle title="Incidents behind these numbers"/>
+  <IncidentBoard open={open}/>
+  <div className="privacy-note"><CircleAlert size={19}/>These counts are read from the same incidents the board above draws, so this screen and that one cannot come to disagree. The arrival, complaint and revenue figures are sample data and are marked where they appear.</div>
+ </>;
 }

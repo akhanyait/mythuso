@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowRight, Ban, BadgeCheck, Building2, CalendarClock, CircleAlert, Info, Landmark, Lock, Receipt, RotateCcw, ShieldAlert, TrendingUp, Undo2, Wallet } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
+import { Metric, Metrics } from '../surface/Surface';
 import { NotConnected } from '../components/NotConnected';
 import { liveServices, money, type Service } from '../lib/catalog';
 import {
@@ -39,6 +40,10 @@ const longDay = new Intl.DateTimeFormat('en-ZA', { weekday: 'short', day: 'numer
 const on = (iso: string) => day.format(new Date(`${iso}T00:00:00Z`));
 const fully = (iso: string) => longDay.format(new Date(`${iso}T00:00:00Z`));
 const percent = (n: number) => `${Math.round(n * 100)}%`;
+/* An amount, split so the rand sign can be set small beside a large thin figure. Intl gives one
+   string; the design needs the symbol and the digits apart, and finding the first digit is the only
+   way to do that which survives a locale putting the symbol on the other side. */
+const rand = (n: number) => { const s = money(n); const i = s.search(/\d/); return { prefix: s.slice(0, i), value: s.slice(i) }; };
 
 /* Two nurses, one cleared and one whose police clearance lapsed nine days ago. Switching between
    them changes the standing banner and nothing else on the screen, which is the rule made visible:
@@ -161,11 +166,15 @@ export function Earnings() {
    <p className="helper">The same earnings, seen by a cleared nurse and by one whose police clearance lapsed nine days ago. Only the banner changes — which is the rule.</p>
   </fieldset>
 
-  <div className="metric-grid space-top">
-   <div className="panel metric"><span>This week so far</span><strong>{money(currentWeek.total)}</strong><small>{currentWeek.visits} visits · closes {cycle.closesOn}, pays {cycle.paysOn}</small></div>
-   <div className="panel metric"><span>Owed, not yet in your account</span><strong>{money(owedNotYetPaid)}</strong><small>On its way, or waiting on a bank</small></div>
-   <div className="panel metric"><span>Reached your account this tax year</span><strong>{money(paidThisTaxYear)}</strong><small>Since {taxYear.startsOn} · {taxYear.label}</small></div>
-  </div>
+  {/* The three figures a nurse opened this screen for, in the dashboard language: the amount set
+      large and thin, what it is underneath it, and how it is going in a chip above. The rand sign
+      is the prefix rather than part of the numeral — R 598, never 598 R, and never a currency
+      symbol set at the same size as the number it qualifies. */}
+  <Metrics>
+   <Metric {...rand(currentWeek.total)} label="This week so far" chip={`${currentWeek.visits} visits · pays ${cycle.paysOn}`}/>
+   <Metric {...rand(owedNotYetPaid)} label="Owed, not yet in your account" chip="On its way, or waiting on a bank"/>
+   <Metric {...rand(paidThisTaxYear)} label="Reached your account this tax year" chip={`Since ${taxYear.startsOn}`}/>
+  </Metrics>
   <p className="earn-rule"><Info size={15}/>{ruleById('accrued-is-not-paid').sentence}</p>
 
   <SectionTitle title="Where the money goes"/>

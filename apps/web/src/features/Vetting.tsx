@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, BadgeCheck, CalendarClock, Check, CircleAlert, ClipboardList, Clock3, FileText, RotateCcw, ScrollText, ShieldCheck, ShieldX, UserRoundCheck, UserRoundX, Users } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
+import { Metric, Metrics } from '../surface/Surface';
 import { StepHead } from '../components/Steps';
 import { EmptyState } from '../components/States';
 import { NotConnected } from '../components/NotConnected';
@@ -103,8 +104,19 @@ export function useVettingState() {
 export type VettingState = ReturnType<typeof useVettingState>;
 
 /* ---- Small shared pieces ----------------------------------------------------------------- */
-function Metric({ icon: Icon, label, value, note, tone }: { icon: typeof Users; label: string; value: string; note: string; tone?: string }) {
- return <div className="panel metric"><span><Icon size={16}/>{label}</span><strong className={tone}>{value}</strong><small>{note}</small></div>;
+/* A figure in the dashboard language: the number set large and thin, what it is underneath it, and
+   — where the console has one — the sentence saying what it is measured against under that.
+   A vetting console cannot lose those sentences: "4" means nothing beside "Suspended or declined",
+   and everything about whether it is a problem is in "lapsed automatically, or declined with a
+   reason". They are too long to be the chip a Metric floats above the figure, so they sit below the
+   label, and the chip carries the one word that says whether the number is a problem.
+   The wrapper keeps `panel metric` as well as its own name: the console journeys assert against
+   `.panel.metric`, and a class is part of the contract with them as much as any export is. */
+function Figure({ label, value, note, flagged }: { label: string; value: string; note: string; flagged?: boolean }) {
+ return <div className="c-figure panel metric">
+  <Metric label={label} value={value} chip={flagged ? 'Needs attention' : undefined} flagged={flagged}/>
+  <small>{note}</small>
+ </div>;
 }
 const stateTone = (state: CheckState) => state === 'verified' ? 'check-verified' : state === 'expiring' ? 'check-in-review'
  : state === 'lapsed' || state === 'declined' ? 'check-declined' : state === 'in-review' || state === 'submitted' ? 'check-in-review' : 'check-outstanding';
@@ -134,6 +146,25 @@ function ReasonForm({ label, hint, confirm, onConfirm, onCancel }: { label: stri
  </div>;
 }
 
+/* The console, with its state held for it.
+ *
+ * The Control Tower's "Vetting queue" section was rendering the applicant's own five-step
+ * application — the form a nurse fills in about herself — under a heading that promised "every
+ * applicant, the state of each check, and the decision that either clears somebody for dispatch or
+ * refuses it in writing". A controller opening it got a blank SANC field and no way to reach a
+ * single one of the twelve parties whose clearance they are responsible for. That is the console,
+ * and the console already existed; the only thing missing was somewhere for its state to live
+ * outside the back office. */
+export function VettingQueue({ open }: { open: (s: string) => void }) {
+ const vetting = useVettingState();
+ return <>
+  <div className="page-intro"><div><div className="eyebrow">CONTROL TOWER</div>
+   <h1>Vetting queue</h1>
+   <p>Every applicant, the state of each check, and the decision that either clears somebody for dispatch or refuses it in writing.</p></div></div>
+  <VettingConsole vetting={vetting} open={open}/>
+ </>;
+}
+
 /* ---- The reviewer console ---------------------------------------------------------------- */
 type View = 'queue' | 'renewals' | 'audit';
 export function VettingConsole({ vetting, open }: { vetting: VettingState; open: (s: string) => void }) {
@@ -157,12 +188,12 @@ export function VettingConsole({ vetting, open }: { vetting: VettingState; open:
  const views: [View, string][] = [['queue', t('vetting.queue')], ['renewals', t('vetting.renewals')], ['audit', t('vetting.audit')]];
  return <>
   <NotConnected of="credential-verification"/>
-  <div className="metric-grid">
-   <Metric icon={UserRoundCheck} label="Cleared" value={String((counts.cleared ?? 0) + (counts.expiring ?? 0))} note={`${counts.expiring ?? 0} of them with a renewal due`}/>
-   <Metric icon={ClipboardList} label="In progress" value={String(counts['in-progress'] ?? 0)} note="Refused the work of the role until every check passes"/>
-   <Metric icon={Users} label="Awaiting a second reviewer" value={String(counts.awaiting ?? 0)} note="One reviewer is never enough on a high-risk check" tone={counts.awaiting ? 'flagged' : ''}/>
-   <Metric icon={UserRoundX} label="Suspended or declined" value={String((counts.suspended ?? 0) + (counts.declined ?? 0))} note="Lapsed automatically, or declined with a reason" tone={(counts.suspended ?? 0) + (counts.declined ?? 0) ? 'flagged' : ''}/>
-  </div>
+  <div className="c-figures"><Metrics>
+   <Figure label="Cleared" value={String((counts.cleared ?? 0) + (counts.expiring ?? 0))} note={`${counts.expiring ?? 0} of them with a renewal due`}/>
+   <Figure label="In progress" value={String(counts['in-progress'] ?? 0)} note="Refused the work of the role until every check passes"/>
+   <Figure label="Awaiting a second reviewer" value={String(counts.awaiting ?? 0)} note="One reviewer is never enough on a high-risk check" flagged={!!(counts.awaiting)}/>
+   <Figure label="Suspended or declined" value={String((counts.suspended ?? 0) + (counts.declined ?? 0))} note="Lapsed automatically, or declined with a reason" flagged={!!((counts.suspended ?? 0) + (counts.declined ?? 0))}/>
+  </Metrics></div>
   <div className="vetting-bar">
    <div className="tabs" role="group" aria-label={t('vetting.views')}>
     {views.map(([id, label]) => <button key={id} className={view === id ? 'selected' : ''} aria-pressed={view === id} onClick={() => setView(id)}>{label}</button>)}
@@ -291,11 +322,11 @@ function RenewalsDue({ subjects, onOpen }: { subjects: VettingSubject[]; onOpen:
   .sort((a, b) => a.summary.nextDue!.days - b.summary.nextDue!.days);
  const lapsed = due.filter(r => r.summary.nextDue!.days < 0);
  return <>
-  <div className="metric-grid">
-   <Metric icon={CircleAlert} label="Already lapsed" value={String(lapsed.length)} note="Suspended without anyone here having to notice" tone={lapsed.length ? 'flagged' : ''}/>
-   <Metric icon={CalendarClock} label="Due within 45 days" value={String(due.filter(r => r.summary.nextDue!.days >= 0 && r.summary.nextDue!.days <= 45).length)} note="Still working today, and told about it"/>
-   <Metric icon={ShieldCheck} label="On the renewal schedule" value={String(due.length)} note="Every check with a renewal cadence"/>
-  </div>
+  <div className="c-figures"><Metrics>
+   <Figure label="Already lapsed" value={String(lapsed.length)} note="Suspended without anyone here having to notice" flagged={!!(lapsed.length)}/>
+   <Figure label="Due within 45 days" value={String(due.filter(r => r.summary.nextDue!.days >= 0 && r.summary.nextDue!.days <= 45).length)} note="Still working today, and told about it"/>
+   <Figure label="On the renewal schedule" value={String(due.length)} note="Every check with a renewal cadence"/>
+  </Metrics></div>
   <SectionTitle title="Sorted by what expires first"/>
   <div className="panel">
    {due.map(({ subject, summary }) => <button className="record-row" key={subject.id} onClick={() => onOpen(subject.id)}>

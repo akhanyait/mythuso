@@ -12,13 +12,16 @@
  gap: var(--space-8);
 }
 
+/* A hairline and a pale ground, not a shadow and not the blue-grey canvas. The map is a card like
+   every other card in this language: separation is a line, and the board under the pins has to stay
+   lighter than the glass floor so a frosted panel beside it is measured against the same colour. */
 .livemap-canvas {
  flex: 1;
  min-height: 0;
  border-radius: var(--r-card);
- border: 1px solid var(--line);
+ border: 1px solid var(--stone);
  overflow: hidden;
- background: var(--canvas);
+ background: var(--mist);
 }
 
 .livemap-canvas.schematic svg { width: 100%; height: 100%; display: block; }
@@ -50,7 +53,7 @@
  height: 14px;
  border-radius: var(--r-pill);
  background: var(--marker);
- box-shadow: 0 0 0 3px var(--surface), var(--shadow);
+ box-shadow: 0 0 0 3px var(--surface);
 }
 
 /* A visit is a square and a nurse is a circle. Colour alone never carries the difference: a
@@ -110,7 +113,7 @@
 /* Scoped inside .map-pin deliberately: the ring is a child of the pin's group, so the base fill
    above out-specifies a bare .map-focus and was painting the ring solid — which swallowed the pin
    it was drawn to point at, and swallowed the nurse standing next to it. */
-.map-pin .map-focus { fill: none; stroke: var(--indigo-deep); stroke-width: .7; stroke-dasharray: 2 1.6; }
+.map-pin .map-focus { fill: none; stroke: var(--charcoal); stroke-width: .7; stroke-dasharray: 2 1.6; }
 
 /* A pin is a control, so it takes focus visibly. Two rings, as everywhere else: no single colour
    clears 3:1 against both a pale zone and a saturated one. */
@@ -122,12 +125,16 @@
  paint-order: stroke;
 }
 
-.livemap-canvas.schematic .map-ground { fill: var(--canvas); }
-.livemap-canvas.schematic .map-grid { stroke: var(--line); stroke-width: .4; }
-.livemap-canvas.schematic .map-zone { fill: var(--indigo-wash); stroke: var(--line); stroke-width: .4; }
+/* The board beneath the pins. A zone is a soft sage wash and the grid is the hairline colour, so
+   the only saturated things on the map are the marks that mean something — a nurse, a visit, a
+   refusal. It used to be an indigo wash under indigo pins on a blue-grey ground, which is three
+   ways of saying nothing three times. */
+.livemap-canvas.schematic .map-ground { fill: var(--mist); }
+.livemap-canvas.schematic .map-grid { stroke: var(--stone); stroke-width: .4; }
+.livemap-canvas.schematic .map-zone { fill: var(--pale-sage); stroke: var(--stone); stroke-width: .4; }
 .livemap-canvas.schematic .map-label {
  font-size: 4px;
- fill: var(--slate);
+ fill: var(--charcoal);
  text-anchor: middle;
  font-weight: 700;
  paint-order: stroke;

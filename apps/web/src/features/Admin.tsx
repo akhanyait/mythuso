@@ -1,20 +1,24 @@
 import { useMemo, useState } from 'react';
-import { Activity, BadgeCheck, Banknote, CalendarClock, CircleAlert, ClipboardList, FileText, Gauge, Landmark, LockKeyhole, Radio, ScrollText, ShieldCheck, Stethoscope, TrendingUp, UserRoundCheck, Users } from 'lucide-react';
+import { BadgeCheck, Banknote, CalendarClock, CircleAlert, FileText, Gauge, Landmark, LockKeyhole, Radio, ScrollText, ShieldCheck, Stethoscope, Users } from 'lucide-react';
 import { Pill, SectionTitle } from '../components/UI';
+import { Metric, Metrics } from '../surface/Surface';
 import { DispatchBoard, IncidentBoard } from './Dispatch';
 import { useVettingState, VettingConsole, type VettingState } from './Vetting';
 import { summarise, type VettingSubject } from '../lib/vetting';
 import { businessModel, money, bigMoney, platformMargin, services, type Service } from '../lib/catalog';
-const tabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance'] as const;
+export const adminTabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance'] as const;
+export type AdminTab = typeof adminTabs[number];
 /* One party can be blocking in more than one place, so the console counts parties rather than
    checks: an operator wants to know how many names cannot be used today. */
 const blocking = (subjects: VettingSubject[], roleId?: string) =>
  subjects.filter(s => (!roleId || s.roleId === roleId) && !summarise(s).cleared).length;
-type Tab = typeof tabs[number];
 /* The back office described as "Control Tower" in the proposal. Everything here is sample data and
    held in memory: approving a nurse approves nobody, and releasing a tranche moves no money. */
-export function AdminConsole({ open }: { open: (s: string) => void }) {
- const [tab, setTab] = useState<Tab>('Overview');
+/* The tab is the shell's state now, not this component's. From 1000px up the back office has a
+   sidebar and the sidebar draws these eight as pill rows, which is where a workspace's navigation
+   belongs; below that the sidebar is gone and the strip below is the only way through, so both
+   drive one value rather than each holding their own idea of where the reader is. */
+export function AdminConsole({ open, tab, setTab }: { open: (s: string) => void; tab: AdminTab; setTab: (t: AdminTab) => void }) {
  /* Held above the tabs on purpose: a decision taken in Vetting has to still be true when the
     Operations board is opened, or the gate is a screenshot of a gate. */
  const vetting = useVettingState();
@@ -24,18 +28,27 @@ export function AdminConsole({ open }: { open: (s: string) => void }) {
    <h1>Operations console</h1>
    <p>Dispatch, vetting, clinical review, catalogue, growth and the funding plan in one place.</p>
   </div>
-  <div className="underline-tabs" role="group" aria-label="Console sections">
-   {tabs.map(t => <button key={t} className={tab === t ? 'selected' : ''} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}
+  <div className="underline-tabs console-tabs" role="group" aria-label="Console sections">
+   {adminTabs.map(t => <button key={t} className={tab === t ? 'selected' : ''} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}
   </div>
   {tab === 'Overview' ? <Overview vetting={vetting}/> : tab === 'Vetting' ? <VettingConsole vetting={vetting} open={open}/> : tab === 'Operations' ? <Operations open={open} vetting={vetting}/>
    : tab === 'Clinical' ? <Clinical open={open} vetting={vetting}/> : tab === 'Catalogue' ? <Catalogue/> : tab === 'Growth' ? <Growth/>
    : tab === 'Finance' ? <Finance/> : <Compliance/>}
  </>;
 }
-function Kpi({ icon: Icon, label, value, note, tone }: { icon: typeof Users; label: string; value: string; note: string; tone?: string }) {
- return <div className="panel metric">
-  <span><Icon size={16}/>{label}</span>
-  <strong className={tone}>{value}</strong>
+/* A figure in the dashboard language: large, thin, tabular, with what it is underneath it. The icon
+   each of these used to carry is gone — twenty-four indigo-tinted glyphs across eight tabs is the
+   defect this design brief names, where a colour on everything has stopped carrying information.
+   The sentence under the label stays, because a console reports against a plan and "84" without
+   "63% of the month-9 plan" is a number nobody can act on. `flagged` fills the chip charcoal, which
+   is the one mark that says a figure is a problem.
+   The wrapper keeps `panel metric` as well as its own name: the console journeys in
+   tests/admin-and-session.spec.ts assert against `.panel.metric`, and a class is part of the
+   contract with them as much as any exported function is. clinical.css takes the card look back
+   off it, so what it draws is a Metric on the ground and nothing else. */
+function Kpi({ label, value, note, flagged }: { label: string; value: string; note: string; flagged?: boolean }) {
+ return <div className="c-figure panel metric">
+  <Metric label={label} value={value} chip={flagged ? 'Needs attention' : undefined} flagged={flagged}/>
   <small>{note}</small>
  </div>;
 }
@@ -46,14 +59,14 @@ function Overview({ vetting }: { vetting: VettingState }) {
  const actual = { visitsPerDay: 84, subscribers: 1620, revenue: 298000, costs: 271000 };
  const pace = (a: number, p: number) => Math.round((a / p) * 100);
  return <>
-  <div className="metric-grid">
-   <Kpi icon={CalendarClock} label="Visits yesterday" value="84" note={`${pace(actual.visitsPerDay, plan.visitsPerDay)}% of the month-9 plan (${plan.visitsPerDay})`}/>
-   <Kpi icon={Users} label="Active subscribers" value="1,620" note={`${pace(actual.subscribers, plan.subscribers)}% of the month-9 plan (${plan.subscribers.toLocaleString()})`}/>
-   <Kpi icon={Banknote} label="Revenue this month" value={bigMoney(actual.revenue)} note={`Plan ${bigMoney(plan.revenue)} · costs ${bigMoney(actual.costs)}`}/>
-   <Kpi icon={UserRoundCheck} label="Nurses dispatchable" value={String(nurses.length - blocking(vetting.subjects, 'nurse'))} note={`Of ${nurses.length} in the vetting pipeline · read from the vetting module, not typed here`}/>
-   <Kpi icon={Stethoscope} label="Reviews awaiting a doctor" value="12" note="2 flagged urgent · target 15 minutes"/>
-   <Kpi icon={CircleAlert} label="Open incidents" value="3" note="1 critical · SLA acknowledged within 5 minutes" tone="flagged"/>
-  </div>
+  <div className="c-figures"><Metrics>
+   <Kpi label="Visits yesterday" value="84" note={`${pace(actual.visitsPerDay, plan.visitsPerDay)}% of the month-9 plan (${plan.visitsPerDay})`}/>
+   <Kpi label="Active subscribers" value="1,620" note={`${pace(actual.subscribers, plan.subscribers)}% of the month-9 plan (${plan.subscribers.toLocaleString()})`}/>
+   <Kpi label="Revenue this month" value={bigMoney(actual.revenue)} note={`Plan ${bigMoney(plan.revenue)} · costs ${bigMoney(actual.costs)}`}/>
+   <Kpi label="Nurses dispatchable" value={String(nurses.length - blocking(vetting.subjects, 'nurse'))} note={`Of ${nurses.length} in the vetting pipeline · read from the vetting module, not typed here`}/>
+   <Kpi label="Reviews awaiting a doctor" value="12" note="2 flagged urgent · target 15 minutes"/>
+   <Kpi label="Open incidents" value="3" note="1 critical · SLA acknowledged within 5 minutes" flagged/>
+  </Metrics></div>
   <SectionTitle title="Against the funding plan"/>
   {/* Five columns of figures cannot be squeezed into 320 pixels, and they were not: the table sat
       four hundred and thirty wide inside a panel that could not hold it, so the last two columns
@@ -78,11 +91,11 @@ function Overview({ vetting }: { vetting: VettingState }) {
 function Operations({ open, vetting }: { open: (s: string) => void; vetting: VettingState }) {
  const stopped = blocking(vetting.subjects);
  return <>
-  <div className="metric-grid">
-   <Kpi icon={ShieldCheck} label="Parties blocking work" value={String(stopped)} note={`Of ${vetting.subjects.length} vetted parties · decided in the Vetting tab`} tone={stopped ? 'flagged' : ''}/>
-   <Kpi icon={UserRoundCheck} label="Nurses blocked" value={String(blocking(vetting.subjects, 'nurse'))} note="Not offered on the board below, with the reason shown"/>
-   <Kpi icon={CircleAlert} label="Open incidents" value="3" note="1 critical · SLA acknowledged within 5 minutes" tone="flagged"/>
-  </div>
+  <div className="c-figures"><Metrics>
+   <Kpi label="Parties blocking work" value={String(stopped)} note={`Of ${vetting.subjects.length} vetted parties · decided in the Vetting tab`} flagged={!!(stopped)}/>
+   <Kpi label="Nurses blocked" value={String(blocking(vetting.subjects, 'nurse'))} note="Not offered on the board below, with the reason shown"/>
+   <Kpi label="Open incidents" value="3" note="1 critical · SLA acknowledged within 5 minutes" flagged/>
+  </Metrics></div>
   <SectionTitle title="Live dispatch"/>
   <DispatchBoard subjects={vetting.subjects}/>
   <SectionTitle title="Open incidents"/>
@@ -99,12 +112,12 @@ function Clinical({ open, vetting }: { open: (s: string) => void; vetting: Vetti
  const doctors = vetting.subjects.filter(s => s.roleId === 'doctor');
  const blocked = blocking(vetting.subjects, 'doctor');
  return <>
-  <div className="metric-grid">
-   <Kpi icon={Stethoscope} label="Awaiting review" value={String(reviewQueue.length)} note="Urgent target 15 minutes · routine 4 hours"/>
-   <Kpi icon={UserRoundCheck} label="Doctors who cannot sign" value={`${blocked} of ${doctors.length}`} note="The queue refuses the signature rather than warning about it" tone={blocked ? 'flagged' : ''}/>
-   <Kpi icon={Activity} label="AI agreed with the doctor" value="91%" note="Sample of 1,240 reviewed cases"/>
-   <Kpi icon={CircleAlert} label="AI missed a finding" value="0.8%" note="Every miss is reviewed by the Medical Director" tone="flagged"/>
-  </div>
+  <div className="c-figures"><Metrics>
+   <Kpi label="Awaiting review" value={String(reviewQueue.length)} note="Urgent target 15 minutes · routine 4 hours"/>
+   <Kpi label="Doctors who cannot sign" value={`${blocked} of ${doctors.length}`} note="The queue refuses the signature rather than warning about it" flagged={!!(blocked)}/>
+   <Kpi label="AI agreed with the doctor" value="91%" note="Sample of 1,240 reviewed cases"/>
+   <Kpi label="AI missed a finding" value="0.8%" note="Every miss is reviewed by the Medical Director" flagged/>
+  </Metrics></div>
   <SectionTitle title="Doctor review queue"/>
   <div className="panel">{reviewQueue.map(c => <button className="record-row" key={c.id} onClick={() => open(`Doctor review: ${c.id}`)}>
    <span className={`service-icon ${c.urgent ? 'severity-critical' : ''}`}><FileText size={20}/></span>
@@ -122,11 +135,11 @@ function Catalogue() {
  const rows = services.map(priced);
  const thin = rows.filter(s => platformMargin(s) < 40);
  return <>
-  <div className="metric-grid">
-   <Kpi icon={ClipboardList} label="Services" value={String(services.length)} note={`${services.filter(s => s.phase === 1).length} live, the rest by phase`}/>
-   <Kpi icon={TrendingUp} label="Average platform margin" value={money(Math.round(rows.reduce((t, s) => t + platformMargin(s), 0) / rows.length))} note="After the nurse and payment costs"/>
-   <Kpi icon={CircleAlert} label="Below R40 a visit" value={String(thin.length)} note="Too thin to carry support, insurance and review" tone={thin.length ? 'flagged' : ''}/>
-  </div>
+  <div className="c-figures"><Metrics>
+   <Kpi label="Services" value={String(services.length)} note={`${services.filter(s => s.phase === 1).length} live, the rest by phase`}/>
+   <Kpi label="Average platform margin" value={money(Math.round(rows.reduce((t, s) => t + platformMargin(s), 0) / rows.length))} note="After the nurse and payment costs"/>
+   <Kpi label="Below R40 a visit" value={String(thin.length)} note="Too thin to carry support, insurance and review" flagged={!!(thin.length)}/>
+  </Metrics></div>
   <div className="panel table-scroll">
    <table className="result-table admin-table">
     <caption>Change a price to see what the platform is left with. Nurse share follows the proposal's 75%.</caption>
@@ -150,11 +163,11 @@ function Growth() {
  const active: Record<string, number> = { chronic: 980, planning: 410, mom: 120, senior: 74, recover: 26, alert: 10, cover: 0 };
  const mrr = subs.reduce((t, s) => t + (s.price ?? 0) * (active[s.id] ?? 0), 0);
  return <>
-  <div className="metric-grid">
-   <Kpi icon={Users} label="Subscribers" value={Object.values(active).reduce((a, b) => a + b, 0).toLocaleString()} note="Across every plan"/>
-   <Kpi icon={Banknote} label="Monthly recurring" value={bigMoney(mrr)} note="Before nurse and delivery costs"/>
-   <Kpi icon={Landmark} label="B2B lines" value={String(businessModel.network.length)} note="Contracted revenue in the proposal"/>
-  </div>
+  <div className="c-figures"><Metrics>
+   <Kpi label="Subscribers" value={Object.values(active).reduce((a, b) => a + b, 0).toLocaleString()} note="Across every plan"/>
+   <Kpi label="Monthly recurring" value={bigMoney(mrr)} note="Before nurse and delivery costs"/>
+   <Kpi label="B2B lines" value={String(businessModel.network.length)} note="Contracted revenue in the proposal"/>
+  </Metrics></div>
   <SectionTitle title="Subscriptions"/>
   <div className="panel table-scroll"><table className="result-table admin-table">
    <thead><tr><th scope="col">Plan</th><th scope="col">Price</th><th scope="col">Active</th><th scope="col">Monthly</th><th scope="col">Phase</th></tr></thead>
@@ -192,11 +205,11 @@ function Finance() {
   return { visitMargin, subscriptionMargin, total: visitMargin + subscriptionMargin };
  }, [visitsPerDay, subscribers, unitEconomics]);
  return <>
-  <div className="metric-grid">
-   <Kpi icon={Landmark} label="Seed round" value={bigMoney(funding.round)} note={`Over ${funding.months} months`}/>
-   <Kpi icon={Banknote} label="Released" value={bigMoney(released)} note={`${Math.round(released / funding.round * 100)}% of the round, gated on milestones`}/>
-   <Kpi icon={TrendingUp} label="Modelled monthly margin" value={bigMoney(projection.total)} note={`${visitsPerDay} visits/day and ${subscribers.toLocaleString()} subscribers`}/>
-  </div>
+  <div className="c-figures"><Metrics>
+   <Kpi label="Seed round" value={bigMoney(funding.round)} note={`Over ${funding.months} months`}/>
+   <Kpi label="Released" value={bigMoney(released)} note={`${Math.round(released / funding.round * 100)}% of the round, gated on milestones`}/>
+   <Kpi label="Modelled monthly margin" value={bigMoney(projection.total)} note={`${visitsPerDay} visits/day and ${subscribers.toLocaleString()} subscribers`}/>
+  </Metrics></div>
   <SectionTitle title="What a visit actually leaves"/>
   <div className="panel">
    <div className="review-line"><span>{unitEconomics.worked.service} — patient pays</span><strong>{money(unitEconomics.worked.price)}</strong></div>
@@ -246,10 +259,10 @@ function Compliance() {
   { name: 'SAHPRA registration for devices and diagnostic software', detail: 'Required before any device or model ships', state: 'Not built', icon: CircleAlert }
  ];
  return <>
-  <div className="metric-grid">
-   <Kpi icon={ShieldCheck} label="Designed in the UI" value={String(controls.filter(c => c.state === 'Designed').length)} note="Drawn on a screen, not enforced anywhere"/>
-   <Kpi icon={CircleAlert} label="Not built" value={String(controls.filter(c => c.state === 'Not built').length)} note="Needs a backend, a regulator or both" tone="flagged"/>
-  </div>
+  <div className="c-figures"><Metrics>
+   <Kpi label="Designed in the UI" value={String(controls.filter(c => c.state === 'Designed').length)} note="Drawn on a screen, not enforced anywhere"/>
+   <Kpi label="Not built" value={String(controls.filter(c => c.state === 'Not built').length)} note="Needs a backend, a regulator or both" flagged/>
+  </Metrics></div>
   <div className="panel">{controls.map(c => <div className="record-row static" key={c.name}>
    <span className={`service-icon ${c.state === 'Designed' ? 'check-in-review' : 'check-outstanding'}`}><c.icon size={20}/></span>
    <span><strong>{c.name}</strong><small>{c.detail}</small></span>
