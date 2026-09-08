@@ -214,15 +214,96 @@ Five tests. What each measures, and where each is the question the web spec alre
   control was replaced with pills built out of buttons that measure 44 and the four rows were
   deleted rather than kept green.
 
-### Android — partly tested
+### Android — measured
 
 `:app:lintDebug` runs on every build and is configured to fail on the accessibility checks it can
-make statically. Touch targets and content descriptions on the newest screens were read by hand. No
-instrumented accessibility test runs, and no test has been run on a low-end device.
+make statically, which is not many: most of these screens are Compose and Compose accessibility is
+largely beyond what static analysis sees. Everything else used to be read by hand. It is measured
+now, by `:app:connectedDebugAndroidTest` — five instrumented tests in
+`apps/android/app/src/androidTest/`, the Android half of what
+`apps/ios/MyThusoUITests/` does on iOS and asking deliberately the same questions.
+
+#### What is asserted
+
+- **Every control is at least 48dp**, which is Material's minimum and the number `ui/Theme.kt`
+  already holds in `TouchTarget` — four larger than Apple's 44, because it is the platform's own
+  figure rather than a copy of a token. A target is the larger of two measurements: the box the
+  control drew, and the space its layout node reserved. That distinction is the whole check.
+  `Modifier.minimumInteractiveComponentSize()` genuinely reserves 48dp around a Checkbox that draws
+  24, so the reserved size is the honest number for a Material control; a bare `Modifier.clickable`
+  reserves nothing, so the drawn size is the honest number for that. Compose's own
+  `touchBoundsInRoot` is *not* used and the reason is worth writing down: Compose applies 48dp of
+  hit slop to every pointer node, so a 20dp clickable Box reports touch bounds of 48x48 and a check
+  written on it can never fail.
+- **Every string answers the font-size setting**, asked twice and of two different things. The
+  letters: `SemanticsActions.GetTextLayoutResult` hands back the resolved `TextStyle` and the
+  density it was resolved against, so the size the text was actually set in is read in dp rather
+  than inferred. The box: its laid-out height, for a `Modifier.height` that will not let willing
+  text grow. Neither question finds the other's failure and the app was broken both ways in turn to
+  prove it. The threshold is 1.2 rather than iOS's 1.5, because Android's font-scale curve is
+  non-linear — at 2.0 a 13sp caption grows about 1.85 times and a 28sp headline about 1.33.
+- **No string is squeezed out of its row.** This is the shape of failure that belongs to this
+  platform the way clipped-but-labelled text belongs to iOS. A `Row` measures its unweighted
+  children against the whole width and gives the weighted one what is left, so at the largest font
+  scale a weighted label can be handed nothing at all: zero dp wide, not truncated, not ellipsised,
+  simply not drawn.
+- **No control is nameless and no description is a file name.** Every drawable the app ships is read
+  off the generated `R` class rather than typed, so a picture added tomorrow is covered without
+  anybody remembering to add it.
+- **The booking journey end to end**, which is the one with real arithmetic behind it. It reads each
+  date chip's label, parses it with `java.time` and asks the calendar whether the weekday it claims
+  is the weekday its own date falls on; that the days are consecutive and all in the future; that
+  the visit ends its own service's length after it starts rather than a flat hour; and that the
+  date, the hours and the length survive from the picker to the review to the visit list and to the
+  card the home leads with. That defect was real, was fixed in `f0b34df` on all three platforms, and
+  this is what stops it coming back on Android.
+
+The font scale is set through the shell — `settings put system font_scale` — with the activity
+relaunched around it, and the device's own setting read first and put back after. Providing
+`LocalDensity` over the composition was tried and is wrong in a way that matters: a CompositionLocal
+cannot cross a window, `AlertDialog` opens one, and the whole booking flow is a dialog. The screen
+with the arithmetic and the consent on it was the one screen the cheap technique could not measure,
+and it reported sixteen frozen strings that were a hole in the harness rather than a defect.
+
+#### What the tests found that reading the screens had not
+
+- **A unit that disappears.** `ClinicalChart` drew the latest reading, its unit and the change since
+  the first reading in one `Row`, with the unit carrying `Modifier.weight(1f)`. At the largest font
+  scale the other two took the row and the unit was given zero dp: "136" with no `mmHg` after it, on
+  the screen that holds a person's blood pressure. A reading without its unit is not a smaller
+  version of the reading, it is a different claim. It is a `FlowRow` now, with the number and its
+  unit held together inside it and the change-since line the thing that drops to its own line.
+- **A field name that disappears.** `ReviewLine` had the weight on the label and not on the value,
+  so on the last screen before a visit is booked "Wednesday, 9 September 2026" took the whole row
+  and the word "Date" was not drawn. The weight is on the value now; at the default scale the row
+  looks exactly as it did.
+- **A consent checkbox with no name.** The review's "I understand this is a UI preview using
+  fictional information." was a bare `Checkbox` beside a separate `Text`, which TalkBack reads as
+  "not checked, checkbox" with nothing to say what is being agreed to — and what is being agreed to
+  here is that none of this is real. The row owns the toggle semantics now and the sentence is its
+  name, which is the shape `Setting` in `Components.kt` already used.
+- **A 42dp disclosure.** The "Preview states" row that opens the loading, empty, offline and denied
+  states measured 42dp collapsed, under both Material's floor and this project's own `TouchTarget`.
+  Nothing else on those screens duplicates it.
+
+No control needed an exemption: `Audit.knownUndersized` exists, with the same shape as the iOS
+list — a name, a measured number and a sentence saying what was tried — and it is empty.
+
+#### What is still not measured on Android
+
+- **Four screens.** The home, the booking review, the visit list and the Health Passport. The nurse
+  assessment, the vetting console, the capture queue and the four workspaces are not audited.
+- **One emulator, one size.** A Pixel 3a at 1080x2220, API 32. No tablet, no small phone, no real
+  device, and nothing on a low-end one.
+- **Reading order and focus.** The Compose semantics tree is what TalkBack is built from and is not
+  what TalkBack reads. Nothing here can hear the order things are announced in, whether a merged
+  card's sentence makes sense out loud, or how focus moves.
+- **TalkBack itself.** Nothing in this repository has ever been listened to.
 
 ### Not done at all
 
 Real hardware. A screen reader driven by somebody who uses one. TalkBack, VoiceOver and a
 low-end Android device on a slow connection are all still in "Next UI increments", and the
-measurements above are not a substitute for any of them. iOS is measured now, which is a different
-claim from "VoiceOver has been used on it": nothing in this repository has ever been listened to.
+measurements above are not a substitute for any of them. iOS and Android are both measured now,
+which is a different claim from "a screen reader has been used on them": nothing in this repository
+has ever been listened to.

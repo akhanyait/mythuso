@@ -27,6 +27,7 @@ data class Reading(val label: String, val value: Double, val note: String = "—
  * The drawing carries a spoken summary and every value is also available as a real table,
  * because a reading a patient cannot read is not a reading.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable fun ClinicalChart(title: String, unit: String, readings: List<Reading>, normal: ClosedFloatingPointRange<Double>? = null, decimals: Int = 0, icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
     var showTable by remember { mutableStateOf(false) }
     fun format(value: Double) = "%.${decimals}f".format(value)
@@ -44,13 +45,29 @@ data class Reading(val label: String, val value: Double, val note: String = "—
                 Text(title, style = MaterialTheme.typography.titleSmall)
             }
         }
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(format(latest.value), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.width(4.dp))
-            Text(unit, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        /* A FlowRow rather than a Row, and the reading and its unit held together inside it.
+           This was a Row of three, with the unit carrying `Modifier.weight(1f)`. A Row measures its
+           unweighted children first and hands the weighted one whatever is left, so at the largest
+           font scale — where the number and the change-since line had both grown — "mmHg" was
+           given nothing: zero dp wide, and not drawn at all. A blood pressure of 136 with no unit
+           on it is not a smaller version of the reading, it is a different claim, and neither a
+           screenshot at the default scale nor the semantics tree showed it missing.
+           The number and the unit are one fact and are never allowed to be separated; the change
+           since the first reading is context and is the thing that drops to its own line. */
+        FlowRow(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8),
+            verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)
+        ) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(format(latest.value), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.width(4.dp))
+                Text(unit, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Text(
                 if (delta == 0.0) "No change" else "${if (delta > 0) "+" else ""}${format(delta)} since ${first.label}",
-                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.Bottom)
             )
         }
         Canvas(Modifier.fillMaxWidth().height(74.dp).semantics { contentDescription = summary }) {

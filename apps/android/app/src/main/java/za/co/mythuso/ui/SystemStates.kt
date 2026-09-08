@@ -82,8 +82,13 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
 /** A design-review control, not part of the product surface — so it stays collapsed until asked for. */
 @Composable fun StatePicker(title: String, state: LoadState, onChange: (LoadState) -> Unit) {
     var open by remember { mutableStateOf(false) }
+    /* `heightIn` before the ground, so the ground and the tap region are the same 48dp rather than
+       the ground being 48 and the target 42. Collapsed, this row's own content came to 42dp — under
+       the floor `TouchTarget` sets and under Material's minimum — and it is a disclosure that
+       nothing else on the screen duplicates, so somebody who missed it twice has no other way in. */
     Column(
-        Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(ThusoRadius.control))
+        Modifier.fillMaxWidth().heightIn(min = TouchTarget)
+            .background(Color.White, RoundedCornerShape(ThusoRadius.control))
             .border(1.dp, Line, RoundedCornerShape(ThusoRadius.control)).clickable { open = !open }.padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {

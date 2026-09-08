@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
@@ -24,6 +25,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -556,9 +558,22 @@ fun serviceIcon(id: String) = when (id) {
                         ReviewLine("Patient", person)
                         ReviewLine("Payment", if (payment == "Card") "•••• 4242" else payment)
                         NurseRow { Text("★ 4.9", style = MaterialTheme.typography.labelMedium, color = BodyText) }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(consent, { consent = it })
-                            Text("I understand this is a UI preview using fictional information.", style = MaterialTheme.typography.bodySmall, color = BodyText)
+                        /* The row is the control and the sentence is its name. This was a bare
+                           `Checkbox` beside a separate `Text`, which TalkBack reads as "not
+                           checked, checkbox" with nothing to say what would be agreed to — and the
+                           thing being agreed to here is that none of this is real. The shape is
+                           `Setting` in Components.kt: the row owns the toggle semantics, the box is
+                           drawn rather than clicked, and the whole sentence is the tap target. */
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = TouchTarget)
+                                .toggleable(value = consent, onValueChange = { consent = it }, role = Role.Checkbox),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(consent, null)
+                            Spacer(Modifier.width(ThusoSpacing.space8))
+                            Text("I understand this is a UI preview using fictional information.",
+                                 style = MaterialTheme.typography.bodySmall, color = BodyText,
+                                 modifier = Modifier.weight(1f))
                         }
                         Note("You can cancel or reschedule up to 2 hours before the visit.")
                     }

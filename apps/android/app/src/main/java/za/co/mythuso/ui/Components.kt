@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -24,10 +25,25 @@ import androidx.compose.ui.unit.dp
         }
     }
 }
+/**
+ * A field and what was chosen for it, on the last screen before a visit is booked.
+ *
+ * The weight is on the value now and it used to be on the label, which is the whole of the change.
+ * A `Row` measures its unweighted children first and against the whole width, and hands the
+ * weighted one what is left — so at the largest font scale "Wednesday, 9 September 2026" took the
+ * row and the label beside it was given nothing at all. The word "Date" came back zero dp wide: not
+ * truncated, not ellipsised, simply not drawn. A review row that shows a date and does not say it
+ * is the date is worse than one that shows neither, and the only way to catch it was to measure
+ * this screen at the setting it happens at.
+ *
+ * Round the other way the field name is measured first — it is one or two words and it always fits
+ * — and the value takes the rest and wraps inside it. At the default scale the row looks exactly as
+ * it did: the name on the left, the value against the right edge, on one line.
+ */
 @Composable fun ReviewLine(label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = Slate)
+    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = Slate, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
     }
 }
 @Composable fun Note(text: String) {
