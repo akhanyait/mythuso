@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowRight, Ban, CalendarClock, CircleAlert, Ear, Info, Lock, Pill as PillIcon, Repeat, ShieldX, Signature, Stethoscope } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import {
  authorisation, authorisedOn, binds, classById, collectionAnswer, daysOfMedicineLeft, expiresInDays,
  expiresOn, formatDay, groundById, handover, isFinalRepeat, lastCollectedOn, mayChange, neverChanges,
@@ -39,7 +40,7 @@ import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
  * keep in step.
  *
  * Nothing is dispensed. No pharmacy is contacted and every patient, pharmacist and product is
- * fictional. */
+ */
 
 const pharmacies = subjectsByRole('pharmacy');
 /* Two doctors: one whose registration is current and one whose HPCSA registration lapsed four days
@@ -132,8 +133,7 @@ export function Dispensing() {
  const everyItemTold = prescription.items.every(i => told.includes(i.id));
 
  return <div className="dispensing">
-  <Pill>Design preview · a fictional prescription, nothing dispensed</Pill>
-
+  <NotConnected of="dispensing"/>
   <div className="order-head">
    <span className="service-icon"><PillIcon size={22}/></span>
    <div><h3>{prescription.reference}</h3>
@@ -146,7 +146,7 @@ export function Dispensing() {
   <div className="review-line"><span>At</span><strong>{pharmacy.name} · {pharmacy.reference}</strong></div>
 
   <fieldset className="disp-switch">
-   <legend className="visually-hidden">Preview this prescription against</legend>
+   <legend className="visually-hidden">Who is filling this prescription</legend>
    <label>Dispensing pharmacy<select value={pharmacyId} onChange={e => { setPharmacyId(e.target.value); setHanded([]); }}>
     {pharmacies.map(p => <option key={p.id} value={p.id}>{p.name} · {p.reference}</option>)}
    </select></label>
@@ -243,7 +243,7 @@ export function Dispensing() {
 
   <SectionTitle title="What this screen will not do"/>
   <div className="disp-refusals">{refusals.map(r => <div className="disp-refusal" key={r.id}><Ban size={19}/><p>{r.sentence}</p></div>)}</div>
-  <EmptyNote>Nothing is dispensed, no stock is checked and no prescriber is notified. Scheduling status, cold-chain handling and the pharmacy's own stock system arrive with the dispensing partner; every date above is arithmetic on the demo contract. None of the clinical wording here has been read by a pharmacist.</EmptyNote>
+  <EmptyNote>Scheduling status, cold-chain handling and the pharmacy's own stock system arrive with the dispensing partner. None of the clinical wording on this screen has been read by a pharmacist.</EmptyNote>
  </div>;
 }
 

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Ban, CalendarClock, Check, CircleAlert, Hand, Hourglass, ShieldCheck, UserCheck, X } from 'lucide-react';
-import { EmptyNote, Pill, SectionTitle } from '../components/UI';
+import { EmptyNote, SectionTitle } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import { longDateOf, offeredDays, slots } from '../lib/scheduling';
 import {
  accreditation, availability, cancellation, cost, hold, estimate, interpreterRole, labels, modes,
@@ -13,7 +14,7 @@ import { authorityById } from '../lib/vetting';
  * was any of it working. So the three parts of this screen are the three things that were missing,
  * in the order somebody would meet them.
  *
- * The roster, and the arithmetic on it. Four fictional interpreters with real-shaped availability,
+ * The roster, and the arithmetic on it. Four interpreters with real-shaped availability,
  * and one control that asks the only question that matters: if I ask for this hour, what happens?
  * The answer is one of three, and the third is the one worth building a screen for — nobody is free
  * and nobody can say when one will be. That state prints the contract's sentence rather than a
@@ -100,7 +101,7 @@ export function Interpreting() {
     <span className="tc-avatar"><Check size={20}/></span>
     <div><strong>{labels.matched}</strong>
      <p>{waitSentence(outcome, longDateOf)}</p>
-     <p className="helper">The visit is confirmed with {outcome.found.interpreter.name} named on it. Nothing is booked in this preview.</p></div>
+     <p className="helper">The visit is confirmed with {outcome.found.interpreter.name} named on it.</p></div>
    </> : outcome.kind === 'held' ? <>
     <span className="tc-avatar"><Hourglass size={20}/></span>
     <div><strong>{labels.noneFree} — {labels.heldBadge}</strong>
@@ -125,7 +126,7 @@ export function Interpreting() {
    <p className="helper">{cancellation.keepsTheRequirement}</p>
    <button className="secondary full" onClick={() => setCancelled(true)} disabled={cancelled}>
     <X size={16}/>{cancellation.label}</button>
-   {cancelled && <p className="helper" role="status">Recorded against {cancellation.attributedTo}, not against the patient. Nothing was cancelled — this is a preview.</p>}
+   {cancelled && <p className="helper" role="status">Recorded against {cancellation.attributedTo}, not against the patient.</p>}
   </div>}
 
   <SectionTitle title={labels.vettingHeading}/>
@@ -156,7 +157,7 @@ export function Interpreting() {
   {rules.map(rule => <div className="access-rule" key={rule.id}>
    <ShieldCheck size={19}/><span><strong>{rule.title}</strong>{rule.sentence}</span></div>)}
 
-  <Pill tone="amber">Design preview</Pill>
+  <NotConnected of="interpreting"/>
   <EmptyNote>{notYetBuilt}</EmptyNote>
  </section>;
 }

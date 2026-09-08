@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Check, CircleAlert, Clock3, CreditCard, Hourglass, MapPin, ShieldCheck, X, Zap } from 'lucide-react';
 import { type Service, money } from '../lib/catalog';
-import { Pill, ServiceIcon } from '../components/UI';
+import { ServiceIcon } from '../components/UI';
 import { StepHead } from '../components/Steps';
+import { NotConnected } from '../components/NotConnected';
 import { endTime, kinds, labels, longDateOf, offeredDays, ruleById, slots, type Visit } from '../lib/scheduling';
 import {
  cancellation, cost, estimate, hold, isHeld, labels as interpreting, modes as interpreterModes,
@@ -28,7 +29,7 @@ import {
  * shown when there is one and admitted when there is not, and the way out of it costs nothing and
  * is recorded against MyThuso rather than against the patient. */
 export type DemoVisit = Visit;
-const payments = [['Card', 'Visa ending 4242', CreditCard], ['Cash', 'Pay the nurse after the visit', CreditCard], ['Thuso Wallet', 'Demo balance R500.00', CreditCard]] as const;
+const payments = [['Card', 'Visa ending 4242', CreditCard], ['Cash', 'Pay the nurse after the visit', CreditCard], ['Thuso Wallet', 'Balance R500.00', CreditCard]] as const;
 const stepLabels = ['Who & where', 'When', 'Payment', 'Review'];
 
 export function Booking({ service, onComplete }: { service: Service; onComplete: (visit: DemoVisit) => void }) {
@@ -88,12 +89,12 @@ export function Booking({ service, onComplete }: { service: Service; onComplete:
 
  if (done) return <div className="success">
   <div className="success-icon"><Check size={30}/></div>
-  <h3>Your demo visit is booked.</h3>
+  <h3>Your visit is booked.</h3>
   <p>{service.name} for {person.split(' ')[0]}</p>
   <p className="success-when">{done.kind === 'scheduled' ? <>{longDateOf(done.date!)}<br/>{done.start} – {endTime(done.start!, service.duration)}</> : labels.asapPending}</p>
   {done.interpreter?.name && <p className="helper">Interpreting: {done.interpreter.name}. {cost.sentence}</p>}
   <p className="helper">{kinds.find(k => k.id === done.kind)!.confirmation}</p>
-  <p className="helper">This is a preview. No nurse has been dispatched and no payment was taken.</p>
+  <NotConnected of="booking"/>
   <button className="primary full space-top" onClick={() => onComplete(done)}>View my visits<ArrowRight size={17}/></button>
  </div>;
 
@@ -128,7 +129,7 @@ export function Booking({ service, onComplete }: { service: Service; onComplete:
      {slots.map(t => <button key={t} type="button" aria-pressed={slot === t} className={`time-chip ${slot === t ? 'selected' : ''}`} onClick={() => setSlot(t)}>{t}</button>)}
     </div>
     <p className="helper" role="status">{longDateOf(date)} · {slot} – {ends} ({service.duration} minutes)</p>
-   </> : <p className="eta-note" role="status"><Zap size={15}/>We look for the nearest nurse who is free. Nobody is dispatched in this preview.</p>}
+   </> : <p className="eta-note" role="status"><Zap size={15}/>We look for the nearest nurse who is free and cleared for this service.</p>}
    {/* The interpreter, asked about here rather than after the payment step, because it decides
        whether there is a visit at all and a person should not find that out after their card. */}
    {outcome && <div className="interp-booking">
@@ -170,8 +171,11 @@ export function Booking({ service, onComplete }: { service: Service; onComplete:
    <button className="text-button" onClick={() => setStep(1)}>{labels.changeDate}</button>
    <div className="nurse-row"><span className="avatar nurse-avatar">SN</span><div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div><span className="rating">★ <strong>4.9</strong> (128 visits)</span></div>
    <div className="pay-row"><span className="service-icon"><CreditCard size={20}/></span><span>{payment === 'Card' ? '•••• 4242' : payment}</span><button className="text-button" onClick={() => setStep(2)}>Change</button></div>
-   <label className="checkbox"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}/><span>I understand this is a UI preview using fictional information.</span></label>
-   <Pill>Demo booking · No charge</Pill>
+   {/* A real gate on a real step: the address and the person are what a nurse is sent to, and
+       neither is worth getting wrong. It is not where this screen says what is connected — that
+       sentence comes from the contract, above. */}
+   <label className="checkbox"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}/><span>The address and the person above are correct, and I agree to the visit terms.</span></label>
+   <NotConnected of="booking"/>
    <button className="primary full" disabled={!consent} onClick={() => setDone(visit)}>Confirm &amp; book<ArrowRight size={16}/></button>
    <p className="helper">{ruleById('everything-survives-the-booking').sentence}</p>
    <button className="text-button" onClick={() => setStep(2)}><ArrowLeft size={15}/>Back</button>

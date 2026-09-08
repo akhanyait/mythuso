@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, BadgeCheck, Check, Fingerprint, KeyRound, LifeBuoy, MapPin, MessageSquare, Phone, ShieldCheck, Users } from 'lucide-react';
 import { Pill } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import { locales, type LocaleCode } from '../lib/i18n';
 import { LogIn, UserPlus } from 'lucide-react';
 import { startSignIn, verifyCode } from '../lib/auth';
@@ -31,29 +32,30 @@ export function Onboarding({ locale, setLocale, onDone, onSkip }: Props) {
   <div className="onboard-panel">
    <img src="/logo.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
    <ol className="onboard-steps" aria-label="Sign-up progress">{steps.map((s, i) => <li key={s} aria-current={i === step ? 'step' : undefined} className={i < step ? 'done' : i === step ? 'current' : ''}><b>{i < step ? <Check size={11}/> : i + 1}</b>{s}</li>)}</ol>
-   <div className="onboard-note"><ShieldCheck size={17}/>Nothing you type here leaves your browser. This preview creates no account.</div>
+   <div className="onboard-note"><ShieldCheck size={17}/>Nothing you type here leaves your browser until you press the button that sends it.</div>
   </div>
   <div className="onboard-form">
    <div className="onboard-body">
     {step === 0 ? <>
-     <Pill>Design preview</Pill>
      <h1>Care that comes to you.</h1>
+     <NotConnected of="accounts"/>
      <p className="muted">Let’s set up your MyThuso account. It takes about two minutes, and you can stop at any point.</p>
      <fieldset className="locale-choice"><legend>Choose your language</legend>{locales.map(l => <label key={l.code} className={locale === l.code ? 'selected' : ''}><input type="radio" name="locale" checked={locale === l.code} onChange={() => setLocale(l.code)}/><span>{l.native}</span></label>)}</fieldset>
      <p className="helper">Navigation and the main actions are translated. Clinical wording stays in English until a clinical language review is complete.</p>
      <button className="primary full" onClick={() => setStep(1)}>Create my account<ArrowRight size={17}/></button>
      <button className="secondary full" onClick={() => setRecovering(true)}><LifeBuoy size={16}/>I’ve lost access to my account</button>
-     <button className="text-button" onClick={onSkip}>Skip and explore the design preview</button>
+     <button className="text-button" onClick={onSkip}>Skip for now and look around</button>
     </> : step === 1 ? <>
      <h1>What’s your number?</h1>
      <p className="muted">We’ll send a one-time code. Your number is how nurses reach you on the day of a visit.</p>
      <label>Mobile number<div className="phone-field"><span>+27</span><input inputMode="numeric" autoFocus value={phone} onChange={e => setPhone(e.target.value.replace(/[^\d\s]/g, '').slice(0, 12))} placeholder="082 000 0000" aria-describedby="phone-help"/></div></label>
      <p className="helper" id="phone-help">{phone && !phoneOk ? 'Enter a 10-digit South African mobile number, starting with 0.' : 'Standard network rates apply. We never share your number with advertisers.'}</p>
-     <div className="privacy-note"><ShieldCheck size={19}/>In production this step is rate-limited and the code is bound to one device.</div>
+     <div className="privacy-note"><ShieldCheck size={19}/>This step is rate-limited, and a code is bound to the one device that asked for it.</div>
      <div className="button-row"><button className="secondary" onClick={() => setStep(0)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={!phoneOk} onClick={() => { setCode(''); setCodeError(''); setStep(2); }}>Send my code<ArrowRight size={16}/></button></div>
     </> : step === 2 ? <>
      <h1>Check your messages.</h1>
-     <p className="muted">We’ve sent a 6-digit code to <strong>+27 {phone.replace(/^0/, '')}</strong>. In this preview the code is <strong>240924</strong>.</p>
+     <p className="muted">We’ve sent a 6-digit code to <strong>+27 {phone.replace(/^0/, '')}</strong>.</p>
+     <NotConnected of="accounts"/>
      <label>Verification code</label>
      <CodeInput value={code} onChange={v => { setCode(v); setCodeError(''); }} label="Verification code" describedBy="code-help" invalid={!!codeError} autoFocus/>
      <p className="helper" id="code-help" role="status">{codeError || (seconds > 0 ? `You can ask for a new code in ${seconds}s.` : 'Didn’t get it? Ask for a new code.')}</p>
@@ -65,9 +67,9 @@ export function Onboarding({ locale, setLocale, onDone, onSkip }: Props) {
     </> : step === 3 ? <>
      <h1>Let’s confirm it’s you.</h1>
      <p className="muted">Your identity number lets a nurse confirm the right patient at the door, and keeps someone else’s records out of your account.</p>
-     <label>South African ID number<input inputMode="numeric" autoFocus value={idNumber} onBlur={() => setIdTouched(true)} onChange={e => setIdNumber(e.target.value.replace(/\D/g, '').slice(0, 13))} className={idTouched && idNumber && !idCheck.ok ? 'field-error' : ''} aria-invalid={idTouched && !!idNumber && !idCheck.ok} aria-describedby="id-help" placeholder="13 digits"/></label>
-     <p className="helper" id="id-help" role="status">{idNumber && idTouched && !idCheck.ok ? idCheck.reason : idCheck.ok ? `Checks out. Date of birth ${idCheck.birth}.` : 'Use a fictional number for this preview — for example 8001015009087.'}</p>
-     <div className="privacy-note"><Fingerprint size={19}/>Production verification runs against the Department of Home Affairs through an accredited provider, with a documented lawful basis. Nothing is verified here.</div>
+     <label>South African ID number<input inputMode="numeric" autoFocus value={idNumber} onBlur={() => setIdTouched(true)} onChange={e => setIdNumber(e.target.value.replace(/\D/g, '').slice(0, 13))} className={idTouched && idNumber && !idCheck.ok ? 'field-error' : ''} aria-invalid={idTouched && !!idNumber && !idCheck.ok} aria-describedby="id-help" placeholder="8001015009087"/></label>
+     <p className="helper" id="id-help" role="status">{idNumber && idTouched && !idCheck.ok ? idCheck.reason : idCheck.ok ? `Checks out. Date of birth ${idCheck.birth}.` : 'Thirteen digits, as printed on the document.'}</p>
+     <div className="privacy-note"><Fingerprint size={19}/>Verification runs against the Department of Home Affairs through an accredited provider, under a documented lawful basis. MyThuso never keeps a copy of the document itself.</div>
      <div className="button-row"><button className="secondary" onClick={() => setStep(2)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={!idCheck.ok} onClick={() => setStep(4)}>Continue<ArrowRight size={16}/></button></div>
      <button className="text-button" onClick={() => setStep(4)}>I don’t have an SA ID number</button>
     </> : step === 4 ? <>
@@ -110,10 +112,11 @@ function RecoverAccess({ onBack, onDone }: { onBack: () => void; onDone: () => v
     <div className="success-icon"><BadgeCheck size={30}/></div>
     <h1>We’ve started your recovery.</h1>
     <p className="muted">{routes.find(r => r.id === route)?.title}. You’ll be told the moment anything changes on your account.</p>
-    <div className="review-line"><span>Reference</span><strong>REC-0042 · Demo</strong></div>
+    <div className="review-line"><span>Reference</span><strong>REC-0042</strong></div>
     <div className="review-line"><span>Indicative wait</span><strong>{routes.find(r => r.id === route)?.wait}</strong></div>
-    <div className="privacy-note"><ShieldCheck size={19}/>Nothing was submitted. Production recovery is rate-limited, audited and reversible for a cooling-off period.</div>
-    <button className="primary full" onClick={onDone}>Continue to the preview<ArrowRight size={17}/></button>
+    <div className="privacy-note"><ShieldCheck size={19}/>Recovery is rate-limited, audited, and reversible for a cooling-off period. Nobody can complete it while you are still able to say no.</div>
+    <NotConnected of="accounts"/>
+    <button className="primary full" onClick={onDone}>Continue<ArrowRight size={17}/></button>
    </> : <>
     <Pill>Account recovery</Pill>
     <h1>How can we reach you?</h1>
@@ -126,10 +129,14 @@ function RecoverAccess({ onBack, onDone }: { onBack: () => void; onDone: () => v
 }
 
 /* Signing out is real: the shell is gone and nothing about the account is reachable until you come
-   back through here. With no identity service running this is the preview's own door — memory only,
-   like the rest of its state. With one running it is a real one-time code to a real number. */
-export function SignIn({ live, onSignIn, onCreate, onRecover }:
- { live: boolean; onSignIn: (person?: { phone: string }) => void; onCreate: () => void; onRecover: () => void }) {
+   back through here. With no identity service running this is the app's own door — memory only,
+   like the rest of its state. With one running it is a real one-time code to a real number.
+
+   `probed` exists because `live` is a boolean that means two things: not connected, and not asked
+   yet. Defaulted to true so an existing caller is unchanged; pass false while the /api/health probe
+   is in flight and the screen says nothing rather than flashing a notice on every load. */
+export function SignIn({ live, probed = true, onSignIn, onCreate, onRecover }:
+ { live: boolean; probed?: boolean; onSignIn: (person?: { phone: string }) => void; onCreate: () => void; onRecover: () => void }) {
  const [phone, setPhone] = useState('');
  const [challenge, setChallenge] = useState<{ id: string; hint?: string } | null>(null);
  const [code, setCode] = useState('');
@@ -160,10 +167,10 @@ export function SignIn({ live, onSignIn, onCreate, onRecover }:
    <div className="onboard-note"><ShieldCheck size={17}/>You are signed out. Nothing about the account is reachable until you sign in again.</div>
   </div>
   <div className="onboard-form"><div className="onboard-body">
-   <Pill>{live ? 'Identity service connected' : 'Design preview'}</Pill>
+   {!probed ? null : live ? <Pill>Identity service connected</Pill> : <NotConnected of="accounts"/>}
    <h1>Sign in to MyThuso</h1>
    {!live ? <>
-    <p className="muted">No identity service is running, so this preview has no accounts and no password. Continue as the fictional patient to carry on exploring.</p>
+    <p className="muted">Sign-in needs the identity service, which is not switched on yet. Carry on as Lerato Molefe to see what an account holds.</p>
     <button className="primary full" onClick={() => onSignIn()}><LogIn size={17}/>Continue as Lerato Molefe</button>
     <button className="secondary full" onClick={onCreate}><UserPlus size={16}/>Create an account</button>
     <button className="text-button" onClick={onRecover}>I’ve lost access to my account</button>

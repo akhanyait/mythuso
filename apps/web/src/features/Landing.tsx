@@ -104,7 +104,7 @@ export function Landing() {
    <nav className={menu ? 'is-open' : ''} aria-label="Sections">
     {sections.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setMenu(false)}>{label}</a>)}
    </nav>
-   <a className="primary landing-cta" href={appHref}>Open the app preview<ArrowRight size={16}/></a>
+   <a className="primary landing-cta" href={appHref}>Open the app<ArrowRight size={16}/></a>
    <button className="icon-button landing-menu" aria-label={menu ? 'Close menu' : 'Open menu'} aria-expanded={menu} onClick={() => setMenu(m => !m)}>{menu ? <X size={20}/> : <Menu size={20}/>}</button>
    <i className="landing-progress" aria-hidden="true"/>
   </header>
@@ -117,7 +117,7 @@ export function Landing() {
     <h1>A registered nurse at your door, from {money(fromPrice)}.</h1>
     <p className="landing-hero-lede">A nurse registered with the South African Nursing Council comes to your home with a connected kit. A registered doctor reviews what they find and decides what happens next. The price is fixed before you confirm, and you do not need medical aid.</p>
     <div className="landing-actions">
-     <a className="primary" href={appHref}>See the app preview<ArrowRight size={17}/></a>
+     <a className="primary" href={appHref}>See the app<ArrowRight size={17}/></a>
      <a className="landing-quiet" href="#how">How it works<ArrowDown size={16}/></a>
     </div>
     <ul className="landing-facts">
@@ -201,7 +201,7 @@ export function Landing() {
      <li><Clock3 size={18}/><span><strong>The hours and areas you choose</strong>Dispatch never crosses your registered scope of practice, and the Control Tower cannot override that.</span></li>
      <li><ClipboardList size={18}/><span><strong>A kit, training and an escalation route</strong>A connected diagnostic kit, device and protocol training, and a doctor to escalate to.</span></li>
     </ul>
-    <a className="secondary landing-secondary" href={appHref}>Open the nurse preview<ArrowRight size={16}/></a>
+    <a className="secondary landing-secondary" href={appHref}>See the nurse's side<ArrowRight size={16}/></a>
    </div>
    <figure className="landing-portrait" data-reveal>
     <div className="landing-portrait-frame soft"><img src={family} alt="" aria-hidden="true"/></div>
@@ -237,8 +237,8 @@ export function Landing() {
    <div data-reveal>
     <h2>Help. Health. Home.</h2>
     <p>A nurse at your door, a doctor on the screen, your record in your pocket. Being built in Johannesburg, for South Africa.</p>
-    <a className="primary" href={appHref}>Open the app preview<ArrowRight size={17}/></a>
-    <p className="landing-final-note">The preview is a walk-through of the design. It books nothing and charges nothing.</p>
+    <a className="primary" href={appHref}>Open the app<ArrowRight size={17}/></a>
+    <p className="landing-final-note">Nothing is booked and nothing is charged until the service opens. Every screen says what it is not yet connected to.</p>
    </div>
   </section>
 

@@ -149,11 +149,13 @@ test('a clinical workspace navigates as itself, not as the patient shop', async 
   const entries = async () => (await nav.isVisible() ? nav : bar).locator('button').allInnerTexts();
   const patient = await entries();
   expect(patient.join(' ')).toMatch(/Book/);
+  /* A nurse's schedule leads with her date rather than with the word "Schedule": the section name
+     is in the navigation beside it, and the heading is where the screen says what it is about. */
   for (const [role, first, expected] of [
-    ['Nurse', 'Schedule', 'Earnings & payouts'],
-    ['Doctor', 'Review queue', 'Teleconsultation'],
-    ['Partner', 'Orders', 'Collections'],
-    ['Control Tower', 'Dispatch', 'Incidents']] as const) {
+    ['Nurse', /\d{4}$/, 'Earnings & payouts'],
+    ['Doctor', /^Review queue$/, 'Teleconsultation'],
+    ['Partner', /^Orders$/, 'Collections'],
+    ['Control Tower', /^Dispatch$/, 'Incidents']] as const) {
     await page.locator('button.demo-pill').click();
     await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
     await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText(role, { exact: true }) }).click();

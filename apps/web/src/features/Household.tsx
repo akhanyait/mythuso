@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BadgeCheck, CalendarClock, Check, Download, KeyRound, LockKeyhole, Pill as MedicineIcon, ShieldCheck, ShieldX, Syringe, Timer, Users } from 'lucide-react';
 import { Pill } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import contract from '../../../../packages/catalog/records.json';
 import { can, daysUntil, formatDate, formatEventTime, inDays, inMonths, roleById, type CheckRecord, type CheckState, type VettingSubject } from '../lib/vetting';
 import { subjectById } from '../lib/vetting-fixtures';
@@ -14,7 +15,7 @@ import { protectedCategories } from '../lib/records';
    hold this capability?) and once of the record itself (has this person granted it, to whom, for
    how long?). A yes to one is not a yes.
 
-   Fictional household, fictional scheme, fictional numbers. Nothing is stored or sent. */
+   Nothing typed here is stored or sent. */
 
 const householdRecord = contract.records.find(r => r.id === 'household')!;
 
@@ -80,7 +81,7 @@ export function ageOf(born: string) {
 /* The Children's Act lets a child of 12 consent to their own medical treatment, and to an HIV test
    with counselling. The design treats 12 as the age at which a record stops being automatically a
    parent's to open; a real product must also record the maturity assessment the Act asks for, and
-   this preview does not pretend to make it. */
+   this build does not pretend to make it. */
 export const OWN_CONSENT_AGE = 12;
 
 /* ---- Who is looking ------------------------------------------------------------------------ */
@@ -286,7 +287,7 @@ export function HouseholdRecord({ household = mokoena, viewers = householdViewer
    <h3>Book a home visit</h3>
    <p className="muted">Arranging care is not reading a record, so this stays open to the household while the record above stays shut.</p>
    <div className="button-row">{household.members.map(m => <button key={m.id} className="secondary" disabled={!viewer.memberId}
-    onClick={() => setStatus(`Home visit requested for ${m.name}. Nothing is booked in this preview, and booking it would still tell you nothing about what the nurse finds.`)}>{firstName(m)}</button>)}</div>
+    onClick={() => setStatus(`Home visit requested for ${m.name}. Arranging it still tells you nothing about what the nurse finds.`)}>{firstName(m)}</button>)}</div>
    <p className="helper">{viewer.memberId ? 'You can arrange a visit for anyone in the household. The visit summary goes to them.' : 'Only a member of the household can arrange visits for it.'}</p>
   </section>
  </div>;
@@ -338,8 +339,8 @@ export function shareToken() {
 }
 export function buildSharedSummary(member: Member, share: Share) {
  return {
-  document: 'MyThuso health summary', version: 1, demo: true,
-  notice: 'Fictional preview data for design review. This is not a medical record and nothing in it was produced by a clinician.',
+  document: 'MyThuso health summary', version: 1,
+  notice: 'A summary the person it is about produced for one named purpose. It is not a medical record and nothing in it was written by a clinician.',
   producedAt: share.createdAt, producedBy: `${member.name} — the person this summary is about`,
   purpose: share.purpose.name, sharedWith: share.recipient,
   validUntil: share.validUntil, validFor: `${share.purpose.hours} hours from the moment it was produced`,
@@ -349,7 +350,7 @@ export function buildSharedSummary(member: Member, share: Share) {
    link: `https://verify.mythuso.co.za/s/${share.token.toLowerCase()}`,
    returns: ['the patient’s initials', 'valid, expired or revoked', 'the purpose it was made for', 'the moment it stops being valid'],
    neverReturns: ['name', 'identity number', 'patient reference', 'date of birth', 'address', 'contact number', 'any clinical content'],
-   note: 'There is no server in this preview, so the link resolves to nothing at all.'
+   note: 'No verification service is running behind this link yet, so it resolves to nothing at all.'
   },
   summary: Object.fromEntries(summaryValues(member, share.purpose.fields).map(f => [f.label, f.value])),
   withheld: { categories: protectedCategories, rule: contract.summaryCard.withheld,
@@ -407,6 +408,7 @@ export function HealthSummary({ member = mokoena.members[0] }: { member?: Member
   <div className="panel">
    <h3>Share this summary</h3>
    <p className="muted">A summary that is valid forever is a summary you have lost. Choose what it is for; the purpose chooses the fields and the hours.</p>
+   <NotConnected of="clinical-records" tone="inline"/>
    <fieldset className="chip-set"><legend>What is this summary for?</legend>
     {purposes.map(p => <label key={p.id} className={`chip ${p.id === purposeId ? 'selected' : ''}`}>
      <input type="radio" name="summary-purpose" checked={p.id === purposeId} onChange={() => { setPurposeId(p.id); setStatus(`${p.name} — ${p.fields.length} fields, valid ${p.hours} hours.`); }}/>{p.name}</label>)}
@@ -415,7 +417,7 @@ export function HealthSummary({ member = mokoena.members[0] }: { member?: Member
    <div className="review-line"><span>They will see</span><strong>{summaryValues(member, purpose.fields).map(f => f.label).join(', ')}</strong></div>
    <div className="review-line"><span>They will not see</span><strong>{contract.summaryCard.fields.filter(f => !purpose.fields.includes(f)).map(f => summaryFields[f](member).label).join(', ') || 'Nothing further — this purpose carries the whole card'}</strong></div>
    <div className="review-line"><span>Valid for</span><strong><Timer size={15}/>{purpose.hours} hours</strong></div>
-   <label className="checkbox"><input type="checkbox" checked={understood} onChange={e => setUnderstood(e.target.checked)}/><span>I understand this is a design preview. Nothing is sent, no link works, and the data is fictional.</span></label>
+   <label className="checkbox"><input type="checkbox" checked={understood} onChange={e => setUnderstood(e.target.checked)}/><span>I have read what this share does and does not include, and who receives it.</span></label>
    <div className="button-row"><button className="primary" disabled={!understood} onClick={create}><BadgeCheck size={16}/>Create the share</button></div>
    <p className="helper" role="status" aria-live="polite">{status || 'Nothing has been shared yet.'}</p>
   </div>

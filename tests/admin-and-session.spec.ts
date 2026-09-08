@@ -25,7 +25,7 @@ test('signing out from the sign-in screen can start a new account instead', asyn
   await page.goto('/');
   await page.locator('button.demo-pill').click();
   await page.getByRole('dialog').getByRole('button', { name: /^First-run flow/ }).click();
-  await page.getByRole('button', { name: 'Skip and explore the design preview' }).click();
+  await page.getByRole('button', { name: 'Skip for now and look around' }).click();
   await expect(page.getByRole('heading', { name: 'Hello, Lerato' })).toBeVisible();
 });
 test('a high-risk check needs a second reviewer, and one name cannot be both', async ({ page }) => {

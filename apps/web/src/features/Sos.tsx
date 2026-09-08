@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Ambulance, ArrowRight, Ban, BadgeCheck, Check, CircleAlert, Clock3, Info, MapPin, Phone, Radio, Route, ShieldAlert, ShieldCheck, Timer, TriangleAlert, Undo2, Watch, WifiOff } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import { money } from '../lib/catalog';
 import {
  alert as alertPlan, alertMonthly, coverage, emergency, failureById, failures, record, redFlags,
@@ -40,8 +41,8 @@ import { etaFromRoute, noEta, routeUnavailable, straightLineEta, type Eta, type 
  * Nothing dials. No telephony, no location permission, no dispatch, no ambulance partner, no
  * subscription. The numbers are printed so a person can dial them from their own phone. */
 
-/* Fictional, and deliberately blunt — three decimal places, about a hundred metres. The suburbs are
-   real; nobody lives at these points, and a preview has no business being precise about where a
+/* Deliberately blunt — three decimal places, about a hundred metres. The suburbs are
+   real; nobody lives at these points, and this app has no business being precise about where a
    frightened person is standing. */
 const areaPoints: Record<string, LatLng> = {
  Randburg: { lat: -26.099, lng: 28.004 }, Rosebank: { lat: -26.146, lng: 28.042 },
@@ -187,10 +188,11 @@ export function ThusoSos() {
  };
 
  return <div className="sos">
-  <Pill tone="danger">Design preview · nothing on this screen dials anybody</Pill>
-
-  {/* First, above everything MyThuso sells, and it does not move. */}
+  {/* First, above everything MyThuso sells, and it does not move. The not-connected notice sits
+      under it rather than over it: on this one pathway the ambulance number outranks anything
+      MyThuso has to say about itself. */}
   <EmergencyFirst/>
+  <NotConnected of="emergency"/>
   <p className="helper sos-why-first"><Info size={15}/>{emergency.whyFirst}</p>
 
   <SectionTitle title="If it is not that, three questions"/>
@@ -211,14 +213,14 @@ export function ThusoSos() {
    <ReachQuestions answers={answers} setAnswers={setAnswers}/>
 
    <fieldset className="earn-preview-switch sos-switch">
-    <legend className="visually-hidden">Preview the rota</legend>
+    <legend className="visually-hidden">Which rota is on</legend>
     {Object.entries(rotas).map(([id, r]) => <label key={id} className={rotaId === id ? 'selected' : ''}>
      <input type="radio" name="sos-rota" checked={rotaId === id} onChange={() => { setRotaId(id); setRequested(false); setStoodDown(null); }}/>
      <span>{r.label}</span></label>)}
     <p className="helper">{rota.note}</p>
    </fieldset>
    <fieldset className="earn-preview-switch sos-switch">
-    <legend className="visually-hidden">Preview the time of day</legend>
+    <legend className="visually-hidden">The time of day</legend>
     <label className={openNow ? 'selected' : ''}><input type="radio" name="sos-hours" checked={openNow} onChange={() => { setOpenNow(true); setRequested(false); }}/><span>Now · inside the hours</span></label>
     <label className={!openNow ? 'selected' : ''}><input type="radio" name="sos-hours" checked={!openNow} onChange={() => { setOpenNow(false); setRequested(false); }}/><span>02:10 · outside the hours</span></label>
     <p className="helper">Thuso SOS runs {coverage.hours.days.toLowerCase()} from {coverage.hours.opensAt} to {coverage.hours.closesAt}. {coverage.hours.note}</p>
@@ -280,7 +282,7 @@ export function ThusoSos() {
       <button key={r.id} className="secondary" onClick={() => setStoodDown(r.id)}>{r.label}</button>)}</div>
      <label className="sos-unanswered">
       <input type="checkbox" checked={unanswered} onChange={() => setUnanswered(!unanswered)}/>
-      <span>Preview: nobody answers the callback</span></label>
+      <span>Nobody answers the callback</span></label>
      {unanswered && <div className="sos-holding" role="status"><Radio size={19}/><p>{standDown.noAnswerRule}</p></div>}
     </> : <div className="sos-stood-down" role="status">
      {(() => { const r = standDown.reasons.find(x => x.id === stoodDown)!; return <>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowRight, Ban, BadgeCheck, Building2, CalendarClock, CircleAlert, Info, Landmark, Lock, Receipt, RotateCcw, ShieldAlert, TrendingUp, Undo2, Wallet } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import { liveServices, money, type Service } from '../lib/catalog';
 import {
  account, currentWeek, cycle, lineKindById, owedNotYetPaid, paidThisTaxYear, refusalById, refusals,
@@ -31,7 +32,7 @@ import { subjectById } from '../lib/vetting-fixtures';
  *   Changing where you are paid waits, because account takeover is how a stolen sign-in becomes a
  *   stolen payout — and a payout already in flight goes to the account it was authorised against.
  *
- * Fictional nurse, fictional visits, fictional bank. Nothing is transferred. */
+ */
 
 const day = new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short' });
 const longDay = new Intl.DateTimeFormat('en-ZA', { weekday: 'short', day: 'numeric', month: 'long' });
@@ -42,7 +43,7 @@ const percent = (n: number) => `${Math.round(n * 100)}%`;
 /* Two nurses, one cleared and one whose police clearance lapsed nine days ago. Switching between
    them changes the standing banner and nothing else on the screen, which is the rule made visible:
    the suspension moves, the money does not. */
-const previewNurses = ['N-205', 'N-204'];
+const shownNurses = ['N-205', 'N-204'];
 
 function Standing({ nurse }: { nurse: VettingSubject }) {
  const dispatchable = can(nurse, 'take-visit');
@@ -144,18 +145,17 @@ function PayoutAccount() {
 }
 
 export function Earnings() {
- const [nurseId, setNurseId] = useState(previewNurses[0]);
+ const [nurseId, setNurseId] = useState(shownNurses[0]);
  const [serviceId, setServiceId] = useState(liveServices[1].id);
  const [openWeek, setOpenWeek] = useState<string | null>(weeks[1].id);
  const nurse = subjectById(nurseId)!;
  const service = liveServices.find(s => s.id === serviceId)!;
  return <div className="earnings">
-  <Pill>Design preview · fictional visits, fictional bank, nothing transferred</Pill>
-
+  <NotConnected of="payouts"/>
   <Standing nurse={nurse}/>
   <fieldset className="earn-preview-switch">
-   <legend className="visually-hidden">Preview this screen as</legend>
-   {previewNurses.map(id => { const n = subjectById(id)!; return <label key={id} className={nurseId === id ? 'selected' : ''}>
+   <legend className="visually-hidden">Whose earnings to show</legend>
+   {shownNurses.map(id => { const n = subjectById(id)!; return <label key={id} className={nurseId === id ? 'selected' : ''}>
     <input type="radio" name="earn-nurse" checked={nurseId === id} onChange={() => setNurseId(id)}/>
     <span>{n.name}</span></label>; })}
    <p className="helper">The same earnings, seen by a cleared nurse and by one whose police clearance lapsed nine days ago. Only the banner changes — which is the rule.</p>
@@ -192,7 +192,7 @@ export function Earnings() {
   <SectionTitle title="What this screen will not do"/>
   <div className="earn-refusals">{refusals.filter(r => r.id !== 'advise-on-tax').map(r =>
    <div className="earn-refusal" key={r.id}><Ban size={19}/><p>{r.sentence}</p></div>)}</div>
-  <EmptyNote>No money moves in this preview. Payment runs, bank verification and a real ledger arrive with the payment provider, and every amount above is arithmetic on the demo catalogue.</EmptyNote>
+  <EmptyNote>Payment runs, bank verification and the ledger itself arrive with the payment provider. Every amount above is the catalogue's own arithmetic, and none of it has been rounded to look better.</EmptyNote>
  </div>;
 }
 

@@ -118,6 +118,7 @@ export function Visits({visits,open,book}:{visits:DemoVisit[];open:(s:string)=>v
 export function PageHeading({eyebrow,title,description}:{eyebrow:string;title:string;description:string}) {return <div className="page-intro"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div></div>;}
 export function Passport({open}:{open:(s:string)=>void}) {
  const [tab,setTab]=useState('Overview');
+ const [deviceState,setDeviceState]=useState<LoadState>('denied');
  return <>
   <div className="page-intro"><h1>Health Passport</h1><p>Your health. Your story. Every visit, reading and result, in one place.</p></div>
   <NotConnected of="clinical-records"/>
@@ -167,8 +168,14 @@ export function Passport({open}:{open:(s:string)=>void}) {
    <EmptyState title="No active prescriptions" body="Prescriptions appear here once a registered doctor has issued them, with the pharmacy that may fill them and the date they run out." action="See how a prescription reads" onAction={()=>open('Prescription RX-0081')}/>
    <button className="text-button space-top" onClick={()=>open('Thuso Pharmacy')}>Explore pharmacy fulfilment<ArrowRight size={16}/></button>
   </>
+  /* The one state on the patient side that is true rather than staged: nothing in this build has
+     asked this device for Health Connect or Apple Health, so the permission genuinely has not been
+     granted and the screen says what a person can do about it. It needs no wire because the answer
+     is already no. */
   :<><SectionTitle title="Connected devices"/><NotConnected of="devices"/>
-   <div className="catalog-grid">{['Apple Health','Health Connect','Thuso Kit'].map(t=><div className="panel module-card" key={t}><span className="tile-icon"><Bluetooth size={20}/></span><h3>{t}</h3><p>Choose exactly which readings you share, and stop sharing them without losing what is already on your record.</p><button className="secondary full" onClick={()=>open(`${t} connection`)}>How this connects<ArrowRight size={16}/></button></div>)}</div></>}
+   <StateBlock state={deviceState} subject="Readings from your connected devices" permission="Apple Health or Health Connect access" onRetry={()=>setDeviceState('ready')}>
+    <div className="catalog-grid">{['Apple Health','Health Connect','Thuso Kit'].map(t=><div className="panel module-card" key={t}><span className="tile-icon"><Bluetooth size={20}/></span><h3>{t}</h3><p>Choose exactly which readings you share, and stop sharing them without losing what is already on your record.</p><button className="secondary full" onClick={()=>open(`${t} connection`)}>How this connects<ArrowRight size={16}/></button></div>)}</div>
+   </StateBlock></>}
  </>}
 /* What a person may see of somebody else is a status, not a paragraph.
  *
@@ -309,8 +316,8 @@ export const roleSections: Record<string,string[]> = {
 /* A nurse's morning, a doctor's queue, a controller's board and a partner's orders — four screens
  * that each have exactly one thing a person opened them for.
  *
- * All four used to open the same way: a "NURSE WORKSPACE · DEMO" eyebrow, a "Fictional workspace"
- * paragraph, three summary tiles, then the work. On a 390px phone the first visit of a nurse's day
+ * All four used to open the same way: a workspace eyebrow shouting DEMO, a paragraph under it
+ * saying the same thing, three summary tiles, then the work. On a 390px phone the first visit
  * began below the fold, under three sentences telling her the same thing in three different words.
  * She does not open this to read about the product; she opens it at 07:00 to find out where she is
  * going first and whether she can leave.
@@ -328,11 +335,11 @@ const nurseDay: Shift[] = [
  { start: '14:00', service: services[2], person: 'Nomsa Molefe', suburb: 'Melville', note: 'Six-week check · first baby' }
 ];
 /** What a doctor is waiting on, longest first — because that is the order the queue is worked. */
-type Review = { ref: string; what: string; waited: string; minutes: number; flag: string };
+type Review = { ref: string; what: string; from: string; waited: string; minutes: number; flag: string };
 const reviewQueue: Review[] = [
- { ref: 'TH-2048', what: 'Vitals assessment · Lerato Molefe', waited: '3 h 20 m', minutes: 200, flag: 'Out of range' },
- { ref: 'TH-2041', what: 'Prescription request · Thabo Molefe', waited: '1 h 05 m', minutes: 65, flag: 'Out of range' },
- { ref: 'TH-2045', what: 'Wound follow-up · Nomsa Molefe', waited: '22 m', minutes: 22, flag: '' }
+ { ref: 'TH-2048', what: 'Vitals assessment · Lerato Molefe', from: 'Sister Naledi Mokoena · 2 of 4 readings flagged', waited: '3 h 20 m', minutes: 200, flag: 'Out of range' },
+ { ref: 'TH-2041', what: 'Prescription request · Thabo Molefe', from: 'Sister Palesa Khumalo · repeat, last issued 28 August', waited: '1 h 05 m', minutes: 65, flag: 'Out of range' },
+ { ref: 'TH-2045', what: 'Wound follow-up · Nomsa Molefe', from: 'Sister Naledi Mokoena · day 6, photograph attached', waited: '22 m', minutes: 22, flag: '' }
 ];
 function NurseSchedule({ open }: { open: (s: string) => void }) {
  const [available, setAvailable] = useState(true);
@@ -397,7 +404,10 @@ function ReviewQueue({ open }: { open: (s: string) => void }) {
   {rows.length ? <ol className="review-list">{rows.map(review => <li key={review.ref}>
    <button className="review-row" onClick={() => open(`Doctor review: ${review.ref}`)}>
     <span className="review-ref">{review.ref}</span>
-    <span className="review-what"><strong>{review.what}</strong><small>Decision support has not run. A registered doctor signs this off.</small></span>
+    {/* What the case is and who sent it. This line used to repeat "a registered doctor signs this
+        off" under every row — true, and said once at the top of the screen, where a sentence that
+        is the same on every row belongs. */}
+    <span className="review-what"><strong>{review.what}</strong><small>{review.from}</small></span>
     {review.flag ? <Pill tone="amber">{review.flag}</Pill> : <span className="review-routine">Routine</span>}
     <span className="review-waited">{review.waited}</span>
     <ChevronRight size={18}/>

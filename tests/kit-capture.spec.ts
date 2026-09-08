@@ -10,7 +10,7 @@ test('kit surface: pair, capture, queue, all four conflicts', async ({ page }) =
   await page.locator('button.demo-pill').click();
   await page.getByRole('dialog').getByRole('button', { name: /^Thuso Kit/ }).click();
   const d = page.getByRole('dialog');
-  await expect(d.getByText('Nothing connects here.')).toBeVisible();
+  await expect(d.locator('.not-connected')).toContainText('No device is connected');
   await expect(d.getByText(/This queue is held in memory/)).toBeVisible();
   // pairing
   await d.getByRole('button', { name: 'Look for instruments' }).click();
@@ -59,7 +59,7 @@ test('assessment carries provenance through to the consultation', async ({ page 
   await page.locator('button.demo-pill').click();
   await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
   await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText('Nurse', { exact: true }) }).click();
-  await page.getByRole('button', { name: /Visit assessment · TH-2048/ }).first().click();
+  await page.getByRole('button', { name: 'Start this visit' }).click();
   const d = page.getByRole('dialog');
   await d.getByLabel('Visit code, digit 1 of 6').fill('482190');
   await d.getByRole('checkbox').check();
@@ -91,8 +91,8 @@ test('assessment carries provenance through to the consultation', async ({ page 
   await d.getByRole('button', { name: 'Record findings' }).click();
   await d.getByRole('button', { name: 'Review sign-off' }).click();
   await expect(d.getByText('165 mmHg ⚠')).toBeVisible();
-  await expect(d.getByRole('button', { name: 'Sign demo assessment' })).toBeEnabled();
-  await d.getByRole('button', { name: 'Sign demo assessment' }).click();
+  await expect(d.getByRole('button', { name: 'Sign assessment' })).toBeEnabled();
+  await d.getByRole('button', { name: 'Sign assessment' }).click();
   await d.getByRole('button', { name: /Open the consultation record/ }).click();
   await expect(d.getByText('Blood pressure — systolic')).toBeVisible();
   await expect(d.locator('.review-line').filter({ hasText: 'Oxygen saturation' }).locator('.prov-device').first()).toBeVisible();

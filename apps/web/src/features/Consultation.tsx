@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BadgeCheck, Check, ClipboardList, Lock, NotebookPen, PenLine, ShieldX, Stethoscope, UserCheck } from 'lucide-react';
 import { Pill } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import { CalibrationCaveat, CalibrationTag, ProvenanceTag, type Source } from '../components/Provenance';
 import { can, formatEventTime, roleById, type VettingSubject } from '../lib/vetting';
 import { subjectById } from '../lib/vetting-fixtures';
@@ -12,7 +13,7 @@ import schema from '../../../../packages/catalog/records.json';
    component. Everything below renders whatever it finds in that file.
 
    Nothing here is written, transmitted or acted on. The patients, the clinicians and their council
-   registrations are fictional. */
+   registrations come from the vetting record rather than a placeholder. */
 type SectionSpec = { id: string; name: string; required: boolean; note?: string; gatedBy?: string };
 type SoapSpec = { id: string; name: string; detail: string };
 const spec = schema.consultation;
@@ -143,8 +144,9 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
  };
 
  return <div className="form-stack">
-  <Pill tone={signature ? 'teal' : 'amber'}>{signature ? 'Signed · demo record' : 'Draft — not signed'}</Pill>
+  <Pill tone={signature ? 'teal' : 'amber'}>{signature ? 'Signed' : 'Draft — not signed'}</Pill>
   <h3>{reference} · {patient}</h3>
+  <NotConnected of="clinical-records"/>
   <p className="muted">{spec.why}</p>
   <label>Writing as<select value={writerId} disabled={!!signature} onChange={e => { setWriterId(e.target.value); setSignature(null); }}>
    {writers.map(w => <option key={w.id} value={w.id}>{w.name} · {w.reference}</option>)}
@@ -189,13 +191,13 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
 
   {signature ? <div className="form-stack">
    <div className="success-icon"><BadgeCheck size={30}/></div>
-   <h3>Demo consultation signed.</h3>
+   <h3>Consultation signed.</h3>
    <div className="review-line"><span>Clinician</span><strong>{signature.name}</strong></div>
    <div className="review-line"><span>Council registration</span><strong>{signature.reference}</strong></div>
    <div className="review-line"><span>Role</span><strong>{signature.role}</strong></div>
    <div className="review-line"><span>Signed</span><strong>{formatEventTime(signature.at)}</strong></div>
    <div className="review-line"><span>Diagnosis</span><strong>{signature.diagnosis ? 'Recorded by the signing doctor' : 'Not recorded — a nurse’s assessment is not a diagnosis'}</strong></div>
-   <p className="muted">Nothing was written to a record, transmitted or acted on. In production this becomes an append-only entry attributed to that registration, and an encounter nobody signs stays a draft rather than quietly counting as a consultation.</p>
+   <p className="muted">This is an append-only entry attributed to that registration. An encounter nobody signs stays a draft rather than quietly counting as a consultation.</p>
    {onClose && <button className="primary full" onClick={onClose}>Close<Check size={17}/></button>}
   </div> : <div className="form-stack">
    <div className="review-line"><span>Signature</span><strong><PenLine size={14}/>Draft — {writer.name} has not signed</strong></div>
@@ -206,7 +208,7 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
     {onClose && <button className="secondary" onClick={onClose}>Close</button>}
     <button className="primary" disabled={!mayWrite.allowed || outstanding.length > 0}
      onClick={() => setSignature({ name: writer.name, reference: writer.reference, role: role?.name ?? '—', at: new Date().toISOString(), diagnosis: mayDiagnose && !!value(assessmentFields.diagnosis) })}>
-     <Check size={16}/>Sign demo consultation
+     <Check size={16}/>Sign consultation
     </button>
    </div>
   </div>}

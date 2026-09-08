@@ -27,7 +27,7 @@ test('booking requires acknowledgement and creates a demo visit', async ({page})
   await expect(dialog.locator('.review-line').first()).toContainText('2026');
   await dialog.getByRole('checkbox').check();
   await dialog.getByRole('button',{name:'Confirm & book'}).click();
-  await expect(dialog.getByText('Your demo visit is booked.')).toBeVisible();
+  await expect(dialog.getByText('Your visit is booked.')).toBeVisible();
   await dialog.getByRole('button',{name:'View my visits'}).click();
   // 14:30, not 15:00: a vitals check is thirty minutes in the catalogue, and the visit now ends
   // its own duration after it starts rather than a flat hour later
@@ -62,7 +62,7 @@ test('role workspaces and no horizontal overflow',async({page})=>{
     await page.locator('button.demo-pill').click();
     await page.getByRole('dialog').getByRole('button',{name:/^Preview workspaces/}).click();
     await page.getByRole('dialog').getByRole('button').filter({has:page.getByText(role,{exact:true})}).click();
-    await expect(page.getByText(`${role.toUpperCase()} WORKSPACE · DEMO`)).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   }
   expect(await page.evaluate(()=>(()=>{const el=document.querySelector('main')??document.documentElement;return el.scrollWidth<=el.clientWidth;})())).toBe(true);
 });

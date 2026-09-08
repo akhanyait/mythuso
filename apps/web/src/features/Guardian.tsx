@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, ArrowRight, BadgeCheck, Check, Eye, FileText, LockKeyhole, ShieldCheck, UserRoundX } from 'lucide-react';
 import { Pill } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 export type Invitation = { id: string; name: string; relationship: string; scope: string; expires: string; status: 'Awaiting acceptance' | 'Verification pending' | 'Active' | 'Revoked' };
 export const sampleInvitations: Invitation[] = [
  { id: 'INV-0031', name: 'Nomsa Molefe', relationship: 'Mother', scope: 'Visit summaries only', expires: 'Until I revoke it', status: 'Active' },
@@ -53,7 +54,8 @@ export function InviteGuardian({ onInvite, onClose }: { onInvite: (i: Invitation
    <div className="review-line"><span>They will see</span><strong>{chosen.title}</strong></div>
    <div className="review-line"><span>Access ends</span><strong>{expires}</strong></div>
    <div className="review-line"><span>Before it starts</span><strong>Identity verification{minor ? ' and proof of guardianship' : ''}</strong></div>
-   <label className="checkbox"><input type="checkbox" checked={understood} onChange={e => setUnderstood(e.target.checked)}/><span>I understand this is a design preview. No invitation is sent and no access is granted.</span></label>
+   <NotConnected of="messaging"/>
+   <label className="checkbox"><input type="checkbox" checked={understood} onChange={e => setUnderstood(e.target.checked)}/><span>I have checked the person, the relationship and what they will be able to see.</span></label>
    <div className="button-row"><button className="secondary" onClick={() => setStep(2)}><ArrowLeft size={16}/>Back</button>
     <button className="primary" disabled={!understood} onClick={() => onInvite({ id: `INV-00${40 + Math.floor(Math.random() * 50)}`, name: name.trim(), relationship, scope: chosen.title, expires, status: 'Verification pending' })}>Send demo invitation<ArrowRight size={16}/></button></div>
   </>}

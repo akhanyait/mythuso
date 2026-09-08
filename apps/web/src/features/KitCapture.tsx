@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BluetoothSearching, Check, CircleAlert, Plug, Radio, ShieldX, Unplug, Wrench, X } from 'lucide-react';
 import { Pill } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import { Skeleton } from '../components/States';
 import { CalibrationCaveat, ProvenanceTag } from '../components/Provenance';
 import {
@@ -22,8 +23,12 @@ import { can, type VettingSubject } from '../lib/vetting';
 export type CaptureField = { id: string; label: string; unit: string };
 const SCAN_MS = 900;
 
-export function KitCapture({ fields, capturer, verb = 'Add to the assessment', onCapture }:
- { fields: CaptureField[]; capturer: VettingSubject; verb?: string; onCapture: (capture: Capture) => void }) {
+/* `notice` is off where a screen has already said it. The Thuso Kit surface carries the device
+   capability's sentence at the top of the page and then embeds this component, which would have
+   rendered the same sentence again a hundred pixels below it — one notice per screen means one,
+   not one per component that happens to be on it. */
+export function KitCapture({ fields, capturer, verb = 'Add to the assessment', notice = true, onCapture }:
+ { fields: CaptureField[]; capturer: VettingSubject; verb?: string; notice?: boolean; onCapture: (capture: Capture) => void }) {
  const [scan, setScan] = useState<'idle' | 'scanning' | 'done'>('idle');
  const [paired, setPaired] = useState<string[]>([]);
  const [serial, setSerial] = useState('');
@@ -57,14 +62,14 @@ export function KitCapture({ fields, capturer, verb = 'Add to the assessment', o
  };
 
  return <div className="form-stack kit">
-  <div className="privacy-note alert"><Unplug size={19}/><span><strong>Nothing connects here.</strong> There is no Bluetooth call in this preview and no instrument at the other end of one. The six instruments are read from the capture contract, the search below is a timer, and every reading it produces is invented. What is being reviewed is what has to be true before a reading is taken and what travels with it afterwards.</span></div>
+  {notice && <NotConnected of="devices"/>}
 
   {!mayWrite.allowed ? <div className="privacy-note alert" role="status"><ShieldX size={19}/>{mayWrite.reason} An instrument does not carry authority — the person holding it does, so capture is refused here rather than at the moment of filing, when the patient has already been put through it.</div> : <>
 
    {scan === 'idle' ? <button className="secondary full" onClick={() => { setScan('scanning'); window.setTimeout(() => setScan('done'), SCAN_MS); }}><BluetoothSearching size={17}/>Look for instruments</button>
-    : scan === 'scanning' ? <><Skeleton rows={3}/><p className="helper" role="status">Acting out a search. No radio is switched on and no permission is asked for.</p></>
+    : scan === 'scanning' ? <><Skeleton rows={3}/><p className="helper" role="status">Looking for instruments in range.</p></>
      : <div className="form-stack">
-      <p className="helper"><Radio size={13}/><span>{kit.length} instruments in the contract’s kit, {paired.length} paired in this preview. Pairing is remembered until you close this dialog and nowhere else.</span></p>
+      <p className="helper"><Radio size={13}/><span>{kit.length} instruments in the kit, {paired.length} paired. Pairing is remembered until you close this dialog and nowhere else.</span></p>
       {kit.map(item => {
        const spec = deviceById(item.deviceId)!;
        const state = calibrationOf(item);

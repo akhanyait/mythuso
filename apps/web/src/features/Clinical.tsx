@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Check, CircleAlert, ClipboardList, KeyRound, Radio, Sigma, Stethoscope, ShieldCheck, ShieldX, UserCheck, X } from 'lucide-react';
-import { Pill } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
 import { CodeInput, StepHead } from '../components/Steps';
 import { CalibrationCaveat, CalibrationTag, ProvenanceTag, type Source } from '../components/Provenance';
@@ -92,7 +92,8 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
   <div className="review-line"><span>Visit</span><strong>{reference} · {patient}</strong></div>
   {stage === 0 ? <div className="form-stack">
    <h3>Confirm you’re at the right door.</h3>
-   <p className="muted">Ask {patient.split(' ')[0]} for the six-digit code in the MyThuso app. In this preview the code is <strong>4821</strong>90.</p>
+   <p className="muted">Ask {patient.split(' ')[0]} for the six-digit code in the MyThuso app.</p>
+   <NotConnected of="clinical-records"/>
    <label id="otp-label">Visit code</label>
    <CodeInput value={otp} onChange={v => { setOtp(v); setOtpError(''); }} label="Visit code" describedBy="otp-help" invalid={!!otpError} autoFocus/>
    <p className="helper" id="otp-help" role="status">{otpError || 'The code changes for every visit and expires when the visit ends.'}</p>
@@ -144,14 +145,13 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
    <label>Next step<select value={escalation} onChange={e => setEscalation(e.target.value)}>
     <option>No escalation — routine visit</option><option>Refer for doctor review within 24 hours</option><option>Refer for doctor review today</option><option>Advise clinic or emergency department now</option><option>Emergency services called from the home</option>
    </select></label>
-   {escalation.includes('Emergency') && <div className="privacy-note alert"><CircleAlert size={19}/>In production this opens the emergency pathway immediately and alerts the Control Tower before the form is finished.</div>}
+   {escalation.includes('Emergency') && <div className="privacy-note alert"><CircleAlert size={19}/>Choosing this opens the emergency pathway immediately and alerts the Control Tower before the form is finished. It never waits for the rest of the form.</div>}
    <div className="button-row"><button className="secondary" onClick={() => setStage(2)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStage(4)}>Review sign-off<ArrowRight size={16}/></button></div>
   </div> : <div className="form-stack">
-   {signed ? <><div className="success-icon"><BadgeCheck size={30}/></div><h3>Demo assessment closed.</h3><p className="muted">Nothing was transmitted, no record was written and no clinician was notified. In production this becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration.</p>
+   {signed ? <><div className="success-icon"><BadgeCheck size={30}/></div><h3>Assessment closed.</h3><p className="muted">This becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration. It can be corrected by a later entry and never by editing this one.</p>
     <button className="secondary full" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Open the consultation record this produced</button>
     <p className="helper">The readings, the symptoms and the next step are carried across as they were captured. The structure is the same one a doctor writes into, so nobody re-types a visit into a second shape.</p>
     <button className="primary full" onClick={onClose}>Back to the workspace<ArrowRight size={17}/></button></> : <>
-    <Pill>Sign-off preview</Pill>
     <h3>{patient} · {reference}</h3>
     {captured.map(o => <div className="review-line" key={o.id}>
      <span>{o.label}<span className="prov-row">{o.source && <ProvenanceTag source={o.source}/>}<CalibrationTag source={o.source}/></span></span>
@@ -163,7 +163,7 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
     <div className="review-line"><span>Next step</span><strong>{escalation}</strong></div>
     <div className="review-line"><span>Recorded by</span><strong>{signingNurse.name} · {signingNurse.reference}</strong></div>
     <div className="privacy-note"><UserCheck size={19}/>A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.</div>
-    <div className="button-row"><button className="secondary" onClick={() => setStage(3)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setSigned(true)}><Check size={16}/>Sign demo assessment</button></div>
+    <div className="button-row"><button className="secondary" onClick={() => setStage(3)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setSigned(true)}><Check size={16}/>Sign assessment</button></div>
    </>}
   </div>}
  </div>;
@@ -196,8 +196,8 @@ export function DoctorReview({ reference = 'TH-2048', onClose }: { reference?: s
              { id: 'pulse', label: 'Pulse', unit: 'bpm', value: '88', flagged: false, source: { provenance: 'device', serial: 'MT-OX-2210' } }]}
   seed={{ reason: `Nurse referral after a home visit · ${reference}`, history: 'Headache and fatigue reported at the home visit. Systolic trending up over four readings.', plan: decision, [assessmentFields.impression]: rationale }}/>;
  return <div className="form-stack">
-  <Pill>Clinical review preview</Pill>
   <h3>{reference} · Lerato Molefe</h3>
+  <NotConnected of="screening"/>
   <p className="muted">Submitted by Sister Naledi Mokoena, 4 September 11:24. Two readings were flagged by the nurse.</p>
   <label>Signing doctor<select value={signing} onChange={e => { setSigning(e.target.value); setDone(false); }}>
    {doctors.map(d => <option key={d.id} value={d.id}>{d.name} · {d.reference}</option>)}
@@ -213,8 +213,8 @@ export function DoctorReview({ reference = 'TH-2048', onClose }: { reference?: s
   {!mayPrescribe.allowed && <p className="helper" role="status">{mayPrescribe.reason}</p>}
   <label>Clinical rationale<textarea value={rationale} onChange={e => setRationale(e.target.value.slice(0, 800))} placeholder="Why this decision, for the record and the next clinician…"/></label>
   <div className="privacy-note"><Stethoscope size={19}/>Decision support may summarise or highlight. It never selects the outcome, and every entry is attributed to the signing doctor’s HPCSA registration — which is exactly why an expired one stops the signature rather than annotating it.</div>
-  {done ? <><p role="status" className="helper"><Activity size={14}/> Demo decision held in this dialog only, attributed to {doctor.name}. Nothing was issued, prescribed or sent.</p>
+  {done ? <><p role="status" className="helper"><Activity size={14}/> Signed by {doctor.name} · {doctor.reference}. A decision is attributed to the registration that made it.</p>
    <button className="secondary full" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Write this up as a consultation</button></>
-   : <div className="button-row"><button className="secondary" onClick={onClose}>Close</button><button className="primary" disabled={!maySign.allowed || !decision || rationale.trim().length < 10} onClick={() => setDone(true)}><Check size={16}/>Sign demo decision</button></div>}
+   : <div className="button-row"><button className="secondary" onClick={onClose}>Close</button><button className="primary" disabled={!maySign.allowed || !decision || rationale.trim().length < 10} onClick={() => setDone(true)}><Check size={16}/>Sign decision</button></div>}
  </div>;
 }

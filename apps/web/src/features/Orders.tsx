@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, Check, CircleAlert, ClipboardList, FlaskConical, Package, Pill as PillIcon, ShieldCheck, ShieldX, Truck } from 'lucide-react';
+import { ArrowRight, Check, ChevronRight, CircleAlert, FlaskConical, Package, Pill as PillIcon, ShieldCheck, ShieldX, Truck } from 'lucide-react';
 import { Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { crossReference } from '../lib/dispensing';
@@ -110,7 +110,7 @@ export function FulfilmentQueue({ open }: { open: (s: string) => void }) {
  ];
  return <>
   <div className="shift-head">
-   <div><h1>Orders</h1><p>{rows.length} open · {rows.filter(r => r.detail.includes('Awaiting')).length} waiting on somebody here</p></div>
+   <div><h1>Orders</h1><p>{rows.length} open · {rows.filter(r => r.detail.includes('Awaiting')).length} of them waiting on somebody in this building</p></div>
   </div>
   <NotConnected of="dispensing"/>
   {groups.map(group => <section key={group.title}>
@@ -118,7 +118,7 @@ export function FulfilmentQueue({ open }: { open: (s: string) => void }) {
    <div className="panel">{group.rows.map(r => <button className="record-row" key={r.id} onClick={() => open(r.kind === 'Prescription' ? `Prescription ${r.id}` : `Laboratory order ${r.id}`)}>
     <span className="service-icon"><r.icon size={21}/></span>
     <span><strong>{r.id}</strong><small>{r.detail}</small></span>
-    <ClipboardList size={18}/>
+    <ChevronRight size={18}/>
    </button>)}</div>
   </section>)}
  </>;

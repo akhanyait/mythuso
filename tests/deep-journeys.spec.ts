@@ -11,15 +11,17 @@ async function navigate(page: Page, name: string) {
   await tab(page, 4).click();
   await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
 }
-async function openStates(page: Page, dialog = false) {
-  const root = dialog ? page.getByRole('dialog') : page.locator('main');
-  await root.locator('details.state-picker > summary').first().click();
-}
+/* Each workspace now leads with the thing it is about — a nurse's date, a doctor's queue, a
+   controller's board, a partner's orders — instead of a shouted workspace eyebrow over a paragraph
+   saying the same thing again. The arrival check is that heading. */
+const landsOn: Record<string, RegExp> = {
+  Nurse: /\d{4}$/, Doctor: /^Review queue$/, Partner: /^Orders$/, 'Control Tower': /^Dispatch$/
+};
 async function switchRole(page: Page, role: string) {
   await page.locator('button.demo-pill').click();
   await page.getByRole('dialog').getByRole('button', { name: /^Preview workspaces/ }).click();
   await page.getByRole('dialog').getByRole('button').filter({ has: page.getByText(role, { exact: true }) }).click();
-  await expect(page.getByText(`${role.toUpperCase()} WORKSPACE · DEMO`)).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(landsOn[role]);
 }
 test('sign-up refuses a bad code and a bad ID number, then completes', async ({ page }) => {
   await page.goto('/');
@@ -65,7 +67,7 @@ test('account recovery offers a route that does not need the lost phone', async 
   await page.getByRole('button', { name: 'Start recovery' }).click();
   await expect(page.getByRole('heading', { name: 'We’ve started your recovery.' })).toBeVisible();
   await expect(page.getByText('Up to 24 hours')).toBeVisible();
-  await page.getByRole('button', { name: 'Continue to the preview' }).click();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Hello, Lerato' })).toBeVisible();
 });
 test('a guardian invitation names its scope, its end date and can be revoked', async ({ page }) => {
@@ -94,7 +96,7 @@ test('a guardian invitation names its scope, its end date and can be revoked', a
 test('a nurse assessment checks identity, flags an out-of-range reading and signs off', async ({ page }) => {
   await page.goto('/');
   await switchRole(page, 'Nurse');
-  await page.getByRole('button', { name: /Visit assessment · TH-2048/ }).first().click();
+  await page.getByRole('button', { name: 'Start this visit' }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Visit code, digit 1 of 6').fill('111111');
   await dialog.getByRole('checkbox').check();
@@ -116,8 +118,8 @@ test('a nurse assessment checks identity, flags an out-of-range reading and sign
   await dialog.getByRole('button', { name: 'Review sign-off' }).click();
   await expect(dialog.getByText('165 mmHg ⚠')).toBeVisible();
   await expect(dialog.getByText('Refer for doctor review today')).toBeVisible();
-  await dialog.getByRole('button', { name: 'Sign demo assessment' }).click();
-  await expect(dialog.getByRole('heading', { name: 'Demo assessment closed.' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Sign assessment' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Assessment closed.' })).toBeVisible();
 });
 test('control tower assigns a nurse and logs an incident action', async ({ page }) => {
   await page.goto('/');
@@ -133,25 +135,24 @@ test('control tower assigns a nurse and logs an incident action', async ({ page 
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText(/pages the on-call clinical lead immediately/)).toBeVisible();
   await dialog.getByLabel('Immediate action').selectOption('Escalate to the on-call clinical lead');
-  await dialog.getByRole('button', { name: 'Add demo action to the log' }).click();
-  await expect(dialog.getByRole('list', { name: 'Demo incident log' })).toContainText('Escalate to the on-call clinical lead');
+  await dialog.getByRole('button', { name: 'Add this action to the log' }).click();
+  await expect(dialog.getByRole('list', { name: 'Incident log' })).toContainText('Escalate to the on-call clinical lead');
 });
 test('partner orders show chain of custody and every integration state', async ({ page }) => {
   await page.goto('/');
   await switchRole(page, 'Partner');
-  await page.getByRole('button', { name: /RX-0081 · Prescription/ }).click();
+  await page.getByRole('button', { name: /^RX-0081/ }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText('Amlodipine 5 mg')).toBeVisible();
-  await expect(dialog.getByText('0 of 2 items checked in this preview')).toBeVisible();
+  await expect(dialog.getByText('0 of 2 items checked by the pharmacist')).toBeVisible();
   await dialog.getByRole('checkbox', { name: 'Mark Amlodipine 5 mg checked by pharmacist' }).check();
-  await expect(dialog.getByText('1 of 2 items checked in this preview')).toBeVisible();
-  await openStates(page, true);
-  await dialog.getByRole('button', { name: 'Offline', exact: true }).click();
-  await expect(dialog.getByRole('heading', { name: 'You’re offline' })).toBeVisible();
-  await dialog.getByRole('button', { name: 'Permission denied' }).click();
-  await expect(dialog.getByRole('heading', { name: 'We need your permission first' })).toBeVisible();
+  await expect(dialog.getByText('1 of 2 items checked by the pharmacist')).toBeVisible();
+  /* The state picker that used to force this dialog offline is gone — it was a design-review
+     control shipped inside the product, and nothing behind this screen could fail anyway. What the
+     screen owes the reader instead is the contract's own sentence about what it is not wired to. */
+  await expect(dialog.locator('.not-connected')).toContainText('No prescription reaches a pharmacy');
   await dialog.getByRole('button', { name: 'Close dialog' }).click();
-  await page.getByRole('button', { name: /LAB-0023 · Laboratory/ }).click();
+  await page.getByRole('button', { name: /^LAB-0023/ }).click();
   await expect(dialog.getByText('SEAL-77341 · Intact on receipt')).toBeVisible();
   await expect(dialog.getByRole('row', { name: /Fasting glucose/ })).toContainText('High');
   await dialog.getByRole('button', { name: 'Release with an explanation' }).click();
@@ -202,7 +203,7 @@ test('a doctor whose registration has lapsed cannot sign, and is told which chec
   await switchRole(page, 'Doctor');
   await page.getByRole('button', { name: /TH-2048/ }).click();
   const dialog = page.getByRole('dialog');
-  const sign = dialog.getByRole('button', { name: 'Sign demo decision' });
+  const sign = dialog.getByRole('button', { name: 'Sign decision' });
   await dialog.getByLabel('Signing doctor').selectOption({ label: 'Dr Sanjay Naidoo · HPCSA MP0559104' });
   await expect(dialog).toContainText('HPCSA registration lapsed');
   await expect(dialog.getByLabel('Your decision')).toBeDisabled();
@@ -218,7 +219,7 @@ test('every clinical chart is also available as a table', async ({ page }) => {
   await page.goto('/');
   await navigate(page, 'Health Passport');
   const chart = page.locator('.chart-card').filter({ hasText: 'Blood pressure' }).first();
-  await expect(chart.locator('svg.chart-plot')).toHaveAttribute('aria-label', /Latest sample reading 136 mmHg on 4 Sep/);
+  await expect(chart.locator('svg.chart-plot')).toHaveAttribute('aria-label', /Latest reading 136 mmHg on 4 Sep/);
   await expect(chart.getByRole('table')).toBeHidden();
   await chart.getByRole('button', { name: 'Show readings as a table' }).click();
   await expect(chart.getByRole('table')).toBeVisible();
@@ -237,10 +238,13 @@ test('the shell can be read in isiZulu, Sesotho and Afrikaans', async ({ page })
     else await expect(page.locator('.tabbar')).toContainText(tabLabel);
   }
 });
+/* The gallery is no longer a card on a patient's Explore page — a list of loading states is a
+   thing for the people building the product, not for somebody looking for a nurse. It is reached
+   from the design-review menu the shell keeps for exactly that. */
 test('the state gallery covers loading, error, offline, denied and empty', async ({ page }) => {
   await page.goto('/');
-  await navigate(page, 'Explore MyThuso');
-  await page.getByRole('button', { name: /System states/ }).click();
+  await page.locator('button.demo-pill').click();
+  await page.getByRole('dialog').getByRole('button', { name: /^System states/ }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('status', { name: 'Loading care information' }).first()).toBeVisible();
   await dialog.getByRole('button', { name: 'Service error', exact: true }).click();

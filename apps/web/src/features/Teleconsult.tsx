@@ -4,6 +4,7 @@ import {
  Hourglass, Info, KeyRound, Lock, MicOff, PhoneCall, PhoneOff, ShieldX, SignalLow, Users, VideoOff, WifiOff
 } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import { CodeInput, StepHead } from '../components/Steps';
 import { ConsultationComposer } from './Consultation';
 import { demoVisitCode } from './Clinical';
@@ -33,10 +34,10 @@ import {
  * told beforehand what leaving costs — asking the nurse out means nothing gets examined, and that is
  * said before the question rather than discovered after it.
  *
- * Recording. This preview does not offer it, and does not offer a switch for it either. The reason
+ * Recording. This build does not offer it, and does not offer a switch for it either. The reason
  * is written into the contract and rendered on its own screen: this build has no microphone
  * permission, no camera permission and nowhere to put a recording, so a recording control here would
- * be a control that cannot do what it says — and a patient taught to tick it in a preview has been
+ * be a control that cannot do what it says — and a patient taught to tick it here has been
  * taught to tick it. What the screen does instead is state what a recording would be for, who could
  * open one, how long it would live and how it would be asked for, so the design can be argued with
  * while it is still only a design.
@@ -63,7 +64,7 @@ import {
  * interpreter; it is this participant or nobody.
  *
  * Nothing connects. No WebRTC, no camera, no microphone, no permission requested and none declared.
- * Every doctor, nurse and patient here is fictional. */
+ */
 
 const doctors = subjectsByRole('doctor').filter(d => ['D-401', 'D-402'].includes(d.id));
 const stages = ['Who is in the room', 'Identity', 'Recording', 'The call', 'Afterwards'] as const;
@@ -180,8 +181,8 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
   <div className="review-line"><span>Appointment</span><strong>{reference} · {patient}</strong></div>
 
   {stage === 0 ? <div className="form-stack">
-   <Pill>Design preview · nothing connects, and no camera or microphone is requested</Pill>
    <h3>Who will be able to see and hear you.</h3>
+   <NotConnected of="teleconsultation"/>
    <p className="muted">{ruleById('presence-is-consented').sentence}</p>
 
    <label>Doctor for this appointment<select value={doctorId} onChange={e => { setDoctorId(e.target.value); setClosed(null); }}>
@@ -238,7 +239,7 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    </div>
    <div className="panel tc-identity">
     <span className="pill plain">What the doctor checks</span>
-    <p className="helper">{identity.doctorSideDetail} In this preview the code is <strong>{demoVisitCode.slice(0, 4)}</strong>{demoVisitCode.slice(4)}.</p>
+    <p className="helper">{identity.doctorSideDetail}</p>
     <label id="tc-code-label">Visit code</label>
     <CodeInput value={code} onChange={v => { setCode(v); setCodeError(''); }} label="Visit code" describedBy="tc-code-help" invalid={!!codeError} autoFocus/>
     <p className="helper" id="tc-code-help" role="status">{codeError || 'The code changes for every visit and expires when the visit ends.'}</p>
@@ -295,7 +296,7 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
      <p className="tc-out-note">{media.sentence}</p>
     </div>
    </div>
-   <fieldset className="tc-switch"><legend className="visually-hidden">Preview the media permission state</legend>
+   <fieldset className="tc-switch"><legend className="visually-hidden">What this device has been allowed to use</legend>
     {media.states.map(s => <label key={s.id} className={mediaState === s.id ? 'selected' : ''}>
      <input type="radio" name="tc-media" checked={mediaState === s.id} onChange={() => setMediaState(s.id)}/><span>{s.name}</span></label>)}
     <p className="helper">{media.whyTheDistinctionMatters}</p>
@@ -314,14 +315,14 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    {withdrawnNote && <div className="privacy-note" role="status"><DoorOpen size={19}/>{withdrawnNote}</div>}
 
    <SectionTitle title="The line"/>
-   <fieldset className="tc-switch"><legend className="visually-hidden">Preview the connection state</legend>
+   <fieldset className="tc-switch"><legend className="visually-hidden">The state of the line</legend>
     {connectionStates.map(s => <label key={s.id} className={connectionId === s.id ? 'selected' : ''}>
      <input type="radio" name="tc-line" checked={connectionId === s.id} onChange={() => {
       setConnectionId(s.id);
       if (s.id === 'dropped') { setEverDropped(true); setHoldLeft(reconnect.holdSeconds); }
       else if (everDropped) setResumed(true);
      }}/><span>{s.name}</span></label>)}
-    <p className="helper">A preview control. In production this is the network's answer, not a choice.</p>
+    <p className="helper">The line is the network's answer rather than anybody's choice. It is shown here so a doctor can see what the patient's end is being told.</p>
    </fieldset>
    <BothEnds connectionId={connectionId}/>
    <p className="helper"><SignalLow size={13}/>{connectionById(connectionId).note}</p>

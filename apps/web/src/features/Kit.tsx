@@ -134,7 +134,7 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
     : <div className="privacy-note alert" role="status"><ShieldX size={19}/>{mayCapture.reason}</div>}
   </div>
 
-  <KitCapture fields={kitFields} capturer={capturer} verb="Hold it on this device"
+  <KitCapture fields={kitFields} capturer={capturer} verb="Hold it on this device" notice={false}
     onCapture={c => { setEntries(list => [c, ...list]); setNotice(`${c.label} captured. It is held on this device and exists nowhere else.`); }}/>
 
    <SectionTitle title="Waiting to send"/>

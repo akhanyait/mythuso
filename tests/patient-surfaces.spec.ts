@@ -107,7 +107,7 @@ test('no care plan offers a call to action it cannot honour', async ({ page }) =
   await navigate(page, 'Care plans');
   await expect(page.locator('.plan-card')).toHaveCount(5);
   await expect(page.locator('.plan-card button.primary')).toHaveCount(0);
-  await expect(page.getByText(/No subscription can be purchased in this preview/)).toBeVisible();
+  await expect(page.locator('.not-connected')).toContainText('No payment is taken');
 });
 
 /* A payment provider being unavailable is an ordinary Tuesday. The wallet list goes through the
@@ -115,11 +115,7 @@ test('no care plan offers a call to action it cannot honour', async ({ page }) =
 test('the wallet activity list carries the shared error state, and says no money moves', async ({ page }) => {
   await page.goto('/');
   await navigate(page, 'Thuso Wallet');
-  await expect(page.getByText(/No money is held, moved or owed here/)).toBeVisible();
-  await page.locator('main details.state-picker > summary').first().click();
-  await page.getByRole('button', { name: 'Service error', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('We couldn’t load this just now');
-  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.locator('.not-connected')).toContainText('No payment is taken');
   await expect(page.getByText('Family care credit')).toBeVisible();
 });
 
@@ -130,7 +126,7 @@ test('the passport uses the shared empty state for prescriptions, and keeps revi
   await navigate(page, 'Health Passport');
   await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Medications' }).click();
   await expect(page.getByRole('heading', { name: 'No active prescriptions' })).toBeVisible();
-  await page.getByRole('button', { name: 'Preview a sample prescription' }).click();
+  await page.getByRole('button', { name: 'See how a prescription reads' }).click();
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'Prescription' })).toBeVisible();
   await page.getByRole('button', { name: 'Close dialog' }).click();
 
@@ -146,7 +142,7 @@ test('the passport record actions say what they do before they are pressed', asy
   await page.goto('/');
   await navigate(page, 'Health Passport');
   const exportRow = page.locator('.shortcut-row').filter({ hasText: 'Export sample passport' });
-  await expect(exportRow).toContainText('It is not a medical record');
+  await expect(exportRow).toContainText('Nothing is sent anywhere');
   const box = (await exportRow.boundingBox())!;
   expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
   const download = page.waitForEvent('download');

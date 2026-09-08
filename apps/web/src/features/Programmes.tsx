@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Ban, Building2, EyeOff, HandCoins, Info, LogOut, ShieldX, UserRoundCheck, Users } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
+import { NotConnected } from '../components/NotConnected';
 import { money } from '../lib/catalog';
 import {
  employer as employerContract, floor, formatDay, percent, programmes, refusalById, refusals,
@@ -34,7 +35,7 @@ import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
  * more than most diagnoses do.
  *
  * Nothing here reports anything. No employer is contacted, no payment is taken, and every company,
- * cohort and person is fictional. */
+ */
 
 const employers = subjectsByRole('employer');
 const sponsors = subjectsByRole('sponsor');
@@ -71,8 +72,7 @@ export function Programmes() {
  const statementSponsor = subjectById(statement.sponsor)!;
 
  return <div className="programmes">
-  <Pill>Design preview · fictional companies, fictional cohorts, nothing reported</Pill>
-
+  <NotConnected of="messaging"/>
   <SectionTitle title="The floor"/>
   <div className="panel prog-floor">
    <div className="prog-floor-grid">
@@ -86,7 +86,7 @@ export function Programmes() {
 
   <SectionTitle title="What the employer is sent"/>
   <fieldset className="disp-switch">
-   <legend className="visually-hidden">Preview this report as</legend>
+   <legend className="visually-hidden">Which report to show</legend>
    <label>Employer<select value={employerId} onChange={e => setEmployerId(e.target.value)}>
     {employers.map(e => <option key={e.id} value={e.id}>{e.name} · {e.reference}</option>)}
    </select></label>
@@ -154,7 +154,7 @@ export function Programmes() {
 
   <SectionTitle title="Somebody paying for somebody else"/>
   <fieldset className="disp-switch">
-   <legend className="visually-hidden">Preview this statement as</legend>
+   <legend className="visually-hidden">Whose statement to show</legend>
    <label>Sponsor<select value={sponsorId} onChange={e => setSponsorId(e.target.value)}>
     {sponsors.map(s => <option key={s.id} value={s.id}>{s.name} · {s.reference}</option>)}
    </select></label>
@@ -204,7 +204,7 @@ export function Programmes() {
 
   <SectionTitle title="What this screen will not do"/>
   <div className="disp-refusals">{refusals.map(r => <div className="disp-refusal" key={r.id}><Ban size={19}/><p>{r.sentence}</p></div>)}</div>
-  <EmptyNote>No report is produced, no invitation is sent and no payment is taken. Every count above is fictional, the suppression is arithmetic on it, and the floor itself still needs an Information Officer to agree with it.</EmptyNote>
+  <EmptyNote>The suppression above is arithmetic on the counts, and the floor it works to still needs an Information Officer to agree with it.</EmptyNote>
  </div>;
 }
 

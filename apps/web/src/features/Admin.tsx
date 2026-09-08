@@ -11,7 +11,7 @@ const tabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Gro
 const blocking = (subjects: VettingSubject[], roleId?: string) =>
  subjects.filter(s => (!roleId || s.roleId === roleId) && !summarise(s).cleared).length;
 type Tab = typeof tabs[number];
-/* The back office described as "Control Tower" in the proposal. Everything here is fictional and
+/* The back office described as "Control Tower" in the proposal. Everything here is sample data and
    held in memory: approving a nurse approves nobody, and releasing a tranche moves no money. */
 export function AdminConsole({ open }: { open: (s: string) => void }) {
  const [tab, setTab] = useState<Tab>('Overview');
@@ -20,9 +20,9 @@ export function AdminConsole({ open }: { open: (s: string) => void }) {
  const vetting = useVettingState();
  return <>
   <div className="page-intro">
-   <div className="eyebrow">Control Tower · Demo</div>
+   <div className="eyebrow">Control Tower</div>
    <h1>Operations console</h1>
-   <p>Dispatch, vetting, clinical review, catalogue, growth and the funding plan in one place. Fictional data; no action here reaches a nurse, a patient or a bank.</p>
+   <p>Dispatch, vetting, clinical review, catalogue, growth and the funding plan in one place.</p>
   </div>
   <div className="underline-tabs" role="group" aria-label="Console sections">
    {tabs.map(t => <button key={t} className={tab === t ? 'selected' : ''} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}
@@ -64,7 +64,7 @@ function Overview({ vetting }: { vetting: VettingState }) {
        against the one under it. Left-aligned they could not be: 30, 100, 300, 600, 1000 all began
        at the same pixel and ended five apart. */}
    <table className="result-table figures">
-    <caption>The proposal's indicative trajectory. Reported figures are fictional.</caption>
+    <caption>The proposal's indicative trajectory. These are targets, not results.</caption>
     <thead><tr><th scope="col">Point</th><th scope="col">Visits/day</th><th scope="col">Subscribers</th><th scope="col">Revenue</th><th scope="col">Net</th></tr></thead>
     <tbody>{businessModel.trajectory.map(row => <tr key={row.point}>
      <th scope="row">{row.point}</th><td>{row.visitsPerDay}</td><td>{row.subscribers ? row.subscribers.toLocaleString() : '—'}</td>
@@ -247,7 +247,7 @@ function Compliance() {
  ];
  return <>
   <div className="metric-grid">
-   <Kpi icon={ShieldCheck} label="Designed in the UI" value={String(controls.filter(c => c.state === 'Designed').length)} note="Visible in the preview, not enforced anywhere"/>
+   <Kpi icon={ShieldCheck} label="Designed in the UI" value={String(controls.filter(c => c.state === 'Designed').length)} note="Drawn on a screen, not enforced anywhere"/>
    <Kpi icon={CircleAlert} label="Not built" value={String(controls.filter(c => c.state === 'Not built').length)} note="Needs a backend, a regulator or both" tone="flagged"/>
   </div>
   <div className="panel">{controls.map(c => <div className="record-row static" key={c.name}>
@@ -255,6 +255,6 @@ function Compliance() {
    <span><strong>{c.name}</strong><small>{c.detail}</small></span>
    <Pill tone={c.state === 'Designed' ? 'amber' : 'plain'}>{c.state}</Pill>
   </div>)}</div>
-  <div className="privacy-note alert space-top"><CircleAlert size={19}/>Nothing on this screen is a compliance status. It is a checklist of what must exist before real patient information touches this platform — the preview stores none, which is the only reason it is safe to run today.</div>
+  <div className="privacy-note alert space-top"><CircleAlert size={19}/>Nothing on this screen is a compliance status. It is a checklist of what must exist before real patient information touches this platform, and no patient information is held on it today.</div>
  </>;
 }

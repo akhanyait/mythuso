@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Ban, Check, Clock, Eye, Fingerprint, ShieldAlert, ShieldCheck, X } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
-import { StateBlock, type LoadState } from '../components/States';
+import { StateBlock, useOffline, type LoadState } from '../components/States';
 import {
  accessLog, asDate, asMoment, authorises, basisName, careStanding, currentVersion, effectiveOn,
  fetchAccessLog, fetchStanding, optionalPurposes, previewAccesses, previewStandings, purposeById,
@@ -74,7 +74,9 @@ export function ConsentCentre() {
  };
 
  return <div className="consent-centre">
-  {loaded.live ? <Pill>Consent register connected</Pill> : <NotConnected of="accounts"/>}
+  {/* Nothing until the register has answered. "Not connected" is not true while the question is
+      still in flight, and a notice that flashes on every load is one nobody reads twice. */}
+  {!loaded.ready ? null : loaded.live ? <Pill>Consent register connected</Pill> : <NotConnected of="accounts"/>}
   <p className="muted">{why}</p>
   <p className="muted">{rules.consentIsToAVersion}</p>
   <div className={care.mayReceiveCare ? 'privacy-note' : 'consent-blocked'} role="status">
@@ -172,30 +174,48 @@ function PurposeCard({ purpose, standing, onDecide }: {
  * reading was made under rather than leaving "why were they allowed to" unanswered.
  */
 export function AccessHistory() {
- /* The one screen in the app whose state comes from something that actually answers. The four
-    outcomes fetchAccessLog now distinguishes map onto four of the five shared states, and the
-    fifth — permission-denied — is what the server will return once there is a session to deny.
-    Nothing here is simulated: pull the network cable and this goes offline. */
+ /* The one screen in the app whose state comes from something that actually answers, and the reason
+    the shared states are no longer reachable only through a picker.
+ *
+ * Four outcomes, kept apart because they are four different facts about the world: the log
+ * answered, the device has no signal, a service is there and it failed, and no service is
+ * configured at all. The last of those is not an error — the identity service is installed and
+ * deliberately switched off until DNS, TLS and an SMS provider exist — so it renders the contract's
+ * notice beside the fixtures rather than an alert nobody can act on. The other three replace the
+ * entries entirely: a log of who has been reading your health record must never keep drawing rows
+ * under a panel saying it could not load them.
+ *
+ * `source` is three-valued rather than a boolean on purpose. While the answer is still in flight,
+ * neither "connected" nor "not connected" is true yet, and the honest thing on screen is the
+ * skeleton. A boolean there flashes a connectivity notice on every single page load.
+ *
+ * Offline is listened for in both directions. Reading navigator.onLine once, at fetch time, misses
+ * the person who loses signal after the log has loaded — they would be left reading entries with
+ * nothing saying they are stale — and it leaves them stuck there until they reload, which is a
+ * second dead end on the same screen. Signal returning re-asks on its own. */
+ const offline = useOffline();
  const [attempt, setAttempt] = useState(0);
  const [state, setState] = useState<LoadState>('loading');
  const [entries, setEntries] = useState<AccessEntry[]>(previewAccesses);
- const [live, setLive] = useState(false);
+ const [source, setSource] = useState<'unknown' | 'live' | 'fixtures'>('unknown');
  useEffect(() => {
+  if (offline) { setSource('unknown'); setState('offline'); return; }
   let cancelled = false;
+  setSource('unknown');
   setState('loading');
   void (async () => {
    const answer = await fetchAccessLog();
    if (cancelled) return;
-   if (answer.kind === 'answered') { setEntries(answer.value); setLive(true); setState('ready'); }
+   if (answer.kind === 'answered') { setEntries(answer.value); setSource('live'); setState('ready'); }
    else if (answer.kind === 'offline') setState('offline');
    else if (answer.kind === 'failed') setState('error');
-   else { setLive(false); setState('ready'); }
+   else { setSource('fixtures'); setState('ready'); }
   })();
   return () => { cancelled = true; };
- }, [attempt]);
+ }, [attempt, offline]);
  const refused = entries.filter(entry => entry.outcome === 'refused').length;
  return <div className="access-log">
-  {live ? <Pill>Access log connected</Pill> : <NotConnected of="accounts"/>}
+  {source === 'live' ? <Pill>Access log connected</Pill> : source === 'fixtures' ? <NotConnected of="accounts"/> : null}
   <p className="muted">{accessLog.why}</p>
   <div className="privacy-note"><Eye size={19}/>{accessLog.subjectMayRead}</div>
   <StateBlock state={state} subject="Your access history" permission="access to your record" onRetry={() => setAttempt(attempt + 1)}>
