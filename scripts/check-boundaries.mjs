@@ -786,6 +786,70 @@ for(const outcome of teleconsult.outcomes) {
 if(!unfinishedOutcomes||!realConsultations) throw new Error('The encounter outcomes do not distinguish a consultation from an encounter that was not one, so the record cannot either.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&!o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and did not come back. That is the state this feature is for.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and was re-established. A break in a consultation is a clinical fact, not a reason to start the encounter again.');
+/* Glass, and the one thing that makes it checkable.
+   A translucent surface has no colour of its own, so a contrast figure measured against it is a
+   guess about whatever happens to be behind it. Every glass surface therefore resolves to a
+   declared floor — the composite of the tint over the darkest point the ground may reach — and every
+   ratio in the token file is measured against that. These checks keep that true.
+
+   The founder asked for a glassy, futuristic feel. This is what lets a product that computes
+   contrast on every build actually give him one. */
+if(!tokens.glass) throw new Error('packages/design-tokens/tokens.json has no glass block. A frosted surface with no declared floor is a surface whose contrast nobody can compute.');
+for(const key of ['tint','opacity','blurPx','floorToken']) {
+ if(tokens.glass[key]===undefined) throw new Error(`The glass block has no "${key}". Without it the floor cannot be recomputed and checked.`);
+}
+if(!tokens.color[tokens.glass.floorToken]) throw new Error(`The glass block names "${tokens.glass.floorToken}" as its floor and no such colour exists.`);
+/* The floor is not a taste. It is the tint composited over the darkest ground, and if somebody
+   changes the opacity or the ground without recomputing it, every ratio measured against it becomes
+   a number about a colour that is no longer on screen. */
+{
+ const rgb = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
+ const tint = rgb(tokens.glass.tint), ground = rgb(tokens.color.glassFloorGround), a = tokens.glass.opacity;
+ const expected = tint.map((c,i) => Math.round(c*a + ground[i]*(1-a)));
+ const declared = rgb(tokens.color[tokens.glass.floorToken]);
+ const off = expected.map((c,i) => Math.abs(c - declared[i]));
+ if(Math.max(...off) > 1) throw new Error(`The declared glass floor ${tokens.color[tokens.glass.floorToken]} is not the tint at ${a} over ${tokens.color.glassFloorGround}, which computes to #${expected.map(c=>c.toString(16).padStart(2,'0')).join('')}. Recompute it, or every contrast figure measured against the floor is about a colour nothing renders.`);
+}
+/* The ground may not go darker than the floor it was measured from. */
+{
+ const lum = h => { const v = [1,3,5].map(i => { let c = parseInt(h.slice(i,i+2),16)/255; return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4); }); return 0.2126*v[0]+0.7152*v[1]+0.0722*v[2]; };
+ const floorLum = lum(tokens.color.glassFloorGround);
+ for(const name of ['auroraCool','auroraSage','auroraWarm']) {
+  if(lum(tokens.color[name]) < floorLum - 0.0005) throw new Error(`The ground colour "${name}" is darker than glassFloorGround, so a glass panel over it composites darker than the floor every contrast figure was measured against. Either lighten it or make it the new floor and recompute.`);
+ }
+}
+/* The fallback has to exist, because backdrop-filter is missing or too expensive on a great many of
+   the handsets this product is for, and a frosted panel that falls back to transparent is a panel
+   with text floating over a gradient. */
+if(existsSync('apps/web/src/surface/glass.css')) {
+ const glass = read('apps/web/src/surface/glass.css');
+ if(!/@supports\s+not\s*\(/.test(glass)&&!/@supports\s*\(backdrop-filter/.test(glass)) throw new Error('apps/web/src/surface/glass.css uses no @supports guard for backdrop-filter. On a handset without it the frosted panels lose their background entirely and the text sits on the gradient.');
+ if(!glass.includes('prefers-reduced-transparency')) throw new Error('glass.css does not answer prefers-reduced-transparency. A reader who has asked their system for less transparency has asked this product too.');
+ if(!glass.includes('prefers-reduced-motion')) throw new Error('glass.css animates and does not answer prefers-reduced-motion.');
+}
+
+/* What may be written on sage.
+   The sage ramp is a fill and charcoal is the only foreground measured against it — 11.11:1 on the
+   lightest, 5.89 on the darkest. `faint` on paleSage computes 3.70 and fails, and the patient sweep
+   found five places a sage fill would have inherited it: a lead panel's empty state, a highlighted
+   module card, a featured plan, a selected choice row and a selected locale. Each was forced to
+   charcoal by hand, which is the kind of fix that lasts until the next person adds a sixth.
+
+   So it is checked. Any rule that paints a sage background may not also set a colour that is not
+   charcoal, and may not leave one to be inherited from a lighter ground. */
+const sageFills = /(--pale-sage|--soft-sage|--muted-sage|--sage-slate)\)/;
+for(const sheet of ['apps/web/src/styles.css','apps/web/src/landing.css','apps/web/src/surface/surface.css','apps/web/src/surface/patient.css','apps/web/src/surface/clinical.css','apps/web/src/shells/shells.css']) {
+ if(!existsSync(sheet)) continue;
+ for(const rule of read(sheet).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+  const [, selector, body] = rule;
+  if(!/background[^;]*:/.test(body)) continue;
+  const paintsSage = body.split(';').some(d => /^\s*background/.test(d) && sageFills.test(d));
+  if(!paintsSage) continue;
+  const colour = body.split(';').find(d => /^\s*color\s*:/.test(d));
+  if(colour && !/--charcoal|--ink\)/.test(colour)) throw new Error(`${sheet}: "${selector.trim().slice(0,60)}" paints a sage background and sets ${colour.trim()}. Charcoal is the only foreground measured against the sage ramp — faint on paleSage is 3.70 and fails. Everything read on sage is charcoal.`);
+ }
+}
+
 /* The five states a screen can be in, and why this is checked here rather than driven on a screen.
    loading, error, offline, denied and empty were reachable only through a StatePicker — a
    design-review control that shipped in the product surface, and the only way a test could see four

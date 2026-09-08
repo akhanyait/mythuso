@@ -1,0 +1,131 @@
+/* Frosted glass, and the discipline that makes it safe.
+ *
+ * The founder asked for something futuristic with a glassy feel and smooth motion, and pointed at
+ * two references that are both *luminous and pale* rather than dark. That matters: light glass over
+ * a light ground keeps charcoal at 16:1, and the same treatment over a dark or saturated ground is
+ * where translucency stops being a look and starts being a legibility problem.
+ *
+ * THE FLOOR RULE. A translucent surface has no colour of its own — it is whatever is behind it,
+ * tinted — so a contrast figure measured against it is a guess about position. Every glass surface
+ * here therefore has a declared floor: `--glass-floor`, which is the composite of the tint over the
+ * darkest point the ground is allowed to reach. Every contrast pair in tokens.json is measured
+ * against that floor, and the ground is built so it can never go darker than it. The figures are
+ * true wherever a panel happens to sit.
+ *
+ * THE FALLBACK IS THE MEASURED CASE. backdrop-filter is expensive on the mid-range Android handsets
+ * this product is actually for, and some browsers do not have it. Where it is missing — and for a
+ * reader who has asked for less transparency — glass resolves to that same opaque floor colour. So
+ * the fallback is not a lesser version; it is precisely the colour every ratio was computed against.
+ *
+ * WHAT GLASS MAY NOT DO. It may not sit on top of text. Blur behind a word is the one place this
+ * treatment is simply wrong, and no amount of tuning fixes it. */
+
+/* ---- The luminous ground ----
+   A slow mesh of three pale tints. It is a gradient rather than a flat fill because the glass needs
+   something to refract; a frosted panel over a flat colour reads as a grey card. None of the three
+   is darker than --glass-floor-ground, which is what keeps the maths above honest. */
+.aurora {
+ position: relative;
+ background-color: var(--aurora-cool);
+ background-image:
+  radial-gradient(60% 55% at 12% 8%, var(--aurora-warm) 0%, transparent 60%),
+  radial-gradient(55% 50% at 88% 12%, var(--aurora-sage) 0%, transparent 62%),
+  radial-gradient(70% 60% at 50% 100%, var(--surface) 0%, transparent 70%);
+ background-attachment: fixed;
+}
+
+/* ---- A frosted panel ---- */
+.glass {
+ position: relative;
+ border-radius: var(--r-panel, 18px);
+ /* The floor first, so a browser without backdrop-filter — and a reader who asked for less
+    transparency — gets the exact colour the contrast figures were measured against. */
+ background: var(--glass-floor);
+ border: 1px solid color-mix(in srgb, var(--charcoal) 7%, transparent);
+ box-shadow: 0 1px 2px color-mix(in srgb, var(--charcoal) 4%, transparent),
+             0 12px 32px -12px color-mix(in srgb, var(--charcoal) 12%, transparent);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+ @media (prefers-reduced-transparency: no-preference) {
+  .glass {
+   background: color-mix(in srgb, var(--surface) 72%, transparent);
+   -webkit-backdrop-filter: blur(20px) saturate(140%);
+   backdrop-filter: blur(20px) saturate(140%);
+  }
+ }
+}
+
+/* The highlight along the top edge. This one line is most of what makes a panel read as glass
+   rather than as a pale card — it is the light catching an edge. It carries no text. */
+.glass::before {
+ content: '';
+ position: absolute;
+ inset: 0 0 auto;
+ height: 1px;
+ border-radius: inherit;
+ background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--glass-edge) 70%, transparent) 22%, color-mix(in srgb, var(--glass-edge) 70%, transparent) 78%, transparent);
+ pointer-events: none;
+}
+
+/* Deeper: the one panel a screen is about. More opaque, not less — the thing you are meant to read
+   first should be the most solid thing on the screen, which is the opposite of how glass is usually
+   misused. */
+.glass.lead { background: color-mix(in srgb, var(--surface) 86%, transparent); }
+.glass.quiet { background: color-mix(in srgb, var(--surface) 55%, transparent); box-shadow: none; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+ .glass.lead, .glass.quiet { background: var(--glass-floor); }
+}
+
+/* ---- A glow ----
+   Soft luminance behind a focal object. Never under a word: anything read on top of a glow sits on
+   a glass panel above it, and is measured against the floor like everything else. */
+.glow { position: relative; }
+.glow::after {
+ content: '';
+ position: absolute;
+ inset: -18%;
+ z-index: -1;
+ border-radius: 50%;
+ background: radial-gradient(circle, color-mix(in srgb, var(--glow) 60%, transparent) 0%, transparent 68%);
+ filter: blur(18px);
+ pointer-events: none;
+}
+
+/* ---- Motion ----
+   One easing curve and three durations, so everything in the product accelerates the same way. The
+   curve overshoots very slightly, which is what reads as "smooth" rather than "linear". */
+:root {
+ --ease-soft: cubic-bezier(.22, 1, .36, 1);
+ --t-quick: 160ms;
+ --t-settle: 280ms;
+ --t-enter: 420ms;
+}
+
+.rise { animation: rise var(--t-enter) var(--ease-soft) both; }
+.rise-2 { animation: rise var(--t-enter) var(--ease-soft) 60ms both; }
+.rise-3 { animation: rise var(--t-enter) var(--ease-soft) 120ms both; }
+
+@keyframes rise {
+ from { opacity: 0; transform: translate3d(0, 10px, 0); }
+ to { opacity: 1; transform: none; }
+}
+
+/* Everything interactive settles rather than snaps. transform and opacity only — a build check
+   refuses an endless animation that touches anything else, because a box that keeps changing makes
+   a click land on a moving target. */
+.glass, .s-nav-row, .s-panel, .s-open, .s-metric-chip {
+ transition: transform var(--t-settle) var(--ease-soft),
+             box-shadow var(--t-settle) var(--ease-soft),
+             background-color var(--t-settle) var(--ease-soft),
+             border-color var(--t-settle) var(--ease-soft);
+}
+
+.glass:hover { transform: translate3d(0, -1px, 0); }
+
+/* And none of it happens to somebody who asked for stillness. */
+@media (prefers-reduced-motion: reduce) {
+ .rise, .rise-2, .rise-3 { animation: none; }
+ .glass, .s-nav-row, .s-panel, .s-open, .s-metric-chip { transition: none; }
+ .glass:hover { transform: none; }
+}
