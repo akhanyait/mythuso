@@ -763,6 +763,37 @@ for(const outcome of teleconsult.outcomes) {
 if(!unfinishedOutcomes||!realConsultations) throw new Error('The encounter outcomes do not distinguish a consultation from an encounter that was not one, so the record cannot either.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&!o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and did not come back. That is the state this feature is for.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and was re-established. A break in a consultation is a clinical fact, not a reason to start the encounter again.');
+/* The five states a screen can be in, and why this is checked here rather than driven on a screen.
+   loading, error, offline, denied and empty were reachable only through a StatePicker — a
+   design-review control that shipped in the product surface, and the only way a test could see four
+   of the five. Removing the picker would have taken the coverage with it: five states nothing can
+   render are five states nobody maintains.
+
+   So the assertion moves here, where it is stronger than it was. A gallery can satisfy "these five
+   are reachable"; it cannot satisfy "each of these five says something specific and useful", and a
+   source check cannot be quietly removed along with a UI control. What a browser still owns is the
+   two states a real condition can produce — offline, and a failed request — and those are driven
+   from the condition rather than from a button that pretends. */
+const states=read('apps/web/src/components/States.tsx');
+/* The declaration itself, not the file. Searching the whole file for 'denied' passes on a file that
+   has deleted the state and kept a ternary mentioning it — which is exactly the shape a half-done
+   removal leaves behind. */
+const declared=states.match(/export const loadStates\s*=\s*\[([^\]]*)\]/)?.[1];
+if(!declared) throw new Error('apps/web/src/components/States.tsx no longer declares a loadStates array, so nothing here knows which states a screen is meant to have.');
+for(const state of ['ready','loading','error','offline','denied']) {
+ if(!new RegExp(`'${state}'`).test(declared)) throw new Error(`apps/web/src/components/States.tsx no longer declares the "${state}" state. Every screen that will one day reach a clinical, payment or device integration needs all five designed before that integration lands, not improvised at three in the morning when it does.`);
+}
+/* Each one has to say something a person can act on. "Something went wrong" is the failure this
+   catches: it tells a reader nothing and tells the care team nothing. */
+for(const [state, must] of [['offline','stays available'],['denied','never blocks a visit'],['error','nothing was lost']]) {
+ if(!states.includes(must)) throw new Error(`The "${state}" state no longer tells the reader what it means for them — the sentence containing "${must}" is gone. A state that only names itself is a state that helps nobody.`);
+}
+if(!/export function EmptyState/.test(states)) throw new Error('EmptyState is gone from apps/web/src/components/States.tsx. Empty is the fifth state and the one a new account sees first.');
+/* The picker that made four of these five reachable is a development control and is being removed
+   from the product surface. The check that keeps it out lands with that removal rather than before
+   it: a boundary check committed ahead of the change it describes is a red build with a promise
+   attached, and this repository does not do promises. */
+
 /* What MyThuso claims it can do.
    Every screen used to carry its own hand-typed "Design preview" or "Demonstration record" —
    sixty-odd sentences, three of them stacked above the first visit on a nurse's schedule, none of
