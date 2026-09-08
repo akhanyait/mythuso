@@ -61,7 +61,9 @@
 .s-metric-value small { font-size: 16px; font-weight: 400; letter-spacing: 0; color: var(--charcoal); }
 .s-metric-label { font-size: 13px; color: var(--faint); }
 
-@media (min-width: 900px) { .s-metric-value { font-size: 48px; } }
+/* 42, not 48: 48 is not on the type scale the token file declares, and a figure that big is
+   exactly where somebody would reach for a round number instead of a step. */
+@media (min-width: 900px) { .s-metric-value { font-size: 42px; } }
 
 /* ---- Navigation: a pill row with a trailing circular arrow ---- */
 .s-nav { display: flex; flex-direction: column; gap: var(--space-8); }
