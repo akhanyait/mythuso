@@ -241,6 +241,27 @@ for(const failure of contrast.knownFailures) {
  const fixed = contrastRatio(failure.proposedFix, colourOf(failure.background));
  if(fixed < failure.minimum) throw new Error(`${key} proposes ${failure.proposedFix}, which measures ${round2(fixed)}:1 and still does not clear ${failure.minimum}:1. A proposed fix that has not been measured is a wish.`);
 }
+/* Three generations of colour live in this palette now — the proposal's indigo, the teal and mango
+   it came with, and the sage surface system chosen on 8 September. Adding rather than renaming was
+   right at the time: two agents and a second session were mid-flight and a rename would have lost
+   work. But additive without a record is how a palette becomes sediment, and "a number lives in one
+   place" had quietly acquired three answers to "what colour is a card ground".
+
+   So every colour is either current or declared superseded by its replacement, and a colour in
+   neither list fails here. That does not retire anything today. It makes the thirty-fifth token a
+   decision somebody has to write down rather than a drift nobody notices. */
+const generations = tokens.colorGenerations;
+if(!generations) throw new Error('packages/design-tokens/tokens.json has no colorGenerations. With three generations of colour in one palette, a file that does not say which is authoritative is a file where the rule that survives is whichever one a screen happened to reach for.');
+const accountedFor = new Set([...generations.current, ...Object.keys(generations.supersededBy)]);
+for(const name of Object.keys(tokens.color)) {
+ if(!accountedFor.has(name)) throw new Error(`The colour "${name}" is in neither colorGenerations.current nor colorGenerations.supersededBy. Say which it is: a colour nobody has placed is the thirty-fifth token, and the reason there are already thirty-four.`);
+}
+for(const [old, replacement] of Object.entries(generations.supersededBy)) {
+ if(!tokens.color[old]) throw new Error(`colorGenerations says "${old}" is superseded, but it is no longer in the palette. Once it is gone, take it out of the list too — a retirement note outliving its subject is the next person's confusion.`);
+ if(!tokens.color[replacement]) throw new Error(`colorGenerations says "${old}" is superseded by "${replacement}", which does not exist. A retirement pointing nowhere cannot be carried out.`);
+ if(generations.current.includes(old)) throw new Error(`"${old}" is listed as both current and superseded. It is one or the other.`);
+}
+
 for(const exempt of contrast.notMeasured) {
  if(!tokens.color[exempt.token]) throw new Error(`The contrast table exempts a colour "${exempt.token}" that is not in the palette`);
  if(!exempt.why) throw new Error(`${exempt.token} is exempted from the contrast table without saying why`);
@@ -825,6 +846,16 @@ for(const c of capabilities.capabilities) {
   if(c.blockedBy?.length) throw new Error(`Capability "${c.id}" is marked connected and still lists ${c.blockedBy.length} thing(s) blocking it, beginning "${c.blockedBy[0]}". Clear the list or clear the flag — a capability cannot be both.`);
  }
 }
+/* Two capabilities carry a neverSoften note, and both are checked rather than trusted, because both
+   are the kind somebody removes to make a demo look better. */
+const voice=capabilities.capabilities.find(c=>c.id==='voice');
+if(voice&&!voice.neverSoften) throw new Error('The voice capability has lost the note forbidding a microphone affordance. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.');
+if(voice?.connected) throw new Error('packages/catalog/capabilities.json marks voice as connected. Neither native app declares a microphone permission — deliberately — so this claim is false on both platforms at once.');
+/* Declaring a microphone anywhere would make the voice notice a lie, so the manifest and the target
+   are checked here as well as under teleconsultation, where the same permissions are refused for a
+   different reason. Two features now depend on that silence. */
+if(/android\.permission\.RECORD_AUDIO/.test(read('apps/android/app/src/main/AndroidManifest.xml'))) throw new Error('The Android manifest declares RECORD_AUDIO. Both the teleconsultation contract and the voice capability tell a person nothing here has a microphone.');
+if(/INFOPLIST_KEY_NSMicrophoneUsageDescription/.test(read('apps/ios/MyThuso.xcodeproj/project.pbxproj'))) throw new Error('The iOS target declares a microphone usage description. Both the teleconsultation contract and the voice capability tell a person nothing here has a microphone.');
 /* The emergency pathway is the one refusal here that is not about MyThuso, and it is the one that
    matters most: a person on that screen may be about to need an ambulance. */
 const emergency=capabilities.capabilities.find(c=>c.id==='emergency');
