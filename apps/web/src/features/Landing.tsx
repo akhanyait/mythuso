@@ -55,12 +55,17 @@ const heroFacts = [
 ];
 
 /* Four figures, each one derived from a contract rather than asserted. A statistic that has to be
-   typed into a marketing page is a statistic nothing can hold to account. */
+   typed into a marketing page is a statistic nothing can hold to account.
+
+   Each one carries the file it was read out of, on the page, in a chip above the numeral. The
+   figure was already derived; naming the source turns that from something a reader has to take on
+   trust into something they can go and open. The file name is the only part typed here, and a file
+   name is a structure rather than a claim — if one moves, the import above it stops compiling. */
 const figures = [
- { value: money(fromPrice), label: 'Where a visit starts. The whole price is shown before you confirm.' },
- { value: `${nurseShare}%`, label: 'Of every visit fee is paid to the nurse who did the visit.' },
- { value: String(liveServices.length), label: `Services a nurse can be dispatched to at launch, from a catalogue of ${services.length}.` },
- { value: String(nurseChecks.length), label: 'Checks that must pass before a nurse attends a first visit.' }
+ { source: 'services.json', value: money(fromPrice), label: 'Where a visit starts. The whole price is shown before you confirm.' },
+ { source: 'business-model.json', value: `${nurseShare}%`, label: 'Of every visit fee is paid to the nurse who did the visit.' },
+ { source: 'services.json', value: String(liveServices.length), label: `Services a nurse can be dispatched to at launch, from a catalogue of ${services.length}.` },
+ { source: 'vetting.json', value: String(nurseChecks.length), label: 'Checks that must pass before a nurse attends a first visit.' }
 ];
 
 const questions: [string, React.ReactNode][] = [
@@ -132,8 +137,10 @@ export function Landing() {
 
   <section className="landing-figures" aria-label="What the catalogue says">
    {figures.map(f => <div key={f.label} data-reveal>
+    <span className="landing-figure-source">{f.source}</span>
     <strong>{f.value}</strong><span>{f.label}</span>
    </div>)}
+   <p className="landing-figures-note" data-reveal>Each figure names the contract file it is read from. Not one of them is typed onto this page, so none of them can drift away from what the app charges.</p>
   </section>
 
   <section id="how" className="landing-section">
@@ -225,7 +232,7 @@ export function Landing() {
    </div>
   </section>
 
-  <section className="landing-section">
+  <section className="landing-section landing-questions">
    <Head index="07" eyebrow="Questions" title="The things people actually ask."/>
    <div className="landing-faq" data-reveal>{questions.map(([q, a], i) => <div key={q} className={open === i ? 'is-open' : ''}>
     <h3><button aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)}>{q}<ChevronDown size={19}/></button></h3>

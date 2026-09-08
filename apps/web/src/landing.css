@@ -6,35 +6,73 @@
  * pills, icon tiles and the focus indicator all come from there — what follows is the editorial
  * layer on top, and nothing in it re-implements a primitive that already exists.
  *
+ * ---- The visual language, and what it changed here ----
+ *
+ * docs/DESIGN-LANGUAGE.md is the specification this page was rebuilt to. Four things carry it:
+ *
+ *   1. The ground is --mist, not white. The cards are the white. A page that is white all the way
+ *      down has to draw a border to say where a card is; a grey ground lets the card say it by
+ *      being lighter, and the hairline only confirms it.
+ *   2. Separation is a 1px --stone hairline and almost never a shadow. There is exactly one shadow
+ *      in this file and it is on the sticky navigation, where a reader needs to know the bar is in
+ *      front of the page rather than part of it.
+ *   3. A figure is set large and light with a small label beneath and a small chip above. That
+ *      contrast — one big thin numeral against small dense type — is most of what makes the
+ *      reference read as calm rather than busy, and it is why nothing here is bold. Emphasis comes
+ *      from size and from space.
+ *   4. Sage is a fill and never a label. The darkest of the four sages measures 2.54:1 as text on
+ *      --mist, which clears nothing, so it appears only as an icon tile, a portrait wash and a
+ *      chip — always with charcoal on top of it, which clears 11.11:1 on --pale-sage and 5.89:1 on
+ *      --sage-slate. Everything a person reads on this page is --charcoal or --body.
+ *
  * There is not one literal colour below. Every value is a token from tokens.generated.css, or a
- * color-mix() of two of them, so the palette cannot be nudged out of the brand from this file. The
- * two accents are held to their measured contrast: --teal and --mango fill shapes and carry text
- * only on --indigo-deep (5.04:1 and 7.05:1), never on a light ground, where --teal-ink and
- * --mango-ink are the readable versions.
+ * color-mix() of two of them, so the palette cannot be nudged out of the brand from this file.
+ * Every pair was computed rather than eyeballed, and the ones that are not in the token contract's
+ * own table are written into the comment above the rule that uses them.
+ *
+ * --faint appears nowhere on this page. It measures 4.75:1 on --mist and 4.30:1 on --cloud, and
+ * this layout moves the same text between those two grounds, so the quiet text is --body — 6.65:1
+ * and 6.02:1 — everywhere. A colour that is legible on one section and not the next is a colour
+ * waiting for somebody to move a paragraph.
  *
  * Motion: a marketing page can afford more of it than the app can, because nobody here is
  * mid-observation. What it must never do is animate anything a reader did not ask for, hide a
- * disclosure, or leave a section stuck invisible. So the whole of it is three things — sections
- * arriving as you reach them, a bar showing how far down you are, and state changes you caused —
- * every one of them transform or opacity only, and the last block in this file switches all of it
- * off wholesale for prefers-reduced-motion. */
+ * disclosure, or leave a section stuck invisible. So the whole of it is four things — sections
+ * arriving as you reach them, a bar showing how far down you are, state changes you caused, and
+ * two ambient drifts on the hero — every one of them transform or opacity only, and the
+ * reduced-motion block switches all of it off wholesale. */
 
-html:has(.landing){scroll-behavior:smooth}
+html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 .landing{
- background:var(--surface);min-height:100dvh;overflow-x:clip;
+ background:var(--mist);min-height:100dvh;overflow-x:clip;
  --wrap:1200px;--gutter:clamp(20px,4.4vw,40px);--pad:max(var(--gutter),calc((100vw - var(--wrap)) / 2));
  --ease:cubic-bezier(.22,.68,0,1);
- /* Two greys mixed rather than added to the palette: a hairline that reads on the dark grounds,
-    and the quiet text that sits on them. */
+ /* The radius the reference uses on a card sits between --r-card (12) and --r-pill, and the token
+    contract has no step there. Rather than type 18px into a marketing page — the exact way three
+    platforms end up disagreeing about a corner — it is derived from the card radius, so a change
+    to the token still moves it. A --r-panel step in packages/design-tokens/tokens.json would
+    retire this line. */
+ --r-panel:calc(var(--r-card) * 1.5);
+ /* Two values mixed rather than added to the palette: a hairline that reads on charcoal, and the
+    quiet text that sits on it. --stone at 62% over --charcoal measures 5.59:1, which is the
+    smallest thing on a dark ground here and still clears AA. */
  --on-dark:color-mix(in srgb,var(--surface) 16%,transparent);
- --on-dark-text:color-mix(in srgb,var(--surface) 82%,var(--indigo));
+ --on-dark-quiet:color-mix(in srgb,var(--stone) 62%,var(--charcoal));
 }
 .landing section[id]{scroll-margin-top:88px}
 .landing a{text-decoration:none}
-.landing h1,.landing h2{font-family:var(--font-display);font-weight:600;letter-spacing:-.03em;color:var(--ink);text-wrap:balance}
-.landing h1{font-size:clamp(36px,5.2vw,64px);line-height:1.04}
-.landing h2{font-size:clamp(28px,3.4vw,42px);line-height:1.1}
-.landing h3{font-size:18px;font-weight:600;letter-spacing:-.015em;color:var(--ink);line-height:1.35}
+/* Nothing on this page is bold. The heaviest weight below is 500, and the self-hosted Inter subset
+   starts at 400 — there is no lighter face to reach for, so the "large and light" figure is 400 at
+   a size nothing else on the page comes near. */
+.landing h1,.landing h2{font-family:var(--font-display);font-weight:500;letter-spacing:-.035em;color:var(--charcoal);text-wrap:balance}
+.landing h1{font-size:clamp(36px,5.4vw,64px);line-height:1.02}
+.landing h2{font-size:clamp(28px,3.6vw,42px);line-height:1.08}
+.landing h3{font-size:18px;font-weight:500;letter-spacing:-.015em;color:var(--charcoal);line-height:1.35}
+/* Every paragraph on this page is coloured by the rule for the block it is in, and there is no
+   blanket `.landing p` above them. There was: it beat .landing-lede and .landing-final-note on
+   specificity — one class against a class and a type — and quietly decided the colour of two things
+   that had been written to decide it for themselves. A default that wins arguments is not a
+   default. */
 
 /* Sections arrive as you reach them. The rule that hides anything is scoped to the data-motion flag
    that apps/web/src/lib/motion.ts sets, so a page whose script never runs is a page that is simply
@@ -44,189 +82,234 @@ html:has(.landing){scroll-behavior:smooth}
 
 /* ---- The three disclosures ----
    The banner, the caption under each photograph and the footer note. None of them is decoration and
-   none of them may be shrunk to tidy a layout, so they are styled here first, on purpose. */
-.landing-notice{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--ink);color:var(--on-dark-text);font-size:13px;line-height:1.55;padding:12px var(--pad)}
-.landing-notice strong{color:var(--surface);font-weight:600}
+   none of them may be shrunk to tidy a layout, so they are styled here first, on purpose. The
+   banner is the darkest thing on the page and the first thing on it, which is the treatment a
+   sentence saying "this does not work yet" has earned. */
+.landing-notice{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--charcoal);color:var(--mist);font-size:13px;line-height:1.55;padding:13px var(--pad)}
+.landing-notice strong{color:var(--surface);font-weight:500}
 /* Mango, not the teal the shared dot ships with. A teal dot is the app's "live" indicator, and this
    is the one statement on the page that says the opposite. Mango is the attention colour, it is the
-   only place mango appears here, and on --ink it measures 10.02:1. */
+   only place mango appears here outside the focus ring, and on --charcoal it measures 9.57:1. */
 .landing-notice .status-dot{background:var(--mango);width:8px;height:8px}
-.landing-portrait figcaption{margin-top:12px;font-size:13px;line-height:1.5;color:var(--faint)}
-.landing-footer-note strong{color:var(--surface)}
+.landing-portrait figcaption{margin-top:14px;font-size:13px;line-height:1.5;color:var(--body)}
+.landing-footer-note strong{color:var(--charcoal);font-weight:500}
 
-/* ---- Navigation ---- */
-.landing-nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px;padding:14px var(--pad);background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);transition:padding .3s var(--ease)}
-.landing-nav.is-condensed{padding-block:9px}
+/* ---- Navigation ----
+   A pill bar. The section links are pill rows that take a --cloud chip when you reach them; the one
+   call to action is a filled charcoal pill, which is the only filled control above the fold. */
+.landing-nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:16px;padding:14px var(--pad);background:color-mix(in srgb,var(--mist) 88%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--stone);transition:padding .3s var(--ease)}
+.landing-nav.is-condensed{padding-block:9px;box-shadow:var(--shadow)}
 /* 44 square is the floor packages/design-tokens/tokens.json sets, and none of the exemptions in it
    covers a marketing nav. So the brand link, the section links and the menu button are all given
    the height rather than the height they happened to inherit from a 32px logo and a 14px label. */
 .landing-brand{display:flex;align-items:center;min-height:44px}
 .landing-brand img{height:32px;width:auto;display:block}
-.landing-progress{position:absolute;left:0;right:0;bottom:-1px;height:2px;transform:scaleX(var(--scroll,0));transform-origin:0 50%;background:var(--teal);will-change:transform}
+/* Progress as a row of rounded segments rather than a continuous bar, which is how the reference
+   draws it. The element is full width and clipped rather than scaled: scaling it would stretch the
+   segments as the reader descends, so the segments would say something different at the bottom of
+   the page than at the top. --scroll is a plain number set by useScrollProgress on every frame, so
+   this is a live style rather than an animation and the endless-animation rule does not reach it. */
+.landing-progress{position:absolute;left:0;right:0;bottom:-2px;height:3px;background:repeating-linear-gradient(90deg,var(--charcoal) 0 20px,transparent 20px 26px);clip-path:inset(0 calc(100% - var(--scroll,0) * 100%) 0 0);will-change:clip-path}
 /* flex-direction is stated rather than left to the default: the shared stylesheet gives the app's
    sidebar a bare `nav{flex-direction:column}` from tablet up, and that rule reaches this one too. */
 .landing-nav nav{display:none;flex-direction:row;align-items:center;gap:2px;margin-left:auto}
-.landing-nav nav a{display:inline-flex;align-items:center;min-height:44px;font-size:14px;font-weight:500;color:var(--body);padding:10px 13px;border-radius:var(--r-pill);transition:color .18s,background .18s}
-.landing-nav nav a:hover{color:var(--indigo-deep);background:var(--indigo-soft)}
-.landing-cta{display:none;min-height:44px;padding:11px 18px;font-size:14px}
-.landing-menu{margin-left:auto;width:44px;height:44px;box-shadow:none;background:var(--canvas)}
-.landing-nav nav.is-open{display:flex;flex-direction:column;align-items:stretch;position:absolute;left:0;right:0;top:100%;gap:0;background:var(--surface);border-bottom:1px solid var(--line);padding:4px var(--pad) 16px;margin:0}
-.landing-nav nav.is-open a{padding:15px 0;border-radius:0;border-bottom:1px solid var(--line);font-size:16px;min-height:44px;display:flex;align-items:center}
+.landing-nav nav a{display:inline-flex;align-items:center;min-height:44px;font-size:14px;font-weight:500;color:var(--body);padding:10px 15px;border-radius:var(--r-pill);transition:color .18s,background .18s}
+.landing-nav nav a:hover{color:var(--charcoal);background:var(--cloud)}
+.landing-cta{display:none;min-height:44px;padding:11px 20px;font-size:14px;border-radius:var(--r-pill);background:var(--charcoal);color:var(--surface)}
+.landing-cta:hover:not(:disabled){background:color-mix(in srgb,var(--charcoal) 82%,var(--surface))}
+/* Circular, hairline, no fill — the reference's icon button. --shadow is removed rather than
+   inherited, because a shadow on a 44px circle over a grey ground reads as a smudge. */
+.landing-menu{margin-left:auto;width:44px;height:44px;box-shadow:none;background:transparent;border:1px solid var(--stone);color:var(--charcoal)}
+.landing-menu:hover{background:var(--cloud)}
+.landing-nav nav.is-open{display:flex;flex-direction:column;align-items:stretch;position:absolute;left:0;right:0;top:100%;gap:0;background:var(--mist);border-bottom:1px solid var(--stone);padding:4px var(--pad) 16px;margin:0}
+.landing-nav nav.is-open a{padding:15px 0;border-radius:0;border-bottom:1px solid var(--stone);font-size:16px;min-height:44px;display:flex;align-items:center}
 .landing-nav nav.is-open a:hover{background:none}
 
 /* ---- Hero ----
-   Indigo carries the page, so it carries the front door. White on --indigo-deep is 12.56:1 and the
-   teal kicker on it is 5.04:1 — both measured, neither assumed. */
-.landing-hero{position:relative;overflow:clip;background:var(--indigo-deep);color:var(--surface);padding:clamp(44px,6vw,84px) var(--pad) clamp(44px,6vw,84px);display:grid;gap:clamp(36px,5vw,64px);align-items:center}
-/* Flat, not a gradient. A radial wash across this panel lifted the ground under the kicker to
-   #1d4d8e at its brightest, where --teal measures 3.37:1 and the caption 4.07:1 — both under AA on
-   text that had been signed off against --indigo-deep. A ground that changes colour behind the
-   words makes every contrast figure in this file a guess about position, so the panel is one
-   measured colour and the portrait frame does the lifting instead. */
+   No dark slab any more. The proposition sits on the page's own ground in charcoal at 14.95:1,
+   which is the highest-contrast thing on the page as well as the largest, and the colour is in the
+   photograph rather than behind the words. */
+.landing-hero{position:relative;overflow:clip;padding:clamp(48px,7vw,104px) var(--pad) clamp(48px,7vw,104px);display:grid;gap:clamp(36px,5vw,72px);align-items:center}
 .landing-hero>*{position:relative;z-index:1}
-.landing-kicker{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin:0 0 20px}
-.landing-hero h1{color:var(--surface);margin:0}
-.landing-hero-lede{margin:22px 0 0;max-width:46ch;font-size:16px;line-height:1.65;color:var(--on-dark-text)}
-.landing-actions{display:flex;align-items:center;gap:10px 24px;flex-wrap:wrap;margin:32px 0 0}
-.landing-actions .primary{background:var(--surface);color:var(--indigo-deep);min-height:52px;padding:15px 24px;font-size:15px}
-.landing-actions .primary:hover{background:var(--accent-soft)}
-.landing-quiet{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 4px;font-size:15px;font-weight:600;color:var(--surface);border-bottom:1px solid var(--teal);transition:border-color .18s}
-.landing-quiet:hover{border-bottom-color:var(--surface)}
-.landing-facts{list-style:none;display:flex;flex-wrap:wrap;gap:12px 28px;padding:32px 0 0;margin:32px 0 0;border-top:1px solid var(--on-dark)}
-.landing-facts li{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:500;color:var(--on-dark-text)}
-.landing-facts svg{color:var(--teal)}
+.landing-kicker{display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--body);margin:0 0 24px}
+.landing-hero h1{margin:0}
+.landing-hero-lede{margin:26px 0 0;max-width:46ch;font-size:16px;line-height:1.7;color:var(--body)}
+.landing-actions{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin:36px 0 0}
+/* Both actions are pills. The primary is the only filled thing in the hero; the second is the same
+   shape with a hairline, so the pair reads as one control set rather than as a button beside a link
+   somebody forgot to style. */
+.landing-actions .primary,.landing-final .primary{border-radius:var(--r-pill);background:var(--charcoal);color:var(--surface);min-height:52px;padding:15px 26px;font-size:15px;font-weight:500}
+.landing-actions .primary:hover:not(:disabled){background:color-mix(in srgb,var(--charcoal) 82%,var(--surface))}
+.landing-quiet{display:inline-flex;align-items:center;gap:8px;min-height:52px;padding:14px 24px;font-size:15px;font-weight:500;color:var(--charcoal);border:1px solid var(--stone);border-radius:var(--r-pill);transition:background .18s,border-color .18s}
+.landing-quiet:hover{background:var(--surface);border-color:var(--charcoal)}
+.landing-facts{list-style:none;display:flex;flex-wrap:wrap;gap:10px;padding:36px 0 0;margin:36px 0 0;border-top:1px solid var(--stone)}
+/* Facts as chips on the white the cards are made of, so the ground reads through between them. */
+.landing-facts li{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:500;color:var(--charcoal);background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-pill);padding:9px 16px}
+.landing-facts svg{color:var(--charcoal);opacity:.55}
 
-/* A photograph belongs in a frame, not floating on a blob with a drop shadow. The frame is a flat
-   panel, the portrait sits in it, and the caption underneath says what it is. */
+/* A photograph belongs in a frame, not floating on a blob with a drop shadow. The frame is where
+   the sage lives: a pale-sage panel with the drift on it, the portrait on top, and the caption
+   underneath saying what it is. No text is ever inside this box, which is what makes the wash safe
+   to animate at all — nothing a reader has to read sits on a ground that is changing. */
 .landing-portrait{margin:0;min-width:0}
-.landing-portrait-frame{position:relative;overflow:hidden;border-radius:var(--r-card);background:color-mix(in srgb,var(--surface) 10%,transparent);border:1px solid var(--on-dark);aspect-ratio:4 / 5;display:grid;align-items:end;justify-items:center}
-.landing-portrait-frame img{display:block;width:100%;height:100%;object-fit:contain;object-position:bottom center}
-.landing-portrait-frame.soft{background:var(--indigo-soft);border-color:var(--line)}
-.landing-hero .landing-portrait figcaption{color:var(--on-dark-text)}
+.landing-portrait-frame{position:relative;overflow:hidden;border-radius:var(--r-panel);background:var(--pale-sage);border:1px solid var(--stone);aspect-ratio:4 / 5;display:grid;align-items:end;justify-items:center}
+.landing-portrait-frame img{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:contain;object-position:bottom center}
+.landing-portrait-frame.soft{background:var(--cloud)}
 
 /* ---- The figures ----
-   Four numbers, none of them typed. Set as a rule-separated band rather than four cards, because
-   they are one statement in four parts. */
-.landing-figures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 0;padding:clamp(36px,4.5vw,52px) var(--pad);background:var(--surface);border-bottom:1px solid var(--line)}
-.landing-figures>div{padding-right:clamp(16px,2.4vw,32px)}
-.landing-figures>div:nth-child(2n){padding:0 0 0 clamp(16px,2.4vw,32px);border-left:1px solid var(--line)}
-.landing-figures strong{display:block;font-family:var(--font-display);font-size:clamp(32px,3.6vw,42px);font-weight:600;line-height:1.05;letter-spacing:-.035em;color:var(--indigo);font-variant-numeric:tabular-nums}
-.landing-figures span{display:block;max-width:26ch;margin-top:12px;font-size:14px;line-height:1.6;color:var(--body)}
+   The page's signature, and the reference's: a chip above, a large light numeral, a small label
+   below. Four numbers, none of them typed, each one naming the contract file it is read out of —
+   which is a claim a reader can go and check rather than a statistic nothing can hold to account. */
+/* One column on a phone, not two. The chip carries a file name — "business-model.json" is 146px of
+   13px type and will not go into half of a 320px screen, and a chip that wraps onto two lines is
+   not a chip. The band is taller this way and that is the trade the design language asks for. */
+.landing-figures{display:grid;grid-template-columns:minmax(0,1fr);gap:36px 0;padding:clamp(40px,5vw,64px) var(--pad);border-block:1px solid var(--stone)}
+.landing-figure-source{display:inline-block;font-size:13px;font-weight:500;line-height:1;color:var(--charcoal);background:var(--pale-sage);border-radius:var(--r-pill);padding:6px 12px;font-variant-numeric:tabular-nums}
+.landing-figures strong{display:block;font-family:var(--font-display);font-size:clamp(40px,5.4vw,64px);font-weight:400;line-height:1;letter-spacing:-.04em;color:var(--charcoal);font-variant-numeric:tabular-nums;margin:18px 0 0}
+.landing-figures span:last-child{display:block;max-width:26ch;margin-top:14px;font-size:14px;line-height:1.6;color:var(--body)}
+.landing-figures-note{grid-column:1 / -1;margin:0;padding-top:28px;border-top:1px solid var(--stone);font-size:13px;line-height:1.6;color:var(--body)}
 
-/* ---- Sections and headings ---- */
-.landing-section{padding:clamp(56px,6.5vw,96px) var(--pad)}
-.landing-section.tinted{background:var(--canvas)}
-.landing-head{max-width:62ch;margin-bottom:clamp(32px,3.6vw,48px)}
-.landing-eyebrow{display:flex;align-items:baseline;gap:12px;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--indigo);margin:0 0 14px}
-.landing-eyebrow i{font-style:normal;font-weight:600;color:var(--faint);font-variant-numeric:tabular-nums;letter-spacing:.1em}
-.landing-lede{margin-top:18px;font-size:16px;line-height:1.7;color:var(--body)}
-.landing-note{margin-top:28px;max-width:70ch;font-size:14px;line-height:1.7;color:var(--faint)}
+/* ---- Sections and headings ----
+   A tinted section is a recessed --cloud panel rather than a full-bleed band, from the width where
+   there is room either side of it for the ground to show. Below that the inset would eat a fifth
+   of a 320px screen to prove a point about depth. */
+.landing-section{padding:clamp(64px,7vw,112px) var(--pad)}
+.landing-section.tinted{background:var(--cloud)}
+.landing-head{max-width:62ch;margin-bottom:clamp(36px,4vw,56px)}
+.landing-eyebrow{display:flex;align-items:baseline;gap:14px;font-size:13px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--body);margin:0 0 16px}
+.landing-eyebrow i{font-style:normal;color:var(--charcoal);font-variant-numeric:tabular-nums;letter-spacing:.1em}
+.landing-lede{margin-top:20px;font-size:16px;line-height:1.7;color:var(--body)}
+.landing-note{margin-top:32px;max-width:70ch;font-size:14px;line-height:1.7;color:var(--body)}
 
 /* ---- How it works ----
-   A numbered list, kept as one, so the reading order and the visual order are the same thing. */
-.landing-steps{list-style:none;display:grid;gap:20px;padding:0;margin:0}
-.landing-steps li{position:relative;padding-top:24px;border-top:2px solid var(--indigo)}
-.landing-step-index{display:block;font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--faint);font-variant-numeric:tabular-nums;margin-bottom:20px}
-.landing-steps .tile-icon{margin-bottom:16px}
+   A numbered list, kept as one, so the reading order and the visual order are the same thing. The
+   index is the large light figure and the title is the small dense one, which is the same pairing
+   the figures band uses and the reason the two sections feel related without matching. */
+.landing-steps{list-style:none;display:grid;gap:16px;padding:0;margin:0}
+.landing-steps li{position:relative;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-panel);padding:clamp(24px,2.6vw,32px)}
+.landing-step-index{display:block;font-family:var(--font-display);font-size:32px;font-weight:400;line-height:1;letter-spacing:-.03em;color:var(--body);font-variant-numeric:tabular-nums;margin-bottom:24px}
+.landing-steps .tile-icon{margin-bottom:20px}
 .landing-steps h3{margin-bottom:10px}
 .landing-steps p{font-size:14px;line-height:1.7;color:var(--body);max-width:44ch}
 
 /* ---- Services ----
    Nine cells on one hairline grid at equal weight. A bento that makes one service four times the
    size of another is a claim about the services that is not true. */
-.landing-services{list-style:none;display:grid;gap:14px;padding:0;margin:0}
-.landing-services li{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:22px;transition:border-color .25s,translate .25s var(--ease)}
+.landing-services{list-style:none;display:grid;gap:16px;padding:0;margin:0}
+.landing-services li{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-panel);padding:clamp(20px,2.2vw,26px);transition:border-color .25s,translate .25s var(--ease)}
 /* `translate`, not `transform`. The reveal rule above sets transform:none on a shown element with
    three selectors of specificity, which quietly beats a two-class hover rule and leaves the lift
    dead everywhere motion is on. The independent property composes with it instead of fighting it. */
-.landing-services li:hover{border-color:var(--indigo);translate:0 -3px}
-.landing-services .service-icon{margin-bottom:16px}
+.landing-services li:hover{border-color:var(--charcoal);translate:0 -3px}
+.landing-services .service-icon{margin-bottom:20px}
 .landing-services h3{font-size:16px;margin-bottom:8px}
 .landing-services p{font-size:14px;line-height:1.6;color:var(--body)}
 .landing-price{display:flex;align-items:baseline;gap:10px;margin-top:auto;padding-top:18px;font-variant-numeric:tabular-nums}
-.landing-services .landing-price{margin-top:18px;border-top:1px solid var(--line)}
-.landing-price strong{font-size:16px;font-weight:650;color:var(--ink)}
-.landing-price span{font-size:13px;color:var(--faint)}
+.landing-services .landing-price{margin-top:20px;border-top:1px solid var(--stone)}
+.landing-price strong{font-size:20px;font-weight:400;letter-spacing:-.02em;color:var(--charcoal)}
+.landing-price span{font-size:13px;color:var(--body)}
+/* The sage fills. An icon tile is a shape, and a shape is what sage is for — the glyph on top of it
+   stays charcoal, which measures 11.11:1 on --pale-sage. */
+.landing .service-icon,.landing .tile-icon{background:var(--pale-sage);color:var(--charcoal);border-radius:var(--r-control)}
 
 /* ---- Split sections ---- */
-.landing-split{display:grid;gap:clamp(36px,5vw,72px);padding:clamp(56px,6.5vw,96px) var(--pad);align-items:center}
+.landing-split{display:grid;gap:clamp(36px,5vw,72px);padding:clamp(64px,7vw,112px) var(--pad);align-items:center}
 .landing-split h2{margin-top:0}
-.landing-points{list-style:none;padding:0;margin:28px 0 0;display:flex;flex-direction:column;gap:0}
-.landing-points li{display:flex;gap:14px;align-items:flex-start;padding:18px 0;border-top:1px solid var(--line)}
-.landing-points li:last-child{border-bottom:1px solid var(--line)}
-.landing-points svg{color:var(--indigo);margin-top:2px}
-.landing-points strong{display:block;font-size:15px;font-weight:600;color:var(--ink);margin-bottom:5px}
+.landing-points{list-style:none;padding:0;margin:32px 0 0;display:flex;flex-direction:column;gap:0}
+.landing-points li{display:flex;gap:16px;align-items:flex-start;padding:20px 0;border-top:1px solid var(--stone)}
+.landing-points li:last-child{border-bottom:1px solid var(--stone)}
+.landing-points svg{color:var(--charcoal);margin-top:2px;flex-shrink:0}
+.landing-points strong{display:block;font-size:15px;font-weight:500;color:var(--charcoal);margin-bottom:6px}
 .landing-points span{font-size:14px;line-height:1.65;color:var(--body)}
-.landing-secondary{margin-top:28px;min-height:48px;padding:13px 20px;font-size:14px}
+.landing-secondary{margin-top:32px;min-height:48px;padding:13px 24px;font-size:14px;border-radius:var(--r-pill);background:transparent;border:1px solid var(--stone);color:var(--charcoal)}
+.landing-secondary:hover:not(:disabled){background:var(--surface);border-color:var(--charcoal)}
 
 /* ---- Care plans ----
    No plan is singled out. The obvious move here is to fill one card and flag it "where most people
    start", and that is a claim about how many people use a service that has never run. Each card
    carries the phase it arrives in instead, which is a fact the catalogue actually holds. */
-.landing-plans{list-style:none;display:grid;gap:14px;padding:0;margin:0}
-.landing-plans li{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:22px}
-.landing-plans h3{font-size:16px;margin:14px 0 0;padding-right:70px}
-.landing-plans .landing-price{margin:10px 0 14px;padding-top:0}
-.landing-plans .landing-price strong{font-family:var(--font-display);font-size:32px;font-weight:600;letter-spacing:-.03em;color:var(--indigo)}
+.landing-plans{list-style:none;display:grid;gap:16px;padding:0;margin:0}
+.landing-plans li{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-panel);padding:clamp(20px,2.2vw,26px)}
+/* Two lines of room whether the name needs them or not, so the four prices sit on one line across
+   the row. Four large numerals at four different heights is the thing that makes a price table look
+   assembled rather than designed, and it is the whole reason the figure is set large in the first
+   place. The height is stated in em rather than pixels so it follows the size above it. */
+.landing-plans h3{font-size:16px;line-height:1.35;min-height:2.7em;margin:16px 0 0;padding-right:84px}
+.landing-plans .landing-price{margin:14px 0 16px;padding-top:0}
+.landing-plans .landing-price strong{font-family:var(--font-display);font-size:40px;font-weight:400;line-height:1;letter-spacing:-.04em;color:var(--charcoal)}
 .landing-plans p:last-child{font-size:14px;line-height:1.65;color:var(--body)}
-.landing-phase{position:absolute;top:20px;right:20px;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.landing-phase{position:absolute;top:20px;right:20px;font-size:13px;font-weight:500;line-height:1;color:var(--charcoal);background:var(--cloud);border-radius:var(--r-pill);padding:6px 12px}
+.landing-plans li .landing-phase{background:var(--mist)}
 
 /* ---- Safety ----
    The checks and the refusals are quoted out of packages/catalog/vetting.json, so they are set like
    a schedule rather than like marketing: hairlines, tabular rhythm, no card shadows. */
-.landing-checks{list-style:none;display:grid;gap:0;padding:0;margin:0;border-top:1px solid var(--line)}
-.landing-checks li{padding:20px 0;border-bottom:1px solid var(--line)}
+.landing-checks{list-style:none;display:grid;gap:0;padding:0;margin:0;border-top:1px solid var(--stone)}
+.landing-checks li{padding:22px 0;border-bottom:1px solid var(--stone)}
 .landing-checks h3{font-size:16px;margin-bottom:8px}
 .landing-checks p{font-size:14px;line-height:1.6;color:var(--body)}
-.landing-checks .landing-cadence{margin-top:8px;font-size:13px;color:var(--teal-ink);font-weight:600}
-.landing-refusals{margin-top:clamp(32px,4vw,48px);background:var(--indigo-deep);border-radius:var(--r-card);padding:clamp(24px,3.2vw,40px)}
-.landing-refusals h3{color:var(--surface);font-size:20px;margin-bottom:8px}
+/* The renewal cadence is the one thing on a check that is a status rather than a description, so it
+   is the one thing set as a chip. Charcoal on --pale-sage, 11.11:1. */
+.landing-checks .landing-cadence{display:inline-block;margin-top:12px;font-size:13px;line-height:1;font-weight:500;color:var(--charcoal);background:var(--pale-sage);border-radius:var(--r-pill);padding:6px 12px}
+.landing-refusals{margin-top:clamp(40px,4.5vw,56px);background:var(--charcoal);border-radius:var(--r-panel);padding:clamp(28px,3.4vw,48px)}
+.landing-refusals h3{color:var(--surface);font-size:22px;font-weight:500;margin-bottom:8px}
 .landing-refusals ul{list-style:none;padding:0;margin:0;display:grid;gap:0}
-.landing-refusals li{padding:20px 0;border-top:1px solid var(--on-dark)}
-.landing-refusals strong{display:block;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:10px}
-.landing-refusals p{font-size:15px;line-height:1.65;color:var(--on-dark-text);max-width:62ch}
+.landing-refusals li{padding:22px 0;border-top:1px solid var(--on-dark)}
+.landing-refusals strong{display:block;font-size:13px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--on-dark-quiet);margin-bottom:10px}
+.landing-refusals p{font-size:15px;line-height:1.65;color:var(--mist);max-width:62ch}
 
 /* ---- Questions ---- */
-.landing-faq{max-width:80ch;border-top:1px solid var(--line)}
-.landing-faq>div{border-bottom:1px solid var(--line)}
+.landing-faq{max-width:80ch;border-top:1px solid var(--stone)}
+.landing-faq>div{border-bottom:1px solid var(--stone)}
 .landing-faq h3{margin:0;font-size:16px}
-.landing-faq button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:44px;text-align:left;padding:20px 0;font-size:16px;font-weight:600;letter-spacing:-.015em;color:var(--ink);transition:color .18s}
-.landing-faq button:hover{color:var(--indigo)}
-.landing-faq button svg{color:var(--indigo);transition:transform .28s var(--ease)}
+.landing-faq button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:44px;text-align:left;padding:22px 0;font-size:16px;font-weight:500;letter-spacing:-.015em;color:var(--charcoal);transition:opacity .18s}
+.landing-faq button:hover{opacity:.62}
+.landing-faq button svg{color:var(--charcoal);flex-shrink:0;transition:transform .28s var(--ease)}
 .landing-faq .is-open button svg{transform:rotate(180deg)}
 .landing-answer{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s var(--ease)}
 .landing-faq .is-open .landing-answer{grid-template-rows:1fr}
 .landing-answer>div{overflow:hidden}
-.landing-faq .landing-answer p{padding:0 0 22px;font-size:15px;line-height:1.75;color:var(--body);max-width:72ch}
+.landing-faq .landing-answer p{padding:0 0 24px;font-size:15px;line-height:1.75;color:var(--body);max-width:72ch}
 
 /* ---- Closing panel and footer ---- */
-.landing-final{padding:clamp(64px,7.5vw,112px) var(--pad);background:var(--indigo-deep);color:var(--surface);text-align:center}
+.landing-final{padding:clamp(72px,8vw,128px) var(--pad);background:var(--charcoal);color:var(--surface);text-align:center}
 .landing-final>div{max-width:56ch;margin:0 auto}
-.landing-final h2{color:var(--surface);font-size:clamp(32px,4.6vw,56px)}
-.landing-final p{margin:20px 0 0;font-size:16px;line-height:1.7;color:var(--on-dark-text)}
-.landing-final .primary{margin-top:32px;background:var(--surface);color:var(--indigo-deep);min-height:52px;padding:15px 24px;font-size:15px}
-.landing-final .primary:hover{background:var(--accent-soft)}
-.landing-final-note{font-size:14px;color:color-mix(in srgb,var(--surface) 62%,var(--indigo))}
-.landing-footer{display:grid;gap:28px;padding:clamp(44px,5vw,64px) var(--pad);background:var(--ink);color:var(--on-dark-text);font-size:14px;line-height:1.7}
-.landing-footer img{height:34px;width:auto;background:var(--surface);border-radius:var(--r-control);padding:5px 10px}
-.landing-footer p{font-size:14px;line-height:1.7;color:var(--on-dark-text);margin-top:16px;max-width:52ch}
-.landing-footer-note p:last-child{margin-top:14px;font-size:13px;color:color-mix(in srgb,var(--surface) 58%,var(--ink))}
+.landing-final h2{color:var(--surface);font-size:clamp(32px,4.8vw,64px)}
+.landing-final p{margin:24px 0 0;font-size:16px;line-height:1.7;color:var(--mist)}
+/* White on charcoal, 17.04:1 — the one inverted primary on the page, and the only place the button
+   is lighter than what it sits on. */
+.landing-final .primary{margin-top:36px;background:var(--surface);color:var(--charcoal)}
+.landing-final .primary:hover:not(:disabled){background:var(--cloud)}
+/* Two classes, so it outranks `.landing-final p` above it rather than losing to it. */
+.landing-final .landing-final-note{font-size:14px;color:var(--on-dark-quiet)}
+/* The footer is light. It used to be the same near-black as the panel above it, and the two ran
+   together into one dark block with a rounded corner cut out of the middle of it — the closing
+   panel is the page's one dark moment and it only reads as one if the page comes back to its own
+   ground underneath. */
+.landing-footer{display:grid;gap:32px;padding:clamp(48px,5.5vw,72px) var(--pad);background:var(--mist);color:var(--body);font-size:14px;line-height:1.7;border-top:1px solid var(--stone);margin-top:clamp(48px,5.5vw,72px)}
+.landing-footer img{height:34px;width:auto}
+.landing-footer p{font-size:14px;line-height:1.7;color:var(--body);margin-top:18px;max-width:52ch}
+.landing-footer-note p:last-child{margin-top:16px;font-size:13px;color:var(--body)}
 
 /* ---- Layout at width ---- */
 @media(min-width:600px){
  .landing-services,.landing-plans{grid-template-columns:repeat(2,minmax(0,1fr))}
  .landing-checks{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(24px,4vw,56px)}
+ .landing-figures{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .landing-figures>div{padding-right:clamp(16px,2.4vw,32px)}
+ .landing-figures>div:nth-child(2n){padding:0 0 0 clamp(16px,2.4vw,32px);border-left:1px solid var(--stone)}
 }
 @media(min-width:860px){
  .landing-nav nav{display:flex;flex-direction:row}
  .landing-cta{display:inline-flex}
  .landing-menu{display:none}
- .landing-hero{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+ .landing-hero{grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr)}
  .landing-figures{grid-template-columns:repeat(4,minmax(0,1fr))}
- .landing-figures>div,.landing-figures>div:nth-child(2n){padding:0 clamp(16px,2.2vw,32px);border-left:1px solid var(--line)}
+ .landing-figures>div,.landing-figures>div:nth-child(2n){padding:0 clamp(16px,2.2vw,32px);border-left:1px solid var(--stone)}
  .landing-figures>div:first-child{padding-left:0;border-left:0}
- .landing-figures>div:last-child{padding-right:0}
- .landing-steps{grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(20px,3vw,40px)}
+ .landing-figures>div:nth-child(4){padding-right:0}
+ .landing-figures-note{margin-top:12px}
+ .landing-steps{grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(16px,2vw,24px)}
  .landing-split{grid-template-columns:minmax(0,1fr) minmax(0,.72fr)}
  /* The reversed split swaps the track widths as well as the order, so the photograph keeps the
     narrower column and the reading measure keeps the wider one whichever side each is on. */
@@ -234,17 +317,26 @@ html:has(.landing){scroll-behavior:smooth}
  .landing-split.reverse>figure{order:-1}
  .landing-refusals ul{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(24px,4vw,56px)}
  .landing-footer{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:clamp(32px,5vw,72px)}
+ /* The recessed panels. Inset by the gutter and rounded, with the inside padding reduced by the
+    same amount so the text inside a panel stays on the same column as the text outside one. */
+ .landing-section.tinted,.landing-final{margin-inline:var(--gutter);border-radius:var(--r-panel);padding-inline:max(var(--gutter),calc(var(--pad) - var(--gutter)))}
 }
 @media(min-width:1080px){
  .landing-services{grid-template-columns:repeat(3,minmax(0,1fr))}
  .landing-plans{grid-template-columns:repeat(4,minmax(0,1fr))}
  .landing-checks{grid-template-columns:repeat(4,minmax(0,1fr))}
+ /* The questions take the heading beside them rather than under it. A column of accordion rows
+    eighty characters wide under a heading leaves the right half of a 1440px page empty, and empty
+    is only air when something else is using the space. */
+ .landing-questions{display:grid;grid-template-columns:minmax(0,.62fr) minmax(0,1fr);column-gap:clamp(40px,5vw,88px);align-items:start}
+ .landing-questions .landing-head{margin-bottom:0;position:sticky;top:112px}
+ .landing-questions .landing-faq{max-width:none}
 }
 
 /* Everything above is switched off here rather than merely slowed. A reader who has asked for less
-   motion gets none: no arrival, no hover lift, no accordion slide, no smooth scroll, and no
-   progress bar sliding along under the navigation. Nothing depends on an animation to become
-   visible, so removing all of it removes nothing but the movement. */
+   motion gets none: no arrival, no hover lift, no accordion slide, no smooth scroll, no drift on
+   the hero, and no progress bar filling in under the navigation. Nothing depends on an animation to
+   become visible, so removing all of it removes nothing but the movement. */
 @media(prefers-reduced-motion:reduce){
  html:has(.landing){scroll-behavior:auto}
  .landing,.landing *,.landing *::before,.landing *::after{animation:none!important;transition:none!important}
@@ -253,36 +345,27 @@ html:has(.landing){scroll-behavior:smooth}
  .landing-progress{display:none}
 }
 
-/* ---- Ambient motion on the hero ----
+/* ---- Ambient motion ----
  *
  * Asked for twice: "the greenish bubbles and lines to have animation just to give the app some
  * texture". The bubbles that used to do it were nine SVG circles and three currents on an infinite
  * loop, and they went — they were dead code by then, they were part of what read as cartoonish, and
  * an element that never stops moving is one Playwright will wait forever to click.
  *
- * This is the same intent, measured. It cannot be greenish: teal at eight per cent over the hero
- * lifts the ground to #173a73, where the kicker measures 4.47:1 and AA wants 4.5. The panel is one
- * signed-off colour precisely so that every contrast figure in this file is not a guess about
- * position. So the drift is ink, and ink only darkens: 12.56 → 13.27 for the headline, 5.04 → 5.33
- * for the kicker, 11.13 → 11.76 for the lede. Motion that can only improve legibility.
+ * It is greenish now, which it could not be before: on the old indigo hero, teal at eight per cent
+ * lifted the ground to a place where the kicker measured 4.47:1 against an AA floor of 4.5. What
+ * makes it safe here is not a smaller number, it is where the sage is allowed to go. The drift is
+ * inside the portrait frame, which is the one box on this page with no text in it at all, so a
+ * ground that is changing colour is never a ground somebody is reading off.
  *
- * It is a pseudo-element with pointer-events:none and nothing inside it, so no control's box ever
- * moves — which is what made the old bubbles a test hazard rather than the fact that they moved. */
-[data-motion=on] .landing-hero::before {
- content: '';
- position: absolute;
- inset: -25%;
- z-index: 0;
- pointer-events: none;
- background:
-  radial-gradient(38% 44% at 22% 30%, color-mix(in srgb, var(--ink) 30%, transparent), transparent 70%),
-  radial-gradient(30% 36% at 74% 68%, color-mix(in srgb, var(--ink) 24%, transparent), transparent 70%);
- animation: hero-drift 34s ease-in-out infinite alternate;
- will-change: transform;
-}
-
-/* The lines, at the intensity a texture wants rather than the intensity a pattern wants: at 6% of
-   ink over this ground they are felt at arm's length and invisible at reading distance. */
+ * The hero itself gets the lines, and they are --stone rather than sage. --stone is the densest
+ * they can reach, and charcoal on --stone measures 12.5:1 and --body 5.56:1 — both clear AA at the
+ * darkest frame of the animation, so no contrast figure in this file is a guess about where in the
+ * cycle the screenshot was taken.
+ *
+ * Both are pseudo-elements with pointer-events:none and nothing inside them, so no control's box
+ * ever moves — which is what made the old bubbles a test hazard rather than the fact that they
+ * moved. */
 [data-motion=on] .landing-hero::after {
  content: '';
  position: absolute;
@@ -291,18 +374,31 @@ html:has(.landing){scroll-behavior:smooth}
  pointer-events: none;
  background: repeating-linear-gradient(
   118deg,
-  transparent 0 58px,
-  color-mix(in srgb, var(--ink) 6%, transparent) 58px 59px
+  transparent 0 78px,
+  color-mix(in srgb, var(--stone) 46%, transparent) 78px 79px
  );
  animation: hero-lines 46s linear infinite alternate;
  will-change: transform;
 }
 
-@keyframes hero-drift {
- from { transform: translate3d(-3%, -2%, 0) scale(1.04); }
- to   { transform: translate3d(3%, 2%, 0) scale(1.1); }
+[data-motion=on] .landing-portrait-frame::before {
+ content: '';
+ position: absolute;
+ inset: -30%;
+ z-index: 0;
+ pointer-events: none;
+ background:
+  radial-gradient(42% 46% at 26% 28%, var(--soft-sage), transparent 68%),
+  radial-gradient(36% 40% at 76% 72%, var(--muted-sage), transparent 70%);
+ animation: portrait-drift 30s ease-in-out infinite alternate;
+ will-change: transform;
 }
+
 @keyframes hero-lines {
  from { transform: translate3d(-2%, 0, 0); }
  to   { transform: translate3d(2%, 0, 0); }
+}
+@keyframes portrait-drift {
+ from { transform: translate3d(-4%, -3%, 0) scale(1.05); }
+ to   { transform: translate3d(4%, 3%, 0) scale(1.14); }
 }
