@@ -2006,3 +2006,12 @@ details.state-picker>summary{color:var(--faint)}
 /* The split's own numbers: three figures a nurse compares against each other, so they sit together
    rather than at three corners of the panel. */
 @media(min-width:700px){.earn-legend{grid-template-columns:repeat(3,minmax(0,220px));gap:var(--space-24)}}
+
+/* ---- Not connected ----
+   The one way a screen says it is not wired to anything yet. Quiet on purpose: it is a standing
+   fact about the build, not a warning about what the reader just did, so it does not take the
+   danger colour and it does not take the top of the visual hierarchy. It sits under the screen's
+   own heading, where a person reads it once and then gets on with looking at the thing. */
+.not-connected{display:flex;gap:10px;align-items:flex-start;margin:0 0 var(--space-20);padding:12px 14px;background:var(--canvas);border:1px solid var(--line);border-left:3px solid var(--indigo);border-radius:var(--r-control);font-size:13px;line-height:1.6;color:var(--body)}
+.not-connected>svg{color:var(--indigo);flex-shrink:0;margin-top:2px}
+.not-connected.inline{margin:var(--space-8) 0 0;padding:8px 10px;border-left-width:2px;background:none;border-color:var(--line)}

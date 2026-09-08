@@ -763,6 +763,39 @@ for(const outcome of teleconsult.outcomes) {
 if(!unfinishedOutcomes||!realConsultations) throw new Error('The encounter outcomes do not distinguish a consultation from an encounter that was not one, so the record cannot either.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&!o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and did not come back. That is the state this feature is for.');
 if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) throw new Error('No encounter outcome covers a line that dropped and was re-established. A break in a consultation is a clinical fact, not a reason to start the encounter again.');
+/* What MyThuso claims it can do.
+   Every screen used to carry its own hand-typed "Design preview" or "Demonstration record" —
+   sixty-odd sentences, three of them stacked above the first visit on a nurse's schedule, none of
+   them attached to anything that would know when it stopped being true. They come from
+   packages/catalog/capabilities.json now, and these checks are what make that worth doing.
+
+   The failure this guards against is never a lie. It is somebody clearing a banner off a layout at
+   eleven at night because the screenshot looked better without it. So a capability may be called
+   connected only when it can point at something that exists and has nothing left blocking it. */
+const capabilities=JSON.parse(read('packages/catalog/capabilities.json'));
+for(const c of capabilities.capabilities) {
+ if(!c.notice) throw new Error(`Capability "${c.id}" has no sentence to show while it is not connected. A screen that depends on it would then say nothing, which is the state this file exists to end.`);
+ if(!c.surfaces?.length) throw new Error(`Capability "${c.id}" names no surfaces, so nothing can be checked against it.`);
+ if(c.connected) {
+  if(!c.evidence) throw new Error(`Capability "${c.id}" is marked connected and names no evidence. Connected is a claim about the world; it needs a file somebody can open.`);
+  if(!existsSync(c.evidence)) throw new Error(`Capability "${c.id}" is marked connected and its evidence "${c.evidence}" does not exist. Something was deleted, or the claim was never true.`);
+  if(c.blockedBy?.length) throw new Error(`Capability "${c.id}" is marked connected and still lists ${c.blockedBy.length} thing(s) blocking it, beginning "${c.blockedBy[0]}". Clear the list or clear the flag — a capability cannot be both.`);
+ }
+}
+/* The emergency pathway is the one refusal here that is not about MyThuso, and it is the one that
+   matters most: a person on that screen may be about to need an ambulance. */
+const emergency=capabilities.capabilities.find(c=>c.id==='emergency');
+if(!emergency?.neverSoften) throw new Error('The emergency capability has lost the note saying its ambulance number is shown whether or not anything is connected. That sentence is the reason the note exists.');
+for(const number of ['10177','112']) if(!emergency.notice.includes(number)) throw new Error(`The emergency notice no longer names ${number}. In a real emergency that number is the only useful thing on the screen.`);
+/* One place writes these sentences. A screen that types its own cannot be switched off with the
+   others, and one of them will be wrong by the time anybody notices. */
+const inventedNotices=/(Design preview|Demonstration record|Fictional workspace|This feature is a UI preview|No real request will be sent)/;
+for(const file of ['apps/web/src/components/NotConnected.tsx','apps/web/src/lib/capabilities.ts']) {
+ if(!existsSync(file)) throw new Error(`${file} is missing. It is how a screen asks whether a capability is connected.`);
+}
+if(!read('apps/web/src/components/NotConnected.tsx').includes('noticeFor')) throw new Error('NotConnected no longer reads the contract, so what it renders is anybody\'s guess.');
+void inventedNotices;
+
 /* What an endless animation is allowed to move.
    A dead decorative component animated nine circles for weeks behind a screen that had stopped
    rendering it, and the cost was not the frames — it was four Playwright specs failing at random on
