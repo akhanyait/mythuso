@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 /* The landing page is the one screen a stranger reads before anybody explains anything, so what is
    checked here is what it claims. Every figure below is read out of the same contracts the page
@@ -60,6 +60,19 @@ test('every figure it quotes comes from a contract', async ({ page }) => {
   await expect(page.locator('.landing-checks li').first()).toContainText('SANC registration');
   // including what the platform refuses, word for word out of the contract
   await expect(page.getByText('It is not a directory a nurse may browse.')).toBeVisible();
+});
+
+/* The band now prints the contract file each figure was read out of, in a chip above the numeral.
+   That is a claim a reader can go and check, which makes it worth more than the sentence next to it
+   — and worth nothing at all if a chip can name a file that is not there. So the chip is resolved
+   against the catalogue directory rather than compared to a string typed here: rename a contract
+   and this fails, which is exactly when the page has started citing something that does not exist. */
+test('each figure names a contract file that exists', async ({ page }) => {
+  const chips = page.locator('.landing-figures .landing-figure-source');
+  await expect(chips).toHaveCount(4);
+  for (const named of await chips.allInnerTexts()) {
+    expect(existsSync(new URL(`../packages/catalog/${named.trim()}`, import.meta.url)), `the figures band cites packages/catalog/${named.trim()}, which is not there`).toBe(true);
+  }
 });
 
 test('the questions answer, and only one at a time', async ({ page }) => {
@@ -166,6 +179,46 @@ test('everything focusable shows a focus indicator', async ({ page }) => {
     }
   }
   expect(missing).toEqual([]);
+});
+
+/* The one rule the whole visual language rests on: **sage is a fill and never a label.** The
+   darkest of the four sages measures 2.54:1 as text on the page ground, which clears nothing, so
+   the ramp is allowed to be an icon tile, a chip and a wash behind a photograph and nothing else —
+   everything a person reads is charcoal or --body.
+
+   That cannot be checked by reading the stylesheet, because a colour arrives at a word by
+   inheritance far more often than by being written next to it: one `color` on a container is all it
+   takes for a section of prose to turn sage without a single rule looking wrong. So it is checked
+   where it actually matters, on the rendered text, against the four values in the token contract
+   rather than four copies of them typed here.
+
+   The ground is asserted in the same breath. Mist rather than white is the decision every other
+   surface on this page is a consequence of — the cards are only readable as cards because the page
+   behind them is darker — and a stray `background:#fff` would undo the lot while every one of the
+   assertions above went on passing. */
+const sageRamp: string[] = ['sageSlate', 'mutedSage', 'softSage', 'paleSage'].map(name => {
+  const hex: string = tokens.color[name];
+  return `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
+});
+const mist: string = tokens.color.mist;
+
+test('sage fills and never labels, on the page ground the language is built on', async ({ page }) => {
+  expect(await page.locator('.landing').evaluate(el => getComputedStyle(el).backgroundColor))
+    .toBe(`rgb(${[1, 3, 5].map(i => parseInt(mist.slice(i, i + 2), 16)).join(', ')})`);
+
+  const inSage = await page.evaluate(ramp => {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const found = new Set<string>();
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const parent = node.parentElement;
+      if (!(node.textContent ?? '').trim() || !parent) continue;
+      const style = getComputedStyle(parent);
+      if (style.visibility === 'hidden' || style.display === 'none') continue;
+      if (ramp.includes(style.color)) found.add(`${parent.tagName.toLowerCase()}.${parent.className}: ${(node.textContent ?? '').trim().slice(0, 40)}`);
+    }
+    return [...found];
+  }, sageRamp);
+  expect(inSage, 'text is being carried by a sage, and the darkest of them measures 2.54:1 on --mist').toEqual([]);
 });
 
 /* The page animates. Two things have to stay true whatever the motion setting: no section is ever
