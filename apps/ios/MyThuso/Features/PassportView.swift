@@ -9,9 +9,7 @@ struct PassportView: View {
             VStack(alignment: .leading, spacing: ThusoSpacing.space20) {
                 DemoBadge()
                 hero
-                Picker("Passport sections", selection: $tab) { ForEach(["Overview", "Records", "Medications", "More"], id: \.self) { Text($0) } }
-                    .pickerStyle(.segmented)
-                    .sensoryFeedback(.selection, trigger: tab)
+                SectionTabs(sections: ["Overview", "Records", "Medications", "More"], selection: $tab)
                 switch tab {
                 case "Records":
                     CareCard(padding: ThusoSpacing.space16, spacing: 0) {
@@ -104,6 +102,75 @@ struct PassportView: View {
         .accessibilityElement(children: .combine)
     }
 }
+/* The four sections of the Health Passport, as four tap targets.
+ *
+ * They were a segmented Picker, and a segmented control is thirty-two points tall at every content
+ * size: the height is intrinsic to UISegmentedControl and .frame(height: 44) pads the SwiftUI view
+ * around it without stretching the segments. So all four sat under the forty-four points Apple's own
+ * guidelines set for a control, with an exemption written for them in MyThusoUITests — and unlike
+ * the notification bell there is no second route to what is behind them, so the exemption was
+ * standing in front of the only way in. A pill built out of a Button has the frame a thumb has to
+ * hit as its own frame, and it is the pill the web already draws for the same four sections: a
+ * surface ground and a hairline border when it is not chosen, indigo with white text when it is.
+ *
+ * When four pills no longer share a line the strip wraps to a column rather than scrolling
+ * sideways. A sideways scroller would carry Medications and More off the edge with nothing on
+ * screen to say they are still there, and the reader who loses them is the one who turned their
+ * text up — the reader this is being changed for. A column is also the answer this app already
+ * gives everywhere it runs out of width: the passport's own action tiles, the home's chips and
+ * CareSectionHeader all fall from a row to a column through ViewThatFits.
+ */
+private struct SectionTabs: View {
+    let sections: [String]
+    @Binding var selection: String
+    /* A capsule's ends curve in by half its height, so a label that has wrapped to two lines is cut
+       off by its own background. Past the accessibility sizes it becomes a rounded chip instead —
+       the same trade StatusPill makes, for the same reason. */
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private var shape: AnyShape {
+        typeSize.isAccessibilitySize ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)) : AnyShape(Capsule())
+    }
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            /* Across the row each pill is only as wide as its own words. Sharing the width out
+               equally, the way a segmented control does, gives every pill the width of the shortest
+               one plus a quarter of the slack — which is under what "Medications" needs, so the
+               word broke across two lines while "More" sat in twice the space it wanted. */
+            HStack(spacing: ThusoSpacing.space8) { pills(filling: false) }
+            VStack(spacing: ThusoSpacing.space8) { pills(filling: true) }
+        }
+        .sensoryFeedback(.selection, trigger: selection)
+        /* The Picker carried the name of the group; four loose buttons would not, so it is said
+           here rather than lost. `children: .contain` leaves each pill its own element. */
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Passport sections")
+    }
+    @ViewBuilder private func pills(filling: Bool) -> some View {
+        ForEach(sections, id: \.self) { section in
+            let chosen = section == selection
+            Button { selection = section } label: {
+                /* A semantic style, not a point size: .footnote is the thirteen points the web gives
+                   this control and it is the only way the label answers Dynamic Type at all. */
+                Text(section).font(.footnote.weight(.semibold))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(chosen ? Color.white : ThusoTheme.body)
+                    .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8)
+                    /* Where the forty-four points are actually met — on the button's own frame,
+                       which is the frame XCUITest measures and a thumb has to find. */
+                    .frame(maxWidth: filling ? .infinity : nil, minHeight: 44)
+                    .background(chosen ? ThusoTheme.indigo : ThusoTheme.surface, in: shape)
+                    .overlay(shape.stroke(chosen ? ThusoTheme.indigo : ThusoTheme.line, lineWidth: 1))
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            /* Chosen is said, not only drawn. Colour alone leaves a reader who cannot see it, or
+               who is listening to the screen, with four identical buttons. */
+            .accessibilityAddTraits(chosen ? [.isButton, .isSelected] : .isButton)
+        }
+    }
+}
+
 struct FamilyView: View {
     @EnvironmentObject private var store: PreviewStore
     @State private var name = ""

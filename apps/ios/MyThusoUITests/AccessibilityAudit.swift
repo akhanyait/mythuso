@@ -65,20 +65,8 @@ enum Audit {
          is 354 points wide and tapping the sentence toggles it, so what is short is one dimension \
          of a target that is otherwise the width of the screen. Replacing the control with one that \
          measures 44 would be a design change on all three platforms rather than an iOS fix.
-         """),
-        ("button “Overview”", 32, Audit.segmentedNote),
-        ("button “Records”", 32, Audit.segmentedNote),
-        ("button “Medications”", 32, Audit.segmentedNote),
-        ("button “More”", 32, Audit.segmentedNote)
+         """)
     ]
-
-    static let segmentedNote = """
-    A segmented control is 32 points tall at every content size, its height is intrinsic to \
-    UISegmentedControl, and .frame(height: 44) pads the SwiftUI view around it without stretching \
-    the segments. Unlike the bell there is no second route to these four sections, which is a reason \
-    to replace the control rather than to keep exempting it; that is the next thing on this screen \
-    and it is not done.
-    """
 
     /// The largest content size iOS offers, set on launch rather than through Settings so a run is
     /// repeatable and leaves nothing behind on the simulator for the next one to inherit.

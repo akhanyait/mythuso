@@ -205,12 +205,14 @@ Five tests. What each measures, and where each is the question the web spec alre
   elements a screen reader never reaches, and it cannot hear reading order, rotor behaviour, or
   whether a sentence makes sense out loud.
 - **The exemption list lives in the test file** rather than in `packages/design-tokens/tokens.json`
-  beside the web's. Three kinds of row — a navigation-bar item, whose height is the bar's rather
-  than its own; a Toggle, which publishes the switch's row height and ignores its label; and a
-  segmented control, whose 32 points are intrinsic to `UISegmentedControl` — and every one of them
-  is a fact about UIKit rather than about this design. They belong in the contract, with a field
-  saying which platform each is about. The segmented one has no second route to the four sections
-  it switches between, which is a reason to replace the control rather than to keep exempting it.
+  beside the web's. Two kinds of row — a navigation-bar item, whose height is the bar's rather than
+  its own, and a Toggle, which publishes the switch's row height and ignores its label — and both
+  are facts about UIKit rather than about this design. They belong in the contract, with a field
+  saying which platform each is about. The third kind is gone: the Health Passport's four sections
+  were a segmented control whose 32 points are intrinsic to `UISegmentedControl`, and with no second
+  route to what they switch between the exemption was standing in front of the only way in, so the
+  control was replaced with pills built out of buttons that measure 44 and the four rows were
+  deleted rather than kept green.
 
 ### Android — partly tested
 
