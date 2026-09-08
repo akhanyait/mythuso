@@ -35,8 +35,8 @@ are illustrative and are not MyThuso nurses or patients.
 ## Deploying
 
 ```sh
-./deploy/deploy.sh                        # liqzar-server, mythuso.liqzar.co.za
-HOST=mythuso.co.za ./deploy/deploy.sh     # somewhere else
+./deploy/deploy.sh                        # liqzar-server, mythuso.co.za and www
+HOST=elsewhere.example ./deploy/deploy.sh # somewhere else
 ```
 
 It adds `/var/www/mythuso`, one nginx site file and `/opt/mythuso/ops`, tests the whole nginx

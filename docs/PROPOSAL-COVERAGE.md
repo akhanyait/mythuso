@@ -389,9 +389,13 @@ misstatement:
 2. Its "Next UI increments" section lists only the native vetting console as remaining before a
    pilot-ready *design*. That is true of the design. It is a long way from a pilot-ready *service*,
    and the feature map does not have a column for that distinction.
-3. `CLAUDE.md` says the deploy target is `mythuso.liqzar.co.za`; `deploy/README.md` and
-   `deploy/dns/` say `mythuso.co.za`. `CLAUDE.md` is stale after the domain move. Cosmetic, but the
-   instruction file is the one people trust.
+3. The site is deployed and unreachable, which is a distinction worth stating plainly because
+   "deployed" is the word people hear as "live". `/var/www/mythuso` holds the built landing page,
+   `mythuso.conf` is enabled, and nginx serves it correctly when asked for it by name at the
+   server's address. No hostname resolves to it. `mythuso.liqzar.co.za`, which the config claims,
+   has no DNS record and never had one; `mythuso.co.za` still points at the registrar's parking
+   page. Nobody outside this machine has ever been able to load it. Two A records close the gap and
+   they have not been created.
 
 ---
 

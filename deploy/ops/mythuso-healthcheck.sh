@@ -28,7 +28,7 @@ DISK_WARN_PERCENT=90
 # has moved must not leave this watching the old name and reporting green.
 # shellcheck source=/dev/null
 [ -r /etc/mythuso/host.env ] && . /etc/mythuso/host.env
-HOST="${MYTHUSO_HOST:-mythuso.liqzar.co.za}"
+HOST="${MYTHUSO_HOST:-mythuso.co.za}"
 
 mkdir -p "$STATE"
 problems=()
