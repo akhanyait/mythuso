@@ -155,3 +155,31 @@ test('signal lost while the log is open is noticed, not waited for', async ({ pa
   await expect(dialog.locator('.access-row').first()).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+/* What a nurse downloads before she can see her first visit.
+ *
+ * mapbox-gl is 1.8 MB. It was in the patient's bundle; taking it out put it in the staff bundle,
+ * which is worse rather than better — a patient opens this app a few times a month, usually on wifi,
+ * and a nurse has it open all day in the field on a prepaid bundle she is paying for out of the
+ * visit fee. This asserts the shape that fixed it: the map is a dynamic import, so in a build with
+ * no tile token — this repository, and every run of this suite — it is never requested at all.
+ *
+ * It watches the network rather than the bundle report, because what matters is what the handset
+ * actually asks for. */
+test('a nurse downloads no map she is never shown', async ({ page }) => {
+  const asked: string[] = [];
+  page.on('request', r => { if (/mapbox|TileMap/i.test(r.url())) asked.push(r.url()); });
+  await page.goto('/staff.html');
+  await page.locator('.staff-signin-roles .record-row').filter({ has: page.getByText('Nurse', { exact: true }) }).click();
+  await goSection(page, 'Earnings & payouts');
+  expect(asked, `a nurse's session fetched the map bundle without ever opening a map: ${asked.join(', ')}`).toEqual([]);
+});
+
+test('and the controller who is shown one still gets it', async ({ page }) => {
+  await page.goto('/staff.html');
+  await page.locator('.staff-signin-roles .record-row').filter({ has: page.getByText('Control Tower', { exact: true }) }).click();
+  /* No token is committed to this repository, so the schematic is what draws — from the same
+     coordinates, with no network at all. The board is never empty for want of a key. */
+  await expect(page.locator('.livemap-canvas.schematic')).toBeVisible();
+  await expect(page.locator('.map-pin').first()).toBeVisible();
+});
