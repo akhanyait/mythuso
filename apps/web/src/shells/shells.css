@@ -1,0 +1,89 @@
+/* The chrome the four entries need and styles.css does not already carry.
+ *
+ * It is a sheet of its own rather than an appended section of styles.css because there are four
+ * builds now and more than one session in this tree: an appended section is where two of them
+ * collide, and a separate file is where neither has to.
+ *
+ * Everything here is a value from tokens.generated.css. Nothing new is invented; what is new is the
+ * arrangement, and the arrangement is the point — the clinical workspace used to be the patient
+ * shell wearing different navigation, which is why it read as broken. */
+
+/* A link drawn as the primary button. It is a link and not a button on purpose — another
+   application at another address is somewhere a person should be able to open in a new tab — but a
+   link's underline inside a filled button reads as a text link somebody has drawn a box around. */
+a.primary { text-decoration: none }
+
+/* ---- Who is signed in --------------------------------------------------------------------------
+
+   A clinician's identity is not a switcher, so it is not a button. It is a statement: this is who
+   the workspace believes you are, this is the register you are on, and this is the next date that
+   can take dispatch away from you. The patient shell's account row had a chevron on it because it
+   opened a workspace picker; there is no picker here, and a chevron on something that does not open
+   is the fastest way to teach somebody the interface lies. */
+.staff-id { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; background: var(--canvas); border: 1px solid var(--line); padding: 11px; border-radius: var(--r-control) }
+.staff-id > span:nth-child(2) { flex: 1; min-width: 0 }
+.staff-id strong { display: block; font-size: 13px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+/* The registration number wraps rather than ellipsising. It is the half of this line a reader
+   actually needs — "Registered nurse · SA…" identifies nobody — and 250px of sidebar cannot hold
+   the register and the number on one line in any language. */
+.staff-id small { display: block; font-size: 13px; line-height: 1.4; color: var(--body); margin-top: 3px }
+
+/* The credential line. Colour is never the only difference: the icon changes with the state and the
+   sentence says what the state is, so a reader who sees no colour at all still reads the same
+   thing. */
+.staff-credential { display: flex; gap: 8px; align-items: flex-start; margin: 10px 2px 0; font-size: 13px; color: var(--body); line-height: 1.45 }
+.staff-credential svg { flex: 0 0 auto; margin-top: 1px; color: var(--teal-ink) }
+.staff-credential.due svg { color: var(--mango-ink) }
+.staff-credential.stop svg { color: var(--danger) }
+.staff-credential.stop { color: var(--danger) }
+
+/* ---- The top bar a tool has, not the one a shop has ----------------------------------------------
+
+   Below 1000px the sidebar is gone, so the identity moves into the top bar and the wordmark leaves
+   it. A nurse opening this at 07:00 knows which app she opened; what she does not know is whether
+   the workspace still thinks she is the same person it thought she was yesterday. One row, three
+   things: who, where, and the way out. */
+.staff-who { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1 }
+.staff-who > span:nth-child(2) { min-width: 0 }
+.staff-who strong { display: block; font-size: 13px; font-weight: 650; color: var(--slate); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.staff-who small { display: block; font-size: 13px; color: var(--faint); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.staff-topbar .topbar-actions { flex: 0 0 auto }
+
+/* ---- The tab bar that stopped wrapping ----------------------------------------------------------
+
+   "Earnings & payouts" and "Substitution & repeats" in a fifth of 390px is two lines of text under
+   an icon, and five tabs of two lines is what made the nurse's schedule read as a patient app with
+   the wrong menu. Each section carries a short label for this bar — the same trick the patient tabs
+   already used — and the label is a single line that ellipsises rather than a paragraph that wraps,
+   so a longer translation shortens instead of pushing the bar taller. */
+.tabbar.staff button { min-width: 0 }
+.tabbar.staff .tab-label { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+
+/* ---- The signed-out door ------------------------------------------------------------------------
+
+   Built on the same .onboarding panel the patient sign-in uses, because it is the same moment. What
+   differs is what it can honestly offer: with no identity service there is no account and no role
+   for an account to carry, so the workspace is chosen here, once, on a screen that says why. */
+.staff-signin-roles { display: flex; flex-direction: column; gap: 8px; margin-top: 4px }
+.staff-signin-roles .record-row { align-items: center; border: 1px solid var(--line); border-radius: var(--r-control); padding: 12px; background: var(--surface) }
+.staff-signin-roles .record-row:hover { background: var(--canvas) }
+/* A record row grows every child that is not an icon tile or a pill, so it grows the avatar too:
+   two letters in the middle of a 280px lozenge. Matching the row rule's own specificity and landing
+   after it in the cascade is what puts the circle back. */
+.staff-signin-roles .record-row > span.avatar.small { flex: 0 0 36px }
+
+/* ---- A section that has nothing behind it yet ----------------------------------------------------
+
+   Said once, in a full sentence, with the contract's own notice under it. The alternative — a heading
+   over an empty page — is the shape of a screen that has been forgotten rather than one that has
+   been decided. */
+.staff-blank { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 22px; box-shadow: var(--shadow) }
+.staff-blank h2 { font-size: 18px; color: var(--slate) }
+.staff-blank p { color: var(--body); margin-top: 8px; max-width: 60ch }
+
+@media (min-width: 1000px) {
+ /* The sidebar carries the identity from here up, so the top bar hands its row back to the section
+    the reader is actually in. */
+ .staff-who { display: none }
+ .staff-topbar .breadcrumb { margin-right: auto }
+}

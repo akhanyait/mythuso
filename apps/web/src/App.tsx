@@ -1,144 +1,135 @@
 import { useEffect, useState } from 'react';
-import { Activity, ArrowRight, BarChart3, Bell, Bluetooth, BookOpen, CalendarDays, ChevronDown, CircleHelp, ClipboardPlus, CreditCard, FileText, FlaskConical, Globe, HeartHandshake, LogOut, House, Languages, LayoutGrid, MapPin, MessageCircle, Package, Radar, Repeat, Search, Settings2, ShieldCheck, Siren, Stethoscope, Truck, Users, Video, X } from 'lucide-react';
+import { ArrowRight, LogOut, Search, ShieldCheck, Stethoscope, X } from 'lucide-react';
 import { Modal, Pill } from './components/UI';
+import { PatientShell } from './shells/PatientShell';
 import { Dashboard } from './features/Dashboard';
 import { Booking, type DemoVisit } from './features/Booking';
-import { Explore, Family, MoreHub, Notifications, Passport, Plans, Privacy, Services, SystemStates, Visits, WalletPage, Workspace } from './features/Pages';
-import { AdminConsole } from './features/Admin';
-import { PatientFile } from './features/PatientFile';
-import { ConsultationRecord } from './features/Consultation';
+import { Explore, Family, MoreHub, Notifications, Passport, Plans, Privacy, Services, SystemStates, Visits, WalletPage } from './features/Pages';
 import { HouseholdRecord, HealthSummary } from './features/Household';
 import { Onboarding, SignIn } from './features/Onboarding';
-import { VisitAssessment, DoctorReview } from './features/Clinical';
 import { ThusoKit } from './features/Kit';
-import { Earnings } from './features/Earnings';
 import { ThusoSos } from './features/Sos';
-import { Teleconsult } from './features/Teleconsult';
 import { LabOrderDetail, PrescriptionDetail } from './features/Orders';
-import { Dispensing } from './features/Dispensing';
-import { Programmes } from './features/Programmes';
-import { IncidentDetail, NurseVetting } from './features/Dispatch';
-import { VettingApplication } from './features/Vetting';
 import { AccessHistory, ConsentCentre } from './features/Consent';
 import { InviteGuardian, sampleInvitations, type Invitation } from './features/Guardian';
 import { Access } from './features/Access';
-import { LocaleContext, locales, useT, clinicalRule, signLanguage, missingSets, type LocaleCode } from './lib/i18n';
+import { LocaleContext, locales, clinicalRule, signLanguage, missingSets, type LocaleCode } from './lib/i18n';
 import { useSaslRequirement } from './lib/interpreting';
 import { currentPerson, endSession, probe } from './lib/auth';
 import { type Service } from './lib/catalog';
-const navigation=[['Overview',House],['Book a nurse',Stethoscope],['My visits',CalendarDays],['Health Passport',Activity],['My family',Users],['Care plans',HeartHandshake],['Thuso Wallet',CreditCard],['Explore MyThuso',LayoutGrid]] as const;
-/* A clinical workspace does not navigate by Book a nurse, Care plans and Thuso Wallet. Each role
-   gets its own entries; the patient keeps theirs. */
-const roleNavigation:Record<string,readonly (readonly [string,typeof House])[]>={
- Nurse:[['Schedule',CalendarDays],['Assessments',ClipboardPlus],['Thuso Kit',Bluetooth],['Earnings & payouts',CreditCard],['Vetting',ShieldCheck]],
- Doctor:[['Review queue',FileText],['Teleconsultation',Video],['Patient context',Activity],['Protocols',BookOpen]],
- Partner:[['Orders',Package],['Substitution & repeats',Repeat],['Collections',Truck],['Results',FlaskConical]],
- 'Control Tower':[['Dispatch',Radar],['Incidents',Siren],['Vetting queue',ShieldCheck],['Quality',BarChart3]],
- /* One entry each, because each of these workspaces is one screen that carries its own tabs. They
-    used to fall through to the patient's navigation, so a clinician reading a patient file was
-    offered Book a nurse and Thuso Wallet — and every one of those entries re-rendered the same
-    file. A navigation that lists screens it cannot reach is worse than a short one. */
- Clinician:[['Patient file',FileText]],
- Admin:[['Operations console',BarChart3]]
-};
-const tabs=[['Overview','Home',House],['Book a nurse','Book care',Stethoscope],['My visits','Visits',CalendarDays],['Health Passport','Passport',Activity],['More','More',LayoutGrid]] as const;
-export default function App(){
- const [locale,setLocale]=useState<LocaleCode>('en-ZA');
- return <LocaleContext.Provider value={locale}><Shell locale={locale} setLocale={setLocale}/></LocaleContext.Provider>;
+
+/* MyThuso for patients and families. One audience, one bundle.
+ *
+ * This file used to hold a `role` state and render five other audiences inside the patient's own
+ * sidebar. It no longer knows they exist: the clinical workspaces live at /staff and the back
+ * office at /admin, each its own entry with its own shell and its own bundle. What that buys, apart
+ * from a nurse's schedule that stops looking like a patient app with the wrong menu, is the thing
+ * that matters on a mid-range phone on metered data — a person opening their own visits no longer
+ * downloads a dispatch board, a vetting queue and an operations console to do it.
+ *
+ * Two screens that were only ever reachable through the design-review menu have real doors now
+ * rather than being deleted with it: the household record opens from a family member, and the
+ * shareable health summary from Thuso Pass. */
+
+export default function App() {
+ const [locale, setLocale] = useState<LocaleCode>('en-ZA');
+ return <LocaleContext.Provider value={locale}><PatientApp locale={locale} setLocale={setLocale}/></LocaleContext.Provider>;
 }
-function Shell({locale,setLocale}:{locale:LocaleCode;setLocale:(l:LocaleCode)=>void}){
- const t=useT();
- const [page,setPage]=useState('Overview');const [role,setRole]=useState('Patient');const [mobileNav,setMobileNav]=useState(false);const [modal,setModal]=useState<string|null>(null);const [booking,setBooking]=useState<Service|null>(null);const [visits,setVisits]=useState<DemoVisit[]>([]);const [members,setMembers]=useState<string[]>([]);const [invitations,setInvitations]=useState<Invitation[]>(sampleInvitations);const [query,setQuery]=useState('');const [location,setLocation]=useState('Rosebank, Johannesburg');const [onboarding,setOnboarding]=useState(false);const [signedIn,setSignedIn]=useState(true);const [live,setLive]=useState(false);
- const navigate=(p:string)=>{setPage(p);setMobileNav(false);window.scrollTo({top:0,behavior:'instant'});};
- useEffect(()=>{document.title=`${role==='Patient'?page:role+' workspace'} · MyThuso`;},[page,role]);
- useEffect(()=>{document.documentElement.lang=locale;},[locale]);
+
+function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: LocaleCode) => void }) {
+ const [page, setPage] = useState('Overview');
+ const [modal, setModal] = useState<string | null>(null);
+ const [booking, setBooking] = useState<Service | null>(null);
+ const [visits, setVisits] = useState<DemoVisit[]>([]);
+ const [members, setMembers] = useState<string[]>([]);
+ const [invitations, setInvitations] = useState<Invitation[]>(sampleInvitations);
+ const [query, setQuery] = useState('');
+ const [location, setLocation] = useState('Rosebank, Johannesburg');
+ const [onboarding, setOnboarding] = useState(false);
+ const [signedIn, setSignedIn] = useState(true);
+ const [live, setLive] = useState(false);
+ const navigate = (p: string) => { setPage(p); window.scrollTo({ top: 0, behavior: 'instant' }); };
+ useEffect(() => { document.title = `${page} · MyThuso`; }, [page]);
+ useEffect(() => { document.documentElement.lang = locale; }, [locale]);
  /* If an identity service is answering, the preview stops pretending: you are signed in only if it
     says so. With no service the app keeps its in-memory session, which is what a design review and
     the test suite run against. */
- useEffect(()=>{let cancelled=false;
-  (async()=>{const connected=await probe();if(cancelled||!connected)return;
-   const person=await currentPerson();if(cancelled)return;
-   setLive(true);setSignedIn(person!==null);})();
-  return()=>{cancelled=true;};},[]);
- const signOut=()=>{if(live)void endSession();setSignedIn(false);setOnboarding(false);setModal(null);setRole('Patient');navigate('Overview');};
- if(onboarding) return <Onboarding locale={locale} setLocale={setLocale} onDone={()=>{setOnboarding(false);setSignedIn(true);navigate('Overview');}} onSkip={()=>{setOnboarding(false);setSignedIn(true);}}/>;
- if(!signedIn) return <SignIn live={live} onSignIn={()=>setSignedIn(true)} onCreate={()=>setOnboarding(true)} onRecover={()=>setOnboarding(true)}/>;
- return <div className="app-shell"><a href="#main" className="skip-link">{t('shell.skip')}</a>{mobileNav&&<button className="nav-scrim" aria-label="Close navigation" onClick={()=>setMobileNav(false)}/>}
- <aside className={`sidebar ${mobileNav?'is-open':''}`}><a className="brand" href="#" onClick={e=>{e.preventDefault();setRole('Patient');navigate('Overview');}}><img src="/logo.svg" alt="MyThuso — Help. Health. Home."/></a><button className="account-switch" onClick={()=>setModal('Switch workspace')}><span className="account-icon"><House size={18}/></span><span><strong>{role==='Patient'?t('shell.personal'):`${role} workspace`}</strong><small>Design preview</small></span><ChevronDown size={15}/></button><div className="nav-label">{role==='Patient'?t('nav.section'):`${role} workspace`}</div><nav aria-label="Main navigation">{(role==='Patient'?navigation:(roleNavigation[role]??navigation)).map(([label,Icon])=><button key={label} aria-current={page===label?'page':undefined} className={page===label?'active':''} onClick={()=>{if(role==='Patient')setRole('Patient');navigate(label);}}><Icon size={19} strokeWidth={1.8}/><span>{role==='Patient'?t(`nav.${label}`):label}</span>{role==='Patient'&&label==='My visits'&&<span className="nav-count">{visits.length+1}</span>}{role==='Patient'&&label==='Care plans'&&<span className="new-dot"/>}</button>)}</nav><div className="sidebar-bottom"><div className="help-card"><span className="help-symbol"><MessageCircle size={19}/></span><h3>A helping hand?</h3><p>We’re here when you need us.</p><button onClick={()=>setModal('How can we help?')}>Let’s talk<ArrowRight size={15}/></button></div><button className="settings-link" onClick={()=>setModal('Language')}><Globe size={18}/>{t('shell.language')}: {locales.find(l=>l.code===locale)?.native}</button><button className="settings-link" onClick={()=>{setRole('Patient');navigate('Language & access');}}><Languages size={18}/>{t('nav.Language & access')}</button><button className="settings-link" onClick={()=>{setRole('Patient');navigate('Privacy & settings');}}><Settings2 size={18}/>{t('nav.Privacy & settings')}</button><button className="profile" onClick={()=>setModal('Your profile')}><span className="avatar small">LM</span><span><strong>Lerato Molefe</strong><small>{t('shell.personal')}</small></span><ChevronDown size={15}/></button></div></aside>
- <div className={`workspace ${role==='Patient'&&page==='Overview'?'is-home':''}`}><header className="topbar"><a className="brand" href="#" onClick={e=>{e.preventDefault();setRole('Patient');navigate('Overview');}}><img src="/logo.svg" alt="MyThuso — Help. Health. Home."/></a><div className="breadcrumb">{t('shell.breadcrumb')}<span>/</span><strong>{role==='Patient'?t(`nav.${page}`):role+' workspace'}</strong></div><div className="topbar-actions"><button className="location-button" onClick={()=>setModal('Your location')}><MapPin size={16}/><span>{location}</span><ChevronDown size={13}/></button><span className="topbar-divider"/><button className="icon-button notification-button" aria-label="Notifications" onClick={()=>setModal('Notifications')}><Bell size={19}/><i/></button><button className="avatar small" aria-label="Your profile" onClick={()=>setModal('Your profile')}>LM</button></div>
- {/* The disclosure sits outside the action cluster because on a phone it cannot share a row with
-     the wordmark and two controls — at 390px the profile button was drawn ten pixels off the
-     right edge, and the first thing a squeezed top bar loses is the sentence saying none of this
-     is real. It becomes a full-width band under the bar instead, which also survives the six
-     locales where "Design preview" is three words long. */}
- <button className="demo-pill" onClick={()=>setModal('Design review')}><span className="status-dot"/>{t('shell.preview')}</button></header>
- <main id="main" tabIndex={-1}>{role==='Admin'?<AdminConsole open={setModal}/>:role==='Clinician'?<PatientFile open={setModal}/>:role!=='Patient'?(page==='Earnings & payouts'?<Earnings/>:page==='Substitution & repeats'?<Dispensing/>:page==='Thuso Kit'?<ThusoKit onClose={()=>navigate(roleNavigation[role]?.[0]?.[0]??'Overview')}/>:page==='Teleconsultation'?<Teleconsult onClose={()=>navigate(roleNavigation[role]?.[0]?.[0]??'Overview')}/>:page==='Patient context'?<PatientFile open={setModal}/>:<Workspace role={role} page={page} open={setModal}/>):page==='Overview'?<Dashboard navigate={navigate} book={setBooking} open={setModal} query={query} setQuery={setQuery} visits={visits} location={location}/>:page==='Book a nurse'?<Services book={setBooking} open={setModal} query={query}/>:page==='My visits'?<Visits visits={visits} open={setModal} book={()=>navigate('Book a nurse')}/>:page==='Health Passport'?<Passport open={setModal}/>:page==='My family'?<Family members={members} invitations={invitations} onRevoke={id=>setInvitations(invitations.map(i=>i.id===id?{...i,status:'Revoked'}:i))} open={setModal}/>:page==='Care plans'?<Plans open={setModal}/>:page==='Thuso Wallet'?<WalletPage open={setModal}/>:page==='Privacy & settings'?<Privacy open={setModal}/>:page==='Language & access'?<Access/>:page==='Explore MyThuso'?<Explore open={setModal} onOnboarding={()=>setOnboarding(true)} navigate={navigate}/>:<MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}</main><footer className="app-footer"><span>© 2026 MyThuso. {t('shell.tagline')}</span><button onClick={()=>setModal('How can we help?')}><CircleHelp size={14}/>{t('shell.help')}</button></footer>
- <nav className="tabbar" aria-label="Primary">{(role==='Patient'?tabs:(roleNavigation[role]??[]).slice(0,5).map(([label,Icon])=>[label,label,Icon] as const)).map(([target,label,Icon])=><button key={target} aria-current={page===target?'page':undefined} className={page===target?'active':''} onClick={()=>{if(role==='Patient')setRole('Patient');navigate(target);}}><span className="tab-icon"><Icon size={21} strokeWidth={1.9}/>{role==='Patient'&&target==='My visits'&&<span className="nav-count">{visits.length+1}</span>}</span>{role==='Patient'?t(`tab.${label}`):label}</button>)}</nav></div>
- {booking&&<Modal title="A nurse, at your door." onClose={()=>setBooking(null)}><Booking service={booking} onComplete={v=>{setVisits([v,...visits]);setBooking(null);navigate('My visits');}}/></Modal>}
- {modal&&<Modal title={modalTitle(modal)} onClose={()=>setModal(null)}>{modalBody({modal,close:()=>setModal(null),navigate:(p:string)=>{navigate(p);setModal(null);},openOnboarding:()=>{setModal(null);setOnboarding(true);},reopen:(m:string)=>setModal(m),locale,setLocale,query,setQuery,location,setLocation,setRole,setPage,addMember:(n:string)=>{setMembers([...members,n]);setModal(null);navigate('My family');},addInvitation:(i:Invitation)=>{setInvitations([...invitations,i]);setModal(null);navigate('My family');},signOut})}</Modal>}
- </div>;
+ useEffect(() => { let cancelled = false;
+  (async () => { const connected = await probe(); if (cancelled || !connected) return;
+   const person = await currentPerson(); if (cancelled) return;
+   setLive(true); setSignedIn(person !== null); })();
+  return () => { cancelled = true; }; }, []);
+ const signOut = () => { if (live) void endSession(); setSignedIn(false); setOnboarding(false); setModal(null); navigate('Overview'); };
+ if (onboarding) return <Onboarding locale={locale} setLocale={setLocale} onDone={() => { setOnboarding(false); setSignedIn(true); navigate('Overview'); }} onSkip={() => { setOnboarding(false); setSignedIn(true); navigate('Overview'); }}/>;
+ if (!signedIn) return <SignIn live={live} onSignIn={() => setSignedIn(true)} onCreate={() => setOnboarding(true)} onRecover={() => setOnboarding(true)}/>;
+ return <>
+  <PatientShell page={page} navigate={navigate} open={setModal} locale={locale} location={location} visitCount={visits.length + 1}>
+   {page === 'Overview' ? <Dashboard navigate={navigate} book={setBooking} open={setModal} query={query} setQuery={setQuery} visits={visits} location={location}/>
+    : page === 'Book a nurse' ? <Services book={setBooking} open={setModal} query={query}/>
+     : page === 'My visits' ? <Visits visits={visits} open={setModal} book={() => navigate('Book a nurse')}/>
+      : page === 'Health Passport' ? <Passport open={setModal}/>
+       : page === 'My family' ? <Family members={members} invitations={invitations} onRevoke={id => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i))} open={setModal}/>
+        : page === 'Care plans' ? <Plans open={setModal}/>
+         : page === 'Thuso Wallet' ? <WalletPage open={setModal}/>
+          : page === 'Privacy & settings' ? <Privacy open={setModal}/>
+           : page === 'Language & access' ? <Access/>
+            : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding(true)} navigate={navigate}/>
+             : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
+  </PatientShell>
+  {booking && <Modal title="A nurse, at your door." onClose={() => setBooking(null)}><Booking service={booking} onComplete={v => { setVisits([v, ...visits]); setBooking(null); navigate('My visits'); }}/></Modal>}
+  {modal && <Modal title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding(true); }, reopen: (m: string) => setModal(m), locale, setLocale, query, setQuery, location, setLocation, addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut })}</Modal>}
+ </>;
 }
-/* Four doors into the same surface: the nurse's tool list, the roadmap tile, the passport's device
-   tab and the design-review menu. They are one screen because they are one question — where did
-   this reading come from — and three copies of it would drift. */
-const isKit=(modal:string)=>modal==='Diagnostic kit'||modal==='Thuso Kit'||modal==='Thuso Kit connection';
-function modalTitle(modal:string){
- if(modal.startsWith('Visit:')) return 'Your visit';
- if(modal.startsWith('Prescription ')) return 'Prescription';
- if(modal.startsWith('Laboratory order ')) return 'Laboratory order';
- if(modal.startsWith('Incident ')) return 'Incident';
- if(modal.startsWith('Doctor review')) return 'Clinical review';
- if(modal==='Teleconsultation'||modal==='Teleconsultation call') return 'Teleconsultation';
- if(isKit(modal)) return 'Thuso Kit';
- if(modal==='Weekly payouts'||modal==='Earnings & payouts') return 'Earnings & payouts';
- if(modal==='Thuso SOS'||modal==='Emergency & urgent care') return 'Thuso SOS';
- if(modal==='Vetting application') return 'Apply for vetting';
- if(modal==='Your consents') return 'Your consents';
- if(modal==='Access history') return 'Who opened your record';
- if(modal==='Visit assessment'||modal.startsWith('Nurse case:')) return 'Visit assessment';
+/* Four doors into the same surface: the passport's device tab, the roadmap tile, the connection
+   card and the kit's own name. They are one screen because they are one question — where did this
+   reading come from — and four copies of it would drift. */
+const isKit = (modal: string) => modal === 'Diagnostic kit' || modal === 'Thuso Kit' || modal === 'Thuso Kit connection';
+function modalTitle(modal: string) {
+ if (modal.startsWith('Visit:')) return 'Your visit';
+ if (modal.startsWith('Prescription ')) return 'Prescription';
+ if (modal.startsWith('Laboratory order ')) return 'Laboratory order';
+ if (isKit(modal)) return 'Thuso Kit';
+ if (modal === 'Thuso SOS' || modal === 'Emergency & urgent care') return 'Thuso SOS';
+ if (modal === 'Your consents') return 'Your consents';
+ if (modal === 'Access history') return 'Who opened your record';
+ if (modal === 'Thuso Family') return 'Household record';
+ if (modal === 'Thuso Pass') return 'Health summary';
+ if (modal === 'Switch workspace') return 'MyThuso for clinicians';
  return modal;
 }
-type BodyProps={modal:string;close:()=>void;navigate:(s:string)=>void;openOnboarding:()=>void;reopen:(s:string)=>void;locale:LocaleCode;setLocale:(l:LocaleCode)=>void;query:string;setQuery:(q:string)=>void;location:string;setLocation:(l:string)=>void;setRole:(r:string)=>void;setPage:(p:string)=>void;addMember:(n:string)=>void;addInvitation:(i:Invitation)=>void;signOut:()=>void};
-function modalBody(p:BodyProps){
- const {modal}=p;
- const t2=(k:string)=>k==='shell.previewNote'?'Fictional data. No live care or payments.':k;
- if(modal==='Notifications') return <Notifications/>;
- if(modal==='System states') return <SystemStates/>;
- if(modal==='Design review') return <div className="workspace-options"><p className="muted">{t2('shell.previewNote')} These entries exist for design review and are not part of the patient experience.</p>
-  <button className="record-row" onClick={p.openOnboarding}><span className="service-icon"><Users size={21}/></span><span><strong>First-run flow</strong><small>Sign-up, one-time code, identity and account recovery</small></span><ArrowRight size={17}/></button>
-  <button className="record-row" onClick={()=>p.reopen('Switch workspace')}><span className="service-icon"><Users size={21}/></span><span><strong>Preview workspaces</strong><small>Nurse, doctor, partner and Control Tower</small></span><ArrowRight size={17}/></button>
-  <button className="record-row" onClick={()=>p.reopen('Household record')}><span className="service-icon"><Users size={21}/></span><span><strong>Household record</strong><small>One household, and what each member may see of the others</small></span><ArrowRight size={17}/></button>
-  <button className="record-row" onClick={()=>p.reopen('Health summary')}><span className="service-icon"><Users size={21}/></span><span><strong>Health summary</strong><small>The shareable summary, bound to a purpose and a period</small></span><ArrowRight size={17}/></button>
-  <button className="record-row" onClick={()=>p.reopen('Thuso Kit')}><span className="service-icon"><Users size={21}/></span><span><strong>Thuso Kit</strong><small>Pairing, provenance, calibration and the offline queue</small></span><ArrowRight size={17}/></button>
-  <button className="record-row" onClick={()=>p.reopen('Consultation record')}><span className="service-icon"><Users size={21}/></span><span><strong>Consultation record</strong><small>One structure for every encounter, in long form or SOAP</small></span><ArrowRight size={17}/></button>
-  <button className="record-row" onClick={()=>p.reopen('Programme administration')}><span className="service-icon"><Users size={21}/></span><span><strong>Programme administration</strong><small>What an employer is sent, what a sponsor is shown, and the floor under both</small></span><ArrowRight size={17}/></button>
-    <button className="record-row" onClick={()=>p.reopen('System states')}><span className="service-icon"><Users size={21}/></span><span><strong>System states</strong><small>Loading, error, offline, permission denied and empty</small></span><ArrowRight size={17}/></button>
- </div>;
- if(modal==='Language') return <LanguageChoice locale={p.locale} setLocale={p.setLocale} close={p.close}/>;
- if(modal==='Invite a guardian') return <InviteGuardian onInvite={p.addInvitation} onClose={p.close}/>;
- if(modal==='Add a family member') return <FamilyForm onAdd={p.addMember}/>;
- if(modal==='Share my passport') return <Sharing/>;
- if(modal==='Visit assessment'||modal.startsWith('Nurse case:')) return <VisitAssessment onClose={p.close}/>;
- if(modal.startsWith('Doctor review')||modal.startsWith('Doctor case:')) return <DoctorReview onClose={p.close}/>;
- if(modal.startsWith('Prescription ')||modal==='Pharmacy orders') return <PrescriptionDetail reference={modal.replace('Prescription ','')}/>;
- if(modal.startsWith('Laboratory order ')||modal==='Laboratory results') return <LabOrderDetail reference={modal.replace('Laboratory order ','')}/>;
- if(modal.startsWith('Incident ')||modal==='Incident management') return <IncidentDetail reference={modal.replace('Incident ','')} onClose={p.close}/>;
- if(modal==='Nurse onboarding & vetting'||modal==='Nurse vetting') return <NurseVetting onClose={p.close}/>;
- if(isKit(modal)) return <ThusoKit onClose={p.close}/>;
- if(modal==='Weekly payouts'||modal==='Earnings & payouts') return <Earnings/>;
- if(modal==='Programme administration') return <Programmes/>;
- if(modal==='Thuso SOS'||modal==='Emergency & urgent care') return <ThusoSos/>;
- if(modal==='Consultation record') return <ConsultationRecord onClose={p.close}/>;
- if(modal==='Teleconsultation'||modal==='Teleconsultation call') return <Teleconsult onClose={p.close}/>;
- if(modal==='Household record') return <HouseholdRecord/>;
- if(modal==='Health summary') return <HealthSummary/>;
- if(modal==='Vetting application') return <VettingApplication onClose={p.close}/>;
- if(modal==='Your consents') return <ConsentCentre/>;
+type BodyProps = { modal: string; close: () => void; navigate: (s: string) => void; openOnboarding: () => void; reopen: (s: string) => void; locale: LocaleCode; setLocale: (l: LocaleCode) => void; query: string; setQuery: (q: string) => void; location: string; setLocation: (l: string) => void; addMember: (n: string) => void; addInvitation: (i: Invitation) => void; signOut: () => void };
+function modalBody(p: BodyProps) {
+ const { modal } = p;
+ if (modal === 'Notifications') return <Notifications/>;
+ if (modal === 'System states') return <SystemStates/>;
+ if (modal === 'Language') return <LanguageChoice locale={p.locale} setLocale={p.setLocale} close={p.close}/>;
+ if (modal === 'Invite a guardian') return <InviteGuardian onInvite={p.addInvitation} onClose={p.close}/>;
+ if (modal === 'Add a family member') return <FamilyForm onAdd={p.addMember}/>;
+ if (modal === 'Share my passport') return <Sharing/>;
+ if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={modal.replace('Prescription ', '')}/>;
+ if (modal.startsWith('Laboratory order ') || modal === 'Laboratory results') return <LabOrderDetail reference={modal.replace('Laboratory order ', '')}/>;
+ if (isKit(modal)) return <ThusoKit onClose={p.close}/>;
+ if (modal === 'Thuso SOS' || modal === 'Emergency & urgent care') return <ThusoSos/>;
+ /* The household record and the shareable summary were reachable only from a design-review menu,
+    which is another way of saying they were finished screens with no door. A family member is
+    exactly the question the household record answers — what may each of us see of the others — and
+    Thuso Pass is the product name for the summary, so both now open from where a patient would
+    look for them. */
+ if (modal === 'Thuso Family') return <HouseholdRecord/>;
+ if (modal === 'Thuso Pass') return <HealthSummary/>;
+ if (modal === 'Your consents') return <ConsentCentre/>;
  /* Replaces the two-line sample that used to live in Detail: a real access log, refusals included. */
- if(modal==='Access history') return <AccessHistory/>;
- if(modal==='Switch workspace') return <div className="workspace-options"><p className="muted">Explore each role’s UI. These previews do not grant access to real records.</p>{['Patient','Nurse','Doctor','Clinician','Partner','Control Tower','Admin'].map(r=><button className="record-row" key={r} onClick={()=>{p.setRole(r);p.setPage(r==='Patient'?'Overview':(roleNavigation[r]?.[0]?.[0]??'Overview'));p.close();}}><span className="service-icon"><Users size={21}/></span><span><strong>{r==='Admin'?'Admin console':r==='Clinician'?'Patient file':r}</strong><small>{r==='Patient'?'Personal and family care':r==='Nurse'?'Visits, diagnostics and earnings':r==='Doctor'?'Review queue and telehealth':r==='Clinician'?'The clinician-facing patient file, seen through eight different viewers':r==='Partner'?'Pharmacy and laboratory fulfilment':r==='Control Tower'?'Dispatch, vetting and quality':'Back office: vetting, catalogue, growth, finance and compliance'}</small></span><ArrowRight size={17}/></button>)}</div>;
- if(modal==='Your location') return <form className="form-stack" onSubmit={e=>{e.preventDefault();p.close();}}><p className="muted">Choose a demo care area. No GPS access is requested.</p><label>Care area<select value={p.location} onChange={e=>p.setLocation(e.target.value)}><option>Rosebank, Johannesburg</option><option>Soweto, Johannesburg</option><option>Randburg, Johannesburg</option></select></label><button className="primary">Save location<ArrowRight size={16}/></button></form>;
- if(modal==='How can we help?') return <div className="form-stack"><p className="muted">Explore services or get help with your care journey.</p><form className="search-box" onSubmit={e=>{e.preventDefault();p.navigate('Book a nurse');}}><Search size={18}/><input aria-label="Search for care" placeholder="What care are you looking for?" value={p.query} onChange={e=>p.setQuery(e.target.value)}/><button className="icon-button" aria-label="Search"><ArrowRight size={18}/></button></form><div className="empty-note">Live support and emergency dispatch are not connected in this design preview.</div></div>;
+ if (modal === 'Access history') return <AccessHistory/>;
+ /* This used to be a menu that switched the patient's shell into a nurse's, a doctor's or the
+    Control Tower's. A role is not something a patient account can put on; it belongs to a different
+    application at a different address, which is what this says instead. */
+ if (modal === 'Switch workspace') return <div className="form-stack">
+  <p className="muted">Nurses, doctors, pharmacy partners and the Control Tower work in a different application, at a different address. It is not something a patient account can open, and signing in there does not sign you in here.</p>
+  <a className="primary full" href="/staff.html"><Stethoscope size={17}/>Open MyThuso for clinicians</a>
+  <div className="privacy-note"><ShieldCheck size={20}/>Nothing about this account grants access to a clinical workspace.</div>
+ </div>;
+ if (modal === 'Your location') return <form className="form-stack" onSubmit={e => { e.preventDefault(); p.close(); }}><p className="muted">Choose a demo care area. No GPS access is requested.</p><label>Care area<select value={p.location} onChange={e => p.setLocation(e.target.value)}><option>Rosebank, Johannesburg</option><option>Soweto, Johannesburg</option><option>Randburg, Johannesburg</option></select></label><button className="primary">Save location<ArrowRight size={16}/></button></form>;
+ if (modal === 'How can we help?') return <div className="form-stack"><p className="muted">Explore services or get help with your care journey.</p><form className="search-box" onSubmit={e => { e.preventDefault(); p.navigate('Book a nurse'); }}><Search size={18}/><input aria-label="Search for care" placeholder="What care are you looking for?" value={p.query} onChange={e => p.setQuery(e.target.value)}/><button className="icon-button" aria-label="Search"><ArrowRight size={18}/></button></form><div className="empty-note">Live support and emergency dispatch are not connected in this design preview.</div></div>;
  return <Detail title={modal} close={p.close} navigate={p.navigate} signOut={p.signOut}/>;
 }
 /* Eleven written languages and one that is not written. Two things this dialog does that a language
@@ -154,30 +145,33 @@ function modalBody(p:BodyProps){
    one: there is no written SASL for a radio button to switch the interface into, so offering it
    beside Afrikaans would be a toggle that changes nothing while claiming access. It is a
    communication requirement on the account instead, and the written language stays a separate
-   choice — because a Deaf patient reads a written language too, and it is not English by default. */
-function LanguageChoice({locale,setLocale,close}:{locale:LocaleCode;setLocale:(l:LocaleCode)=>void;close:()=>void}){
+   choice — because a Deaf patient reads a written language too, and it is not English by default.
+
+   It lives in this file rather than beside the shells because the patient app is the only surface
+   that offers a written language at all: the shell strings are the patient's navigation, and
+   clinical wording is never translated by any of them. */
+export function LanguageChoice({ locale, setLocale, close }: { locale: LocaleCode; setLocale: (l: LocaleCode) => void; close: () => void }) {
  /* Not local state: the requirement travels with the account, so it is set here and read by
     booking, the call roster and the access screen out of lib/interpreting.ts. */
- const [sasl,setSasl]=useSaslRequirement();
- const chosen=locales.find(l=>l.code===locale);
- const absent=missingSets(locale);
+ const [sasl, setSasl] = useSaslRequirement();
+ const chosen = locales.find(l => l.code === locale);
+ const absent = missingSets(locale);
  return <div className="form-stack"><p className="muted">{clinicalRule.sentence}</p>
- <fieldset className="locale-choice"><legend>Choose your language</legend>{locales.map(l=><label key={l.code} className={locale===l.code?'selected':''}><input type="radio" name="app-locale" checked={locale===l.code} onChange={()=>setLocale(l.code)}/><span><strong>{l.native}</strong><small className={l.reviewed?'':'unreviewed'}>{l.reviewLabel}</small></span></label>)}</fieldset>
- {chosen?.reviewNotice&&<div className="privacy-note" role="status"><ShieldCheck size={21}/>{chosen.reviewNotice}</div>}
- {absent.length>0&&<p className="helper">{chosen?.native} covers {'the shell — navigation, the tab bar and the main actions'}. {absent.map(s=>s.name).join(' and ')} {absent.length>1?'stay':'stays'} in English.</p>}
+ <fieldset className="locale-choice"><legend>Choose your language</legend>{locales.map(l => <label key={l.code} className={locale === l.code ? 'selected' : ''}><input type="radio" name="app-locale" checked={locale === l.code} onChange={() => setLocale(l.code)}/><span><strong>{l.native}</strong><small className={l.reviewed ? '' : 'unreviewed'}>{l.reviewLabel}</small></span></label>)}</fieldset>
+ {chosen?.reviewNotice && <div className="privacy-note" role="status"><ShieldCheck size={21}/>{chosen.reviewNotice}</div>}
+ {absent.length > 0 && <p className="helper">{chosen?.native} covers {'the shell — navigation, the tab bar and the main actions'}. {absent.map(s => s.name).join(' and ')} {absent.length > 1 ? 'stay' : 'stays'} in English.</p>}
  <fieldset className="locale-choice"><legend>{signLanguage.name}</legend>
-  <label className={sasl?'selected':''}><input type="checkbox" checked={sasl} onChange={()=>setSasl(!sasl)}/><span><strong>{signLanguage.requirement.label}</strong><small>{signLanguage.requirement.detail}</small></span></label></fieldset>
+  <label className={sasl ? 'selected' : ''}><input type="checkbox" checked={sasl} onChange={() => setSasl(!sasl)}/><span><strong>{signLanguage.requirement.label}</strong><small>{signLanguage.requirement.detail}</small></span></label></fieldset>
  <p className="helper">{signLanguage.whyNotInTheList}</p>
- {sasl&&<div className="privacy-note" role="status"><ShieldCheck size={21}/>{signLanguage.notYetBuilt}</div>}
+ {sasl && <div className="privacy-note" role="status"><ShieldCheck size={21}/>{signLanguage.notYetBuilt}</div>}
  <button className="primary full" onClick={close}>Done<ArrowRight size={16}/></button></div>;
 }
-function FamilyForm({onAdd}:{onAdd:(n:string)=>void}){const [name,setName]=useState('');const [relation,setRelation]=useState('Parent');return <form className="form-stack" onSubmit={e=>{e.preventDefault();if(name.trim())onAdd(name.trim());}}><p className="muted">Add a fictional family member to explore the experience.</p><label>Display name<input autoFocus required maxLength={60} value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Aunt Thandi"/></label><label>Relationship<select value={relation} onChange={e=>setRelation(e.target.value)}><option>Parent</option><option>Child</option><option>Partner</option><option>Other family member</option></select></label><div className="privacy-note"><ShieldCheck size={21}/>Production access will require identity, consent and guardian checks. Adding a person will not unlock their records.</div><button className="primary" disabled={!name.trim()}>Add demo member<ArrowRight size={16}/></button></form>}
-function Sharing(){const [shared,setShared]=useState(false);return <div className="form-stack"><Pill>Sharing preview</Pill><p>Allow a verified care professional to see a limited visit summary for a defined period.</p><label>Recipient<select><option>Dr. A. Dlamini · Demo care team</option></select></label><label>Access expires<select><option>After 24 hours</option><option>After this visit</option></select></label><div className="privacy-note"><ShieldCheck size={20}/>No real link or access token is created.</div><button className={shared?'secondary':'primary'} onClick={()=>setShared(!shared)}>{shared?<><X size={17}/>Revoke demo access</>:<>Preview limited sharing<ArrowRight size={17}/></>}</button><p role="status" className="muted">{shared?'Demo access active. You can revoke it at any time.':'No active shares.'}</p></div>}
-function Detail({title,close,navigate,signOut}:{title:string;close:()=>void;navigate:(s:string)=>void;signOut:()=>void}){
- const [done,setDone]=useState(false);
- const visit=title==='Visit details'||title.startsWith('Visit:');
- const isRequest=title.startsWith('Request');
- const clinical=title.includes('case:')||title.includes('review')||title==='Visit assessment';
- return <div className="form-stack"><Pill>Design preview</Pill>{visit?<><h3>{title.startsWith('Visit:')?title.slice(7):'Vitals & chronic check'}</h3><p>Sister Naledi Mokoena · Registered nurse</p><div className="review-line"><span>Visit status</span><strong>Confirmed · Demo</strong></div><div className="review-line"><span>Preparation</span><strong>Have your medication list ready</strong></div><p className="muted">Arrival updates, secure messaging and rescheduling will be connected in the functionality phase.</p><button className="primary" onClick={()=>navigate('Health Passport')}>View Health Passport<ArrowRight size={17}/></button></>:title==='Your profile'?<><div className="profile-summary"><span className="avatar">LM</span><div><h3>Lerato Molefe</h3><p>Fictional patient · Personal account</p></div></div><button className="secondary full" onClick={()=>navigate('Privacy & settings')}>Manage privacy & preferences<ArrowRight size={17}/></button><button className="secondary full sign-out" onClick={signOut}><LogOut size={16}/>Log out</button></>:isRequest?<><p>{title.includes('deletion')?'Request account deletion. Some clinical records may need to be retained under an applicable retention schedule.':'Ask for inaccurate personal information to be corrected.'}</p><label>Reason (fictional information only)<textarea aria-label="Request reason" placeholder="Describe your request…" maxLength={500}/></label><button className="primary" onClick={()=>setDone(true)} disabled={done}>{done?'Demo request recorded':'Preview request'}</button><p className="helper" role="status">{done?'Nothing has been submitted. This previews the acknowledgement state.':'No real request will be sent.'}</p></>:clinical?<><h3>Clinical encounter preview</h3><div className="review-line"><span>Identity check</span><strong>Required before assessment</strong></div><div className="review-line"><span>Sample readings</span><strong>BP 118/78 · Pulse 72</strong></div><label>Assessment notes<textarea placeholder="Fictional notes for this preview only"/></label><div className="privacy-note"><ShieldCheck size={19}/>AI output is decision support. Diagnosis, prescriptions and certificates require an authorised doctor.</div><button className="primary" onClick={()=>setDone(true)} disabled={done}>{done?'Demo draft saved':'Save demo draft'}</button><p role="status" className="helper">{done?'Saved for this dialog only. No clinical decision was issued.':'No information is transmitted.'}</p></>:<><h3>{detailCopy(title)[0]}</h3><p className="muted">{detailCopy(title)[1]}</p><div className="empty-note">This feature is a UI preview. No clinical service, payment, permission or device connection is activated.</div><button className="primary" onClick={close}>Got it<ArrowRight size={16}/></button></>}</div>
+function FamilyForm({ onAdd }: { onAdd: (n: string) => void }) { const [name, setName] = useState(''); const [relation, setRelation] = useState('Parent'); return <form className="form-stack" onSubmit={e => { e.preventDefault(); if (name.trim()) onAdd(name.trim()); }}><p className="muted">Add a fictional family member to explore the experience.</p><label>Display name<input autoFocus required maxLength={60} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Aunt Thandi"/></label><label>Relationship<select value={relation} onChange={e => setRelation(e.target.value)}><option>Parent</option><option>Child</option><option>Partner</option><option>Other family member</option></select></label><div className="privacy-note"><ShieldCheck size={21}/>Production access will require identity, consent and guardian checks. Adding a person will not unlock their records.</div><button className="primary" disabled={!name.trim()}>Add demo member<ArrowRight size={16}/></button></form> }
+function Sharing() { const [shared, setShared] = useState(false); return <div className="form-stack"><Pill>Sharing preview</Pill><p>Allow a verified care professional to see a limited visit summary for a defined period.</p><label>Recipient<select><option>Dr. A. Dlamini · Demo care team</option></select></label><label>Access expires<select><option>After 24 hours</option><option>After this visit</option></select></label><div className="privacy-note"><ShieldCheck size={20}/>No real link or access token is created.</div><button className={shared ? 'secondary' : 'primary'} onClick={() => setShared(!shared)}>{shared ? <><X size={17}/>Revoke demo access</> : <>Preview limited sharing<ArrowRight size={17}/></>}</button><p role="status" className="muted">{shared ? 'Demo access active. You can revoke it at any time.' : 'No active shares.'}</p></div> }
+function Detail({ title, close, navigate, signOut }: { title: string; close: () => void; navigate: (s: string) => void; signOut: () => void }) {
+ const [done, setDone] = useState(false);
+ const visit = title === 'Visit details' || title.startsWith('Visit:');
+ const isRequest = title.startsWith('Request');
+ return <div className="form-stack"><Pill>Design preview</Pill>{visit ? <><h3>{title.startsWith('Visit:') ? title.slice(7) : 'Vitals & chronic check'}</h3><p>Sister Naledi Mokoena · Registered nurse</p><div className="review-line"><span>Visit status</span><strong>Confirmed · Demo</strong></div><div className="review-line"><span>Preparation</span><strong>Have your medication list ready</strong></div><p className="muted">Arrival updates, secure messaging and rescheduling will be connected in the functionality phase.</p><button className="primary" onClick={() => navigate('Health Passport')}>View Health Passport<ArrowRight size={17}/></button></> : title === 'Your profile' ? <><div className="profile-summary"><span className="avatar">LM</span><div><h3>Lerato Molefe</h3><p>Fictional patient · Personal account</p></div></div><button className="secondary full" onClick={() => navigate('Privacy & settings')}>Manage privacy & preferences<ArrowRight size={17}/></button><button className="secondary full sign-out" onClick={signOut}><LogOut size={16}/>Log out</button></> : isRequest ? <><p>{title.includes('deletion') ? 'Request account deletion. Some clinical records may need to be retained under an applicable retention schedule.' : 'Ask for inaccurate personal information to be corrected.'}</p><label>Reason (fictional information only)<textarea aria-label="Request reason" placeholder="Describe your request…" maxLength={500}/></label><button className="primary" onClick={() => setDone(true)} disabled={done}>{done ? 'Demo request recorded' : 'Preview request'}</button><p className="helper" role="status">{done ? 'Nothing has been submitted. This previews the acknowledgement state.' : 'No real request will be sent.'}</p></> : <><h3>{detailCopy(title)[0]}</h3><p className="muted">{detailCopy(title)[1]}</p><div className="empty-note">This feature is a UI preview. No clinical service, payment, permission or device connection is activated.</div><button className="primary" onClick={close}>Got it<ArrowRight size={16}/></button></>}</div>
 }
-function detailCopy(t:string):[string,string]{if(t.includes('connection'))return ['Choose what you share','Native device permissions will let you select individual reading types and withdraw access. Nothing is connected yet.'];if(t.includes('wallet')||t==='Sponsor care')return ['Care credits, on your terms','Choose an amount, review the recipient and confirm through a regulated payment provider. No financial details are collected in this preview.'];if(t.includes('doctor')||t==='Teleconsultation')return ['A doctor’s expertise, closer to home','A registered doctor reviews your case and can join a secure consultation. Scheduling, identity verification and clinical consent will come before any live consultation.'];if(t==='Contact privacy team')return ['Your privacy contact','The Information Officer’s verified contact details and request tracking will be configured before launch.'];if(t.startsWith('Family profile'))return ['Care without crossing boundaries','Book and sponsor a visit for your loved one. Their clinical information remains private unless appropriate access is verified.'];if(t.includes('summary')||t.includes('certificate'))return ['Your care document','The production record will show the issuing clinician, date, review status and a secure download. This preview contains no real document.'];return ['Connected to your care journey',`${t} is included in the MyThuso feature roadmap. Its dedicated workflow will connect to the relevant clinical, operational or partner services in the functionality phase.`];}
+function detailCopy(t: string): [string, string] { if (t.includes('connection')) return ['Choose what you share', 'Native device permissions will let you select individual reading types and withdraw access. Nothing is connected yet.']; if (t.includes('wallet') || t === 'Sponsor care') return ['Care credits, on your terms', 'Choose an amount, review the recipient and confirm through a regulated payment provider. No financial details are collected in this preview.']; if (t.includes('doctor') || t === 'Teleconsultation' || t === 'Thuso Doctor') return ['A doctor’s expertise, closer to home', 'A registered doctor reviews your case and can join a secure consultation. Scheduling, identity verification and clinical consent will come before any live consultation.']; if (t === 'Contact privacy team') return ['Your privacy contact', 'The Information Officer’s verified contact details and request tracking will be configured before launch.']; if (t.startsWith('Family profile')) return ['Care without crossing boundaries', 'Book and sponsor a visit for your loved one. Their clinical information remains private unless appropriate access is verified.']; if (t.includes('summary') || t.includes('certificate')) return ['Your care document', 'The production record will show the issuing clinician, date, review status and a secure download. This preview contains no real document.']; return ['Connected to your care journey', `${t} is included in the MyThuso feature roadmap. Its dedicated workflow will connect to the relevant clinical, operational or partner services in the functionality phase.`]; }
