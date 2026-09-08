@@ -266,5 +266,6 @@
    "statement": "A role switcher, a state picker and a gallery of loading states are development tools. They are removed from what ships, and removing them says nothing about whether anything is connected.",
    "why": "The two got tangled: taking the demo furniture out felt like claiming the product was live. They are separate questions and this file answers only the second."
   }
- ]
+ ],
+ "_permissionsNote": "Neither app declares a single permission — no uses-permission in the Android manifest, no NS*UsageDescription on the iOS target. That is the strongest true sentence this product can say about itself, and several notices above depend on it: \"nothing here has a microphone\" is a special case of \"nothing here asks for anything\". A permission may be added only when a capability here names it under requiresPermissions, which forces whoever wants it to say which feature it serves, beside what is blocking that feature. scripts/check-boundaries.mjs fails an undeclared one on either platform — a whitelist, because the earlier version named RECORD_AUDIO and the microphone key specifically and would have let CAMERA or a location key through unnoticed."
 }

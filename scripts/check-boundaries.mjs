@@ -846,6 +846,29 @@ for(const c of capabilities.capabilities) {
   if(c.blockedBy?.length) throw new Error(`Capability "${c.id}" is marked connected and still lists ${c.blockedBy.length} thing(s) blocking it, beginning "${c.blockedBy[0]}". Clear the list or clear the flag — a capability cannot be both.`);
  }
 }
+/* Nothing here asks a device for anything.
+   Neither app declares a single permission: no uses-permission in the Android manifest, no
+   NS*UsageDescription on the iOS target. That is not an accident of scope, it is the strongest true
+   sentence this product can say about itself, and several notices depend on it — "nothing here has a
+   microphone" is a special case of "nothing here asks for anything".
+
+   So the rule is a whitelist rather than a blacklist. Naming RECORD_AUDIO and the microphone key
+   specifically, as the two checks below do, would let CAMERA or a location key land without the
+   build noticing. A permission may exist only when a capability names it in requiresPermissions —
+   which forces whoever wants it to write down which feature it serves, in the same file that holds
+   what is blocking that feature and what the app currently tells people. Today the list is empty on
+   both sides, and this check is here for the day it stops being.
+
+   Raised by mythuso-58, which verified the silence was total before suggesting it. */
+const permissionsFor=new Set(capabilities.capabilities.flatMap(c=>c.requiresPermissions??[]));
+const androidAsks=[...read('apps/android/app/src/main/AndroidManifest.xml').matchAll(/uses-permission[^>]*android:name="([^"]+)"/g)].map(m=>m[1]);
+const iosAsks=[...read('apps/ios/MyThuso.xcodeproj/project.pbxproj').matchAll(/INFOPLIST_KEY_(NS\w*UsageDescription)/g)].map(m=>m[1]);
+for(const [platform,asks] of [['Android',androidAsks],['iOS',iosAsks]]) {
+ for(const ask of asks) {
+  if(!permissionsFor.has(ask)) throw new Error(`The ${platform} app asks the device for ${ask}, and no capability in packages/catalog/capabilities.json names it under requiresPermissions. Neither app has ever asked for anything, and more than one notice a person reads depends on that being true. If a feature needs it, say which feature — in the file that also holds what is blocking that feature.`);
+ }
+}
+
 /* Two capabilities carry a neverSoften note, and both are checked rather than trusted, because both
    are the kind somebody removes to make a demo look better. */
 const voice=capabilities.capabilities.find(c=>c.id==='voice');
