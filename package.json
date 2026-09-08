@@ -17,7 +17,7 @@
     "tokens": "node scripts/emit-tokens.mjs",
     "vetting": "node scripts/emit-vetting.mjs",
     "records": "node scripts/emit-records.mjs",
-    "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes && npm run interpreting && npm run scheduling && npm run geography",
+    "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes && npm run interpreting && npm run scheduling && npm run geography && npm run capabilities",
     "check": "npm run check -w @mythuso/geo && npm run check -w @mythuso/web && npm run check -w @mythuso/api && node scripts/check-boundaries.mjs",
     "test": "npm run test -w @mythuso/geo && npm run test -w @mythuso/api && playwright test",
     "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0",
@@ -31,7 +31,8 @@
     "programmes": "node scripts/emit-programmes.mjs",
     "interpreting": "node scripts/emit-interpreting.mjs",
     "scheduling": "node scripts/emit-scheduling.mjs",
-    "geography": "node scripts/emit-geography.mjs"
+    "geography": "node scripts/emit-geography.mjs",
+    "capabilities": "node scripts/emit-capabilities.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

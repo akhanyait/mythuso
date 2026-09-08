@@ -283,6 +283,8 @@ struct MoreView: View {
                     }
                 }.buttonStyle(.plain)
                 group("Your care") {
+                    row("Assistant", "An ambient picture of what needs you", "sparkles") { AssistantView() }
+                    Divider().overlay(ThusoTheme.line)
                     row("My family", "Manage your loved ones", "person.2") { FamilyView() }
                     Divider().overlay(ThusoTheme.line)
                     row("Care plans", "Ongoing care and subscriptions", "heart.text.square") { PlansView() }

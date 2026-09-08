@@ -13,6 +13,7 @@ import { clinicalIdentifiers, tablesIn } from './clinical-tables.mjs';
 import { emitInterpreting } from './emit-interpreting.mjs';
 import { emitScheduling } from './emit-scheduling.mjs';
 import { emitGeography } from './emit-geography.mjs';
+import { emitCapabilities } from './emit-capabilities.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -417,7 +418,8 @@ const generated = [
  { source: 'packages/catalog/programmes.json', command: 'npm run programmes', files: emitProgrammes() },
  { source: 'packages/catalog/interpreting.json', command: 'npm run interpreting', files: emitInterpreting() },
  { source: 'packages/catalog/scheduling.json', command: 'npm run scheduling', files: emitScheduling() },
- { source: 'packages/catalog/geography.json', command: 'npm run geography', files: emitGeography() }
+ { source: 'packages/catalog/geography.json', command: 'npm run geography', files: emitGeography() },
+ { source: 'packages/catalog/capabilities.json', command: 'npm run capabilities', files: emitCapabilities() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -879,6 +881,78 @@ if(voice?.connected) throw new Error('packages/catalog/capabilities.json marks v
    different reason. Two features now depend on that silence. */
 if(/android\.permission\.RECORD_AUDIO/.test(read('apps/android/app/src/main/AndroidManifest.xml'))) throw new Error('The Android manifest declares RECORD_AUDIO. Both the teleconsultation contract and the voice capability tell a person nothing here has a microphone.');
 if(/INFOPLIST_KEY_NSMicrophoneUsageDescription/.test(read('apps/ios/MyThuso.xcodeproj/project.pbxproj'))) throw new Error('The iOS target declares a microphone usage description. Both the teleconsultation contract and the voice capability tell a person nothing here has a microphone.');
+/* The assistant, and the three things it may never grow.
+
+   There is a screen in the iOS app that draws a soft luminous shape and changes it with what the
+   app knows. It is the visual language the founder asked for and it is the exact shape of a lie
+   somebody could tell by accident: a blob that pulses beside a rounded rectangle reads as a voice
+   assistant to almost everybody, and this product has no speech model, no microphone permission on
+   either platform, and no answer yet for what would happen to a recording of a person describing a
+   symptom. The contract's own words for that are in `voice.neverSoften`, and they are a rule rather
+   than advice, so they are checked rather than trusted.
+
+   Three things are asserted, and each of them is a different way the same defect arrives.
+
+   The sentence is rendered, never typed. A screen that types its own version of a notice cannot be
+   switched off with the others when an integration lands, and the copy that gets typed is always
+   the softer one. So no hand-written native source may carry a capability's notice as a string of
+   its own — the string literals are read out of the file and compared with the contract, which
+   leaves a comment free to quote the rule it is written to.
+
+   Nothing reaches for audio, and nothing draws a microphone. The API check is the same one the
+   teleconsultation screens are held to; the symbol check is the one this feature adds, because the
+   hazard here is not a media stack, it is an SF Symbol. `waveform.path.*` is allowed through: that
+   is the ECG trace on the Health Passport's heart-rate chart and it is a picture of a heartbeat.
+
+   And nothing offers to listen in words. A control's label is the last place a listening affordance
+   hides once the glyphs are gone. */
+const iosSources=native.filter(f=>f.startsWith('apps/ios/') && f.endsWith('.swift'));
+const handWrittenIos=iosSources.filter(f=>!/Data\.swift$/.test(f));
+/* Swift string literals, one line at a time. A literal cannot span a line without three quotes
+   around it, so this cannot swallow a paragraph of prose, and a comment that quotes a rule — which
+   the assistant's does, deliberately — has one quote per line and produces no literal at all. */
+const swiftLiterals = source => [...source.matchAll(/"(?:[^"\\\n]|\\.)*"/g)].map(m=>m[0].slice(1,-1));
+const flatten = text => text.replace(/\s+/g,' ').trim();
+const contractSentences=capabilities.capabilities.flatMap(c=>[c.notice,c.neverSoften].filter(Boolean).map(flatten));
+for(const file of handWrittenIos) {
+ for(const literal of swiftLiterals(read(file))) {
+  const flat=flatten(literal);
+  if(flat.length<40) continue;
+  const typed=contractSentences.find(sentence=>flat.includes(sentence)||sentence.includes(flat));
+  if(typed) throw new Error(`${file} types out a sentence that lives in packages/catalog/capabilities.json: "${flat.slice(0,72)}…". Render it from the contract instead — a typed copy cannot be switched off when the capability is connected, and the copy somebody types at eleven at night is always the softer one.`);
+ }
+}
+/* An SF Symbol name is a string literal, so the two questions are asked of the same list: does any
+   iOS source name a microphone or an audio meter, and does any of them reach for a capture API. */
+const listeningSymbol=/^(mic|waveform)(\.|$)/;
+const audioApis=/\b(AVAudioRecorder|AVAudioEngine|AVAudioSession|AVAudioApplication|SFSpeechRecognizer|SFSpeechAudioBufferRecognitionRequest|AVCaptureDevice|requestRecordPermission)\b|\bimport\s+(Speech|AVFAudio)\b/;
+for(const file of iosSources) {
+ const source=read(file);
+ if(audioApis.test(source)) throw new Error(`${file} reaches for audio capture. Neither native app declares a microphone permission — deliberately — and packages/catalog/capabilities.json tells a person "nothing here has a microphone". An app holding a recorder handle while saying that is lying to the patient rather than to the reviewer.`);
+ for(const literal of swiftLiterals(source)) {
+  if(!listeningSymbol.test(literal)) continue;
+  /* The one exception, and it is not an audio symbol: waveform.path.ecg is the heartbeat trace on
+     the Health Passport's chart. */
+  if(literal.startsWith('waveform.path')) continue;
+  throw new Error(`${file} draws the symbol "${literal}". ${voice.neverSoften}`);
+ }
+}
+const offersToListen=/\b(tap|hold|press|touch|swipe) to (speak|talk|record|dictate)\b|^listening[.…!]*$|\b(start|stop) listening\b|\bi(?:'m| am) listening\b|\bspeak now\b/i;
+for(const file of handWrittenIos) {
+ for(const literal of swiftLiterals(read(file))) {
+  if(offersToListen.test(literal.trim())) throw new Error(`${file} offers to listen, in words: "${literal}". ${voice.neverSoften}`);
+ }
+}
+/* The screen itself, and the two things it must not stop doing: asking the contract for its notice,
+   and naming the capability whose refusals it renders. Deleting either leaves a beautiful shape
+   with nothing underneath it saying what it is. */
+const assistant='apps/ios/MyThuso/Features/AssistantView.swift';
+if(!existsSync(assistant)) throw new Error(`${assistant} is missing. The assistant is the surface the voice capability names, and a capability with no surface is a notice nobody reads.`);
+const assistantSource=read(assistant);
+if(!/CapabilityNotice\(/.test(assistantSource)) throw new Error(`${assistant} no longer renders CapabilityNotice, so whatever it now says about being unconnected is its own sentence rather than the contract's.`);
+if(!/"voice"/.test(assistantSource)) throw new Error(`${assistant} no longer names the voice capability, so the three things blocking it and the rule it is drawn to are no longer coming from packages/catalog/capabilities.json.`);
+if(!/accessibilityReduceMotion/.test(assistantSource)) throw new Error(`${assistant} draws an animated shape without asking for Reduce Motion. A shape that breathes forever is exactly what that setting exists for, and slowing it is not answering it.`);
+
 /* The emergency pathway is the one refusal here that is not about MyThuso, and it is the one that
    matters most: a person on that screen may be about to need an ambulance. */
 const emergency=capabilities.capabilities.find(c=>c.id==='emergency');
@@ -886,9 +960,26 @@ if(!emergency?.neverSoften) throw new Error('The emergency capability has lost t
 for(const number of ['10177','112']) if(!emergency.notice.includes(number)) throw new Error(`The emergency notice no longer names ${number}. In a real emergency that number is the only useful thing on the screen.`);
 /* One place writes these sentences. A screen that types its own cannot be switched off with the
    others, and one of them will be wrong by the time anybody notices. */
-const inventedNotices=/(Design preview|Demonstration record|Fictional workspace|This feature is a UI preview|No real request will be sent)/;
 for(const file of ['apps/web/src/components/NotConnected.tsx','apps/web/src/lib/capabilities.ts']) {
  if(!existsSync(file)) throw new Error(`${file} is missing. It is how a screen asks whether a capability is connected.`);
+}
+/* No screen writes its own. Sixty of these were hand-typed once, in slightly different words, three
+   of them stacked above the first visit on a nurse's schedule. They come from the contract now, and
+   this is what stops them coming back — which is not hypothetical: a shell written in parallel with
+   the sweep reintroduced "Demonstration record · No live actions" into a new directory the sweep had
+   never seen, and the words were false by the time they were typed. */
+const inventedNotices=/(Design preview|Demonstration record|Fictional workspace|This feature is a UI preview|No real request will be sent|Role switching is for design review)/;
+for(const dir of ['apps/web/src']) {
+ if(!existsSync(dir)) continue;
+ for(const file of files(dir)) {
+  if(!file.endsWith('.tsx')&&!file.endsWith('.ts')) continue;
+  /* Comments stripped first. Three files explain this history in prose — including the module that
+     replaced the notices — and a check that fails on its own explanation is the whole-file search
+     mistake for the third time tonight. What is searched is what a reader sees. */
+  const code=read(file).replace(/\/\*[\s\S]*?\*\//g,'').split('\n').map(l=>l.replace(/(^|\s)\/\/.*$/,'')).join('\n');
+  const found=code.match(inventedNotices);
+  if(found) throw new Error(`${file} types its own preview notice ("${found[1]}"). That sentence belongs in packages/catalog/capabilities.json and reaches the screen through <NotConnected of="…"/>, so that when the thing it describes is connected the sentence disappears everywhere at once instead of being hunted down by hand.`);
+ }
 }
 if(!read('apps/web/src/components/NotConnected.tsx').includes('noticeFor')) throw new Error('NotConnected no longer reads the contract, so what it renders is anybody\'s guess.');
 /* Two class names are load-bearing outside the code that writes them: tests/states.spec.ts drives
@@ -1558,4 +1649,4 @@ const accreditationConfirmed = accreditation.confirmedBy && accreditation.confir
 if(!accreditationConfirmed && !accreditation.uncertainty) throw new Error(`The ${accreditation.short} accreditation route is not confirmed and does not say so. A drafted route that does not announce itself is exactly the claim the locale table is not allowed to make.`);
 if(accreditationConfirmed && !accreditation.route) throw new Error(`The ${accreditation.short} accreditation route claims a confirmation without saying what was confirmed`);
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. That interpreter is now a vetted party with ${interpreterRole.checks.length} checks of their own and one capability, granted nothing that opens a record; ${interpreting.roster.length} of them carry hours rather than a conclusion, so all three platforms work out for themselves which hour answers a request and all three can still return nothing — a visit with no interpreter is held rather than dispatched and carries the contract's own word for it on all three, cancelling one costs ${interpreting.cancellation.fee} and is recorded against ${interpreting.cancellation.attributedTo} rather than the patient, and the ${interpreting.refusals.length} refusals — a family member, a child, English written at somebody — are on the screen rather than only in the file. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}.`);
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. That interpreter is now a vetted party with ${interpreterRole.checks.length} checks of their own and one capability, granted nothing that opens a record; ${interpreting.roster.length} of them carry hours rather than a conclusion, so all three platforms work out for themselves which hour answers a request and all three can still return nothing — a visit with no interpreter is held rather than dispatched and carries the contract's own word for it on all three, cancelling one costs ${interpreting.cancellation.fee} and is recorded against ${interpreting.cancellation.attributedTo} rather than the patient, and the ${interpreting.refusals.length} refusals — a family member, a child, English written at somebody — are on the screen rather than only in the file. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. The assistant draws a shape and never a microphone: no iOS source names a mic or a waveform symbol, reaches for an audio capture API or offers in words to listen, the screen renders the voice capability's notice from the contract rather than a sentence of its own, and none of the ${capabilities.capabilities.length} capabilities has its notice typed into a hand-written native file. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}.`);
