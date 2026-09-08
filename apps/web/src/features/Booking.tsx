@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, CalendarDays, Check, CircleAlert, Clock3, CreditCard, Hourglass, MapPin, ShieldCheck, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, CalendarClock, Check, CircleAlert, Clock3, CreditCard, Hourglass, MapPin, ShieldCheck, Undo2, X, Zap } from 'lucide-react';
 import { type Service, money } from '../lib/catalog';
-import { ServiceIcon } from '../components/UI';
+import { balance as walletBalance } from '../lib/wallet';
+import { SectionTitle, ServiceIcon } from '../components/UI';
 import { StepHead } from '../components/Steps';
 import { NotConnected } from '../components/NotConnected';
 import { endTime, kinds, labels, longDateOf, offeredDays, ruleById, slots, type Visit } from '../lib/scheduling';
@@ -29,7 +30,9 @@ import {
  * shown when there is one and admitted when there is not, and the way out of it costs nothing and
  * is recorded against MyThuso rather than against the patient. */
 export type DemoVisit = Visit;
-const payments = [['Card', 'Visa ending 4242', CreditCard], ['Cash', 'Pay the nurse after the visit', CreditCard], ['Thuso Wallet', 'Balance R500.00', CreditCard]] as const;
+/* The wallet's balance is read rather than restated. It was typed here as "Balance R500.00" and
+   typed again on the wallet screen, which is two places for one number. */
+const payments = [['Card', 'Visa ending 4242', CreditCard], ['Cash', 'Pay the nurse after the visit', CreditCard], ['Thuso Wallet', `Balance ${money(walletBalance)}`, CreditCard]] as const;
 const stepLabels = ['Who & where', 'When', 'Payment', 'Review'];
 
 export function Booking({ service, onComplete }: { service: Service; onComplete: (visit: DemoVisit) => void }) {
@@ -181,4 +184,105 @@ export function Booking({ service, onComplete }: { service: Service; onComplete:
    <button className="text-button" onClick={() => setStep(2)}><ArrowLeft size={15}/>Back</button>
   </div>}
  </>;
+}
+
+/* Moving a visit, and standing one down. Two screens that did not exist.
+ *
+ * "Reschedule" opened a dialog saying the workflow was on the roadmap, and there was no way to
+ * cancel at all — on the one screen in the patient app where a person is most likely to need both.
+ * A journey that can only be started is not a journey, and a visit you cannot get out of is worse
+ * than one you never booked.
+ *
+ * Both are built from the pieces booking already uses: the offered days come from the device clock
+ * in Africa/Johannesburg, the hours come from the contract's slots, and the end is arithmetic on the
+ * service's own duration. Nothing about when a visit happens is typed twice. */
+export function Reschedule({ visit, onMove }: { visit: DemoVisit; onMove: (date: string, slot: string) => void }) {
+ const days = useMemo(() => offeredDays(), []);
+ const [date, setDate] = useState(days[0].iso);
+ const [slot, setSlot] = useState(visit.start ?? slots[0]);
+ const [moved, setMoved] = useState<{ date: string; slot: string } | null>(null);
+ const ends = endTime(slot, visit.service.duration);
+ const unchanged = date === visit.date && slot === visit.start;
+
+ if (moved) return <div className="success">
+  <div className="success-icon"><CalendarClock size={30}/></div>
+  <h3>Your visit has moved.</h3>
+  <p>{visit.service.name} for {visit.person.split(' ')[0]}</p>
+  <p className="success-when">{longDateOf(moved.date)}<br/>{moved.slot} – {endTime(moved.slot, visit.service.duration)}</p>
+  {visit.date && visit.start && <p className="helper">It was {longDateOf(visit.date)} at {visit.start}. That hour is given back.</p>}
+  <p className="helper">{ruleById('everything-survives-the-booking').sentence}</p>
+  <NotConnected of="booking"/>
+  <button className="primary full space-top" onClick={() => onMove(moved.date, moved.slot)}>View my visits<ArrowRight size={17}/></button>
+ </div>;
+
+ return <div className="form-stack">
+  <div className="booking-summary"><span className="service-icon"><ServiceIcon name={visit.service.icon}/></span><div><h3>{visit.service.name}</h3><p>{visit.person} · {visit.address}</p></div><strong>{money(visit.service.price)}</strong></div>
+  <div className="review-line"><span><Clock3 size={15}/> Booked for</span><strong>{visit.date && visit.start ? `${longDateOf(visit.date)} · ${visit.start}` : labels.asapPending}</strong></div>
+  <h3 className="space-top">{labels.scheduledHeading}</h3>
+  <div className="date-strip" role="group" aria-label="Choose a new date">
+   {days.map(entry => <button key={entry.iso} type="button" aria-pressed={date === entry.iso}
+    aria-label={`${entry.weekday} ${entry.day} ${entry.month}`}
+    className={`date-chip ${date === entry.iso ? 'selected' : ''}`} onClick={() => setDate(entry.iso)}>
+    <span>{entry.weekday}</span><strong>{entry.day}</strong><span>{entry.month}</span>
+   </button>)}
+  </div>
+  <div className="time-grid" role="group" aria-label="Choose a new time">
+   {slots.map(t => <button key={t} type="button" aria-pressed={slot === t} className={`time-chip ${slot === t ? 'selected' : ''}`} onClick={() => setSlot(t)}>{t}</button>)}
+  </div>
+  <p className="helper" role="status">{longDateOf(date)} · {slot} – {ends} ({visit.service.duration} minutes)</p>
+  {/* A nurse is cleared for an hour, not attached to a person, so moving the hour is a new
+      assignment. Saying so here is the difference between a reschedule and a promise nobody made. */}
+  <div className="privacy-note"><ShieldCheck size={19}/>Moving a visit asks for a nurse who is free at the new hour. It may not be the same nurse, and you are told who is coming before anybody sets off.</div>
+  <NotConnected of="booking"/>
+  <button className="primary full" disabled={unchanged} onClick={() => setMoved({ date, slot })}>{unchanged ? 'Choose a different day or hour' : <>Move this visit<ArrowRight size={17}/></>}</button>
+ </div>;
+}
+
+/* The reasons a person actually has, and not one of them asks them to justify it: a screen that
+   interrogates somebody for cancelling a nurse is a screen that gets escaped from rather than
+   answered. "I would rather not say" is a real answer and is recorded as one. */
+const cancelReasons = ['I no longer need this visit', 'I will not be at the address', 'I want a different day or time', 'I would rather not say'] as const;
+export function CancelVisit({ visit, onCancel }: { visit: DemoVisit; onCancel: (reason: string) => void }) {
+ const [reason, setReason] = useState<string>(cancelReasons[0]);
+ const [done, setDone] = useState<string | null>(null);
+
+ if (done) return <div className="success">
+  <div className="success-icon"><Undo2 size={30}/></div>
+  <h3>This visit is cancelled.</h3>
+  <p>{visit.service.name} for {visit.person.split(' ')[0]}</p>
+  <p className="success-when">{visit.date && visit.start ? <>{longDateOf(visit.date)}<br/>{visit.start}</> : labels.asapPending}</p>
+  <div className="review-line"><span>Reason recorded</span><strong>{done}</strong></div>
+  <div className="review-line"><span>What was to be paid</span><strong>{money(visit.service.price)} · {visit.payment}</strong></div>
+  <p className="helper">A cancelled visit is not deleted. It stays under Cancelled with the reason you gave, because a visit that vanishes is one nobody can ask about afterwards.</p>
+  <NotConnected of="booking"/>
+  <NotConnected of="payments"/>
+  <button className="primary full space-top" onClick={() => onCancel(done)}>View my visits<ArrowRight size={17}/></button>
+ </div>;
+
+ return <div className="form-stack">
+  <div className="booking-summary"><span className="service-icon"><ServiceIcon name={visit.service.icon}/></span><div><h3>{visit.service.name}</h3><p>{visit.person} · {visit.address}</p></div><strong>{money(visit.service.price)}</strong></div>
+  <div className="review-line"><span><Clock3 size={15}/> Booked for</span><strong>{visit.date && visit.start ? `${longDateOf(visit.date)} · ${visit.start}` : labels.asapPending}</strong></div>
+  <h3>Why are you cancelling?</h3>
+  <p className="muted">You do not have to give a reason.</p>
+  <div className="choice-list" role="radiogroup" aria-label="Why are you cancelling?">
+   {cancelReasons.map(r => <label key={r} className={`choice-row ${reason === r ? 'selected' : ''}`}>
+    <input type="radio" name="cancel-reason" checked={reason === r} onChange={() => setReason(r)}/>
+    <span><strong>{r}</strong></span>
+   </label>)}
+  </div>
+  {/* "What happens to the money" is the question a person actually has here, and it gets a heading
+      rather than a footnote. The answer is two facts and no invention: what this visit was going to
+      cost, how it was going to be paid, and the payments contract's own sentence about whether any
+      of it has happened. When a provider is connected that sentence disappears from here and from
+      every other screen at the same moment, which is the only way this stays true. */}
+  <SectionTitle title="What happens to the money"/>
+  <div className="review-line"><span>This visit</span><strong>{money(visit.service.price)}</strong></div>
+  <div className="review-line"><span>Was to be paid by</span><strong>{visit.payment}</strong></div>
+  <NotConnected of="payments"/>
+  {/* Moving is offered before cancelling, once, because a person who wanted a different day and was
+      shown nothing but a cancel button cancels. */}
+  <p className="helper"><CalendarClock size={15}/>If the day is the problem rather than the visit, close this and choose Reschedule instead.</p>
+  <NotConnected of="booking"/>
+  <button className="secondary full sign-out" onClick={() => setDone(reason)}><X size={16}/>Cancel this visit</button>
+ </div>;
 }

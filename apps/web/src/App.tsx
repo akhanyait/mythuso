@@ -4,8 +4,12 @@ import { Modal, Pill } from './components/UI';
 import { NotConnected } from './components/NotConnected';
 import { PatientShell } from './shells/PatientShell';
 import { Dashboard } from './features/Dashboard';
-import { Booking, type DemoVisit } from './features/Booking';
-import { Explore, Family, MoreHub, Notifications, Passport, Plans, Privacy, Services, Visits, WalletPage } from './features/Pages';
+import { Booking, CancelVisit, Reschedule } from './features/Booking';
+import {
+ Explore, Family, FamilyProfile, MoreHub, Notifications, Passport, PlanDetail, Plans, Privacy,
+ Services, SponsorCare, TopUpWallet, VisitDetail, Visits, WalletPage, rowFor, sampleVisitRows,
+ type VisitAction, type VisitRow
+} from './features/Pages';
 import { HouseholdRecord, HealthSummary } from './features/Household';
 import { Onboarding, SignIn } from './features/Onboarding';
 import { ThusoKit } from './features/Kit';
@@ -17,7 +21,7 @@ import { Access } from './features/Access';
 import { LocaleContext, locales, clinicalRule, signLanguage, missingSets, type LocaleCode } from './lib/i18n';
 import { useSaslRequirement } from './lib/interpreting';
 import { currentPerson, endSession, probe } from './lib/auth';
-import { type Service } from './lib/catalog';
+import { modules, money, services, type Service } from './lib/catalog';
 
 /* MyThuso for patients and families. One audience, one bundle.
  *
@@ -41,7 +45,14 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
  const [page, setPage] = useState('Overview');
  const [modal, setModal] = useState<string | null>(null);
  const [booking, setBooking] = useState<Service | null>(null);
- const [visits, setVisits] = useState<DemoVisit[]>([]);
+ /* Every visit the app knows about, in one list, because a visit you can look at and never change is
+    not a visit. It used to be two: the ones a person had booked lived here and the sample ones were
+    built inside the visit list itself, which is why Reschedule opened a dialog about the roadmap and
+    why there was no way to cancel anything at all. Moving one moves it; standing one down moves it
+    into Cancelled with the reason. Nothing is persisted — no storage of any kind on this side. */
+ const [rows, setRows] = useState<VisitRow[]>(sampleVisitRows);
+ const [managing, setManaging] = useState<{ id: string; action: VisitAction } | null>(null);
+ const [viewing, setViewing] = useState<string | null>(null);
  const [members, setMembers] = useState<string[]>([]);
  const [invitations, setInvitations] = useState<Invitation[]>(sampleInvitations);
  const [query, setQuery] = useState('');
@@ -61,13 +72,23 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
    setLive(true); setSignedIn(person !== null); })();
   return () => { cancelled = true; }; }, []);
  const signOut = () => { if (live) void endSession(); setSignedIn(false); setOnboarding(false); setModal(null); navigate('Overview'); };
+ /* What the person actually booked, in the order they booked it, and only that: the home's "next
+    visit" card answers "what have I arranged", which the three sample visits in the list are not an
+    answer to. */
+ const booked = rows.filter(row => row.booked && row.group === 'upcoming');
+ const rowById = (id: string) => rows.find(row => row.id === id);
+ const manage = (id: string, action: VisitAction) => { setViewing(null); setManaging({ id, action }); };
+ const moveVisit = (id: string, date: string, start: string) =>
+  setRows(rows.map(row => row.id === id ? { ...row, status: 'Confirmed', tone: '', visit: { ...row.visit, kind: 'scheduled', status: 'Confirmed', date, start } } : row));
+ const standDown = (id: string, reason: string) =>
+  setRows(rows.map(row => row.id === id ? { ...row, group: 'cancelled', status: 'Cancelled', tone: 'amber', reason } : row));
  if (onboarding) return <Onboarding locale={locale} setLocale={setLocale} onDone={() => { setOnboarding(false); setSignedIn(true); navigate('Overview'); }} onSkip={() => { setOnboarding(false); setSignedIn(true); navigate('Overview'); }}/>;
  if (!signedIn) return <SignIn live={live} onSignIn={() => setSignedIn(true)} onCreate={() => setOnboarding(true)} onRecover={() => setOnboarding(true)}/>;
  return <>
-  <PatientShell page={page} navigate={navigate} open={setModal} locale={locale} location={location} visitCount={visits.length + 1}>
-   {page === 'Overview' ? <Dashboard navigate={navigate} book={setBooking} open={setModal} query={query} setQuery={setQuery} visits={visits} location={location}/>
+  <PatientShell page={page} navigate={navigate} open={setModal} locale={locale} location={location} visitCount={rows.filter(row => row.group === 'upcoming').length}>
+   {page === 'Overview' ? <Dashboard navigate={navigate} book={setBooking} open={setModal} query={query} setQuery={setQuery} visits={booked.map(row => row.visit)} location={location} viewVisit={() => setViewing(booked[0]?.id ?? null)}/>
     : page === 'Book a nurse' ? <Services book={setBooking} open={setModal} query={query}/>
-     : page === 'My visits' ? <Visits visits={visits} open={setModal} book={() => navigate('Book a nurse')}/>
+     : page === 'My visits' ? <Visits rows={rows} open={setModal} book={() => navigate('Book a nurse')} manage={manage} view={setViewing}/>
       : page === 'Health Passport' ? <Passport open={setModal}/>
        : page === 'My family' ? <Family members={members} invitations={invitations} onRevoke={id => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i))} open={setModal}/>
         : page === 'Care plans' ? <Plans open={setModal}/>
@@ -77,16 +98,33 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
             : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding(true)} navigate={navigate}/>
              : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
   </PatientShell>
-  {booking && <Modal title="A nurse, at your door." onClose={() => setBooking(null)}><Booking service={booking} onComplete={v => { setVisits([v, ...visits]); setBooking(null); navigate('My visits'); }}/></Modal>}
-  {modal && <Modal title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding(true); }, reopen: (m: string) => setModal(m), locale, setLocale, query, setQuery, location, setLocation, addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut })}</Modal>}
+  {booking && <Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Booking service={booking} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Modal>}
+  {/* Looking at a visit, moving one and standing one down are three screens rather than three
+      sentences in a roadmap dialog. Each one closes by going back to the list it came from, so no
+      branch of this ends on a dialog with nothing behind it. */}
+  {viewing && rowById(viewing) && <Modal surface={SURFACE} title="Your visit" onClose={() => setViewing(null)}>
+   <VisitDetail row={rowById(viewing)!} manage={manage} navigate={p => { navigate(p); setViewing(null); }}/></Modal>}
+  {managing && rowById(managing.id) && <Modal surface={SURFACE} title={managing.action === 'reschedule' ? 'Move this visit' : 'Cancel this visit'} onClose={() => setManaging(null)}>
+   {managing.action === 'reschedule'
+    ? <Reschedule visit={rowById(managing.id)!.visit} onMove={(date, start) => { moveVisit(managing.id, date, start); setManaging(null); navigate('My visits'); }}/>
+    : <CancelVisit visit={rowById(managing.id)!.visit} onCancel={reason => { standDown(managing.id, reason); setManaging(null); navigate('My visits'); }}/>}
+  </Modal>}
+  {modal && <Modal surface={SURFACE} title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding(true); }, reopen: (m: string) => setModal(m), locale, setLocale, query, setQuery, location, setLocation, people: ['Lerato Molefe', 'Nomsa Molefe', 'Thabo Molefe', ...members], addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut })}</Modal>}
  </>;
 }
+/* A dialog is rendered into the browser's top layer rather than inside the shell that opened it, so
+   it cannot inherit the patient surface — it is told. `glass` gives it the same frosted material as
+   the sidebar and the top bar it opened from. */
+const SURFACE = 'patient-surface glass';
 /* Four doors into the same surface: the passport's device tab, the roadmap tile, the connection
    card and the kit's own name. They are one screen because they are one question — where did this
    reading come from — and four copies of it would drift. */
 const isKit = (modal: string) => modal === 'Diagnostic kit' || modal === 'Thuso Kit' || modal === 'Thuso Kit connection';
 function modalTitle(modal: string) {
- if (modal.startsWith('Visit:')) return 'Your visit';
+ if (modal.startsWith('Care plan: ')) return modal.replace('Care plan: ', '');
+ if (modal.startsWith('Family profile: ')) return modal.replace('Family profile: ', '');
+ if (modal === 'Top up wallet') return 'Top up your wallet';
+ if (modal === 'Sponsor care') return 'Sponsor somebody’s care';
  if (modal.startsWith('Prescription ')) return 'Prescription';
  if (modal.startsWith('Laboratory order ')) return 'Laboratory order';
  if (isKit(modal)) return 'Thuso Kit';
@@ -98,10 +136,21 @@ function modalTitle(modal: string) {
  if (modal === 'Switch workspace') return 'MyThuso for clinicians';
  return modal;
 }
-type BodyProps = { modal: string; close: () => void; navigate: (s: string) => void; openOnboarding: () => void; reopen: (s: string) => void; locale: LocaleCode; setLocale: (l: LocaleCode) => void; query: string; setQuery: (q: string) => void; location: string; setLocation: (l: string) => void; addMember: (n: string) => void; addInvitation: (i: Invitation) => void; signOut: () => void };
+type BodyProps = { modal: string; close: () => void; navigate: (s: string) => void; openOnboarding: () => void; reopen: (s: string) => void; locale: LocaleCode; setLocale: (l: LocaleCode) => void; query: string; setQuery: (q: string) => void; location: string; setLocation: (l: string) => void; people: string[]; addMember: (n: string) => void; addInvitation: (i: Invitation) => void; signOut: () => void };
+/* Who each person in the demo household is to the account holder. The family list works this out
+   from a row's position; this dialog is opened by name, so it asks by name. */
+const relationOf = (name: string, people: string[]) =>
+ name === people[0] ? 'You' : name === people[1] ? 'Mother' : name === people[2] ? 'Child · 8 years' : 'Added by you';
 function modalBody(p: BodyProps) {
  const { modal } = p;
- if (modal === 'Notifications') return <Notifications/>;
+ if (modal === 'Notifications') return <Notifications open={p.reopen} navigate={p.navigate}/>;
+ /* Four journeys that used to end in the same dialog: "Connected to your care journey", a paragraph
+    about the roadmap, and a Got it button. Each is a screen now that finishes where a person would
+    expect it to — and none of them claims a capability the contract says is not connected. */
+ if (modal.startsWith('Care plan: ')) return <PlanDetail name={modal.replace('Care plan: ', '')} navigate={p.navigate}/>;
+ if (modal.startsWith('Family profile: ')) { const name = modal.replace('Family profile: ', ''); return <FamilyProfile name={name} relation={relationOf(name, p.people)} navigate={p.navigate} open={p.reopen}/>; }
+ if (modal === 'Top up wallet') return <TopUpWallet navigate={p.navigate}/>;
+ if (modal === 'Sponsor care') return <SponsorCare navigate={p.navigate} people={p.people.slice(1)}/>;
  if (modal === 'Language') return <LanguageChoice locale={p.locale} setLocale={p.setLocale} close={p.close}/>;
  if (modal === 'Invite a guardian') return <InviteGuardian onInvite={p.addInvitation} onClose={p.close}/>;
  if (modal === 'Add a family member') return <FamilyForm onAdd={p.addMember}/>;
@@ -168,13 +217,38 @@ export function LanguageChoice({ locale, setLocale, close }: { locale: LocaleCod
 }
 function FamilyForm({ onAdd }: { onAdd: (n: string) => void }) { const [name, setName] = useState(''); const [relation, setRelation] = useState('Parent'); return <form className="form-stack" onSubmit={e => { e.preventDefault(); if (name.trim()) onAdd(name.trim()); }}><p className="muted">Add a fictional family member to explore the experience.</p><label>Display name<input autoFocus required maxLength={60} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Aunt Thandi"/></label><label>Relationship<select value={relation} onChange={e => setRelation(e.target.value)}><option>Parent</option><option>Child</option><option>Partner</option><option>Other family member</option></select></label><div className="privacy-note"><ShieldCheck size={21}/>Production access will require identity, consent and guardian checks. Adding a person will not unlock their records.</div><button className="primary" disabled={!name.trim()}>Add demo member<ArrowRight size={16}/></button></form> }
 function Sharing() { const [shared, setShared] = useState(false); return <div className="form-stack"><Pill>Sharing preview</Pill><p>Allow a verified care professional to see a limited visit summary for a defined period.</p><label>Recipient<select><option>Dr. A. Dlamini · Demo care team</option></select></label><label>Access expires<select><option>After 24 hours</option><option>After this visit</option></select></label><div className="privacy-note"><ShieldCheck size={20}/>No real link or access token is created.</div><button className={shared ? 'secondary' : 'primary'} onClick={() => setShared(!shared)}>{shared ? <><X size={17}/>Revoke demo access</> : <>Preview limited sharing<ArrowRight size={17}/></>}</button><p role="status" className="muted">{shared ? 'Demo access active. You can revoke it at any time.' : 'No active shares.'}</p></div> }
+/* What is left of the catch-all.
+ *
+ * It used to answer for a visit, a family member, a wallet top-up, a sponsorship and a care plan as
+ * well — five journeys that each ended on the same paragraph about the functionality phase and a Got
+ * it button. All five have their own screen now and none of them reaches this. What still arrives
+ * here is a roadmap module, which is genuinely a description rather than a workflow, and the two
+ * POPIA requests, which are a form. Everything that ends here now ends with somewhere to go. */
 function Detail({ title, close, navigate, signOut }: { title: string; close: () => void; navigate: (s: string) => void; signOut: () => void }) {
  const [done, setDone] = useState(false);
- const visit = title === 'Visit details' || title.startsWith('Visit:');
  const isRequest = title.startsWith('Request');
- /* One notice, from the contract, and chosen by what this dialog is actually about — a visit that
-    nothing books, or a request that reaches nobody. The pill that used to sit here said "Design
-    preview" on all of them, including the ones whose content is real. */
- return <div className="form-stack"><NotConnected of={visit ? 'booking' : isRequest ? 'messaging' : 'accounts'} tone="inline"/>{visit ? <><h3>{title.startsWith('Visit:') ? title.slice(7) : 'Vitals & chronic check'}</h3><p>Sister Naledi Mokoena · Registered nurse</p><div className="review-line"><span>Visit status</span><strong>Confirmed · Demo</strong></div><div className="review-line"><span>Preparation</span><strong>Have your medication list ready</strong></div><p className="muted">Arrival updates, secure messaging and rescheduling will be connected in the functionality phase.</p><button className="primary" onClick={() => navigate('Health Passport')}>View Health Passport<ArrowRight size={17}/></button></> : title === 'Your profile' ? <><div className="profile-summary"><span className="avatar">LM</span><div><h3>Lerato Molefe</h3><p>Fictional patient · Personal account</p></div></div><button className="secondary full" onClick={() => navigate('Privacy & settings')}>Manage privacy & preferences<ArrowRight size={17}/></button><button className="secondary full sign-out" onClick={signOut}><LogOut size={16}/>Log out</button></> : isRequest ? <><p>{title.includes('deletion') ? 'Request account deletion. Some clinical records may need to be retained under an applicable retention schedule.' : 'Ask for inaccurate personal information to be corrected.'}</p><label>Reason (fictional information only)<textarea aria-label="Request reason" placeholder="Describe your request…" maxLength={500}/></label><button className="primary" onClick={() => setDone(true)} disabled={done}>{done ? 'Demo request recorded' : 'Preview request'}</button><p className="helper" role="status">{done ? 'Nothing has been submitted. This previews the acknowledgement state.' : 'Nothing is submitted from here.'}</p></> : <><h3>{detailCopy(title)[0]}</h3><p className="muted">{detailCopy(title)[1]}</p><button className="primary" onClick={close}>Got it<ArrowRight size={16}/></button></>}</div>
+ /* One notice, from the contract, and chosen by what this dialog is actually about — a request that
+    reaches nobody, or an account nothing signs you into. The pill that used to sit here said the
+    same three words on all of them, including the ones whose content is real. */
+ return <div className="form-stack"><NotConnected of={isRequest ? 'messaging' : 'accounts'} tone="inline"/>{title === 'Your profile' ? <><div className="profile-summary"><span className="avatar">LM</span><div><h3>Lerato Molefe</h3><p>Fictional patient · Personal account</p></div></div><button className="secondary full" onClick={() => navigate('Privacy & settings')}>Manage privacy & preferences<ArrowRight size={17}/></button><button className="secondary full sign-out" onClick={signOut}><LogOut size={16}/>Log out</button></> : isRequest ? <><p>{title.includes('deletion') ? 'Request account deletion. Some clinical records may need to be retained under an applicable retention schedule.' : 'Ask for inaccurate personal information to be corrected.'}</p><label>Reason (fictional information only)<textarea aria-label="Request reason" placeholder="Describe your request…" maxLength={500}/></label><button className="primary" onClick={() => setDone(true)} disabled={done}>{done ? 'Request recorded in this tab' : 'Preview request'}</button><p className="helper" role="status">{done ? 'Nothing has been submitted. This previews the acknowledgement state.' : 'Nothing is submitted from here.'}</p></> : <><h3>{detailCopy(title)[0]}</h3><p className="muted">{detailCopy(title)[1]}</p>{/* Even the roadmap has somewhere to go: the module list it came from. */}<div className="button-row"><button className="secondary" onClick={close}>Close</button><button className="primary" onClick={() => navigate('Explore MyThuso')}>See the whole roadmap<ArrowRight size={16}/></button></div></>}</div>
 }
-function detailCopy(t: string): [string, string] { if (t.includes('connection')) return ['Choose what you share', 'Native device permissions will let you select individual reading types and withdraw access. Nothing is connected yet.']; if (t.includes('wallet') || t === 'Sponsor care') return ['Care credits, on your terms', 'Choose an amount, review the recipient and confirm through a regulated payment provider. No financial details are collected in this preview.']; if (t.includes('doctor') || t === 'Teleconsultation' || t === 'Thuso Doctor') return ['A doctor’s expertise, closer to home', 'A registered doctor reviews your case and can join a secure consultation. Scheduling, identity verification and clinical consent will come before any live consultation.']; if (t === 'Contact privacy team') return ['Your privacy contact', 'The Information Officer’s verified contact details and request tracking will be configured before launch.']; if (t.startsWith('Family profile')) return ['Care without crossing boundaries', 'Book and sponsor a visit for your loved one. Their clinical information remains private unless appropriate access is verified.']; if (t.includes('summary') || t.includes('certificate')) return ['Your care document', 'The production record will show the issuing clinician, date, review status and a secure download. This preview contains no real document.']; return ['Connected to your care journey', `${t} is included in the MyThuso feature roadmap. Its dedicated workflow will connect to the relevant clinical, operational or partner services in the functionality phase.`]; }
+/* The last dialog in the patient app, and it used to be pressed twenty-eight times: every roadmap
+   card, every care plan, every family member, the wallet's two actions and the visit controls all
+   arrived at one paragraph about the functionality phase. Twelve of those now have a screen of their
+   own, and what is left is the roadmap itself — where a description is the honest answer.
+   So it stops being generic there too: a module opened from Explore shows *its* sentence and *its*
+   phase, out of the same catalogue the card was drawn from, rather than its name dropped into a
+   template. A planned service does the same from the service catalogue. */
+function detailCopy(t: string): [string, string] {
+ if (t.includes('connection')) return ['Choose what you share', 'Native device permissions will let you select individual reading types and withdraw access. Nothing is connected yet.'];
+ if (t.includes('doctor') || t === 'Teleconsultation' || t === 'Thuso Doctor') return ['A doctor’s expertise, closer to home', 'A registered doctor reviews your case and can join a secure consultation. Scheduling, identity verification and clinical consent will come before any live consultation.'];
+ if (t === 'Contact privacy team') return ['Your privacy contact', 'The Information Officer’s verified contact details and request tracking will be configured before launch.'];
+ if (t.includes('summary') || t.includes('certificate')) return ['Your care document', 'The production record will show the issuing clinician, date, review status and a secure download. This preview contains no real document.'];
+ const module = modules.find(([name]) => name === t);
+ if (module) return [`${module[0]} · ${module[2]}`, `${module[1]} It is a module in the plan rather than a screen you can open today, and it arrives in ${module[2].toLowerCase()}.`];
+ /* "Elderly care · Phase 3" — the planned services carry their phase in the title they are opened
+    with, so the service is found by the half in front of the separator. */
+ const planned = services.find(s => t.startsWith(`${s.name} ·`));
+ if (planned) return [`${planned.name} · Phase ${planned.phase}`, `${planned.description} It is planned at ${money(planned.price)} for ${planned.duration} minutes, and no nurse can be sent for it until phase ${planned.phase}. Everything in the catalogue marked bookable can be booked today.`];
+ return ['On the MyThuso roadmap', `${t} is a module in the plan rather than a screen you can use today. Its workflow connects to the relevant clinical, operational or partner service in the phase it belongs to.`];
+}

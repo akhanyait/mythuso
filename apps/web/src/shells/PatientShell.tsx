@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Activity, ArrowRight, Bell, CalendarDays, ChevronDown, CircleHelp, CreditCard, Globe, HeartHandshake, House, Languages, LayoutGrid, MapPin, MessageCircle, Settings2, Stethoscope, Users } from 'lucide-react';
+import { Activity, Ambulance, ArrowRight, Bell, CalendarDays, ChevronDown, CircleHelp, CreditCard, Globe, HeartHandshake, House, Languages, LayoutGrid, MapPin, MessageCircle, Settings2, Stethoscope, Users } from 'lucide-react';
 import { locales, useT, type LocaleCode } from '../lib/i18n';
 
 /* The patient application's chrome, and only the patient's.
@@ -36,16 +36,23 @@ type Props = {
 
 export function PatientShell({ page, navigate, open, locale, location, visitCount, children }: Props) {
  const t = useT();
- return <div className="app-shell">
+ return <div className="app-shell patient-surface">
+  {/* The luminous ground, behind everything and going nowhere. See surface/patient.css for why it is
+      a pane of its own rather than a background on the shell. */}
+  <div className="patient-ground aurora" aria-hidden="true"/>
   <a href="#main" className="skip-link">{t('shell.skip')}</a>
-  <aside className="sidebar">
+  <aside className="sidebar glass">
    <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/logo.svg" alt="MyThuso — Help. Health. Home."/></a>
    <div className="nav-label">{t('nav.section')}</div>
+   {/* Icon, label, and a circular arrow at the trailing edge — the reference's own navigation shape.
+       The circle is decorative on an inactive row and inverts on the active one, which is what makes
+       where-you-are read as a place rather than as one more thing to press. */}
    <nav aria-label="Main navigation">{navigation.map(([label, Icon]) =>
     <button key={label} aria-current={page === label ? 'page' : undefined} className={page === label ? 'active' : ''} onClick={() => navigate(label)}>
      <Icon size={19} strokeWidth={1.8}/><span>{t(`nav.${label}`)}</span>
      {label === 'My visits' && <span className="nav-count">{visitCount}</span>}
      {label === 'Care plans' && <span className="new-dot"/>}
+     <i aria-hidden="true"><ArrowRight size={16}/></i>
     </button>)}</nav>
    <div className="sidebar-bottom">
     <div className="help-card">
@@ -53,6 +60,16 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
      <h3>A helping hand?</h3><p>We’re here when you need us.</p>
      <button onClick={() => open('How can we help?')}>Let’s talk<ArrowRight size={15}/></button>
     </div>
+    {/* The emergency pathway, in the chrome rather than fourteen cards deep inside a roadmap page.
+        It is a quiet row and not a red button on purpose: the screen it opens leads with 10177 and
+        says in its first line that MyThuso is not an ambulance service, and a shouting control in
+        the shell would contradict that before anybody had read it. What it must be is *findable* —
+        an emergency route that is the hardest thing in the app to reach is not a route.
+
+        It carries its own class rather than `settings-link` because it is not a setting: it sits
+        above them, it is the one row here that is about care rather than about the account, and it
+        is styled to say so. */}
+    <button className="sos-link" onClick={() => open('Emergency & urgent care')}><Ambulance size={18}/>Emergency &amp; urgent care</button>
     <button className="settings-link" onClick={() => open('Language')}><Globe size={18}/>{t('shell.language')}: {locales.find(l => l.code === locale)?.native}</button>
     <button className="settings-link" onClick={() => navigate('Language & access')}><Languages size={18}/>{t('nav.Language & access')}</button>
     <button className="settings-link" onClick={() => navigate('Privacy & settings')}><Settings2 size={18}/>{t('nav.Privacy & settings')}</button>
@@ -60,7 +77,7 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
    </div>
   </aside>
   <div className={`workspace ${page === 'Overview' ? 'is-home' : ''}`}>
-   <header className="topbar">
+   <header className="topbar glass">
     <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/logo.svg" alt="MyThuso — Help. Health. Home."/></a>
     <div className="breadcrumb">{t('shell.breadcrumb')}<span>/</span><strong>{t(`nav.${page}`)}</strong></div>
     <div className="topbar-actions">
@@ -82,7 +99,7 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
     <span>© 2026 MyThuso. {t('shell.tagline')}</span>
     <button onClick={() => open('How can we help?')}><CircleHelp size={14}/>{t('shell.help')}</button>
    </footer>
-   <nav className="tabbar" aria-label="Primary">{tabs.map(([target, label, Icon]) =>
+   <nav className="tabbar glass" aria-label="Primary">{tabs.map(([target, label, Icon]) =>
     <button key={target} aria-current={page === target ? 'page' : undefined} className={page === target ? 'active' : ''} onClick={() => navigate(target)}>
      <span className="tab-icon"><Icon size={21} strokeWidth={1.9}/>{target === 'My visits' && <span className="nav-count">{visitCount}</span>}</span>
      {t(`tab.${label}`)}

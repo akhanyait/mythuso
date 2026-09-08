@@ -161,7 +161,11 @@ export function ThusoSos() {
  const [none, setNone] = useState(false);
  const [rotaId, setRotaId] = useState('usual');
  const [openNow, setOpenNow] = useState(true);
- const [requested, setRequested] = useState(false);
+ /* Which nurse was asked, not merely that somebody was. A boolean here marked every cleared nurse on
+    the rota as "Asked" the moment one of them was — on a screen where the whole question is who is
+    coming, that is the interface telling a frightened person something untrue about who is on their
+    way. */
+ const [requested, setRequested] = useState<string | null>(null);
  const [stoodDown, setStoodDown] = useState<string | null>(null);
  const [unanswered, setUnanswered] = useState(false);
 
@@ -179,11 +183,11 @@ export function ThusoSos() {
  const ready = door?.kind === 'urgent-visit';
 
  const flag = (id: string) => {
-  setNone(false); setRequested(false); setStoodDown(null); setUnanswered(false);
+  setNone(false); setRequested(null); setStoodDown(null); setUnanswered(false);
   setAnswers({ ...answers, flagged: answers.flagged.includes(id) ? answers.flagged.filter(f => f !== id) : [...answers.flagged, id] });
  };
  const pickNone = () => {
-  setRequested(false); setStoodDown(null); setUnanswered(false);
+  setRequested(null); setStoodDown(null); setUnanswered(false);
   setNone(!none); setAnswers({ ...answers, flagged: [] });
  };
 
@@ -215,14 +219,14 @@ export function ThusoSos() {
    <fieldset className="earn-preview-switch sos-switch">
     <legend className="visually-hidden">Which rota is on</legend>
     {Object.entries(rotas).map(([id, r]) => <label key={id} className={rotaId === id ? 'selected' : ''}>
-     <input type="radio" name="sos-rota" checked={rotaId === id} onChange={() => { setRotaId(id); setRequested(false); setStoodDown(null); }}/>
+     <input type="radio" name="sos-rota" checked={rotaId === id} onChange={() => { setRotaId(id); setRequested(null); setStoodDown(null); }}/>
      <span>{r.label}</span></label>)}
     <p className="helper">{rota.note}</p>
    </fieldset>
    <fieldset className="earn-preview-switch sos-switch">
     <legend className="visually-hidden">The time of day</legend>
-    <label className={openNow ? 'selected' : ''}><input type="radio" name="sos-hours" checked={openNow} onChange={() => { setOpenNow(true); setRequested(false); }}/><span>Now · inside the hours</span></label>
-    <label className={!openNow ? 'selected' : ''}><input type="radio" name="sos-hours" checked={!openNow} onChange={() => { setOpenNow(false); setRequested(false); }}/><span>02:10 · outside the hours</span></label>
+    <label className={openNow ? 'selected' : ''}><input type="radio" name="sos-hours" checked={openNow} onChange={() => { setOpenNow(true); setRequested(null); }}/><span>Now · inside the hours</span></label>
+    <label className={!openNow ? 'selected' : ''}><input type="radio" name="sos-hours" checked={!openNow} onChange={() => { setOpenNow(false); setRequested(null); }}/><span>02:10 · outside the hours</span></label>
     <p className="helper">Thuso SOS runs {coverage.hours.days.toLowerCase()} from {coverage.hours.opensAt} to {coverage.hours.closesAt}. {coverage.hours.note}</p>
    </fieldset>
   </>}
@@ -263,7 +267,7 @@ export function ThusoSos() {
       <small>{basisLine(eta)}</small>
       {!decision.allowed && <small className="flagged">{decision.reason}</small>}</span>
      {decision.allowed
-      ? <button className={requested ? 'secondary' : 'primary'} disabled={requested} onClick={() => setRequested(true)}>{requested ? <><Check size={15}/>Asked</> : 'Ask her to come'}</button>
+      ? <button className={requested ? 'secondary' : 'primary'} disabled={requested !== null} onClick={() => setRequested(subject.id)}>{requested === subject.id ? <><Check size={15}/>Asked</> : requested ? 'Somebody else was asked' : 'Ask her to come'}</button>
       : <button className="secondary" disabled aria-label={`Cannot be sent — ${subject.name}. ${decision.reason}`}>Cannot be sent</button>}
     </div>)}
     <p className="helper"><Info size={15}/>{target.arrivalUnknown}</p>

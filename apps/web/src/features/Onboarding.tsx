@@ -28,7 +28,10 @@ export function Onboarding({ locale, setLocale, onDone, onSkip }: Props) {
  const idCheck = validateSaId(idNumber);
  const phoneOk = /^0\d{9}$/.test(phone.replace(/\s/g, ''));
  if (recovering) return <RecoverAccess onBack={() => setRecovering(false)} onDone={onDone}/>;
- return <div className="onboarding">
+ return <div className="onboarding patient-surface">
+  {/* The same luminous ground the shell stands on. Sign-up is the first thing anybody sees of
+      MyThuso, and it should not be the one screen drawn in a different material. */}
+  <div className="patient-ground aurora" aria-hidden="true"/>
   <div className="onboard-panel">
    <img src="/logo.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
    <ol className="onboard-steps" aria-label="Sign-up progress">{steps.map((s, i) => <li key={s} aria-current={i === step ? 'step' : undefined} className={i < step ? 'done' : i === step ? 'current' : ''}><b>{i < step ? <Check size={11}/> : i + 1}</b>{s}</li>)}</ol>
@@ -100,7 +103,10 @@ const routes = [
 function RecoverAccess({ onBack, onDone }: { onBack: () => void; onDone: () => void }) {
  const [route, setRoute] = useState('');
  const [submitted, setSubmitted] = useState(false);
- return <div className="onboarding">
+ return <div className="onboarding patient-surface">
+  {/* The same luminous ground the shell stands on. Sign-up is the first thing anybody sees of
+      MyThuso, and it should not be the one screen drawn in a different material. */}
+  <div className="patient-ground aurora" aria-hidden="true"/>
   <div className="onboard-panel">
    <img src="/logo.svg" alt="MyThuso" className="onboard-brand"/>
    <h2>Getting you back in.</h2>
@@ -159,7 +165,10 @@ export function SignIn({ live, probed = true, onSignIn, onCreate, onRecover }:
   if (!verified.ok) return setError(verified.message);
   onSignIn(verified.person);
  };
- return <div className="onboarding">
+ return <div className="onboarding patient-surface">
+  {/* The same luminous ground the shell stands on. Sign-up is the first thing anybody sees of
+      MyThuso, and it should not be the one screen drawn in a different material. */}
+  <div className="patient-ground aurora" aria-hidden="true"/>
   <div className="onboard-panel">
    <img src="/logo.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
    <h2>Welcome back.</h2>

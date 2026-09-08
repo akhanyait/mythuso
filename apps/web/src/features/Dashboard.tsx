@@ -1,5 +1,6 @@
-import { ArrowRight, ArrowUpRight, CalendarPlus, ChevronDown, ChevronRight, Clock3, MapPin, Plus, Search, ShieldCheck, Stethoscope, Zap } from 'lucide-react';
+import { Ambulance, ArrowRight, ArrowUpRight, CalendarPlus, ChevronDown, ChevronRight, Clock3, MapPin, Plus, Search, ShieldCheck, Stethoscope, Zap } from 'lucide-react';
 import { SectionTitle, Pill, ServiceIcon } from '../components/UI';
+import { Metric, Metrics } from '../surface/Surface';
 import { liveServices, money, type Service } from '../lib/catalog';
 import { labels as scheduling, shortWhenText, visitEnds } from '../lib/scheduling';
 import type { DemoVisit } from './Booking';
@@ -24,13 +25,33 @@ type Props = {
  setQuery: (q: string) => void;
  visits: DemoVisit[];
  location: string;
+ /** Opens the visit this card is about. It used to hand a formatted string to a dialog that then
+     re-derived a visit from it; the visit is the thing, so the visit is what is opened. */
+ viewVisit: () => void;
 };
 
-export function Dashboard({ navigate, book, open, query, setQuery, visits, location }: Props) {
+/* The care plan's next check-in, written down once. It was in the reminder row's sentence and
+   nowhere else, so the figure at the top of the screen and the row half a column below it could not
+   have disagreed — because only one of them existed. Now both read this. */
+const planDueInDays = 9;
+/* The three readings the home leads with, as figures rather than as rows.
+ *
+ * This is the reference's signature and the inversion of what this product did everywhere: a small
+ * label above a heavy number becomes a status chip above a large light one, with the name beneath.
+ * Two of them are values a nurse recorded; the third is a count of days, which is a figure a person
+ * can act on in a way that "your plan is active" is not. The one result that has no number — a full
+ * blood count a doctor has not finished with — stays a row underneath, because a reading that is
+ * still a sentence should not be drawn as though it were a measurement. */
+const leadReadings = [
+ { value: '118/78', unit: 'mmHg', label: 'Blood pressure', chip: 'In range' },
+ { value: '5.4', unit: 'mmol/L', label: 'Blood glucose', chip: 'In range' }
+] as const;
+
+export function Dashboard({ navigate, book, open, query, setQuery, visits, location, viewVisit }: Props) {
  const t = useT();
  const next = visits[0];
  return <div className="home">
-  <header className="home-head">
+  <header className="home-head rise">
    <div>
     <h1>{t('shell.greeting')}</h1>
     <p>{t('shell.greetingSub')}</p>
@@ -53,12 +74,21 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
       fourteen hundred pixels below a greeting that had just asked who the visit was for. The
       appointment is its own area now: top right beside the care column on a wide screen, directly
       under the greeting on a narrow one. */}
+  {/* The figures, directly on the ground rather than inside a card. A metric that sits in a box is a
+      card of numbers; a metric on the ground with a chip floating above it is the thing the founder
+      pointed at, and it is what makes the top of this screen read as calm rather than as busy. */}
+  <Metrics>
+   {leadReadings.map(r => <Metric key={r.label} value={r.value} unit={r.unit} label={r.label} chip={r.chip}/>)}
+   <Metric value={String(planDueInDays)} unit="days" label="Until your next check-in" chip="Chronic Routine"/>
+  </Metrics>
+
   <div className="home-columns">
-   <section className={`home-appointment${next ? '' : ' is-empty'}`}>
+   <section className={`home-appointment rise${next ? '' : ' is-empty'}`}>
     <SectionTitle title={t('shell.nextVisit')} action={t('cta.allVisits')} onClick={() => navigate('My visits')}/>
-    {next ? <button className="visit-card" onClick={() => open(`Visit: ${next.service.name} · ${shortWhenText(next)} · ${next.person} · ${next.address}`)}>
+    {next ? <button className="visit-card glass lead" onClick={viewVisit}>
      <div className="visit-top">
-      <span className="service-icon"><ServiceIcon name={next.service.icon}/></span>
+      {/* The one glow on this screen, behind the one object it is about. Never behind a word. */}
+      <span className="glow"><span className="service-icon"><ServiceIcon name={next.service.icon}/></span></span>
       <div>
        <strong>{next.service.name}</strong>
        <small>{next.kind === 'asap' ? scheduling.asapPending : `${shortWhenText(next)} – ${visitEnds(next)}`}</small>
@@ -74,15 +104,15 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
       <div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div>
       <ChevronRight size={18}/>
      </div>
-    </button> : <div className="panel empty-visit">
-     <span className="tile-icon"><CalendarPlus size={21}/></span>
+    </button> : <div className="panel glass lead empty-visit">
+     <span className="glow"><span className="tile-icon"><CalendarPlus size={21}/></span></span>
      <strong>{scheduling.noUpcoming}</strong>
      <p>{scheduling.noUpcomingDetail}</p>
      <button className="secondary full" onClick={() => navigate('Book a nurse')}>{t('nav.Book a nurse')}<ArrowRight size={16}/></button>
     </div>}
    </section>
 
-   <div className="home-main">
+   <div className="home-main rise-2">
     <form className="search-field" role="search" onSubmit={e => { e.preventDefault(); navigate('Book a nurse'); }}>
      <Search size={19}/>
      <input aria-label="Search for care" placeholder="What care do you need today?" value={query} onChange={e => setQuery(e.target.value)}/>
@@ -114,13 +144,14 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
      </button>)}
     </div>
 
-    <SectionTitle title="Recent results" action={t('cta.passport')} onClick={() => navigate('Health Passport')}/>
+    {/* What is left of the results panel once the two measurements have moved to the top of the
+        screen as figures: the one result that is still a sentence rather than a number. */}
+    <SectionTitle title="Waiting on a doctor" action={t('cta.passport')} onClick={() => navigate('Health Passport')}/>
     <div className="panel result-list">
-     {[['Blood pressure', '118/78 mmHg', 'In range', ''], ['Blood glucose', '5.4 mmol/L', 'In range', ''], ['Full blood count', 'Awaiting doctor review', 'With a doctor', 'amber']].map(([name, value, status, tone]) =>
-      <button className="result-row" key={name} onClick={() => navigate('Health Passport')}>
-       <span><strong>{name}</strong><small>{value}</small></span>
-       <Pill tone={tone}>{status}</Pill>
-      </button>)}
+     <button className="result-row" onClick={() => navigate('Health Passport')}>
+      <span><strong>Full blood count</strong><small>Awaiting doctor review</small></span>
+      <Pill tone="amber">With a doctor</Pill>
+     </button>
     </div>
 
     <section className="promo-card">
@@ -132,11 +163,11 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
     </section>
    </div>
 
-   <aside className="home-side">
+   <aside className="home-side rise-3">
     <SectionTitle title="Care plan" action="Care plans" onClick={() => navigate('Care plans')}/>
     <button className="panel reminder-row" onClick={() => navigate('Care plans')}>
      <span className="tile-icon amber"><Clock3 size={20}/></span>
-     <span><strong>Chronic Routine</strong><small>Monthly check-in · due in 9 days</small></span>
+     <span><strong>Chronic Routine</strong><small>Monthly check-in · due in {planDueInDays} days</small></span>
      <ChevronRight size={17}/>
     </button>
 
@@ -153,6 +184,18 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
     {/* Choosing a family member here opens the family screen, which is where the consent and
         record-access questions are actually answered. Nothing on this card opens a record. */}
     <p className="helper"><ShieldCheck size={14}/>Booking for someone opens their booking, never their record. What you may see is decided in My family.</p>
+
+    {/* One tap from the home, on both viewports. The emergency pathway was reachable only from the
+        fourteenth card inside the roadmap page — the most complete journey in the build behind the
+        most presses in it. It is a quiet row rather than a red button because the screen it opens
+        says, in its first line, that MyThuso is not an ambulance service and that the number to dial
+        is 10177; a shouting control here would argue with that before it was read. */}
+    <SectionTitle title="If something is wrong now"/>
+    <button className="panel reminder-row" onClick={() => open('Emergency & urgent care')}>
+     <span className="tile-icon amber"><Ambulance size={20}/></span>
+     <span><strong>Emergency &amp; urgent care</strong><small>Ambulance numbers first, then what MyThuso can do</small></span>
+     <ChevronRight size={17}/>
+    </button>
    </aside>
   </div>
  </div>;

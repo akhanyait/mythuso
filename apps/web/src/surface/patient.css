@@ -1,0 +1,497 @@
+/* The patient application, in glass.
+ *
+ * The founder asked for something futuristic, luminous and glassy, with motion that settles rather
+ * than snaps. The first attempt took the reference's palette and drew a flat product with it, and he
+ * was right to reject that: what makes the reference recognisable is not its greens, it is depth —
+ * a ground that glows, chrome that floats over it and refracts it, cards that sit *on* the ground
+ * rather than being cut out of it, and one large thin figure per screen with everything else small.
+ *
+ * Three rules decide every declaration below, and they are the reason this is safe on a health
+ * product that computes its own contrast:
+ *
+ *  1. FROSTED IS FOR THINGS THAT FLOAT. The sidebar, the top bar, the tab bar, a dialog and the one
+ *     lead panel per screen are `.glass` — they blur what is behind them because they are in front
+ *     of it. Ordinary cards are not: they take `--glass-floor`, which is the exact opaque colour
+ *     every contrast figure in tokens.json was measured against, so a screen of eleven cards costs
+ *     one backdrop-filter rather than eleven. That matters on the mid-range Android this is for, and
+ *     it is also what the reference actually does — its cards are solid.
+ *
+ *  2. EVERY WORD IS CHARCOAL OR FAINT. tokens.json measures exactly four text pairs against the
+ *     frosted floor and the luminous ground: charcoal and faint, on glassFloor and on the three
+ *     aurora stops. So the patient surface re-points the older neutral ramp at those two rather than
+ *     introducing new colours — `--ink` and `--slate` become charcoal, `--body` becomes faint. Not
+ *     one new value is invented; the sweep is a remapping, which is why the whole app moves at once
+ *     and every ratio underneath it is still one the build computes.
+ *
+ *  3. SAGE IS A FILL. It is a chip, a segment, a tile, a glow. It never carries a word, here or
+ *     anywhere — the darkest of the four measures 2.54:1 and clears nothing.
+ *
+ * Scoped under `.patient-surface` throughout, so nothing here reaches the clinical shells, which do
+ * not load it at all. It is imported last, from main.tsx rather than from a component, because much
+ * of it replaces a rule of equal specificity in styles.css and the cascade has to decide — and the
+ * cascade is decided by import order, which only an entry point controls. */
+
+@import './glass.css';
+
+/* ---- The remapping ----
+   Deep indigo carried this interface. It is a good blue and it is not this language: the reference
+   is charcoal on a pale luminous ground, with colour reserved for state. So indigo becomes charcoal
+   for the interface, and the semantic colours — danger, info, mango — are untouched, because what
+   they mean does not change with the fashion of the chrome. */
+.patient-surface {
+ --ink: var(--charcoal);
+ --slate: var(--charcoal);
+ --body: var(--faint);
+ --line: var(--stone);
+ --canvas: var(--cloud);
+ --indigo: var(--charcoal);
+ --indigo-deep: var(--charcoal);
+ --indigo-soft: var(--pale-sage);
+ --accent-soft: var(--pale-sage);
+ --indigo-wash: transparent;
+ color: var(--charcoal);
+}
+
+/* ---- The ground ----
+   A layer of its own rather than a background on the shell, and the reason is not taste: `.app-shell`
+   already sets a flat `background` shorthand, and a rule that only beats it on source order is a
+   rule that loses whenever a bundler decides to inject this sheet first. A fixed pane behind
+   everything is decided by the DOM instead, which nothing can reorder. It also means the light stays
+   still while the content scrolls over it, which is what makes it read as depth rather than as a
+   very tall gradient. */
+.app-shell.patient-surface { background: transparent; }
+.patient-surface > .patient-ground {
+ position: fixed;
+ inset: 0;
+ z-index: 0;
+ pointer-events: none;
+}
+/* A second pass of the same three stops, larger and offset, so the light has somewhere to travel
+   rather than sitting in three corners. Only the aurora colours and white appear here: the build
+   proves none of the three is darker than --glass-floor-ground, which is what keeps every contrast
+   figure measured against the frosted floor true wherever a panel happens to land. Nothing darker
+   may ever be added to this layer, however good it would look. */
+.patient-surface > .patient-ground::after {
+ content: '';
+ position: absolute;
+ inset: 0;
+ background-image:
+  radial-gradient(42% 38% at 78% 62%, var(--aurora-sage) 0%, transparent 70%),
+  radial-gradient(38% 34% at 22% 78%, var(--aurora-warm) 0%, transparent 72%),
+  radial-gradient(50% 30% at 50% 4%, var(--surface) 0%, transparent 74%);
+}
+.patient-surface .workspace,
+.patient-surface .workspace.is-home,
+.patient-surface .workspace.is-home .topbar,
+.patient-surface main { background: transparent; }
+
+/* ---- Chrome: the three surfaces that float ----
+   Each carries `.glass` from glass.css, so the blur, the tint, the @supports fallback and the
+   reduced-transparency answer are written once. All that is overridden here is geometry: a fixed
+   sidebar and a full-width bar have no corners to round. */
+/* `position` is restated rather than inherited. `.glass` declares `position: relative` so its top-edge
+   highlight has something to sit against, and this sheet is imported last — which quietly turned the
+   fixed sidebar into an in-flow column inside a shell that still reserved 250px for it, and moved the
+   whole application 250px to the right. Geometry that a screen depends on is stated here. */
+.patient-surface .sidebar.glass {
+ position: fixed;
+ border-radius: 0;
+ border-width: 0 1px 0 0;
+ box-shadow: none;
+}
+/* And a bar does not lift when a pointer crosses it. `.glass:hover` is right for a card and wrong for
+   every surface that is chrome — a top bar that rises one pixel under the cursor is a top bar the
+   reader's eye keeps returning to for no reason. */
+.patient-surface .sidebar.glass:hover,
+.patient-surface .topbar.glass:hover,
+.patient-surface .tabbar.glass:hover,
+.modal.patient-surface:hover { transform: none; }
+.patient-surface .topbar.glass {
+ border-radius: 0;
+ border-width: 0 0 1px;
+ box-shadow: none;
+ z-index: 20;
+}
+.patient-surface .tabbar.glass {
+ border-radius: 0;
+ border-width: 1px 0 0;
+ box-shadow: none;
+ gap: var(--space-4);
+}
+/* The top edge highlight belongs on something with a top edge you can see. On a bar pinned to the
+   bottom of the screen it draws a bright line across the middle of nothing. */
+.patient-surface .tabbar.glass::before { display: none; }
+
+/* ---- Cards: a hairline and a lighter fill, never a shadow ----
+   `--glass-floor` rather than white. It is the colour the frosted panels resolve to, so a card and
+   the chrome above it belong to one material, and it is the colour charcoal and faint are measured
+   against — a card that happens to sit under a frosted panel is the same measured case. */
+.patient-surface .panel:not(.glass),
+.patient-surface .shortcut-row:not(.glass),
+.patient-surface .service-card:not(.glass),
+.patient-surface .visit-card:not(.glass),
+.patient-surface .profile-row:not(.glass),
+.patient-surface .menu-list:not(.glass),
+.patient-surface .choice-row:not(.glass),
+.patient-surface .state-block:not(.glass),
+.patient-surface .chart-card:not(.glass),
+.patient-surface .consent-card:not(.glass),
+.patient-surface .privacy-note:not(.glass),
+.patient-surface .context-chip,
+.patient-surface .search-field,
+.patient-surface .search-box {
+ background: var(--glass-floor);
+ border: 1px solid var(--stone);
+ border-radius: var(--r-panel, 18px);
+ box-shadow: none;
+}
+.patient-surface .context-chip,
+.patient-surface .search-field,
+.patient-surface .search-box { border-radius: var(--r-pill); }
+.patient-surface .state-block { border-style: dashed; }
+/* The notice keeps the accent down its leading edge, and a smaller radius so the 3px edge reads as a
+   rule rather than as a bracket around the sentence. */
+.patient-surface .privacy-note,
+.patient-surface .not-connected,
+.patient-surface .empty-note { border-radius: var(--r-control); }
+
+/* A card lifts on hover rather than gaining a shadow. One transform, the system's own curve, and
+   nothing that changes the box — a card that grows on hover moves the row underneath it. */
+.patient-surface .shortcut-row,
+.patient-surface .service-card,
+.patient-surface .visit-card,
+.patient-surface .profile-row,
+.patient-surface .choice-row {
+ transition: transform var(--t-settle) var(--ease-soft), border-color var(--t-settle) var(--ease-soft), background-color var(--t-settle) var(--ease-soft);
+}
+.patient-surface .shortcut-row:hover,
+.patient-surface .service-card:hover,
+.patient-surface .visit-card:hover,
+.patient-surface .profile-row:hover {
+ transform: translate3d(0, -2px, 0);
+ border-color: var(--sage-slate);
+ box-shadow: none;
+ translate: none;
+}
+.patient-surface .result-row:hover { background: var(--pale-sage); }
+/* Three actions on a visit, and at 320px they wrap rather than squeezing under the 44px floor. */
+.patient-surface .visit-actions { flex-wrap: wrap; }
+.patient-surface .visit-actions > * { flex: 1 1 120px; }
+.patient-surface .choice-row.selected { border-color: var(--charcoal); background: var(--pale-sage); }
+.patient-surface .add-member { background: transparent; border-style: dashed; border-color: var(--sage-slate); }
+/* The one plan a screen leads with keeps its sage ground. The card recipe above is deliberately
+   greedy — it has to reach thirty call sites — so the two cards that are meant to be tinted say so
+   after it. */
+.patient-surface .plan-card.featured,
+.patient-surface .module-card.highlight { background: var(--pale-sage); border-color: transparent; }
+
+/* ---- The one panel a screen is about ----
+   Frosted and more opaque than the ground, with a soft luminance behind whatever the screen is
+   actually about. The instinct with glass is to make the important thing more transparent; the
+   opposite is right — the thing you are meant to read first should be the most solid thing there. */
+.patient-surface .glass.lead { border-radius: var(--r-panel, 18px); }
+.patient-surface .lead-head { display: flex; align-items: center; gap: var(--space-12); }
+.patient-surface .lead-head > div { flex: 1; min-width: 0; }
+/* The glow sits behind the icon, never behind a word: a glow under text is a background nobody can
+   measure, and every ratio in this product is measured. It wraps the tile, so it has to be a box the
+   size of the tile — an inline span would give the blur a line-height to spread across. */
+.patient-surface .glow { display: inline-flex; flex: 0 0 auto; }
+/* The shared rule paints the glow at z-index -1, which is correct on the page ground and invisible
+   inside a panel — a negative layer goes behind the panel's own background. Here it sits between the
+   panel and the object, which is the same effect and the only one that survives being put in a card. */
+.patient-surface .glow::after { z-index: 0; }
+.patient-surface .glow > .service-icon,
+.patient-surface .glow > .tile-icon { position: relative; z-index: 1; }
+
+/* ---- Navigation: a pill row with a trailing circle ----
+   The reference's clearest single shape, and the one thing that stops a sidebar reading as a list of
+   links. Inactive rows sit on a faint chip; the active row is a filled charcoal pill whose trailing
+   circle inverts, so where you are looks like a place rather than another thing to press. */
+@media (min-width: 1000px) {
+ .patient-surface .sidebar nav { gap: var(--space-8); }
+ .patient-surface .sidebar nav button {
+  min-height: 48px;
+  padding: 0 6px 0 16px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  color: var(--charcoal);
+  font-size: 14px;
+  font-weight: 500;
+ }
+ .patient-surface .sidebar nav button:hover { background: var(--surface); }
+ .patient-surface .sidebar nav button.active { background: var(--charcoal); color: var(--surface); font-weight: 500; }
+ .patient-surface .sidebar nav button > i {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: var(--r-pill);
+  color: var(--faint);
+ }
+ .patient-surface .sidebar nav button.active > i { background: var(--surface); color: var(--charcoal); }
+ .patient-surface .sidebar nav button.active .nav-count { background: var(--surface); color: var(--charcoal); }
+ .patient-surface .nav-count { background: var(--charcoal); color: var(--surface); }
+ /* The emergency row. Built like a settings link and marked apart from them by a hairline above and
+    the mango tile the app already uses for something that is due — restrained, because the screen it
+    opens is the one that is allowed to be loud. */
+ .patient-surface .sos-link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: var(--space-4);
+  padding: 11px 16px;
+  border-radius: var(--r-pill);
+  background: var(--mango-soft);
+  color: var(--mango-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+ }
+ .patient-surface .sos-link:hover { background: var(--mango-soft); border-color: var(--mango-ink); }
+ .patient-surface .sos-link:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
+ .patient-surface .settings-link { border-radius: var(--r-pill); padding-left: 16px; }
+ .patient-surface .settings-link:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+ .patient-surface .help-card {
+  background: var(--pale-sage);
+  border-radius: var(--r-panel, 18px);
+ }
+ .patient-surface .help-symbol { background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--charcoal); }
+ .patient-surface .sidebar .profile { border-top-color: var(--stone); }
+}
+
+/* ---- The top bar a person searches from ----
+   Circular icon buttons with a hairline and no fill, and a location control that is a pill. Both are
+   the reference's, and both are what a bar looks like when the chrome behind it is already doing the
+   work of separating itself from the page. */
+.patient-surface .icon-button,
+.patient-surface .topbar .avatar.small {
+ background: color-mix(in srgb, var(--surface) 65%, transparent);
+ border: 1px solid var(--stone);
+ box-shadow: none;
+ color: var(--charcoal);
+}
+.patient-surface .location-button {
+ background: color-mix(in srgb, var(--surface) 65%, transparent);
+ border: 1px solid var(--stone);
+ box-shadow: none;
+ color: var(--charcoal);
+}
+.patient-surface .location-button > svg:first-child { color: var(--charcoal); }
+.patient-surface .demo-pill {
+ background: color-mix(in srgb, var(--surface) 70%, transparent);
+ border: 1px solid var(--stone);
+ color: var(--charcoal);
+ box-shadow: none;
+}
+.patient-surface .breadcrumb strong { color: var(--charcoal); }
+
+/* ---- The tab bar ---- */
+.patient-surface .tabbar button { color: var(--faint); }
+.patient-surface .tabbar button.active { color: var(--charcoal); }
+.patient-surface .tabbar button.active .tab-icon { background: var(--charcoal); color: var(--surface); }
+
+/* ---- What the sweep is not allowed to repaint ----
+ *
+ * The card and chip rules above are deliberately greedy, and greedy plus last-in-the-cascade is how
+ * a restyle quietly flattens meaning: a sage chip on `.pill` also lands on `.pill.amber`, and every
+ * status in the product becomes the same colour. It did, for one build — "Pending", "Cancelled",
+ * "With a doctor" and "Confirmed" were four identical sage lozenges, and the error and
+ * permission-denied blocks lost the tint that says something has gone wrong.
+ *
+ * So the semantic colours are restated after the sweep, at a specificity it cannot beat. They are
+ * the same tokens they always were, measured in the same pairs. Colour is still never the only
+ * difference between two states — every one of these carries its own word — but a state a reader can
+ * also see is a state they read in half the time. */
+.patient-surface .pill.amber { background: var(--mango-soft); color: var(--mango-ink); }
+.patient-surface .pill.sky { background: var(--info-soft); color: var(--info); }
+.patient-surface .pill.danger { background: var(--danger-soft); color: var(--danger); }
+.patient-surface .tile-icon.amber { background: var(--mango-soft); color: var(--mango-ink); }
+.patient-surface .menu-list.danger .tile-icon { background: var(--danger-soft); color: var(--danger); }
+.patient-surface .avatar.peach { background: var(--mango-soft); color: var(--mango-ink); }
+.patient-surface .avatar.blue { background: var(--info-soft); color: var(--info); }
+.patient-surface .state-block.error { background: var(--danger-soft); border-color: var(--danger); border-style: solid; }
+.patient-surface .state-block.denied { background: var(--mango-soft); border-color: var(--mango-ink); }
+.patient-surface .state-block.offline { border-color: var(--info); }
+.patient-surface .privacy-note.alert { background: var(--mango-soft); border-color: var(--mango-ink); color: var(--mango-ink); }
+.patient-surface .consent-blocked { border-radius: var(--r-control); }
+.patient-surface .field-error { border-color: var(--danger); background: var(--danger-soft); }
+.patient-surface .chart-flag.watch { background: var(--mango-soft); border-color: var(--mango-ink); color: var(--mango-ink); }
+
+/* ---- Chips, tiles and fills: where sage lives ---- */
+.patient-surface .service-icon,
+.patient-surface .tile-icon { background: var(--pale-sage); color: var(--charcoal); }
+.patient-surface .pill { background: var(--pale-sage); color: var(--charcoal); }
+.patient-surface .pill.plain { background: none; color: var(--faint); }
+/* On the charcoal panels a pill's word is white. Sage is a fill and never a label, and that rule
+   does not stop applying because the ground got darker. */
+.patient-surface .pill.light { color: var(--surface); }
+.patient-surface .avatar { background: var(--pale-sage); color: var(--charcoal); }
+.patient-surface .date-block { background: var(--cloud); border-color: var(--stone); }
+.patient-surface .date-chip { background: var(--glass-floor); border-color: var(--stone); }
+.patient-surface .date-chip.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+.patient-surface .date-chip.selected strong,
+.patient-surface .date-chip.selected span { color: var(--surface); }
+.patient-surface .time-chip { background: var(--glass-floor); border-color: var(--stone); border-radius: var(--r-pill); }
+.patient-surface .time-chip.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+.patient-surface .tabs > button { background: var(--glass-floor); border-color: var(--stone); }
+.patient-surface .tabs > button.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+.patient-surface .stepper b { background: var(--cloud); color: var(--charcoal); }
+.patient-surface .stepper .current b { background: var(--charcoal); color: var(--surface); }
+/* Off is the lighter track and on is charcoal, and the knob moves — a switch told apart by two dark
+   greys is a switch half the readers of this app cannot read. */
+.patient-surface .switch::before { background: var(--stone); }
+.patient-surface .switch.on::before { background: var(--charcoal); }
+.patient-surface .empty-note { background: var(--cloud); color: var(--charcoal); }
+.patient-surface .not-connected { background: var(--cloud); border-color: var(--stone); border-left-color: var(--charcoal); color: var(--faint); }
+.patient-surface .not-connected > svg { color: var(--charcoal); }
+
+/* ---- Buttons ----
+   Fully round, as the reference draws them, and charcoal rather than indigo. A secondary is the same
+   pill with a hairline instead of a fill, so the two read as one family at two weights. */
+.patient-surface .primary,
+.patient-surface .secondary,
+.patient-surface .ghost,
+.patient-surface a.primary { border-radius: var(--r-pill); }
+.patient-surface .primary { background: var(--charcoal); color: var(--surface); }
+.patient-surface .primary:hover:not(:disabled) { background: var(--charcoal); }
+.patient-surface .secondary {
+ background: color-mix(in srgb, var(--surface) 70%, transparent);
+ border-color: var(--stone);
+ color: var(--charcoal);
+}
+.patient-surface .secondary:hover:not(:disabled) { background: var(--surface); border-color: var(--sage-slate); }
+.patient-surface .text-button { color: var(--charcoal); }
+.patient-surface .eyebrow { color: var(--faint); }
+.patient-surface .underline-tabs > button.selected { color: var(--charcoal); }
+.patient-surface .underline-tabs > button.selected:after { background: var(--charcoal); }
+.patient-surface .sign-out { color: var(--danger); border-color: var(--danger); }
+
+/* ---- The dark panels ----
+   A charcoal ground rather than an indigo one, and everything on it is white. Sage is a fill and
+   never a label, and that rule does not stop applying because the ground got darker. */
+.patient-surface .promo-dark,
+.patient-surface .passport-hero,
+.patient-surface .wallet-hero {
+ background: linear-gradient(140deg, var(--charcoal), color-mix(in srgb, var(--charcoal) 78%, var(--sage-slate)));
+ border-radius: var(--r-panel, 18px);
+}
+.patient-surface .promo-dark p,
+.patient-surface .passport-hero p,
+.patient-surface .passport-hero dt,
+.patient-surface .wallet-hero > span { color: var(--surface); }
+.patient-surface .promo-dark button { background: var(--surface); color: var(--charcoal); }
+.patient-surface .wallet-hero .secondary { background: color-mix(in srgb, var(--surface) 16%, transparent); border-color: color-mix(in srgb, var(--surface) 34%, transparent); color: var(--surface); }
+.patient-surface .promo-card { background: var(--pale-sage); border-color: transparent; border-radius: var(--r-panel, 18px); }
+
+/* ---- The four steps of joining something you cannot join yet ----
+   A numbered list whose numbers are drawn rather than counted, because the marker has to be a filled
+   circle beside the line rather than a digit hanging outside it. The list keeps `<ol>` so the order
+   is real to a screen reader; only the marker is ours. */
+.patient-surface .plan-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-12); }
+.patient-surface .plan-steps li { display: flex; gap: var(--space-12); align-items: flex-start; font-size: 14px; line-height: 1.5; color: var(--charcoal); }
+.patient-surface .plan-steps b {
+ display: grid;
+ place-items: center;
+ flex: 0 0 auto;
+ width: 26px;
+ height: 26px;
+ border-radius: var(--r-pill);
+ background: var(--pale-sage);
+ color: var(--charcoal);
+ font-size: 13px;
+ font-weight: 600;
+}
+
+/* ---- A figure, set large and thin ----
+   The reference's signature and the inversion of what this product did everywhere: a small label
+   above a bold number. `Metric` in surface/Surface.tsx draws it — this only gives the row the space
+   it needs on the patient's ground, where it sits directly on the aurora rather than in a card. */
+/* Wider columns than the shared default. "118/78" is the longest figure in this product and at 40px
+   it needs about a hundred and fifty pixels before it starts sitting on the unit beside it. Below
+   600px the figure drops a step of the type scale instead of the column getting narrower, because a
+   number that wraps is not a number anybody can read. */
+.patient-surface .s-metrics { padding: var(--space-8) 0 var(--space-16); grid-template-columns: repeat(auto-fit, minmax(152px, 1fr)); }
+@media (max-width: 600px) { .patient-surface .s-metric-value { font-size: 32px; } }
+.patient-surface .s-metric-chip { background: var(--glass-floor); border-color: var(--stone); }
+.patient-surface .s-metric-value { color: var(--charcoal); }
+.patient-surface .s-metric-label { color: var(--faint); }
+
+/* A balance, on the dark panel, in the same shape. It is money rather than a reading, so the amount
+   leads with its unit — R 500, never 500 R. */
+.patient-surface .wallet-figure { display: flex; align-items: baseline; gap: var(--space-8); margin-top: var(--space-8); }
+.patient-surface .wallet-figure strong {
+ font-family: var(--font-display);
+ font-size: 40px;
+ font-weight: 400;
+ letter-spacing: -1.5px;
+ line-height: 1.05;
+ color: var(--surface);
+ font-variant-numeric: tabular-nums;
+}
+.patient-surface .wallet-figure small { font-size: 16px; color: var(--surface); }
+@media (min-width: 900px) { .patient-surface .wallet-figure strong { font-size: 48px; } }
+
+/* ---- A dialog, frosted ----
+   It sits outside the shell in the DOM, so it carries `patient-surface` itself rather than
+   inheriting it, and `.glass` gives it the same material as the chrome it opened from. */
+.modal.patient-surface {
+ border-radius: var(--r-panel, 18px) var(--r-panel, 18px) 0 0;
+ border: 1px solid var(--stone);
+ color: var(--charcoal);
+}
+.modal.patient-surface::backdrop { background: color-mix(in srgb, var(--charcoal) 34%, transparent); }
+@media (min-width: 700px) {
+ .modal.patient-surface { border-radius: var(--r-panel, 18px); margin: auto; }
+}
+
+/* ---- Onboarding, on the same ground ---- */
+.onboarding.patient-surface { background: transparent; position: relative; }
+.patient-surface > .onboard-panel,
+.patient-surface > .onboard-form { position: relative; z-index: 1; }
+.patient-surface .onboard-panel { background: color-mix(in srgb, var(--surface) 55%, transparent); }
+.patient-surface .onboard-panel h2 { color: var(--charcoal); }
+.patient-surface .onboard-note { background: var(--glass-floor); border-radius: var(--r-panel, 18px); }
+/* The progress rail is already charcoal: `--indigo` is remapped at the top of this file, so the bar
+   on a phone and the numbered circle on a desktop both move with it. Only the completed step needs a
+   colour of its own — it was teal, which is an accent this surface does not use. Nothing else here
+   touches `li`, because at desktop that same element stops being a 4px bar and becomes a row of
+   text, and a background set for the bar swallows the label. */
+.patient-surface .onboard-steps li.done b { background: var(--sage-slate); color: var(--charcoal); }
+.patient-surface .onboard-steps li { color: var(--faint); }
+.patient-surface .onboard-steps li.current { color: var(--charcoal); }
+.patient-surface .locale-choice label.selected { border-color: var(--charcoal); background: var(--pale-sage); }
+.patient-surface .success-icon { background: var(--pale-sage); color: var(--charcoal); }
+
+/* ---- Charts: a soft sage fill fading to nothing ----
+   No gridlines shouting and no axis furniture. The band that marks a reference range is the palest
+   of the four sages, the curve is charcoal, and the value that matters is a filled dot. */
+.patient-surface .chart-area { fill: var(--soft-sage); opacity: .55; }
+.patient-surface .chart-line { stroke: var(--charcoal); }
+.patient-surface .chart-band { fill: var(--pale-sage); opacity: .5; }
+.patient-surface .chart-dot { fill: var(--charcoal); }
+.patient-surface .chart-flag { background: var(--glass-floor); border: 1px solid var(--stone); color: var(--charcoal); }
+
+/* ---- Entrance ----
+   `.rise` and its two delayed siblings come from glass.css. They are put on the blocks a person is
+   actually waiting for — the greeting, the appointment, the care column — and on nothing else. A
+   screen where everything animates is a screen nobody can read, and every one of them is inert under
+   prefers-reduced-motion. */
+.patient-surface .home-columns > * { min-width: 0; }
+/* Every screen opens the same way: the heading arrives, then the thing the screen is about, a
+   sixteenth of a second behind it. Two elements, not twenty — a screen where everything animates is
+   a screen nobody can read, and the second one is late only so the eye has an order to follow. The
+   keyframes and the curve are glass.css's, so this is the same movement as the home's, and both are
+   finite: nothing on this surface runs forever. */
+.patient-surface main > .page-intro,
+.patient-surface main > * > .page-intro { animation: rise var(--t-enter) var(--ease-soft) both; }
+.patient-surface main > .passport-hero,
+.patient-surface main > .underline-tabs { animation: rise var(--t-enter) var(--ease-soft) 60ms both; }
+@media (prefers-reduced-motion: reduce) {
+ .patient-surface main > .page-intro,
+ .patient-surface main > * > .page-intro,
+ .patient-surface main > .passport-hero,
+ .patient-surface main > .underline-tabs { animation: none; }
+}

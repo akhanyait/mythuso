@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, ArrowRight, ArrowUpRight, Bell, Bluetooth, Check, ChevronRight, CircleHelp, ClipboardPlus, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, PenLine, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, Users, UserPlus, Wallet, Zap } from 'lucide-react';
+import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, CalendarClock, Check, ChevronRight, CircleHelp, ClipboardPlus, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, PenLine, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, Users, UserPlus, Wallet, Zap } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
@@ -9,8 +9,9 @@ import { HeroCarousel } from '../components/HeroCarousel';
 import { FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
 import type { DemoVisit } from './Booking';
-import { endTime, isoIn, labels as schedulingLabels, longDateOf, shortDateOf, shortWhenText, visitEnds, weekdayOf } from '../lib/scheduling';
+import { endTime, isoIn, labels as schedulingLabels, longDateOf, shortDateOf, visitEnds, weekdayOf } from '../lib/scheduling';
 import { holdStatus } from '../lib/interpreting';
+import { activity as walletActivity, balance as walletBalance, topUpAmounts } from '../lib/wallet';
 /* One service, one card, one symbol.
  *
  * Each card used to carry the service's icon twice — once in a tinted tile at the top left and
@@ -59,34 +60,45 @@ export function Services({book,open,query=''}:{book:(s:Service)=>void;open:(s:st
  </>}
 /* A row is built from a visit, not typed beside one. The date block and the time both come from
    the same ISO date and start, so the weekday shown can never disagree with the day it names —
-   which it did, in three different places, before this. */
-type VisitRow={visit:DemoVisit;status:string;tone:string};
-const sample=(service:Service,person:string,address:string,dayOffset:number,start:string,status:string,tone:string):VisitRow=>({
+   which it did, in three different places, before this.
+ *
+ * The rows used to be built inside this component, which meant a visit could be looked at and never
+ * changed: reschedule opened a dialog about the roadmap and there was no cancel at all. They live in
+ * App.tsx now, so moving one moves it and standing one down moves it into Cancelled with its reason
+ * — the journey finishes rather than stopping at the first screen that could act. */
+export type VisitGroup='upcoming'|'past'|'cancelled';
+export type VisitRow={id:string;visit:DemoVisit;status:string;tone:string;group:VisitGroup;reason?:string;booked?:boolean};
+export type VisitAction='reschedule'|'cancel';
+const sample=(id:string,service:Service,person:string,address:string,dayOffset:number,start:string,status:string,tone:string,group:VisitGroup,reason?:string):VisitRow=>({
+ id,group,reason,
  visit:{service,person,address,kind:'scheduled',payment:'Card',status:'Confirmed',
   date:isoIn(new Date(Date.now()+dayOffset*86_400_000)),start},
  status,tone});
-export function Visits({visits,open,book}:{visits:DemoVisit[];open:(s:string)=>void;book:()=>void}) {
+/* A held visit is not a confirmed one and does not read like one here either: it carries the
+   contract's own word and the amber tone the pending states use. */
+export const rowFor=(visit:DemoVisit,id:string):VisitRow=>
+ ({id,visit,status:visit.status,tone:visit.status===holdStatus||visit.kind==='asap'?'amber':'',group:'upcoming',booked:true});
+export const sampleVisitRows=():VisitRow[]=>[
+ sample('VIS-0051',services[0],'Lerato Molefe','Home visit · Sandton',5,'09:00','Confirmed','','upcoming'),
+ sample('VIS-0052',services[1],'Lerato Molefe','Home visit · Sandton',17,'10:00','Pending','amber','upcoming'),
+ sample('VIS-0053',services[2],'Thabo Molefe','Home visit · Rivonia',29,'14:00','Scheduled','sky','upcoming'),
+ sample('VIS-0044',services[1],'Lerato Molefe','Home visit · Sandton',-3,'10:00','Completed','','past'),
+ sample('VIS-0039',services[3],'Nomsa Molefe','Home visit · Soweto',-12,'08:00','Cancelled','amber','cancelled','I no longer need this visit')
+];
+export function Visits({rows:all,book,manage,view}:{rows:VisitRow[];open:(s:string)=>void;book:()=>void;manage:(id:string,action:VisitAction)=>void;view:(id:string)=>void}) {
  const [tab,setTab]=useState('Upcoming');
  /* The only one of the five states anything on this screen can honestly be in today. Nothing
     fetches a visit list yet, so error and permission-denied would be a picker wearing a hat; the
     phone knows whether it has a signal without asking anybody. */
  const state:LoadState=useOffline()?'offline':'ready';
- /* What the person actually booked comes first, in the order they booked it. */
- /* A held visit is not a confirmed one and does not read like one here either: it carries the
-    contract's own word and the amber tone the pending states use. */
- const upcoming:VisitRow[]=[...visits.map(v=>({visit:v,status:v.status,tone:v.status===holdStatus||v.kind==='asap'?'amber':''})),
-  sample(services[0],'Lerato Molefe','Home visit · Sandton',5,'09:00','Confirmed',''),
-  sample(services[1],'Lerato Molefe','Home visit · Sandton',17,'10:00','Pending','amber'),
-  sample(services[2],'Thabo Molefe','Home visit · Rivonia',29,'14:00','Scheduled','sky')];
- const past:VisitRow[]=[sample(services[1],'Lerato Molefe','Home visit · Sandton',-3,'10:00','Completed','')];
- const cancelled:VisitRow[]=[sample(services[3],'Nomsa Molefe','Home visit · Soweto',-12,'08:00','Cancelled','amber')];
- const rows=tab==='Upcoming'?upcoming:tab==='Past'?past:cancelled;
+ const group:VisitGroup=tab==='Upcoming'?'upcoming':tab==='Past'?'past':'cancelled';
+ const rows=all.filter(r=>r.group===group);
  return <>
   <div className="page-intro"><h1>Your visits</h1></div>
   <div className="underline-tabs" role="group" aria-label="Visit status">{['Upcoming','Past','Cancelled'].map(t=><button key={t} className={tab===t?'selected':''} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t}</button>)}</div>
   <NotConnected of="booking"/>
   <StateBlock state={state} subject="Your visit list" permission="notifications">
-   {rows.length?<div className="form-stack">{rows.map(({visit:v,status,tone},i)=><div className="panel" key={i}>
+   {rows.length?<div className="form-stack">{rows.map(({id,visit:v,status,tone,reason},i)=><div className={`panel${i===0&&group==='upcoming'?' glass lead':''}`} key={id}>
     <div className="visit-row">
      {v.date?<span className="date-block"><span>{weekdayOf(v.date)}</span><strong>{shortDateOf(v.date).split(' ')[0]}</strong><span>{shortDateOf(v.date).split(' ')[1]}</span></span>
       :<span className="date-block asap"><Zap size={17}/><span>Now</span></span>}
@@ -94,14 +106,30 @@ export function Visits({visits,open,book}:{visits:DemoVisit[];open:(s:string)=>v
       <div><h3>{v.service.name}</h3><Pill tone={tone}>{status}</Pill></div>
       <div className="visit-meta"><Clock3 size={14}/>{v.start?`${v.start} – ${visitEnds(v)}`:schedulingLabels.asapPending}</div>
       <div className="visit-meta"><MapPin size={14}/>{v.address} · {v.person}</div>
+      {reason&&<div className="visit-meta"><Ban size={14}/>{reason}</div>}
      </div>
     </div>
-    {i===0&&tab==='Upcoming'&&<>
-     <div className="nurse-row"><span className="avatar nurse-avatar">SN</span><div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div></div>
-     <div className="visit-actions"><button className="secondary" onClick={()=>open('Reschedule visit')}>Reschedule</button><button className="primary" onClick={()=>open(`Visit: ${v.service.name} · ${shortWhenText(v)} · ${v.person} · ${v.address}`)}>View details</button></div>
+    {/* Every upcoming visit can be moved or stood down, not only the first one. The actions used to
+        sit on row one alone, so a person looking at the visit they actually wanted to change was
+        shown a card with nothing on it they could press. */}
+    {group==='upcoming'&&<>
+     {i===0&&<div className="nurse-row"><span className="avatar nurse-avatar">SN</span><div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div></div>}
+     <div className="visit-actions">
+      <button className="secondary" onClick={()=>manage(id,'reschedule')}>Reschedule</button>
+      <button className="secondary" onClick={()=>manage(id,'cancel')}>Cancel</button>
+      <button className="primary" onClick={()=>view(id)}>View details</button>
+     </div>
     </>}
+    {group==='past'&&<div className="visit-actions">
+     <button className="secondary" onClick={()=>view(id)}>View details</button>
+     <button className="primary" onClick={book}>Book this again</button>
+    </div>}
+    {group==='cancelled'&&<div className="visit-actions">
+     <button className="secondary" onClick={()=>view(id)}>View details</button>
+     <button className="primary" onClick={book}>Book another visit</button>
+    </div>}
    </div>)}</div>
-   :<EmptyState title={`No ${tab.toLowerCase()} visits`} body={tab==='Cancelled'?'Visits you cancel appear here with the reason and any refund.':'When you book a visit it appears here, with the nurse’s name and what to have ready.'} action="Book a nurse" onAction={book}/>}
+   :<EmptyState title={`No ${tab.toLowerCase()} visits`} body={tab==='Cancelled'?'A visit you cancel stays here with the reason you gave, rather than disappearing.':'When you book a visit it appears here, with the nurse’s name and what to have ready.'} action="Book a nurse" onAction={book}/>}
   </StateBlock>
   {/* Not under a failure. A banner selling another visit, directly beneath "we couldn't load this
       just now", is the app talking over the person it has just let down. It belongs to the state
@@ -114,6 +142,33 @@ export function Visits({visits,open,book}:{visits:DemoVisit[];open:(s:string)=>v
   </section>}
  </>}
 export function PageHeading({eyebrow,title,description}:{eyebrow:string;title:string;description:string}) {return <div className="page-intro"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div></div>;}
+/* One visit, opened.
+ *
+ * This dialog used to be a fixed sentence — "Vitals & chronic check", Sister Naledi, "arrival
+ * updates, secure messaging and rescheduling will be connected in the functionality phase" — printed
+ * over whatever visit you had actually pressed, with one button that went to the Health Passport. It
+ * is the visit now, and the two things a person opens a visit to do are on it. */
+const toBring=['Your identity document, so the nurse can confirm the right patient at the door','Every medicine you are taking, boxes and all','A chair and a light in a room you can close'] as const;
+export function VisitDetail({row,manage,navigate}:{row:VisitRow;manage:(id:string,action:VisitAction)=>void;navigate:(s:string)=>void}){
+ const {visit:v,status,tone,group,reason}=row;
+ return <div className="form-stack">
+  <NotConnected of="booking"/>
+  <div className="booking-summary"><span className="service-icon"><ServiceIcon name={v.service.icon}/></span><div><h3>{v.service.name}</h3><p>{v.service.duration} min · Registered nurse</p></div><strong>{money(v.service.price)}</strong></div>
+  <div className="review-line"><span>Reference</span><strong>{row.id}</strong></div>
+  <div className="review-line"><span><Clock3 size={15}/> When</span><strong>{v.date&&v.start?`${longDateOf(v.date)} · ${v.start} – ${endTime(v.start,v.service.duration)}`:schedulingLabels.asapPending}</strong></div>
+  <div className="review-line"><span><MapPin size={15}/> Where</span><strong>{v.address}</strong></div>
+  <div className="review-line"><span>Patient</span><strong>{v.person}</strong></div>
+  <div className="review-line"><span>Status</span><strong><Pill tone={tone}>{status}</Pill></strong></div>
+  {reason&&<div className="review-line"><span>Reason given</span><strong>{reason}</strong></div>}
+  <div className="nurse-row"><span className="avatar nurse-avatar">SN</span><div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div></div>
+  <SectionTitle title="Have this ready"/>
+  <div className="panel">{toBring.map(line=><div className="record-row static" key={line}><span className="service-icon"><Check size={20}/></span><span><strong>{line}</strong></span></div>)}</div>
+  {group==='upcoming'
+   ?<div className="button-row"><button className="secondary" onClick={()=>manage(row.id,'reschedule')}><CalendarClock size={16}/>Reschedule</button><button className="secondary" onClick={()=>manage(row.id,'cancel')}><Ban size={16}/>Cancel</button></div>
+   :<p className="helper">A {group} visit cannot be moved or cancelled. Book another one from My visits.</p>}
+  <button className="primary full" onClick={()=>navigate('Health Passport')}>Open my Health Passport<ArrowRight size={17}/></button>
+ </div>;
+}
 export function Passport({open}:{open:(s:string)=>void}) {
  const [tab,setTab]=useState('Overview');
  const [deviceState,setDeviceState]=useState<LoadState>('denied');
@@ -208,13 +263,55 @@ export function Family({open,members,invitations,onRevoke}:{open:(s:string)=>voi
    marks it without promising it. One column on a phone — at two-up the names wrapped to two lines
    and the buttons landed at five different heights. */
 const plans=[['Chronic Routine','199','Monthly check-ins, doctor review and adherence support.'],['Family Planning Plan','99','Scheduled injection visits and discreet reminders.'],['Thuso Mom','249','Support through pregnancy and baby’s first year.'],['Thuso Senior','699','Weekly visits, medication support and family reports.'],['Thuso Recover','Custom','A personal care plan for your recovery at home.']] as const;
+/* What each plan actually contains, and the one thing it is not. "Explore plan" used to open a
+   dialog that said the plan was on the roadmap and offered a Got it button — the end of a journey
+   that had barely started. A person choosing between five plans wants three answers: what is in it,
+   what it costs a month, and what joining would involve. The third is the honest half: none of the
+   five can be joined, so the screen shows what joining *would* be rather than a button that lies. */
+const planDetail:Record<string,{includes:readonly string[];not:string;who:string}>={
+ 'Chronic Routine':{includes:['A nurse visit every month, at an hour you choose','Blood pressure and glucose recorded onto your Health Passport','A registered doctor reviews each set of readings','A reminder before every visit, and before a repeat runs out'],not:'It is not a medical aid and it does not pay for medicines, tests or a hospital.',who:'Somebody managing a long-term condition at home.'},
+ 'Family Planning Plan':{includes:['Scheduled injection visits, at the interval your method needs','A discreet reminder, worded so it says nothing on a lock screen','A nurse who is cleared for this scope, every time'],not:'It is not contraception itself, and nothing here is dispensed without a prescription.',who:'Anybody who would rather not book the same visit over and over.'},
+ 'Thuso Mom':{includes:['Antenatal checks through pregnancy','A six-week check for you and the baby','Feeding and recovery support in your own home'],not:'It is not antenatal care on its own — it sits beside your clinic or your doctor, never instead of them.',who:'From pregnancy through baby’s first year.'},
+ 'Thuso Senior':{includes:['A weekly nurse visit','Medication laid out and checked','A monthly summary sent to the family member you name'],not:'It is not a frail-care facility and it is not a twenty-four-hour carer.',who:'An older person living at home, and the family who worry about them.'},
+ 'Thuso Recover':{includes:['A plan written around the operation or injury you are recovering from','Wound care and dressing changes at the interval it needs','Progress reviewed by a registered doctor'],not:'It is not physiotherapy or rehabilitation, which are separate services on the roadmap.',who:'Recovering at home after a hospital stay.'}
+};
+/* Joining a plan is four steps and not one of them can happen yet. Naming all four is the point: a
+   person can see the whole journey and where it stops, which is a different thing from a dialog
+   saying the feature is coming. */
+const joining=['Choose who the plan is for, and the day of the month it runs on','Confirm the monthly amount through a regulated payment provider','A nurse cleared for the plan’s scope is assigned to your area','The first visit is scheduled and appears under My visits'] as const;
+export function PlanDetail({name,navigate}:{name:string;navigate:(s:string)=>void}){
+ const entry=plans.find(([n])=>n===name);
+ const detail=planDetail[name];
+ const [interested,setInterested]=useState(false);
+ if(!entry||!detail) return null;
+ const [,price,description]=entry;
+ return <div className="form-stack">
+  <div className="booking-summary"><span className="service-icon"><HeartHandshake size={23}/></span><div><h3>{name}</h3><p>{detail.who}</p></div><strong>{price==='Custom'?price:`R${price}`}</strong></div>
+  <p className="muted">{description}</p>
+  <SectionTitle title="What is in it"/>
+  <div className="panel">{detail.includes.map(line=><div className="record-row static" key={line}><span className="service-icon"><Check size={20}/></span><span><strong>{line}</strong></span></div>)}</div>
+  <div className="privacy-note"><Ban size={19}/>{detail.not}</div>
+  <SectionTitle title="What joining would involve"/>
+  <ol className="plan-steps">{joining.map((step,i)=><li key={step}><b>{i+1}</b><span>{step}</span></li>)}</ol>
+  <div className="review-line"><span>Monthly</span><strong>{price==='Custom'?'Priced per plan':`R${price} / month`}</strong></div>
+  <div className="review-line"><span>Available from</span><strong>{plans.findIndex(([n])=>n===name)<2?'Phase 2':'Phase 3'}</strong></div>
+  <NotConnected of="payments"/>
+  {/* The end of the journey, and it is a real end rather than a Got it. Nothing is sent — the
+      messaging capability says so in its own words, from the contract. */}
+  {interested?<>
+   <div className="empty-note" role="status"><strong>Noted, in this browser only.</strong> Nothing has been sent, and nothing about your account has changed. When {name} opens, it opens for everybody in a care area at once rather than for a waiting list.</div>
+   <NotConnected of="messaging"/>
+   <button className="secondary full" onClick={()=>navigate('Care plans')}>Back to care plans<ArrowRight size={16}/></button>
+  </>:<button className="primary full" onClick={()=>setInterested(true)}>Tell me when {name} opens<ArrowRight size={16}/></button>}
+ </div>;
+}
 /* Five plans, and the reader is comparing two things across them: what it includes and what it
    costs a month. Both used to land wherever the description happened to end, so R199 on the first
    card sat twenty pixels below R249 on the third and the prices could not be read as a column. The
    card is a fixed set of rows now — phase, name, description, price, action — and each row starts
    on the same line across all five. The heart tile is gone with them: it was the same glyph five
    times, which told a reader nothing except that somebody had a spare icon. */
-export function Plans({open}:{open:(s:string)=>void}) {return <><PageHeading eyebrow="THUSO ROUTINE" title="A healthier rhythm." description="Care that keeps showing up. For every chapter of life."/><div className="catalog-grid plan-grid">{plans.map(([n,p,d],i)=><div className={`panel plan-card ${i===0?'featured':''}`} key={n}><Pill tone="plain">{i<2?'PHASE 2':'PHASE 3'}</Pill><h2>{n}</h2><p>{d}</p><strong className="plan-price">{p==='Custom'?p:`R${p}`}<small>{p==='Custom'?' pricing':' / month'}</small></strong><button className="secondary" onClick={()=>open(n)}>Explore plan<ArrowRight size={17}/></button></div>)}</div><NotConnected of="payments"/></>}
+export function Plans({open}:{open:(s:string)=>void}) {return <><PageHeading eyebrow="THUSO ROUTINE" title="A healthier rhythm." description="Care that keeps showing up. For every chapter of life."/><div className="catalog-grid plan-grid">{plans.map(([n,p,d],i)=><div className={`panel plan-card ${i===0?'featured':''}`} key={n}><Pill tone="plain">{i<2?'PHASE 2':'PHASE 3'}</Pill><h2>{n}</h2><p>{d}</p><strong className="plan-price">{p==='Custom'?p:`R${p}`}<small>{p==='Custom'?' pricing':' / month'}</small></strong><button className="secondary" onClick={()=>open(`Care plan: ${n}`)}>Explore plan<ArrowRight size={17}/></button></div>)}</div><NotConnected of="payments"/></>}
 /* Seven rights, seven identical shields. The icon was the same on every row, so it carried no
    information at all and the list had to be read word by word to be used. Each row now has the
    icon of the thing it does and a line saying what is behind it, in the settings-row pattern the
@@ -224,20 +321,121 @@ export function Privacy({open}:{open:(s:string)=>void}) {const [choices,setChoic
 /* Money that does not exist, said out loud. The activity list goes through the same StateBlock as
    every other list that will one day be answered by a service somebody else operates — a payment
    provider being down is an ordinary Tuesday, and it is better designed now than improvised then. */
-const walletActivity=[['Family care credit','+ R500','8 September'],['Vitals & chronic check','− R249','28 August']] as const;
+/* The ledger and the balance both come from lib/wallet.ts. R500.00 used to be typed here and typed
+   again in the booking's payment list, and the visit line beside it named its own amount rather than
+   the catalogue's. */
 export function WalletPage({open}:{open:(s:string)=>void}){
  const state:LoadState=useOffline()?'offline':'ready';
  return <><PageHeading eyebrow="THUSO WALLET" title="A little care, set aside." description="Support your own care or give someone a helping hand."/>
  {/* Before the balance, not after it. The number in the hero is the thing on this screen a person
      would most reasonably take for money they have. */}
  <NotConnected of="payments"/>
- <div className="wallet-hero"><Wallet size={26}/><span>Balance</span><h2>R500<span>.00</span></h2><div className="button-row"><button className="secondary" onClick={()=>open('Top up wallet')}><Plus size={17}/>Top up</button><button className="secondary" onClick={()=>open('Sponsor care')}><Users size={17}/>Sponsor care</button></div></div>
+ {/* The reference's one signature move, on the one figure this screen is about: the amount set large
+     and thin with a small label above it, rather than a small label above a heavy number. */}
+ <div className="wallet-hero rise"><Wallet size={24}/><span>Balance</span><p className="wallet-figure"><strong>{money(walletBalance)}</strong><small>available</small></p><div className="button-row"><button className="secondary" onClick={()=>open('Top up wallet')}><Plus size={17}/>Top up</button><button className="secondary" onClick={()=>open('Sponsor care')}><Users size={17}/>Sponsor care</button></div></div>
  <SectionTitle title="Recent activity"/>
  <StateBlock state={state} subject="Your wallet activity" permission="your payment provider">
-  {walletActivity.length?<div className="panel">{walletActivity.map(([n,p,d])=><div className="record-row static" key={n}><span className="service-icon"><Wallet size={20}/></span><span><strong>{n}</strong><small>{d}</small></span><strong className="ledger">{p}</strong></div>)}</div>
+  {walletActivity.length?<div className="panel">{walletActivity.map(line=><div className="record-row static" key={line.name}><span className="service-icon"><Wallet size={20}/></span><span><strong>{line.name}</strong><small>{line.date}</small></span><strong className="ledger">{line.delta>0?'+ ':'− '}{money(Math.abs(line.delta))}</strong></div>)}</div>
    :<EmptyState title="Nothing has moved yet" body="Top-ups, sponsored visits and refunds appear here, each with the date and what it was for."/>}
  </StateBlock>
  </>}
+/* Topping up and sponsoring. Both used to open one dialog headed "Care credits, on your terms" with
+   a Got it button under it — the same dead end twice, on the two things this screen exists to do.
+ *
+ * Neither of them takes a payment and neither of them pretends to. What they do instead is show the
+ * whole journey: how much, from where, what it would come to, and then an outcome that states in
+ * plain words that nothing moved. A person who has walked all four steps knows what the real thing
+ * will ask of them, which is the entire value a preview can honestly offer. */
+const payFrom=[['Card','A card you enter at the provider, never here'],['Instant EFT','Your own bank’s app confirms it'],['Debit order','The same amount, on the same day each month']] as const;
+export function TopUpWallet({navigate}:{navigate:(s:string)=>void}){
+ const [amount,setAmount]=useState<number>(topUpAmounts[1]);
+ const [method,setMethod]=useState<string>(payFrom[0][0]);
+ const [step,setStep]=useState(0);
+ if(step===2) return <div className="success">
+  <div className="success-icon"><Wallet size={30}/></div>
+  <h3>Nothing has moved.</h3>
+  <p className="success-when">{money(amount)}<br/>from {method}</p>
+  <p className="helper">Your balance is still {money(walletBalance)}. A top-up is a payment, and a payment leaves this app for a regulated provider — this is where it would go, and what it would say when it came back.</p>
+  <NotConnected of="payments"/>
+  <button className="primary full space-top" onClick={()=>navigate('Thuso Wallet')}>Back to my wallet<ArrowRight size={17}/></button>
+ </div>;
+ return <div className="form-stack">
+  <div className="review-line"><span>Balance now</span><strong>{money(walletBalance)}</strong></div>
+  {step===0?<>
+   <h3>How much would you like to add?</h3>
+   <div className="time-grid" role="group" aria-label="Choose an amount">
+    {topUpAmounts.map(a=><button key={a} type="button" aria-pressed={amount===a} className={`time-chip ${amount===a?'selected':''}`} onClick={()=>setAmount(a)}>{money(a)}</button>)}
+   </div>
+   <p className="helper" role="status">Your balance would become {money(walletBalance+amount)}.</p>
+   <div className="privacy-note"><ShieldCheck size={19}/>Money in a wallet is money you have already handed over. It buys visits from the catalogue and it is refundable to the account it came from.</div>
+   <button className="primary full" onClick={()=>setStep(1)}>Continue<ArrowRight size={16}/></button>
+  </>:<>
+   <h3>Where would it come from?</h3>
+   <div className="choice-list" role="radiogroup" aria-label="Where would it come from?">
+    {payFrom.map(([name,detail])=><label key={name} className={`choice-row ${method===name?'selected':''}`}>
+     <input type="radio" name="topup-method" checked={method===name} onChange={()=>setMethod(name)}/>
+     <span className="service-icon"><CreditCard size={20}/></span><span><strong>{name}</strong><small>{detail}</small></span></label>)}
+   </div>
+   <div className="review-line"><span>Adding</span><strong>{money(amount)}</strong></div>
+   <div className="review-line"><span>New balance</span><strong>{money(walletBalance+amount)}</strong></div>
+   <NotConnected of="payments"/>
+   <div className="button-row"><button className="secondary" onClick={()=>setStep(0)}>Back</button><button className="primary" onClick={()=>setStep(2)}>Review the outcome<ArrowRight size={16}/></button></div>
+  </>}
+ </div>;
+}
+export function SponsorCare({navigate,people}:{navigate:(s:string)=>void;people:string[]}){
+ const [who,setWho]=useState(people[0]);
+ const [amount,setAmount]=useState<number>(services[0].price);
+ const [sent,setSent]=useState(false);
+ if(sent) return <div className="success">
+  <div className="success-icon"><HeartHandshake size={30}/></div>
+  <h3>Nothing has been sent.</h3>
+  <p className="success-when">{money(amount)}<br/>towards {who.split(' ')[0]}’s care</p>
+  <p className="helper">In production {who.split(' ')[0]} is told that a credit is waiting and chooses what to spend it on. You are told it was used, and on what date — never on what.</p>
+  <div className="privacy-note"><LockKeyhole size={19}/>Paying for somebody’s care never opens their record. What you may see of them is decided under My family, by them.</div>
+  <NotConnected of="payments"/>
+  <button className="primary full space-top" onClick={()=>navigate('My family')}>Open My family<ArrowRight size={17}/></button>
+ </div>;
+ return <div className="form-stack">
+  <h3>Who is it for?</h3>
+  <label>Person<select value={who} onChange={e=>setWho(e.target.value)}>{people.map(p=><option key={p}>{p}</option>)}</select></label>
+  <h3 className="space-top">How much?</h3>
+  {/* The amounts are the catalogue's own prices, so "enough for a visit" means a visit that exists
+      rather than a round number somebody liked. */}
+  <div className="time-grid" role="group" aria-label="Choose an amount">
+   {services.filter(s=>s.phase===1).slice(0,3).map(s=><button key={s.id} type="button" aria-pressed={amount===s.price} className={`time-chip ${amount===s.price?'selected':''}`} onClick={()=>setAmount(s.price)}>{money(s.price)}</button>)}
+  </div>
+  <p className="helper" role="status">{money(amount)} covers a {services.filter(s=>s.phase===1).find(s=>s.price===amount)?.name.toLowerCase()} at today’s catalogue price.</p>
+  <div className="privacy-note"><LockKeyhole size={19}/>A sponsorship is a payment, not a permission. It never grants access to anybody’s health record.</div>
+  <NotConnected of="payments"/>
+  <button className="primary full" onClick={()=>setSent(true)}>Review the outcome<ArrowRight size={16}/></button>
+ </div>;
+}
+/* A family member, opened. This was a dialog headed "Care without crossing boundaries" with a Got it
+   button — a sentence about a boundary rather than the boundary itself. It is a screen now: who they
+   are, what you may and may not see of them, and the three things you can actually do from here. */
+export function FamilyProfile({name,relation,navigate,open}:{name:string;relation:string;navigate:(s:string)=>void;open:(s:string)=>void}){
+ const first=name.split(' ')[0];
+ const own=relation==='You';
+ return <div className="form-stack">
+  <div className="booking-summary"><span className="avatar">{name.split(' ').map(s=>s[0]).slice(0,2).join('')}</span><div><h3>{name}</h3><p>{relation}</p></div><Pill tone={own?'teal':'sky'}>{own?'Your own record':'Booking only'}</Pill></div>
+  <SectionTitle title="What you may see"/>
+  <div className="panel">
+   <div className="record-row static"><span className="service-icon"><Check size={20}/></span><span><strong>Visits you arranged for {own?'yourself':first}</strong><small>The service, the day and whether it happened.</small></span></div>
+   {/* The sentence this screen exists to say, kept word for word from the dialog it replaces: booking
+       and paying for somebody is not the same as reading about them. */}
+   <div className="record-row static"><span className="service-icon"><Ban size={20}/></span><span><strong>{own?'Nothing is hidden from you on your own record':`${first}’s readings, results, medicines and notes`}</strong><small>{own?'It is yours.':'Their clinical information remains private unless appropriate access is verified, and they can withdraw it at any time.'}</small></span></div>
+  </div>
+  <SectionTitle title="What you can do"/>
+  <div className="shortcut-list">
+   <button className="shortcut-row" onClick={()=>navigate('Book a nurse')}><span className="service-icon"><Stethoscope size={20}/></span><span className="shortcut-text"><strong>Book a visit for {first}</strong><small>Opens the catalogue with {first} as the patient.</small></span><ChevronRight size={17}/></button>
+   <button className="shortcut-row" onClick={()=>open('Thuso Family')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Open the household record</strong><small>The same household, seen through each person’s own permissions.</small></span><ChevronRight size={17}/></button>
+   {!own&&<button className="shortcut-row" onClick={()=>open('Invite a guardian')}><span className="service-icon"><UserPlus size={20}/></span><span className="shortcut-text"><strong>Ask {first} for access</strong><small>They decide the scope and how long it lasts, on their own phone.</small></span><ChevronRight size={17}/></button>}
+  </div>
+  <div className="privacy-note"><LockKeyhole size={19}/>Booking for somebody opens their booking, never their record. Sponsoring their care does not change that.</div>
+  <NotConnected of="messaging"/>
+ </div>;
+}
 export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOnboarding:()=>void;navigate:(s:string)=>void}){return <>
  <div className="page-intro"><div className="eyebrow">The MyThuso family</div><h1>More ways to be cared for.</h1><p>Explore the complete vision. Availability follows the proposal’s phased roadmap.</p></div>
  {/* The highlights carousel lives here rather than on the home. Rotating promotion is what this
@@ -251,7 +449,10 @@ export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOn
 const menuGroups=[
  [['My family','Manage your loved ones',Users,'My family'],['Care plans','Ongoing care and subscriptions',HeartHandshake,'Care plans'],['Thuso Wallet','Balance, activity and sponsored care',CreditCard,'Thuso Wallet']],
  [['Care area','Rosebank, Johannesburg',MapPin,'@Your location'],['Notifications','Visit updates and messages',Bell,'@Notifications'],['Privacy & settings','Your data and app preferences',Settings2,'Privacy & settings'],['Language','Read MyThuso your way',Globe,'@Language'],['Language & access','Twelve official languages, and what is honestly offered in each',Languages,'Language & access']],
- [['Explore MyThuso','The full 21-module roadmap',LayoutGrid,'Explore MyThuso'],['Help & support','Chat, FAQs and emergency',CircleHelp,'@How can we help?'],['Preview workspaces','Nurse, doctor, partner and Control Tower',Stethoscope,'@Switch workspace']]
+ /* Emergency first in this group, and in the shell's sidebar as well. It was the fourteenth card
+    inside a roadmap page — the most complete journey in the product behind the most clicks in it,
+    on the one pathway where a person cannot afford to hunt. */
+ [['Emergency & urgent care','The ambulance number first, then what MyThuso can do',Ambulance,'@Emergency & urgent care'],['Explore MyThuso','The full 21-module roadmap',LayoutGrid,'Explore MyThuso'],['Help & support','Chat, FAQs and emergency',CircleHelp,'@How can we help?'],['Preview workspaces','Nurse, doctor, partner and Control Tower',Stethoscope,'@Switch workspace']]
 ] as const;
 export function MoreHub({navigate,open,onSignOut}:{navigate:(s:string)=>void;open:(s:string)=>void;onSignOut:()=>void}){
  return <>
@@ -409,4 +610,21 @@ export function ReviewQueue({ open }: { open: (s: string) => void }) {
    Deleting it is also what keeps mapbox-gl out of the patient's bundle: it imported Dispatch and
    Orders, and LiveMap's side-effect CSS import meant Rollup kept the whole chain in every entry
    that could reach this file — which the patient's can. */
-export function Notifications(){return <div className="notification-list">{[[Check,'Your visit is confirmed','Sister Naledi is scheduled for Saturday, 09:00.'],[FileText,'Your visit summary is ready','Sister Naledi\u2019s notes and the doctor\u2019s review are on your Passport.'],[Sparkles,'A little reminder','Explore regular check-ins with Thuso Routine.'],[Bell,'Someone asked for access','Kagiso asked to help with your bookings. Review what he would see.']].map(([Icon,title,body])=>{const I=Icon as typeof Bell;return <div className="record-row" key={String(title)}><I size={21}/><span><strong>{String(title)}</strong><small>{String(body)}</small></span></div>;})}<NotConnected of="messaging"/></div>}
+/* Four notices that went nowhere. Each one now opens the screen it is about, which is the whole
+   point of a notification: it is not news, it is a door. The one that matters most is the last \u2014
+   somebody asking for access to a record \u2014 and reading it without being able to act on it is worse
+   than not being told. */
+const notices=[
+ {icon:Check,title:'Your visit is confirmed',body:'Sister Naledi is scheduled for Saturday, 09:00.',go:'My visits',page:true},
+ {icon:FileText,title:'Your visit summary is ready',body:'Sister Naledi\u2019s notes and the doctor\u2019s review are on your Passport.',go:'Health Passport',page:true},
+ {icon:Sparkles,title:'A little reminder',body:'Explore regular check-ins with Thuso Routine.',go:'Care plan: Chronic Routine',page:false},
+ {icon:Bell,title:'Someone asked for access',body:'Kagiso asked to help with your bookings. Review what he would see.',go:'Your consents',page:false}
+] as const;
+export function Notifications({open,navigate}:{open:(s:string)=>void;navigate:(s:string)=>void}){
+ return <div className="notification-list">
+  {notices.map(({icon:Icon,title,body,go,page})=><button className="record-row" key={title} onClick={()=>page?navigate(go):open(go)}>
+   <Icon size={21}/><span><strong>{title}</strong><small>{body}</small></span><ChevronRight size={17}/>
+  </button>)}
+  <NotConnected of="messaging"/>
+ </div>;
+}
