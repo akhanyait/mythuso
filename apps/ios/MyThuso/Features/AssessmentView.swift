@@ -28,6 +28,10 @@ struct VisitAssessmentView: View {
     var nurseId = "N-205"
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var kit = CaptureStore.shared
+    /* Every finished piece of this visit, held on the phone. Until this existed the readings were
+       written to a file and the code, the consent, the findings and the signature were not — the
+       last thing that happens in a house was the least protected thing in the product. */
+    @ObservedObject private var queue = VisitQueueStore.shared
     @ObservedObject private var vetting = VettingStore.shared
     @State private var stage = 0
     @State private var otp = ""
@@ -46,7 +50,11 @@ struct VisitAssessmentView: View {
     @State private var notes = ""
     @State private var escalation = "No escalation — routine visit"
     @State private var signed = false
-    @State private var sealedCount = 0
+    /* Two counts, not one sum. The readings are sealed in the capture ledger and the observations
+       part is sealed in the visit ledger, and adding them would count the same seven readings
+       twice — a number on a screen that a nurse cannot reconcile with what she did. */
+    @State private var sealedParts = 0
+    @State private var sealedReadings = 0
     @State private var nurse = ""
     @State private var capturing: KitDevice?
     @State private var capturingFor = ""
@@ -123,6 +131,10 @@ struct VisitAssessmentView: View {
             default: signOffStage
             }
         }
+        /* Above the work rather than inside it. "Has any of this left the phone" is a question a
+           nurse asks between fields, and an answer she has to navigate to is an answer she stops
+           asking for. */
+        .safeAreaInset(edge: .top) { CaptureStandingStrip() }
         .navigationTitle("Visit assessment").navigationBarTitleDisplayMode(.inline)
         .onAppear { if nurse.isEmpty { nurse = nurses.contains { $0.id == nurseId } ? nurseId : (nurses.first?.id ?? "") } }
         .sheet(item: $capturing) { device in
@@ -147,7 +159,7 @@ struct VisitAssessmentView: View {
             Toggle("I have seen the patient’s identity document, or a household member has confirmed identity.", isOn: $identitySeen)
         }
         Section {
-            Button("Confirm identity") { otp == "482190" ? (stage = 1) : (otpError = "That code doesn’t match this visit. Call the Control Tower before continuing.") }
+            Button("Confirm identity") { otp == "482190" ? holdIdentity() : (otpError = "That code doesn’t match this visit. Call the Control Tower before continuing.") }
                 .disabled(otp.count < 6 || !identitySeen)
             Text("If the code fails, the visit does not start. The nurse contacts the Control Tower instead of proceeding.").font(.caption).foregroundStyle(.secondary)
         }
@@ -158,7 +170,7 @@ struct VisitAssessmentView: View {
             Toggle("“May I add today’s readings to your Health Passport, where a doctor can review them?”", isOn: $consentRecord)
             Text("Refusal is recorded as a valid outcome, not a failed visit. A guardian consents for a child or where authority is verified.").font(.caption).foregroundStyle(.secondary)
         }
-        Section { Button("Start observations") { stage = 2 }.disabled(!consentAssessment); Button("Back") { stage = 0 } }
+        Section { Button("Start observations", action: holdConsent).disabled(!consentAssessment); Button("Back") { stage = 0 } }
     }
 
     @ViewBuilder private var observationStage: some View {
@@ -285,14 +297,66 @@ struct VisitAssessmentView: View {
         .padding(.vertical, 3)
     }
 
-    /* Written to the phone at the end of the observations, not on every keystroke. What is being
-       recorded is a finished act — she has taken the readings and moved on — and “captured” means
-       exactly that: it exists on this phone and it exists nowhere else yet. */
+    /* The readings go to both ledgers: individually to the capture ledger, which is where a single
+         reading's provenance, instrument and conflicts live, and as one observations part to the
+         visit ledger, which is what makes them a piece of this visit rather than seven loose
+         numbers. Neither is a copy of the other, and the duplicate check on arrival is asked of the
+         capture ledger so the two cannot disagree about what the record already holds. */
     private func recordFindings() {
+        var readings: [CaptureReading] = []
         for observation in captured {
-            if let value = reading(observation) { kit.capture(value, visit: reference, patient: patient, by: subject) }
+            if let value = reading(observation) {
+                kit.capture(value, visit: reference, patient: patient, by: subject)
+                readings.append(value)
+            }
         }
+        queue.hold(kind: .observations, visit: reference, patient: patient,
+                   summary: "\(readings.count) reading\(readings.count == 1 ? "" : "s") taken at this visit",
+                   detail: readings.map { VisitPartFact(label: $0.label, value: $0.display) },
+                   readings: readings, by: subject)
         stage = 3
+    }
+
+    /* The five moments a piece of a visit is finished, and each one writes it to the phone before
+       the screen moves on. Not on every keystroke: what is being recorded is a finished act, and
+       "captured" means exactly that — it exists on this phone and it exists nowhere else yet. */
+    private func holdIdentity() {
+        queue.hold(kind: .identity, visit: reference, patient: patient,
+                   summary: "Visit code confirmed at the door, and identity seen",
+                   detail: [VisitPartFact(label: "Visit code", value: "Six digits, matched"),
+                            VisitPartFact(label: "Identity", value: "Document seen by the nurse")],
+                   by: subject)
+        stage = 1
+    }
+    private func holdConsent() {
+        queue.hold(kind: .consent, visit: reference, patient: patient,
+                   summary: consentRecord ? "Consented to the readings and to them being added to the record"
+                                          : "Consented to the readings only",
+                   detail: [VisitPartFact(label: "Today\u{2019}s readings", value: consentAssessment ? "Agreed" : "Refused"),
+                            VisitPartFact(label: "Adding them to the Health Passport", value: consentRecord ? "Agreed" : "Refused")],
+                   by: subject)
+        stage = 2
+    }
+    private func holdFindings() {
+        queue.hold(kind: .findings, visit: reference, patient: patient,
+                   summary: notes.isEmpty ? "Symptoms and the next step, with no note written" : "What the nurse found, in her own words",
+                   detail: [VisitPartFact(label: "Symptoms reported", value: symptoms.isEmpty ? "None recorded" : symptoms.sorted().joined(separator: ", ")),
+                            VisitPartFact(label: "Next step", value: escalation)]
+                       + (notes.isEmpty ? [] : [VisitPartFact(label: "Visit notes", value: notes)]),
+                   by: subject)
+        stage = 4
+    }
+    /* Signing seals both queues at once, because a nurse has one queue however many files it is
+       kept in. The count she is shown afterwards is the whole of her work, not one screen's share. */
+    private func signOff() {
+        queue.hold(kind: .signOff, visit: reference, patient: patient,
+                   summary: "Signed on this phone, and not yet filed",
+                   detail: [VisitPartFact(label: "Signed by", value: nurseAttribution),
+                            VisitPartFact(label: "Readings filed", value: "\(captured.count) of \(Observation.all.count)")],
+                   by: subject)
+        sealedReadings = kit.seal(visit: reference)
+        sealedParts = queue.seal(visit: reference)
+        signed = true
     }
 
     @ViewBuilder private var findingsStage: some View {
@@ -321,7 +385,7 @@ struct VisitAssessmentView: View {
                 Text("In production this opens the emergency pathway immediately and alerts the Control Tower before the form is finished.").font(.caption).foregroundStyle(.red)
             }
         }
-        Section { Button("Review sign-off") { stage = 4 }; Button("Back") { stage = 2 } }
+        Section { Button("Review sign-off", action: holdFindings); Button("Back") { stage = 2 } }
     }
 
     @ViewBuilder private var signOffStage: some View {
@@ -331,9 +395,10 @@ struct VisitAssessmentView: View {
                 /* This used to say nothing had been written. It is no longer true and it must not
                    be left standing: readings are now written to a file on this phone, and a screen
                    that reassures a nurse about the wrong thing is worse than one that says nothing. */
-                Text("\(sealedCount) reading\(sealedCount == 1 ? " was" : "s were") sealed and are waiting to send from this phone. Nothing was transmitted, no server was contacted and no clinician was notified — but the readings are on this device, in a file, and they survive the app being killed.").font(.subheadline).foregroundStyle(.secondary)
+                Text("\(sealedParts) piece\(sealedParts == 1 ? "" : "s") of this visit — the code checked at the door, the consent, what you found and your signature — and \(sealedReadings) reading\(sealedReadings == 1 ? "" : "s") are sealed and waiting to send from this phone. Nothing was transmitted, no server was contacted and no clinician was notified, and all of it survives the app being killed.").font(.subheadline).foregroundStyle(.secondary)
                 Text("In production this becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration, once a server has accepted it.").font(.caption).foregroundStyle(.secondary)
-                NavigationLink("See what is waiting on this phone") { CaptureQueueView() }
+                NavigationLink("See the whole visit waiting on this phone") { VisitQueueView() }
+                NavigationLink("See the readings waiting on this phone") { CaptureQueueView() }
                 Button("Back to the workspace") { dismiss() }
             }
         } else {
@@ -364,7 +429,7 @@ struct VisitAssessmentView: View {
             }
             Section {
                 Text("A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.").font(.caption).foregroundStyle(.secondary)
-                Button("Sign demo assessment") { sealedCount = kit.seal(visit: reference); signed = true }
+                Button("Sign demo assessment", action: signOff)
                     .disabled(!mayWrite.allowed)
                 VettingRefusalNote(decision: mayWrite)
                 Button("Back") { stage = 3 }

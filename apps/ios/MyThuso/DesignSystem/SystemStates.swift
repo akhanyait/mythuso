@@ -19,10 +19,10 @@ struct SkeletonRows: View {
             ForEach(0..<rows, id: \.self) { index in
                 HStack(spacing: ThusoSpacing.space12) {
                     RoundedRectangle(cornerRadius: ThusoRadius.tile, style: .continuous)
-                        .fill(ThusoTheme.line).frame(width: 40, height: 40)
+                        .fill(ThusoTheme.cloud).frame(width: 40, height: 40)
                     VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                        Capsule().fill(ThusoTheme.line).frame(width: 190 - CGFloat(index) * 26, height: 9)
-                        Capsule().fill(ThusoTheme.line.opacity(0.7)).frame(width: 120 - CGFloat(index) * 18, height: 9)
+                        Capsule().fill(ThusoTheme.cloud).frame(width: 190 - CGFloat(index) * 26, height: 9)
+                        Capsule().fill(ThusoTheme.cloud.opacity(0.7)).frame(width: 120 - CGFloat(index) * 18, height: 9)
                     }
                     Spacer(minLength: 0)
                 }
@@ -82,12 +82,12 @@ struct StateBlock<Content: View>: View {
             } actions: {
                 if let retry {
                     Button(state == .denied ? "Review permission" : "Try again", action: retry)
-                        .buttonStyle(.borderedProminent).tint(ThusoTheme.indigo)
+                        .buttonStyle(CareButton()).frame(maxWidth: 260)
                 }
             }
             .padding(.vertical, ThusoSpacing.space8)
-            .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
+            .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.stone, lineWidth: 1))
         }
     }
 }
@@ -111,9 +111,9 @@ struct StatePicker: View {
             }
         }
         .padding(ThusoSpacing.space12)
-        .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous)
-            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.line))
+        .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)
+            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.stone))
     }
 }
 

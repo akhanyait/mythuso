@@ -30,7 +30,7 @@ struct HomeView: View {
             HeroTexture().frame(height: 210).ignoresSafeArea(edges: .top).allowsHitTesting(false)
             content
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
@@ -365,7 +365,7 @@ struct HomeView: View {
 
     private var passportPromo: some View {
         ZStack(alignment: .leading) {
-            LinearGradient(colors: [ThusoTheme.indigoDeep, ThusoTheme.indigo], startPoint: .topLeading, endPoint: .bottomTrailing)
+            LinearGradient(colors: [ThusoTheme.ink, ThusoTheme.charcoal], startPoint: .topLeading, endPoint: .bottomTrailing)
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                 StatusPill(text: "THUSO PASS", tone: "light")
                 Text("Your health.\nOne safe place.").font(.title3.weight(.bold)).foregroundStyle(.white)

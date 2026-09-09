@@ -66,7 +66,7 @@ struct ThusoKitView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Thuso Kit").navigationBarTitleDisplayMode(.inline)
         .onAppear { if who.isEmpty { who = operators.contains { $0.id == operatorId } ? operatorId : (operators.first?.id ?? "") } }
         .sheet(item: $capturing) { device in

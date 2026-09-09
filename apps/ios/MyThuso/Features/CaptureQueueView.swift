@@ -78,7 +78,7 @@ struct CaptureQueueView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Waiting to send").navigationBarTitleDisplayMode(.inline)
     }
 
@@ -151,6 +151,7 @@ struct CaptureQueueView: View {
             Text("There is no radio in this build and no clock to be wrong, so the two things that make a queue worth designing have to be askable for.")
                 .font(.caption2).foregroundStyle(ThusoTheme.body)
             Toggle("Show this phone with no signal", isOn: $kit.pretendNoSignal)
+                .frame(minHeight: 44).contentShape(Rectangle())
             Stepper("Pretend this phone’s clock is \(kit.pretendClockFastHours) hour\(kit.pretendClockFastHours == 1 ? "" : "s") fast",
                     value: $kit.pretendClockFastHours, in: 0...12)
                 .font(.subheadline)
@@ -211,6 +212,8 @@ struct CaptureQueueView: View {
                 .font(.caption2).foregroundStyle(ThusoTheme.body)
             Button("Clear this phone’s store and start again") { kit.resetToFixtures() }
                 .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
         }
     }
 }
@@ -307,7 +310,7 @@ struct ConflictResolutionView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Needs a decision").navigationBarTitleDisplayMode(.inline)
     }
 

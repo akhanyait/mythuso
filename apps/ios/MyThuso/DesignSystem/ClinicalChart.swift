@@ -32,23 +32,27 @@ struct ClinicalChart: View {
     }
     var body: some View {
         CareCard {
-            /* Title and standing, side by side until the words need the width; then the standing
-               drops under the title rather than squeezing it to three characters. */
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) { chartTitle; Spacer(minLength: ThusoSpacing.space8); standing }
-                VStack(alignment: .leading, spacing: ThusoSpacing.space8) { chartTitle; standing }
+            /* The metric shape, so a reading on a chart is read the same way as a reading anywhere
+               else in this product: the standing above, the figure large and thin, the name below.
+               It used to be a title with a pill beside it and a bold rounded numeral under both,
+               which is the inversion docs/DESIGN-LANGUAGE.md is mostly about. */
+            ThusoMetric(value: format(latest.value), unit: unit, label: title,
+                        chip: inRange ? "Within sample range" : "Outside sample range",
+                        flagged: !inRange)
+            /* The symbol sits with the movement rather than beside the title. It is what tells one
+               chart from another at a glance in a column of them, and it is decoration, so it goes
+               with the quiet line rather than competing with the figure. */
+            HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
+                if let symbol {
+                    Image(systemName: symbol).font(.footnote)
+                        .foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).accessibilityHidden(true)
+                }
+                Text(latest.value == first.value ? "No change since \(first.label)" : "\(latest.value > first.value ? "+" : "")\(format(latest.value - first.value)) since \(first.label)")
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space4) {
-                Text(format(latest.value)).font(.system(.largeTitle, design: .rounded, weight: .semibold))
-                    .foregroundStyle(ThusoTheme.ink)
-                Text(unit).font(.footnote).foregroundStyle(ThusoTheme.body)
-                Spacer(minLength: ThusoSpacing.space8)
-                Text(latest.value == first.value ? "No change" : "\(latest.value > first.value ? "+" : "")\(format(latest.value - first.value)) since \(first.label)")
-                    .font(.caption).foregroundStyle(ThusoTheme.body).multilineTextAlignment(.trailing)
-            }
-            .accessibilityElement(children: .combine)
             plot.frame(height: plotHeight).accessibilityElement().accessibilityLabel(summary)
-            HStack { Text(first.label); Spacer(); Text(latest.label) }.font(.caption2).foregroundStyle(ThusoTheme.faint)
+            HStack { Text(first.label); Spacer(); Text(latest.label) }.font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             DisclosureGroup(isExpanded: $showTable) {
                 VStack(spacing: 0) {
                     ForEach(readings) { reading in
@@ -61,14 +65,14 @@ struct ClinicalChart: View {
                         .accessibilityElement(children: .combine)
                         Divider()
                     }
-                    Text("Fictional data, not a medical record.").font(.caption2).foregroundStyle(ThusoTheme.faint).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
+                    Text("Fictional data, not a medical record.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
                 }
             } label: {
                 /* The whole row answers the tap, not just the words. At the largest content size
                    the label alone was laid out clear of everything and still not hittable. */
                 HStack {
                     Text(showTable ? "Hide readings" : "Show readings as a table")
-                        .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
+                        .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                 }
@@ -77,15 +81,6 @@ struct ClinicalChart: View {
             }
         }
     }
-    private var chartTitle: some View {
-        Label {
-            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            if let symbol { Image(systemName: symbol).foregroundStyle(ThusoTheme.indigo) }
-        }
-    }
-    private var standing: some View { StatusPill(text: inRange ? "Within sample range" : "Outside sample range", tone: inRange ? "teal" : "amber") }
     private var plot: some View {
         GeometryReader { geo in
             let values = readings.map(\.value)
@@ -100,17 +95,17 @@ struct ClinicalChart: View {
             ZStack {
                 if let normal {
                     let top = point(0, normal.upperBound).y, bottom = point(0, normal.lowerBound).y
-                    Rectangle().fill(ThusoTheme.teal.opacity(0.12)).frame(height: max(bottom - top, 1)).position(x: geo.size.width / 2, y: (top + bottom) / 2)
+                    Rectangle().fill(ThusoTheme.paleSage).frame(height: max(bottom - top, 1)).position(x: geo.size.width / 2, y: (top + bottom) / 2)
                 }
                 Path { path in
                     for (index, reading) in readings.enumerated() {
                         let next = point(index, reading.value)
                         index == 0 ? path.move(to: next) : path.addLine(to: next)
                     }
-                }.stroke(ThusoTheme.indigo, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                }.stroke(ThusoTheme.charcoal, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
                 ForEach(Array(readings.enumerated()), id: \.element) { index, reading in
-                    Circle().fill(index == readings.count - 1 ? .white : ThusoTheme.indigo)
-                        .overlay(Circle().stroke(ThusoTheme.indigo, lineWidth: index == readings.count - 1 ? 2 : 0))
+                    Circle().fill(index == readings.count - 1 ? ThusoTheme.surface : ThusoTheme.charcoal)
+                        .overlay(Circle().stroke(ThusoTheme.charcoal, lineWidth: index == readings.count - 1 ? 2 : 0))
                         .frame(width: index == readings.count - 1 ? 9 : 6)
                         .position(point(index, reading.value))
                 }

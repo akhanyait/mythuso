@@ -166,17 +166,21 @@ struct HeroCarousel: View {
  *
  * `tone` still selects a variation, so a screen can be told apart from the one before it without
  * any of them shouting. */
+/* The band of light behind the greeting. It was an indigo wash fading into the old blue-grey
+   canvas, which on the luminous ground is the last thing on the home still speaking the previous
+   palette — and the hard stop where the wash met the canvas drew a line across the screen. It now
+   fades to nothing, so it reads as more light at the top rather than as a panel with an edge. */
 struct HeroTexture: View {
     var tone: Int = 0
     private var top: Color {
         switch tone {
         case 1: return ThusoTheme.tealSoft
         case 2: return ThusoTheme.mangoSoft
-        default: return ThusoTheme.indigoSoft
+        default: return ThusoTheme.auroraSage
         }
     }
     var body: some View {
-        LinearGradient(colors: [top, ThusoTheme.canvas], startPoint: .top, endPoint: .bottom)
+        LinearGradient(colors: [top, top.opacity(0)], startPoint: .top, endPoint: .bottom)
             .accessibilityHidden(true)
     }
 }

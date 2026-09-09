@@ -162,7 +162,7 @@ struct ConsultationRecordView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Consultation").navigationBarTitleDisplayMode(.inline)
         .onAppear { if writer.isEmpty { writer = writers.contains { $0.id == writerId } ? writerId : (writers.first?.id ?? "") } }
     }

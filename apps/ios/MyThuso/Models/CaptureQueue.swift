@@ -393,6 +393,13 @@ struct CaptureLedger: Codable {
     func captured(visit: String) -> [CapturedEntry] {
         entries.filter { $0.visitReference == visit && $0.state == .captured }
     }
+    /* What this phone believes the record already holds for a visit. VisitQueue.swift asks this
+       rather than keeping its own idea of what counts as a duplicate: two modules deciding that
+       separately is a second gate, and two gates is where holes live. */
+    func storedObservationIds(visit: String) -> Set<String> {
+        Set(entries.filter { $0.visitReference == visit && $0.state == .stored && !$0.superseded }
+            .map(\.reading.observationId))
+    }
     func forVisit(_ visit: String) -> [CapturedEntry] {
         entries.filter { $0.visitReference == visit }
     }

@@ -58,7 +58,7 @@ struct InterpretingView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle(Interpreting.labels.heading).navigationBarTitleDisplayMode(.inline)
     }
 

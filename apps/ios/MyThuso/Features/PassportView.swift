@@ -3,7 +3,11 @@ import SwiftUI
 struct PassportView: View {
     @State private var tab = "Overview"
     @State private var share = false
-    @State private var deviceState: LoadState = .denied
+    /* The content, not the refusal. This opened on .denied, which put a "we need your permission
+       first" block in front of the two device screens the tab exists to reach — and those screens
+       are the ones that say what a permission would and would not cover. The denied state is still
+       one tap away in the picker, where a state to be reviewed belongs. */
+    @State private var deviceState: LoadState = .ready
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space20) {
@@ -13,7 +17,7 @@ struct PassportView: View {
                 switch tab {
                 case "Records":
                     CareCard(padding: ThusoSpacing.space16, spacing: 0) {
-                        NavigationLink { FeatureDetail(title: "Visit summary") } label: { MenuRow(title: "Visit summary", subtitle: "Fictional document · 4 September", symbol: "doc.text") }.buttonStyle(.plain)
+                        NavigationLink { PastVisitView(service: CareService.all[1]) } label: { MenuRow(title: "Visit summary", subtitle: "What the nurse found, and what the doctor said about it", symbol: "doc.text") }.buttonStyle(.plain)
                         Divider().overlay(ThusoTheme.line)
                         NavigationLink { LabOrderView() } label: { MenuRow(title: "Laboratory results", subtitle: "Fasting panel · Released", symbol: "flask") }.buttonStyle(.plain)
                         Divider().overlay(ThusoTheme.line)
@@ -26,9 +30,9 @@ struct PassportView: View {
                     StatePicker(title: "Preview the device permission state", state: $deviceState)
                     StateBlock(state: deviceState, subject: "Readings from your connected devices", permission: "Apple Health access", retry: { deviceState = .ready }) {
                         CareCard(padding: ThusoSpacing.space16, spacing: 0) {
-                            NavigationLink { FeatureDetail(title: "Apple Health connection") } label: { MenuRow(title: "Apple Health", subtitle: "Choose exactly which readings you share", symbol: "heart.circle") }.buttonStyle(.plain)
+                            NavigationLink { DevicePermissionView(integration: DeviceIntegration.of("apple-health")) } label: { MenuRow(title: "Apple Health", subtitle: "Exactly what would be read, and what never would", symbol: "heart.circle") }.buttonStyle(.plain)
                             Divider().overlay(ThusoTheme.line)
-                            NavigationLink { FeatureDetail(title: "Thuso Kit") } label: { MenuRow(title: "Thuso Kit", subtitle: "Connected diagnostic capture", symbol: "sensor") }.buttonStyle(.plain)
+                            NavigationLink { DevicePermissionView(integration: DeviceIntegration.of("thuso-kit")) } label: { MenuRow(title: "Thuso Kit", subtitle: "The instruments a nurse brings, and how a reading is filed", symbol: "sensor") }.buttonStyle(.plain)
                         }
                     }
                     CareCard {
@@ -37,16 +41,24 @@ struct PassportView: View {
                             .font(.footnote).foregroundStyle(ThusoTheme.body)
                     }
                 default:
-                    CareSectionHeader("Health trends")
-                    ClinicalChart(title: "Blood pressure", unit: "mmHg",
-                                  readings: [.init(label: "12 Aug", value: 128), .init(label: "19 Aug", value: 134), .init(label: "28 Aug", value: 141, note: "Missed medication"), .init(label: "4 Sep", value: 136)],
-                                  normal: 90...140, symbol: "heart")
-                    ClinicalChart(title: "Heart rate", unit: "bpm",
-                                  readings: [.init(label: "12 Aug", value: 76), .init(label: "19 Aug", value: 74), .init(label: "28 Aug", value: 80), .init(label: "4 Sep", value: 72)],
-                                  normal: 50...100, symbol: "waveform.path.ecg")
-                    ClinicalChart(title: "Blood glucose", unit: "mmol/L",
-                                  readings: [.init(label: "12 Aug", value: 5.6), .init(label: "19 Aug", value: 6.1), .init(label: "28 Aug", value: 5.4), .init(label: "4 Sep", value: 5.2)],
-                                  normal: 4...7.8, decimals: 1, symbol: "drop")
+                    /* Where things stand today, before any curve. Somebody opening their passport
+                       wants the current number first and the shape of it second — the reverse is a
+                       chart they have to decode to answer "am I all right".
+
+                       Every figure, label and range below comes out of Passport.swift, which reads
+                       the assessment's own observations. The three charts that used to be here were
+                       literal arrays dated "12 Aug" through "4 Sep": right the week they were typed
+                       and a year wrong by the following winter. */
+                    lastVisit
+                    CareSectionHeader(title: "Health trends") {
+                        NavigationLink("See all") { HealthTrendsView() }
+                    }
+                    ForEach(Passport.headline.prefix(2)) { observation in
+                        ClinicalChart(title: observation.label, unit: observation.unit,
+                                      readings: Passport.series(observation), normal: observation.range,
+                                      decimals: Passport.decimals(observation),
+                                      symbol: Passport.symbol(observation.id))
+                    }
                     /* Three tiles side by side while they fit, and a column when the text has
                        grown past the point where three labels share one line. */
                     ViewThatFits(in: .horizontal) {
@@ -58,9 +70,37 @@ struct PassportView: View {
             .padding(.vertical, ThusoSpacing.space16)
         }
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Health Passport").navigationBarTitleDisplayMode(.large)
     }
+    /// The last visit as four metrics and one way into it. A chip above a thin numeral with its
+    /// name below — the same shape a figure takes on every other screen in this product.
+    private var lastVisit: some View {
+        let latest = Passport.latestSet
+        let measures = Passport.measured(in: latest).filter { Passport.headlineIds.contains($0.id) }
+        let outside = measures.filter { !Passport.flag($0, latest.values[$0.id]!).isNormal }
+        return SurfacePanel(tone: .lead, spacing: ThusoSpacing.space16) {
+            PanelHead(title: "Your last visit", note: Scheduling.longDate(latest.date)) {
+                NavigationLink { PastVisitView(service: CareService.all[1]) } label: {
+                    OpenCircle(label: "Open what the nurse found at your last visit")
+                }
+            }
+            ThusoMetrics {
+                ForEach(measures) { observation in
+                    let value = latest.values[observation.id]!
+                    let flag = Passport.flag(observation, value)
+                    ThusoMetric(value: Passport.format(observation, value), unit: observation.unit,
+                                label: observation.label, chip: flag.chip, flagged: !flag.isNormal)
+                }
+            }
+            Text(outside.isEmpty
+                 ? "Every reading taken at that visit sits inside its indicative reference range."
+                 : "\(outside.count) reading\(outside.count == 1 ? "" : "s") sat outside the indicative range. A reading outside a range is something to look at, not a diagnosis.")
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     @ViewBuilder private var passportActions: some View {
         Button { share = true } label: { tileFace("Share record", "square.and.arrow.up") }.buttonStyle(.plain)
         ShareLink(item: "MyThuso fictional passport: BP 118/78 mmHg, pulse 72 bpm, glucose 5.2 mmol/L. Demo only, not a medical record.") {
@@ -81,7 +121,7 @@ struct PassportView: View {
     }
     private var hero: some View {
         ZStack(alignment: .leading) {
-            LinearGradient(colors: [ThusoTheme.indigoDeep, ThusoTheme.indigo], startPoint: .topLeading, endPoint: .bottomTrailing)
+            LinearGradient(colors: [ThusoTheme.ink, ThusoTheme.charcoal], startPoint: .topLeading, endPoint: .bottomTrailing)
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
                     StatusPill(text: "Thuso Pass", tone: "light")
@@ -111,7 +151,7 @@ struct PassportView: View {
  * the notification bell there is no second route to what is behind them, so the exemption was
  * standing in front of the only way in. A pill built out of a Button has the frame a thumb has to
  * hit as its own frame, and it is the pill the web already draws for the same four sections: a
- * surface ground and a hairline border when it is not chosen, indigo with white text when it is.
+ * surface ground and a hairline border when it is not chosen, charcoal with white text when it is.
  *
  * When four pills no longer share a line the strip wraps to a column rather than scrolling
  * sideways. A sideways scroller would carry Medications and More off the edge with nothing on
@@ -154,13 +194,13 @@ private struct SectionTabs: View {
                 Text(section).font(.footnote.weight(.semibold))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(chosen ? Color.white : ThusoTheme.body)
+                    .foregroundStyle(chosen ? Color.white : ThusoTheme.charcoal)
                     .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8)
                     /* Where the forty-four points are actually met — on the button's own frame,
                        which is the frame XCUITest measures and a thumb has to find. */
                     .frame(maxWidth: filling ? .infinity : nil, minHeight: 44)
-                    .background(chosen ? ThusoTheme.indigo : ThusoTheme.surface, in: shape)
-                    .overlay(shape.stroke(chosen ? ThusoTheme.indigo : ThusoTheme.line, lineWidth: 1))
+                    .background(chosen ? ThusoTheme.charcoal : ThusoTheme.surface, in: shape)
+                    .overlay(shape.stroke(chosen ? ThusoTheme.charcoal : ThusoTheme.stone, lineWidth: 1))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -227,7 +267,7 @@ struct PlansView: View {
             .padding(.vertical, ThusoSpacing.space16)
         }
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Care plans")
     }
     /* One row per plan: the name, what it includes and what it costs. Five equally weighted cards
@@ -284,39 +324,26 @@ struct MoreView: View {
                 }.buttonStyle(.plain)
                 group("Your care") {
                     row("Assistant", "An ambient picture of what needs you", "sparkles") { AssistantView() }
-                    Divider().overlay(ThusoTheme.line)
                     row("My family", "Manage your loved ones", "person.2") { FamilyView() }
-                    Divider().overlay(ThusoTheme.line)
                     row("Care plans", "Ongoing care and subscriptions", "heart.text.square") { PlansView() }
-                    Divider().overlay(ThusoTheme.line)
                     row("Payments", "Cards, history and refunds", "creditcard") { WalletView() }
                 }
                 group("Your account") {
                     row("Notifications", "Visit updates and messages", "bell") { NotificationsView() }
-                    Divider().overlay(ThusoTheme.line)
                     row("Privacy & settings", "Your data and app preferences", "slider.horizontal.3") { PrivacyView() }
-                    Divider().overlay(ThusoTheme.line)
                     row("Language", "Read MyThuso your way", "globe") { LanguageView() }
                 }
                 group("Design review", note: "Screens built to be examined rather than used. Nothing here books, pays or contacts anybody.") {
                     Button(action: firstRun) { MenuRow(title: "First-run & recovery", subtitle: "Sign-up, one-time code and lost access", symbol: "person.badge.plus") }.buttonStyle(.plain)
-                    Divider().overlay(ThusoTheme.line)
                     row("Vetting", "Every party that must be vetted, and what each is refused", "checkmark.shield") { VettingDirectoryView() }
-                    Divider().overlay(ThusoTheme.line)
                     row(thuso(.patientFile, store.locale), "Eight tabs, gated on vetting — the same file four different ways", "folder.badge.person.crop") { PatientFileView() }
-                    Divider().overlay(ThusoTheme.line)
                     row(thuso(.consultationRecord, store.locale), "One structure for every encounter, in long form or SOAP", "square.and.pencil") { ConsultationRecordView() }
-                    Divider().overlay(ThusoTheme.line)
                     row(thuso(.householdRecord, store.locale), "One household, and what each member may see of the others", "house") { HouseholdView() }
-                    Divider().overlay(ThusoTheme.line)
                     row(thuso(.healthSummary, store.locale), "The shareable summary, bound to a purpose and a period", "square.and.arrow.up") { HealthSummaryView() }
-                    Divider().overlay(ThusoTheme.line)
                     row("Thuso Kit", "Pairing, calibration and where a reading came from", "sensor.tag.radiowave.forward") { ThusoKitView() }
-                    Divider().overlay(ThusoTheme.line)
-                    row("Waiting to send", "Offline capture, and the four conflicts nobody merges", "tray.full") { CaptureQueueView() }
-                    Divider().overlay(ThusoTheme.line)
+                    row("The visit, waiting", "Offline capture of a whole visit — identity, consent, readings, findings, sign-off", "tray.full") { VisitQueueView() }
+                    row("Readings waiting to send", "One reading at a time, and the four conflicts nobody merges", "waveform.path.ecg") { CaptureQueueView() }
                     row("System states", "Loading, error, offline and denied", "square.stack.3d.up") { SystemStatesView() }
-                    Divider().overlay(ThusoTheme.line)
                     row("Explore the roadmap", "All 21 modules in the proposal", "square.grid.2x2") { RoadmapView() }
                 }
                 /* A workspace is entered, not pushed. Each opens over the patient's tab bar with a
@@ -324,11 +351,8 @@ struct MoreView: View {
                    one inside the other is how the two got confused in the first place. */
                 group("Workspace previews") {
                     workspaceRow("Nurse workspace", "Visits, assessment and vetting", "cross.case", role: "Nurse")
-                    Divider().overlay(ThusoTheme.line)
                     workspaceRow("Doctor workspace", "Review queue and sign-off", "stethoscope", role: "Doctor")
-                    Divider().overlay(ThusoTheme.line)
                     workspaceRow("Partner workspace", "Pharmacy and laboratory orders", "pills", role: "Partner")
-                    Divider().overlay(ThusoTheme.line)
                     workspaceRow("Control Tower", "Dispatch, incidents and vetting", "antenna.radiowaves.left.and.right", role: "Control Tower")
                 }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
@@ -344,7 +368,7 @@ struct MoreView: View {
             .padding(.vertical, ThusoSpacing.space16)
         }
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("More").navigationBarTitleDisplayMode(.large)
         .fullScreenCover(item: $workspace) { entry in
             WorkspaceShell(role: entry.id) { workspace = nil }.environmentObject(store)
@@ -360,14 +384,23 @@ struct MoreView: View {
                 Text(note).font(.caption).foregroundStyle(ThusoTheme.body)
                     .fixedSize(horizontal: false, vertical: true).padding(.bottom, ThusoSpacing.space4)
             }
-            CareCard(padding: ThusoSpacing.space16, spacing: 0) { rows() }
+            VStack(spacing: ThusoSpacing.space8) { rows() }
         }
     }
+    /* A destination is a pill: symbol, label, and a circular arrow at the trailing edge. It was a
+       row inside a card with a hairline under it, which is the shape of a settings list — and this
+       screen is not a settings list, it is where every part of the product is reached from. The
+       pills are also the only place in the app a reader can see at a glance how many destinations
+       there are, because each one is its own object rather than a band inside one long card. */
     private func row<Destination: View>(_ title: String, _ subtitle: String, _ symbol: String, @ViewBuilder destination: @escaping () -> Destination) -> some View {
-        NavigationLink { destination() } label: { MenuRow(title: title, subtitle: subtitle, symbol: symbol) }.buttonStyle(.plain)
+        NavigationLink { destination() } label: {
+            NavPillLabel(title: title, subtitle: subtitle, symbol: symbol)
+        }.buttonStyle(.plain)
     }
     private func workspaceRow(_ title: String, _ subtitle: String, _ symbol: String, role: String) -> some View {
-        Button { workspace = WorkspaceEntry(id: role) } label: { MenuRow(title: title, subtitle: subtitle, symbol: symbol) }.buttonStyle(.plain)
+        Button { workspace = WorkspaceEntry(id: role) } label: {
+            NavPillLabel(title: title, subtitle: subtitle, symbol: symbol)
+        }.buttonStyle(.plain)
     }
 }
 /* Explore. This is where the rotating banner lives now.
@@ -407,7 +440,7 @@ struct RoadmapView: View {
             .padding(.vertical, ThusoSpacing.space16)
         }
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Roadmap").navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $openPassport) { PassportView() }
         .navigationDestination(isPresented: $openServices) { ServicesView() }

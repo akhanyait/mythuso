@@ -67,7 +67,7 @@ struct ProgrammesView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Programme administration").navigationBarTitleDisplayMode(.inline)
     }
 

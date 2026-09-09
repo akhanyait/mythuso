@@ -43,7 +43,7 @@ struct HealthSummaryView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle(thuso(.healthSummary, store.locale)).navigationBarTitleDisplayMode(.inline)
     }
 

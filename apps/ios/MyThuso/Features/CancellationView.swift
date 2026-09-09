@@ -54,7 +54,7 @@ struct CancelVisitView: View {
             .padding(.vertical, ThusoSpacing.space16)
         }
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle(recorded == nil ? "Cancel or move" : "Cancelled")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.canvas, for: .navigationBar)
@@ -264,7 +264,7 @@ struct RescheduleVisitView: View {
             .padding(.vertical, ThusoSpacing.space16)
         }
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle(moved == nil ? "Move this visit" : "Moved")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.canvas, for: .navigationBar)

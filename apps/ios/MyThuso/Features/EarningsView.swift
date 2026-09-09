@@ -70,7 +70,7 @@ struct EarningsView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Earnings & payouts").navigationBarTitleDisplayMode(.inline)
     }
 

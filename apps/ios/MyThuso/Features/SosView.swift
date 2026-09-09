@@ -164,7 +164,7 @@ struct SosView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Thuso SOS").navigationBarTitleDisplayMode(.inline)
     }
 

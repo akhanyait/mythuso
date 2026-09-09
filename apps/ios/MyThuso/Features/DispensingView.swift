@@ -65,7 +65,7 @@ struct DispensingView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Substitution & repeats").navigationBarTitleDisplayMode(.inline)
     }
 

@@ -86,7 +86,7 @@ struct PatientFileView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle(thuso(.patientFile, store.locale)).navigationBarTitleDisplayMode(.inline)
         .onAppear { if viewer.isEmpty { viewer = viewers.contains { $0.id == viewerId } ? viewerId : (viewers.first?.id ?? "") } }
     }
@@ -528,7 +528,7 @@ struct PatientFileOverview: View {
             .font(.caption2).foregroundStyle(ThusoTheme.body)
         NavigationLink("What the four marks mean") {
             ScrollView { VStack(alignment: .leading, spacing: ThusoSpacing.space16) { DemoBadge(); ProvenanceKey() }.padding(ThusoSpacing.space16) }
-                .background(ThusoTheme.canvas)
+                .thusoGround()
                 .navigationTitle("Where a reading came from").navigationBarTitleDisplayMode(.inline)
         }
         .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)

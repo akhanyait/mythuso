@@ -32,7 +32,7 @@ struct ServicesView: View {
             .padding(.vertical, ThusoSpacing.space16)
         }
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Book care").navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.canvas, for: .navigationBar)
         .searchable(text: query, prompt: "Find a service")
@@ -108,7 +108,7 @@ struct BookingView: View {
            Nothing else in the flow buzzes. */
         .sensoryFeedback(.selection, trigger: step)
         .sensoryFeedback(.success, trigger: booked)
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle(booked ? "All set" : "Your home visit").navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.canvas, for: .navigationBar)
     }
@@ -414,6 +414,15 @@ struct VisitsView: View {
                                         }
                                     }
                                 }
+                                /* A completed visit is the screen a returning patient wants most,
+                                   and the row for it led nowhere: the same shape as an upcoming
+                                   visit, three days after it happened. */
+                                if row.status == "Completed" {
+                                    Divider().overlay(ThusoTheme.line)
+                                    NavigationLink { PastVisitView(service: CareService.all[1], address: row.place) } label: {
+                                        Text("See what the nurse found").frame(maxWidth: .infinity)
+                                    }.buttonStyle(CareButton())
+                                }
                                 if row.nurse, let visit = store.visits.first {
                                     Divider().overlay(ThusoTheme.line)
                                     HStack(spacing: ThusoSpacing.space12) {
@@ -441,7 +450,7 @@ struct VisitsView: View {
             .padding(.vertical, ThusoSpacing.space16)
         }
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Your visits").navigationBarTitleDisplayMode(.large)
     }
     /* Moving a visit is a real destination now rather than a roadmap card. It was the only
@@ -453,7 +462,7 @@ struct VisitsView: View {
     }
     private var promo: some View {
         ZStack(alignment: .bottomTrailing) {
-            LinearGradient(colors: [ThusoTheme.indigoDeep, ThusoTheme.indigo], startPoint: .topLeading, endPoint: .bottomTrailing)
+            LinearGradient(colors: [ThusoTheme.ink, ThusoTheme.charcoal], startPoint: .topLeading, endPoint: .bottomTrailing)
             Image("Family").resizable().scaledToFit().frame(height: 150).accessibilityHidden(true)
                 .frame(maxWidth: .infinity, alignment: .trailing)
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
@@ -507,7 +516,7 @@ struct VisitDetailView: View {
             .padding(.vertical, ThusoSpacing.space16)
         }
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Visit details").navigationBarTitleDisplayMode(.inline)
     }
     @ViewBuilder private var exits: some View {

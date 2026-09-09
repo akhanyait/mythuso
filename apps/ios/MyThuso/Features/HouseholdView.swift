@@ -63,7 +63,7 @@ struct HouseholdView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle(thuso(.householdRecord, store.locale)).navigationBarTitleDisplayMode(.inline)
     }
 

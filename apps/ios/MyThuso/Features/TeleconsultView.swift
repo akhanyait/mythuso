@@ -102,7 +102,7 @@ struct TeleconsultView: View {
             }
             .padding(ThusoSpacing.space16)
         }
-        .background(ThusoTheme.canvas)
+        .thusoGround()
         .navigationTitle("Teleconsultation").navigationBarTitleDisplayMode(.inline)
         .onReceive(clock) { _ in if dropped && holdLeft > 0 { holdLeft -= 1 } }
         .navigationDestination(isPresented: $openRecord) { ConsultationRecordView(reference: reference, patient: patient, writerId: doctorId) }
