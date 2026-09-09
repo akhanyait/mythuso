@@ -201,6 +201,53 @@ Clinical reference ranges, the demo verification codes, the identity check-digit
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only today.
 
+**The glass redesign, 8–9 September 2026.** The founder chose a reference and then said of the first
+attempt *"this is not the design I sent you"* — the palette had been taken and the shapes had not.
+He then said what he had actually meant: *"something futuristic and having a futuristic glassy feel
+with smooth animations… and also putting all functionalities on it from start to finish."*
+
+What landed is a component language rather than a colour scheme. A metric is a status chip floating
+*above* a large thin numeral with a small label beneath — this product did the exact inverse
+everywhere, and that inversion was most of why it looked nothing like the reference. Navigation is a
+pill row with a circular arrow that inverts on the active row. Separation is a hairline, not a
+shadow. And over all of it, frosted glass on a luminous ground.
+
+**Glass has one hard problem and it is solved rather than ignored.** A translucent surface has no
+colour of its own — it is whatever is behind it, tinted — so a contrast figure measured against it
+is a guess about where the panel sits. Every glass surface therefore declares a *floor*: the tint
+composited over the darkest point the ground may reach. Contrast is measured against that, the
+ground is built so it cannot go darker, and four things fail the build — an undeclared floor, a
+floor that is not actually the composite, a ground darker than the one the floor came from, and a
+stylesheet that ignores `prefers-reduced-transparency` or `prefers-reduced-motion`. The check caught
+its author's own error on its first run: the wrong colour had been named as the darkest ground.
+Charcoal is 16.28:1 on the floor and 14.48:1 on the ground at its worst. 54 pairs, none failing.
+
+The fallback is not a degradation. `backdrop-filter` is expensive on the mid-range Android handsets
+this product is for, and where it is missing the glass resolves to the floor — precisely the colour
+every ratio was measured against. One agent first put a blur on every chip and button, about forty
+compositor layers a screen, and a click began timing out one run in three; it is on six surfaces
+now. Glass may never sit on top of text.
+
+**And the flows.** All 96 journeys were walked in a real browser and written down in
+`docs/FLOW-COMPLETENESS.md`: 61 complete, 12 blocking, 18 incomplete, 5 rough. Most of the blockers
+are closed. A booked visit could not be cancelled at all — and of four visits exactly one had any
+controls — while the Cancelled tab promised "the reason and any refund" for a feature that did not
+exist. Care plans and the wallet were a single placeholder dialog pressed 28 times across the app,
+which meant the two recurring revenue lines the proposal rests on could not be read. The Control
+Tower's vetting queue rendered *the nurse's own application form*. The doctor's five outcomes all
+opened the same form, and now seven do, each opening what it produces, with the two refusals — a
+medical certificate and its extension — rendered on every signed decision. Thuso SOS, one of the
+most complete journeys in the build, was reachable only from the fourteenth card inside Explore.
+
+The line held throughout: **a missing next screen is a dead end; a notice saying a capability is not
+connected is not.** Otherwise "complete the flows" becomes "pretend it works", which is the one
+thing this product cannot do.
+
+**What the glass redesign has not reached: iOS and Android.** Both native apps build green and carry
+the new palette, because the tokens are generated into them — but the glass language, the metric
+shape and the pill navigation are web only. The two apps and the web app currently look like
+relatives rather than the same product.
+
 **The redesign of September 2026.** The founder's words were "not serious and modern, a bit
 cartoonish", and the diagnosis was brand drift: the shipped product was a herbal-green system with
 no Deep Indigo in it at all, while the funding proposal names Vital Teal, **Deep Indigo**, Mango,
