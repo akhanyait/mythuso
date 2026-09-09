@@ -803,6 +803,34 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  }
 }
 
+/* Cancelling a visit.
+   Both native apps promised on the booking confirmation that a visit may be cancelled up to two
+   hours before it, and neither offered a cancel control. The web offered the control and never
+   mentioned the window. The two hours lived as a hand-typed string in one Swift file and one Kotlin
+   file with nothing to compare them against — which is why the drift check never saw it: there was
+   no contract to drift from. These checks close that hole from both ends. */
+const cancellation = JSON.parse(read('packages/catalog/cancellation.json'));
+if(!(cancellation.window.hoursBefore > 0)) throw new Error('packages/catalog/cancellation.json declares no cancellation window. Both native apps promise one on the booking confirmation.');
+/* The check that refuses the window as a literal is NOT here yet, deliberately. Both native apps
+   still carry "2 hours before the visit" as a hand-typed string, and mythuso-58 is taking the native
+   cancellation flow. A boundary check committed ahead of the change it describes is a red build with
+   a promise attached, and this repository does not do promises. It lands with that work — the regex
+   is one line, and it belongs in the same commit as the last literal it kills. */
+/* A visit can always be cancelled. The window is not permission. */
+if(!cancellation.always?.statement) throw new Error('cancellation.json no longer says a visit can always be cancelled. A product that refuses a cancellation has not prevented it — it has made somebody not answer the door.');
+for(const id of ['before-window','inside-window','in-progress']) {
+ if(!cancellation.states.some(st => st.id === id)) throw new Error(`The cancellation contract has lost the "${id}" state. All three are reachable and each says something different to the person cancelling.`);
+}
+if(!cancellation.states.find(st => st.id === 'inside-window') || cancellation.states.find(st => st.id === 'inside-window').refusesCancellation) {
+ throw new Error('Cancelling inside the window is refused. It must not be: the alternative to letting somebody cancel late is a nurse arriving at a door nobody opens.');
+}
+/* The dangerous version of this file is one that quietly acquires a charge nobody agreed to. */
+if(!cancellation.pendingDecision) throw new Error('cancellation.json no longer records that the late-cancellation charge is undecided. Removing the question is how a percentage nobody agreed to becomes a rule.');
+const chargeWords = /(cancellation fee|late fee|forfeit|non-refundable|will be charged|charged \d|% of the)/i;
+if(chargeWords.test(JSON.stringify(cancellation))) throw new Error('cancellation.json states a charge. What a patient pays for cancelling late is a commercial and legal question — section 47 of the Consumer Protection Act — and it is recorded as pending precisely so nobody writes it into a contract on a Tuesday.');
+/* Money is the payments capability's sentence, not this file's. */
+if(cancellation.money.capability !== 'payments') throw new Error('The cancellation contract no longer points at the payments capability for what happens to money, so its sentence would not disappear when a provider is connected.');
+
 /* Glass, and the one thing that makes it checkable.
    A translucent surface has no colour of its own, so a contrast figure measured against it is a
    guess about whatever happens to be behind it. Every glass surface therefore resolves to a

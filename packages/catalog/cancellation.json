@@ -1,0 +1,83 @@
+{
+ "_note": "Cancelling a visit, and moving one. Written because the three platforms had three different truths: both native apps promised on the booking confirmation that you may cancel or reschedule up to two hours before the visit and then offered no cancel control at all, the web offered a cancel flow with no window in it, and nothing anywhere declared the rule. The two hours existed as a hand-typed string in two Swift and Kotlin files with no contract behind them — a refund-bearing right living as a duplicated literal, which is precisely what scripts/check-boundaries.mjs exists to prevent, and it slipped through because there was nothing for the drift check to compare against. Absence again, the same shape as an unmeasured contrast pair.",
+
+ "_lawNote": "Nothing here is a consumer-law position. Section 47 of the Consumer Protection Act 68 of 2008 governs cancellation of an advance booking and permits a reasonable charge, and what is reasonable for a nurse already travelling to a house is a question for somebody qualified to answer it. This file records what the product says and what it refuses to say; it does not decide the second one.",
+
+ "window": {
+  "hoursBefore": 2,
+  "sentence": "You can cancel or reschedule up to 2 hours before the visit.",
+  "shownAt": "booking-confirmation",
+  "whyTwo": "It is the number both native apps have been promising since before this file existed, and changing it silently would break a promise already made to whoever read that screen. It is written down here so that changing it is a decision rather than an edit.",
+  "whyItIsShownAtBooking": "The moment a person commits is the moment they want to know how to get out. A cancellation right disclosed only on the cancellation screen is a right disclosed to people who already found it."
+ },
+
+ "always": {
+  "statement": "A visit can always be cancelled. The window is not permission to cancel — it is the point after which cancelling stops being free of consequence for somebody else.",
+  "why": "A product that refuses to let a person cancel has not prevented the cancellation; it has only made them not answer the door. The nurse still travels, and nobody knows why."
+ },
+
+ "states": [
+  {
+   "id": "before-window",
+   "name": "More than 2 hours before",
+   "detail": "Nothing has been dispatched and nobody has set out. The visit is withdrawn and that is the end of it.",
+   "patientWords": "This visit is cancelled. Nothing was charged."
+  },
+  {
+   "id": "inside-window",
+   "name": "Less than 2 hours before",
+   "detail": "A nurse may already be on the way. The visit is still cancelled — that is never refused — and the fact that it was cancelled late is recorded.",
+   "patientWords": "This visit is cancelled. A nurse may already have been on the way, so this one is recorded as a late cancellation.",
+   "whyStillAllowed": "See `always`. The alternative is a nurse arriving at a door nobody opens."
+  },
+  {
+   "id": "in-progress",
+   "name": "The nurse has arrived",
+   "detail": "This is not a cancellation. A visit that has begun and stopped is an outcome of the visit, and it belongs to the clinical record rather than to a booking screen.",
+   "patientWords": "This visit has already started. Speak to the nurse who is with you, or call the Control Tower.",
+   "refusesCancellation": true
+  }
+ ],
+
+ "reasons": [
+  { "id": "no-longer-needed", "text": "I no longer need this visit" },
+  { "id": "not-at-address", "text": "I will not be at the address" },
+  { "id": "different-time", "text": "I want a different day or time", "offersRescheduleFirst": true },
+  { "id": "unstated", "text": "I would rather not say" }
+ ],
+ "reasonsNote": "Not one of them asks a person to justify themselves. A screen that interrogates somebody for cancelling a nurse is a screen that gets escaped from rather than answered, and 'I would rather not say' is a real answer and is recorded as one.",
+
+ "money": {
+  "capability": "payments",
+  "whileNotConnected": "Nothing has been charged for this visit, so there is nothing to refund.",
+  "sentenceComesFrom": "packages/catalog/capabilities.json — the payments notice, rendered by NotConnected. This file does not restate it.",
+  "why": "What happens to money is a fact about a payment provider that does not exist yet. Writing a refund rule here would be inventing a commitment, and the one place it would certainly be read as a promise is the screen where somebody is deciding whether to cancel."
+ },
+
+ "pendingDecision": {
+  "id": "late-cancellation-charge",
+  "question": "What, if anything, a patient is charged for cancelling inside the window once payments are connected — and what the nurse is paid when she has already travelled.",
+  "whoDecides": "The founder, with somebody who knows section 47 of the Consumer Protection Act. It is a commercial and legal decision, not an engineering one.",
+  "untilThen": "No screen states a late-cancellation charge, because no charge has been decided. The late state is recorded and named; it costs nothing, and the product does not imply that it might.",
+  "why": "The dangerous version of this file is one that quietly acquires a percentage nobody agreed to. Naming the decision is how it stays visible instead."
+ },
+
+ "doesNotUndo": [
+  { "id": "the-record", "statement": "A cancelled visit is not deleted. It stays under Cancelled with the reason given.", "why": "A visit that vanishes is one nobody can ask about afterwards — not the patient, not the nurse who was dispatched, and not whoever has to explain it." },
+  { "id": "the-consent", "statement": "Cancelling a visit withdraws nothing you have consented to. Consent is withdrawn on the consent screen, deliberately and separately.", "why": "Two different decisions. Bundling them means a person who wanted a different Tuesday has silently changed what MyThuso may do with their record." },
+  { "id": "the-interpreter", "statement": "An interpreter held for this visit is stood down and is not charged to the patient.", "why": "packages/catalog/interpreting.json already says a cancelled accommodation costs the patient nothing and is recorded against MyThuso. Cancelling the visit must not become the way that cost reappears." }
+ ],
+
+ "reschedule": {
+  "offeredBeforeCancelling": true,
+  "sentence": "If the day is the problem rather than the visit, move it instead.",
+  "why": "A person who wanted a different day and was shown nothing but a cancel button cancels. Offering the move once, on the cancellation screen, costs a line and keeps the visit.",
+  "keepsTheSameVisit": "Moving a visit keeps its reference, its person, its address and its service. Only the date and the time change, so a moved visit is the same visit and not a new one — which is what makes the interpreter, the consent and the record above still apply."
+ },
+
+ "refusals": [
+  { "id": "cancel-after-arrival", "sentence": "This visit has already started. Speak to the nurse who is with you, or call the Control Tower.", "why": "A booking screen cannot end an encounter that is happening in somebody's house. That is a clinical event and it is recorded as one." },
+  { "id": "no-reason-required", "sentence": "You do not have to give a reason.", "why": "Said out loud on the screen, because a list of reasons with no way past it is a demand wearing a menu's clothes." },
+  { "id": "no-charge-stated", "sentence": "Nothing has been charged for this visit, so there is nothing to refund.", "why": "True while payments are not connected, and it disappears from every screen at the same moment they are — which is the only way it stays true." }
+ ]
+}
