@@ -952,6 +952,27 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  }
 }
 
+/* Every entry the build produces must be served, and must be verified by the deploy.
+   `status.html` shipped unreachable: nginx had no location for it, so `/status` fell through the
+   catch-all and answered with the *landing page* — under a 200, which is a wrong answer wearing a
+   right one's status code. The deploy's own checks passed, because they read status codes and every
+   missing path falls through to the same place.
+
+   Nothing tied the two together, so nothing could have caught it. This does. A fifth entry was added
+   to vite.config.ts and to nothing else, and the next one will be too. */
+{
+ const vite = read('apps/web/vite.config.ts');
+ const conf = existsSync('deploy/nginx/mythuso.conf') ? read('deploy/nginx/mythuso.conf') : '';
+ const script = existsSync('deploy/deploy.sh') ? read('deploy/deploy.sh') : '';
+ const entries = [...vite.matchAll(/(\w+):\s*resolve\(import\.meta\.dirname,\s*'([^']+\.html)'\)/g)]
+  .map(m => ({ name: m[1], file: m[2] }));
+ if(entries.length < 2) throw new Error('scripts/check-boundaries.mjs can no longer read the entries out of apps/web/vite.config.ts, so the check that every entry is served is checking nothing.');
+ for(const entry of entries) {
+  if(conf && !conf.includes(entry.file)) throw new Error(`apps/web/vite.config.ts builds "${entry.file}" and deploy/nginx/mythuso.conf never names it. It will not 404 — it will fall through the catch-all and serve the landing page under a 200, which is how status.html shipped unreachable and how the deploy's own checks passed anyway.`);
+  if(script && !script.includes(entry.file) && !new RegExp(`verify_entry[^\\n]*${entry.name}`).test(script)) throw new Error(`The deploy does not verify "${entry.file}" after publishing it. Every unserved path answers 200 with the wrong page, so a check that does not name this entry cannot tell whether it arrived.`);
+ }
+}
+
 /* The status page carries no framework.
    It is the page somebody opens when they suspect nothing works — on a metered connection, in a car
    park, having just been told by a screen that it does not book a visit. It was first written as a

@@ -6,8 +6,10 @@ Johannesburg. `Documentation/` holds the funding proposal this is built from.
 
 Three native apps and one service:
 
-- `apps/web` — React 19 + TypeScript + Vite. Two entries: the app (`index.html`) and the public
-  landing page (`landing.html`).
+- `apps/web` — React 19 + TypeScript + Vite. Five entries, one per audience: the patient app
+  (`index.html`), the clinical workspaces (`staff.html`), the back office (`admin.html`), the
+  public landing page (`landing.html`), and the status page (`status.html`), which renders
+  `packages/catalog/capabilities.json` and carries no framework at all.
 - `apps/ios` — SwiftUI, iOS 17+.
 - `apps/android` — Jetpack Compose + Material 3, API 26+.
 - `apps/api` — the identity service. Zero dependencies: `node:http`, `node:crypto`, `node:sqlite`,
