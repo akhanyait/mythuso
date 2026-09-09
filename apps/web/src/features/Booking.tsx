@@ -10,6 +10,7 @@ import {
  cancellation, cost, estimate, hold, isHeld, labels as interpreting, modes as interpreterModes,
  resolve, statusFor, useSaslRequirement, waitSentence
 } from '../lib/interpreting';
+import { reasons, refusalById, reschedule, stateById, stateOf, windowSentence, wordsFor } from '../lib/cancelling';
 /* Booking, and the four things it used to lose.
  *
  * The date strip was five hand-typed labels starting "Fri 12 Sep" — a weekday that had not matched
@@ -238,13 +239,15 @@ export function Reschedule({ visit, onMove }: { visit: DemoVisit; onMove: (date:
  </div>;
 }
 
-/* The reasons a person actually has, and not one of them asks them to justify it: a screen that
-   interrogates somebody for cancelling a nurse is a screen that gets escaped from rather than
-   answered. "I would rather not say" is a real answer and is recorded as one. */
-const cancelReasons = ['I no longer need this visit', 'I will not be at the address', 'I want a different day or time', 'I would rather not say'] as const;
+/* The reasons, the window and every sentence below come from packages/catalog/cancellation.json.
+   They were the component's own words until this evening, which was the third different version of
+   a cancellation right across three platforms — both native apps promised a window and offered no
+   control, and this screen offered the control and never mentioned the window. */
+const cancelReasons = reasons.map(r => r.text);
 export function CancelVisit({ visit, onCancel }: { visit: DemoVisit; onCancel: (reason: string) => void }) {
  const [reason, setReason] = useState<string>(cancelReasons[0]);
  const [done, setDone] = useState<string | null>(null);
+ const state = stateOf(visit.date, visit.start);
 
  if (done) return <div className="success">
   <div className="success-icon"><Undo2 size={30}/></div>
@@ -253,6 +256,7 @@ export function CancelVisit({ visit, onCancel }: { visit: DemoVisit; onCancel: (
   <p className="success-when">{visit.date && visit.start ? <>{longDateOf(visit.date)}<br/>{visit.start}</> : labels.asapPending}</p>
   <div className="review-line"><span>Reason recorded</span><strong>{done}</strong></div>
   <div className="review-line"><span>What was to be paid</span><strong>{money(visit.service.price)} · {visit.payment}</strong></div>
+  <p className="helper">{wordsFor(state)}</p>
   <p className="helper">A cancelled visit is not deleted. It stays under Cancelled with the reason you gave, because a visit that vanishes is one nobody can ask about afterwards.</p>
   <NotConnected of="booking"/>
   <NotConnected of="payments"/>
@@ -262,8 +266,12 @@ export function CancelVisit({ visit, onCancel }: { visit: DemoVisit; onCancel: (
  return <div className="form-stack">
   <div className="booking-summary"><span className="service-icon"><ServiceIcon name={visit.service.icon}/></span><div><h3>{visit.service.name}</h3><p>{visit.person} · {visit.address}</p></div><strong>{money(visit.service.price)}</strong></div>
   <div className="review-line"><span><Clock3 size={15}/> Booked for</span><strong>{visit.date && visit.start ? `${longDateOf(visit.date)} · ${visit.start}` : labels.asapPending}</strong></div>
+  {/* Which side of the window this visit is on, worked out from its own date and time. A late
+      cancellation is never refused — the alternative to letting somebody cancel late is a nurse
+      arriving at a door nobody opens — but it is named, because a nurse may already be travelling. */}
+  <div className="privacy-note"><Clock3 size={19}/>{windowSentence}{state === 'inside-window' && <> {stateById('inside-window').detail}</>}</div>
   <h3>Why are you cancelling?</h3>
-  <p className="muted">You do not have to give a reason.</p>
+  <p className="muted">{refusalById('no-reason-required').sentence}</p>
   <div className="choice-list" role="radiogroup" aria-label="Why are you cancelling?">
    {cancelReasons.map(r => <label key={r} className={`choice-row ${reason === r ? 'selected' : ''}`}>
     <input type="radio" name="cancel-reason" checked={reason === r} onChange={() => setReason(r)}/>
@@ -281,7 +289,7 @@ export function CancelVisit({ visit, onCancel }: { visit: DemoVisit; onCancel: (
   <NotConnected of="payments"/>
   {/* Moving is offered before cancelling, once, because a person who wanted a different day and was
       shown nothing but a cancel button cancels. */}
-  <p className="helper"><CalendarClock size={15}/>If the day is the problem rather than the visit, close this and choose Reschedule instead.</p>
+  <p className="helper"><CalendarClock size={15}/>{reschedule.sentence} Close this and choose Reschedule.</p>
   <NotConnected of="booking"/>
   <button className="secondary full sign-out" onClick={() => setDone(reason)}><X size={16}/>Cancel this visit</button>
  </div>;

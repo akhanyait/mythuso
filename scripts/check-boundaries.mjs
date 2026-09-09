@@ -822,7 +822,12 @@ if(!(cancellation.window.hoursBefore > 0)) throw new Error('packages/catalog/can
    The generated files are skipped: they are allowed to contain it, because containing it is their
    job. Anywhere else it is a promise about a refund that no longer answers to the contract. */
 const windowLiteral = new RegExp(`\\b${cancellation.window.hoursBefore} hours? before\\b`);
-for(const file of native.filter(f => !/Data\.(swift|kt)$/.test(f))) {
+/* Web as well as native. The check walked only Swift and Kotlin when it was written, because those
+   were the two files carrying the literal — but the promise is the product's, not a platform's, and
+   the web was the last of the three to render the window at all. A check that stops at a language
+   boundary is a check that stops where the next copy will appear. */
+const carriesTheWindow = native.concat(files('apps/web/src').filter(f => /\.(tsx?|css)$/.test(f)));
+for(const file of carriesTheWindow.filter(f => !/Data\.(swift|kt)$/.test(f))) {
  if(windowLiteral.test(read(file))) throw new Error(`${file} types out the cancellation window — "${cancellation.window.hoursBefore} hours before" — which packages/catalog/cancellation.json declares. Render it from the contract (Cancellation.windowSentence / CancellationData.windowSentence). A window typed into a screen is a promise about somebody's money that stops answering to the file that sets it, and it is how this one went wrong the first time.`);
 }
 /* A visit can always be cancelled. The window is not permission. */
@@ -1032,7 +1037,14 @@ const handWrittenIos=iosSources.filter(f=>!/Data\.swift$/.test(f));
 const swiftLiterals = source => [...source.matchAll(/"(?:[^"\\\n]|\\.)*"/g)].map(m=>m[0].slice(1,-1));
 const flatten = text => text.replace(/\s+/g,' ').trim();
 const contractSentences=capabilities.capabilities.flatMap(c=>[c.notice,c.neverSoften].filter(Boolean).map(flatten));
-for(const file of handWrittenIos) {
+/* Android as well as iOS. This walked only Swift when it was written, because iOS was the only
+   platform rendering these notices — Android has its own NotConnected now, and a check that stops
+   at the platform it was written for stops exactly where the next typed copy appears. Kotlin string
+   literals are the same shape as Swift's for this purpose: double-quoted, backslash-escaped.
+   Raised by mythuso-58, who had the Android half open and could see the gap from there. */
+const handWrittenNative = handWrittenIos.concat(
+ native.filter(f => f.endsWith('.kt') && !/Data\.kt$/.test(f)));
+for(const file of handWrittenNative) {
  for(const literal of swiftLiterals(read(file))) {
   const flat=flatten(literal);
   if(flat.length<40) continue;
