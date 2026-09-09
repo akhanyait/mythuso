@@ -2,15 +2,65 @@
 
 Where each journey starts, and where it stops.
 
-Ninety-six journeys were walked with Playwright against the running web app on
-`MYTHUSO_PORT=5503`, at commit `e21d172`, on both the desktop and the mobile viewport. Nothing here
-was inferred from source; every row below is a screen that was opened, a button that was pressed and
-a result that was read back. Line references were looked up afterwards to name the file.
+Ninety-six journeys were walked with Playwright against the running web app, at commit `e21d172`, on
+both the desktop and the mobile viewport. Nothing was inferred from source; every row was a screen
+opened, a button pressed and a result read back.
 
-**Sixty-one journeys complete. Thirty-five stop somewhere.** Of those, twelve are *blocking* — a
-person cannot finish something the product puts in front of them — eighteen are *incomplete*, and
-five are *rough*. By application: patient 15 of 35 complete, nurse 13 of 16, doctor 7 of 13, Control
-Tower 7 of 10, partner 6 of 9, admin 13 of 13.
+**As it stands after the re-walk: eighty journeys complete, sixteen stop somewhere** — one
+*blocking*, eight *incomplete*, seven *rough*. By application: patient 27 of 35, nurse 13 of 16,
+doctor 10 of 13, Control Tower 9 of 10, partner 8 of 9, admin 13 of 13. It was 61 of 96 when this
+file was written; nineteen rows closed and one was downgraded rather than closed.
+
+**Re-walked on 9 September 2026 at commit `153c7c4`.** Sixteen commits landed between the two, four
+of them ("Give the patient app depth", "Put the clinical estate on the glass", "Five patient screens
+that had data but no way in", "Stop a nurse losing an assessment") specifically to close rows in this
+file. Rows that changed are rewritten below and marked **✔ closed** with the date. Rows that were
+re-walked and are *still* open say so. Rows that were **not** re-walked in this pass carry
+*(not re-walked)*, because a row nobody checked and a row somebody checked and found unchanged are
+not the same claim, and this file's only value is that the difference is visible.
+
+That is the defect this document has: it is prose, and prose does not re-run. The part of it that
+*can* run now does — see the next section.
+
+---
+
+## What is checked, and what is still prose
+
+`tests/journeys.spec.ts` walks every navigation destination in all four applications — ten patient
+sections, the four clinical workspaces' eighteen between them, the console's eight, and the landing
+page's anchors — on both viewports, and fails when a destination **has no screen of its own**. That
+is one class of defect out of the several this audit found, and it is the class that recurred: six
+rows below were a name in a navigation with nothing behind it, and three of those were still open a
+day after they were written down.
+
+**What the spec holds, so these rows cannot silently come back:**
+
+- A destination renders a screen rather than opening a dialog. A nav entry whose "screen" is a modal
+  saying the workflow is not drawn is a name on a list.
+- A destination is not the shell's own workflow-door placeholder.
+- A destination draws a heading and some content. A dead link renders nothing.
+- A destination is **its own** screen: no destination's `<h1>` is another destination's name, and no
+  two destinations in one application render identical text. This is the assertion that would have
+  failed on *Collections* and *Results* rendering the Orders screen verbatim, and on the Control
+  Tower's *Vetting queue* rendering the nurse's application form.
+- Every anchor in the landing page's navigation points at an id that exists.
+
+**What the spec deliberately does not hold**, and what therefore stays prose in the rows below:
+
+- **Whether an unconnected capability is a gap.** It is not. Fifteen capabilities are declared in
+  `packages/catalog/capabilities.json` and none is connected, on purpose. A screen that completes and
+  says plainly that nothing was dispatched, charged or sent is *finished*. Nothing in the spec reads a
+  capability notice, and a spec that failed on one would be a spec arguing the product should
+  overstate itself.
+- **Whether a journey's next step is the right one.** Six of the doctor's seven outcomes now lead
+  somewhere different; whether *referral* should produce a letter screen rather than a text box is a
+  clinical judgement, not an assertion.
+- **Severity.** "Blocking" versus "incomplete" versus "rough" is an opinion about what a funder or a
+  nurse meets first. It is useful and it is not checkable.
+- **Anything reached from inside a screen rather than from a navigation** — a card, a row, a modal's
+  own next button. Several rows below are exactly that, and they are held by the journey specs named
+  in them (`tests/patient-screens.spec.ts`, `tests/deep-journeys.spec.ts`, and the rest) or by
+  nothing at all.
 
 ## What is counted as a stop, and what is not
 
@@ -21,22 +71,20 @@ dispatched and nothing is charged" is a completed journey. "Nothing was submitte
 five-step vetting application is a completed journey. So is the whole of Thuso SOS, which ends in a
 nurse being asked and a stand-down offered, under an honest notice.
 
-What is counted is a missing screen or a missing next step. There are three shapes of it in this
-build, and they are worth naming because they recur:
+What is counted is a missing screen or a missing next step. There are three shapes of it, and they
+are worth naming because they recur:
 
 - **The roadmap dialog** — "*X* is included in the MyThuso feature roadmap. Its dedicated workflow
   will connect to the relevant clinical, operational or partner services in the functionality
-  phase." One button: *Got it*. Rendered from `apps/web/src/App.tsx`. **Twelve** patient controls and
-  **sixteen** of the twenty-two Explore MyThuso cards open it.
+  phase." One button: *Got it*. Rendered from `apps/web/src/App.tsx`.
 - **The not-drawn dialog** — "*X* is in the roadmap and is not drawn yet. Nothing behind this name is
   connected to a nurse, a patient, a record, a payment or a device, and opening it changes nothing."
-  From `apps/web/src/shells/StaffShell.tsx` and `AdminShell.tsx`. **Five** clinical workflows open it.
+  From `apps/web/src/shells/StaffShell.tsx` and `AdminShell.tsx`.
 - **The subjunctive stub** — "*New consultation* would open here for Thando Mokoena." From
-  `apps/web/src/features/PatientFile.tsx`. **Four** doctor actions end there.
+  `apps/web/src/features/PatientFile.tsx`.
 
 These are not capability notices. A capability notice says a real screen is not wired to a real
 service. These say the screen does not exist.
-
 ---
 
 ## Patient (`/`)
@@ -49,35 +97,35 @@ service. These say the screen does not exist.
 | Book a visit | Any service card | *Your visit is booked* → *View my visits*, and the visit is in the list | — complete: 4 steps, review blocked until the terms box is ticked | — |
 | Book with a sign-language requirement | Language & access → SASL switch → *Book a nurse* | Step 2 gains "How should the interpreter be present?" and holds the visit | — complete: the account-level requirement reaches the booking | — |
 | "Not sure what you need? Chat to our care team" | Booking catalogue, foot | The 4-step booking modal for **Vitals & chronic check** | There is no care-team chat. The button routes to an unrelated booking. `Booking.tsx` | blocking |
-| Open a booked visit | My visits → *View details* | Modal *Your visit* with one button: *View Health Passport* | No cancel, no reschedule, no arrival state, no message. Its own copy admits it: "Arrival updates, secure messaging and rescheduling will be connected in the functionality phase" | incomplete |
-| Reschedule a visit | My visits → *Reschedule* | Roadmap dialog | The booking flow already has a date-and-time picker; reschedule does not reuse it | blocking |
-| Cancel a visit | — | Nowhere | **There is no cancel control anywhere in the patient app.** The Cancelled tab exists and holds a cancelled visit, and its empty state reads "Visits you cancel appear here with the reason and any refund" | blocking |
-| Open the 2nd or 3rd upcoming visit | My visits → Upcoming | Nothing happens | `Pages.tsx:99` gates the nurse row and the action bar on `i===0&&tab==='Upcoming'`. Rows 2 and 3 (Wound care 25 Sept, Mother & baby 7 Oct) have no controls at all | blocking |
-| Open a past visit | My visits → Past | Nothing happens | The completed Wound care visit of 5 Sept has no way in — no summary, no "what the nurse found", no rebook | incomplete |
-| Open a cancelled visit | My visits → Cancelled | Nothing happens | No reason shown, no refund state, no rebook | incomplete |
+| Open a booked visit | My visits → *View details* | Modal *Your visit*: reference `VIS-0051`, when, where, patient, status, the nurse and her SANC registration, and what to have ready | — **✔ closed 9 Sept**: the row itself now carries *Reschedule*, *Cancel* and *View details*. Arrival state and messaging are `dispatch` and `messaging`, and the modal says so | — |
+| Reschedule a visit | My visits → *Reschedule* | *Move this visit*: five dates, nine hours, the new window worked out, and "Moving a visit asks for a nurse who is free at the new hour" | — **✔ closed 9 Sept**: it reuses the booking picker, as the row asked | — |
+| Cancel a visit | My visits → *Cancel*, on every row | A reason, the side of the cancellation window it falls on, and the visit in Cancelled carrying both | — **✔ closed 9 Sept**, and held by `tests/patient-screens.spec.ts` — "cancelling a visit records the reason and the side of the window it was on" | — |
+| Open the 2nd or 3rd upcoming visit | My visits → Upcoming | All three rows carry *Reschedule*, *Cancel* and *View details* | — **✔ closed 9 Sept**. Only the first names a nurse, because only the first has one assigned | — |
+| Open a past visit | My visits → Past | A visit summary: what was measured, what was in range, what the doctor said, and *Book this again* | — **✔ closed 9 Sept**, held by `tests/patient-screens.spec.ts` — the rebook opens the catalogue with the same patient chosen | — |
+| Open a cancelled visit | My visits → Cancelled | The reason, the side of the window it fell on, and what cancelling did not undo | — **✔ closed 9 Sept**, held by `tests/patient-screens.spec.ts` | — |
 | Health Passport, overview | Sidebar → *Health Passport* | Three trend cards, each with a working *Show readings as a table* | — complete | — |
-| Health Passport, all trends | Passport → *See all* | Roadmap dialog | No trends screen | incomplete |
-| Health Passport, care timeline | Passport → any of the 3 timeline rows | Roadmap dialog ×3 | A visit on the timeline cannot be opened | incomplete |
-| Health Passport, care team | Passport → *Doctors* | Roadmap dialog | No care-team screen | incomplete |
-| Health Passport, documents | Passport → Records | *Laboratory results* opens a full order with chain of custody and results; *Visit summary* and *Medical certificate* open "The production record will show the issuing clinician… *Got it*" | Two of the three documents have no screen | incomplete |
-| Health Passport, medications | Passport → Medications | *See how a prescription reads* opens a full prescription; *Explore pharmacy fulfilment* opens a roadmap dialog | — the prescription itself is complete | rough |
-| Health Passport, devices | Passport → More → *Review permission* | Three cards, each *How this connects* → "Native device permissions will let you… *Got it*" | No permission screen for any of the three | incomplete |
+| Health Passport, all trends | Passport → *See all* | Every reading drawn against the reference range the contract holds it to | — **✔ closed 9 Sept**, held by `tests/patient-screens.spec.ts`; the ranges come from `packages/catalog/records.json` | — |
+| Health Passport, care timeline | Passport → any of the 3 timeline rows | Roadmap dialog ×3 | A visit on the timeline cannot be opened *(not re-walked)* | incomplete |
+| Health Passport, care team | Passport → *Doctors* | Roadmap dialog | No care-team screen *(not re-walked)* | incomplete |
+| Health Passport, documents | Passport → Records | *Laboratory results* opens a full order with chain of custody and results; *Visit summary* and *Medical certificate* still open "The production record will show the issuing clinician… *Close*" | **Re-walked 9 Sept and unchanged.** Two of the three documents have no screen | incomplete |
+| Health Passport, medications | Passport → Medications | *See how a prescription reads* opens a full prescription; *Explore pharmacy fulfilment* opens a roadmap dialog | — the prescription itself is complete *(not re-walked)* | rough |
+| Health Passport, devices | Passport → More | "No device is connected… We need your permission first", and one *Review permission* control | **Re-walked 9 Sept**: the section is rewritten and the permission control did not open a screen in this pass. Whether one exists behind it was not established | incomplete |
 | Share my passport | Privacy & settings → *Who can see my records* | *Preview limited sharing* → "Demo access active" → *Revoke demo access* | — complete | — |
 | Add a family member | My family → *Add a family member* | Name + relationship → *Add demo member* → the person is in the circle | — complete | — |
 | Invite a guardian | My family → *Invite someone* | 4 steps (who, scope, duration, review) → *Send demo invitation* → row appears as "Verification pending" | — complete | — |
 | Revoke a guardian | My family → *Revoke* | Row flips to "Revoked", the button disables | — complete | — |
-| Open a family member's profile | My family → any member | "Care without crossing boundaries… *Got it*" | No profile. Cannot book for them from there, cannot see or change their scope | incomplete |
-| Join a care plan | Sidebar → *Care plans* → *Explore plan* | Roadmap dialog, on all five plans | **No care plan can be joined, opened or priced.** Five plans, five dead ends | blocking |
-| Thuso Wallet, top up | Wallet → *Top up* | "Care credits, on your terms… *Got it*" | No amount, no recipient, no confirmation | blocking |
-| Thuso Wallet, sponsor care | Wallet → *Sponsor care* | The same dialog | Same | blocking |
+| Open a family member's profile | My family → any member | Their visits, both directions of sharing, and a booking that carries the person through | — **✔ closed 9 Sept**, held by `tests/patient-screens.spec.ts`, including that a preselected patient does not outlive the journey that set it | — |
+| Join a care plan | Sidebar → *Care plans* → a plan | Who it is for, the price, *What is in it*, and what joining would involve | — **✔ closed 9 Sept**: five plans, five screens. `tests/patient-surfaces.spec.ts` holds that no plan offers a call to action it cannot honour | — |
+| Thuso Wallet, top up | Wallet → *Top up* | Three amounts, the balance it would become, and "Money in a wallet is money you have already handed over" | — **✔ closed 9 Sept** | — |
+| Thuso Wallet, sponsor care | Wallet → *Sponsor care* | A screen of its own, added in the same pass as the top-up | — **✔ closed 9 Sept** by the same commit; *(the top-up was walked, this one was not walked separately)* | — |
 | Change language | Sidebar foot → *Language: English* | 11 written languages, each with its review state, plus the SASL requirement → *Done* | — complete | — |
 | Language & access, interpreter | Sidebar foot → *Language & access* | Ask for an hour: an unavailable slot holds the visit and offers a free cancellation recorded against MyThuso; Sunday 14:00 confirms with Karabo Mahlangu named | — complete | — |
 | Consent given, withdrawn, re-versioned | Privacy → *My consents* | *Agree to version 2* → *Withdraw* → "Withdrawn. What is kept anyway is on the card, with the law that keeps it" | — complete, including the four optional consents | — |
 | Access log | Privacy → *View access history* | 6 entries, 2 refused, each with its lawful basis and the reason for the refusal | — complete | — |
 | Request a correction / deletion | Privacy → either row | Reason → *Preview request* → "Demo request recorded" | — complete | — |
-| Contact the Information Officer | Privacy → *Information Officer* | "The Information Officer's verified contact details… will be configured before launch. *Got it*" | No contact details, no request tracking | rough |
-| Emergency pathway | **Explore MyThuso → Thuso SOS card** | Ambulance numbers → three questions → area, callback, rota, hours → *Ask her to come* → *Asked* → four stand-down reasons | Complete as a screen, but **there is no door to it from the app**: no SOS control on Overview, in the tab bar, in the sidebar or on any visit. The word "emergency" does not appear anywhere on the patient home screen | incomplete |
-| Explore MyThuso modules | Sidebar → *Explore MyThuso* | 22 cards: 5 open a working screen (Set up your account, Thuso Kit, Thuso Pass, Thuso Family, Thuso SOS), 1 an explainer (Thuso Doctor), **16 a roadmap dialog** | Two of the sixteen are labelled "Being built now" and their screens exist elsewhere: *Thuso Nurse* (the nurse workspace) and *Control Tower* (the operator workspace) | rough |
+| Contact the Information Officer | Privacy → *Information Officer* | "The Information Officer's verified contact details and request tracking will be configured before launch" | **Re-walked 9 Sept and unchanged.** No contact details, no request tracking. This one needs a person, not a screen | rough |
+| Emergency pathway | Sidebar foot → *Emergency & urgent care* (and the home, and More) | Ambulance numbers → three questions → area, callback, rota, hours → *Ask her to come* → four stand-down reasons | — **✔ closed 9 Sept**: it is in the shell's chrome, quiet rather than red, because the screen it opens leads with 10177 | — |
+| Explore MyThuso modules | Sidebar → *Explore MyThuso* | 22 cards: 5 open a working screen (Set up your account, Thuso Kit, Thuso Pass, Thuso Family, Thuso SOS), 1 an explainer (Thuso Doctor), **16 a roadmap dialog** | Two of the sixteen are labelled "Being built now" and their screens exist elsewhere: *Thuso Nurse* (the nurse workspace) and *Control Tower* (the operator workspace). Thuso SOS is no longer only reachable from here *(the card count was not re-walked)* | rough |
 
 ## Nurse (`/staff.html` → Nurse)
 
@@ -90,15 +138,15 @@ service. These say the screen does not exist.
 | Capture readings | Step 3 | Seven fields, each gaining a provenance chip and a *She told me this* switch; MAP calculated from two of them | — complete | — |
 | A reading out of range | Step 3 with 176/104, 118, 24, 38.9, 90, 14.2 | "7 readings are outside the indicative range. Flagging is a prompt for your judgement" — each field flagged, carried to sign-off with ⚠ | — complete | — |
 | Sign off | Steps 4–5 | *Sign assessment* → "Assessment closed" → *Open the consultation record this produced* / *Back to the workspace* | — complete | — |
-| The day after signing off | Back on Schedule | The visit still reads NEXT with *Start this visit*; the header still says "One to sign off" and "3 Today's visits" | A signed visit has no state on the day list. The same visit can be started again | rough |
-| Earnings | Sidebar → *Earnings & payouts* | Four weeks, each expandable to every line; reversal and correction lines named; tax; the 75/25 split per service | — complete | — |
+| The day after signing off | Back on Schedule | The visit still reads NEXT with *Start this visit* | A signed visit has no state on the day list. The same visit can be started again *(not re-walked)* | rough |
+| Earnings | Sidebar → *Earnings & payouts* | *If you take a shift* — what a week is worth if she does — then four weeks, each expandable to every line; reversal and correction lines named; tax; the 75/25 split per service | — complete, and the forecast is new since the audit | — |
 | A payout that failed | Earnings → week to 27 Aug | "Your bank sent it back. It is still owed to you and goes out again with the next run once the account is right" | — complete | — |
 | Change bank details | Earnings → *Change account* | One-time code `240924` → *Verify and start the wait* → "Waiting 48 hours" → *Cancel the change* | — complete | — |
 | Earnings while suspended | Earnings → *Sister Ayanda Dube* | "You will not be sent new visits… A lapsed check stops new visits reaching you. It does not touch money you have already earned" — figures unchanged | — complete | — |
 | Vetting application | Sidebar → *Vetting* | 5 steps (credential, scope, 8 evidence items, 3 declarations, attestation) → *Submit application* → "Nothing was submitted" | — complete | — |
-| Vetting, after applying | The same screen | There is no application state to return to — no "in progress", no reviewer, no outcome | An applicant cannot see where their application stands. Only the admin console holds that view | incomplete |
+| Vetting, after applying | The same screen | There is no application state to return to — no "in progress", no reviewer, no outcome | An applicant cannot see where their application stands. Only the admin console holds that view *(not re-walked)* | incomplete |
 | Thuso Kit | Sidebar → *Thuso Kit* | *Look for instruments* → 6 instruments to pair; connection off → on → *Send 3 entries* → *Interrupt the send*; six states counted | — complete | — |
-| Locum shifts / Academy | Schedule → *More tools* | Not-drawn dialog, both | Two workflows named on the nurse's own home screen with nothing behind them | rough |
+| Locum shifts / Academy | Schedule → *More tools* | Not-drawn dialog, both | **Re-walked 9 Sept and unchanged.** Two workflows named on the nurse's own home screen with nothing behind them. They are secondary links rather than navigation, so `tests/journeys.spec.ts` does not hold them | rough |
 
 ## Doctor (`/staff.html` → Doctor)
 
@@ -108,15 +156,15 @@ service. These say the screen does not exist.
 | Open a case | Queue → TH-2048 | *Clinical review*: signing doctor, readings with a trend, symptoms, the nurse's next step | — complete | — |
 | What the nurse found | The same modal | Flagged systolic 146 with the change since 12 Aug, pulse, symptoms, "Refer for doctor review within 24 hours" | — complete | — |
 | Decide and sign | Outcome + rationale → *Sign decision* | "Signed by Dr Ayanda Dlamini · HPCSA MP0483217" | — complete | — |
-| Prescribe | Outcome *Adjust medication and issue a prescription* → *Sign decision* | *Write this up as a consultation* — the same consultation form as every other outcome | **No prescription screen.** Prescribing is a free-text box inside the consultation record. All five outcomes lead to the identical next screen | incomplete |
-| Refer | Outcome *Refer to a facility* → *Sign decision* | Same | No referral screen — no facility, no urgency, no acceptance | incomplete |
-| Book a teleconsultation from a decision | Outcome *Book a teleconsultation with the patient* | Same | Nothing is booked and the teleconsultation screen is not opened | incomplete |
-| Return a case to the nurse | Outcome list | Not offered | There are five outcomes and none of them sends the case back for more information. A case a doctor cannot decide has nowhere to go | incomplete |
+| Prescribe | Outcome *Adjust medication and issue a prescription* → *Sign decision* | *The prescription this decision produces* → *Open the prescription* → RX-0081, its items, the dispensing pharmacy and what the pharmacist is asked to check | — **✔ closed 9 Sept**. Seven outcomes now, each with its own continuation | — |
+| Refer | Outcome *Refer to a facility* → *Sign decision* | *The referral letter this decision produces*, and what the receiving clinician does and does not get | *Write the referral letter* is the one continuation with no screen behind it. The outcome is no longer a shared next step, but the letter is still unbuilt | incomplete |
+| Book a teleconsultation from a decision | Outcome *Book a teleconsultation with the patient* | *Open the teleconsultation* → the five-step call, on the same six-digit visit code the nurse asks for at the door | — **✔ closed 9 Sept** | — |
+| Return a case to the nurse | Outcome *Return it to the nurse with a question* | "The case goes back to the nurse who submitted it rather than forward to anybody else. It stays in the queue, marked returned" | — **✔ closed 9 Sept**: the sixth and seventh outcomes are a return and a chronic repeat. *Write the question* has no screen behind it yet | rough |
 | Write and sign a consultation | Sidebar → *Consultation records* | 8 fields for a nurse (12 for a doctor), SOAP / long-form / prose views, *Sign consultation* → "Consultation signed", everything disabled | — complete, including the fields a nurse is never granted | — |
 | Teleconsultation | Sidebar → *Teleconsultation* | 5 steps (who is in the room, both ends checked, recording refused, the call, the decision) → "Consultation completed", with the twelve sections marked written or not reached | — complete | — |
 | Patient file | Sidebar → *Patient context* | 8 tabs, a viewer switcher across 8 parties, Billing marked refused, protected categories withheld by name | — complete | — |
-| Patient file actions | Patient file → *New consultation* / *Prescription* / *Referral* / *Upload document* | "*X* would open here for Thando Mokoena." | Four action rows, four stubs. *Book a visit* is correctly refused ("A Doctor is never granted this") — the other four are not refused, they are unbuilt | incomplete |
-| Protocols | Sidebar → *Protocols* | *Clinical protocols* and *Referral pathway*, both not-drawn dialogs | **The whole section is two dead links.** They are duplicated as *More tools* on the review queue | blocking |
+| Patient file actions | Patient file → *New consultation* / *Prescription* / *Referral* | "*X* would open here for Thando Mokoena", written into a live region rather than a dialog | **Re-walked 9 Sept and unchanged.** Three stubs for this viewer; *Upload document* is refused rather than offered, as *Book a visit* already was. Reached from a card rather than a navigation, so the spec does not hold it | incomplete |
+| Protocols | Sidebar → *Protocols* | A screen: the indicative adult reference ranges, and where decision support stops and a registered doctor starts | — **✔ closed 9 Sept**, and now held by `tests/journeys.spec.ts`. The ranges are read from `packages/catalog/records.json`, so the protocol cannot disagree with the software | — |
 
 ## Control Tower (`/staff.html` → Control Tower)
 
@@ -127,10 +175,10 @@ service. These say the screen does not exist.
 | Who is near | The nurse list | 5 nurses, straight-line estimates labelled as such, two with no estimate and the reason for each | — complete | — |
 | Assign | *Assign* beside Sister Palesa Khumalo | Button becomes *Assigned*, the visit reads "Assigned to Sister Palesa Khumalo", the map pin changes | — complete | — |
 | Assign a nurse whose clearance lapsed | *Cannot be assigned* beside Sister Ayanda Dube | Disabled, with the refusal sentence and "The Control Tower has no override for a lapsed clearance" | — complete | — |
-| Unassign or reassign | After assigning | No control | Once assigned there is no way back, and the header still reads "3 visits awaiting a nurse" | rough |
+| Unassign or reassign | After assigning | The button reads *Assigned* and there is no way back | **Re-walked 9 Sept, half closed.** The header counts down correctly now — "2 visits awaiting a nurse" after assigning one of three — but there is still no unassign and no reassign | rough |
 | An incident | Incidents → INC-015 | Severity, an action from six, a handover note, *Add this action to the log*, *Close this incident* | — complete | — |
-| The vetting queue | Sidebar → *Vetting queue* | **The nurse's own 5-step application form**, headed "Step 1 of 5 · Your credential · SANC registration number" | There is no queue. An operator cannot see an application, verify a check, second a decision, decline or suspend. *More tools → Nurse onboarding & vetting* opens the same form in a modal titled "Vetting queue" | blocking |
-| Quality | Sidebar → *Quality* → *Open Quality* | Not-drawn dialog | The section exists to open one dialog that says the workflow is not drawn | blocking |
+| The vetting queue | Sidebar → *Vetting queue* | A queue: every applicant, the state of each check, and the decision each is waiting on | — **✔ closed 9 Sept**, and now held by `tests/journeys.spec.ts` — this is precisely the "renders another section's screen" assertion | — |
+| Quality | Sidebar → *Quality* | A screen: arrival against the booked window, complaints, and what each moves | — **✔ closed 9 Sept**, and now held by `tests/journeys.spec.ts` | — |
 | Employer programmes | Dispatch → *More tools* | A full screen — twelve-person floor, what an employer is and is not told | — complete | — |
 
 ## Partner (`/staff.html` → Partner)
@@ -139,13 +187,13 @@ service. These say the screen does not exist.
 |---|---|---|---|---|
 | An order | Sign in as Partner → Orders | 2 prescriptions, 2 laboratory orders | — complete | — |
 | Verify a prescription | Orders → RX-0081 | Both items tick to "2 of 2 items checked by the pharmacist" | — complete | — |
-| Dispense and hand over | The same modal, after both ticks | Nothing further. The timeline still shows "Dispensed and sealed" and "Delivered to the patient" as unreached | No seal number, no handover, no way to move the order past the pharmacist check. The modal has no primary button at all | incomplete |
+| Dispense and hand over | The same modal, after both ticks | *Dispense and seal* is now the modal's primary button | **Re-walked 9 Sept, partly closed.** The button the audit said did not exist is there; what it leads to was not walked in this pass | incomplete |
 | Substitute | Substitution & repeats → *Read this to the patient* | The 22F wording appears, and only then does *Handed over* become enabled | — complete | — |
 | Refuse a substitution | The same screen, Eltroxin 100 µg | "Prescriber only… there is no button here that overrides it. The route back is the prescriber" | — complete | — |
 | Refuse an early repeat | Substitution & repeats → *Collect a repeat* | "The next is due in 13 days — and the question worth asking first is how the last month went" | — complete | — |
 | Release laboratory results | Orders → LAB-0023 → *Release with an explanation* | State changes, *Withdraw the release* offered | — complete | — |
-| Collections | Sidebar → *Collections* | **The Orders screen, verbatim** (`H1: Orders`, the same six controls) | No collections screen: no courier, no window, no handover, no signature | blocking |
-| Results | Sidebar → *Results* | **The Orders screen, verbatim** | No results screen. Two of the partner's four nav entries have no screen of their own | blocking |
+| Collections | Sidebar → *Collections* | Its own screen: what is booked today, which are outside their window, and that nothing on the board can extend one | — **✔ closed 9 Sept**, and now held by `tests/journeys.spec.ts` | — |
+| Results | Sidebar → *Results* | Its own screen: what has been produced, what is verified and waiting on a clinician, and that release is a deliberate clinical act | — **✔ closed 9 Sept**, and now held by `tests/journeys.spec.ts` | — |
 
 ## Admin (`/admin.html`)
 
@@ -167,64 +215,73 @@ service. These say the screen does not exist.
 
 ---
 
-## The five gaps to close first
+## What is left, after the re-walk
 
-Ordered by how soon a funder or a nurse meets them.
+Four of the five gaps this file opened with are closed. They are kept here, struck through in
+substance rather than deleted, because the point of an audit is that somebody can see what happened
+to what it said.
 
-**1. A booked visit cannot be cancelled, and only the next one can be opened.** This is the first
-thing anybody does after booking, and it is where the demo breaks. `Pages.tsx:99` gates the nurse row
-and the action bar on `i===0&&tab==='Upcoming'`, so of four visits on the list exactly one can be
-touched. There is no cancel button anywhere in the patient app, although the Cancelled tab holds a
-cancelled visit and promises "Visits you cancel appear here with the reason and any refund", and
-*Reschedule* — the one action offered — opens a roadmap dialog. A person books a visit, opens it, and
-finds a modal that says rescheduling will be connected later and offers them their Health Passport.
-Everything needed is already built: the date-and-time picker in `Booking.tsx`, the cancellation
-wording and the zero-rand refusal in `Interpreting.tsx`. This is one screen, reachable from every
-row, with cancel and reschedule on it.
+**1. ~~A booked visit cannot be cancelled, and only the next one can be opened.~~ Closed.** Every
+row on the visit list carries *Reschedule*, *Cancel* and *View details*; reschedule reuses the
+booking picker as the row asked it to; cancelling records a reason and which side of the
+cancellation window it fell on, and the visit appears in Cancelled carrying both. The past visit and
+the cancelled visit both open. `tests/patient-screens.spec.ts` holds all of it.
 
-**2. Care plans, the wallet and the family profile — the three revenue screens — are all dialogs.**
-Five care plans, priced from R99 to R699 a month, and *Explore plan* opens a roadmap dialog on every
-one of them. There is no way to read what a plan includes, let alone join it. *Top up* and *Sponsor
-care* do the same. A family member's card does the same. Subscriptions and sponsored care are the two
-things the proposal asks a funder to believe in, and in the app they are five identical dialogs. A
-plan detail screen and a top-up amount screen are small and would carry a demo a long way.
+**2. ~~Care plans, the wallet and the family profile — the three revenue screens — are all
+dialogs.~~ Closed.** Five plans, five screens, each saying who it is for, what is in it and what
+joining would involve. The wallet's top-up walks to an amount and a resulting balance. A family
+member's profile shows their visits, both directions of sharing, and books for them.
 
-**3. Six nav entries across three workspaces have no screen behind them.** Whichever workspace a
-funder opens, roughly half its navigation is empty. In the **partner** app, *Collections* and
-*Results* both render the Orders screen verbatim — same `H1: Orders`, same six controls — so two of
-four entries lead nowhere, and the courier handover and the results release the proposal describes
-have no screen. In the **Control Tower**, *Vetting queue* renders the nurse's own application form
-("Step 1 of 5 · Your credential"), so an operator sees a blank SANC field where the queue should be,
-and *More tools → Nurse onboarding & vetting* opens the same form inside a modal titled "Vetting
-queue"; *Quality* is a section whose only control opens a dialog saying the workflow is not drawn. In
-the **doctor** app, *Protocols* is two links and both are not-drawn dialogs. The Control Tower's
-queue already exists, fully built, at `admin.html` → Vetting: 33 parties, suspend with a written
-reason, decline, renew, appeal, and a 7-entry decision audit. Part of this is routing, not building.
+**3. ~~Six nav entries across three workspaces have no screen behind them.~~ Closed, and now
+checked.** *Collections* and *Results* are their own screens. The Control Tower's *Vetting queue* is
+a queue and *Quality* is a board. The doctor's *Protocols* is a screen that reads its reference
+ranges out of `packages/catalog/records.json`, so the protocol cannot disagree with the software.
+This is the one of the five that a spec can hold, and `tests/journeys.spec.ts` now holds it: the same
+defect cannot return without failing the build.
 
-**4. The doctor's five outcomes all lead to the same screen, and none of them sends a case back.**
-*Adjust medication and issue a prescription*, *Refer to a facility* and *Book a teleconsultation with
-the patient* each sign a decision and then offer *Write this up as a consultation* — the same form,
-every time. Prescribing is a text box; referral is a text box; no teleconsultation is booked, even
-though the teleconsultation flow exists and is complete. In the patient file, *New consultation*,
-*Prescription*, *Referral* and *Upload document* all resolve to "*X* would open here for Thando
-Mokoena." And there is no sixth outcome: a doctor who needs more from the nurse has nowhere to send
-the case. The clinical loop the product is named for — nurse finds, doctor decides, something
-happens — currently stops at "decides".
+**4. ~~The doctor's five outcomes all lead to the same screen, and none of them sends a case back.~~
+Mostly closed.** There are seven outcomes now, each with a continuation of its own: a prescription
+that opens RX-0081, a chronic repeat that opens the pharmacist's screen, a laboratory order, a
+teleconsultation on the same six-digit visit code the nurse asks for at the door, a review in a
+month, a referral, and a return to the nurse with a question. **Two of the seven still end at a
+sentence**: *Write the referral letter* and *Write the question* have no screen behind them. And in
+the patient file, *New consultation*, *Prescription* and *Referral* are still the subjunctive stub.
 
-**5. The emergency pathway has no door.** Thuso SOS is one of the most complete journeys in the
-build: the ambulance numbers first, three routing questions that are explicitly not triage, four
-refusal states each with what to do instead, a nurse asked by name, and four ways to stand down at no
-cost. It is reachable only by opening *Explore MyThuso* and finding the fourteenth card. The word
-"emergency" appears nowhere on the patient home screen, in the tab bar or in the sidebar. A screen
-this good, for the moment it is built for, needs to be one press from wherever a frightened person
-already is.
+**5. ~~The emergency pathway has no door.~~ Closed.** *Emergency & urgent care* is in the patient
+shell's sidebar, on the home and in More. It is a quiet row rather than a red button, deliberately:
+the screen it opens leads with 10177 and says in its first line that MyThuso is not an ambulance
+service, and a shouting control would contradict that before anybody had read it.
+
+### The one blocking row that is left
+
+**"Not sure what you need? Chat to our care team", at the foot of the booking catalogue, opens the
+four-step booking modal for *Vitals & chronic check*.** There is no care-team chat, and the control
+routes to an unrelated booking rather than saying so. Re-walked on 9 September and unchanged. It is
+the only *blocking* row in the file, and it is a small one: either a screen that says what the care
+team is and is not, or the control should not be there.
+
+### And the fifteen that are not blocking
+
+Six are in the Health Passport — the care timeline, the care team, two of the three documents, the
+device permission screens and the pharmacy half of medications. Three are a workflow named on a
+screen with nothing behind it: *Locum shifts*, *Academy*, and sixteen of the twenty-two Explore
+MyThuso cards. Three are a state that does not exist rather than a screen that does not: a signed
+visit has no state on the nurse's day list, an applicant cannot see where their application stands,
+and an assigned visit cannot be unassigned. Two are the doctor's remaining stubs. One is the
+partner's handover past *Dispense and seal*.
+
+None of the sixteen is reached from a navigation, which is why `tests/journeys.spec.ts` does not hold
+any of them. That is the honest limit of the spec, and it is worth saying plainly: it holds the
+skeleton, not the flesh.
 
 ---
 
 ## What is complete
 
-Sixty-one journeys run start to finish, and say honestly what is not connected at the end. They are
-worth listing because most of this build is finished and nothing records that.
+Eighty journeys run start to finish, and say honestly what is not connected at the end. They are
+worth listing because most of this build is finished and nothing records that. The nineteen that
+closed since this file was written are named in their rows above; what follows is the sixty-one that
+already ran, with the new ones folded in where they belong.
 
 **Patient.** Sign-up, all six steps from language choice to consent, ending in the app. Account
 recovery, all three routes, with a reference and an indicative wait. Browsing and searching the
@@ -239,8 +296,13 @@ steps, with the scope, the expiry and the identity check ahead of it. Revoking o
 passport and revoking the share. Giving, declining and withdrawing consent, on a versioned wording
 with its fingerprint and a re-consent prompt when the version moved. Reading the access log, with two
 refused attempts written down beside four allowed ones. Requesting a correction and requesting
-deletion. The health-trend cards and their table view. The laboratory order and the sample
-prescription in the passport. Thuso SOS, from the ambulance numbers to the stand-down.
+deletion. The health-trend cards and their table view, and the trends screen behind them, drawn
+against the reference ranges the record contract holds. The laboratory order and the sample
+prescription in the passport. Thuso SOS, from the ambulance numbers to the stand-down, reached from
+the sidebar rather than from fourteen cards inside a roadmap page. And, since the audit: opening,
+rescheduling and cancelling a booked visit from any row on the list; opening a past visit and
+rebooking it; opening a cancelled one and reading why; a family member's profile; five care plans,
+each priced and described; the wallet's top-up and sponsorship.
 
 **Nurse.** The day. Opening a visit. The visit code, refused on `111111` with the instruction to call
 the Control Tower and accepted on `482190`. Consent read aloud in two questions. Capturing seven
@@ -283,8 +345,10 @@ which controls are designed and which are not built.
 **Every page load logs two console errors.** `GET /api/health` returns `500 Internal Server Error`
 because the identity service is not running. Nothing in the interface depends on it and no user sees
 it — the sign-in screens already say "Sign-in is not switched on yet" — but it is the first thing
-anybody sees in a browser console during a demo.
+anybody sees in a browser console during a demo. **Re-walked 9 September and unchanged**: still two,
+still on every load.
 
-**Thuso SOS marks both nurses as asked.** Pressing *Ask her to come* beside Sister Naledi Mokoena
-changes both her button and Sister Refilwe Sithole's to *Asked*. `Sos.tsx` appears to hold one flag
-rather than one per nurse.
+**~~Thuso SOS marks both nurses as asked.~~ Fixed.** `Sos.tsx` holds which nurse was asked rather
+than that somebody was, and the other nurse's button reads "Somebody else was asked". The comment
+above it says why a boolean was wrong there: on a screen whose whole question is *who* is coming, a
+flag that marks every cleared nurse on the rota answers it wrongly for all of them.
