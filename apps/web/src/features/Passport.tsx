@@ -7,9 +7,19 @@ import { Metric, Metrics } from '../surface/Surface';
 import { longDateOf } from '../lib/scheduling';
 import { provenanceById } from '../lib/capture';
 import { capability } from '../lib/capabilities';
+import { money, services } from '../lib/catalog';
+import { roleById } from '../lib/vetting';
+import { subjectsByRole } from '../lib/vetting-fixtures';
+import { recordById } from '../lib/records';
+import { assignedNurse } from '../lib/arrival';
 import {
- dateOf, flagFor, formatValue, headlineMeasures, kitInstruments, latestSet, measureSpec, measuredIn,
- neverRead, otherMeasures, rangeText, readableMeasures, readingSets, seriesFor, type MeasureId
+ authorisation, authorisedOn, binds, collectionAnswer, expiresOn, formatDay, handover, isFinalRepeat,
+ nextCollectionOn, refusalById, repeatsRemaining, ruleById
+} from '../lib/dispensing';
+import {
+ dateOf, documents as passportDocuments, flagFor, formatValue, headlineMeasures, kitInstruments,
+ lastReview, latestSet, measureSpec, measuredIn, neverRead, otherMeasures, rangeText,
+ readableMeasures, readingSets, reviewedBy, reviewer, seriesFor, type MeasureId
 } from '../lib/passport';
 import { explanations, provenance, urgentConditions } from '../lib/explain';
 
@@ -19,6 +29,15 @@ import { explanations, provenance, urgentConditions } from '../lib/explain';
  * More each went to a paragraph about the roadmap. Both are screens now, and neither of them can be
  * mistaken for a working integration: the trends screen renders the record contract's own notice
  * and the device screens render the device contract's, word for word, above everything else. */
+
+/* A role's own refusal sentence for one capability, so a screen that explains a limit quotes the
+   contract that enforces it rather than describing it in words of its own. Thrown on rather than
+   left blank: a limit that silently renders as nothing is the limit going missing. */
+const refusalFor = (roleId: string, capabilityId: string) => {
+ const grant = roleById(roleId)?.grants.find(g => g.capability === capabilityId);
+ if (!grant) throw new Error(`No grant "${capabilityId}" on role "${roleId}" in packages/catalog/vetting.json`);
+ return grant.refusal;
+};
 
 const measureIcon: Partial<Record<MeasureId, typeof Heart>> = {
  systolic: Heart, diastolic: Heart, pulse: Activity, glucose: Droplets, temperature: Thermometer,
@@ -323,6 +342,234 @@ export function ReadingsExplained({ navigate, open }: { navigate: (page: string)
   <div className="privacy-note"><LockKeyhole size={19}/>{capability('screening').blockedBy.join(' ')}</div>
 
   <button className="primary full" onClick={() => navigate('Health trends')}>See how your readings have changed<ArrowRight size={17}/></button>
+  <button className="secondary full" onClick={() => navigate('Health Passport')}>Back to your Health Passport<ArrowRight size={17}/></button>
+ </>;
+}
+
+/* ---- The care timeline, the care team and the certificate --------------------------------------
+ *
+ * Three rows in docs/FLOW-COMPLETENESS.md, and one shape of defect behind all three: the passport
+ * showed a person that something existed and had nowhere to send them when they pressed it. Each of
+ * the three timeline entries, the Doctors row and two of the three documents fell through to the
+ * catch-all roadmap dialog — "X is included in the MyThuso feature roadmap" — which is a sentence
+ * about the product answering a question about the reader's own record.
+ *
+ * None of the three claims a capability. What each of them does is show what the record actually
+ * holds, which for a preview built out of four sets of readings and one doctor's review is more
+ * than a roadmap paragraph and considerably less than a health record. Both halves are said. */
+
+/* Everything the record holds about this account, newest first, as events rather than as a list of
+   visits: a nurse recording readings and a doctor reviewing them are two acts on two days by two
+   people, and a timeline that merges them into "visit" loses the only thing a timeline is for. */
+type TimelineEvent = {
+ dayOffset: number;
+ kind: 'readings' | 'review' | 'document';
+ title: string;
+ by: string;
+ /** The reading set this event opens, when it opens one. */
+ set?: typeof readingSets[number];
+};
+
+const timeline = (): TimelineEvent[] => {
+ const events: TimelineEvent[] = readingSets.map(set => ({
+  dayOffset: set.dayOffset, kind: 'readings' as const,
+  title: 'Nurse home visit', by: `${assignedNurse.name} · ${assignedNurse.role}`, set
+ }));
+ events.push({ dayOffset: lastReview.reviewedDayOffset, kind: 'review', title: 'Doctor review completed', by: reviewedBy });
+ for (const doc of passportDocuments) events.push({ dayOffset: doc.dayOffset, kind: 'document', title: `${doc.name} issued`, by: reviewedBy });
+ return events.sort((a, b) => b.dayOffset - a.dayOffset);
+};
+
+export function CareTimeline({ navigate, open }: { navigate: (page: string) => void; open: (modal: string) => void }) {
+ const [shown, setShown] = useState<string | null>(null);
+ const events = timeline();
+ return <>
+  <div className="page-intro"><div className="eyebrow">Health Passport</div><h1>Everything on your record.</h1>
+   <p>{events.length} entries over {Math.round(Math.abs(readingSets[0].dayOffset) / 30)} months. Each one opens on what it produced, and says who made it.</p></div>
+  <NotConnected of="clinical-records"/>
+
+  <div className="panel explain-list">{events.map(event => {
+   const key = `${event.kind}-${event.dayOffset}-${event.title}`;
+   const isOpen = shown === key;
+   const measures = event.set ? measuredIn(event.set) : [];
+   const outside = measures.filter(id => flagFor(id, event.set!.values[id]!) !== 'normal');
+   const doc = passportDocuments.find(d => `${d.name} issued` === event.title);
+   return <div className={`explain-item${isOpen ? ' open' : ''}`} key={key}>
+    <button className="record-row explain-row" aria-expanded={isOpen} onClick={() => setShown(isOpen ? null : key)}>
+     <span><strong>{event.title}</strong>
+      <small>{longDateOf(dateOf(event.dayOffset))} · {event.by}</small></span>
+     {event.kind === 'readings' && <Pill tone={outside.length ? 'amber' : ''}>{outside.length ? `${outside.length} outside range` : `${measures.length} readings`}</Pill>}
+     <ChevronDown size={17} className="explain-chevron"/>
+    </button>
+    {isOpen && <div className="explain-body">
+     {event.kind === 'readings' && event.set && <>
+      {/* The readings themselves, against their own ranges. This is what "open a visit on the
+          timeline" was always asking for, and it is a table rather than a paragraph because seven
+          numbers with seven ranges is a table. */}
+      <div className="table-scroll"><table className="chart-table fact-table">
+       <caption className="visually-hidden">Readings taken on {longDateOf(dateOf(event.dayOffset))}, each against its indicative reference range.</caption>
+       <thead><tr><th scope="col">Reading</th><th scope="col">Value</th><th scope="col">Indicative range</th><th scope="col">Where it fell</th></tr></thead>
+       <tbody>{measures.map(id => <tr key={id}>
+        <th scope="row">{measureSpec(id).label}</th>
+        <td>{formatValue(id, event.set!.values[id]!)} {measureSpec(id).unit}</td>
+        <td>{rangeText(id)}</td>
+        <td>{flagWord(flagFor(id, event.set!.values[id]!))}</td>
+       </tr>)}</tbody>
+      </table></div>
+      {event.set.note && <p className="helper">Recorded at the visit: {event.set.note}.</p>}
+      {event.dayOffset === latestSet.dayOffset
+       ? <button className="secondary full" onClick={() => open('Visit summary')}>Open the visit this came from<ArrowRight size={16}/></button>
+       /* Said rather than left as an absent button. Three of the four visits in this record are
+          readings and nothing else — no summary was written and no doctor reviewed them — and a
+          screen that quietly offers a door on one row and not on another has told the reader the
+          record is inconsistent rather than that it is short. */
+       : <p className="helper"><ShieldCheck size={14}/>No visit summary was written for this one. The readings above are the whole of what the record holds about that day.</p>}
+     </>}
+     {event.kind === 'review' && <>
+      <dl className="stated">
+       <div><dt>What the doctor found</dt><dd>{lastReview.assessment}</dd></div>
+       <div><dt>What to do</dt><dd>{lastReview.plan}</dd></div>
+       <div><dt>What happens next</dt><dd>{lastReview.next}</dd></div>
+      </dl>
+      <button className="secondary full" onClick={() => navigate('Your care team')}>Who has reviewed your record<ArrowRight size={16}/></button>
+     </>}
+     {event.kind === 'document' && doc && <>
+      <p className="muted">{doc.kind}, issued out of the visit on {longDateOf(dateOf(event.dayOffset))} and {doc.reviewed ? 'reviewed by a registered doctor' : 'awaiting review'}.</p>
+      <button className="secondary full" onClick={() => open(doc.opens ?? doc.name)}>Open the {doc.name.toLowerCase()}<ArrowRight size={16}/></button>
+     </>}
+    </div>}
+   </div>;
+  })}</div>
+  <button className="secondary full" onClick={() => navigate('Health Passport')}>Back to your Health Passport<ArrowRight size={17}/></button>
+ </>;
+}
+
+/* ---- Who has been in the record ---------------------------------------------------------------- */
+
+/* The record contract has a type for this and the screen is drawn from it rather than from a list of
+   names: `care-team` is "everyone currently authorised for this patient, and since when", gated on
+   view-clinical-record. Two people are in it, they are the two the rest of the app already names,
+   and both carry the registration the vetting register holds them to. */
+export function CareTeam({ navigate, open }: { navigate: (page: string) => void; open: (modal: string) => void }) {
+ const contract = recordById('care-team')!;
+ const nurse = subjectsByRole('nurse').find(n => n.name === assignedNurse.name);
+ const team = [
+  { name: reviewer.name, reference: reviewer.registration, role: 'Reviewing doctor',
+    did: `Reviewed the readings from ${longDateOf(dateOf(latestSet.dayOffset))} and wrote what to do next.`,
+    sees: 'The clinical record for the case in front of them, and results.' },
+  { name: assignedNurse.name, reference: nurse?.reference ?? '', role: assignedNurse.role,
+    did: `Took the readings at the visit on ${longDateOf(dateOf(latestSet.dayOffset))}, in ${assignedNurse.area}.`,
+    sees: 'The summary and record for the visit she is attending, and only while she is attending it.' }
+ ];
+ return <>
+  <div className="page-intro"><div className="eyebrow">Health Passport</div><h1>Who has been in your record.</h1>
+   <p>{contract.summary}</p></div>
+  <NotConnected of="clinical-records"/>
+
+  <div className="panel">{team.map(person => <div className="record-row static" key={person.name}>
+   {/* `small` and not bare `avatar`: the base rule carries no dimensions — every other use sets its
+       own — so an avatar dropped into a flex row stretches to half the row's width. */}
+   <span className="avatar small peach">{person.name.split(' ').filter(word => /^[A-Z]/.test(word)).map(word => word[0]).slice(-2).join('')}</span>
+   <span><strong>{person.name}</strong><small>{person.role} · {person.reference}</small>
+    <small>{person.did}</small><small>{person.sees}</small></span>
+  </div>)}</div>
+
+  {/* The limit, and it is the whole point of the screen. A care team is not a standing grant, and
+      the three sentences that say so are the vetting contract's own refusals rather than this
+      screen's paraphrase of them. */}
+  <SectionTitle title="What being on this list does not mean"/>
+  <div className="panel"><dl className="stated">
+   <div><dt>It is not a key to the record</dt><dd>{refusalFor('nurse', 'view-clinical-record')}</dd></div>
+   <div><dt>A protected category is yours to release</dt><dd>{refusalFor('doctor', 'view-protected-record')}</dd></div>
+   <div><dt>A registration that lapses closes the record</dt><dd>{refusalFor('doctor', 'view-clinical-record')}</dd></div>
+  </dl></div>
+
+  {/* The true continuation: this screen says who is authorised, and the access log says who actually
+      opened it — including the two who were refused. */}
+  <button className="primary full" onClick={() => open('Access history')}>See who has actually opened it<ArrowRight size={17}/></button>
+  <button className="secondary full" onClick={() => navigate('Health Passport')}>Back to your Health Passport<ArrowRight size={17}/></button>
+ </>;
+}
+
+/* ---- The certificate ---------------------------------------------------------------------------
+   The one document in the passport with nothing behind it anywhere: records.json holds a type for a
+   consultation, a prescription, a referral and a laboratory report, and none for a certificate. So
+   this screen does not draw one. It says what a certificate is for, who may sign it, and where the
+   visit that would produce it sits in the catalogue — which is the honest whole of what MyThuso can
+   say about a document it has never issued. */
+export function MedicalCertificate({ navigate }: { navigate: (page: string) => void }) {
+ const doc = passportDocuments.find(d => d.name === 'Medical certificate')!;
+ const sickNote = services.find(s => s.name.startsWith('Sick-note'));
+ return <div className="form-stack">
+  <NotConnected of="clinical-records"/>
+  <p className="muted">A certificate says that a named person was seen on a named day by a named clinician, and was or was not fit to work. It is the shortest document in healthcare and the one most often asked for by somebody who is not the patient.</p>
+  <dl className="stated">
+   <div><dt>What it would carry</dt><dd>The days it covers, the visit it came out of, and the issuing doctor’s name and registration — {reviewedBy}, on the visit of {longDateOf(dateOf(doc.dayOffset))}.</dd></div>
+   <div><dt>Who may sign one</dt><dd>A doctor, under a current registration. {refusalFor('doctor', 'write-clinical-note')}</dd></div>
+   <div><dt>What it does not say</dt><dd>Why. Whoever asked for it is owed the days and the signature; what was wrong with you is between you and the clinician, and MyThuso does not print a diagnosis on a document written for somebody else’s desk.</dd></div>
+   <div><dt>What this preview holds</dt><dd>Nothing. There is no certificate here to open, download or hand to anybody, and no clinician has issued one. The row you pressed is a document type the passport is designed to hold, not a document it has.</dd></div>
+  </dl>
+  {sickNote && <button className="primary full" onClick={() => navigate('Book a nurse')}>A {sickNote.name.toLowerCase()} is in the catalogue, from {money(sickNote.price)}<ArrowRight size={16}/></button>}
+ </div>;
+}
+
+/* ---- What happens to a prescription ------------------------------------------------------------
+   The medications tab's second control opened the roadmap dialog for the Thuso Pharmacy module — a
+   paragraph about a phase, in answer to "what happens after the doctor signs it". Every sentence
+   this screen needs was already in packages/catalog/dispensing.json, written for the pharmacist's
+   side of the same counter: the five steps of a handover, the rule that a patient is told before
+   they accept, the refusal that stops a silent substitution, and the arithmetic that boxes a
+   chronic authorisation by a date and by a count at the same time. It is the same contract read
+   from the side of the person the medicine is for. */
+export function PrescriptionJourney({ navigate, open }: { navigate: (page: string) => void; open: (modal: string) => void }) {
+ const answer = collectionAnswer();
+ return <>
+  <div className="page-intro"><div className="eyebrow">Health Passport</div><h1>What happens to a prescription.</h1>
+   <p>Once a doctor signs one, five things happen before anything is in your hand — and you may stop it at the fourth.</p></div>
+  <NotConnected of="dispensing"/>
+
+  {/* The lead is the arithmetic, because on a chronic medicine the question is never "how does this
+      work" — it is "when may I fetch the next one, and when does this stop". Both answers are
+      worked out from the authorisation rather than written beside it. */}
+  <section className="panel glass lead rise-2">
+   <div className="lead-head"><div><h2>{authorisation.programme}</h2><p>{authorisation.reference} · authorised {formatDay(authorisedOn)}</p></div>
+    <Pill tone={answer.allowed ? 'teal' : 'amber'}>{answer.allowed ? 'Due now' : 'Not due yet'}</Pill></div>
+   {/* One figure, not three. A repeat count is a number and belongs in the big thin numeral the
+       design language reserves for one; a date set at 40px reads as a display figure rather than as
+       a day in November, and two of them beside each other read as a comparison nobody is making.
+       The dates are the two facts under it, in the same shape as every other pair of facts. */}
+   <Metrics>
+    <Metric value={String(repeatsRemaining)} unit={`of ${authorisation.repeatsAuthorised}`} label="Repeats left on it" chip={isFinalRepeat ? 'Last one' : 'Authorised'}/>
+   </Metrics>
+   <div className="review-line"><span>The next may be collected</span><strong>{answer.allowed ? 'Today' : formatDay(nextCollectionOn)}</strong></div>
+   <div className="review-line"><span>The authorisation ends</span><strong>{formatDay(expiresOn)}</strong></div>
+   <div className="review-line"><span>Which of the two runs out first</span><strong>{binds === 'date' ? 'The date' : 'The repeats'}</strong></div>
+   <p className="helper">{answer.reason}</p>
+  </section>
+
+  <SectionTitle title="The five things that happen at the counter"/>
+  <ol className="timeline">{handover.map(step => <li key={step.id} className="done">
+   <span className="timeline-dot"><Check size={12}/></span>
+   <div><strong>{step.label}</strong><small>{step.detail}</small></div>
+  </li>)}</ol>
+
+  {/* The two the patient is the subject of, quoted rather than summarised. */}
+  <SectionTitle title="What you are told, and what you may refuse"/>
+  <div className="panel"><dl className="stated">
+   <div><dt>{ruleById('patient-is-told-first').title}</dt><dd>{ruleById('patient-is-told-first').sentence}</dd></div>
+   <div><dt>Nothing is swapped quietly</dt><dd>{refusalById('silent-substitution').sentence}</dd></div>
+   <div><dt>And nobody works around your doctor</dt><dd>{refusalById('override-do-not-substitute').sentence}</dd></div>
+  </dl></div>
+
+  <SectionTitle title="Why it stops rather than continues"/>
+  <div className="panel"><dl className="stated">
+   <div><dt>{ruleById('authorisation-is-boxed').title}</dt><dd>{ruleById('authorisation-is-boxed').sentence}</dd></div>
+   <div><dt>{ruleById('ends-in-a-review').title}</dt><dd>{ruleById('ends-in-a-review').sentence}</dd></div>
+   <div><dt>{ruleById('early-is-refused-with-a-date').title}</dt><dd>{ruleById('early-is-refused-with-a-date').sentence}</dd></div>
+  </dl>
+  <p className="helper"><ShieldCheck size={14}/>{authorisation.endsWith}</p></div>
+
+  <button className="primary full" onClick={() => open('Prescription RX-0081')}>See how a prescription reads<ArrowRight size={17}/></button>
   <button className="secondary full" onClick={() => navigate('Health Passport')}>Back to your Health Passport<ArrowRight size={17}/></button>
  </>;
 }

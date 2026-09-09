@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, ClipboardPlus, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, HandCoins, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, PenLine, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, Users, UserPlus, Wallet, Zap } from 'lucide-react';
+import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, HandCoins, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, PenLine, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, Users, UserPlus, Wallet, Zap } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
@@ -15,8 +15,8 @@ import { holdStatus } from '../lib/interpreting';
 import { activity as walletActivity, balance as walletBalance, topUpAmounts } from '../lib/wallet';
 import type { CancelState } from '../lib/cancelling';
 import {
- dateOf, documents as passportDocuments, headlineMeasures, latestSet, measureSpec, readingSets,
- reviewedBy, seriesFor
+ dateOf, documents as passportDocuments, headlineMeasures, lastReview, latestSet, measureSpec,
+ readingSets, reviewedBy, seriesFor
 } from '../lib/passport';
 import { CancelledVisit, PastVisit } from './VisitSummary';
 import { assignedNurse } from '../lib/arrival';
@@ -43,7 +43,7 @@ function ServiceCard({service,onOpen}:{service:Service;onOpen:()=>void}) {
    :<><strong className="later-price">{money(service.price)} planned</strong><span>Phase {service.phase}<ChevronRight size={16}/></span></>}</div>
  </button>;
 }
-export function Services({book,open,query='',forPerson,clearPerson}:{book:(s:Service)=>void;open:(s:string)=>void;query?:string;forPerson?:string|null;clearPerson?:()=>void}) {
+export function Services({book,open,navigate,query='',forPerson,clearPerson}:{book:(s:Service)=>void;open:(s:string)=>void;navigate:(s:string)=>void;query?:string;forPerson?:string|null;clearPerson?:()=>void}) {
  const [category,setCategory]=useState('All services');
  const [search,setSearch]=useState(query);
  const filtered=services.filter(s=>(category==='All services'||s.category===category)&&`${s.name} ${s.description}`.toLowerCase().includes(search.toLowerCase()));
@@ -68,7 +68,11 @@ export function Services({book,open,query='',forPerson,clearPerson}:{book:(s:Ser
   {planned.length>0&&<><SectionTitle title={`In the plan · ${planned.length}`}/>
    <div className="catalog-grid">{planned.map(s=><ServiceCard key={s.id} service={s} onOpen={()=>open(`${s.name} · Phase ${s.phase}`)}/>)}</div></>}
   {!filtered.length&&<EmptyNote>No services match your search. Try another name or category.</EmptyNote>}
-  <button className="menu-row panel space-top" onClick={()=>book(services[0])}><span className="tile-icon"><CircleHelp size={19}/></span><span><strong>Not sure what you need?</strong><small>Chat to our care team</small></span><ChevronRight size={17}/></button>
+  {/* This used to open the four-step booking modal for the first service in the catalogue, which
+      answered "I don't know what I need" with a confident booking for a chronic check. It goes to
+      the help screen now: there is no care-team chat, and the honest close is a screen that says so
+      and hands over the three things that do exist. */}
+  <button className="menu-row panel space-top" onClick={()=>navigate('Help & support')}><span className="tile-icon"><CircleHelp size={19}/></span><span><strong>Not sure what you need?</strong><small>What MyThuso can answer today, and what it cannot</small></span><ChevronRight size={17}/></button>
   <div className="privacy-note space-top"><ShieldCheck size={19}/>Only phase-one services can be booked. Later-phase services are shown so the plan is visible, not because a nurse can be sent for one today.</div>
  </>}
 /* A row is built from a visit, not typed beside one. The date block and the time both come from
@@ -228,7 +232,6 @@ export function VisitDetail({row,manage,navigate,rebook,track}:{row:VisitRow;man
 }
 export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:string)=>void}) {
  const [tab,setTab]=useState('Overview');
- const [deviceState,setDeviceState]=useState<LoadState>('denied');
  return <>
   <div className="page-intro"><h1>Health Passport</h1><p>Your health. Your story. Every visit, reading and result, in one place.</p></div>
   <NotConnected of="clinical-records"/>
@@ -268,7 +271,7 @@ export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:stri
    <div className="shortcut-list">
     <button className="shortcut-row" onClick={()=>open('Share my passport')}><span className="service-icon"><Share2 size={20}/></span><span className="shortcut-text"><strong>Share record</strong><small>Let a verified professional see a limited summary, for a period you set.</small></span><ChevronRight size={17}/></button>
     <button className="shortcut-row" onClick={()=>{const blob=new Blob([JSON.stringify({demo:true,patient:'Lerato Molefe',readings:[{bloodPressure:'118/78',heartRate:72,glucose:5.2}],notice:'Fictional data. Not a medical record.'},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='mythuso-demo-passport.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}><span className="service-icon"><Download size={20}/></span><span className="shortcut-text"><strong>Export sample passport</strong><small>Downloads a JSON copy to your device. Nothing is sent anywhere.</small></span><ChevronRight size={17}/></button>
-    <button className="shortcut-row" onClick={()=>open('Your care team')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Doctors</strong><small>The clinicians who have reviewed what is on your record.</small></span><ChevronRight size={17}/></button>
+    <button className="shortcut-row" onClick={()=>navigate('Your care team')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Doctors</strong><small>The clinicians who have reviewed what is on your record.</small></span><ChevronRight size={17}/></button>
     {/* The ranges have been drawn here since this screen was written and nothing has ever said what
         one of them measures. The row is on the overview rather than buried under More because "what
         does this number mean" is the question a person opens a health record with. */}
@@ -276,10 +279,14 @@ export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:stri
    </div>
    {/* Dated from the visits they came out of. Three entries that said "4 September" and "28 August"
        described a record that stopped moving the day somebody typed them. */}
-   <SectionTitle title="Your care timeline"/>
-   <div className="panel">{[['Nurse home visit',latestSet.dayOffset],['Doctor review completed',latestSet.dayOffset],['Vitals recorded',readingSets[readingSets.length-2].dayOffset]].map(([label,day])=>{
+   {/* Three rows that each opened the roadmap dialog — a paragraph about the functionality phase in
+       answer to "what happened at my visit". They are the record's own three most recent events
+       now, and each one opens on the timeline screen, where the readings, the review and the
+       document behind it are. */}
+   <SectionTitle title="Your care timeline" action="See all" onClick={()=>navigate('Care timeline')}/>
+   <div className="panel">{[['Nurse home visit',latestSet.dayOffset],['Doctor review completed',lastReview.reviewedDayOffset],['Vitals recorded',readingSets[readingSets.length-2].dayOffset]].map(([label,day])=>{
     const title=`${label} · ${longDateOf(dateOf(day as number))}`;
-    return <button className="record-row" key={title} onClick={()=>open(title)}><span className="service-icon"><FileText size={20}/></span><span><strong>{title}</strong><small>Reviewed by {reviewedBy}</small></span><ChevronRight size={18}/></button>;
+    return <button className="record-row" key={title} onClick={()=>navigate('Care timeline')}><span className="service-icon"><FileText size={20}/></span><span><strong>{title}</strong><small>Reviewed by {reviewedBy}</small></span><ChevronRight size={18}/></button>;
    })}</div>
   </>:tab==='Records'?<>
    <SectionTitle title="Your documents"/>
@@ -291,18 +298,28 @@ export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:stri
   :tab==='Medications'?<>
    <SectionTitle title="Your prescriptions"/>
    <EmptyState title="No active prescriptions" body="Prescriptions appear here once a registered doctor has issued them, with the pharmacy that may fill them and the date they run out." action="See how a prescription reads" onAction={()=>open('Prescription RX-0081')}/>
-   <button className="text-button space-top" onClick={()=>open('Thuso Pharmacy')}>Explore pharmacy fulfilment<ArrowRight size={16}/></button>
+   {/* "Explore pharmacy fulfilment" opened the roadmap dialog for the Thuso Pharmacy module. What a
+       person on a medications tab is actually asking is what happens to a prescription once a
+       doctor signs it, and that is a screen the product already has — the same prescription the
+       pharmacist verifies, read from the patient's side. */}
+   <button className="text-button space-top" onClick={()=>navigate('What happens to a prescription')}>What happens after a doctor signs one<ArrowRight size={16}/></button>
   </>
   /* The one state on the patient side that is true rather than staged: nothing in this build has
      asked this device for Health Connect or Apple Health, so the permission genuinely has not been
      granted and the screen says what a person can do about it. It needs no wire because the answer
      is already no. */
   :<><SectionTitle title="Connected devices"/><NotConnected of="devices"/>
-   <StateBlock state={deviceState} subject="Readings from your connected devices" permission="Apple Health or Health Connect access" onRetry={()=>setDeviceState('ready')}>
-    {/* Each card opens its own permission screen now: what would be read, what would never be, and
-        why none of it is switched on. They went to a paragraph about the roadmap before. */}
-    <div className="catalog-grid">{['Apple Health','Health Connect','Thuso Kit'].map(t=><div className="panel module-card" key={t}><span className="tile-icon"><Bluetooth size={20}/></span><h3>{t}</h3><p>Choose exactly which readings you share, and stop sharing them without losing what is already on your record.</p><button className="secondary full" onClick={()=>open(`${t} connection`)}>What this would read<ArrowRight size={16}/></button></div>)}</div>
-   </StateBlock></>}
+   {/* The denied block used to hide the three cards behind a "Review permission" button that
+       granted nothing and opened nothing — it flipped this screen's own state to ready, which is
+       the one thing a permission control must never appear to do. The permission genuinely has not
+       been given, so the block states that and the three screens that say what each device would
+       read sit under it rather than behind it. Reviewing a permission is reading what it covers,
+       and that is one press away on every card. */}
+   <div className="state-block denied" role="status">
+    <span className="state-icon"><LockKeyhole size={24}/></span>
+    <div><h3>We need your permission first</h3><p>MyThuso cannot show readings from your connected devices until you allow Apple Health or Health Connect access. You can change your mind at any time, and declining never blocks a visit. Nothing below has been asked for yet.</p></div>
+   </div>
+   <div className="catalog-grid">{['Apple Health','Health Connect','Thuso Kit'].map(t=><div className="panel module-card" key={t}><span className="tile-icon"><Bluetooth size={20}/></span><h3>{t}</h3><p>Choose exactly which readings you share, and stop sharing them without losing what is already on your record.</p><button className="secondary full" onClick={()=>open(`${t} connection`)}>What this would read<ArrowRight size={16}/></button></div>)}</div></>}
  </>}
 /* What a person may see of somebody else is a status, not a paragraph.
  *
@@ -617,7 +634,7 @@ const menuGroups=[
  /* Emergency first in this group, and in the shell's sidebar as well. It was the fourteenth card
     inside a roadmap page — the most complete journey in the product behind the most clicks in it,
     on the one pathway where a person cannot afford to hunt. */
- [['Emergency & urgent care','The ambulance number first, then what MyThuso can do',Ambulance,'@Emergency & urgent care'],['Explore MyThuso','The full 21-module roadmap',LayoutGrid,'Explore MyThuso'],['Help & support','Chat, FAQs and emergency',CircleHelp,'@How can we help?'],['Preview workspaces','Nurse, doctor, partner and Control Tower',Stethoscope,'@Switch workspace']]
+ [['Emergency & urgent care','The ambulance number first, then what MyThuso can do',Ambulance,'@Emergency & urgent care'],['Explore MyThuso','The full 21-module roadmap',LayoutGrid,'Explore MyThuso'],['Help & support','What MyThuso can answer today, and what it cannot',CircleHelp,'Help & support'],['Preview workspaces','Nurse, doctor, partner and Control Tower',Stethoscope,'@Switch workspace']]
 ] as const;
 export function MoreHub({navigate,open,onSignOut}:{navigate:(s:string)=>void;open:(s:string)=>void;onSignOut:()=>void}){
  return <>
@@ -635,146 +652,6 @@ export function MoreHub({navigate,open,onSignOut}:{navigate:(s:string)=>void;ope
    demo pill sat on every screen. What it proved is held better now: check-boundaries.mjs asserts at
    source that all five exist and that each still says something a person can act on, and
    tests/states.spec.ts drives offline and a failed request from the real condition. */
-/* A clinical workspace is not a shop. The nurse, doctor, partner and Control Tower each get their
-   own navigation from App.tsx; this renders the section that navigation asked for, and leads with
-   what the role has to act on rather than with a catalogue of things to buy. */
-/* A section's name is what a nurse would call it; the workflow behind it keeps the name the rest
-   of the app already knows it by. */
-export const sectionWorkflow: Record<string,string> = {
- Vetting:'Nurse onboarding & vetting','Vetting queue':'Nurse vetting',Assessments:'Visit assessment',
- Protocols:'Clinical protocols',Quality:'Quality & revenue',Results:'Laboratory order LAB-0023',
- Collections:'Collection schedule'
-};
-/* What each of those doors is for, in one sentence. "Open this workflow" told a reader nothing they
-   could not see from the heading, which is the definition of a wasted line on a screen that has
-   only three. */
-export const sectionDoor: Record<string,string> = {
- Vetting:'The six checks a nurse clears before a visit can be sent to her, what each one expires on, and what stops the moment one lapses.',
- 'Vetting queue':'Every applicant, the state of each check, and the decision that either clears somebody for dispatch or refuses it in writing.',
- Assessments:'A visit from the doorstep: identity, consent, observations, findings and a sign-off that a nurse may not give herself.',
- Protocols:'The reference a doctor reviews against, and the line at which decision support stops and a registered doctor starts.',
- Quality:'Complaints, incidents, arrival times and the revenue they move — the numbers a board asks for before it asks for anything else.'
-};
-export const roleExtras: Record<string,string[]> = {
- Nurse:['Locum shifts','Academy'],
- Doctor:['Clinical protocols','Referral pathway'],
- Partner:['Prescription RX-0081','Laboratory order LAB-0023'],
- 'Control Tower':['Nurse onboarding & vetting','Employer programmes']
-};
-export const roleSections: Record<string,string[]> = {
- Nurse:['Schedule','Assessments','Thuso Kit','Earnings & payouts','Vetting'],
- Doctor:['Review queue','Teleconsultation','Patient context','Protocols'],
- Partner:['Orders','Collections','Results'],
- 'Control Tower':['Dispatch','Incidents','Vetting queue','Quality']
-};
-/* A nurse's morning, a doctor's queue, a controller's board and a partner's orders — four screens
- * that each have exactly one thing a person opened them for.
- *
- * All four used to open the same way: a workspace eyebrow shouting DEMO, a paragraph under it
- * saying the same thing, three summary tiles, then the work. On a 390px phone the first visit
- * began below the fold, under three sentences telling her the same thing in three different words.
- * She does not open this to read about the product; she opens it at 07:00 to find out where she is
- * going first and whether she can leave.
- *
- * So the composition is inverted on all four. The single most urgent item is the screen's subject
- * and is drawn as one thing — not as the first row of a list that happens to be at the top. What
- * remains is a list under it, aligned down one column so the gaps read as gaps. The counts are one
- * line at the end, because a total is checked after the work, not planned around before it. */
-
-/** One visit on a nurse's day. The end is arithmetic on the service's own duration, never typed. */
-type Shift = { start: string; service: Service; person: string; suburb: string; note: string };
-const nurseDay: Shift[] = [
- { start: '09:00', service: services[0], person: 'Lerato Molefe', suburb: 'Rosebank', note: 'Chronic follow-up · blood pressure was 141/88 last visit' },
- { start: '11:30', service: services[1], person: 'Thabo Molefe', suburb: 'Parktown', note: 'Dressing change · day 6' },
- { start: '14:00', service: services[2], person: 'Nomsa Molefe', suburb: 'Melville', note: 'Six-week check · first baby' }
-];
-/** What a doctor is waiting on, longest first — because that is the order the queue is worked. */
-type Review = { ref: string; what: string; from: string; waited: string; minutes: number; flag: string };
-const reviewQueue: Review[] = [
- { ref: 'TH-2048', what: 'Vitals assessment · Lerato Molefe', from: 'Sister Naledi Mokoena · 2 of 4 readings flagged', waited: '3 h 20 m', minutes: 200, flag: 'Out of range' },
- { ref: 'TH-2041', what: 'Prescription request · Thabo Molefe', from: 'Sister Palesa Khumalo · repeat, last issued 28 August', waited: '1 h 05 m', minutes: 65, flag: 'Out of range' },
- { ref: 'TH-2045', what: 'Wound follow-up · Nomsa Molefe', from: 'Sister Naledi Mokoena · day 6, photograph attached', waited: '22 m', minutes: 22, flag: '' }
-];
-export function NurseSchedule({ open }: { open: (s: string) => void }) {
- const [available, setAvailable] = useState(true);
- const [next, ...later] = nurseDay;
- const ends = endTime(next.start, next.service.duration);
- const earned = nurseDay.reduce((total, shift) => total + shift.service.nurseShare, 0);
- const dayEnds = endTime(nurseDay[nurseDay.length - 1].start, nurseDay[nurseDay.length - 1].service.duration);
- return <>
-  {/* Duty state sits with the date rather than beside the section heading below it: whether she is
-      taking visits at all is a fact about the whole day, and it is the one control on this screen
-      that changes what the rest of it means. */}
-  <div className="shift-head">
-   <div><h1>{longDateOf(isoIn(new Date()))}</h1><p>{available ? `${nurseDay.length} visits · ${next.start} to ${dayEnds}` : 'You are off duty. Nothing new will be sent to you.'}</p></div>
-   <button className="secondary duty-toggle" aria-pressed={available} onClick={() => setAvailable(!available)}><span className={`status-dot ${available ? '' : 'offline'}`}/>{available ? 'Available for visits' : 'Off duty'}</button>
-  </div>
-  <NotConnected of="dispatch"/>
-  {available ? <>
-   {/* The next visit, drawn once and drawn large. Time first because that is what decides whether
-       she leaves now, then who and where, then the one thing she is walking in knowing. */}
-   <article className="next-visit">
-    <div className="next-when"><span>Next</span><strong>{next.start}</strong><span>to {ends}</span></div>
-    <div className="next-body">
-     <h2>{next.service.name}</h2>
-     <p className="next-who">{next.person}</p>
-     <p className="next-where"><MapPin size={15}/>{next.suburb} · home visit</p>
-     <p className="next-note">{next.note}</p>
-    </div>
-    <div className="next-actions">
-     <button className="primary" onClick={() => open('Visit assessment')}><ClipboardPlus size={17}/>Start this visit</button>
-     <button className="secondary" onClick={() => open(`Nurse case: TH-2048 · ${next.service.name} · ${next.suburb}`)}>Patient file</button>
-    </div>
-   </article>
-   <SectionTitle title="Later today"/>
-   <ol className="day-list">{later.map(shift => <li key={shift.start}>
-    <button className="day-row" onClick={() => open(`Nurse case: ${shift.start} · ${shift.service.name} · ${shift.suburb}`)}>
-     <span className="day-time"><strong>{shift.start}</strong><small>{endTime(shift.start, shift.service.duration)}</small></span>
-     <span className="day-what"><strong>{shift.service.name}</strong><small>{shift.person} · {shift.suburb}</small></span>
-     <ChevronRight size={18}/>
-    </button>
-   </li>)}</ol>
-   {/* One line, at the end, in the place a person checks rather than plans from. */}
-   <p className="day-total"><span>Your share of today, at the catalogue's rates</span><strong>{money(earned)}</strong></p>
-  </> : <EmptyState title="You are off duty" body="Nothing is sent to a nurse who is off duty, and going off duty never cancels a visit you have already accepted. Turn availability back on when you are ready." action="Go available" onAction={() => setAvailable(true)}/>}
- </>;
-}
-export function ReviewQueue({ open }: { open: (s: string) => void }) {
- const [flaggedOnly, setFlaggedOnly] = useState(false);
- const rows = flaggedOnly ? reviewQueue.filter(r => r.flag) : reviewQueue;
- const flagged = reviewQueue.filter(r => r.flag).length;
- const [longest] = reviewQueue;
- return <>
-  <div className="shift-head">
-   <div><h1>Review queue</h1><p>{reviewQueue.length} waiting · {flagged} outside a reference range · longest {longest.waited}</p></div>
-   <div className="tabs queue-filter" role="group" aria-label="Filter the queue">
-    <button className={flaggedOnly ? '' : 'selected'} aria-pressed={!flaggedOnly} onClick={() => setFlaggedOnly(false)}>Everything</button>
-    <button className={flaggedOnly ? 'selected' : ''} aria-pressed={flaggedOnly} onClick={() => setFlaggedOnly(true)}>Flagged</button>
-   </div>
-  </div>
-  <NotConnected of="screening"/>
-  {/* Waiting time is the doctor's ordering, so it is the column that is set in tabular figures and
-      aligned right — a queue you cannot read down is a queue you work in the order it was drawn. */}
-  {rows.length ? <ol className="review-list">{rows.map(review => <li key={review.ref}>
-   <button className="review-row" onClick={() => open(`Doctor review: ${review.ref}`)}>
-    <span className="review-ref">{review.ref}</span>
-    {/* What the case is and who sent it. This line used to repeat "a registered doctor signs this
-        off" under every row — true, and said once at the top of the screen, where a sentence that
-        is the same on every row belongs. */}
-    <span className="review-what"><strong>{review.what}</strong><small>{review.from}</small></span>
-    {review.flag ? <Pill tone="amber">{review.flag}</Pill> : <span className="review-routine">Routine</span>}
-    <span className="review-waited">{review.waited}</span>
-    <ChevronRight size={18}/>
-   </button>
-  </li>)}</ol>
-   : <EmptyState title="Nothing is flagged" body="Every case in the queue is inside its reference range. Switch back to everything to work the queue in the order it arrived." action="Show everything" onAction={() => setFlaggedOnly(false)}/>}
- </>;
-}
-/* Workspace is gone. It drew all four clinical screens the same way and headed each of them
-   "NURSE WORKSPACE · DEMO", and apps/web/src/shells/StaffShell.tsx composes its own sections now.
-   Deleting it is also what keeps mapbox-gl out of the patient's bundle: it imported Dispatch and
-   Orders, and LiveMap's side-effect CSS import meant Rollup kept the whole chain in every entry
-   that could reach this file — which the patient's can. */
 /* Four notices that went nowhere. Each one now opens the screen it is about, which is the whole
    point of a notification: it is not news, it is a door. The one that matters most is the last \u2014
    somebody asking for access to a record \u2014 and reading it without being able to act on it is worse

@@ -106,7 +106,9 @@ test('cancelling a visit records the reason and the side of the window it was on
 test('the trends screen draws every reading against the range the contract holds it to', async ({ page }) => {
   await page.goto('/');
   await navigate(page, 'Health Passport');
-  await page.getByRole('button', { name: /See all/ }).click();
+  /* Two sections offer "See all" now — the trend charts and the care timeline — so this names the
+     one it means rather than relying on there being only one. */
+  await page.locator('.section-title').filter({ hasText: 'Health trends' }).getByRole('button', { name: /See all/ }).click();
   await expect(page.getByRole('heading', { name: 'How your readings have changed.' })).toBeVisible();
   await expect(page.getByText(/This record is sample data/)).toBeVisible();
 
@@ -130,7 +132,12 @@ for (const integration of integrations) {
     await page.goto('/');
     await navigate(page, 'Health Passport');
     await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'More' }).click();
-    await page.getByRole('button', { name: /Review permission/ }).click();
+    /* "Review permission" is gone. It sat on the denied block and flipped this screen's own state to
+       ready — a permission control that appeared to grant a permission and opened nothing. The
+       three cards that say what each device would read are under the notice rather than behind it,
+       so reviewing a permission is now one press rather than two, and the first of the two is not a
+       button that lies about what it does. */
+    await expect(page.getByRole('button', { name: /Review permission/ })).toHaveCount(0);
     await page.locator('.module-card').filter({ hasText: integration }).getByRole('button').click();
     const sheet = page.getByRole('dialog');
 

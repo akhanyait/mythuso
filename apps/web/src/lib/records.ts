@@ -139,12 +139,23 @@ export const canOpenTab = (subject: VettingSubject, tab: FileTab) => canAny(subj
    The product owner's action row. Every one of them is a capability before it is a button:
    uploading a document is writing into somebody's record, and booking a visit is sending a named
    person to a named address, which is the most sensitive thing this platform does. */
-export type FileAction = { label: string; capability: string; detail: string };
+/* `opens` is the screen the action actually produces, named the way the clinical modal router in
+   shells/StaffShell.tsx names it. Four of the five used to produce a sentence in the subjunctive —
+   "New consultation would open here for Thando Mokoena" — written into a live region beside a
+   button somebody had just pressed. An action a clinician is cleared for and cannot take is worse
+   than one they are refused: the refusal at least says who decides. An action with no screen at all
+   leaves `opens` unset and keeps the sentence, so the difference stays visible. */
+export type FileAction = { label: string; capability: string; detail: string; opens?: string };
 export const fileActions: FileAction[] = [
- { label: 'New consultation', capability: 'write-clinical-note', detail: 'Open the standardised encounter under your own registration' },
- { label: 'Prescription', capability: 'prescribe', detail: 'Issue medicine against this patient' },
- { label: 'Referral', capability: 'refer-patient', detail: 'Send this patient to another provider' },
- { label: 'Upload document', capability: 'write-clinical-note', detail: 'Add a letter, report or consent form to the file' },
+ { label: 'New consultation', capability: 'write-clinical-note', detail: 'Open the standardised encounter under your own registration', opens: 'Consultation record' },
+ /* Not "Prescription RX-0081": that is the pharmacist's screen for a different patient's script,
+    and the clinical router matches it by prefix. A file action that collides with an existing
+    modal name opens the wrong patient's medicines. */
+ { label: 'Prescription', capability: 'prescribe', detail: 'Issue medicine against this patient', opens: 'Prescribing' },
+ { label: 'Referral', capability: 'refer-patient', detail: 'Send this patient to another provider', opens: 'Referral letter' },
+ { label: 'Upload document', capability: 'write-clinical-note', detail: 'Add a letter, report or consent form to the file', opens: 'Upload a document' },
+ /* No screen, and none is missing: a doctor does not hold dispatch-nurses, so this renders as the
+    refusal rather than as a button, and the Control Tower's board is where a visit is sent. */
  { label: 'Book a visit', capability: 'dispatch-nurses', detail: 'Send a nurse to this address in a chosen window' }
 ];
 

@@ -367,3 +367,32 @@
     rather than at three corners of the panel. */
  .earn-legend{grid-template-columns:repeat(3,minmax(0,220px));gap:var(--space-24)}
 }
+
+/* A visit she has already signed.
+ *
+ * The next-visit card is the one object on a nurse's schedule that is not glass: pale sage, charcoal
+ * on it at 11.11:1, and the loudest thing on the screen on purpose, because it is the single fact
+ * she opened the app for. Once it is signed it is no longer that fact — the day has moved on and
+ * the thing she is about to do is somewhere else — so it steps down to the recessed ground the rest
+ * of the workspace uses for context rather than subject. Charcoal on `--cloud` measures 13.53:1, so
+ * nothing on it changes but its weight in the composition.
+ *
+ * Colour is not the only difference and never is here: the corner label reads "Signed" instead of
+ * "Next", the note becomes the seal time and the sign-off summary, and the primary action becomes
+ * the record it produced rather than a way to start it a second time. */
+.clinical .next-visit.is-signed { background: var(--cloud); }
+.clinical .next-visit.is-signed .next-note { border-top-color: var(--stone); }
+
+/* A labelled statement, on the clinical surface.
+ *
+ * `.stated` — a small uppercase label over a sentence, hairline-separated — is defined only under
+ * `.patient-surface`, so the screens that answer "what would this do, and what will it never do"
+ * on a nurse's or a doctor's side rendered as a browser's default definition list: an indented dd
+ * under an unstyled dt, which is the one shape in this product that looks like nobody drew it.
+ * Same rule, same tokens, same type sizes; only the surface differs. */
+.clinical .stated { display: grid; gap: var(--space-16); }
+.clinical .stated > div { display: grid; gap: var(--space-4); }
+.clinical .stated > div + div { border-top: 1px solid var(--stone); padding-top: var(--space-16); }
+.clinical .stated dt { font-size: 13px; color: var(--faint); letter-spacing: .4px; text-transform: uppercase; }
+.clinical .stated dd { font-size: 15px; line-height: 1.55; color: var(--charcoal); margin: 0; }
+.clinical .stated small { display: block; font-size: 13px; line-height: 1.55; color: var(--faint); }

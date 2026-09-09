@@ -120,6 +120,14 @@ export function seal(visit: string) {
  publish(entries.map(e => e.visit === visit && e.state === 'captured' ? { ...e, state: 'queued' } : e));
 }
 
+/* Whether a visit has been signed off, asked of the queue rather than of a flag beside the day list.
+   A nurse signed an assessment and went back to her schedule to find the same visit still reading
+   NEXT with "Start this visit" on it — the one screen in the workspace that should have known was
+   the one that did not. It is derived rather than recorded because the sign-off already exists here:
+   a second boolean saying the same thing is a second thing that can be wrong. */
+export const signOffFor = (list: Part[], visit: string) =>
+ list.find(part => part.visit === visit && part.kind === 'sign-off');
+
 /* ---- Arriving --------------------------------------------------------------------------------
    The same four questions capture.ts asks of a reading, in the same order and for the same reasons:
    whether the person who did the work may still file it, whether the record moved on underneath it,

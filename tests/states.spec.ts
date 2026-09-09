@@ -198,3 +198,99 @@ test('and the controller who is shown one still gets it', async ({ page }) => {
   await expect(page.locator('.map-pin').first()).toBeVisible();
   expect(asked, `the dispatch board fetched a map nobody asked it for: ${asked.join(', ')}`).toEqual([]);
 });
+
+/* What a patient downloads, and what a clinician downloads.
+ *
+ * mapbox-gl was the first thing taken out of the patient's bundle, and the test above holds it by
+ * watching the network rather than by reading a build report — because what matters is what the
+ * handset asks for. This is the same assertion for the rest of the split.
+ *
+ * The patient entry and the staff entry used to share a 384 kB chunk. Not React and not the
+ * contracts: feature modules. features/Pages.tsx held the patient's catalogue, visit list, passport,
+ * wallet and family circle *and* the nurse's day and the doctor's queue; features/Orders.tsx held
+ * the prescription a patient reads *and* the pharmacy partner's three boards; and features/Kit.tsx
+ * imported `observations` from features/Clinical.tsx, which only re-exports it — one convenience
+ * edge that pulled the doctor's review, the visit assessment, the consultation composer and the
+ * offline queue onto the phone of everybody who ever opened Thuso Kit. Splitting the two files and
+ * taking the shortest path to that one value moved fourteen modules off the patient's side.
+ *
+ * The assertion is not "the patient fetches none of those fourteen", because that list rots the
+ * moment somebody adds a fifteenth. It is that the *intersection* of the two audiences is exactly
+ * the set below — so a module that becomes shared has to be added here by somebody who has decided
+ * it should be, and a module that stops being shared has to be taken out. Both directions fail.
+ *
+ * Only features/, shells/ and map/ are counted: those are the modules that belong to an audience.
+ * components/ is the design system and is shared by construction, so a rule about it would say
+ * nothing. All four below are shared on purpose — Thuso Kit and its capture sheet are one screen a
+ * patient and a nurse both open, the prescription a pharmacist verifies is the same document a
+ * patient reads in the Health Passport, and the map draws both an arrival and a dispatch board. */
+const SHARED_BY_BOTH_AUDIENCES = ['Kit', 'KitCapture', 'LiveMap', 'Orders'];
+
+/** Every audience-owned source module a session actually asked the server for, by name. */
+async function modulesFetched(page: Page, session: () => Promise<void>) {
+  const asked = new Set<string>();
+  /* Removed again afterwards. A listener left attached goes on recording into the next session's
+     page, which is how this test first "proved" that a patient downloads the dispatch board. */
+  const watch = (request: { url(): string }) => {
+    const match = request.url().match(/\/src\/(?:features|shells|map)\/([A-Za-z]+)\.tsx/);
+    if (match) asked.add(match[1]);
+  };
+  page.on('request', watch);
+  await session();
+  page.off('request', watch);
+  return asked;
+}
+
+/* The patient's own navigation, on either viewport. goSection() in nav.ts matches a tab by its
+   accessible name, and the patient's tabs are short labels — "Book care" for Book a nurse — so it
+   cannot reach three of these on a phone. The tab bar's order is the shell's own, and everything
+   else is behind More. */
+const PATIENT_TABS = ['Overview', 'Book a nurse', 'My visits', 'Health Passport'];
+async function patientSection(page: Page, name: string) {
+  const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
+  if (await sidebar.isVisible()) {
+    const entry = sidebar.getByRole('button', { name, exact: true });
+    if (await entry.count()) { await entry.click(); return; }
+    const settings = page.locator('button.settings-link').filter({ hasText: name });
+    if (await settings.count()) { await settings.first().click(); return; }
+    await page.locator('.app-footer button').click();
+    return;
+  }
+  const tab = PATIENT_TABS.indexOf(name);
+  if (tab >= 0) { await page.locator('.tabbar button').nth(tab).click(); return; }
+  await page.locator('.tabbar button').last().click();
+  await page.locator('.menu-row').filter({ hasText: name }).first().click();
+}
+
+test('a patient and a clinician share only the modules they are meant to', async ({ page }) => {
+  test.setTimeout(90_000);
+  /* A patient who has walked every section of their own application and opened the help screen.
+     Anything a clinical screen needs would have been requested by now. */
+  const patient = await modulesFetched(page, async () => {
+    await page.goto('/');
+    for (const section of ['Book a nurse', 'My visits', 'Health Passport', 'My family', 'Care plans', 'Thuso Wallet', 'Explore MyThuso', 'Privacy & settings', 'Language & access', 'Help & support']) {
+      await patientSection(page, section);
+      await page.waitForTimeout(120);
+    }
+    await expect(page.getByRole('heading', { name: 'Not sure what you need?' })).toBeVisible();
+  });
+
+  const clinician = await modulesFetched(page, async () => {
+    await page.goto('/staff.html');
+    await page.locator('.staff-signin-roles .record-row').filter({ has: page.getByText('Nurse', { exact: true }) }).click();
+    await goSection(page, 'Earnings & payouts');
+    await goSection(page, 'Vetting');
+  });
+
+  const both = [...patient].filter(name => clinician.has(name)).sort();
+  expect(both, 'the patient and the clinician share a feature module that is not on the shared list')
+    .toEqual([...SHARED_BY_BOTH_AUDIENCES].sort());
+
+  /* And the ones that started this, named, because they are the ones that will come back. */
+  for (const clinical of ['Clinical', 'StaffShell', 'Workspaces', 'Fulfilment', 'Dispatch', 'Vetting', 'PatientFile', 'Teleconsult', 'Earnings']) {
+    expect(patient.has(clinical), `a patient session fetched ${clinical}.tsx, which no patient screen renders`).toBe(false);
+  }
+  for (const ofThePatient of ['Pages', 'PatientShell', 'Booking', 'Sos', 'Household', 'Help', 'Passport']) {
+    expect(clinician.has(ofThePatient), `a clinical session fetched ${ofThePatient}.tsx, which no clinical screen renders`).toBe(false);
+  }
+});

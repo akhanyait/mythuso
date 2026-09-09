@@ -57,8 +57,12 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
    <div className="sidebar-bottom">
     <div className="help-card">
      <span className="help-symbol"><MessageCircle size={19}/></span>
-     <h3>A helping hand?</h3><p>We’re here when you need us.</p>
-     <button onClick={() => open('How can we help?')}>Let’s talk<ArrowRight size={15}/></button>
+     {/* "Let's talk" opened a dialog with a search box and a sentence about live support. There
+         is nobody to talk to — `messaging` is not connected — so the card offers what the screen
+         behind it actually is: an account of what MyThuso can answer without anybody being
+         reachable. */}
+     <h3>A helping hand?</h3><p>What we can answer without anybody to write to.</p>
+     <button onClick={() => navigate('Help & support')}>See what is here<ArrowRight size={15}/></button>
     </div>
     {/* The emergency pathway, in the chrome rather than fourteen cards deep inside a roadmap page.
         It is a quiet row and not a red button on purpose: the screen it opens leads with 10177 and
@@ -97,7 +101,7 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
    <main id="main" tabIndex={-1}>{children}</main>
    <footer className="app-footer">
     <span>© 2026 MyThuso. {t('shell.tagline')}</span>
-    <button onClick={() => open('How can we help?')}><CircleHelp size={14}/>{t('shell.help')}</button>
+    <button onClick={() => navigate('Help & support')}><CircleHelp size={14}/>{t('shell.help')}</button>
    </footer>
    <nav className="tabbar glass" aria-label="Primary">{tabs.map(([target, label, Icon]) =>
     <button key={target} aria-current={page === target ? 'page' : undefined} className={page === target ? 'active' : ''} onClick={() => navigate(target)}>

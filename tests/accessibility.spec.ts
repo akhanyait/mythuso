@@ -180,6 +180,30 @@ test.describe('at a 320px viewport', () => {
     }
   });
 
+  /* The screens added to close docs/FLOW-COMPLETENESS.md's open rows. Each one is a table, a list
+     of long sentences or both — the two shapes that break a 320px column — and the timeline is a
+     four-column table of readings, which is the widest thing on the patient side. */
+  test('the screens that closed the audit hold together too', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('.tabbar button').nth(4).click();
+    await page.locator('.menu-row').filter({ hasText: 'Help & support' }).first().click();
+    await audit(page, 'Help & support at 320px');
+
+    await page.locator('.tabbar button').nth(3).click();
+    await page.locator('.record-row').filter({ hasText: 'Nurse home visit' }).first().click();
+    await page.locator('.explain-row').first().click();
+    await audit(page, 'Care timeline, a visit open, at 320px');
+
+    await page.locator('.tabbar button').nth(3).click();
+    await page.locator('.shortcut-row').filter({ hasText: 'Doctors' }).click();
+    await audit(page, 'Your care team at 320px');
+
+    await page.locator('.tabbar button').nth(3).click();
+    await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Medications' }).click();
+    await page.getByRole('button', { name: /What happens after a doctor signs one/ }).click();
+    await audit(page, 'What happens to a prescription at 320px');
+  });
+
   test('the language dialog says which languages nobody has read, and stays inside the screen', async ({ page }) => {
     await page.goto('/');
     await page.locator('.tabbar button').nth(4).click();

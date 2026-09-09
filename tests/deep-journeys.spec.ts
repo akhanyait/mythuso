@@ -125,9 +125,17 @@ test('control tower assigns a nurse and logs an incident action', async ({ page 
   await page.getByRole('button', { name: 'TH-2052', exact: true }).click();
   await expect(page.getByText('Unassigned')).toBeVisible();
   const candidate = page.locator('.record-row.static').filter({ hasText: 'Sister Palesa Khumalo' });
-  await candidate.getByRole('button', { name: 'Assign' }).click();
-  await expect(candidate.getByRole('button', { name: 'Assigned' })).toBeVisible();
+  await candidate.getByRole('button', { name: 'Assign', exact: true }).click();
+  /* The control on an assigned nurse's row used to read "Assigned" and un-assign her when pressed —
+     a state label with an action hidden inside it, which is why an audit could walk this board and
+     conclude there was no way back from an assignment. The state is the tick beside the status line
+     now and the button is the verb, so this asserts both. */
+  await expect(candidate.getByRole('button', { name: /Unassign Sister Palesa Khumalo/ })).toBeVisible();
   await expect(page.getByText('Assigned to Sister Palesa Khumalo')).toBeVisible();
+  /* And it goes back, which is the half the audit found missing. */
+  await candidate.getByRole('button', { name: /Unassign Sister Palesa Khumalo/ }).click();
+  await expect(page.getByText('Unassigned')).toBeVisible();
+  await candidate.getByRole('button', { name: 'Assign', exact: true }).click();
   await goSection(page, 'Incidents');
   await page.getByRole('button', { name: /INC-015/ }).first().click();
   const dialog = page.getByRole('dialog');

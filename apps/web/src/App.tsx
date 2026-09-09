@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, LogOut, Search, ShieldCheck, Stethoscope, X } from 'lucide-react';
+import { ArrowRight, LogOut, ShieldCheck, Stethoscope, X } from 'lucide-react';
 import { Modal, Pill } from './components/UI';
 import { NotConnected } from './components/NotConnected';
 import { PatientShell } from './shells/PatientShell';
@@ -11,8 +11,13 @@ import {
  type VisitAction, type VisitRow
 } from './features/Pages';
 import { HouseholdRecord, HealthSummary } from './features/Household';
-import { DevicePermission, HealthTrends, ReadingsExplained, type Integration } from './features/Passport';
+import {
+ CareTeam, CareTimeline, DevicePermission, HealthTrends, MedicalCertificate, PrescriptionJourney,
+ ReadingsExplained, type Integration
+} from './features/Passport';
+import { PastVisit } from './features/VisitSummary';
 import { Arrival } from './features/Arrival';
+import { GettingHelp } from './features/Help';
 import { SponsoredCare } from './features/Sponsor';
 import { stateOf } from './lib/cancelling';
 import { dateOf } from './lib/passport';
@@ -20,7 +25,7 @@ import { Onboarding, SignIn } from './features/Onboarding';
 import { ThusoKit } from './features/Kit';
 import { ThusoSos } from './features/Sos';
 import { LabOrderDetail, PrescriptionDetail } from './features/Orders';
-import { AccessHistory, ConsentCentre } from './features/Consent';
+import { AccessHistory, ConsentCentre, InformationOfficer } from './features/Consent';
 import { InviteGuardian, sampleInvitations, type Invitation } from './features/Guardian';
 import { Access } from './features/Access';
 import { LocaleContext, locales, clinicalRule, signLanguage, missingSets, type LocaleCode } from './lib/i18n';
@@ -28,6 +33,7 @@ import { useSaslRequirement } from './lib/interpreting';
 import { currentPerson, endSession, probe } from './lib/auth';
 import { modules, money, services, type Service } from './lib/catalog';
 import { coverage, zones } from './lib/geography';
+import { scrollToTop } from './lib/scroll';
 
 /* MyThuso for patients and families. One audience, one bundle.
  *
@@ -76,8 +82,8 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
  const [onboarding, setOnboarding] = useState(false);
  const [signedIn, setSignedIn] = useState(true);
  const [live, setLive] = useState(false);
- const navigate = (p: string) => { if (p !== 'Book a nurse') setForPerson(null); setPage(p); window.scrollTo({ top: 0, behavior: 'instant' }); };
- const bookFor = (person: string) => { setForPerson(person); setModal(null); setViewing(null); setPage('Book a nurse'); window.scrollTo({ top: 0, behavior: 'instant' }); };
+ const navigate = (p: string) => { if (p !== 'Book a nurse') setForPerson(null); setPage(p); scrollToTop(); };
+ const bookFor = (person: string) => { setForPerson(person); setModal(null); setViewing(null); setPage('Book a nurse'); scrollToTop(); };
  const track = (id: string) => { setViewing(null); setTracking(id); navigate('Arrival'); };
  /* The demo household, in one place. It was built inline inside the dialog props, which meant the
     only screen that could ask who somebody is to the account holder was a dialog. */
@@ -116,12 +122,16 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
  return <>
   <PatientShell page={page} navigate={navigate} open={setModal} locale={locale} location={location} visitCount={rows.filter(row => row.group === 'upcoming').length}>
    {page === 'Overview' ? <Dashboard navigate={navigate} book={setBooking} open={setModal} query={query} setQuery={setQuery} visits={booked.map(row => row.visit)} location={location} viewVisit={() => setViewing(booked[0]?.id ?? null)}/>
-    : page === 'Book a nurse' ? <Services book={setBooking} open={setModal} query={query} forPerson={forPerson} clearPerson={() => setForPerson(null)}/>
+    : page === 'Book a nurse' ? <Services book={setBooking} open={setModal} navigate={navigate} query={query} forPerson={forPerson} clearPerson={() => setForPerson(null)}/>
      : page === 'My visits' ? <Visits rows={rows} open={setModal} book={() => navigate('Book a nurse')} manage={manage} view={setViewing} track={track}/>
       : page === 'Health Passport' ? <Passport open={setModal} navigate={navigate}/>
        : page === 'Health trends' ? <HealthTrends navigate={navigate}/>
        : page === 'What readings mean' ? <ReadingsExplained navigate={navigate} open={setModal}/>
+       : page === 'Care timeline' ? <CareTimeline navigate={navigate} open={setModal}/>
+       : page === 'Your care team' ? <CareTeam navigate={navigate} open={setModal}/>
+       : page === 'What happens to a prescription' ? <PrescriptionJourney navigate={navigate} open={setModal}/>
        : page === 'Arrival' ? <Arrival row={rows.find(row => row.id === tracking) ?? rows.find(row => row.group === 'upcoming')} navigate={navigate} view={setViewing}/>
+       : page === 'Help & support' ? <GettingHelp navigate={navigate} open={setModal}/>
        : page === 'Care you sponsor' ? <SponsoredCare person={people[1]} relation={relationOf(people[1], people)} navigate={navigate} open={setModal}/>
        : page === 'My family' ? <Family members={members} invitations={invitations} onRevoke={id => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i))} open={setModal} navigate={navigate}/>
         : page === 'Care plans' ? <Plans open={setModal}/>
@@ -173,9 +183,11 @@ function modalTitle(modal: string) {
  if (integrationIn(modal)) return `${integrationIn(modal)} access`;
  if (modal === 'Thuso SOS' || modal === 'Emergency & urgent care') return 'Thuso SOS';
  if (modal === 'Your consents') return 'Your consents';
+ if (modal === 'Contact privacy team') return 'Your privacy contact';
  if (modal === 'Access history') return 'Who opened your record';
  if (modal === 'Thuso Family') return 'Household record';
  if (modal === 'Thuso Pass') return 'Health summary';
+ if (modal === 'Visit summary') return 'What the nurse found';
  if (modal === 'Switch workspace') return 'MyThuso for clinicians';
  return modal;
 }
@@ -211,11 +223,24 @@ function modalBody(p: BodyProps) {
     exactly the question the household record answers — what may each of us see of the others — and
     Thuso Pass is the product name for the summary, so both now open from where a patient would
     look for them. */
+/* Two of the passport's three documents used to end at "The production record will show the issuing
+    clinician…" — a sentence about a document, offered in place of one. The visit summary is a screen
+    the app already had and had no door to from here; the certificate is the one document in the
+    passport with no record type behind it anywhere, so its screen says that rather than drawing a
+    certificate nobody issued. */
+ if (modal === 'Visit summary') { const past = p.rows.find(row => row.group === 'past'); return past
+  ? <PastVisit row={{ id: past.id, service: past.visit.service, person: past.visit.person, address: past.visit.address, date: past.visit.date, start: past.visit.start, payment: past.visit.payment }}
+     dayOffset={past.dayOffset} rebook={() => p.bookFor(past.visit.person)} navigate={p.navigate}/>
+  : <p className="muted">There is no completed visit on this account yet. A visit summary is written after a nurse has been, so this document appears once one has.</p>; }
+ if (modal === 'Medical certificate') return <MedicalCertificate navigate={p.navigate}/>;
  if (modal === 'Thuso Family') return <HouseholdRecord/>;
  if (modal === 'Thuso Pass') return <HealthSummary/>;
  if (modal === 'Your consents') return <ConsentCentre/>;
  /* Replaces the two-line sample that used to live in Detail: a real access log, refusals included. */
  if (modal === 'Access history') return <AccessHistory/>;
+ /* The last row on the privacy screen used to open the catch-all: the sign-in capability's notice,
+    one sentence about launch, and a button offering the product roadmap. */
+ if (modal === 'Contact privacy team') return <InformationOfficer open={p.reopen} navigate={p.navigate}/>;
  /* This used to be a menu that switched the patient's shell into a nurse's, a doctor's or the
     Control Tower's. A role is not something a patient account can put on; it belongs to a different
     application at a different address, which is what this says instead. */
@@ -227,7 +252,6 @@ function modalBody(p: BodyProps) {
  /* The care areas are the coverage contract's own zones. Three of the five were typed here, which is
     how a picker comes to offer a suburb the map cannot draw and the dispatch board does not cover. */
  if (modal === 'Your location') return <form className="form-stack" onSubmit={e => { e.preventDefault(); p.close(); }}><p className="muted">Choose a demo care area. No GPS access is requested.</p><label>Care area<select value={p.location} onChange={e => p.setLocation(e.target.value)}>{zones.map(z => <option key={z.id}>{z.name}, {coverage.city}</option>)}</select></label><p className="helper">{coverage.sentence}</p><button className="primary">Save location<ArrowRight size={16}/></button></form>;
- if (modal === 'How can we help?') return <div className="form-stack"><p className="muted">Explore services or get help with your care journey.</p><form className="search-box" onSubmit={e => { e.preventDefault(); p.navigate('Book a nurse'); }}><Search size={18}/><input aria-label="Search for care" placeholder="What care are you looking for?" value={p.query} onChange={e => p.setQuery(e.target.value)}/><button className="icon-button" aria-label="Search"><ArrowRight size={18}/></button></form><div className="empty-note">Live support and emergency dispatch are not connected in this design preview.</div></div>;
  return <Detail title={modal} close={p.close} navigate={p.navigate} signOut={p.signOut}/>;
 }
 /* Eleven written languages and one that is not written. Two things this dialog does that a language
@@ -279,7 +303,14 @@ function Detail({ title, close, navigate, signOut }: { title: string; close: () 
  /* One notice, from the contract, and chosen by what this dialog is actually about — a request that
     reaches nobody, or an account nothing signs you into. The pill that used to sit here said the
     same three words on all of them, including the ones whose content is real. */
- return <div className="form-stack"><NotConnected of={isRequest ? 'messaging' : 'accounts'} tone="inline"/>{title === 'Your profile' ? <><div className="profile-summary"><span className="avatar">LM</span><div><h3>Lerato Molefe</h3><p>Fictional patient · Personal account</p></div></div><button className="secondary full" onClick={() => navigate('Privacy & settings')}>Manage privacy & preferences<ArrowRight size={17}/></button><button className="secondary full sign-out" onClick={signOut}><LogOut size={16}/>Log out</button></> : isRequest ? <><p>{title.includes('deletion') ? 'Request account deletion. Some clinical records may need to be retained under an applicable retention schedule.' : 'Ask for inaccurate personal information to be corrected.'}</p><label>Reason (fictional information only)<textarea aria-label="Request reason" placeholder="Describe your request…" maxLength={500}/></label><button className="primary" onClick={() => setDone(true)} disabled={done}>{done ? 'Request recorded in this tab' : 'Preview request'}</button><p className="helper" role="status">{done ? 'Nothing has been submitted. This previews the acknowledgement state.' : 'Nothing is submitted from here.'}</p></> : <><h3>{detailCopy(title)[0]}</h3><p className="muted">{detailCopy(title)[1]}</p>{/* Even the roadmap has somewhere to go: the module list it came from. */}<div className="button-row"><button className="secondary" onClick={close}>Close</button><button className="primary" onClick={() => navigate('Explore MyThuso')}>See the whole roadmap<ArrowRight size={16}/></button></div></>}</div>
+ /* Three different things arrive here and only two of them are about a capability. A profile is
+    about sign-in and a POPIA request is about reaching somebody; a module in the plan is about
+    neither, and it was carrying "Sign-in is not switched on yet" on all sixteen roadmap cards —
+    the wrong sentence, on the screens where the right one is the paragraph underneath. A notice
+    that names a capability the screen does not depend on is worse than no notice: it is the honesty
+    machinery pointing at the wrong thing. */
+ const isRoadmap = !isRequest && title !== 'Your profile';
+ return <div className="form-stack">{isRoadmap ? null : <NotConnected of={isRequest ? 'messaging' : 'accounts'} tone="inline"/>}{title === 'Your profile' ? <><div className="profile-summary"><span className="avatar">LM</span><div><h3>Lerato Molefe</h3><p>Fictional patient · Personal account</p></div></div><button className="secondary full" onClick={() => navigate('Privacy & settings')}>Manage privacy & preferences<ArrowRight size={17}/></button><button className="secondary full sign-out" onClick={signOut}><LogOut size={16}/>Log out</button></> : isRequest ? <><p>{title.includes('deletion') ? 'Request account deletion. Some clinical records may need to be retained under an applicable retention schedule.' : 'Ask for inaccurate personal information to be corrected.'}</p><label>Reason (fictional information only)<textarea aria-label="Request reason" placeholder="Describe your request…" maxLength={500}/></label><button className="primary" onClick={() => setDone(true)} disabled={done}>{done ? 'Request recorded in this tab' : 'Preview request'}</button><p className="helper" role="status">{done ? 'Nothing has been submitted. This previews the acknowledgement state.' : 'Nothing is submitted from here.'}</p></> : <><h3>{detailCopy(title)[0]}</h3><p className="muted">{detailCopy(title)[1]}</p>{/* Even the roadmap has somewhere to go: the module list it came from. */}<div className="button-row"><button className="secondary" onClick={close}>Close</button><button className="primary" onClick={() => navigate('Explore MyThuso')}>See the whole roadmap<ArrowRight size={16}/></button></div></>}</div>
 }
 /* The last dialog in the patient app, and it used to be pressed twenty-eight times: every roadmap
    card, every care plan, every family member, the wallet's two actions and the visit controls all
@@ -294,7 +325,10 @@ function detailCopy(t: string): [string, string] {
  if (t === 'Contact privacy team') return ['Your privacy contact', 'The Information Officer’s verified contact details and request tracking will be configured before launch.'];
  if (t.includes('summary') || t.includes('certificate')) return ['Your care document', 'The production record will show the issuing clinician, date, review status and a secure download. This preview contains no real document.'];
  const module = modules.find(([name]) => name === t);
- if (module) return [`${module[0]} · ${module[2]}`, `${module[1]} It is a module in the plan rather than a screen you can open today, and it arrives in ${module[2].toLowerCase()}.`];
+ /* The catalogue's descriptions do not end in a full stop — they are card subtitles — so the
+    sentence after one has to supply it. "Apple Health and Health Connect It is a module" was on
+    all sixteen. */
+ if (module) return [`${module[0]} · ${module[2]}`, `${module[1]}. It is a module in the plan rather than a screen you can open today, and it arrives in ${module[2].toLowerCase()}.`];
  /* "Elderly care · Phase 3" — the planned services carry their phase in the title they are opened
     with, so the service is found by the half in front of the separator. */
  const planned = services.find(s => t.startsWith(`${s.name} ·`));

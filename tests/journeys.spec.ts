@@ -53,7 +53,13 @@ async function goPatient(page: Page, name: string) {
   const sidebar = page.locator('.sidebar');
   if (await sidebar.isVisible()) {
     const row = sidebar.locator('nav[aria-label="Main navigation"] button, button.settings-link').filter({ hasText: name });
-    await row.first().click();
+    if (await row.count()) { await row.first().click(); return; }
+    /* Help & support is a destination without a navigation row of its own: on a wide screen it is
+       the sidebar's help card and the footer's help link, and on a phone it is a row in More. It is
+       held here all the same, because the control that used to reach it opened an unrelated booking
+       — the one blocking row this audit had — and a screen reached only from chrome is exactly the
+       kind that quietly stops existing. */
+    await page.locator('.app-footer button').filter({ hasText: 'Help' }).click();
     return;
   }
   const short = patientTabLabel[name];
@@ -80,7 +86,8 @@ async function goAdmin(page: Page, name: string) {
 }
 
 const patientSections = ['Overview', 'Book a nurse', 'My visits', 'Health Passport', 'My family',
-                         'Care plans', 'Thuso Wallet', 'Explore MyThuso', 'Language & access', 'Privacy & settings'];
+                         'Care plans', 'Thuso Wallet', 'Explore MyThuso', 'Language & access', 'Privacy & settings',
+                         'Help & support'];
 const staffSections: Record<string, string[]> = {
   Nurse: ['Schedule', 'Assessments', 'Thuso Kit', 'Earnings & payouts', 'Vetting'],
   Doctor: ['Review queue', 'Teleconsultation', 'Patient context', 'Consultation records', 'Protocols'],

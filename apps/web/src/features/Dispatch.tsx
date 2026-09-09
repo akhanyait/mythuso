@@ -165,15 +165,22 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
      <div className="review-line"><span>Area</span><strong><MapPin size={14}/> {job.area}</strong></div>
      <div className="review-line"><span>Window</span><strong><Clock3 size={14}/> {job.window}</strong></div>
      <div className="review-line"><span>Priority</span><strong className={job.priority === 'Urgent' ? 'flagged' : ''}>{job.priority}</strong></div>
-     <div className="review-line"><span>Status</span><strong>{assigned[job.id] ? `Assigned to ${assigned[job.id]}` : 'Unassigned'}</strong></div>
+     <div className="review-line"><span>Status</span><strong>{assigned[job.id] ? <><Check size={14}/> Assigned to {assigned[job.id]}</> : 'Unassigned'}</strong></div>
+     {assigned[job.id] && <p className="helper">Assigning somebody else moves the visit rather than adding a second nurse to it, and <em>Unassign</em> puts it back on the board with nothing recorded against her.</p>}
      <h3 className="space-top">Nearest available nurses</h3>
      <p className="helper" role="status">{dispatchable} cleared for dispatch{refused ? `, ${refused} refused by vetting` : ''}{estimating ? `, ${estimating} with no arrival estimate` : ''}.</p>
      {candidates.map(({ nurse: n, decision, eta }) => <div className="record-row static" key={n.id}>
       <span className={`status-dot ${n.status === 'Available' && decision.allowed ? '' : 'offline'}`}/>
       <span><strong>{n.name}</strong><small>{n.area} · {n.status} · {arrivalLine(eta)}</small><small>{basisLine(eta)}</small><small>{n.skills.join(' · ')}</small>
        {!decision.allowed && <small className="flagged">{decision.reason}</small>}</span>
+      {/* The assigned nurse's control says what pressing it does. It was a button reading "Assigned"
+          that un-assigned her — a state label with an action hidden inside it, which is why the
+          audit found no way back from an assignment: there was one, and nothing on the screen said
+          so. The state is now the tick beside the name and the button is the verb. */}
       {decision.allowed
-       ? <button className={assigned[job.id] === n.name ? 'secondary' : 'primary'} disabled={n.status !== 'Available'} onClick={() => send(job.id, n.name)}>{assigned[job.id] === n.name ? <><Check size={15}/>Assigned</> : 'Assign'}</button>
+       ? assigned[job.id] === n.name
+        ? <button className="secondary" aria-label={`Unassign ${n.name} from ${job.id}`} onClick={() => send(job.id, n.name)}><Undo2 size={15}/>Unassign</button>
+        : <button className="primary" disabled={n.status !== 'Available'} onClick={() => send(job.id, n.name)}>{assigned[job.id] ? 'Assign instead' : 'Assign'}</button>
        : <button className="secondary" disabled aria-label={`Cannot be assigned — ${n.name}. ${decision.reason}`}>Cannot be assigned</button>}
      </div>)}
      <div className="privacy-note"><ShieldCheck size={19}/>Vetting is asked before a name is offered, not after. The Control Tower has no override for a lapsed clearance — there is no button here that would let one be granted.</div>

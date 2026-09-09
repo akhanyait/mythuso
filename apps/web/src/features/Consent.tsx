@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Ban, Check, Clock, Eye, Fingerprint, ShieldAlert, ShieldCheck, X } from 'lucide-react';
-import { Pill } from '../components/UI';
+import { ArrowRight, Ban, Check, ChevronRight, Clock, Eye, FileCheck, Fingerprint, History, PenLine, ShieldAlert, ShieldCheck, Trash2, X } from 'lucide-react';
+import { Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { StateBlock, useOffline, type LoadState } from '../components/States';
 import {
@@ -237,5 +237,62 @@ export function AccessHistory() {
   </div>
   <p className="helper">{rules.theAccessLogIsNotTheSignInLog} {accessLog.retention}</p>
   </StateBlock>
+ </div>;
+}
+
+/* ---- The Information Officer ------------------------------------------------------------------
+ *
+ * The last row on Privacy & settings opened a dialog with the wrong capability notice on it — the
+ * one about sign-in — a single sentence saying contact details "will be configured before launch",
+ * and a button offering the product roadmap, which is not what somebody looking for a privacy
+ * contact came for. docs/FLOW-COMPLETENESS.md marked it *rough* and said it needs a person rather
+ * than a screen. Half of that is right and stays right: MyThuso cannot name an Information Officer
+ * it has not appointed, and nothing here invents one.
+ *
+ * The other half is not. Almost everything a person would contact an Information Officer about,
+ * this app already does — the access log, a correction, a deletion, a consent to withdraw — and the
+ * row that should have been the door to all four was the one that led nowhere. So the screen is
+ * those four doors, the sentence the consent contract already carries about who decides these
+ * questions, and then the gap, stated as a gap. */
+export function InformationOfficer({ open, navigate }: { open: (m: string) => void; navigate: (p: string) => void }) {
+ return <div className="form-stack">
+  <NotConnected of="messaging"/>
+  <p className="muted">Under POPIA every responsible party has an Information Officer, and a request about your own personal information is made to them. MyThuso has not appointed one, and this screen does not pretend otherwise.</p>
+
+  <SectionTitle title="What you would ask them for"/>
+  <div className="panel">
+   {/* Four of them are screens in this app already. The row that should have opened them was the
+       one row on the privacy screen that opened nothing. */}
+   <button className="record-row" onClick={() => open('Access history')}>
+    <span className="service-icon"><History size={20}/></span>
+    <span><strong>Who has opened my record</strong><small>Every access, the lawful basis for it, and the ones that were refused.</small></span>
+    <ChevronRight size={17}/></button>
+   <button className="record-row" onClick={() => open('Request a correction')}>
+    <span className="service-icon"><PenLine size={20}/></span>
+    <span><strong>Correct something that is wrong about me</strong><small>Section 24 of POPIA. You ask; the responsible party has to answer.</small></span>
+    <ChevronRight size={17}/></button>
+   <button className="record-row" onClick={() => open('Request account deletion')}>
+    <span className="service-icon"><Trash2 size={20}/></span>
+    <span><strong>Delete what you hold about me</strong><small>And be told what a retention schedule keeps anyway, and why.</small></span>
+    <ChevronRight size={17}/></button>
+   <button className="record-row" onClick={() => open('Your consents')}>
+    <span className="service-icon"><FileCheck size={20}/></span>
+    <span><strong>Withdraw a consent I gave</strong><small>Each purpose, the wording you agreed to, and what withdrawing does and does not stop.</small></span>
+    <ChevronRight size={17}/></button>
+  </div>
+
+  {/* Not the consent contract's own `notAdvice` sentence, though it says the same thing: that one
+      ends "the sections named below are pointers", and "below" means the rest of the JSON file. A
+      sentence quoted into a place where one of its words stops being true is a sentence that has
+      been changed. This is the screen's own, and it draws the same line. */}
+  <div className="privacy-note"><ShieldCheck size={19}/>Nothing on this screen is legal advice and MyThuso does not interpret POPIA on your behalf. Which lawful basis and which authorisation apply to a purpose is a determination for an Information Officer and South African counsel — which is precisely the person this product has not appointed.</div>
+
+  <SectionTitle title="What is missing, and it is a person"/>
+  <div className="panel"><dl className="stated">
+   <div><dt>A name and verified contact details</dt><dd>An Information Officer is registered with the Information Regulator by a named human being who takes responsibility for these answers. MyThuso has not appointed one, so there is no name to print here and no address to write to.</dd></div>
+   <div><dt>Request tracking</dt><dd>A request has to be logged, acknowledged, answered within a period and closed. None of that exists yet: the two request screens above record an acknowledgement in this tab and nothing leaves it.</dd></div>
+   <div><dt>Which is why the Regulator is the other route</dt><dd>A complaint about a responsible party is not made only to that party. The Information Regulator of South Africa takes complaints directly, and this screen naming its own contact would not change that.</dd></div>
+  </dl></div>
+  <button className="secondary full" onClick={() => navigate('Privacy & settings')}>Back to your privacy settings<ArrowRight size={17}/></button>
  </div>;
 }

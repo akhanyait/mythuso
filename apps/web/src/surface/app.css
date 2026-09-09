@@ -17,7 +17,10 @@
 .avatar.blue{background:var(--info-soft);color:var(--info)}
 .avatar svg{width:100%;height:100%}
 .record-row+.record-row{border-top:1px solid var(--line)}
-.record-row>span:not(.service-icon):not(.pill):not(.status-dot){flex:1;min-width:0}
+/* The text column takes the rest of the row. An avatar is a span too, and a monogram given `flex:1`
+   stretches to whatever is left — five hundred pixels of peach where two initials should be — so it
+   is excluded by kind rather than by each screen fighting the rule with a longer selector. */
+.record-row>span:not(.service-icon):not(.pill):not(.status-dot):not(.avatar){flex:1;min-width:0}
 .record-row strong{display:block;color:var(--ink);font-size:14px;font-weight:600}
 .record-row small{display:block;color:var(--body);font-size:13px;margin-top:4px;line-height:1.5}
 .record-row.static{cursor:default}

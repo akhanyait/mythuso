@@ -3,6 +3,7 @@ import { Activity, ArrowRight, CalendarDays, ClipboardPlus, FileText, FlaskConic
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
 import { CalibrationCaveat, CalibrationTag, ProvenanceTag } from '../components/Provenance';
 import { ClinicalChart } from '../components/Chart';
+import { ruleById } from '../lib/dispensing';
 import { EmptyState } from '../components/States';
 import { NotConnected } from '../components/NotConnected';
 import { can, roleById, subjectStatusLabels, summarise, type Decision, type VettingSubject } from '../lib/vetting';
@@ -105,7 +106,7 @@ export function PatientFile({ open }: { open: (s: string) => void }) {
 
   <p className="pf-holds">{tab.holds}</p>
    {!decision.allowed ? <Refusal title={`${tabName} — not open to this viewer`} decision={decision}/>
-    : tabName === 'Overview' ? <Overview patient={patient} viewer={viewer} notice={notice} setNotice={setNotice} go={move}/>
+    : tabName === 'Overview' ? <Overview patient={patient} viewer={viewer} notice={notice} setNotice={setNotice} go={move} open={open}/>
      : tabName === 'Timeline' ? <Timeline patient={patient} viewer={viewer}/>
       : tabName === 'Consultations' ? <Consultations patient={patient} viewer={viewer}/>
        : tabName === 'Medication' ? <Medication patient={patient} viewer={viewer} open={open}/>
@@ -219,7 +220,11 @@ function WithheldNotice({ viewer }: { viewer: VettingSubject }) {
 /* ---- Overview ----------------------------------------------------------------------------
    Three cards, the latest observations, four bullets and the last few events. Highly visual on
    purpose: a wall of text is read by nobody standing in a doorway. */
-function Overview({ patient, viewer, notice, setNotice, go }: { patient: PatientRecord; viewer: VettingSubject; notice: string; setNotice: (s: string) => void; go: (t: string) => void }) {
+/* `open` is a prop and not a lucky closure. It was neither for one commit: the action row called a
+   bare `open(...)`, which resolved to window.open — the actions silently asked the browser for a
+   popup named after a screen, and nothing rendered. A shadowed global is the one kind of wrong
+   identifier TypeScript cannot warn about, and the only thing that catches it is opening the screen. */
+function Overview({ patient, viewer, notice, setNotice, go, open }: { patient: PatientRecord; viewer: VettingSubject; notice: string; setNotice: (s: string) => void; go: (t: string) => void; open: (m: string) => void }) {
  const clinical = can(viewer, 'view-clinical-record');
  /* The medicine card is reached the way a prescription is reached, not through the summary
     capability: a pharmacy holds neither the clinical record nor a reason to be told "no medicine
@@ -294,7 +299,11 @@ function Overview({ patient, viewer, notice, setNotice, go }: { patient: Patient
     const Icon = action.label === 'New consultation' ? Stethoscope : action.label === 'Prescription' ? ClipboardPlus : action.label === 'Referral' ? Send : action.label === 'Upload document' ? Upload : MapPin;
     return <li key={action.label}>
      {allowed.allowed
-      ? <button className="pf-action" onClick={() => setNotice(`${action.label} would open here for ${patient.name}.`)}><Icon size={20}/><strong>{action.label}</strong><small>{action.detail}</small></button>
+      /* The patient travels with the action. Routing "Prescription" on Thando Mokoena's file to
+         RX-0081 would have opened Lerato Molefe's medicines under Thando's name, which is a worse
+         defect than the stub it replaced — so every screen these open is told who the file is
+         about, and the two that cannot be about anybody else say so instead. */
+      ? <button className="pf-action" onClick={() => action.opens ? open(`${action.opens} · ${patient.name}`) : setNotice(`${action.label} has no screen in this preview. Nothing was opened and nothing was written to ${patient.name}'s file.`)}><Icon size={20}/><strong>{action.label}</strong><small>{action.detail}</small></button>
       : <div className="pf-action refused"><LockKeyhole size={20}/><strong>{action.label}</strong><small>{allowed.reason}</small></div>}
     </li>;
    })}
@@ -482,4 +491,51 @@ function Billing({ patient, viewer }: { patient: PatientRecord; viewer: VettingS
 function ProtectedLine({ viewer, what }: { viewer: VettingSubject; what: string }) {
  const vetted = can(viewer, 'view-protected-record');
  return <p className="helper pf-protected-line"><LockKeyhole size={14}/>A protected {what} appears on this page only where the patient released that entry to you by name. {vetted.allowed ? releaseRefusal(viewer.roleId) : vetted.reason}</p>;
+}
+
+/* ---- The two actions with no screen anywhere ----------------------------------------------------
+ *
+ * The file's action row asked the vetting module whether this viewer may take each action, and then
+ * wrote "New consultation would open here for Thando Mokoena" into a live region — a sentence in
+ * the subjunctive under a button somebody had just pressed. Three of the five open a real screen
+ * now. These are the other two, and they are here rather than in the router because both are about
+ * *this* file: a document goes into somebody's record and a prescription comes out of somebody's
+ * review, and neither question has a general answer.
+ *
+ * Book a visit is the fifth and needs nothing: a doctor does not hold dispatch-nurses, so it draws
+ * as the refusal rather than as a button. */
+
+export function UploadDocument({ patient, onClose }: { patient: string; onClose: () => void }) {
+ const evidence = recordById('vetting-evidence')!;
+ return <div className="form-stack">
+  <NotConnected of="clinical-records"/>
+  <p className="muted">Adding a letter, a report or a signed consent form to {patient}’s file is writing into a health record. It is the same act as writing a note, held to the same capability, and what makes it safe is not the upload — it is what is recorded around it.</p>
+  <div className="panel"><dl className="stated">
+   <div><dt>What would be recorded with it</dt><dd>Who uploaded it, under which registration, at what time, and which record type it was filed as. A document in a file that nobody’s name is on is a document nobody can be asked about.</dd></div>
+   {/* The platform already seals one class of uploaded document this way, and the record contract
+       says how. A second scheme for clinical documents would be a second thing to get wrong. */}
+   <div><dt>How it would be held</dt><dd>{evidence.summary}</dd></div>
+   <div><dt>Who may take it out again</dt><dd>Nobody. A clinical document is superseded rather than deleted, and the version that was acted on stays readable — which is the only way to answer later what a clinician was looking at.</dd></div>
+   <div><dt>What happens here</dt><dd>Nothing. There is no file picker on this screen, no storage behind it and nothing has been added to {patient}’s record. This preview holds no documents of any kind.</dd></div>
+  </dl></div>
+  <button className="primary full" onClick={onClose}>Close<ArrowRight size={16}/></button>
+ </div>;
+}
+
+/* A prescription is not written from a file. It is what a signed clinical decision produces — the
+   sentence is Clinical.tsx's own — so this action says where prescribing actually happens rather
+   than opening somebody else's prescription, which is what routing it to RX-0081 would have done.
+   Opening the wrong patient's medicine list is a worse outcome than a screen that says no. */
+export function PrescribingRoute({ patient, onClose }: { patient: string; onClose: () => void }) {
+ return <div className="form-stack">
+  <NotConnected of="clinical-records"/>
+  <p className="muted">There is no prescription for {patient} on this file, and there is no screen here that writes one.</p>
+  <div className="panel"><dl className="stated">
+   <div><dt>A prescription comes out of a decision</dt><dd>It is produced by a signed clinical review: the outcome is chosen, the rationale is written, and the signature under a current HPCSA registration is what makes the result a prescription rather than a list of medicines.</dd></div>
+   <div><dt>Which is why it is not here</dt><dd>A file is what you read before you decide. Issuing from it would mean prescribing without the review that justifies it being on the same screen as the signature.</dd></div>
+   <div><dt>And a repeat is not a renewal</dt><dd>{ruleById('ends-in-a-review').sentence}</dd></div>
+  </dl></div>
+  <p className="helper">The review queue is where a case is decided. This preview’s worked example is TH-2048.</p>
+  <button className="primary full" onClick={onClose}>Close<ArrowRight size={16}/></button>
+ </div>;
 }

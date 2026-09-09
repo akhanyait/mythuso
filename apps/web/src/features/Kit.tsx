@@ -4,7 +4,13 @@ import { EmptyNote, Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { CalibrationTag, ProvenanceLegend, ProvenanceTag } from '../components/Provenance';
 import { KitCapture, type CaptureField } from './KitCapture';
-import { observations } from './Clinical';
+/* Straight from the contract's own module, not through Clinical.tsx, which re-exports it.
+   Thuso Kit is one of the few screens both a patient and a nurse open, so an import here is an
+   import into the patient's bundle: that one convenience edge pulled the doctor's review, the
+   visit assessment, the consultation composer and the offline queue onto a handset whose owner
+   will never see any of them. Where a module is shared across audiences, it takes the shortest
+   path to a value it needs. */
+import { observations } from '../lib/observations';
 import {
  ageText, calibrationOf, captureStateById, clockTime, conflictById, deviceById, instrumentBySerial,
  kit, nextCaptureId, receive, rules, skewText,

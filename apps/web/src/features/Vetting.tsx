@@ -11,7 +11,7 @@ import {
  inMonths, isoDate, needsSecondReviewer, recordEvent, recordFor, roleById, roles, subjectStatusLabels, summarise, today, validateCredential,
  type CheckRecord, type CheckState, type SubjectStatus, type VettingCheck, type VettingEvent, type VettingEventKind, type VettingSubject
 } from '../lib/vetting';
-import { seededLog, seededSubjects } from '../lib/vetting-fixtures';
+import { seededLog, seededSubjects, subjectById } from '../lib/vetting-fixtures';
 
 /* Vetting is the gate the whole marketplace rests on, so this is a real queue with real refusals
    rather than a list of names. Every decision recomputes what the party may do, and is written to a
@@ -403,13 +403,23 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
  const anchor = role ? anchorFor(role.id) : undefined;
  const authority = anchor ? authorityById(anchor.authority) : undefined;
  const result = anchor ? validateCredential(anchor.authority, credential) : { ok: false };
+ /* The fictional applicant whose checks this preview shows the state of. The nurse the workspace is
+    signed in as, so an applicant reading it recognises the record as hers rather than somebody
+    else's; any other role falls back to the first party on that role's register. */
+ const standingSubject = chosen === 'nurse' ? 'N-205' : seededSubjects.find(s => s.roleId === chosen)?.id ?? 'N-205';
  const back = () => step > 0 ? setStep(step - 1) : onClose();
  const next = () => setStep(step + 1);
+ /* Submitting used to end here, on one sentence and a Close button, and coming back to this screen
+    started the five steps again from the beginning — so an applicant had no way to find out where
+    anything stood. The honesty stays exactly as it was; what follows it is the state of the same
+    fictional applicant's checks, which the Control Tower could already see and she could not. */
  if (sent) return <div className="form-stack">
   <div className="success-icon"><BadgeCheck size={30}/></div>
   <h3>Nothing was submitted.</h3>
   <p className="muted">The shape of the real thing: {role?.checks.length} checks, each with an issuing authority, an evidence requirement and a renewal date, decided by a named reviewer and — where the risk is high — a second one.</p>
-  <button className="primary full" onClick={onClose}>Close<ArrowRight size={16}/></button>
+  <ApplicationStanding subjectId={standingSubject}/>
+  <div className="button-row"><button className="secondary" onClick={() => { setSent(false); setStep(0); }}><ArrowLeft size={16}/>Walk it again</button>
+   <button className="primary" onClick={onClose}>Close<ArrowRight size={16}/></button></div>
  </div>;
  return <div className="form-stack">
   {steps.length > 1 && <StepHead step={Math.min(step, steps.length - 1) + 1} total={steps.length} label={stepLabels[now]}/>}
@@ -486,4 +496,49 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
     <button className="primary" disabled={!attested} onClick={() => setSent(true)}><Check size={16}/>Submit application</button></div>
   </> : null}
  </div>;
+}
+
+/* ---- Where an application stands ---------------------------------------------------------------
+ *
+ * The five-step application ended at "Nothing was submitted" and stopped, and the audit's row was
+ * that an applicant has nowhere to go back to: only the Control Tower and the back office could see
+ * the state of a set of checks, and the person the checks are about could not. That asymmetry is
+ * the ordinary shape of vetting and it is worth refusing on purpose — somebody waiting to be
+ * cleared for work is the party with the most at stake and the least information.
+ *
+ * Nothing new is invented for it. The state comes from the same lib/vetting summary the queue reads,
+ * for the same fictional applicant the workspace is signed in as, so the applicant's view and the
+ * reviewer's view cannot say different things about one check. What is added is the half a reviewer
+ * does not need and an applicant does: who decides each one, and what it stops until it passes. */
+export function ApplicationStanding({ subjectId = 'N-205', onClose }: { subjectId?: string; onClose?: () => void }) {
+ const subject = subjectById(subjectId)!;
+ const role = roleById(subject.roleId)!;
+ const summary = summarise(subject);
+ return <>
+  <SectionTitle title="Where this application stands"/>
+  <NotConnected of="credential-verification"/>
+  <div className="panel">
+   <div className="review-line"><span>Applicant</span><strong>{subject.name} · {subject.reference}</strong></div>
+   <div className="review-line"><span>State</span><strong className={summary.cleared ? '' : 'flagged'}>{subjectStatusLabels[summary.status]}</strong></div>
+   <div className="review-line"><span>Checks passing</span><strong>{summary.passed} of {summary.total}</strong></div>
+   {summary.nextDue && <div className="review-line"><span>Next renewal</span><strong>{summary.nextDue.check.name} · {dueWording(summary.nextDue.days)}</strong></div>}
+  </div>
+
+  {/* Every check, in the order the role lists them, with the three things an applicant is owed
+      about each: where it stands, who issues it, and who may move it. */}
+  <div className="panel">{summary.states.map(({ check, state }) => <div className="record-row static" key={check.id}>
+   <span className={`service-icon ${stateTone(state)}`}><ShieldCheck size={20}/></span>
+   <span><strong>{check.name}</strong>
+    <small>{checkStateLabels[state]} · issued by {authorityById(check.authority)?.name ?? check.authority}</small>
+    <small>{check.evidence}</small>
+    {check.risk === 'high' && <small>Decided by two reviewers, not one. A high-risk check is the kind where one person’s judgement is not enough.</small>}
+   </span>
+  </div>)}</div>
+
+  {/* And the refusal, which is the reason this screen is read-only. An applicant who could move a
+      check is an applicant vetting themselves. */}
+  <div className="privacy-note alert"><ShieldX size={19}/>Nothing on this screen can be changed from here, and no button on it asks a reviewer to hurry. A check moves when a named reviewer decides it — and where the risk is high, when a second one agrees — which is the whole of what makes it worth anything to the patient whose door you will knock on.</div>
+  <div className="privacy-note"><ShieldCheck size={19}/>{role.grants[0].refusal}</div>
+  {onClose && <button className="secondary full" onClick={onClose}>Close<ArrowRight size={16}/></button>}
+ </>;
 }

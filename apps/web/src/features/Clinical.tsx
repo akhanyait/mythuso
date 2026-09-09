@@ -386,8 +386,12 @@ export function DoctorReview({ reference = 'TH-2048', open, onClose }: { referen
  * Nothing is sent. There is no directory of facilities to send it to, no secure channel to send it
  * over and no consent captured for it, and the screen says all three rather than one of them. */
 const referralUnits = ['Emergency department', 'Hypertension clinic', 'Cardiology outpatients', 'Antenatal clinic', 'Wound care clinic'];
-function ReferralLetter({ reference, doctor, registration, reason, onBack, onClose }:
- { reference: string; doctor: string; registration: string; reason: string; onBack: () => void; onClose: () => void }) {
+/* Exported because the patient file's Referral action produces this same letter for whoever the
+   file is open on. One referral screen, two doors: a doctor who signs "refer to a facility" on a
+   review and a doctor who presses Referral on a file are writing the same document, and two copies
+   of it would drift the moment somebody edited one. */
+export function ReferralLetter({ reference, patient = 'Lerato Molefe', doctor, registration, reason, onBack, onClose }:
+ { reference: string; patient?: string; doctor: string; registration: string; reason: string; onBack?: () => void; onClose: () => void }) {
  const [unit, setUnit] = useState('');
  const [urgency, setUrgency] = useState('Within 24 hours');
  const [note, setNote] = useState(reason);
@@ -398,11 +402,11 @@ function ReferralLetter({ reference, doctor, registration, reason, onBack, onClo
   <p className="muted">It is attributed to {doctor} · {registration}, it names the readings behind it, and it asks for {urgency.toLowerCase()}. It has not left this screen.</p>
   <div className="privacy-note"><ShieldCheck size={19}/>Nothing was transmitted. There is no facility directory to address it to, no secure channel to carry it and no consent recorded for sending clinical information to a third party — and a referral needs all three before it is anything but a document.</div>
   <div className="privacy-note"><UserCheck size={19}/>What the receiving clinician would get is this letter. The patient’s Health Passport does not travel with it: a referral is not a reason to hand over a record.</div>
-  <button className="secondary full" onClick={onBack}><ArrowLeft size={16}/>Back to the decision</button>
-  <button className="primary full" onClick={onClose}>Back to the queue<ArrowRight size={16}/></button>
+  {onBack && <button className="secondary full" onClick={onBack}><ArrowLeft size={16}/>Back to the decision</button>}
+  <button className="primary full" onClick={onClose}>Close<ArrowRight size={16}/></button>
  </div>;
  return <div className="form-stack">
-  <h3>Referral · {reference} · Lerato Molefe</h3>
+  <h3>Referral · {reference} · {patient}</h3>
   <NotConnected of="clinical-records"/>
   <label>Refer to<select value={unit} onChange={e => setUnit(e.target.value)}><option value="">Choose a unit…</option>{referralUnits.map(u => <option key={u}>{u}</option>)}</select></label>
   <p className="helper">These are unit types, not named facilities. No hospital, practice or organisation is named anywhere in this preview.</p>
@@ -414,7 +418,7 @@ function ReferralLetter({ reference, doctor, registration, reason, onBack, onClo
    <div className="review-line"><span>Referred by</span><strong>{doctor} · {registration}</strong></div>
   </div>
   <div className="privacy-note"><CircleAlert size={19}/>A referral does not discharge the patient from MyThuso and it does not close the visit. Somebody here still has to find out whether she went.</div>
-  <div className="button-row"><button className="secondary" onClick={onBack}><ArrowLeft size={16}/>Back</button>
+  <div className="button-row"><button className="secondary" onClick={onBack ?? onClose}><ArrowLeft size={16}/>Back</button>
    <button className="primary" disabled={!unit || note.trim().length < 10} onClick={() => setWritten(true)}><Check size={16}/>Write the referral</button></div>
  </div>;
 }
@@ -540,8 +544,8 @@ function ReturnToNurse({ reference, doctor, registration, onBack, onClose }:
   <div className="review-line"><span>What you asked</span><strong>{question}</strong></div>
   <div className="privacy-note"><ShieldCheck size={19}/>Nothing was sent. Messaging is not connected, so the nurse has not been told, and a question nobody can deliver is a question the queue is still holding.</div>
   <div className="privacy-note"><UserCheck size={19}/>A returned case is not a rejected one. Nothing about it is recorded against the nurse, and it is not a finding on her record — she was the only person in the room, and asking her is what a review is for.</div>
-  <button className="secondary full" onClick={onBack}><ArrowLeft size={16}/>Back to the decision</button>
-  <button className="primary full" onClick={onClose}>Back to the queue<ArrowRight size={16}/></button>
+  {onBack && <button className="secondary full" onClick={onBack}><ArrowLeft size={16}/>Back to the decision</button>}
+  <button className="primary full" onClick={onClose}>Close<ArrowRight size={16}/></button>
  </div>;
  return <div className="form-stack">
   <h3>Return {reference} to {signingNurse.name}</h3>

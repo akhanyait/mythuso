@@ -4,24 +4,28 @@ import { Modal, SectionTitle } from '../components/UI';
 import { Metric, Metrics, NavRow } from '../surface/Surface';
 import '../surface/clinical.css';
 import { NotConnected } from '../components/NotConnected';
-import { NurseSchedule, ReviewQueue, roleExtras, sectionDoor, sectionWorkflow } from '../features/Pages';
+import { NurseSchedule, ReviewQueue, nurseDayCounts, roleExtras, sectionDoor, sectionWorkflow } from '../features/Workspaces';
+import { useVisitQueue } from '../features/VisitQueue';
+import type { Part } from '../lib/visit-queue';
 import { DispatchBoard, IncidentBoard, QualityBoard, controlTowerCounts } from '../features/Dispatch';
-import { FulfilmentQueue, partnerCounts } from '../features/Orders';
-import { ClinicalProtocols, ReferralPathway, VisitAssessment, DoctorReview } from '../features/Clinical';
+import { FulfilmentQueue, partnerCounts } from '../features/Fulfilment';
+import { ClinicalProtocols, ReferralLetter, ReferralPathway, VisitAssessment, DoctorReview } from '../features/Clinical';
+import { Academy, LocumShifts } from '../features/NurseTools';
 import { ThusoKit } from '../features/Kit';
 import { Earnings } from '../features/Earnings';
 import { Dispensing } from '../features/Dispensing';
 import { Programmes } from '../features/Programmes';
 import { Teleconsult } from '../features/Teleconsult';
-import { ConsultationRecord } from '../features/Consultation';
-import { PatientFile } from '../features/PatientFile';
+import { ConsultationComposer, ConsultationRecord } from '../features/Consultation';
+import { PatientFile, PrescribingRoute, UploadDocument } from '../features/PatientFile';
 import { LabOrderDetail, PrescriptionDetail } from '../features/Orders';
 import { IncidentDetail, NurseVetting } from '../features/Dispatch';
 import { VettingApplication, VettingQueue } from '../features/Vetting';
 import { t } from '../lib/i18n';
 import { probe, startSignIn, verifyCode, endSession } from '../lib/auth';
 import { EXPIRY_WARNING_DAYS, roleById, subjectStatusLabels, summarise } from '../lib/vetting';
-import { subjectById } from '../lib/vetting-fixtures';
+import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
+import { scrollToTop } from '../lib/scroll';
 
 /* MyThuso for clinicians — its own application, not the patient app with different navigation.
  *
@@ -198,7 +202,7 @@ function StaffWorkspace({ role, onSignOut }: { role: StaffRole; onSignOut: () =>
  const [section, setSection] = useState<string>(sections[0].id);
  const [modal, setModal] = useState<string | null>(null);
  const who = signedInAs(role);
- const go = (id: string) => { setSection(id); window.scrollTo({ top: 0, behavior: 'instant' }); };
+ const go = (id: string) => { setSection(id); scrollToTop(); };
  const home = () => go(sections[0].id);
  useEffect(() => { document.title = `${section} · ${role} · MyThuso`; }, [section, role]);
  const signOut = () => { void endSession(); onSignOut(); };
@@ -326,7 +330,7 @@ type Metric = readonly [string, string, string, string, boolean, string?];
    review queue are drawn from features/Pages.tsx, which does not export its rows. What is fixed is
    that they no longer contradict what is on the screen: three visits, three cases waiting, two of
    them flagged. */
-const metricsOf = (role: StaffRole): readonly Metric[] => {
+const metricsOf = (role: StaffRole, queue: Part[]): readonly Metric[] => {
  if (role === 'Partner') { const c = partnerCounts();
   return [['Open orders', String(c.open), '', c.pastWindow ? `${c.pastWindow} past its window` : 'All inside their windows', c.pastWindow > 0],
           ['Collections', String(c.collections), '', `Next ${c.nextCollection}`, false],
@@ -337,7 +341,10 @@ const metricsOf = (role: StaffRole): readonly Metric[] => {
           ['Open incidents', String(c.incidents), '', c.critical ? `${c.critical} critical` : `${c.high} high`, c.critical > 0]]; }
  if (role === 'Doctor')
   return [['Awaiting review', '3', '', 'Longest 3 h 20 m', false], ['Priority reviews', '2', '', 'Out of range', true], ['Reviewed today', '18', '', 'Median 4 m 10 s', false]];
- return [['Next visit', '09:00', '', 'Rosebank · 40 min', false], ['Today’s visits', '3', '', 'One to sign off', false], ['This week', '598', '', 'Pays Wednesday', false, 'R ']];
+ const day = nurseDayCounts(queue);
+ return [['Next visit', day.nextStart, '', day.nextWhere, false],
+         ['Today’s visits', String(day.visits), '', day.signed ? `${day.signed} signed, ${day.left} to go` : `${day.left} to sign off`, false],
+         ['This week', '598', '', 'Pays Wednesday', false, 'R ']];
 };
 /* Three columns rather than one bold string with two middle dots in it. A reference, what the case
    is, and what state it is in are three different questions, and a reader scanning a queue answers
@@ -349,6 +356,9 @@ const BOARDS = ['Schedule', 'Review queue', 'Dispatch', 'Incidents', 'Orders', '
 const HEADS_ITSELF = [...BOARDS, 'Protocols', 'Quality', 'Vetting queue'];
 
 function StaffSection({ role, section, open }: { role: StaffRole; section: string; open: (m: string) => void }) {
+ /* Subscribed here as well as inside the schedule, so the strip above the day and the list below it
+    cannot disagree about how much of it is done. */
+ const queue = useVisitQueue();
  const board = BOARDS.includes(section);
  /* The sections rendered by a feature component that draws its own <h1>. */
  const headsItself = HEADS_ITSELF.includes(section);
@@ -363,7 +373,7 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
       reader having to guess which one is the page. */}
   {!ownsIntro && <div className="page-intro"><div><div className="eyebrow">{role.toUpperCase()}</div>
    {headsItself ? null : <><h1>{section}</h1><p>{sectionBlurb[section] ?? sectionDoor[section] ?? ''}</p></>}</div></div>}
-  {board && <Metrics>{metricsOf(role).map(([label, value, unit, chip, flagged, prefix]) =>
+  {board && <Metrics>{metricsOf(role, queue).map(([label, value, unit, chip, flagged, prefix]) =>
    <Metric key={label} label={label} value={value} unit={unit || undefined} prefix={prefix} chip={chip} flagged={flagged}/>)}</Metrics>}
   {section === 'Schedule' ? <NurseSchedule open={open}/>
    : section === 'Review queue' ? <ReviewQueue open={open}/>
@@ -398,6 +408,10 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
 function staffModalTitle(modal: string) {
  if (modal.startsWith('Nurse case: TH-')) return 'Patient file';
  if (modal === 'Substitution & repeats' || modal === 'Substitution') return 'Substitution & repeats';
+ if (modal.startsWith('Consultation record · ')) return 'New consultation';
+ if (modal.startsWith('Referral letter · ')) return 'Referral';
+ if (modal.startsWith('Upload a document · ')) return 'Upload a document';
+ if (modal.startsWith('Prescribing · ')) return 'Prescribing';
  if (modal.startsWith('Prescription ')) return 'Prescription';
  if (modal.startsWith('Laboratory order ')) return 'Laboratory order';
  if (modal.startsWith('Incident ')) return 'Incident';
@@ -434,8 +448,21 @@ function staffModalBody(modal: string, close: () => void, open: (m: string) => v
     protocols. */
  if (modal === 'Clinical protocols') return <ClinicalProtocols/>;
  if (modal === 'Referral pathway') return <ReferralPathway/>;
+ /* The nurse's own two More tools. Neither is a workflow and neither pretends to be one; what each
+    says instead is what the module is for and the one thing it will not do — which for a shift
+    market and a training record is the same thing in two shapes, and the thing a nurse should be
+    able to check before she trusts either. */
+ if (modal === 'Locum shifts') return <LocumShifts onClose={close}/>;
+ if (modal === 'Academy') return <Academy onClose={close}/>;
  if (modal === 'Employer programmes' || modal === 'Programme administration') return <Programmes/>;
  if (modal === 'Consultation record') return <ConsultationRecord onClose={close}/>;
+ /* The patient file's four actions. Each one carries the name of the file it was pressed on, so a
+    screen opened from Thando Mokoena's file is about Thando Mokoena — the alternative was routing
+    "Prescription" to RX-0081 and showing one patient's medicines under another's name. */
+ if (modal.startsWith('Consultation record · ')) return <ConsultationComposer patient={personIn(modal)} onClose={close}/>;
+ if (modal.startsWith('Referral letter · ')) return <ReferralLetter reference="TH-2048" patient={personIn(modal)} doctor={signingDoctor.name} registration={signingDoctor.reference} reason="" onClose={close}/>;
+ if (modal.startsWith('Upload a document · ')) return <UploadDocument patient={personIn(modal)} onClose={close}/>;
+ if (modal.startsWith('Prescribing · ')) return <PrescribingRoute patient={personIn(modal)} onClose={close}/>;
  if (modal === 'Teleconsultation' || modal === 'Teleconsultation call') return <Teleconsult onClose={close}/>;
  return <StaffDetail title={modal} close={close}/>;
 }
@@ -450,6 +477,12 @@ function visitFrom(modal: string): { reference?: string; patient?: string } {
 /* A reference is TH- or INC- followed by digits. Pulled out rather than sliced at a fixed offset,
    because "Doctor review: TH-2041" and "Doctor case: TH-2041" are the same case under two names. */
 const referenceIn = (modal: string) => modal.match(/\b(TH|INC|RX|LAB)-\d+/)?.[0] ?? null;
+/* The name after the separator, for the four screens the patient file opens about a named person. */
+const personIn = (modal: string) => modal.split(' · ').slice(1).join(' · ');
+/* Who a screen opened from a file is written under. The file has a viewer switcher of its own and
+   the doctor at the top of the register is the one this preview signs as, the same one the review
+   queue defaults to — read from the vetting register rather than typed. */
+const signingDoctor = subjectsByRole('doctor')[0];
 
 /* The fallback, and it says the same thing every time because the same thing is true every time: a
    name on a list is not a screen. It names what the workflow will be for so that a reviewer can
