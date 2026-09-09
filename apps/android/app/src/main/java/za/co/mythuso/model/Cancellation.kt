@@ -42,6 +42,11 @@ data class CancellationState(
 /** A reason somebody may give. None of them asks a person to justify themselves. */
 data class CancellationReason(val id: String, val text: String, val offersRescheduleFirst: Boolean)
 
+/* A sentence the product says out loud rather than merely obeys. "You do not have to give a reason"
+   is the one that earns its place: a screen can behave permissively and still read as a demand, and
+   the person who cannot tell the difference is the one deciding whether to answer it. */
+data class CancellationRefusal(val id: String, val sentence: String, val why: String)
+
 /** Something cancelling a visit does not undo, and why it does not. */
 data class CancellationLimit(val id: String, val statement: String, val why: String)
 

@@ -35,6 +35,29 @@ struct GuardianInvitation: Identifiable, Hashable {
     @Published var visits = [BookedVisit(service: CareService.all[0], patient: "Lerato Molefe",
                                          address: "Home visit · Sandton", kind: "scheduled",
                                          date: Date().addingTimeInterval(5 * 86_400), start: "09:00", payment: "Card")]
+    /* Visits that were cancelled, which is a different list rather than a shorter one. A cancelled
+       visit is not deleted — packages/catalog/cancellation.json says so under doesNotUndo, and the
+       reason is that a visit which vanishes is one nobody can ask about afterwards: not the
+       patient, not the nurse who was dispatched, and not whoever has to explain it. */
+    @Published var cancelled: [CancelledVisit] = []
+
+    /* Cancelling moves a visit between the two lists and records the reason given. It never touches
+       money — what a late cancellation costs is the open question the contract holds as
+       pendingDecision — and it withdraws no consent, because consent is withdrawn on the consent
+       screen, deliberately and separately. */
+    func cancel(_ visit: BookedVisit, reason: CancellationReason, state: CancellationState) {
+        guard !state.refusesCancellation else { return }
+        visits.removeAll { $0.id == visit.id }
+        cancelled.insert(CancelledVisit(visit: visit, reason: reason, state: state), at: 0)
+    }
+
+    /// Moving a visit replaces it in place: the same visit at a different hour, not a second one.
+    func reschedule(_ visit: BookedVisit, to date: Date, start: String) -> BookedVisit {
+        let moved = visit.moved(to: date, start: start)
+        if let index = visits.firstIndex(where: { $0.id == visit.id }) { visits[index] = moved }
+        return moved
+    }
+
     /* What somebody typed on the home screen. It lives here rather than in HomeView because the
        home hands off to the catalogue in a different tab: the search used to call book() and throw
        the words away, so the person arrived at an unfiltered list having already said what they

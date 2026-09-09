@@ -29,6 +29,13 @@ object CancellationData {
         CancellationReason("unstated", "I would rather not say", false)
     )
 
+    // The sentences the product says out loud rather than merely obeys. See the Swift banner above.
+    val refusals = listOf(
+        CancellationRefusal("cancel-after-arrival", "This visit has already started. Speak to the nurse who is with you, or call the Control Tower.", "A booking screen cannot end an encounter that is happening in somebody's house. That is a clinical event and it is recorded as one."),
+        CancellationRefusal("no-reason-required", "You do not have to give a reason.", "Said out loud on the screen, because a list of reasons with no way past it is a demand wearing a menu's clothes."),
+        CancellationRefusal("no-charge-stated", "Nothing has been charged for this visit, so there is nothing to refund.", "True while payments are not connected, and it disappears from every screen at the same moment they are — which is the only way it stays true.")
+    )
+
     val doesNotUndo = listOf(
         CancellationLimit("the-record", "A cancelled visit is not deleted. It stays under Cancelled with the reason given.", "A visit that vanishes is one nobody can ask about afterwards — not the patient, not the nurse who was dispatched, and not whoever has to explain it."),
         CancellationLimit("the-consent", "Cancelling a visit withdraws nothing you have consented to. Consent is withdrawn on the consent screen, deliberately and separately.", "Two different decisions. Bundling them means a person who wanted a different Tuesday has silently changed what MyThuso may do with their record."),

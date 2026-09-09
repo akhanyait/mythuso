@@ -32,6 +32,15 @@ extension Cancellation {
         .init(id: "unstated", text: "I would rather not say", offersRescheduleFirst: false)
     ]
 
+    /* The sentences the product says out loud rather than merely obeys. "You do not have to give a
+       reason" is the one that matters: a list of reasons with no way past it is a demand wearing a
+       menu's clothes, and a screen that only *behaves* permissively still reads as a demand. */
+    static let refusals: [CancellationRefusal] = [
+        .init(id: "cancel-after-arrival", sentence: "This visit has already started. Speak to the nurse who is with you, or call the Control Tower.", why: "A booking screen cannot end an encounter that is happening in somebody's house. That is a clinical event and it is recorded as one."),
+        .init(id: "no-reason-required", sentence: "You do not have to give a reason.", why: "Said out loud on the screen, because a list of reasons with no way past it is a demand wearing a menu's clothes."),
+        .init(id: "no-charge-stated", sentence: "Nothing has been charged for this visit, so there is nothing to refund.", why: "True while payments are not connected, and it disappears from every screen at the same moment they are — which is the only way it stays true.")
+    ]
+
     static let doesNotUndo: [CancellationLimit] = [
         .init(id: "the-record", statement: "A cancelled visit is not deleted. It stays under Cancelled with the reason given.", why: "A visit that vanishes is one nobody can ask about afterwards — not the patient, not the nurse who was dispatched, and not whoever has to explain it."),
         .init(id: "the-consent", statement: "Cancelling a visit withdraws nothing you have consented to. Consent is withdrawn on the consent screen, deliberately and separately.", why: "Two different decisions. Bundling them means a person who wanted a different Tuesday has silently changed what MyThuso may do with their record."),

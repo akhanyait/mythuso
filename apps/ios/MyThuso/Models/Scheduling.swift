@@ -75,7 +75,7 @@ enum Scheduling {
    who it is for and where — and a scheduled visit cannot exist without its date, which is the
    defect this type closes: the confirmation used to hand on a time and drop the day. */
 struct BookedVisit: Identifiable, Hashable {
-    let id = UUID()
+    let id: UUID
     let service: CareService
     let patient: String
     let address: String
@@ -83,6 +83,34 @@ struct BookedVisit: Identifiable, Hashable {
     let date: Date?
     let start: String?
     let payment: String
+
+    /* The identity is a parameter with a default rather than a constant minted in place, because a
+       moved visit has to be able to keep the one it already has. Moving a visit keeps its
+       reference, its person, its address and its service — Cancellation.Reschedule
+       .keepsTheSameVisit says so — and a move that quietly issued a new identity would be a
+       cancellation and a fresh booking wearing a kinder word, which is what makes the interpreter
+       held for it, the consent given for it and the record of it stop applying. */
+    init(id: UUID = UUID(), service: CareService, patient: String, address: String, kind: String,
+         date: Date?, start: String?, payment: String) {
+        self.id = id
+        self.service = service
+        self.patient = patient
+        self.address = address
+        self.kind = kind
+        self.date = date
+        self.start = start
+        self.payment = payment
+    }
+
+    /* The same visit, on another day and at another hour. Nothing else about it changes.
+
+       The kind does, and only in one direction: a visit somebody asked for as soon as possible and
+       then gave an hour to is a visit at a time they chose, and carrying "looking for a nurse"
+       beside a date they picked would print two contradictory promises on the same row. */
+    func moved(to date: Date, start: String) -> BookedVisit {
+        BookedVisit(id: id, service: service, patient: patient, address: address, kind: "scheduled",
+                    date: date, start: start, payment: payment)
+    }
 
     var isScheduled: Bool { kind == "scheduled" }
     var status: String { isScheduled ? "Confirmed" : Scheduling.Label.asapPending }

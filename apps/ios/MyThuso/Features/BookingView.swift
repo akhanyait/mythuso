@@ -84,7 +84,6 @@ struct BookingView: View {
        and which disagreed with the date printed on the review screen two steps later. */
     @State private var days = Scheduling.offeredDays()
     @State private var kind = "scheduled"
-    private let slots = Scheduling.slots
     private let labels = ["Who & where", "When", "Payment", "Review"]
     private var scheduled: Bool { kind == "scheduled" }
     private var endTime: String { Scheduling.endTime(start: slot, minutes: service.duration) }
@@ -157,7 +156,7 @@ struct BookingView: View {
             .buttonStyle(.plain)
             .accessibilityAddTraits(kind == option.id ? [.isSelected] : [])
         }
-        if scheduled { scheduledPicker } else {
+        if scheduled { VisitTimePicker(days: days, day: $day, slot: $slot, minutes: service.duration) } else {
             Label("We look for the nearest nurse who is free. Nobody is dispatched in this preview.", systemImage: "bolt.fill")
                 .font(.footnote).foregroundStyle(ThusoTheme.body)
         }
@@ -165,49 +164,6 @@ struct BookingView: View {
             Button("Back") { step = 0 }.buttonStyle(QuietButton())
             Button("Continue") { step = 2 }.buttonStyle(CareButton())
         }
-    }
-    @ViewBuilder private var scheduledPicker: some View {
-        Text(Scheduling.Label.scheduledHeading).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-        /* The day strip scrolls sideways and now settles on a day rather than between two of
-           them — .scrollTargetBehavior is what iOS 17 gives you for exactly this. */
-        ScrollView(.horizontal) {
-            HStack(spacing: ThusoSpacing.space8) {
-                ForEach(Array(days.enumerated()), id: \.element) { index, offered in
-                    Button { day = index } label: {
-                        VStack(spacing: 2) {
-                            Text(offered.weekday.uppercased()).font(.caption2.weight(.semibold))
-                            Text(offered.day).font(.body.weight(.bold))
-                            Text(offered.month.uppercased()).font(.caption2.weight(.semibold))
-                        }
-                        .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8)
-                        .frame(minWidth: 62, minHeight: 68)
-                        .background(day == index ? ThusoTheme.indigo : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(day == index ? ThusoTheme.indigo : ThusoTheme.line, lineWidth: 1))
-                        .foregroundStyle(day == index ? .white : ThusoTheme.body)
-                    }
-                    .accessibilityLabel(Scheduling.longDate(offered.date))
-                    .accessibilityAddTraits(day == index ? [.isSelected] : [])
-                }
-            }
-            .scrollTargetLayout()
-        }
-        .scrollTargetBehavior(.viewAligned)
-        .scrollIndicators(.hidden)
-        .sensoryFeedback(.selection, trigger: day)
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: ThusoSpacing.space8), count: 3), spacing: ThusoSpacing.space8) {
-            ForEach(slots, id: \.self) { time in
-                Button { slot = time } label: {
-                    Text(time).font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: 48)
-                        .background(slot == time ? ThusoTheme.indigo : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(slot == time ? ThusoTheme.indigo : ThusoTheme.line, lineWidth: 1))
-                        .foregroundStyle(slot == time ? .white : ThusoTheme.body)
-                }.accessibilityAddTraits(slot == time ? [.isSelected] : [])
-            }
-        }
-        .sensoryFeedback(.selection, trigger: slot)
-        Text("\(Scheduling.longDate(chosenDay.date)) · \(slot) – \(endTime) (\(service.duration) minutes)")
-            .font(.footnote).foregroundStyle(ThusoTheme.body)
     }
     @ViewBuilder private var paymentStep: some View {
         Text("How would you like to pay?").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
@@ -271,7 +227,13 @@ struct BookingView: View {
                                             start: scheduled ? slot : nil, payment: payment), at: 0)
             booked = true
         }.buttonStyle(CareButton()).disabled(!consent)
-        Text("You can cancel or reschedule up to 2 hours before the visit.").font(.footnote).foregroundStyle(ThusoTheme.body).frame(maxWidth: .infinity)
+        /* The moment a person commits is the moment they want to know how to get out, which is why
+           this sentence is here rather than on the cancellation screen — a right disclosed only
+           there is a right disclosed to whoever already found it. It was a hand-typed string in
+           this file and in one Kotlin file, promising two hours with nothing behind it and nothing
+           to check it against. It is packages/catalog/cancellation.json's now. */
+        Text(Cancellation.windowSentence).font(.footnote).foregroundStyle(ThusoTheme.body).frame(maxWidth: .infinity)
+            .fixedSize(horizontal: false, vertical: true)
         Button("Back") { step = 2 }.buttonStyle(QuietButton())
     }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -292,16 +254,85 @@ struct BookingView: View {
         }.frame(maxWidth: .infinity)
     }
 }
+/* The one date-and-time picker in the app.
+ *
+ * It was BookingView's own until a visit could be moved. Two pickers would be two sets of rules
+ * about which days are offered and which hours sit on them, and the second set is always the one
+ * nobody remembers to change — which is the shape of the defect the day strip already had once,
+ * when its five labels were typed by hand and had not matched the calendar for months. Booking a
+ * visit and moving one now choose from the same days, by the same arithmetic, in the same words.
+ */
+struct VisitTimePicker: View {
+    let days: [OfferedDay]
+    @Binding var day: Int
+    @Binding var slot: String
+    /// The visit's own length, so the line underneath ends it when it actually ends.
+    let minutes: Int
+    private var chosenDay: OfferedDay { days.indices.contains(day) ? days[day] : days[0] }
+    private var endTime: String { Scheduling.endTime(start: slot, minutes: minutes) }
+    var body: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
+            Text(Scheduling.Label.scheduledHeading).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+            /* The day strip scrolls sideways and now settles on a day rather than between two of
+               them — .scrollTargetBehavior is what iOS 17 gives you for exactly this. */
+            ScrollView(.horizontal) {
+                HStack(spacing: ThusoSpacing.space8) {
+                    ForEach(Array(days.enumerated()), id: \.element) { index, offered in
+                        Button { day = index } label: {
+                            VStack(spacing: 2) {
+                                Text(offered.weekday.uppercased()).font(.caption2.weight(.semibold))
+                                Text(offered.day).font(.body.weight(.bold))
+                                Text(offered.month.uppercased()).font(.caption2.weight(.semibold))
+                            }
+                            .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8)
+                            .frame(minWidth: 62, minHeight: 68)
+                            .background(day == index ? ThusoTheme.indigo : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(day == index ? ThusoTheme.indigo : ThusoTheme.line, lineWidth: 1))
+                            .foregroundStyle(day == index ? .white : ThusoTheme.body)
+                        }
+                        .accessibilityLabel(Scheduling.longDate(offered.date))
+                        .accessibilityAddTraits(day == index ? [.isSelected] : [])
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .scrollIndicators(.hidden)
+            .sensoryFeedback(.selection, trigger: day)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: ThusoSpacing.space8), count: 3), spacing: ThusoSpacing.space8) {
+                ForEach(slots, id: \.self) { time in
+                    Button { slot = time } label: {
+                        Text(time).font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .background(slot == time ? ThusoTheme.indigo : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(slot == time ? ThusoTheme.indigo : ThusoTheme.line, lineWidth: 1))
+                            .foregroundStyle(slot == time ? .white : ThusoTheme.body)
+                    }.accessibilityAddTraits(slot == time ? [.isSelected] : [])
+                }
+            }
+            .sensoryFeedback(.selection, trigger: slot)
+            Text("\(Scheduling.longDate(chosenDay.date)) · \(slot) – \(endTime) (\(minutes) minutes)")
+                .font(.footnote).foregroundStyle(ThusoTheme.body)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    private let slots = Scheduling.slots
+}
 struct VisitsView: View {
     @EnvironmentObject private var store: PreviewStore
-    @State private var tab = "Upcoming"
+    @State private var tab: String
     @State private var state: LoadState = .ready
+    /// Which list to open on. A cancellation sends somebody straight to where their visit went.
+    init(showing: String = "Upcoming") { _tab = State(initialValue: showing) }
     /* A row's date block and its time both come from the same date, so the weekday shown can never
        disagree with the day it names. Every one of these used to be a hand-typed triple, and the
        booked visits all shared one: ("FRI", "12", "SEP"), whatever day they were booked for. */
     private struct Row: Identifiable {
         let id = UUID(); let title: String; let place: String; let status: String; let tone: String
         let date: Date?; let start: String?; let minutes: Int; let nurse: Bool
+        /// What was said when this visit was cancelled, and — where it was late — that it was.
+        var reason: String? = nil
+        var lateness: String? = nil
         var weekday: String { date.map { Scheduling.format($0, "EEE").uppercased() } ?? "NOW" }
         var dayNumber: String { date.map { Scheduling.format($0, "d") } ?? "" }
         var monthName: String { date.map { Scheduling.format($0, "MMM").uppercased() } ?? "" }
@@ -318,7 +349,16 @@ struct VisitsView: View {
     private var rows: [Row] {
         switch tab {
         case "Past": return [sample("Wound care", "Home visit · Sandton", "Completed", "teal", -3, "10:00", 40)]
-        case "Cancelled": return [sample("Blood tests", "Home visit · Soweto", "Cancelled", "amber", -12, "08:00", 25)]
+        /* A cancelled visit is not deleted. It stays here with the reason given, because a visit
+           that vanishes is one nobody can ask about afterwards — not the patient, not the nurse who
+           was dispatched, and not whoever has to explain it. The fictional one below it stays too. */
+        case "Cancelled":
+            return store.cancelled.map { record in
+                Row(title: record.visit.service.name, place: "\(record.visit.address) · \(record.visit.patient)",
+                    status: "Cancelled", tone: "amber", date: record.visit.date, start: record.visit.start,
+                    minutes: record.visit.service.duration, nurse: false,
+                    reason: record.reason.text, lateness: record.wasLate ? record.state.name : nil)
+            } + [sample("Blood tests", "Home visit · Soweto", "Cancelled", "amber", -12, "08:00", 25)]
         default:
             return store.visits.enumerated().map { index, visit in
                 Row(title: visit.service.name, place: "\(visit.address) · \(visit.patient)",
@@ -361,6 +401,17 @@ struct VisitsView: View {
                                         }
                                         Label(row.time, systemImage: "clock").font(.caption).foregroundStyle(ThusoTheme.body)
                                         Label(row.place, systemImage: "mappin.and.ellipse").font(.caption).foregroundStyle(ThusoTheme.body)
+                                        if let reason = row.reason {
+                                            Label(reason, systemImage: "text.bubble").font(.caption).foregroundStyle(ThusoTheme.charcoal)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                        /* Named rather than priced. What a late cancellation costs
+                                           is undecided, and a row that showed a figure here would
+                                           be inventing the answer. */
+                                        if let lateness = row.lateness {
+                                            Label(lateness, systemImage: "clock.badge.exclamationmark").font(.caption)
+                                                .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                                        }
                                     }
                                 }
                                 if row.nurse, let visit = store.visits.first {
@@ -393,8 +444,11 @@ struct VisitsView: View {
         .background(ThusoTheme.canvas)
         .navigationTitle("Your visits").navigationBarTitleDisplayMode(.large)
     }
+    /* Moving a visit is a real destination now rather than a roadmap card. It was the only
+       "Reschedule" in the app and it led to the sentence that says a workflow will be connected
+       later — while the booking confirmation was promising a person they could use it. */
     @ViewBuilder private func visitActions(_ visit: BookedVisit) -> some View {
-        NavigationLink { FeatureDetail(title: "Reschedule visit") } label: { Text("Reschedule").frame(maxWidth: .infinity) }.buttonStyle(QuietButton())
+        NavigationLink { RescheduleVisitView(visit: visit) } label: { Text("Reschedule").frame(maxWidth: .infinity) }.buttonStyle(QuietButton())
         NavigationLink { VisitDetailView(visit: visit) } label: { Text("View details").frame(maxWidth: .infinity) }.buttonStyle(CareButton())
     }
     private var promo: some View {
@@ -437,14 +491,27 @@ struct VisitDetailView: View {
                     Text("Before your visit").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
                     Text("Have your medication list ready.").font(.subheadline).foregroundStyle(ThusoTheme.ink)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Secure messaging, arrival updates and rescheduling will be connected in the functionality phase.")
+                    Text("Secure messaging and arrival updates will be connected in the functionality phase.")
                         .font(.footnote).foregroundStyle(ThusoTheme.body).fixedSize(horizontal: false, vertical: true)
                 }
+                /* The two ways out of a visit, on the visit itself, in the order the contract asks
+                   for them: moving it first and taking it away second. A person who wanted a
+                   different day and is shown only a cancel button cancels. */
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: ThusoSpacing.space8) { exits }
+                    VStack(spacing: ThusoSpacing.space8) { exits }
+                }
+                Text(Cancellation.windowSentence).font(.footnote).foregroundStyle(ThusoTheme.body)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, ThusoSpacing.space16)
         }
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
         .background(ThusoTheme.canvas)
         .navigationTitle("Visit details").navigationBarTitleDisplayMode(.inline)
+    }
+    @ViewBuilder private var exits: some View {
+        NavigationLink { RescheduleVisitView(visit: visit) } label: { Text("Move this visit").frame(maxWidth: .infinity) }.buttonStyle(CareButton())
+        NavigationLink { CancelVisitView(visit: visit) } label: { Text("Cancel this visit").frame(maxWidth: .infinity) }.buttonStyle(QuietButton())
     }
 }

@@ -133,3 +133,35 @@ struct EmptyStateCard: View {
         .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
     }
 }
+
+/* The one way an iOS screen says it is not wired to anything yet.
+ *
+ * It is the half of apps/web/src/components/NotConnected.tsx that iOS was missing: the sentence is
+ * never typed into a screen, it is the sentence in packages/catalog/capabilities.json, and when the
+ * capability is connected this renders nothing at all — so nobody has to remember to delete a
+ * banner when an integration lands.
+ *
+ * It lived beside the assistant, the first screen that needed it, with a note saying the second
+ * screen to name a capability should move it here. The cancellation screen is that second screen:
+ * it names the payments capability, because what happens to money when a visit is cancelled is a
+ * fact about a payment provider that does not exist yet. */
+struct CapabilityNotice: View {
+    /// An id in packages/catalog/capabilities.json.
+    let of: String
+    var body: some View {
+        if let notice = Capabilities.notice(for: of) {
+            HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
+                Image(systemName: "info.circle").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    .accessibilityHidden(true)
+                Text(notice).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(ThusoSpacing.space12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+            /* A note rather than a status: it is true when the screen opens and does not change, so
+               announcing it as a live update would interrupt a reader mid-sentence for old news. */
+            .accessibilityElement(children: .combine)
+        }
+    }
+}

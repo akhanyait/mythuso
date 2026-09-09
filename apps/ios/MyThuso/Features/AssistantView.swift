@@ -281,38 +281,7 @@ private struct AssistantOrb: View {
     }
 }
 
-// MARK: - Two small pieces this screen is the first to need
-
-/* The one way an iOS screen says it is not wired to anything yet.
- *
- * It is the half of apps/web/src/components/NotConnected.tsx that iOS was missing: the sentence is
- * never typed into a screen, it is the sentence in packages/catalog/capabilities.json, and when the
- * capability is connected this renders nothing at all — so nobody has to remember to delete a
- * banner when an integration lands.
- *
- * It lives beside the first screen that needed it rather than in the design system, because moving
- * it there is a change to files this one is not the only session in tonight. The second screen to
- * name a capability should move it. */
-struct CapabilityNotice: View {
-    /// An id in packages/catalog/capabilities.json.
-    let of: String
-    var body: some View {
-        if let notice = Capabilities.notice(for: of) {
-            HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                Image(systemName: "info.circle").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
-                    .accessibilityHidden(true)
-                Text(notice).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(ThusoSpacing.space12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
-            /* A note rather than a status: it is true when the screen opens and does not change, so
-               announcing it as a live update would interrupt a reader mid-sentence for old news. */
-            .accessibilityElement(children: .combine)
-        }
-    }
-}
+// MARK: - One small piece this screen is the only user of
 
 /// The small charcoal chip that floats above the drawing and says, in words, which state this is.
 private struct StateChip: View {

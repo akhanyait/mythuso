@@ -813,11 +813,18 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
    no contract to drift from. These checks close that hole from both ends. */
 const cancellation = JSON.parse(read('packages/catalog/cancellation.json'));
 if(!(cancellation.window.hoursBefore > 0)) throw new Error('packages/catalog/cancellation.json declares no cancellation window. Both native apps promise one on the booking confirmation.');
-/* The check that refuses the window as a literal is NOT here yet, deliberately. Both native apps
-   still carry "2 hours before the visit" as a hand-typed string, and mythuso-58 is taking the native
-   cancellation flow. A boundary check committed ahead of the change it describes is a red build with
-   a promise attached, and this repository does not do promises. It lands with that work — the regex
-   is one line, and it belongs in the same commit as the last literal it kills. */
+/* The window, refused as a literal in hand-written source. This is the check the whole contract was
+   written for. The two hours lived as a string in one Swift file and one Kotlin file, and nothing
+   compared them to anything, so they could not drift — they could only both be wrong together, or
+   one of them be changed and the other not noticed. Absence was the hole, the same shape as a
+   contrast pair nobody declared.
+
+   The generated files are skipped: they are allowed to contain it, because containing it is their
+   job. Anywhere else it is a promise about a refund that no longer answers to the contract. */
+const windowLiteral = new RegExp(`\\b${cancellation.window.hoursBefore} hours? before\\b`);
+for(const file of native.filter(f => !/Data\.(swift|kt)$/.test(f))) {
+ if(windowLiteral.test(read(file))) throw new Error(`${file} types out the cancellation window — "${cancellation.window.hoursBefore} hours before" — which packages/catalog/cancellation.json declares. Render it from the contract (Cancellation.windowSentence / CancellationData.windowSentence). A window typed into a screen is a promise about somebody's money that stops answering to the file that sets it, and it is how this one went wrong the first time.`);
+}
 /* A visit can always be cancelled. The window is not permission. */
 if(!cancellation.always?.statement) throw new Error('cancellation.json no longer says a visit can always be cancelled. A product that refuses a cancellation has not prevented it — it has made somebody not answer the door.');
 for(const id of ['before-window','inside-window','in-progress']) {

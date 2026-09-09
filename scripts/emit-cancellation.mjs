@@ -62,6 +62,13 @@ ${states.map(s => `        .init(id: ${swift(s.id)}, name: ${swift(s.name)}, det
 ${reasons.map(r => `        .init(id: ${swift(r.id)}, text: ${swift(r.text)}, offersRescheduleFirst: ${r.offersRescheduleFirst === true})`).join(',\n')}
     ]
 
+    /* The sentences the product says out loud rather than merely obeys. "You do not have to give a
+       reason" is the one that matters: a list of reasons with no way past it is a demand wearing a
+       menu's clothes, and a screen that only *behaves* permissively still reads as a demand. */
+    static let refusals: [CancellationRefusal] = [
+${contract.refusals.map(r => `        .init(id: ${swift(r.id)}, sentence: ${swift(r.sentence)}, why: ${swift(r.why)})`).join(',\n')}
+    ]
+
     static let doesNotUndo: [CancellationLimit] = [
 ${doesNotUndo.map(d => `        .init(id: ${swift(d.id)}, statement: ${swift(d.statement)}, why: ${swift(d.why)})`).join(',\n')}
     ]
@@ -99,6 +106,11 @@ ${states.map(s => `        CancellationState(${kotlin(s.id)}, ${kotlin(s.name)},
 
     val reasons = listOf(
 ${reasons.map(r => `        CancellationReason(${kotlin(r.id)}, ${kotlin(r.text)}, ${r.offersRescheduleFirst === true})`).join(',\n')}
+    )
+
+    // The sentences the product says out loud rather than merely obeys. See the Swift banner above.
+    val refusals = listOf(
+${contract.refusals.map(r => `        CancellationRefusal(${kotlin(r.id)}, ${kotlin(r.sentence)}, ${kotlin(r.why)})`).join(',\n')}
     )
 
     val doesNotUndo = listOf(
