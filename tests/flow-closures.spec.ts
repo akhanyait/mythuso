@@ -1,4 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+/* Read rather than imported: a JSON import needs an attribute under Node's ESM loader, and every
+   other spec in this suite reads its contract the same way. */
+const passport = JSON.parse(readFileSync(new URL('../packages/catalog/passport.json', import.meta.url), 'utf8'));
 import { goSection, openWorkspace } from './nav';
 
 /* The rows docs/FLOW-COMPLETENESS.md listed as open, held so they cannot re-open.
@@ -83,7 +87,10 @@ test('the care team names who has been in the record and what that does not gran
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Who has been in your record.' })).toBeVisible();
   /* Both clinicians, each under the registration the vetting register holds them to. */
-  await expect(page.locator('.record-row').filter({ hasText: 'Dr N. Khumalo' })).toContainText('MP 0741225');
+  /* Read, not typed. packages/catalog/passport.json owns the reviewer, and a boundary check refuses
+     a second copy — including one in a test, which is where a stale number survives longest. */
+  await expect(page.locator('.record-row').filter({ hasText: passport.reviewer.name }))
+    .toContainText(passport.reviewer.registration);
   await expect(page.locator('.record-row').filter({ hasText: 'Sister Naledi Mokoena' })).toContainText('SANC 20016688');
   /* And the limit, which is the vetting contract's own refusal rather than a paraphrase. */
   await expect(page.getByText('A protected category is released by the patient, entry by entry, even to a treating doctor.')).toBeVisible();
@@ -107,7 +114,7 @@ test('both of the passport documents that had no screen now open', async ({ page
      "The production record will show the issuing clinician…", which was a sentence about a
      document offered in place of one. */
   await expect(sheet.getByText(/There is no certificate here to open, download or hand to anybody/)).toBeVisible();
-  await expect(sheet.getByText('MP 0741225', { exact: false })).toBeVisible();
+  await expect(sheet.getByText(passport.reviewer.registration, { exact: false })).toBeVisible();
 });
 
 test('the device permission cards are under the notice rather than behind a button that grants nothing', async ({ page }) => {
