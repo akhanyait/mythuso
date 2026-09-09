@@ -47,17 +47,23 @@ extension Geography {
         .init(id: "visit-assigned", name: "Assigned", detail: "A nurse has accepted it.")
     ]
 
-    /// No tile server is contacted by any native build. The schematic below is what both apps draw.
+    /// No tile server is contacted by any native build. The schematic below is what both apps draw,
+    /// and it is why tileAttribution is carried without being rendered: the day a native map draws
+    /// streets, the credit is already here, in the same words the web renders, out of the same file.
     static let schematicName = "Schematic"
-    static let schematicSentence = "No map tiles are configured for this build, so the map is drawn from the coordinates alone: the zones, the visits and the nurses, in their real positions, without streets behind them."
+    static let schematicSentence = "This map is drawn from the coordinates alone: the zones, the visits and the nurses, in their real positions, without streets behind them. No tile server is asked for anything."
     static let attributionRequired = true
+    static let tileSource = "OpenFreeMap"
+    static let tileAttribution = "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"
+    static let tileLicence = "Map data © OpenStreetMap contributors, under the Open Database Licence. Tile schema by OpenMapTiles. The OpenFreeMap software is MIT."
 
     static let privacySentence = "A map in MyThuso plots suburbs, not addresses."
     static let privacyRules: [GeographyRule] = [
         .init(id: "address-is-not-a-pin", statement: "A visit awaiting a nurse is drawn at the centre of its suburb. Its street address is never a coordinate on any map, on any screen, at any zoom.", why: "A home address beside a health service is not a location, it is a diagnosis with a doorstep. The controller assigning the visit needs to know which suburb it is in; they do not need to know which house until they are the one going to it, and then it is in the visit, not on the board."),
         .init(id: "a-nurse-is-not-tracked-between-visits", statement: "A nurse who is not sharing a position has none, and the board says so rather than placing them somewhere plausible.", why: "An empty space is a true statement about a phone in a bag. A guessed pin is a false statement about a person's whereabouts, and it is the one a dispatcher would act on."),
         .init(id: "no-history-drawn", statement: "No map here draws where anybody has been. A position is the current one or it is absent.", why: "A track is a record of a person's movements. Nothing in this product needs one, so nothing in this product keeps one, and there is no screen that could be persuaded to show one."),
-        .init(id: "nothing-leaves-for-a-tile", statement: "The tile server is asked for streets. It is never told what is on top of them — no visit, no patient, no nurse position is sent to any mapping provider.", why: "A map vendor that can see your pins can see your caseload. The zones, the visits and the nurses are drawn by this application on top of tiles that know nothing about them.")
+        .init(id: "nothing-leaves-for-a-tile", statement: "The tile server is asked for streets. It is never told what is on top of them — no visit, no patient, no nurse position is sent to any mapping provider.", why: "A map vendor that can see your pins can see your caseload. The zones, the visits and the nurses are drawn by this application on top of tiles that know nothing about them."),
+        .init(id: "a-tile-request-is-a-viewport", statement: "Asking for streets still tells the tile server something: which square of the map is open, the internet address that asked, and the time. Over a visit that is roughly which suburb a patient is in and roughly when somebody came to the house. Streets are off until the person looking turns them on, and the schematic asks nobody anything.", why: "Until this map drew streets no tile was ever fetched, so there was nothing to disclose and nobody had disclosed it. Now there is. A viewport is not a pin, but a health service whose viewports a third party can watch has handed over a weaker version of the same thing, and one nobody agreed to. The sentence is rendered beside the switch rather than filed in a policy page, because the switch is where the decision is actually made.")
     ]
 
     static let refusals: [GeographyRefusal] = [

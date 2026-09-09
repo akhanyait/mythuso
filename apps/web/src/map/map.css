@@ -1,7 +1,7 @@
 /* The map's own stylesheet.
  *
  * It lives beside the component rather than in an appended section of styles.css because the map
- * is the one surface that pulls in a third party's CSS — mapbox-gl.css — and the overrides that
+ * is the one surface that pulls in a third party's CSS — maplibre-gl.css — and the overrides that
  * tame it belong next to the import that causes them, not four hundred lines away in a file about
  * cards and pills. Every colour is a token; there are no literals here. */
 
@@ -10,6 +10,16 @@
  display: flex;
  flex-direction: column;
  gap: var(--space-8);
+}
+
+/* The height the caller asked for belongs to the picture, not to the picture plus everything said
+   about it. It used to be the whole component's, so the disclosure beneath the map was taking its
+   room out of the map — the more honest the screen got, the smaller the thing it was being honest
+   about. The frame is the fixed part; the sentences take what they need underneath. */
+.livemap-frame {
+ display: flex;
+ flex-direction: column;
+ min-height: 0;
 }
 
 /* A hairline and a pale ground, not a shadow and not the blue-grey canvas. The map is a card like
@@ -26,11 +36,64 @@
 
 .livemap-canvas.schematic svg { width: 100%; height: 100%; display: block; }
 
+/* The switch and the reason for it, on one line where there is room and stacked where there is
+   not. The button keeps its natural width; the sentence takes the rest and drops below it once the
+   rest is under fifteen rems, which is about the narrowest a paragraph of this length can be read
+   at. */
+.livemap-foot {
+ display: flex;
+ flex-wrap: wrap;
+ align-items: flex-start;
+ gap: var(--space-8) var(--space-12);
+}
+
 .livemap-note {
+ flex: 1 1 15rem;
  font-size: 13px;
+ line-height: 1.45;
  color: var(--faint);
  margin: 0;
 }
+
+.livemap-note small {
+ display: block;
+ font-size: 13px;
+ margin-top: var(--space-4);
+}
+
+/* The control that causes a third party to be contacted, and it looks like a control rather than a
+   preference tucked into a corner. Off is the resting state, so off is the quiet one: a hairline
+   pill on the surface. On is filled, because a person walking up to this screen has to be able to
+   tell at a glance that streets are being fetched right now. Forty-four high, like everything else
+   that can be pressed. */
+.livemap-tiles {
+ flex: 0 0 auto;
+ min-height: 44px;
+ padding: 0 var(--space-16);
+ border: 1px solid var(--stone);
+ border-radius: var(--r-pill);
+ background: var(--surface);
+ color: var(--charcoal);
+ font: inherit;
+ font-size: 13px;
+ font-weight: 600;
+ cursor: pointer;
+}
+
+.livemap-tiles:hover { border-color: var(--sage-slate); }
+
+/* Sage is a fill and never a label: the pressed pill sets its own text colour rather than
+   inheriting one that was measured against the surface behind it. */
+.livemap-tiles.on {
+ background: var(--soft-sage);
+ border-color: var(--sage-slate);
+ color: var(--charcoal);
+}
+
+/* No focus rule of its own. The design system already gives every focusable thing two rings from a
+   bare :focus-visible in core.css, and this button had been given a weaker private copy that turned
+   the outline off and put a box-shadow in its place — which is how a control ends up with no visible
+   focus at all the day somebody renames a token. A pill on a surface has no reason to be special. */
 
 /* ---- Marks ----
    A marker is a real button: reachable by keyboard, nameable by a screen reader, and 44px of
@@ -68,30 +131,44 @@
 .map-marker:focus-visible { outline: none; }
 .map-marker:focus-visible::before { box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
 
-/* ---- Taming mapbox-gl.css ----
-   The vendor stylesheet ships its own type sizes, radii and a focus ring. Left alone the map is
-   the only place in the product with 11px text and 4px corners. Attribution is never suppressed —
-   it is a licence condition — but it is brought onto the type scale like everything else. */
-.livemap .mapboxgl-ctrl-attrib,
-.livemap .mapboxgl-ctrl-attrib a {
+/* ---- The credit ----
+   Thirteen, like everything else, because the one piece of text on this surface somebody would be
+   tempted to shrink is the one the licence requires. Underlined rather than merely coloured: colour
+   is never the only thing that says a word is a link. */
+.livemap-credit {
+ margin: 0;
  font-size: 13px;
+ line-height: 1.4;
  color: var(--faint);
 }
 
-.livemap .mapboxgl-ctrl-group {
+.livemap-credit a {
+ color: var(--faint);
+ text-decoration: underline;
+ text-underline-offset: 2px;
+}
+
+.livemap-credit a:hover { color: var(--charcoal); }
+
+/* ---- Taming maplibre-gl.css ----
+   The vendor stylesheet ships its own type sizes, radii and a focus ring. Left alone the map is
+   the only place in the product with 11px text and 4px corners. The library's own attribution
+   control is switched off in TileMap.tsx and the credit is rendered above instead, so the rules
+   below are only about the zoom buttons and the canvas. */
+.livemap .maplibregl-ctrl-group {
  border-radius: var(--r-control);
  box-shadow: var(--shadow);
  border: 1px solid var(--line);
 }
 
-.livemap .mapboxgl-ctrl-group button { width: 36px; height: 36px; }
+.livemap .maplibregl-ctrl-group button { width: 36px; height: 36px; }
 
-.livemap .mapboxgl-ctrl-group button:focus-visible {
+.livemap .maplibregl-ctrl-group button:focus-visible {
  box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge);
 }
 
 @media (prefers-reduced-motion: reduce) {
- .livemap .mapboxgl-canvas,
+ .livemap .maplibregl-canvas,
  .livemap .map-marker { transition: none !important; }
 }
 
@@ -132,14 +209,19 @@
 .livemap-canvas.schematic .map-ground { fill: var(--mist); }
 .livemap-canvas.schematic .map-grid { stroke: var(--stone); stroke-width: .4; }
 .livemap-canvas.schematic .map-zone { fill: var(--pale-sage); stroke: var(--stone); stroke-width: .4; }
+/* A suburb name inside a 0–100 viewBox is measured in viewBox units, so a size written here is
+   multiplied by whatever the square is rendered at — four units came to 12.7px in a 318px box and
+   11.4px at a 320px viewport, under the floor the token file declares in both. LiveMap measures the
+   square and sets --label-units to whatever comes to thirteen pixels; the fallback is the old four,
+   for the moment before the first measurement. The halo scales with it so the ratio holds. */
 .livemap-canvas.schematic .map-label {
- font-size: 4px;
+ font-size: calc(var(--label-units, 4) * 1px);
  fill: var(--charcoal);
  text-anchor: middle;
  font-weight: 700;
  paint-order: stroke;
  stroke: var(--surface);
- stroke-width: 1.4;
+ stroke-width: calc(var(--label-units, 4) * 0.35px);
 }
 
 /* ---- The key ----

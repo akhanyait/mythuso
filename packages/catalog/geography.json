@@ -1,5 +1,5 @@
 {
- "_note": "Where MyThuso works, and what a map of it is allowed to draw. The dispatch board used to hold its own list of suburbs, its own coordinates and its own map window inside a React component, which meant iOS and Android each invented their own Johannesburg and none of the three agreed. This file is the one Johannesburg. Read by the web app; generated into Swift and Kotlin by scripts/emit-geography.mjs. No arithmetic lives here — distance, projection, province lookup and arrival estimates are packages/geo, and a coordinate outside South Africa is refused there before it reaches a map. Nothing in this file contacts a tile server; the token, if there is one, is supplied at build time and its absence is a supported state rather than a failure.",
+ "_note": "Where MyThuso works, and what a map of it is allowed to draw. The dispatch board used to hold its own list of suburbs, its own coordinates and its own map window inside a React component, which meant iOS and Android each invented their own Johannesburg and none of the three agreed. This file is the one Johannesburg. Read by the web app; generated into Swift and Kotlin by scripts/emit-geography.mjs. No arithmetic lives here — distance, projection, province lookup and arrival estimates are packages/geo, and a coordinate outside South Africa is refused there before it reaches a map. The tile source lives here too — the endpoint, the licence, the attribution and the usage policy — so that changing map provider is a data change and the attribution can never drift from the source it credits. Nothing in this file contacts a tile server: the web asks for streets only when the person looking has asked for them, and no native build asks at all.",
 
  "coverage": {
   "city": "Johannesburg",
@@ -34,20 +34,61 @@
  },
 
  "rendering": {
-  "tokenEnvVar": "VITE_MAPBOX_TOKEN",
-  "styleUrl": "mapbox://styles/mapbox/light-v11",
-  "withoutToken": {
+  "engine": "maplibre-gl",
+  "whyEngine": "MapLibre is the community fork of mapbox-gl: the same API, the same size, and no account. Mapbox needs a pk. token, and a token is procurement — a billing relationship, a key that can be revoked and a vendor whose expiry turns a dispatch board into a grey rectangle. The swap changed the dependency count by nothing and took one blocker off a product that has eleven others.",
+  "offSwitchEnvVar": "VITE_MAP_TILES",
+  "offSwitchNote": "Set VITE_MAP_TILES=off to build without any tile source at all. The switch then does not appear and the schematic is the whole map — the state every native build is already in.",
+
+  "source": {
+   "id": "openfreemap-positron",
+   "name": "OpenFreeMap",
+   "style": "Positron",
+   "styleUrl": "https://tiles.openfreemap.org/styles/positron",
+   "host": "tiles.openfreemap.org",
+   "keyRequired": false,
+   "licence": "Map data © OpenStreetMap contributors, under the Open Database Licence. Tile schema by OpenMapTiles. The OpenFreeMap software is MIT.",
+   "attribution": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "attributionUrl": "https://www.openstreetmap.org/copyright",
+   "attributionNote": "This is the wording OpenFreeMap asks for, and the OpenStreetMap credit inside it is a condition of the ODbL rather than a courtesy — the licence asks that a reader can reach it, which is what attributionUrl is for. It is never suppressed, never moved off-screen and never made smaller than the type scale's floor. It is rendered from this file rather than from whatever the provider's own tile metadata happens to say: a credit supplied by the party being credited can stop being supplied without anybody noticing, and this one cannot.",
+   "usagePolicy": "No registration, no API key and no cookies. No limit on the number of map views or requests, and commercial use is allowed — both stated in as many words. There is also no service level: the maintainer says he offers no SLA guarantees or personalised support, and the public instance is funded by donations.",
+   "usagePolicyUrl": "https://openfreemap.org/",
+   "styleWhy": "Positron is the palest of the four styles offered, and this map has its own things to say. Pins, zones and the straight line are the only saturated marks on the board; a street map that competes with them is a street map that has buried the visit waiting fifty minutes.",
+   "previewOnly": true,
+   "whyPreviewOnly": "A design preview may sit on a free public instance and this one does. A dispatch board a nurse depends on may not: there is no uptime commitment to point at, no operator agreement under POPIA, and no say in where the requests are logged or for how long. Before launch this endpoint is replaced by one MyThuso runs itself, from the planet extracts OpenFreeMap publishes weekly for exactly that purpose. Changing it is an edit to this file.",
+   "loadTimeoutMs": 8000,
+   "loadTimeoutWhy": "A captive portal does not refuse a request, it answers it with a sign-in page, and a map waiting on that waits for ever. Eight seconds and the schematic comes back."
+  },
+
+  "tiles": {
+   "default": "off",
+   "whyOff": "The default is the setting nobody chooses, so it has to be the one that asks nothing of anybody. A patient opening this screen is watching for a nurse, not deciding about a mapping vendor, and on-by-default would have made the request before she had read the sentence describing it. Off also keeps the map library out of her handset until she asks for it, which on a prepaid bundle is the difference between a screen and a screen plus 1.8 MB.",
+   "showLabel": "Show streets",
+   "hideLabel": "Hide streets",
+   "offSentence": "Streets are off, so the map is drawn from the coordinates alone and nothing has been asked of anybody. Turning them on asks OpenFreeMap for the streets underneath: it would then see which square of the city is on screen, the internet address that asked, and when. It is never told what is drawn on top.",
+   "onSentence": "Streets are on, so OpenFreeMap has been asked for this part of the city. It can see the square on screen, the internet address that asked and the time — never the visit, never the patient and never the nurse. The closest zoom this map allows makes that square about 1.1 km across: a suburb, not a house.",
+   "notRemembered": "This choice is not remembered. Streets are off again the next time this screen opens.",
+   "squareMetres": 1098,
+   "_squareMetresNote": "The width of one tile at the map's maximum zoom, at the latitude of the window centre: 40075017 × cos(lat) ÷ 2^maxZoom metres. It is the finest thing a tile request can distinguish, which is what makes 'a suburb, not a house' a measurement rather than a reassurance. tests/map.spec.ts recomputes it from window.maxZoom and fails if the sentence above and this number stop agreeing."
+  },
+
+  "withoutTiles": {
    "name": "Schematic",
-   "sentence": "No map tiles are configured for this build, so the map is drawn from the coordinates alone: the zones, the visits and the nurses, in their real positions, without streets behind them.",
+   "sentence": "This map is drawn from the coordinates alone: the zones, the visits and the nurses, in their real positions, without streets behind them. No tile server is asked for anything.",
    "why": "A map that fails to a grey rectangle when a key is missing teaches a dispatcher to distrust the screen. The schematic is a complete answer to the same question — who is where — drawn from the same numbers, and it needs no network at all."
   },
+
+  "unreachable": {
+   "sentence": "The streets did not arrive, so the map has gone back to drawing from the coordinates alone. It answers the same question and needs no network.",
+   "why": "A tile server can be down, over its limit, or quietly replaced by the sign-in page of a clinic's wifi. All three end here rather than at a grey rectangle, because a controller who has seen one grey rectangle stops believing the board at the moment they most need to."
+  },
+
   "suppressedLayers": [
-   "poi-label", "poi-label-major", "airport-label", "settlement-minor-label",
-   "natural-point-label", "natural-line-label", "transit-label", "building-number-label"
+   "airport", "highway-shield-us-interstate", "road_shield_us", "highway-name-path",
+   "label_state", "label_country_1", "label_country_2", "label_country_3"
   ],
-  "whySuppressed": "A dispatch board is not a street directory. Every restaurant, filling station and church the base map wants to name is one more thing between a controller and the visit that has been waiting fifty minutes. Suburb names, roads and water stay; the rest is turned off.",
+  "whySuppressed": "A dispatch board is not a street directory. Positron names no shops or filling stations to begin with, so what goes is the rest of the noise: the name of the country and the province a controller is already standing in, American route shields, airports and footpath names. Suburb names, roads and water stay.",
   "attributionRequired": true,
-  "attributionNote": "Mapbox and OpenStreetMap attribution is a licence condition, not a design choice. It is never suppressed, never moved off-screen and never made smaller than the type scale's floor."
+  "attributionNote": "Attribution is a licence condition, not a design choice. The words are source.attribution and they are rendered on the map itself whenever streets are drawn."
  },
 
  "marks": [
@@ -81,6 +122,11 @@
     "id": "nothing-leaves-for-a-tile",
     "statement": "The tile server is asked for streets. It is never told what is on top of them — no visit, no patient, no nurse position is sent to any mapping provider.",
     "why": "A map vendor that can see your pins can see your caseload. The zones, the visits and the nurses are drawn by this application on top of tiles that know nothing about them."
+   },
+   {
+    "id": "a-tile-request-is-a-viewport",
+    "statement": "Asking for streets still tells the tile server something: which square of the map is open, the internet address that asked, and the time. Over a visit that is roughly which suburb a patient is in and roughly when somebody came to the house. Streets are off until the person looking turns them on, and the schematic asks nobody anything.",
+    "why": "Until this map drew streets no tile was ever fetched, so there was nothing to disclose and nobody had disclosed it. Now there is. A viewport is not a pin, but a health service whose viewports a third party can watch has handed over a weaker version of the same thing, and one nobody agreed to. The sentence is rendered beside the switch rather than filed in a policy page, because the switch is where the decision is actually made."
    }
   ]
  },

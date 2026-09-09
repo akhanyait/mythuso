@@ -79,7 +79,26 @@ export function suburbPin(areaName: string): LatLng | undefined {
  return zoneByName(areaName)?.at;
 }
 
-/* The token is read from the environment at build time and its absence is a state, not a failure.
-   No token is committed to this repository: a key in source is a key in every fork of it. */
-export const mapboxToken: string = (import.meta.env?.VITE_MAPBOX_TOKEN as string | undefined) ?? '';
-export const tilesAvailable = mapboxToken.startsWith('pk.');
+/* The tile source, and the fact that drawing from it is somebody's decision rather than a default.
+ *
+ * There is no key to read any more. MapLibre draws from an openly licensed endpoint that wants no
+ * account, so the question stopped being "does this build have a token" and became "has the person
+ * looking at this screen asked for streets" — which is a better question, because it is the one
+ * with a privacy answer. A tile request tells its server which square of the city is open, the
+ * internet address that asked, and when; over a visit that is roughly which suburb a patient is in
+ * and roughly when somebody came to the house. That is small, it is real, and until this map drew
+ * streets nobody had had to disclose it. So the default is off, the switch is on the map, and the
+ * sentence describing the request sits beside the switch that causes it. */
+export const source = rendering.source;
+export const tiles = rendering.tiles;
+
+/* One escape hatch, at build time: VITE_MAP_TILES=off builds a preview with no tile source at all.
+   The switch then does not appear and the schematic is the whole map — the state both native apps
+   are permanently in, and the one a deployment behind a firewall that blocks the endpoint should
+   ship rather than offering a switch that cannot work. */
+const tileSwitch = ((import.meta.env?.VITE_MAP_TILES as string | undefined) ?? '').toLowerCase();
+export const tilesOffered = tileSwitch !== 'off' && Boolean(source.styleUrl);
+
+/* Off, and stated in the contract so that turning it on is an edit somebody has to justify rather
+   than a boolean somebody flips. */
+export const tilesStartOn = tilesOffered && tiles.default === 'on';

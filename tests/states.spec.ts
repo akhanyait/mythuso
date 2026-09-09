@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { goSection } from './nav';
 /* The two states a real condition produces, driven by the condition.
  *
@@ -158,17 +159,26 @@ test('signal lost while the log is open is noticed, not waited for', async ({ pa
 
 /* What a nurse downloads before she can see her first visit.
  *
- * mapbox-gl is 1.8 MB. It was in the patient's bundle; taking it out put it in the staff bundle,
- * which is worse rather than better — a patient opens this app a few times a month, usually on wifi,
- * and a nurse has it open all day in the field on a prepaid bundle she is paying for out of the
- * visit fee. This asserts the shape that fixed it: the map is a dynamic import, so in a build with
- * no tile token — this repository, and every run of this suite — it is never requested at all.
+ * The map library is 1.8 MB. It was in the patient's bundle; taking it out put it in the staff
+ * bundle, which is worse rather than better — a patient opens this app a few times a month, usually
+ * on wifi, and a nurse has it open all day in the field on a prepaid bundle she is paying for out of
+ * the visit fee. This asserts the shape that fixed it: the map is a dynamic import, so a session
+ * that never opens a map never requests it.
+ *
+ * The pattern is wider than it was rather than narrower. It named mapbox-gl, and the library is
+ * MapLibre now; mapbox stays in it anyway, because a change that puts the old one back is precisely
+ * what this test is for. Added to it: maplibre, and the tile host out of the contract. A tile
+ * request is not a bundle, but it is the other thing a session that opens no map must never make,
+ * and it is the one that leaks a viewport rather than a megabyte.
  *
  * It watches the network rather than the bundle report, because what matters is what the handset
  * actually asks for. */
+const geography = JSON.parse(readFileSync(new URL('../packages/catalog/geography.json', import.meta.url), 'utf8'));
+const mapTraffic = new RegExp(`mapbox|maplibre|TileMap|${geography.rendering.source.host.replace(/\./g, '\\.')}`, 'i');
+
 test('a nurse downloads no map she is never shown', async ({ page }) => {
   const asked: string[] = [];
-  page.on('request', r => { if (/mapbox|TileMap/i.test(r.url())) asked.push(r.url()); });
+  page.on('request', r => { if (mapTraffic.test(r.url())) asked.push(r.url()); });
   await page.goto('/staff.html');
   await page.locator('.staff-signin-roles .record-row').filter({ has: page.getByText('Nurse', { exact: true }) }).click();
   await goSection(page, 'Earnings & payouts');
@@ -176,10 +186,15 @@ test('a nurse downloads no map she is never shown', async ({ page }) => {
 });
 
 test('and the controller who is shown one still gets it', async ({ page }) => {
+  const asked: string[] = [];
+  page.on('request', r => { if (mapTraffic.test(r.url())) asked.push(r.url()); });
   await page.goto('/staff.html');
   await page.locator('.staff-signin-roles .record-row').filter({ has: page.getByText('Control Tower', { exact: true }) }).click();
-  /* No token is committed to this repository, so the schematic is what draws — from the same
-     coordinates, with no network at all. The board is never empty for want of a key. */
+  /* Streets are off until somebody asks for them, so the schematic is what a controller is handed —
+     from the same coordinates, with no network at all. The board is never empty for want of a
+     provider, and opening it has told no tile server that a dispatch board in Johannesburg is
+     open. */
   await expect(page.locator('.livemap-canvas.schematic')).toBeVisible();
   await expect(page.locator('.map-pin').first()).toBeVisible();
+  expect(asked, `the dispatch board fetched a map nobody asked it for: ${asked.join(', ')}`).toEqual([]);
 });

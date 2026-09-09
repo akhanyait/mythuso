@@ -14,6 +14,12 @@
    because those are decisions and a generator would hide the decision. Coordinates are data. The
    difference is the whole reason this file emits one and not the other.
 
+   The tile source's credit is emitted too, and neither native app renders it, which looks like dead
+   data and is not. Attribution is a licence condition on whoever draws the streets, and the moment a
+   native map draws them the words have to already be there — in the same file, in the same wording,
+   out of the same edit that chose the provider. A credit that has to be remembered later is a credit
+   that ends up naming the vendor before last.
+
    Escaping: Swift needs its quotes escaped; Kotlin needs backslash, quote and dollar, because a
    lone $ starts a template. */
 
@@ -78,10 +84,15 @@ ${c.zones.map(z => `        .init(id: ${swift(z.id)}, name: ${swift(z.name)},
 ${c.marks.map(m => `        .init(id: ${swift(m.id)}, name: ${swift(m.name)}, detail: ${swift(m.detail)})`).join(',\n')}
     ]
 
-    /// No tile server is contacted by any native build. The schematic below is what both apps draw.
-    static let schematicName = ${swift(c.rendering.withoutToken.name)}
-    static let schematicSentence = ${swift(c.rendering.withoutToken.sentence)}
+    /// No tile server is contacted by any native build. The schematic below is what both apps draw,
+    /// and it is why tileAttribution is carried without being rendered: the day a native map draws
+    /// streets, the credit is already here, in the same words the web renders, out of the same file.
+    static let schematicName = ${swift(c.rendering.withoutTiles.name)}
+    static let schematicSentence = ${swift(c.rendering.withoutTiles.sentence)}
     static let attributionRequired = ${c.rendering.attributionRequired}
+    static let tileSource = ${swift(c.rendering.source.name)}
+    static let tileAttribution = ${swift(c.rendering.source.attribution)}
+    static let tileLicence = ${swift(c.rendering.source.licence)}
 
     static let privacySentence = ${swift(c.privacy.sentence)}
     static let privacyRules: [GeographyRule] = [
@@ -123,10 +134,17 @@ ${c.zones.map(z => `        Zone(${kotlin(z.id)}, ${kotlin(z.name)}, LatLng(${fi
 ${c.marks.map(m => `        MapMark(${kotlin(m.id)}, ${kotlin(m.name)}, ${kotlin(m.detail)})`).join(',\n')}
     )
 
-    /** No tile server is contacted by any native build. The schematic below is what both apps draw. */
-    const val schematicName = ${kotlin(c.rendering.withoutToken.name)}
-    const val schematicSentence = ${kotlin(c.rendering.withoutToken.sentence)}
+    /**
+     * No tile server is contacted by any native build. The schematic below is what both apps draw,
+     * and it is why tileAttribution is carried without being rendered: the day a native map draws
+     * streets, the credit is already here, in the same words the web renders, out of the same file.
+     */
+    const val schematicName = ${kotlin(c.rendering.withoutTiles.name)}
+    const val schematicSentence = ${kotlin(c.rendering.withoutTiles.sentence)}
     const val attributionRequired = ${c.rendering.attributionRequired}
+    const val tileSource = ${kotlin(c.rendering.source.name)}
+    const val tileAttribution = ${kotlin(c.rendering.source.attribution)}
+    const val tileLicence = ${kotlin(c.rendering.source.licence)}
 
     const val privacySentence = ${kotlin(c.privacy.sentence)}
     val privacyRules = listOf(
