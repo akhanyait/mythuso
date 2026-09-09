@@ -66,10 +66,10 @@ enum Dispatch {
         DispatchJob(id: "TH-2052", service: "Post-operative check", area: "Parktown", window: "As soon as possible", priority: "Urgent", lat: -26.2152, lng: 28.0440)
     ]
     static let nurses = [
-        DispatchNurse(id: "N-108", name: "Sister Palesa Khumalo", area: "Soweto", status: "Available", skills: "Wound care · Maternal", lat: -26.2958, lng: 27.9320),
-        DispatchNurse(id: "N-114", name: "Sister Naledi Mokoena", area: "Rosebank", status: "Available", skills: "Wound care · Chronic care", lat: -26.1346, lng: 28.0632),
-        DispatchNurse(id: "N-133", name: "Sister Refilwe Sithole", area: "Randburg", status: "Available", skills: "Chronic care · Paediatric", lat: -26.1320, lng: 27.8680),
-        DispatchNurse(id: "N-121", name: "Brother Sipho Ndlovu", area: "Melville", status: "On a visit", skills: "Post-operative · Chronic care", lat: -26.2126, lng: 27.8968),
+        DispatchNurse(id: "N-206", name: "Sister Palesa Khumalo", area: "Soweto", status: "Available", skills: "Wound care · Maternal", lat: -26.2958, lng: 27.9320),
+        DispatchNurse(id: "N-205", name: "Sister Naledi Mokoena", area: "Rosebank", status: "Available", skills: "Wound care · Chronic care", lat: -26.1346, lng: 28.0632),
+        DispatchNurse(id: "N-207", name: "Sister Refilwe Sithole", area: "Randburg", status: "Available", skills: "Chronic care · Paediatric", lat: -26.1320, lng: 27.8680),
+        DispatchNurse(id: "N-208", name: "Brother Sipho Ndlovu", area: "Melville", status: "On a visit", skills: "Post-operative · Chronic care", lat: -26.2126, lng: 27.8968),
         /* Two nurses who are on the board and near the job, and still cannot be sent. Availability
            is not permission, so they stay visible with the reason attached rather than disappearing
            and leaving an operator to wonder where they went. */
@@ -320,7 +320,7 @@ struct IncidentDetailView: View {
                 DemoBadge()
                 Text(incident.title).font(.headline)
                 LabeledContent("Opened", value: "\(incident.opened) · \(incident.area)")
-                LabeledContent("Reported by", value: "Sister Palesa Khumalo · N-108")
+                LabeledContent("Reported by", value: "Sister Palesa Khumalo · N-206")
             }
             Section("Triage") {
                 Picker("Severity", selection: $severity) { ForEach(["Low", "Medium", "High", "Critical"], id: \.self) { Text($0) } }

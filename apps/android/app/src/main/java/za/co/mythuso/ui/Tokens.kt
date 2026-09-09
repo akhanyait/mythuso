@@ -62,6 +62,11 @@ object ThusoRadius {
     val tile = 10.dp
     val pill = 999.dp
 }
+/** Opacities, as opacities. A flattened grey cannot follow the ground it sits on; an alpha has no
+    choice but to. */
+object ThusoOpacity {
+    const val charcoalMuted = 0.72f
+}
 object ThusoSpacing {
     val space4 = 4.dp
     val space8 = 8.dp

@@ -46,6 +46,13 @@ export function emitTokens(root = '') {
  const tokens = JSON.parse(readFileSync(root + SOURCE, 'utf8'));
  const colours = Object.entries(tokens.color);
  const radii = Object.entries(tokens.radius);
+ /* The alphas, emitted as alphas. The token file declares charcoalMuted as 0.72 and says in its own
+    note why it cannot be a flattened grey: #5C5C5C fails on paleSage at 4.36 and on softSage at
+    3.51, while the same ink at 72% composites with whatever it sits on and darkens as the ground
+    does. The flattened per-ground pairs are emitted too, for measuring — but a platform handed only
+    those has been handed the thing the note warns against, and Android reported exactly that: it
+    could not spend the token as an alpha, so it used a local constant instead. */
+ const alphas = Object.entries(tokens.opacity ?? {}).filter(([name]) => !name.startsWith('_'));
  /* The type scale and the motion duration used to reach the stylesheet and stop there, so both
     native apps typed the six sizes out by hand — and both, independently, reached past the top of
     the scale for a 22 that did not exist. A number that only one of three platforms can read is a
@@ -80,6 +87,11 @@ ${swiftColours.map((line, index) => `${line.padEnd(widest)} // ${colours[index][
 enum ThusoRadius {
 ${radii.map(([name, value]) => `    static let ${name}: CGFloat = ${value}`).join('\n')}
 }
+/// Opacities, as opacities. A flattened grey cannot follow the ground it sits on; an alpha has no
+/// choice but to.
+enum ThusoOpacity {
+${alphas.map(([name, value]) => `    static let ${name}: Double = ${value}`).join('\n')}
+}
 enum ThusoSpacing {
 ${spacing.map(value => `    static let space${value}: CGFloat = ${value}`).join('\n')}
 }
@@ -111,6 +123,11 @@ ${colours.map(([name, hex]) => `val ${composeNames[name] ?? pascal(name)} = Colo
 
 object ThusoRadius {
 ${radii.map(([name, value]) => `    val ${name} = ${value}.dp`).join('\n')}
+}
+/** Opacities, as opacities. A flattened grey cannot follow the ground it sits on; an alpha has no
+    choice but to. */
+object ThusoOpacity {
+${alphas.map(([name, value]) => `    const val ${name} = ${value}f`).join('\n')}
 }
 object ThusoSpacing {
 ${spacing.map(value => `    val space${value} = ${value}.dp`).join('\n')}

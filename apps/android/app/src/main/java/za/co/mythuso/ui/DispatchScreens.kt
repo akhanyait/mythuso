@@ -75,10 +75,10 @@ private val jobs = listOf(
     DispatchJob("TH-2052", "Post-operative check", "Parktown", "As soon as possible", "Urgent", LatLng(-26.185, 28.036))
 )
 private val nurses = listOf(
-    DispatchNurse("N-108", "Sister Palesa Khumalo", "Soweto", "Available", "Wound care · Maternal", LatLng(-26.253, 27.904)),
-    DispatchNurse("N-114", "Sister Naledi Mokoena", "Rosebank", "Available", "Wound care · Chronic care", LatLng(-26.150, 28.046)),
-    DispatchNurse("N-133", "Sister Refilwe Sithole", "Randburg", "Available", "Chronic care · Paediatric", null),
-    DispatchNurse("N-121", "Brother Sipho Ndlovu", "Melville", "On a visit", "Post-operative · Chronic care", LatLng(-26.171, 27.995)),
+    DispatchNurse("N-206", "Sister Palesa Khumalo", "Soweto", "Available", "Wound care · Maternal", LatLng(-26.253, 27.904)),
+    DispatchNurse("N-205", "Sister Naledi Mokoena", "Rosebank", "Available", "Wound care · Chronic care", LatLng(-26.150, 28.046)),
+    DispatchNurse("N-207", "Sister Refilwe Sithole", "Randburg", "Available", "Chronic care · Paediatric", null),
+    DispatchNurse("N-208", "Brother Sipho Ndlovu", "Melville", "On a visit", "Post-operative · Chronic care", LatLng(-26.171, 27.995)),
     /* The nearest nurse to the Soweto visit, and the one the board must refuse: her SAPS clearance
        passed its renewal date nine days ago and nobody decided anything. */
     DispatchNurse("N-204", "Sister Ayanda Dube", "Soweto", "Available", "Elderly care", LatLng(-26.240, 27.916))
@@ -271,7 +271,7 @@ val incidents = listOf(
     ScreenColumn {
         DemoBadge()
         Heading("Incident management preview", "${incident.id} · ${incident.title}", "Opened ${incident.opened} · ${incident.area}")
-        CareCard { ReviewLine("Reported by", "Sister Palesa Khumalo · N-108"); ReviewLine("Current status", incident.status) }
+        CareCard { ReviewLine("Reported by", "Sister Palesa Khumalo · N-206"); ReviewLine("Current status", incident.status) }
         CareCard {
             Text("Severity", style = MaterialTheme.typography.titleMedium)
             FlowRowChips(listOf("Low", "Medium", "High", "Critical"), setOf(severity)) { severity = it }

@@ -35,7 +35,7 @@ import java.time.temporal.ChronoUnit
  *
  * WHAT BELONGS IN A CONTRACT AND IS NOT THERE YET. The refusal sentences below, and the fact that a
  * nurse is Sister Naledi Mokoena working out of Rosebank — that fixture is typed into
- * ui/DispatchScreens.kt as well, where she is nurse N-114, and into apps/web/src/lib/arrival.ts a
+ * ui/DispatchScreens.kt as well, where she is nurse N-205, the id the vetting register holds, and into apps/web/src/lib/arrival.ts a
  * third time. Three copies of a person is exactly the drift packages/catalog exists to stop. It is
  * reported rather than invented a fourth time.
  *

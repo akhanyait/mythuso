@@ -1172,6 +1172,29 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  }
 }
 
+/* No screen may name a nurse who is not on the register.
+   Sister Naledi Mokoena was N-205 in the vetting register, the capture ledger, the visit queue and
+   the consultation record — and **N-114** on all three dispatch boards and in the arrival view. One
+   person, two ids, and the second one existed nowhere. On a product whose whole premise is that a
+   credential gates dispatch, a nurse carrying an id the register has never heard of is precisely
+   what vetting exists to catch, and nothing was watching.
+
+   So every N-nnn a hand-written source names must be a party the fixtures actually hold. */
+{
+ const fixtures = read('apps/web/src/lib/vetting-fixtures.ts');
+ const known = new Set([...fixtures.matchAll(/id:\s*'(N-\d+)'/g)].map(m => m[1]));
+ if(known.size < 2) throw new Error('scripts/check-boundaries.mjs can no longer read the nurse ids out of apps/web/src/lib/vetting-fixtures.ts, so the check that every named nurse is on the register is checking nothing.');
+ const sources = files('apps/web/src')
+  .concat(files('apps/ios/MyThuso')).concat(files('apps/android/app/src/main'))
+  .filter(f => /\.(tsx?|swift|kt)$/.test(f) && !/Data\.(swift|kt)$/.test(f) && !f.endsWith('vetting-fixtures.ts'));
+ for(const file of sources) {
+  const code = read(file).replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.replace(/(^|\s)\/\/.*$/, '')).join('\n');
+  for(const [, id] of code.matchAll(/['"](N-\d+)['"]/g)) {
+   if(!known.has(id)) throw new Error(`${file} names nurse ${id}, and the vetting register has no such party. A nurse who is not on the register is a nurse nothing has vetted — which is the one thing this product refuses to let a dispatch board do. Use the id the register holds, or add her to it.`);
+  }
+ }
+}
+
 /* Streets, and the three things that make drawing them defensible.
    A tile request tells whoever serves it which square of Johannesburg somebody is looking at — for
    a patient that is roughly which suburb she is in, and roughly when a nurse came to her house.

@@ -32,10 +32,10 @@ const initialJobs: Job[] = [
  { id: 'TH-2052', service: 'Post-operative check', area: 'Parktown', window: 'As soon as possible', at: { lat: -26.185, lng: 28.036 }, priority: 'Urgent' }
 ];
 const nurses: Nurse[] = [
- { id: 'N-114', name: 'Sister Naledi Mokoena', area: 'Rosebank', at: { lat: -26.150, lng: 28.046 }, status: 'Available', skills: ['Wound care', 'Chronic care'] },
- { id: 'N-108', name: 'Sister Palesa Khumalo', area: 'Soweto', at: { lat: -26.253, lng: 27.904 }, status: 'Available', skills: ['Wound care', 'Maternal'] },
- { id: 'N-121', name: 'Brother Sipho Ndlovu', area: 'Melville', at: { lat: -26.171, lng: 27.995 }, status: 'On a visit', skills: ['Post-operative', 'Chronic care'] },
- { id: 'N-133', name: 'Sister Refilwe Sithole', area: 'Randburg', at: null, status: 'Available', skills: ['Chronic care', 'Paediatric'] },
+ { id: 'N-205', name: 'Sister Naledi Mokoena', area: 'Rosebank', at: { lat: -26.150, lng: 28.046 }, status: 'Available', skills: ['Wound care', 'Chronic care'] },
+ { id: 'N-206', name: 'Sister Palesa Khumalo', area: 'Soweto', at: { lat: -26.253, lng: 27.904 }, status: 'Available', skills: ['Wound care', 'Maternal'] },
+ { id: 'N-208', name: 'Brother Sipho Ndlovu', area: 'Melville', at: { lat: -26.171, lng: 27.995 }, status: 'On a visit', skills: ['Post-operative', 'Chronic care'] },
+ { id: 'N-207', name: 'Sister Refilwe Sithole', area: 'Randburg', at: null, status: 'Available', skills: ['Chronic care', 'Paediatric'] },
  { id: 'N-204', name: 'Sister Ayanda Dube', area: 'Soweto', at: { lat: -26.240, lng: 27.916 }, status: 'Available', skills: ['Elderly care', 'Chronic care'] }
 ];
 const unlocated = nurses.filter(n => n.status !== 'Off duty' && !n.at).length;
@@ -243,7 +243,7 @@ export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?:
   <h3>{incident.id} · {incident.title}</h3>
   <NotConnected of="dispatch"/>
   <div className="review-line"><span>Opened</span><strong>{incident.opened} · {incident.area}</strong></div>
-  <div className="review-line"><span>Reported by</span><strong>Sister Palesa Khumalo · N-108</strong></div>
+  <div className="review-line"><span>Reported by</span><strong>Sister Palesa Khumalo · N-206</strong></div>
   <label>Severity<select value={severity} onChange={e => setSeverity(e.target.value)}><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label>
   {severity === 'Critical' && <div className="privacy-note alert"><CircleAlert size={19}/>A critical incident pages the on-call clinical lead immediately. The form is never a prerequisite for calling emergency services.</div>}
   <label>Immediate action<select value={action} onChange={e => setAction(e.target.value)}><option value="">Choose an action…</option>

@@ -59,6 +59,11 @@ enum ThusoRadius {
     static let tile: CGFloat = 10
     static let pill: CGFloat = 999
 }
+/// Opacities, as opacities. A flattened grey cannot follow the ground it sits on; an alpha has no
+/// choice but to.
+enum ThusoOpacity {
+    static let charcoalMuted: Double = 0.72
+}
 enum ThusoSpacing {
     static let space4: CGFloat = 4
     static let space8: CGFloat = 8

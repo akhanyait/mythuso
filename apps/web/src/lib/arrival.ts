@@ -31,7 +31,7 @@ import { isoIn } from './scheduling';
  *
  * WHAT BELONGS IN A CONTRACT AND IS NOT THERE YET. The refusal sentences below, and the fact that a
  * nurse is Sister Naledi Mokoena working out of Rosebank — that fixture is typed into
- * features/Dispatch.tsx as well, where it is nurse N-114, and two copies of a person is exactly the
+ * features/Dispatch.tsx as well, where she is nurse N-205, the id the vetting register holds, and two copies of a person is exactly the
  * drift packages/catalog exists to stop. Both are reported rather than invented a third time.
  *
  * Nothing here reads a device. dispatch is not connected, the positions are the contract's own zone
