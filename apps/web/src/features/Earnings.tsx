@@ -3,11 +3,13 @@ import { ArrowRight, Ban, BadgeCheck, Building2, CalendarClock, CircleAlert, Inf
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
 import { Metric, Metrics } from '../surface/Surface';
 import { NotConnected } from '../components/NotConnected';
+import { blockedBy } from '../lib/capabilities';
 import { liveServices, money, type Service } from '../lib/catalog';
 import {
  account, currentWeek, cycle, lineKindById, owedNotYetPaid, paidThisTaxYear, refusalById, refusals,
  ruleById, shareRange, splitOf, stateById, taxYear, weeks, type EarningWeek
 } from '../lib/earnings';
+import { days, forecast, hoursOffered, typicalOver, typicalShare } from '../lib/forecast';
 import { can, type VettingSubject } from '../lib/vetting';
 import { subjectById } from '../lib/vetting-fixtures';
 
@@ -81,6 +83,85 @@ function Split({ service, onPick }: { service: Service; onPick: (id: string) => 
   </div>
   <p className="earn-rule"><Info size={15}/>{rule.sentence}</p>
   <p className="helper">Across the nine services at launch that is {money(shareRange.low)} to {money(shareRange.high)} a visit — the same range the public page advertises, read from the same catalogue.</p>
+ </div>;
+}
+
+/* ---- If you take a shift ---------------------------------------------------------------------
+ *
+ * The rest of this screen is a record. This is the one part of it that helps somebody decide
+ * something, and the decision is always the same one: is Saturday worth it. A total cannot answer
+ * that — R598 is not an answer to "how much more" — so everything here is a difference, and the
+ * difference is bounded rather than predicted. Nothing in MyThuso knows what dispatch will fill;
+ * there is no roster, and the capability contract says so in the words below.
+ *
+ * The three stops are arithmetic on two contracts: the scheduling contract's nine hourly slots, and
+ * the services catalogue's nurse share. The one in the middle is not an estimate either — it is the
+ * mean of the visits she has actually been paid for, counted off her own weeks.
+ */
+function Shift() {
+ const offered = days();
+ const [dayIso, setDayIso] = useState(offered[0].iso);
+ const [hours, setHours] = useState<string[]>([]);
+ const day = offered.find(d => d.iso === dayIso)!;
+ const view = forecast({ day, hours });
+ const toggle = (hour: string) => setHours(current => current.includes(hour) ? current.filter(h => h !== hour) : [...current, hour].sort());
+ const added = rand(view.typical);
+ /* The tick sits where her own mix falls between nothing and every hour at the highest share. It is
+    a position on a track and carries no text, because a marker with a word on it becomes a label
+    that has to stay legible at every width it can land at. */
+ const at = view.highest ? Math.round((view.typical / view.highest) * 100) : 0;
+ return <div className="panel form-stack fc">
+  <div className="date-strip" role="group" aria-label="Which day you could work">
+   {offered.map(entry => <button key={entry.iso} type="button" aria-pressed={dayIso === entry.iso}
+    aria-label={`${entry.weekday} ${entry.day} ${entry.month}`}
+    className={`date-chip ${dayIso === entry.iso ? 'selected' : ''}`} onClick={() => { setDayIso(entry.iso); }}>
+    <span>{entry.weekday}</span><strong>{entry.day}</strong><span>{entry.month}</span>
+   </button>)}
+  </div>
+  <div className="time-grid" role="group" aria-label="Which hours you could work">
+   {hoursOffered.map(hour => <button key={hour} type="button" aria-pressed={hours.includes(hour)}
+    className={`time-chip ${hours.includes(hour) ? 'selected' : ''}`} onClick={() => toggle(hour)}>{hour}</button>)}
+  </div>
+  <p className="helper">Hourly, and the hour after twelve is missing because a nurse eats. One visit fits an hour whether it is a twenty-minute injection or an hour of elderly care, so the hours you offer are the visits that can reach you.</p>
+
+  {!hours.length
+   ? <div className="fc-empty" role="status"><CalendarClock size={22}/><div><strong>No hours offered yet</strong>
+     <p>Tap the hours you could work on {day.weekday} {day.day} {day.month} and this says what they would add — not what you would have, what would be different.</p></div></div>
+   : <>
+    <div className="fc-lead">
+     <Metric prefix={`+ ${added.prefix}`} value={added.value} chip={`${view.hours} ${view.hours === 1 ? 'hour' : 'hours'} · ${view.hours} ${view.hours === 1 ? 'visit' : 'visits'} at most`}
+      label={`Added ${view.inThisWeek ? 'to this week' : 'to next week'}, on the mix you have been doing`}/>
+     <div className="fc-range">
+      <div className="fc-track" role="img" aria-label={`Between nothing and ${money(view.highest)}, with your own mix at ${money(view.typical)}`}>
+       <i style={{ width: `${at}%` }}/><b style={{ left: `${at}%` }}/>
+      </div>
+      <div className="fc-stops">
+       <div><strong>{money(view.nothing)}</strong><small>If nothing is booked into them</small></div>
+       <div className="fc-stop-typical"><strong>{money(view.typical)}</strong><small>Your own mix, across {typicalOver} visits — about {money(Math.round(typicalShare))} each</small></div>
+       <div><strong>{money(view.highest)}</strong><small>Every hour filled, at the highest share</small></div>
+      </div>
+     </div>
+    </div>
+
+    {/* Which week it lands in, which is the fact a person deciding on a Tuesday actually needs and
+        the one nothing on this screen used to answer. It is arithmetic on the payout cycle. */}
+    <div className="fc-week">
+     {view.inThisWeek
+      ? <><div className="review-line"><span>This week so far</span><strong>{money(view.weekSoFar)}</strong></div>
+        <div className="review-line"><span>With that shift, on your own mix</span><strong>{money(view.weekWithIt)}</strong></div>
+        <p className="helper"><CalendarClock size={13}/><span>It would reach your account on {view.paysText}, if it fills that way.</span></p></>
+      : <><div className="review-line"><span>This week so far</span><strong>{money(currentWeek.total)}</strong></div>
+        <div className="review-line"><span>{day.weekday} {day.day} {day.month}</span><strong>Next week</strong></div>
+        <p className="helper"><CalendarClock size={13}/><span>That day falls after this week ends on {view.endsText}, so it changes this week’s figure by nothing at all. It would reach your account a week later, on {view.paysText}.</span></p></>}
+    </div>
+   </>}
+
+  {/* The refusal that matters most on a screen about money that has not been earned. It is the
+      contract's own sentence, not a paraphrase — a forecast is exactly where somebody would think
+      of borrowing against it. */}
+  <div className="earn-refusal"><Ban size={19}/><p>{refusalById('lend-against-earnings').sentence}</p></div>
+  <p className="earn-rule"><Info size={15}/>{ruleById('accrued-is-not-paid').sentence}</p>
+  <p className="helper"><CircleAlert size={13}/><span>Offering an hour does not book a visit into it. What would make this a plan rather than arithmetic is the thing booking is still waiting for: {blockedBy('booking')[0].toLowerCase()}</span></p>
  </div>;
 }
 
@@ -176,6 +257,12 @@ export function Earnings() {
    <Metric {...rand(paidThisTaxYear)} label="Reached your account this tax year" chip={`Since ${taxYear.startsOn}`}/>
   </Metrics>
   <p className="earn-rule"><Info size={15}/>{ruleById('accrued-is-not-paid').sentence}</p>
+
+  {/* Directly under the three figures, because the question a nurse asks straight after "what have
+      I earned" is "what would another shift be worth", and every other section on this screen is a
+      record of something that has already happened. */}
+  <SectionTitle title="If you take a shift"/>
+  <Shift/>
 
   <SectionTitle title="Where the money goes"/>
   <Split service={service} onPick={setServiceId}/>

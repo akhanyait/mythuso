@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Ban, Building2, CalendarClock, Check, CircleAlert, ClipboardList, FlaskConical, KeyRound, Pill as PillIcon, Radio, Repeat, Sigma, Stethoscope, ShieldCheck, ShieldX, Undo2, UserCheck, Video, X } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Ban, Building2, CalendarClock, Check, CircleAlert, ClipboardList, CloudOff, FlaskConical, Inbox, KeyRound, Pill as PillIcon, Radio, Repeat, Sigma, Stethoscope, ShieldCheck, ShieldX, Undo2, UserCheck, Video, X } from 'lucide-react';
 import { SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
 import { CodeInput, StepHead } from '../components/Steps';
 import { CalibrationCaveat, CalibrationTag, ProvenanceTag, type Source } from '../components/Provenance';
 import { KitCapture } from './KitCapture';
-import { rules } from '../lib/capture';
+import { CaptureStanding, WaitingToSend, useSeededQueue, useSignal, useVisitQueue, useWaitingCount } from './VisitQueue';
+import { nextCaptureId, rules, type Capture } from '../lib/capture';
+import { hold, isPending, seal } from '../lib/visit-queue';
 import { can } from '../lib/vetting';
 import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
 import { ConsultationComposer, assessmentFields } from './Consultation';
@@ -39,6 +41,13 @@ export const demoVisitCode = '482190';
 const stages = ['Identity', 'Consent', 'Observations', 'Findings', 'Sign-off'] as const;
 export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molefe', onClose }: { reference?: string; patient?: string; onClose: () => void }) {
  const [stage, setStage] = useState(0);
+ /* The connection, and what has not left this phone. Held here rather than inside the queue panel
+    so the strip at the top of every stage and the panel it opens can never disagree. */
+ const signal = useSignal();
+ const [queueOpen, setQueueOpen] = useState(false);
+ useSeededQueue();
+ const queue = useVisitQueue();
+ const waiting = useWaitingCount(queue);
  const [otp, setOtp] = useState('');
  const [otpError, setOtpError] = useState('');
  const [idSeen, setIdSeen] = useState(false);
@@ -83,6 +92,24 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
  const meanArterial = values.systolic && values.diastolic && !Number.isNaN(systolic) && !Number.isNaN(diastolic) && systolic > diastolic
   ? Math.round(diastolic + (systolic - diastolic) / 3) : null;
  const derivedSource: Source = { provenance: 'derived', inputs: ['the systolic reading', 'the diastolic reading'] };
+
+ /* ---- Nothing here reaches a record, so everything here is held ------------------------------
+    Each stage, on being finished, is put on the queue in lib/visit-queue.ts. Not on being started
+    and not on being typed into: what is held is work that is done, so a nurse reading the queue
+    reads back the visit rather than a form's autosave. The queue outlives this component, which is
+    the point — walking from the bedroom to the car used to lose the assessment. */
+ const sealedHere = queue.filter(p => p.visit === reference && isPending(p));
+ const holdPart = (kind: Parameters<typeof hold>[0]['kind'], summary: string, detail: [string, string][], readings?: Capture[]) =>
+  hold({ kind, visit: reference, patient, summary, detail, readings, by: signingNurse.id, byName: signingNurse.name });
+ /* A reading leaves this screen as the same Capture the instrument surface produces, so it is
+    answered on arrival by capture.ts's own receive() rather than by a second set of rules. */
+ const asCaptures = (): Capture[] => captured.map(o => ({
+  id: nextCaptureId(), observationId: o.id, label: o.label, unit: o.unit, value: o.value,
+  provenance: o.source!.provenance, serial: o.source!.serial, calibration: o.source!.calibration,
+  context: o.source!.context, inputs: o.source!.inputs, saidBy: o.source!.saidBy,
+  by: signingNurse.id, byName: signingNurse.name, deviceAt: new Date().toISOString(), state: 'captured'
+ }));
+
  /* Once the visit is signed off, the step counter has nothing left to count: what follows is the
     consultation record the visit produced, in the standard structure, not a sixth step. */
  if (signed && consultation) return <ConsultationComposer reference={reference} patient={patient} writer="N-205" onClose={onClose}
@@ -90,6 +117,10 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
              ...(meanArterial ? [{ id: 'mean-arterial', label: 'Mean arterial pressure', unit: 'mmHg', value: String(meanArterial), flagged: false, source: derivedSource }] : [])]}
   seed={{ reason: `Home visit · ${reference}`, history: symptoms.length ? `Reported: ${symptoms.join(', ')}.` : '', plan: escalation, notes }}/>;
  return <div className="assessment">
+  {/* Above the step counter, on every stage, because "has any of this left the phone" is a question
+      a nurse answers by looking rather than by opening something. */}
+  <CaptureStanding online={signal.online} waiting={waiting} open={queueOpen} onToggle={() => setQueueOpen(!queueOpen)}/>
+  {queueOpen && <WaitingToSend visit={reference} signal={signal}/>}
   <StepHead step={stage + 1} total={stages.length} label={stages[stage]}/>
   <div className="review-line"><span>Visit</span><strong>{reference} · {patient}</strong></div>
   {stage === 0 ? <div className="form-stack">
@@ -101,14 +132,26 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
    <p className="helper" id="otp-help" role="status">{otpError || 'The code changes for every visit and expires when the visit ends.'}</p>
    <label className="checkbox"><input type="checkbox" checked={idSeen} onChange={e => setIdSeen(e.target.checked)}/><span>I have seen the patient’s identity document or a household member has confirmed identity.</span></label>
    <div className="privacy-note"><KeyRound size={19}/>If the code fails, the visit does not start. The nurse contacts the Control Tower instead of proceeding.</div>
-   <div className="button-row"><button className="secondary" onClick={onClose}><ArrowLeft size={16}/>Leave</button><button className="primary" disabled={otp.length < 6 || !idSeen} onClick={() => otp === demoVisitCode ? setStage(1) : setOtpError('That code doesn’t match this visit. Call the Control Tower before continuing.')}>Confirm identity<ArrowRight size={16}/></button></div>
+   <div className="button-row"><button className="secondary" onClick={onClose}><ArrowLeft size={16}/>Leave</button><button className="primary" disabled={otp.length < 6 || !idSeen} onClick={() => {
+     if (otp !== demoVisitCode) { setOtpError('That code doesn’t match this visit. Call the Control Tower before continuing.'); return; }
+     holdPart('identity', `Code confirmed at the door for ${patient.split(' ')[0]}`,
+      [['Visit code', 'Six digits, matched'], ['Identity', 'Document seen, or a household member confirmed it']]);
+     setStage(1);
+    }}>Confirm identity<ArrowRight size={16}/></button></div>
+   {/* The code is checked against the visit this phone already had. With no signal there is nothing
+       else to check it against, and saying so is better than a tick that means less than it looks. */}
+   {!signal.online && <p className="helper" role="status"><CloudOff size={13}/><span>With no signal the code is checked against the visit already on this phone, and checked again by the server when the visit sends. A code that fails then stops the record being filed; it does not undo a visit that has already happened.</span></p>}
   </div> : stage === 1 ? <div className="form-stack">
    <h3>Consent, in plain words.</h3>
    <p className="muted">Read these aloud. {patient.split(' ')[0]} can decline any part and still receive the rest of the visit.</p>
    <label className="checkbox"><input type="checkbox" checked={consent.assessment} onChange={e => setConsent({ ...consent, assessment: e.target.checked })}/><span>“May I check your blood pressure, pulse, temperature and other basic readings today?”</span></label>
    <label className="checkbox"><input type="checkbox" checked={consent.record} onChange={e => setConsent({ ...consent, record: e.target.checked })}/><span>“May I add today’s readings to your Health Passport, where a doctor can review them?”</span></label>
    <div className="privacy-note"><ShieldCheck size={19}/>Refusal is recorded as a valid outcome, not a failed visit. A guardian consents for a child or where authority is verified.</div>
-   <div className="button-row"><button className="secondary" onClick={() => setStage(0)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={!consent.assessment} onClick={() => setStage(2)}>Start observations<ArrowRight size={16}/></button></div>
+   <div className="button-row"><button className="secondary" onClick={() => setStage(0)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={!consent.assessment} onClick={() => {
+    holdPart('consent', consent.record ? 'Agreed to the assessment and to it reaching a doctor' : 'Agreed to the assessment; declined the Health Passport',
+     [['Today’s readings', 'Agreed'], ['Into her Health Passport', consent.record ? 'Agreed' : 'Declined — recorded as a valid outcome']]);
+    setStage(2);
+   }}>Start observations<ArrowRight size={16}/></button></div>
   </div> : stage === 2 ? <div className="form-stack">
    <h3>Today’s readings</h3>
    <p className="muted">Leave anything you did not measure blank. A number you type is a clinician’s reading; a number the kit takes is an instrument’s. The record keeps them apart because they are different facts, not because one is better.</p>
@@ -137,7 +180,11 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
     onCapture={c => { setValues(current => ({ ...current, [c.observationId]: c.value })); setSources(current => ({ ...current, [c.observationId]: { provenance: 'device', serial: c.serial, calibration: c.calibration, context: c.context } })); }}/>}
    <div className={abnormal.length ? 'privacy-note alert' : 'privacy-note'}><CircleAlert size={19}/>{abnormal.length ? `${abnormal.length} reading${abnormal.length > 1 ? 's are' : ' is'} outside the indicative range. Flagging is a prompt for your judgement — it is not a validated early-warning score and it does not triage the patient.` : 'Readings are compared against indicative adult reference ranges only. Clinical judgement stays with you.'}</div>
    <div className="privacy-note"><CircleAlert size={19}/>{rules.provenanceIsRequired} A field you clear loses its origin along with its number, because there is nothing left to attribute.</div>
-   <div className="button-row"><button className="secondary" onClick={() => setStage(1)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={!captured.length || invalid} onClick={() => setStage(3)}>Record findings<ArrowRight size={16}/></button></div>
+   <div className="button-row"><button className="secondary" onClick={() => setStage(1)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={!captured.length || invalid} onClick={() => {
+    holdPart('observations', `${captured.length} ${captured.length === 1 ? 'reading' : 'readings'}, each with where it came from`,
+     captured.map(o => [o.label, `${o.value} ${o.unit}`] as [string, string]), asCaptures());
+    setStage(3);
+   }}>Record findings<ArrowRight size={16}/></button></div>
   </div> : stage === 3 ? <div className="form-stack">
    <h3>What did you find?</h3>
    <fieldset className="chip-set"><legend>Reported symptoms</legend>{['Headache', 'Dizziness', 'Shortness of breath', 'Chest pain', 'Swelling', 'Fatigue', 'Nausea', 'None reported'].map(s =>
@@ -148,9 +195,30 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
     <option>No escalation — routine visit</option><option>Refer for doctor review within 24 hours</option><option>Refer for doctor review today</option><option>Advise clinic or emergency department now</option><option>Emergency services called from the home</option>
    </select></label>
    {escalation.includes('Emergency') && <div className="privacy-note alert"><CircleAlert size={19}/>Choosing this opens the emergency pathway immediately and alerts the Control Tower before the form is finished. It never waits for the rest of the form.</div>}
-   <div className="button-row"><button className="secondary" onClick={() => setStage(2)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStage(4)}>Review sign-off<ArrowRight size={16}/></button></div>
+   <div className="button-row"><button className="secondary" onClick={() => setStage(2)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => {
+    holdPart('findings', symptoms.length ? `${symptoms.join(', ')} · ${escalation.toLowerCase()}` : escalation,
+     [['Symptoms', symptoms.length ? symptoms.join(', ') : 'None recorded'], ['Next step', escalation],
+      ['Visit notes', notes.trim() ? `${notes.trim().split(/\s+/).length} words` : 'None written']]);
+    setStage(4);
+   }}>Review sign-off<ArrowRight size={16}/></button></div>
   </div> : <div className="form-stack">
-   {signed ? <><div className="success-icon"><BadgeCheck size={30}/></div><h3>Assessment closed.</h3><p className="muted">This becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration. It can be corrected by a later entry and never by editing this one.</p>
+   {/* Signed, and what that did depends on whether anything can leave the phone. A closing screen
+       that says "this becomes an entry in her Health Passport" while five sealed pieces sit on a
+       handset in Ivory Park is the one sentence on this flow that must never be printed wrongly:
+       everything downstream — the doctor, the prescription, the referral — is a person believing
+       it. So the outcome is written from the queue rather than from the button that was pressed. */}
+   {signed ? <><div className="success-icon"><BadgeCheck size={30}/></div>
+    <h3>{sealedHere.length ? 'Assessment sealed.' : 'Assessment closed.'}</h3>
+    <p className="muted">{sealedHere.length
+     ? `Signed, and held on this phone. ${sealedHere.length} ${sealedHere.length === 1 ? 'piece' : 'pieces'} of this visit are sealed and waiting for a connection: you have done everything that can be done about them. Nothing is in ${patient.split(' ')[0]}’s Health Passport yet and no doctor can read it, so nothing may be relied on downstream until it sends.`
+     : 'This becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration. It can be corrected by a later entry and never by editing this one.'}</p>
+    {/* The queue lives once, above the step counter, and this opens it there rather than drawing a
+        second copy of it here. The scroll is instant: a smooth one ignores a reader who has asked
+        for stillness, and there is nothing to see on the way. */}
+    {sealedHere.length > 0 && <button type="button" className="secondary full" onClick={() => {
+     setQueueOpen(true);
+     document.querySelector('.vq-strip')?.scrollIntoView({ block: 'start' });
+    }}><Inbox size={17}/>See what is waiting, and send it when you have signal</button>}
     <button className="secondary full" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Open the consultation record this produced</button>
     <p className="helper">The readings, the symptoms and the next step are carried across as they were captured. The structure is the same one a doctor writes into, so nobody re-types a visit into a second shape.</p>
     <button className="primary full" onClick={onClose}>Back to the workspace<ArrowRight size={17}/></button></> : <>
@@ -165,7 +233,15 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
     <div className="review-line"><span>Next step</span><strong>{escalation}</strong></div>
     <div className="review-line"><span>Recorded by</span><strong>{signingNurse.name} · {signingNurse.reference}</strong></div>
     <div className="privacy-note"><UserCheck size={19}/>A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.</div>
-    <div className="button-row"><button className="secondary" onClick={() => setStage(3)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setSigned(true)}><Check size={16}/>Sign assessment</button></div>
+    {/* Sealing is the contract's own word for the state she leaves it in: "the nurse has done
+        everything they can do". Signing is what does it — one action, not a second button asking
+        her to confirm that she has finished the thing she just finished. */}
+    <div className="button-row"><button className="secondary" onClick={() => setStage(3)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => {
+     holdPart('sign-off', `Signed by ${signingNurse.name}`,
+      [['Recorded by', `${signingNurse.name} · ${signingNurse.reference}`], ['Readings carried', `${captured.length}`], ['Next step', escalation]]);
+     seal(reference);
+     setSigned(true);
+    }}><Check size={16}/>Sign assessment</button></div>
    </>}
   </div>}
  </div>;

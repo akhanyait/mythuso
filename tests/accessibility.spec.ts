@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openAdminConsole, openWorkspace } from './nav';
+import { goSection, openAdminConsole, openWorkspace } from './nav';
 import { readFileSync } from 'node:fs';
 /* Large text, small screens, and the controls a finger has to hit — measured rather than asserted.
  *
@@ -251,6 +251,16 @@ test.describe('at 200% zoom', () => {
     await zoomedTo200(page);
     await openWorkspace(page, 'Nurse');
     await audit(page, 'Nurse workspace at 200%');
+    /* The schedule was the only nurse screen this audited, which made it an audit of one fifth of
+       her application. The two that carry the most furniture per pixel — the queue of work held on
+       the phone, and the shift forecast's day strip and nine hour chips — are the two most likely
+       to overflow or to shrink a target, so they are opened and measured rather than assumed. */
+    await goSection(page, 'Assessments');
+    await page.locator('.vq-strip').click();
+    await audit(page, 'Visit capture, queue open, at 200%');
+    await goSection(page, 'Earnings & payouts');
+    for (const hour of ['08:00', '09:00']) await page.locator('.fc').getByRole('button', { name: hour, exact: true }).click();
+    await audit(page, 'Earnings and the shift forecast at 200%');
   });
   test('the clinical sign-in and the back office hold together', async ({ page }) => {
     await zoomedTo200(page);

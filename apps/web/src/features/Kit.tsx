@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeftRight, Ban, CheckCheck, CircleAlert, Cloud, CloudOff, GitMerge, History, Inbox, Lock, Radio, Send, ShieldCheck, ShieldX, Undo2, UserCheck } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
@@ -10,6 +10,7 @@ import {
  kit, nextCaptureId, receive, rules, skewText,
  type Capture, type CaptureStateId
 } from '../lib/capture';
+import { inMemoryAdmission, reportInstrumentQueue } from '../lib/visit-queue';
 import { can, formatEventTime, type VettingSubject } from '../lib/vetting';
 import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
 
@@ -84,6 +85,11 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
  const needsDecision = entries.filter(e => e.state === 'conflicted');
  const stored = entries.filter(e => e.state === 'stored');
  const patch = (id: string, next: Partial<Capture>) => setEntries(list => list.map(e => e.id === id ? { ...e, ...next } : e));
+ /* A nurse does not have two queues, so she must not be shown two counts. This screen keeps its own
+    reading-level list — its subject is one instrument and one reading at a time — and publishes how
+    much of it has not left the phone, so that "what is waiting" is one number wherever she reads it. */
+ const onDevice = held.length + queued.length + inFlight.length;
+ useEffect(() => { reportInstrumentQueue(onDevice); }, [onDevice]);
 
  /* Sending is deliberately two steps with a pause between them, because “in flight” is a state a
     nurse can watch fail. An interrupted send puts the entry back in the queue rather than anywhere
@@ -149,7 +155,10 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
 
     {/* The rule this preview owes and does not meet, said in the one place a reader would
         otherwise assume it did. */}
-    <div className="privacy-note alert"><Inbox size={19}/><span><strong>This queue is held in memory and nothing else.</strong> Reload the page and every entry in it is gone. That is deliberate: <code>scripts/check-boundaries.mjs</code> fails the build on the browser’s local storage, session storage and IndexedDB across the whole web app, so this app cannot leave patient readings on the machine it was opened on. What a real implementation owes is the contract’s own sentence — “{rules.queuedIsNotLost}” — and this one does not meet it. It is owed, not met.</span></div>
+    {/* Written once in lib/visit-queue.ts and rendered here and on the visit assessment's own
+        queue. Two screens each wording their own admission is how two admissions start disagreeing
+        about what is being admitted. */}
+    <div className="privacy-note alert"><Inbox size={19}/><span><strong>{inMemoryAdmission.headline}</strong> {inMemoryAdmission.before} <code>{inMemoryAdmission.script}</code> {inMemoryAdmission.after} “{inMemoryAdmission.owed}” — {inMemoryAdmission.close}</span></div>
 
     {held.length > 0 && <>
      {held.map(entry => <QueueRow key={entry.id} entry={entry}/>)}

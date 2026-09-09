@@ -820,6 +820,233 @@
    it, and it sits under the grid where an operator's eye already is. */
 .clinical .dispatch-sent { max-width: 1080px; margin-top: var(--space-32); }
 
+/* ---- Two targets the audit had never been pointed at ---------------------------------------------
+ *
+ * Extending the 200%-zoom audit to the visit assessment and the earnings screen found both of these
+ * immediately, which is the argument for extending it: the schedule was the only nurse screen being
+ * measured, so four fifths of her application had never been.
+ *
+ * The visit code. Six boxes at 42x56 on a 320px layout, on the screen a nurse uses at a door. The
+ * gap comes down to 4 and each box takes the 44 floor; the tick that appears when six digits are in
+ * is allowed to wrap onto its own line rather than squeezing them, because it is decoration —
+ * aria-hidden, and saying nothing the enabled button does not already say. */
+.clinical .code-input { flex-wrap: wrap; gap: var(--space-4); }
+.clinical .code-input input { min-width: 44px; }
+/* And the one control on the earnings screen that changes where money goes was 42px tall. */
+.clinical .earn-account .record-row.plain button { min-height: 44px; }
+
+/* ---- What has not left this phone ---------------------------------------------------------------
+ *
+ * The strip sits above the step counter on every stage of a visit assessment, and it is the only
+ * thing on that screen that is not about the step the nurse is on — so it has to be legible without
+ * being loud. It is a row, not a card: a hairline, a small icon, two lines of text and a chevron.
+ * Nothing about it is coloured. The two states differ by an icon, by the word beside it and by the
+ * weight of the border, because a signal state told only in colour is a signal state told to nobody
+ * in bright sun holding a phone at arm's length.
+ *
+ * The offline state is the heavier border rather than the brighter one. It is the state that
+ * matters, and on a light glass surface weight carries further than hue. */
+.clinical .vq-strip {
+ display: flex;
+ align-items: center;
+ gap: var(--space-12);
+ width: 100%;
+ min-height: 56px;
+ padding: var(--space-8) var(--space-12) var(--space-8) var(--space-16);
+ margin-bottom: var(--space-16);
+ border: 1px solid var(--pane-line);
+ border-radius: var(--r-pill);
+ background: var(--pane);
+ backdrop-filter: var(--pane-blur);
+ -webkit-backdrop-filter: var(--pane-blur);
+ color: var(--charcoal);
+ text-align: left;
+ cursor: pointer;
+}
+.clinical .vq-strip.offline { border-color: var(--charcoal); }
+.clinical .vq-strip > svg { flex-shrink: 0; color: var(--charcoal); }
+.clinical .vq-strip > span { flex: 1; min-width: 0; }
+.clinical .vq-strip strong { display: block; font-size: 15px; font-weight: 600; }
+.clinical .vq-strip small { display: block; font-size: 13px; line-height: 1.45; color: var(--faint); }
+/* The chevron is the affordance, and it turns rather than swapping for a second glyph — one mark
+   that moves reads as the same control in two states, which two glyphs do not. */
+.clinical .vq-strip i {
+ display: grid;
+ place-items: center;
+ width: 36px;
+ height: 36px;
+ flex-shrink: 0;
+ border-radius: var(--r-pill);
+ color: var(--faint);
+ transition: transform var(--t-settle) var(--ease-soft);
+}
+.clinical .vq-strip[aria-expanded='true'] i { transform: rotate(180deg); }
+.clinical .vq-strip:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
+@media (prefers-reduced-motion: reduce) { .clinical .vq-strip i { transition: none; } }
+
+.clinical .vq-panel { margin-bottom: var(--space-16); }
+.clinical .vq-panel h3 { font-size: 16px; font-weight: 600; color: var(--charcoal); }
+
+/* The count. Four figures on one row is the reference's metric shape at a smaller size — this is a
+   subtotal inside a panel, not the subject of a screen, so it takes the numeral treatment without
+   taking the 40px that goes with it. */
+/* Two by two on a phone, four across from the width where four labels fit. auto-fit was putting
+   three on the first row and one alone on the second, which reads as a group of three and an
+   afterthought rather than as four counts of one thing. */
+.clinical .vq-counts {
+ display: grid;
+ grid-template-columns: repeat(2, 1fr);
+ gap: var(--space-16);
+ padding: var(--space-4) 0 var(--space-8);
+}
+@media (min-width: 560px) { .clinical .vq-counts { grid-template-columns: repeat(4, 1fr); } }
+.clinical .vq-counts strong {
+ display: block;
+ font-size: 28px;
+ font-weight: 400;
+ letter-spacing: -1px;
+ line-height: 1.05;
+ font-variant-numeric: tabular-nums;
+ color: var(--charcoal);
+}
+.clinical .vq-counts small { display: block; margin-top: var(--space-4); font-size: 13px; line-height: 1.4; color: var(--faint); }
+
+.clinical .vq-part { background: var(--surface); }
+.clinical .vq-part-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-12); }
+.clinical .vq-part-head strong { display: block; font-size: 15px; font-weight: 600; color: var(--charcoal); }
+.clinical .vq-part-head small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.45; color: var(--faint); }
+/* What a held part cannot do yet. It is the sentence a reader most needs and the one most likely to
+   be skimmed past, so it is set on a ground rather than as another grey helper line. */
+.clinical .vq-part .vq-while {
+ margin-top: var(--space-8);
+ padding: var(--space-12);
+ border-radius: var(--r-control);
+ background: color-mix(in srgb, var(--charcoal) 4%, transparent);
+ color: var(--charcoal);
+}
+
+/* Can and cannot, side by side from the width where two columns fit. Two lists stacked would be
+   read as one list with a heading halfway down it, and the whole point is that they are opposites. */
+.clinical .vq-meanwhile {
+ display: grid;
+ grid-template-columns: 1fr;
+ gap: var(--space-20);
+ padding: var(--space-20);
+ border-radius: var(--r-panel);
+ background: color-mix(in srgb, var(--charcoal) 4%, transparent);
+}
+@media (min-width: 700px) { .clinical .vq-meanwhile { grid-template-columns: 1fr 1fr; gap: var(--space-32); } }
+.clinical .vq-meanwhile h4 {
+ display: flex;
+ align-items: center;
+ gap: var(--space-8);
+ font-size: 15px;
+ font-weight: 600;
+ color: var(--charcoal);
+ margin: 0 0 var(--space-8);
+}
+.clinical .vq-meanwhile ul { list-style: none; margin: 0; padding: 0; }
+.clinical .vq-meanwhile li {
+ position: relative;
+ padding-left: var(--space-16);
+ font-size: 14px;
+ line-height: 1.6;
+ color: var(--charcoal);
+}
+.clinical .vq-meanwhile li + li { margin-top: var(--space-8); }
+.clinical .vq-meanwhile li::before {
+ content: '';
+ position: absolute;
+ left: 0;
+ top: 9px;
+ width: 5px;
+ height: 5px;
+ border-radius: var(--r-pill);
+ background: var(--sage-slate);
+}
+
+/* ---- If you take a shift ------------------------------------------------------------------------
+ *
+ * The forecast is the only part of the earnings screen that helps somebody decide something rather
+ * than reading back something that happened, so it has to be the loudest thing in its section — and
+ * it cannot do that with a fill, because the pale-sage lead panel on this screen is already spoken
+ * for by the nurse's standing and one screen has one of those. It does it with size and space: the
+ * difference is a Metric numeral at 40px with a hairline above it and nothing else competing.
+ *
+ * The range is a track rather than three numbers in a row, because the honest answer is an interval
+ * and an interval drawn as a line is read as one. The tick carries no text: a marker that has to
+ * hold a word stops being legible somewhere between 320px and 200% zoom, and the figure it marks is
+ * already set out underneath in its own column. */
+/* :not(.selected), because the charcoal selected state is declared further up this sheet and these
+   rules are one class deep in the same place — a plain override here would come later and quietly
+   win, which is how a chosen chip stops looking chosen. */
+.clinical .fc .date-chip:not(.selected) { border-color: var(--pane-line); background: var(--surface); color: var(--faint); }
+.clinical .fc .date-chip:not(.selected) strong { color: var(--charcoal); font-weight: 600; }
+.clinical .fc .time-chip:not(.selected) { border-color: var(--pane-line); background: var(--surface); color: var(--charcoal); font-weight: 500; }
+/* Nine hourly chips at three across is a 44px-wide target on a 320px screen. Four across from the
+   width where four fit, and never fewer than three. */
+@media (min-width: 460px) { .clinical .fc .time-grid { grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); } }
+
+.clinical .fc-lead { border-top: 1px solid var(--pane-line); padding-top: var(--space-8); }
+.clinical .fc-lead .s-metrics { padding-bottom: var(--space-20); }
+
+.clinical .fc-track {
+ position: relative;
+ height: 12px;
+ border-radius: var(--r-pill);
+ background: var(--cloud);
+}
+.clinical .fc-track i { display: block; height: 100%; border-radius: var(--r-pill); background: var(--soft-sage); }
+/* The tick is charcoal on sage at 8.94:1 and on cloud at 13.53:1, so it is visible against both
+   halves of the track it sits on the join of. 3:1 is what SC 1.4.11 asks of a meaningful graphic;
+   this is the graphic, so it is not drawn in a sage. */
+.clinical .fc-track b {
+ position: absolute;
+ top: -4px;
+ width: 3px;
+ height: 20px;
+ margin-left: -1px;
+ border-radius: var(--r-pill);
+ background: var(--charcoal);
+}
+/* Two real columns rather than three amounts each followed by its own sentence: the amounts are the
+   thing being compared, so they line up down the left and the sentences start at one x. `display:
+   contents` is what puts a stop's two children into the grid rather than into a box of their own. */
+.clinical .fc-stops {
+ display: grid;
+ grid-template-columns: auto 1fr;
+ column-gap: var(--space-12);
+ row-gap: var(--space-12);
+ align-items: baseline;
+ margin-top: var(--space-12);
+}
+.clinical .fc-stops > div { display: contents; }
+.clinical .fc-stops strong { font-size: 16px; font-weight: 500; color: var(--charcoal); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.clinical .fc-stops small { font-size: 13px; color: var(--faint); line-height: 1.5; }
+/* The middle stop is the one derived from her own work rather than from the ends of a range, so it
+   is the one that reads as a figure. The other two are the boundaries it sits between. */
+.clinical .fc-stop-typical strong { font-size: 20px; }
+/* Three columns from the width where three amounts and their sentences stop colliding. Below it
+   they stack, which is the right shape on a phone anyway: the reader goes down the range. */
+@media (min-width: 760px) {
+ .clinical .fc-stops { grid-template-columns: repeat(3, 1fr); column-gap: var(--space-24); }
+ .clinical .fc-stops > div { display: block; }
+ .clinical .fc-stops small { display: block; margin-top: var(--space-4); }
+}
+
+.clinical .fc-week { border-top: 1px solid var(--pane-line); padding-top: var(--space-8); }
+.clinical .fc-empty {
+ display: flex;
+ gap: var(--space-16);
+ align-items: flex-start;
+ padding: var(--space-20);
+ border-radius: var(--r-panel);
+ background: color-mix(in srgb, var(--charcoal) 4%, transparent);
+}
+.clinical .fc-empty > svg { flex-shrink: 0; color: var(--charcoal); }
+.clinical .fc-empty strong { font-size: 15px; font-weight: 600; color: var(--charcoal); }
+.clinical .fc-empty p { font-size: 14px; line-height: 1.6; margin-top: var(--space-4); color: var(--faint); }
+
 /* ---- Motion -----------------------------------------------------------------------------------
  *
  * Everything on a clinical screen arrives the same way: a short rise into place, staggered so the

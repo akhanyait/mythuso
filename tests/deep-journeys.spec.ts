@@ -111,7 +111,13 @@ test('a nurse assessment checks identity, flags an out-of-range reading and sign
   await expect(dialog.getByText('165 mmHg ⚠')).toBeVisible();
   await expect(dialog.getByText('Refer for doctor review today')).toBeVisible();
   await dialog.getByRole('button', { name: 'Sign assessment' }).click();
-  await expect(dialog.getByRole('heading', { name: 'Assessment closed.' })).toBeVisible();
+  /* "Assessment closed" was the old heading and it was the one sentence on this flow that could
+     mislead somebody downstream: with no connection the visit is signed and sealed on the handset,
+     and nothing has reached the Health Passport. The heading is now written from the queue, so this
+     asserts the honest outcome rather than the reassuring one. The closed wording still exists and
+     is what the screen says once the queue has actually landed. */
+  await expect(dialog.getByRole('heading', { name: 'Assessment sealed.' })).toBeVisible();
+  await expect(dialog.getByText(/waiting for a connection/)).toBeVisible();
 });
 test('control tower assigns a nurse and logs an incident action', async ({ page }) => {
   await page.goto('/');
