@@ -22,7 +22,7 @@ struct PastVisitView: View {
     let service: CareService
     var reference = Passport.lastVisitReference
     var person = Passport.holder.name
-    var address = "Home visit · Sandton"
+    var address = "Home visit · Melville"
     /// Which day's readings belong to this visit. Nil where nothing was filed against it.
     var dayOffset: Int? = Passport.latestSet.dayOffset
 
@@ -84,9 +84,7 @@ struct PastVisitView: View {
 
     private var nurseRow: some View {
         HStack(spacing: ThusoSpacing.space12) {
-            Text("SN").font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-                .frame(width: 42, height: 42).background(ThusoTheme.paleSage, in: Circle())
-                .accessibilityHidden(true)
+            Monogram(text: Arrival.nurse.initials)
             VStack(alignment: .leading, spacing: 2) {
                 Text(Passport.nurse.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)

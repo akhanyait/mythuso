@@ -278,25 +278,21 @@ struct VisitQueueView: View {
 struct CaptureStandingStrip: View {
     @ObservedObject private var queue = VisitQueueStore.shared
     @ObservedObject private var kit = CaptureStore.shared
+    @Environment(\.dynamicTypeSize) private var typeSize
     /// One nurse, one queue, however many files it is kept in.
     private var waiting: Int { queue.pending.count + kit.onlyHereCount }
+    private var standing: String { queue.pretendNoSignal ? "No signal" : "Connected" }
+    private var chip: String { waiting == 0 ? "All sent" : "\(waiting) held" }
+    private var sentence: String {
+        waiting == 0
+            ? "Nothing is waiting. Everything you have done has reached the record."
+            : "\(waiting) piece\(waiting == 1 ? "" : "s") of work held on this phone"
+    }
+
     var body: some View {
         NavigationLink { VisitQueueView() } label: {
-            HStack(spacing: ThusoSpacing.space12) {
-                Image(systemName: queue.pretendNoSignal ? "icloud.slash" : "icloud")
-                    .foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(queue.pretendNoSignal ? "No signal" : "Connected")
-                        .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text(waiting == 0
-                         ? "Nothing is waiting. Everything you have done has reached the record."
-                         : "\(waiting) piece\(waiting == 1 ? "" : "s") of work held on this phone")
-                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.8))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.footnote.weight(.semibold))
-                    .foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).accessibilityHidden(true)
+            Group {
+                if typeSize.isAccessibilitySize { tall } else { wide }
             }
             .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space8)
             .frame(maxWidth: .infinity, minHeight: 48)
@@ -305,8 +301,43 @@ struct CaptureStandingStrip: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(standing). \(sentence)")
         .accessibilityAddTraits(.isButton)
+    }
+
+    private var wide: some View {
+        HStack(spacing: ThusoSpacing.space12) {
+            Image(systemName: queue.pretendNoSignal ? "icloud.slash" : "icloud")
+                .foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(standing).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(sentence).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+            /* The count as a chip, and the one place on this strip a colour is spent. Work stranded
+               on a phone is a state a nurse has to notice at a glance; "everything has landed" is
+               merely true, and merely true is charcoal on white. */
+            MetricChip(text: chip, tone: waiting == 0 ? .neutral : .attention)
+            Image(systemName: "chevron.right").font(.footnote.weight(.semibold))
+                .foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).accessibilityHidden(true)
+        }
+    }
+
+    /* At the accessibility sizes this strip is pinned above a form, and a pinned thing that grows
+       with the text takes the screen the form was on: laid out wide it filled the whole viewport,
+       hyphenated "No sig-nal" across three lines and broke its own chip into "6 hel / d". So past
+       that point it says the two things a glance is for — where the phone stands and how much is
+       held — and drops the glyph, the chevron and the sentence. None of the three is lost: the
+       sentence is the accessibility label and it is the first thing on the screen this opens. */
+    private var tall: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+            Text(standing).thusoFont(ThusoType.body, weight: .semibold)
+                .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+            MetricChip(text: chip, tone: waiting == 0 ? .neutral : .attention)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

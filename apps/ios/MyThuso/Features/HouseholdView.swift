@@ -39,7 +39,7 @@ struct HouseholdView: View {
                 CareHeading(eyebrow: "Patients · design preview", title: thuso(.householdRecord, store.locale),
                             subtitle: "One household, and what each member may see of the others. Fictional people, fictional scheme; nothing here is a record and nothing reaches a service.")
                 viewerControl
-                Text(spokenState).font(.caption).foregroundStyle(ThusoTheme.body)
+                Text(spokenState).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     .accessibilityAddTraits(.updatesFrequently)
                 householdCard
                 StatePicker(title: "Preview how this household behaves when the record service is unavailable", state: $feed)
@@ -90,12 +90,12 @@ struct HouseholdView: View {
     @ViewBuilder private var viewerControl: some View {
         CareCard {
             StatusPill(text: "Design review", tone: "quiet")
-            Text("The same household, through different eyes").font(.headline).foregroundStyle(ThusoTheme.ink)
+            Text("The same household, through different eyes").font(.headline).foregroundStyle(ThusoTheme.charcoal)
             Text("Every line below is asked for twice — of the vetting module, and of the person the record belongs to. Change the viewer and watch the household change shape; that is the only way to tell whether a refusal was designed or assumed.")
-                .font(.footnote).foregroundStyle(ThusoTheme.body)
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             /* The label is drawn rather than left to the picker: a menu picker in a card shows only
                its value, and “Viewing as” is the whole point of the control. */
-            Text(thuso(.viewingAs, store.locale)).font(.caption).foregroundStyle(ThusoTheme.body)
+            Text(thuso(.viewingAs, store.locale)).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             Picker(thuso(.viewingAs, store.locale), selection: Binding(get: { viewerId }, set: { choose($0) })) {
                 ForEach(viewers) { Text("\($0.name) · \($0.role)").tag($0.id) }
             }
@@ -104,7 +104,7 @@ struct HouseholdView: View {
                 HStack(spacing: ThusoSpacing.space8) {
                     SubjectStatusPill(status: summarise(subject).status)
                     Text("\(subject.name) · \(subject.role?.name ?? subject.roleId) · \(subject.reference)")
-                        .font(.caption2).foregroundStyle(ThusoTheme.body)
+                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
                 .accessibilityElement(children: .combine)
             }
@@ -116,18 +116,18 @@ struct HouseholdView: View {
             FieldRow(label: "Household", value: household.name)
             FieldRow(label: "Held as", value: "FHIR Group · \(household.id)")
             FieldRow(label: "Care area", value: household.area)
-            Text(Records.type("household")?.summary ?? "").font(.footnote).foregroundStyle(ThusoTheme.body)
+            Text(Records.type("household")?.summary ?? "").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
     }
 
     @ViewBuilder private var rosterSection: some View {
         if roster.isEmpty {
             CareCard {
-                Text("Nothing here is yours to see.").font(.headline).foregroundStyle(ThusoTheme.ink)
+                Text("Nothing here is yours to see.").font(.headline).foregroundStyle(ThusoTheme.charcoal)
                 Text(viewer.subject.map { can($0, "view-patient-summary").reason ?? "" } ?? "Nobody outside this household is shown its members.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.body)
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 Text("Not one member is named, and no count of them is given. A refusal that still told you how many people live here, and which of them have records, would be a refusal in name only.")
-                    .font(.caption2).foregroundStyle(ThusoTheme.body)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
             .accessibilityElement(children: .combine)
         } else {
@@ -140,19 +140,18 @@ struct HouseholdView: View {
         CareCard {
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                 HStack(spacing: ThusoSpacing.space12) {
-                    Text(member.initials).font(.subheadline.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
-                        .frame(width: 44, height: 44)
-                        .background(member.relation == "Child" ? ThusoTheme.mangoSoft : ThusoTheme.indigoSoft, in: Circle())
-                        .accessibilityHidden(true)
+                    /* One monogram, one treatment. The mango disc used to mean "child", which is a
+                       word already on the row — a tint spent on a fact the reader can read. */
+                    Monogram(text: member.initials, diameter: 44)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(member.name).font(.callout.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                        Text(member.name).font(.callout.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                         Text("\(member.relation) · \(householdAge(member)) years · \(member.reference)")
-                            .font(.caption).foregroundStyle(ThusoTheme.body)
+                            .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     }
                     Spacer(minLength: 6)
                     StatusPill(text: visibility.level.label, tone: visibility.level.tone)
                 }
-                Text(visibility.reason).font(.footnote).foregroundStyle(ThusoTheme.body)
+                Text(visibility.reason).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     .fixedSize(horizontal: false, vertical: true)
             }
             /* One spoken sentence per card: who they are, what is open, and why. A reader who has to
@@ -180,19 +179,19 @@ struct HouseholdView: View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: "lock").font(.body).foregroundStyle(ThusoTheme.mangoInk)
             Text("Every record here has parts only the person themselves can release. This line stands on all of them, whether or not there is anything behind it — a notice that appeared only where there was something to hide would be the disclosure it is meant to prevent, and a count of the records it stood on would be another one.")
-                .font(.footnote).foregroundStyle(ThusoTheme.body)
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("A category is withheld from every record in this household. Every record here has parts only the person themselves can release. This notice stands on all of them, whether or not there is anything behind it.")
     }
 
     @ViewBuilder private func openedMember(_ entry: (member: HouseholdMember, visibility: HouseholdVisibility)) -> some View {
         CareCard {
-            Text(entry.member.name).font(.headline).foregroundStyle(ThusoTheme.ink)
-            Text("\(entry.visibility.level.label) · \(entry.visibility.reason)").font(.caption).foregroundStyle(ThusoTheme.body)
+            Text(entry.member.name).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+            Text("\(entry.visibility.level.label) · \(entry.visibility.reason)").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             if entry.visibility.level == .emergency {
                 /* The contract’s emergency card is five fields — blood group, allergies, critical
                    conditions, current medicine and one contact. Three of them are here. Current
@@ -203,7 +202,7 @@ struct HouseholdView: View {
                 FieldRow(label: "Allergies", value: entry.member.allergies.joined(separator: "; "))
                 FieldRow(label: "Emergency contact", value: entry.member.emergencyContact)
                 Text("Three lines, and deliberately not the fourth. Conditions and medicines would say more about \(entry.member.firstName) than an emergency needs to know.")
-                    .font(.caption2).foregroundStyle(ThusoTheme.body)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             } else {
                 SummaryCardView(member: entry.member, fields: Records.summaryCard.fields)
             }
@@ -229,10 +228,10 @@ struct HouseholdView: View {
                             TileIcon(symbol: "calendar.badge.clock", size: 38)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("\(vettingDate(appointment.when)) · \(appointment.time) · \(member.firstName)")
-                                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                                 Text(visibility.level.atLeast(.summary) ? appointment.service
                                      : "A booked visit. What it is for is not part of the household calendar.")
-                                    .font(.caption).foregroundStyle(ThusoTheme.body)
+                                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                             }
                             Spacer(minLength: 0)
                         }
@@ -242,7 +241,7 @@ struct HouseholdView: View {
                 }
             }
             Text("A household calendar says who is out of the house on Saturday morning. It says what the visit is for only to someone already allowed to know.")
-                .font(.caption2).foregroundStyle(ThusoTheme.body)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
     }
 
@@ -262,11 +261,11 @@ struct HouseholdView: View {
                              value: "Dependant \(member.dependant)")
                 }
                 Text("\(principal ? "You are the principal member, so you hold every dependant code." : "Only your own dependant code is shown. The others are not yours to quote.") A dependant code links a person to a scheme; it is not a key to their record, and nothing clinical is stored against it.")
-                    .font(.caption2).foregroundStyle(ThusoTheme.body)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             } else {
                 RefusalCard(title: "The scheme record is not open to this viewer", decision: billing)
                 Text("Claims carry a service code and never the diagnosis in words, which is what makes a refusal here cheap rather than obstructive.")
-                    .font(.caption2).foregroundStyle(ThusoTheme.body)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
         }
     }
@@ -281,7 +280,7 @@ struct HouseholdView: View {
             /* The footer never says whether there is anything outstanding for the members the viewer
                cannot see. “A vaccine is due for someone you cannot see” is itself a clinical fact. */
             Text("This list covers the members whose records are open to you. It does not say whether there is anything outstanding for the others. Dates are indicative; the national EPI schedule governs.")
-                .font(.caption2).foregroundStyle(ThusoTheme.body)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
     }
 
@@ -294,7 +293,7 @@ struct HouseholdView: View {
                 }
             }
             Text("Same rule, and for the same reason: “a collection is due for someone you cannot see” is itself a clinical fact about that person.")
-                .font(.caption2).foregroundStyle(ThusoTheme.body)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
     }
 
@@ -302,8 +301,8 @@ struct HouseholdView: View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             TileIcon(symbol: symbol, size: 38)
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                Text(detail).font(.caption).foregroundStyle(ThusoTheme.body)
+                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
             Spacer(minLength: 0)
         }
@@ -314,7 +313,7 @@ struct HouseholdView: View {
     @ViewBuilder private var homeVisits: some View {
         CareCard {
             Text("Arranging care is not reading a record, so this stays open to the household while the record above stays shut.")
-                .font(.footnote).foregroundStyle(ThusoTheme.body)
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             ForEach(household.members) { member in
                 Button {
                     status = "Home visit requested for \(member.name). Nothing is booked in this preview, and booking it would still tell you nothing about what the nurse finds."
@@ -327,7 +326,7 @@ struct HouseholdView: View {
             Text(viewer.memberId != nil
                  ? "You can arrange a visit for anyone in the household. The visit summary goes to them."
                  : "Only a member of the household can arrange visits for it.")
-                .font(.caption2).foregroundStyle(ThusoTheme.body)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
     }
 }
@@ -349,14 +348,14 @@ struct SummaryCardView: View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: "lock").font(.body).foregroundStyle(ThusoTheme.mangoInk)
             VStack(alignment: .leading, spacing: 5) {
-                Text("Withheld from every summary.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                Text(Records.summaryCard.withheld).font(.footnote).foregroundStyle(ThusoTheme.body)
-                Text(householdProtectedCategories.joined(separator: " · ")).font(.caption2).foregroundStyle(ThusoTheme.body)
+                Text("Withheld from every summary.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(Records.summaryCard.withheld).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(householdProtectedCategories.joined(separator: " · ")).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Withheld from every summary. \(Records.summaryCard.withheld) The categories are \(householdProtectedCategories.joined(separator: ", ")). This notice reads the same on every summary this app produces.")
     }

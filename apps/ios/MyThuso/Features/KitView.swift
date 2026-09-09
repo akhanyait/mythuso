@@ -54,13 +54,13 @@ struct ThusoKitView: View {
                     CareCard {
                         RefusalCard(title: "This kit will not pair for this nurse", decision: mayWrite)
                         Text("Pairing is refused rather than merely un-signable. An instrument in the hands of somebody who may not write is an instrument producing numbers with nowhere to go, and a nurse who has taken twenty readings before being told is a nurse the platform has wasted.")
-                            .font(.caption2).foregroundStyle(ThusoTheme.body)
+                            .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     }
                 }
                 ProvenanceKey()
                 whereItGoes
                 if !notice.isEmpty {
-                    Text(notice).font(.caption).foregroundStyle(ThusoTheme.body)
+                    Text(notice).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                         .accessibilityAddTraits(.updatesFrequently)
                 }
             }
@@ -83,39 +83,39 @@ struct ThusoKitView: View {
     @ViewBuilder private var nothingConnects: some View {
         CareCard {
             Label("Nothing here connects", systemImage: "antenna.radiowaves.left.and.right.slash")
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             Text("This build opens no Bluetooth session. There is no CoreBluetooth call in it, no scan is run, and no instrument is contacted. The six below are the six instruments in the capture contract, drawn on this phone from that list; their serial numbers are invented.")
-                .font(.caption).foregroundStyle(ThusoTheme.body)
+                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             Text("The app also declares no Bluetooth usage description, so iOS would refuse it a scan even if it asked — and it must not ask. A permission prompt an app cannot honestly finish the sentence for is a prompt nobody should be shown. This is not a refused permission. Nothing has asked for one.")
-                .font(.caption).foregroundStyle(ThusoTheme.body)
+                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
     }
 
     @ViewBuilder private var whoIsWorking: some View {
         CareCard {
-            Text("Working as").font(.caption).foregroundStyle(ThusoTheme.body)
+            Text("Working as").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             Picker("Working as", selection: $who) {
                 ForEach(operators) { Text("\($0.name) · \($0.reference)").tag($0.id) }
             }.labelsHidden()
             HStack(spacing: ThusoSpacing.space8) {
                 SubjectStatusPill(status: summarise(subject).status)
-                Text(subject.role?.name ?? subject.roleId).font(.caption2).foregroundStyle(ThusoTheme.body)
+                Text(subject.role?.name ?? subject.roleId).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 Spacer(minLength: 0)
             }
             VettingRefusalNote(decision: mayWrite)
             NavigationLink("Open this nurse’s vetting") { VettingStatusView(subjectId: subject.id) }
-                .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
+                .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
         }
     }
 
     @ViewBuilder private var discovery: some View {
         CareCard {
             Label("Instruments nearby", systemImage: "dot.radiowaves.left.and.right")
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             switch scan {
             case .idle:
                 Text("Nothing is being listened for. Pressing the button below draws the contract’s six instruments after a pause — it does not search.")
-                    .font(.caption).foregroundStyle(ThusoTheme.body)
+                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 Button("Look for instruments") {
                     scan = .searching
                     Task {
@@ -125,10 +125,10 @@ struct ThusoKitView: View {
                 }.buttonStyle(CareButton())
             case .searching:
                 SkeletonRows(rows: 2)
-                Text("Drawing the list. No radio is on.").font(.caption).foregroundStyle(ThusoTheme.body)
+                Text("Drawing the list. No radio is on.").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             case .done:
                 if unpaired.isEmpty {
-                    Text("Every instrument in the contract is paired to this phone.").font(.caption).foregroundStyle(ThusoTheme.body)
+                    Text("Every instrument in the contract is paired to this phone.").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 } else {
                     ForEach(unpaired) { sighting in
                         sightingRow(sighting)
@@ -145,15 +145,15 @@ struct ThusoKitView: View {
             HStack(spacing: ThusoSpacing.space12) {
                 TileIcon(symbol: sighting.device?.symbol ?? "sensor", size: 38)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(sighting.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(sighting.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     Text("\(sighting.serial) · \(sighting.device?.transport ?? "") · \(sighting.proximity)")
-                        .font(.caption2).foregroundStyle(ThusoTheme.body)
+                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
                 Spacer(minLength: 6)
             }
             HStack(spacing: ThusoSpacing.space8) {
                 CalibrationPill(calibration: sighting.calibration)
-                Text(sighting.calibration.phrase).font(.caption2).foregroundStyle(ThusoTheme.body)
+                Text(sighting.calibration.phrase).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 Spacer(minLength: 0)
             }
             Button("Pair") { kit.pair(sighting); notice = "\(sighting.name) \(sighting.serial) is paired to this phone. Nothing was contacted." }
@@ -180,14 +180,14 @@ struct ThusoKitView: View {
         HStack(spacing: ThusoSpacing.space12) {
             TileIcon(symbol: instrument.device?.symbol ?? "sensor")
             VStack(alignment: .leading, spacing: 3) {
-                Text(instrument.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                Text("\(instrument.serial) · \(instrument.device?.transport ?? "")").font(.caption2).foregroundStyle(ThusoTheme.body)
+                Text(instrument.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text("\(instrument.serial) · \(instrument.device?.transport ?? "")").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
             Spacer(minLength: 6)
         }
         HStack(spacing: ThusoSpacing.space8) {
             CalibrationPill(calibration: calibration)
-            Text(instrument.device?.cadence ?? "").font(.caption2).foregroundStyle(ThusoTheme.body)
+            Text(instrument.device?.cadence ?? "").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             Spacer(minLength: 0)
         }
         FieldRow(label: "Last calibrated", value: vettingDate(calibration.lastCalibrated))
@@ -197,7 +197,7 @@ struct ThusoKitView: View {
            read “cuff size is a clinical decision the device cannot make” is the person holding the
            cuff, and she is holding it now. */
         if let note = instrument.device?.note {
-            Label(note, systemImage: "info.circle").font(.caption2).foregroundStyle(ThusoTheme.body)
+            Label(note, systemImage: "info.circle").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
         if calibration.standing == .outOfDate {
             CaveatNote(caveats: [calibration.caveat ?? "", CaptureRules.calibrationNeverRefuses].filter { !$0.isEmpty })
@@ -212,13 +212,13 @@ struct ThusoKitView: View {
     @ViewBuilder private var whereItGoes: some View {
         CareCard {
             Label("Where a reading goes", systemImage: "arrow.down.doc")
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             Text("Into the visit assessment, with its origin, its instrument and the calibration it was taken under; then onto this phone’s store as captured; then sealed and queued when the nurse signs off. It is in the record only once a server has accepted it, and this build has no server.")
-                .font(.caption).foregroundStyle(ThusoTheme.body)
+                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             NavigationLink("Open the visit assessment") { VisitAssessmentView(reference: visitReference, patient: patient) }
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             NavigationLink("Open what is waiting on this phone") { CaptureQueueView() }
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
         }
     }
 }

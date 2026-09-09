@@ -1,5 +1,26 @@
 import SwiftUI
 
+/* The three scopes somebody can be given, widest last.
+ *
+ * They were a private array of tuples inside the invitation flow, which was fine until a second
+ * screen needed to name the narrowest of them: the sponsor's view has to be able to say "the least
+ * anybody can be given is more than this", and it cannot say it by retyping the sentence. So the
+ * list is a type, read by both, and the ordering is load-bearing — `least` is the first because the
+ * list is written narrowest first, and a screen that reasons about the smallest grant must not be
+ * able to pick it out by index. */
+struct GuardianScope: Identifiable, Hashable {
+    let title: String
+    let body: String
+    var id: String { title }
+    static let all: [GuardianScope] = [
+        .init(title: "Bookings and payments only", body: "They can arrange and pay for visits. They see no clinical information at all."),
+        .init(title: "Visit summaries only", body: "They see what happened at a visit and what to do next. No history, results or medicines."),
+        .init(title: "Full Health Passport", body: "Everything you can see. Appropriate for a guardian of a child, or where you have chosen to share fully.")
+    ]
+    /// The narrowest grant MyThuso offers — and still more than paying for somebody's care buys.
+    static let least = all[0]
+}
+
 /// Paying for someone's care is not the same as being allowed to read their records.
 /// Scope, duration and verification are three separate decisions, so they are three separate steps.
 struct InviteGuardianView: View {
@@ -8,18 +29,14 @@ struct InviteGuardianView: View {
     @State private var step = 0
     @State private var name = ""
     @State private var relationship = "Parent"
-    @State private var scope = "Bookings and payments only"
+    @State private var scope = GuardianScope.least.title
     @State private var expires = "Until I revoke it"
     @State private var understood = false
     private var minor: Bool { relationship == "Child under 18" }
-    private let scopes = [
-        ("Bookings and payments only", "They can arrange and pay for visits. They see no clinical information at all."),
-        ("Visit summaries only", "They see what happened at a visit and what to do next. No history, results or medicines."),
-        ("Full Health Passport", "Everything you can see. Appropriate for a guardian of a child, or where you have chosen to share fully.")
-    ]
+    private let scopes = GuardianScope.all
     var body: some View {
         Form {
-            Section { Text("Step \(step + 1) of 4 · \(["Who", "What they see", "For how long", "Review"][step])").font(.caption).foregroundStyle(ThusoTheme.indigo) }
+            Section { Text("Step \(step + 1) of 4 · \(["Who", "What they see", "For how long", "Review"][step])").font(.caption).foregroundStyle(ThusoTheme.charcoal) }
             switch step {
             case 0:
                 Section("Who are you inviting?") {
@@ -35,17 +52,17 @@ struct InviteGuardianView: View {
                 Section { Button("Continue") { step = 1 }.disabled(name.trimmingCharacters(in: .whitespaces).isEmpty) }
             case 1:
                 Section("What should they be able to see?") {
-                    ForEach(scopes, id: \.0) { option in
-                        Button { scope = option.0 } label: {
+                    ForEach(scopes) { option in
+                        Button { scope = option.title } label: {
                             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                                Image(systemName: scope == option.0 ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.indigo)
+                                Image(systemName: scope == option.title ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.charcoal)
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(option.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                                    Text(option.1).font(.caption).foregroundStyle(.secondary)
+                                    Text(option.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                                    Text(option.body).font(.caption).foregroundStyle(.secondary)
                                 }
                             }
                         }
-                        .accessibilityAddTraits(scope == option.0 ? [.isSelected] : [])
+                        .accessibilityAddTraits(scope == option.title ? [.isSelected] : [])
                     }
                     Text("Sexual and reproductive health, mental health and HIV-related entries stay hidden under every scope unless you release them one by one.").font(.caption).foregroundStyle(.secondary)
                 }
@@ -90,7 +107,7 @@ struct SystemStatesView: View {
             }
             Section("The chosen state") {
                 if state == .ready {
-                    Label("The real content, with nothing standing in for it.", systemImage: "checkmark.circle").foregroundStyle(ThusoTheme.indigo)
+                    Label("The real content, with nothing standing in for it.", systemImage: "checkmark.circle").foregroundStyle(ThusoTheme.charcoal)
                 } else {
                     StateBlock(state: state, subject: "Your laboratory results", permission: "Apple Health access", retry: { state = .ready }) { EmptyView() }
                         .listRowInsets(EdgeInsets())

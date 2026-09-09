@@ -95,17 +95,17 @@ struct DispatchMap: View {
         GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height)
             ZStack {
-                RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).fill(ThusoTheme.canvas)
+                RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).fill(ThusoTheme.canvas)
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
-                        Circle().fill(ThusoTheme.indigoSoft)
+                        Circle().fill(ThusoTheme.paleSage)
                             .frame(width: zone.radius * 2 * size, height: zone.radius * 2 * size)
                             .position(x: point.x * size, y: point.y * size)
                     }
                 }
                 ForEach(Dispatch.nurses) { nurse in
                     if let point = Dispatch.plot(nurse.position) {
-                        Circle().fill(nurse.status == "Available" ? ThusoTheme.tealInk : ThusoTheme.faint)
+                        Circle().fill(nurse.status == "Available" ? ThusoTheme.tealInk : ThusoTheme.charcoal.opacity(0.72))
                             .frame(width: 10, height: 10).position(x: point.x * size, y: point.y * size)
                     }
                 }
@@ -114,13 +114,13 @@ struct DispatchMap: View {
                         RoundedRectangle(cornerRadius: 3)
                             .fill(assigned[job.id] != nil ? ThusoTheme.tealInk : ThusoTheme.mangoInk)
                             .frame(width: 12, height: 12)
-                            .overlay { if job.id == selected { Circle().stroke(ThusoTheme.slate, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 26, height: 26) } }
+                            .overlay { if job.id == selected { Circle().stroke(ThusoTheme.charcoal, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 26, height: 26) } }
                             .position(x: point.x * size, y: point.y * size)
                     }
                 }
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
-                        Text(zone.name).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.slate.opacity(0.75))
+                        Text(zone.name).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                             .position(x: point.x * size, y: (point.y - zone.radius) * size + 8)
                     }
                 }
@@ -283,7 +283,7 @@ struct DispatchNurseRow: View {
             if !refused.isEmpty { Text(refused).font(.caption2).foregroundStyle(ThusoTheme.danger) }
             if let subject {
                 NavigationLink("Why") { VettingStatusView(subjectId: subject.id) }
-                    .font(.caption2).foregroundStyle(ThusoTheme.indigo)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal)
             }
         }
         .padding(.vertical, 3)
@@ -336,7 +336,7 @@ struct IncidentDetailView: View {
                 Button("Add demo action to the log") { log.append(action); action = "" }.disabled(action.isEmpty)
             }
             if !log.isEmpty {
-                Section("Demo incident log") { ForEach(log, id: \.self) { Label($0, systemImage: "checkmark.circle.fill").foregroundStyle(ThusoTheme.indigo) } }
+                Section("Demo incident log") { ForEach(log, id: \.self) { Label($0, systemImage: "checkmark.circle.fill").foregroundStyle(ThusoTheme.charcoal) } }
             }
             Section { Text("Incident logs are append-only and reviewed weekly. Nothing here is recorded, paged or sent.").font(.caption).foregroundStyle(.secondary) }
         }

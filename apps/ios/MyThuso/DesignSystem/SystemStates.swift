@@ -100,13 +100,13 @@ struct StatePicker: View {
     var body: some View {
         DisclosureGroup(isExpanded: $open) {
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                Text(title).font(.caption2).foregroundStyle(ThusoTheme.body)
+                Text(title).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 Picker(title, selection: $state) { ForEach(LoadState.allCases) { Text($0.rawValue).tag($0) } }
                     .pickerStyle(.segmented).labelsHidden()
             }.padding(.top, ThusoSpacing.space8)
         } label: {
             HStack(spacing: ThusoSpacing.space8) {
-                Text("Preview states").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.body)
+                Text("Preview states").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 if state != .ready { StatusPill(text: state.rawValue, tone: "amber") }
             }
         }
@@ -129,8 +129,8 @@ struct EmptyStateCard: View {
             Text(message)
         }
         .padding(.vertical, ThusoSpacing.space8)
-        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
+        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
     }
 }
 
@@ -158,7 +158,7 @@ struct CapabilityNotice: View {
             }
             .padding(ThusoSpacing.space12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+            .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
             /* A note rather than a status: it is true when the screen opens and does not change, so
                announcing it as a live update would interrupt a reader mid-sentence for old news. */
             .accessibilityElement(children: .combine)

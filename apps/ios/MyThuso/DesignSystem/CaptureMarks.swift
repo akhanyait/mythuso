@@ -19,6 +19,19 @@ import SwiftUI
    attached to the circumstances of a reading — a calibration that ran out, an expired strip, a cold
    finger — never to its origin. */
 
+/* THE ONE PLACE INDIGO SURVIVED THE SWEEP.
+ *
+ * Indigo was chrome in twenty-six files — an icon here, a link there, a selected pill, a tick — and
+ * it is charcoal in all of them now, because a colour spent on everything says nothing. It stays
+ * here, and only here, because here it is the information: four origins, four hues, and a legend
+ * on the screen saying in as many words that they are kinds rather than grades. Take the hue away
+ * and a reader cannot tell a reading an instrument sent from one a nurse took by hand without
+ * reading the word beside it — which is the test for whether a colour is carrying anything.
+ *
+ * The four are still four *kinds* and not four steps: one shape, one size, one weight, one opacity,
+ * and a dashed edge on the calculated one because a value assembled from other values is a real
+ * difference and not a lesser one. The word is on the chip as well as the colour, so nothing here
+ * is legible only to somebody who can see the difference between blue and green. */
 extension Provenance {
     var tint: Color {
         switch self {
@@ -66,24 +79,24 @@ struct ProvenanceKey: View {
     var body: some View {
         CareCard {
             Label("Four origins, four marks", systemImage: "square.on.square.dashed")
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             Text("They differ by symbol and colour, not by weight. A blood pressure a nurse took by hand on the right cuff is a clinical skill, not a weaker copy of one a machine sent over. What the mark says is where the number came from — what it is worth is the reader’s judgement, which is what the sentences below are for.")
-                .font(.caption).foregroundStyle(ThusoTheme.body)
+                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             ForEach(Provenance.allCases) { provenance in
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: ThusoSpacing.space8) {
                         ProvenanceMark(provenance: provenance, full: true)
                         Spacer(minLength: 6)
-                        Text(provenance.fhir).font(.caption2).foregroundStyle(ThusoTheme.faint)
+                        Text(provenance.fhir).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     }
-                    Text(provenance.detail).font(.caption2).foregroundStyle(ThusoTheme.ink)
-                    Text(provenance.trust).font(.caption2).foregroundStyle(ThusoTheme.body)
+                    Text(provenance.detail).font(.caption2).foregroundStyle(ThusoTheme.charcoal)
+                    Text(provenance.trust).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
                 .padding(.vertical, 4)
                 .accessibilityElement(children: .combine)
                 if provenance != Provenance.allCases.last { Divider().overlay(ThusoTheme.line) }
             }
-            Text(CaptureRules.provenanceIsRequired).font(.caption2).foregroundStyle(ThusoTheme.faint)
+            Text(CaptureRules.provenanceIsRequired).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
     }
 }
@@ -126,10 +139,10 @@ struct ReadingRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                Text(reading.label).font(.caption).foregroundStyle(ThusoTheme.body)
+                Text(reading.label).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 Spacer(minLength: 8)
                 Text(reading.display).font(.system(.subheadline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(ThusoTheme.ink).multilineTextAlignment(.trailing)
+                    .foregroundStyle(ThusoTheme.charcoal).multilineTextAlignment(.trailing)
             }
             HStack(spacing: ThusoSpacing.space8) {
                 ProvenanceMark(provenance: reading.provenance)
@@ -140,14 +153,14 @@ struct ReadingRow: View {
             }
             if let line = reading.instrumentLine {
                 Text(reading.calibratedOn.map { "\(line) · last calibrated \(vettingDate($0))" } ?? line)
-                    .font(.caption2).foregroundStyle(ThusoTheme.faint)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
             if let label = reading.qualifierLabel, let qualifier = reading.qualifier {
-                Text("\(label): \(qualifier)").font(.caption2).foregroundStyle(ThusoTheme.faint)
+                Text("\(label): \(qualifier)").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
             if !reading.derivedFrom.isEmpty {
                 Text("Calculated from \(reading.derivedFrom.map { KitMeasures.label($0).lowercased() }.joined(separator: " and "))")
-                    .font(.caption2).foregroundStyle(ThusoTheme.faint)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
             if !dense { CaveatNote(caveats: reading.caveats) }
         }
@@ -169,7 +182,7 @@ struct TwoClocksRow: View {
             Text(entry.whenItHappened == captureStamp(entry.serverReceivedAt ?? entry.deviceCapturedAt)
                  ? "Ordered by the receipt time. The phone’s own time is kept beside it as what the phone believed."
                  : entry.whenItHappened)
-                .font(.caption2).foregroundStyle(ThusoTheme.faint)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             if let drift = entry.clockDisagreedBy {
                 let hours = abs(drift) / 3600
                 Label("This phone’s clock was \(String(format: "%.1f", hours)) hours \(drift > 0 ? "ahead of" : "behind") the receipt. Nobody was asked about it — the receipt time orders the record and the phone’s time is kept as what the phone believed.",
@@ -189,10 +202,10 @@ struct WrittenAgoNote: View {
     var body: some View {
         if let at {
             Text("\(what) was \(writtenInWords(at)), to the store on this phone.")
-                .font(.caption2).foregroundStyle(ThusoTheme.faint)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         } else {
             Text("\(what) has not been written to this phone’s store.")
-                .font(.caption2).foregroundStyle(ThusoTheme.faint)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
     }
 }

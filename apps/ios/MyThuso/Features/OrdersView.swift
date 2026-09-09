@@ -19,7 +19,7 @@ struct TimelineList: View {
         ForEach(steps) { step in
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                 Image(systemName: step.state == "done" ? "checkmark.circle.fill" : step.state == "active" ? "circle.dashed" : "circle")
-                    .foregroundStyle(step.state == "waiting" ? .gray.opacity(0.5) : ThusoTheme.indigo)
+                    .foregroundStyle(ThusoTheme.charcoal.opacity(step.state == "waiting" ? 0.3 : 1))
                 VStack(alignment: .leading, spacing: 4) {
                     Text(step.label).font(.subheadline.weight(.semibold)).foregroundStyle(step.state == "waiting" ? .secondary : .primary)
                     Text(step.detail).font(.caption).foregroundStyle(.secondary)

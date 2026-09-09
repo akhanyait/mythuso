@@ -33,7 +33,7 @@ struct GuardianInvitation: Identifiable, Hashable {
     /* Seeded with a real date rather than the string "12 September · 09:00", which stopped being
        true the day after somebody typed it and never matched the weekday shown beside it. */
     @Published var visits = [BookedVisit(service: CareService.all[0], patient: "Lerato Molefe",
-                                         address: "Home visit · Sandton", kind: "scheduled",
+                                         address: "Home visit · Melville", kind: "scheduled",
                                          date: Date().addingTimeInterval(5 * 86_400), start: "09:00", payment: "Card")]
     /* Visits that were cancelled, which is a different list rather than a shorter one. A cancelled
        visit is not deleted — packages/catalog/cancellation.json says so under doesNotUndo, and the

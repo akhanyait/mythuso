@@ -53,7 +53,7 @@ struct HeroCarousel: View {
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) { index = position }
                     playing = false
                 } label: {
-                    Capsule().fill(position == index ? ThusoTheme.indigo : ThusoTheme.line)
+                    Capsule().fill(position == index ? ThusoTheme.charcoal : ThusoTheme.line)
                         .frame(width: position == index ? 22 : 6, height: 6)
                         .frame(width: 30, height: 44)
                         .contentShape(Rectangle())
@@ -67,7 +67,7 @@ struct HeroCarousel: View {
             if !reduceMotion {
                 Button { playing.toggle() } label: {
                     Image(systemName: playing ? "pause.fill" : "play.fill").font(.caption.weight(.semibold))
-                        .foregroundStyle(ThusoTheme.slate).frame(width: 32, height: 32)
+                        .foregroundStyle(ThusoTheme.charcoal).frame(width: 32, height: 32)
                         .background(ThusoTheme.surface, in: Circle())
                         .overlay(Circle().stroke(ThusoTheme.line, lineWidth: 1))
                         .frame(width: 44, height: 44).contentShape(Rectangle())
@@ -82,10 +82,10 @@ struct HeroCarousel: View {
         VStack(alignment: .leading, spacing: 0) {
             if showsPhoto {
                 /* A band, not a cut-out floating over a plate. The photograph is a masked cut-out,
-                   so it stands on a tinted ground of the brand's own indigo and is cropped by the
+                   so it stands on the palest sage in the ramp and is cropped by the
                    band rather than by a hand-placed offset. */
                 ZStack(alignment: .bottom) {
-                    LinearGradient(colors: [ThusoTheme.indigoSoft, ThusoTheme.surface], startPoint: .top, endPoint: .bottom)
+                    LinearGradient(colors: [ThusoTheme.paleSage, ThusoTheme.surface], startPoint: .top, endPoint: .bottom)
                     Image(slide.banner).resizable().scaledToFit().frame(height: 150)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .padding(.trailing, ThusoSpacing.space20)
@@ -95,9 +95,9 @@ struct HeroCarousel: View {
             }
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                 Text(slide.title.replacingOccurrences(of: "\n", with: " "))
-                    .font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.ink)
+                    .font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(slide.body).font(.footnote).foregroundStyle(ThusoTheme.body)
+                Text(slide.body).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     .fixedSize(horizontal: false, vertical: true)
                 trustRow(slide)
                 Button { onAction(position) } label: {
@@ -108,19 +108,19 @@ struct HeroCarousel: View {
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
                     .frame(minHeight: 44)
-                    .background(ThusoTheme.indigo, in: Capsule()).foregroundStyle(.white)
+                    .background(ThusoTheme.charcoal, in: Capsule()).foregroundStyle(.white)
                 }
                 .padding(.top, ThusoSpacing.space4)
-                Text(slide.caption).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.indigoDeep)
+                Text(slide.caption).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(ThusoSpacing.space16)
             .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
         }
-        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .shadow(color: ThusoTheme.lift, radius: 10, y: 3)
         .padding(.horizontal, 2)
     }
@@ -146,7 +146,7 @@ struct HeroCarousel: View {
 
     private func trustMark(_ symbol: String, _ label: String) -> some View {
         Label {
-            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.slate)
+            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: symbol).font(.caption2).foregroundStyle(ThusoTheme.tealInk)

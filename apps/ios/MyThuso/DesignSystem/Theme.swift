@@ -61,10 +61,10 @@ struct CareHeading: View {
             if !eyebrow.isEmpty {
                 Text(eyebrow.uppercased()).font(.caption2.weight(.semibold)).tracking(1.1).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
-            Text(title).font(.title2.weight(.bold)).foregroundStyle(ThusoTheme.ink)
+            Text(title).font(.title2.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
             if !subtitle.isEmpty {
-                Text(subtitle).font(.subheadline).foregroundStyle(ThusoTheme.body)
+                Text(subtitle).font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -150,6 +150,41 @@ struct QuietButton: ButtonStyle {
     }
 }
 
+/* A monogram, and the one thing every hand-built copy of it got wrong.
+ *
+ * Two capitals in a fixed circle, on eight screens, each written out as a Text with a
+ * .frame(width: 42, height: 42) round it. At AccessibilityXXXL the letters are three times the
+ * size and the circle is still forty-two points, so every one of them rendered as "…" — a picture
+ * of letters that had become a picture of nothing, beside the name it was standing in for.
+ *
+ * MyThusoUITests' scaling check could not have caught it: it excuses any string of three capitals
+ * or fewer, because a monogram is not read and is not meant to grow. That exemption is right, and
+ * it is exactly why this had to be found by looking.
+ *
+ * So the circle grows with the text, and past the accessibility sizes it is not drawn at all. The
+ * person's full name is always next to it, it is hidden from VoiceOver, and a decoration that
+ * would take a third of a narrow column at those sizes is a decoration that has stopped paying for
+ * its space. */
+struct Monogram: View {
+    let text: String
+    var diameter: CGFloat = 42
+    /* White with a hairline, on every ground. A sage disc on a sage lead card was invisible — the
+       monogram was there in the layout and gone in the screenshot — and separation in this language
+       is a hairline and a lighter fill rather than a second tint per card. */
+    var background: Color = ThusoTheme.surface
+    @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
+    @Environment(\.dynamicTypeSize) private var typeSize
+    var body: some View {
+        if !typeSize.isAccessibilitySize {
+            Text(text).font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
+                .frame(width: diameter * scale, height: diameter * scale)
+                .background(background, in: Circle())
+                .overlay(Circle().stroke(ThusoTheme.stone, lineWidth: 1))
+                .accessibilityHidden(true)
+        }
+    }
+}
+
 /// A soft tinted square holding a symbol. It marks what leads a section — not every row in it.
 struct TileIcon: View {
     let symbol: String
@@ -169,38 +204,15 @@ struct TileIcon: View {
     }
 }
 
+/* The same chip, spoken to in the contracts' own tone words. Every screen in the app said
+   `StatusPill(text:tone:)` and the tone strings come out of vetting, capture and dispensing data,
+   so the name and the vocabulary stay; what changed is that there is now one implementation of a
+   chip in this product rather than two, and that only a severity or a refusal is allowed a hue.
+   MetricChip in DesignSystem/Surface.swift is that implementation and the argument for it. */
 struct StatusPill: View {
     let text: String
     var tone: String = "teal"
-    private var colors: (Color, Color) {
-        switch tone {
-        case "amber": return (ThusoTheme.mangoSoft, ThusoTheme.mangoInk)
-        case "sky": return (ThusoTheme.infoSoft, ThusoTheme.info)
-        /* A refusal has to be able to look like one. Vetting says "lapsed" and "declined" often
-           enough that the pill needs a tone for it, and a quiet one for what nobody has done yet. */
-        case "danger": return (ThusoTheme.danger.opacity(0.11), ThusoTheme.danger)
-        case "quiet": return (ThusoTheme.canvas, ThusoTheme.body)
-        /* On a dark indigo ground, where the only readable ink is white. The mint-tinged white this
-           used to be was left over from the palette the brand replaced. */
-        case "light": return (Color.white.opacity(0.16), Color.white)
-        /* Teal is an accent, so it marks a good clinical standing as a tinted ground with the dark
-           tealInk on it — teal itself cannot carry text on a light ground. */
-        default: return (ThusoTheme.tealSoft, ThusoTheme.tealInk)
-        }
-    }
-    /* A pill's ends curve in by half its height, so a status that has wrapped to three lines at the
-       accessibility sizes has its first and last words cut off by its own background. Past that
-       point the pill becomes a rounded chip and keeps all of its words. */
-    @Environment(\.dynamicTypeSize) private var typeSize
-    private var shape: AnyShape {
-        typeSize.isAccessibilitySize ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)) : AnyShape(Capsule())
-    }
-    var body: some View {
-        Text(text).font(.caption2.weight(.semibold))
-            .padding(.horizontal, ThusoSpacing.space8).padding(.vertical, ThusoSpacing.space4)
-            .fixedSize(horizontal: false, vertical: true)
-            .background(colors.0, in: shape).foregroundStyle(colors.1)
-    }
+    var body: some View { MetricChip(text: text, tone: ChipTone(tone)) }
 }
 
 struct StepDots: View {
@@ -208,10 +220,19 @@ struct StepDots: View {
     let total: Int
     let label: String
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /* The name of the step is what tells a nurse where she is. Set on one line beside the count it
+       came out as "Ident…" at the accessibility sizes — a truncation of the only word on the row
+       that says anything — so past that point the row becomes two lines and keeps the word. */
+    @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
-        HStack(spacing: ThusoSpacing.space8) {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: ThusoSpacing.space8))
+            : AnyLayout(HStackLayout(spacing: ThusoSpacing.space8))
+        return layout {
             Text("Step \(step) of \(total)").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(label).font(.caption).foregroundStyle(ThusoTheme.body).lineLimit(1)
+            Text(label).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: ThusoSpacing.space8)
             HStack(spacing: ThusoSpacing.space4) {
                 ForEach(1...total, id: \.self) { index in
@@ -244,11 +265,11 @@ struct CodeBoxes: View {
                 ForEach(0..<length, id: \.self) { index in
                     let digit = index < code.count ? String(Array(code)[index]) : ""
                     let active = focused && index == min(code.count, length - 1)
-                    Text(digit).font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                    Text(digit).font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                         .frame(maxWidth: .infinity, minHeight: boxHeight)
                         .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(
-                            invalid ? ThusoTheme.danger : (active ? ThusoTheme.indigo : ThusoTheme.line),
+                            invalid ? ThusoTheme.danger : (active ? ThusoTheme.charcoal : ThusoTheme.line),
                             lineWidth: active || invalid ? 1.5 : 1))
                 }
             }
@@ -313,7 +334,7 @@ struct MenuRow: View {
                     .foregroundStyle(danger ? ThusoTheme.danger : ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
                 if !subtitle.isEmpty {
-                    Text(subtitle).font(.caption).foregroundStyle(ThusoTheme.body)
+                    Text(subtitle).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -342,11 +363,11 @@ struct FeatureDetail: View {
                 CareCard(weight: .lead) {
                     TileIcon(symbol: "sparkles")
                     Text("This workflow will connect to the relevant clinical, operational or partner service in the functionality phase.")
-                        .font(.subheadline).foregroundStyle(ThusoTheme.ink).fixedSize(horizontal: false, vertical: true)
+                        .font(.subheadline).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
                     Text("No live care, payments, device permissions or clinical decisions are activated.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.body).fixedSize(horizontal: false, vertical: true)
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).fixedSize(horizontal: false, vertical: true)
                 }
-                Text("Connected to your care journey.").font(.footnote).foregroundStyle(ThusoTheme.faint)
+                Text("Connected to your care journey.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
             .padding(.horizontal, ThusoSpacing.space20).padding(.vertical, ThusoSpacing.space16)
         }

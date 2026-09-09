@@ -135,7 +135,7 @@ struct RecoverAccessView: View {
         Form {
             if submitted {
                 Section {
-                    Label("We’ve started your recovery", systemImage: "checkmark.seal.fill").foregroundStyle(ThusoTheme.indigo)
+                    Label("We’ve started your recovery", systemImage: "checkmark.seal.fill").foregroundStyle(ThusoTheme.charcoal)
                     LabeledContent("Reference", value: "REC-0042 · Demo")
                     LabeledContent("Indicative wait", value: routes.first { $0.0 == route }?.2 ?? "")
                     Text("Nothing was submitted. Production recovery is rate-limited, audited and reversible for a cooling-off period.").font(.caption).foregroundStyle(.secondary)
@@ -146,11 +146,11 @@ struct RecoverAccessView: View {
                     ForEach(routes, id: \.0) { option in
                         Button { route = option.0 } label: {
                             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                                Image(systemName: route == option.0 ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.indigo)
+                                Image(systemName: route == option.0 ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.charcoal)
                                 VStack(alignment: .leading, spacing: 5) {
-                                    Text(option.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                                    Text(option.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                                     Text(option.1).font(.caption).foregroundStyle(.secondary)
-                                    Text(option.2).font(.caption2).foregroundStyle(ThusoTheme.indigo)
+                                    Text(option.2).font(.caption2).foregroundStyle(ThusoTheme.charcoal)
                                 }
                             }
                         }

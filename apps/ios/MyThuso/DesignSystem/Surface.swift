@@ -159,12 +159,74 @@ struct ThusoMetric: View {
     }
 }
 
-/* The chip. A pill until the words no longer fit on one line, then a rounded chip — a capsule's
-   ends curve in by half its height, and at the accessibility sizes that eats the first and last
-   word of a wrapped status. Same reasoning as StatusPill, which has been round the same houses. */
+/* THERE IS ONE CHIP.
+ *
+ * There were two. `StatusPill` painted a teal, an amber, a sky-blue and a grey; `MetricChip`
+ * painted charcoal on white; and several screens carried both, three inches apart, so a reader had
+ * to learn two vocabularies to read one card. Worse, the first of them tinted everything: a nurse
+ * whose checks are all verified got a teal chip, a submission in review got a blue one, and by the
+ * time every row on a screen was coloured the colour had stopped saying anything.
+ *
+ * So the rule is now the design language's rule, in code rather than in a paragraph: A CHIP IS
+ * NEUTRAL UNLESS SOMETHING IS WRONG. `attention` and `refused` are the only two tones that carry a
+ * hue, and they are spent on a severity, a refusal, or a value outside its range — the three things
+ * a reader has to be able to find without reading. Everything that is merely true is charcoal on
+ * white, and the word on it is what distinguishes it: "In review" and "Verified" are two different
+ * sentences before they are two different colours, and a chip that had only the colour would fail
+ * anybody reading it in greyscale or with a colour vision deficiency.
+ *
+ * A pill until the words no longer fit on one line, then a rounded chip — a capsule's ends curve in
+ * by half its height, and at the accessibility sizes that eats the first and last word of a wrapped
+ * status. `.footnote` rather than `.caption2`: the type scale's floor is 13 points and nothing in
+ * this product renders below it, including a status somebody is meant to act on. */
+enum ChipTone {
+    /// True, and nothing is wrong with it. The overwhelming majority.
+    case neutral
+    /// Nobody has done this yet. Recessed rather than tinted — an absence is not a warning.
+    case quiet
+    /// Something needs looking at: expiring, conflicted, out of range, a written reason owed.
+    case attention
+    /// Refused, lapsed, declined, out of date.
+    case refused
+    /// On a dark ground, where the only ink that reads is white.
+    case onDark
+    /// The one value on a screen that is being pointed at. Charcoal fill, white word.
+    case filled
+
+    /// (ink, fill, edge). Charcoal clears 17.04:1 on surface and 13.53:1 on cloud; mangoInk 6.22
+    /// and danger 5.77 on their own washes; white 12.6:1 on the charcoal fill.
+    var colours: (Color, Color, Color) {
+        switch self {
+        case .neutral: return (ThusoTheme.charcoal, ThusoTheme.surface, ThusoTheme.stone)
+        case .quiet: return (ThusoTheme.charcoal.opacity(0.72), ThusoTheme.cloud, .clear)
+        case .attention: return (ThusoTheme.mangoInk, ThusoTheme.mangoSoft, ThusoTheme.mangoInk.opacity(0.24))
+        case .refused: return (ThusoTheme.danger, ThusoTheme.dangerSoft, ThusoTheme.danger.opacity(0.3))
+        case .onDark: return (ThusoTheme.surface, ThusoTheme.surface.opacity(0.16), ThusoTheme.surface.opacity(0.3))
+        case .filled: return (ThusoTheme.surface, ThusoTheme.charcoal, ThusoTheme.charcoal)
+        }
+    }
+
+    /* The tone vocabulary the contracts speak. Vetting, capture, dispensing and the household all
+       carry a tone string in their own data, and those strings are not this app's to rename — so
+       they are read here, once, and the two that used to mean "everything is fine, in teal" and
+       "something is happening, in blue" now both resolve to the neutral chip. */
+    init(_ contractTone: String) {
+        switch contractTone {
+        case "amber": self = .attention
+        case "danger": self = .refused
+        case "quiet": self = .quiet
+        case "light": self = .onDark
+        default: self = .neutral
+        }
+    }
+}
+
 struct MetricChip: View {
     let text: String
-    var flagged = false
+    var tone: ChipTone = .neutral
+    /// Kept because a metric asks for it by name: the one value on a card that is out of range.
+    init(text: String, flagged: Bool) { self.init(text: text, tone: flagged ? .filled : .neutral) }
+    init(text: String, tone: ChipTone = .neutral) { self.text = text; self.tone = tone }
     @Environment(\.dynamicTypeSize) private var typeSize
     private var shape: AnyShape {
         typeSize.isAccessibilitySize
@@ -172,12 +234,13 @@ struct MetricChip: View {
             : AnyShape(Capsule())
     }
     var body: some View {
+        let (ink, fill, edge) = tone.colours
         Text(text).font(.footnote.weight(.medium))
-            .foregroundStyle(flagged ? ThusoTheme.surface : ThusoTheme.charcoal)
+            .foregroundStyle(ink)
             .padding(.horizontal, ThusoSpacing.space8).padding(.vertical, 3)
             .fixedSize(horizontal: false, vertical: true)
-            .background(flagged ? ThusoTheme.charcoal : ThusoTheme.surface, in: shape)
-            .overlay(shape.stroke(flagged ? ThusoTheme.charcoal : ThusoTheme.stone, lineWidth: 1))
+            .background(fill, in: shape)
+            .overlay(shape.stroke(edge, lineWidth: 1))
     }
 }
 

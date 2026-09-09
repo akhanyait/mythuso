@@ -66,7 +66,7 @@ struct CancelVisitView: View {
         visitSummary
         momentPicker
         CareCard {
-            Text(state.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(state.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
             Text(state.detail).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
@@ -84,7 +84,7 @@ struct CancelVisitView: View {
     @ViewBuilder private var refusal: some View {
         CareCard(weight: .lead) {
             TileIcon(symbol: "hand.raised")
-            Text(state.patientWords).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(state.patientWords).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
         }
         Button("Back to the visit") { dismiss() }.buttonStyle(CareButton())
@@ -124,8 +124,8 @@ struct CancelVisitView: View {
     private func reasonRow(_ option: CancellationReason) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: reason == option.id ? "largecircle.fill.circle" : "circle")
-                .foregroundStyle(ThusoTheme.indigo).accessibilityHidden(true)
-            Text(option.text).font(.subheadline).foregroundStyle(ThusoTheme.ink)
+                .foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
+            Text(option.text).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
@@ -135,7 +135,7 @@ struct CancelVisitView: View {
     private var rescheduleOffer: some View {
         CareCard(weight: .lead) {
             Text(Cancellation.Reschedule.sentence).font(.subheadline.weight(.semibold))
-                .foregroundStyle(ThusoTheme.ink).fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
             NavigationLink { RescheduleVisitView(visit: visit) } label: {
                 Text("Move this visit instead").frame(maxWidth: .infinity)
             }.buttonStyle(CareButton())
@@ -166,8 +166,8 @@ struct CancelVisitView: View {
                 Button { moment = option.id } label: {
                     HStack(spacing: ThusoSpacing.space8) {
                         Image(systemName: moment == option.id ? "largecircle.fill.circle" : "circle")
-                            .foregroundStyle(ThusoTheme.indigo).accessibilityHidden(true)
-                        Text(option.name).font(.footnote).foregroundStyle(ThusoTheme.ink)
+                            .foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
+                        Text(option.name).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 0)
                     }
@@ -179,8 +179,8 @@ struct CancelVisitView: View {
         }
         .padding(ThusoSpacing.space12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous)
+        .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)
             .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.line))
     }
 
@@ -197,7 +197,7 @@ struct CancelVisitView: View {
        decided to say. */
     @ViewBuilder private func confirmation(_ record: CancelledVisit) -> some View {
         CareCard(weight: .lead) {
-            Text(record.state.patientWords).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(record.state.patientWords).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
             Divider().overlay(ThusoTheme.line)
             LabeledContent("Visit", value: record.visit.service.name)
@@ -209,7 +209,7 @@ struct CancelVisitView: View {
         CareCard(padding: ThusoSpacing.space16, spacing: ThusoSpacing.space12) {
             ForEach(Cancellation.doesNotUndo) { limit in
                 VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                    Text(limit.statement).font(.subheadline).foregroundStyle(ThusoTheme.ink)
+                    Text(limit.statement).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(limit.why).font(.caption).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
@@ -288,7 +288,7 @@ struct RescheduleVisitView: View {
 
     @ViewBuilder private func confirmation(_ visit: BookedVisit) -> some View {
         CareCard(weight: .lead) {
-            Text("This visit has moved.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+            Text("This visit has moved.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             Divider().overlay(ThusoTheme.line)
             LabeledContent("Visit", value: visit.service.name)
             LabeledContent("Now", value: visit.whenText)

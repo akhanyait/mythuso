@@ -134,6 +134,8 @@ struct VisitAssessmentView: View {
         /* Above the work rather than inside it. "Has any of this left the phone" is a question a
            nurse asks between fields, and an answer she has to navigate to is an answer she stops
            asking for. */
+        .scrollContentBackground(.hidden)
+        .thusoGround()
         .safeAreaInset(edge: .top) { CaptureStandingStrip() }
         .navigationTitle("Visit assessment").navigationBarTitleDisplayMode(.inline)
         .onAppear { if nurse.isEmpty { nurse = nurses.contains { $0.id == nurseId } ? nurseId : (nurses.first?.id ?? "") } }
@@ -283,15 +285,15 @@ struct VisitAssessmentView: View {
             if let kitReading = fromKit[observation.id] {
                 if let line = kitReading.instrumentLine {
                     Text(provenance == .device ? line : "\(line) — read by hand, so this is a clinician’s reading of that instrument")
-                        .font(.caption2).foregroundStyle(ThusoTheme.faint)
+                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
                 if let label = kitReading.qualifierLabel, let qualifier = kitReading.qualifier {
-                    Text("\(label): \(qualifier)").font(.caption2).foregroundStyle(ThusoTheme.faint)
+                    Text("\(label): \(qualifier)").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
                 CaveatNote(caveats: kitReading.caveats)
             }
             if provenance == .patientReported {
-                Text("In the record as what they said, not as something you observed.").font(.caption2).foregroundStyle(ThusoTheme.faint)
+                Text("In the record as what they said, not as something you observed.").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
         }
         .padding(.vertical, 3)
@@ -364,9 +366,9 @@ struct VisitAssessmentView: View {
             ForEach(["Headache", "Dizziness", "Shortness of breath", "Chest pain", "Swelling", "Fatigue", "Nausea", "None reported"], id: \.self) { symptom in
                 Button { if symptoms.contains(symptom) { symptoms.remove(symptom) } else { symptoms.insert(symptom) } } label: {
                     HStack {
-                        Text(symptom).foregroundStyle(ThusoTheme.ink)
+                        Text(symptom).foregroundStyle(ThusoTheme.charcoal)
                         Spacer()
-                        if symptoms.contains(symptom) { Image(systemName: "checkmark").foregroundStyle(ThusoTheme.indigo) }
+                        if symptoms.contains(symptom) { Image(systemName: "checkmark").foregroundStyle(ThusoTheme.charcoal) }
                     }
                 }
                 .accessibilityAddTraits(symptoms.contains(symptom) ? [.isSelected] : [])
@@ -391,7 +393,7 @@ struct VisitAssessmentView: View {
     @ViewBuilder private var signOffStage: some View {
         if signed {
             Section {
-                Label("Demo assessment closed", systemImage: "checkmark.seal.fill").foregroundStyle(ThusoTheme.indigo)
+                Label("Demo assessment closed", systemImage: "checkmark.seal.fill").foregroundStyle(ThusoTheme.charcoal)
                 /* This used to say nothing had been written. It is no longer true and it must not
                    be left standing: readings are now written to a file on this phone, and a screen
                    that reassures a nurse about the wrong thing is worse than one that says nothing. */
@@ -410,7 +412,7 @@ struct VisitAssessmentView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         HStack { Text(derived.label).font(.caption).foregroundStyle(.secondary); Spacer(); Text("\(derived.value) \(derived.unit)").font(.system(.subheadline, design: .rounded, weight: .semibold)) }
                         ProvenanceMark(provenance: .derived)
-                        Text(derived.workings).font(.caption2).foregroundStyle(ThusoTheme.faint)
+                        Text(derived.workings).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     }
                 }
                 ForEach(unranged) { ReadingRow(reading: $0) }

@@ -49,8 +49,8 @@ struct HealthSummaryView: View {
 
     @ViewBuilder private var summaryCard: some View {
         CareCard {
-            Text("Health summary · \(member.name)").font(.headline).foregroundStyle(ThusoTheme.ink)
-            Text(Records.summaryCard.why).font(.footnote).foregroundStyle(ThusoTheme.body)
+            Text("Health summary · \(member.name)").font(.headline).foregroundStyle(ThusoTheme.charcoal)
+            Text(Records.summaryCard.why).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             SummaryCardView(member: member, fields: Records.summaryCard.fields)
             if !member.restricted.isEmpty {
                 /* Only ever shown to the person themselves, in their own view of their own record.
@@ -58,7 +58,7 @@ struct HealthSummaryView: View {
                    disclosure to. */
                 Label("You have \(member.restricted.count) \(member.restricted.count == 1 ? "entry" : "entries") in protected categories. They are yours, they appear in no summary you share, and you release them one at a time, to one person, for one purpose.",
                       systemImage: "lock")
-                    .font(.caption2).foregroundStyle(ThusoTheme.body)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     .accessibilityElement(children: .combine)
             }
         }
@@ -66,10 +66,10 @@ struct HealthSummaryView: View {
 
     @ViewBuilder private var shareForm: some View {
         CareCard {
-            Text("Share this summary").font(.headline).foregroundStyle(ThusoTheme.ink)
+            Text("Share this summary").font(.headline).foregroundStyle(ThusoTheme.charcoal)
             Text("A summary that is valid forever is a summary you have lost. Choose what it is for; the purpose chooses the fields and the hours.")
-                .font(.footnote).foregroundStyle(ThusoTheme.body)
-            Text("What is this summary for?").font(.caption).foregroundStyle(ThusoTheme.body)
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text("What is this summary for?").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             ForEach(sharePurposes) { option in
                 Button {
                     purposeId = option.id
@@ -77,11 +77,11 @@ struct HealthSummaryView: View {
                 } label: {
                     HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                         Image(systemName: option.id == purposeId ? "largecircle.fill.circle" : "circle")
-                            .foregroundStyle(ThusoTheme.indigo)
+                            .foregroundStyle(ThusoTheme.charcoal)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(option.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                            Text(option.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                             Text("\(option.fields.count) of \(Records.summaryCard.fields.count) fields · valid \(option.hours) hours · \(option.recipient)")
-                                .font(.caption).foregroundStyle(ThusoTheme.body)
+                                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                         }
                         Spacer(minLength: 0)
                     }
@@ -90,7 +90,7 @@ struct HealthSummaryView: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(option.id == purposeId ? [.isSelected] : [])
             }
-            Text("Who receives it").font(.caption).foregroundStyle(ThusoTheme.body)
+            Text("Who receives it").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             TextField(purpose.recipient, text: $recipient)
                 .textFieldStyle(.roundedBorder)
                 .onChange(of: recipient) { _, value in recipient = String(value.prefix(80)) }
@@ -104,7 +104,7 @@ struct HealthSummaryView: View {
                 .font(.footnote)
             Button("Create the share", action: create).buttonStyle(CareButton()).disabled(!understood)
             Text(status.isEmpty ? "Nothing has been shared yet." : status)
-                .font(.caption).foregroundStyle(ThusoTheme.body)
+                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 .accessibilityAddTraits(.updatesFrequently)
         }
     }
@@ -145,18 +145,18 @@ struct HealthSummaryView: View {
     @ViewBuilder private func scannerNote(_ share: SummaryShare) -> some View {
         let initials = member.name.split(separator: " ").compactMap(\.first).map(String.init).joined(separator: ".")
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-            Image(systemName: "checkmark.shield").font(.body).foregroundStyle(ThusoTheme.indigo)
+            Image(systemName: "checkmark.shield").font(.body).foregroundStyle(ThusoTheme.charcoal)
             VStack(alignment: .leading, spacing: 5) {
-                Text("What a scanner would read.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                Text("What a scanner would read.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 Text("The reference above, and nothing else — it is 100 random bits from the system’s cryptographic generator, not your patient number and not a number anyone can count up to. Someone holding it is answered with your initials (\(initials).), whether the summary is valid, expired or revoked, what it was made for, and when it stops. Not your name, not your date of birth, not one clinical word.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.body)
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 Text("No code is drawn here: the picture would only be a way to lose the reference. I, L, O and U are left out of the alphabet so that reading it over a counter cannot turn it into a different valid-looking one.")
-                    .font(.caption2).foregroundStyle(ThusoTheme.body)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.indigoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .background(ThusoTheme.paleSage, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 
@@ -168,25 +168,25 @@ struct HealthSummaryView: View {
         case .ready(let body):
             if share.revoked {
                 Text("Revoked, so there is nothing to export. A revoked summary is not a summary with a warning on it.")
-                    .font(.caption2).foregroundStyle(ThusoTheme.body)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             } else {
                 ShareLink(item: body) {
                     Label("Export this summary", systemImage: "square.and.arrow.up")
                         .font(.subheadline.weight(.semibold))
                         .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, minHeight: 50)
-                        .background(.white, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
-                        .foregroundStyle(ThusoTheme.slate)
+                        .background(.white, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
+                        .foregroundStyle(ThusoTheme.charcoal)
                 }
                 .accessibilityLabel("Export this summary through the share sheet")
                 Text("It goes to the system share sheet and nowhere else — no file is written, and \(share.purpose.fields.count) of \(Records.summaryCard.fields.count) fields travel with it. The artefact says who made it, for whom, for what, and when it stops being valid.")
-                    .font(.caption2).foregroundStyle(ThusoTheme.body)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
         case .refused(let reason):
             RefusalCard(title: "This summary was not offered for export",
                         decision: VettingDecision(allowed: false, reason: reason, blockedBy: []))
             Text("The check is on the bytes that would have left, not on what the code writing them intended. It does not say what it found: naming the category would be the disclosure the check exists to prevent.")
-                .font(.caption2).foregroundStyle(ThusoTheme.body)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
     }
 }

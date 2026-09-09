@@ -71,16 +71,16 @@ struct PatientFileView: View {
                 reviewControls
                 PatientSummaryHeader(patient: patient, viewer: subject)
                 tabStrip
-                Text(spokenState).font(.caption).foregroundStyle(ThusoTheme.body)
+                Text(spokenState).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     .accessibilityAddTraits(.updatesFrequently)
                 StatePicker(title: "Preview how this file behaves when the record service is unavailable", state: $feed)
                 StateBlock(state: feed, subject: "This patient file", permission: "clinical record access",
                            retry: { feed = .ready }) {
                     VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
-                        Text(tab.holds).font(.footnote).foregroundStyle(ThusoTheme.body)
+                        Text(tab.holds).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                         tabBody
                         Label(tab.notBuilt, systemImage: "checkmark.shield")
-                            .font(.caption2).foregroundStyle(ThusoTheme.body)
+                            .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     }
                 }
             }
@@ -98,18 +98,18 @@ struct PatientFileView: View {
     @ViewBuilder private var reviewControls: some View {
         CareCard {
             StatusPill(text: "Design review", tone: "quiet")
-            Text("The same file, through different eyes").font(.headline).foregroundStyle(ThusoTheme.ink)
+            Text("The same file, through different eyes").font(.headline).foregroundStyle(ThusoTheme.charcoal)
             Text("Every tab, action and field group below asks the vetting module whether this party may see it. Change the viewer and watch the file change shape — that is the demonstration, and it is the only way to tell whether a refusal was designed or assumed.")
-                .font(.footnote).foregroundStyle(ThusoTheme.body)
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             /* The label is drawn rather than left to the picker: a menu picker in a card shows only
                its value, and “Viewing as” is the whole point of the control. */
-            Text(thuso(.openFileOf, store.locale)).font(.caption).foregroundStyle(ThusoTheme.body)
+            Text(thuso(.openFileOf, store.locale)).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             Picker(thuso(.openFileOf, store.locale), selection: $patientId) {
                 ForEach(PatientFixtures.all) { Text("\($0.name) · \($0.id)").tag($0.id) }
             }
             .labelsHidden()
             .onChange(of: patientId) { _, _ in notice = "" }
-            Text(thuso(.viewingAs, store.locale)).font(.caption).foregroundStyle(ThusoTheme.body)
+            Text(thuso(.viewingAs, store.locale)).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             Picker(thuso(.viewingAs, store.locale), selection: $viewer) {
                 ForEach(viewers) { Text("\($0.name) · \($0.role?.name ?? $0.roleId)").tag($0.id) }
             }
@@ -118,7 +118,7 @@ struct PatientFileView: View {
             HStack(spacing: ThusoSpacing.space8) {
                 SubjectStatusPill(status: summarise(subject).status)
                 Text("\(subject.reference) · \(refusedCount) of \(Records.fileTabs.count) sections refused to this viewer")
-                    .font(.caption2).foregroundStyle(ThusoTheme.body)
+                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
             .accessibilityElement(children: .combine)
         }
@@ -135,8 +135,8 @@ struct PatientFileView: View {
                             if !open { Image(systemName: "lock").font(.caption2.weight(.semibold)) }
                         }
                         .padding(.horizontal, 13).padding(.vertical, 9)
-                        .background(item.name == tabName ? ThusoTheme.indigo : .white, in: Capsule())
-                        .foregroundStyle(item.name == tabName ? .white : ThusoTheme.body)
+                        .background(item.name == tabName ? ThusoTheme.charcoal : .white, in: Capsule())
+                        .foregroundStyle(item.name == tabName ? .white : ThusoTheme.charcoal.opacity(0.72))
                         .overlay(Capsule().stroke(ThusoTheme.line, lineWidth: item.name == tabName ? 0 : 1))
                     }
                     .buttonStyle(.plain)
@@ -179,19 +179,19 @@ struct RefusalCard: View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: "lock").font(.body).foregroundStyle(ThusoTheme.danger)
             VStack(alignment: .leading, spacing: 5) {
-                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 if let reason = decision.reason {
-                    Text(reason).font(.footnote).foregroundStyle(ThusoTheme.body)
+                    Text(reason).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
                 if !decision.blockedBy.isEmpty {
                     Text("Outstanding: \(decision.blockedBy.map(\.name).joined(separator: " · "))")
-                        .font(.caption2).foregroundStyle(ThusoTheme.body)
+                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
             }
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
@@ -215,7 +215,7 @@ struct ProtectedLineNote: View {
         let vetted = can(viewer, "view-protected-record")
         Label("A protected \(what) appears on this page only where the patient released that entry to you by name. \(vetted.allowed ? releaseRefusal(viewer.roleId) : (vetted.reason ?? ""))",
               systemImage: "lock")
-            .font(.caption2).foregroundStyle(ThusoTheme.body)
+            .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             .accessibilityElement(children: .combine)
     }
 }
@@ -274,7 +274,7 @@ struct PatientSummaryHeader: View {
                         ForEach(profile.chips, id: \.rawValue) { id in
                             let entry = chip(id)
                             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                                Text(entry.0).font(.caption2).foregroundStyle(ThusoTheme.body)
+                                Text(entry.0).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                                 Spacer(minLength: 8)
                                 StatusPill(text: entry.1, tone: entry.2)
                             }
@@ -286,12 +286,12 @@ struct PatientSummaryHeader: View {
                 if let scope = grantSentence(viewer.roleId, "view-patient-summary") {
                     Label("The header is cut to this role's own words in the vetting contract: “\(scope)”",
                           systemImage: "checkmark.shield")
-                        .font(.caption2).foregroundStyle(ThusoTheme.body)
+                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
             } else {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Patient \(patient.id)").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                    Text("The file is open. The person is not.").font(.caption).foregroundStyle(ThusoTheme.body)
+                    Text("Patient \(patient.id)").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    Text("The file is open. The person is not.").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
                 RefusalCard(title: "The patient summary is not open to this viewer", decision: decision)
             }
@@ -301,13 +301,11 @@ struct PatientSummaryHeader: View {
 
     @ViewBuilder private var identity: some View {
         HStack(spacing: ThusoSpacing.space12) {
-            Text(patient.initials).font(.callout.weight(.bold)).foregroundStyle(ThusoTheme.indigoDeep)
-                .frame(width: 46, height: 46).background(ThusoTheme.indigoSoft, in: Circle())
-                .accessibilityHidden(true)
+            Monogram(text: patient.initials, diameter: 46)
             VStack(alignment: .leading, spacing: 3) {
-                Text(patient.name).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                Text(patient.name).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 Text("\(patient.id) · \(patient.sex) · \(ageFrom(patient.dob)) years")
-                    .font(.caption).foregroundStyle(ThusoTheme.body)
+                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
             Spacer(minLength: 0)
         }
@@ -331,18 +329,18 @@ struct WithheldNoticeCard: View {
             Image(systemName: "lock").font(.body).foregroundStyle(ThusoTheme.mangoInk)
             VStack(alignment: .leading, spacing: 5) {
                 Text("A category is withheld from this header.")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                Text(Records.summaryCard.withheld).font(.footnote).foregroundStyle(ThusoTheme.body)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(Records.summaryCard.withheld).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 /* The categories are listed from the contract rather than typed into this sentence,
                    so one added to records.json is named here without anybody editing a screen. */
                 Text("These are never a chip: \(Records.protectedCategories.joined(separator: ", ")). The notice stands on every file, whether or not anything is held behind it.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.body)
-                Text(ask).font(.caption2).foregroundStyle(ThusoTheme.body)
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(ask).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
@@ -354,9 +352,9 @@ struct FieldRow: View {
     let value: String
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-            Text(label).font(.caption).foregroundStyle(ThusoTheme.body)
+            Text(label).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             Spacer(minLength: 10)
-            Text(value).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.ink)
+            Text(value).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.charcoal)
                 .multilineTextAlignment(.trailing)
         }
         .accessibilityElement(children: .combine)
@@ -371,18 +369,18 @@ struct RecordEntryRow: View {
         let type = Records.type(entry.typeId)
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             TileIcon(symbol: decision.allowed ? "doc.text" : "lock",
-                     tint: decision.allowed ? ThusoTheme.indigo : ThusoTheme.danger,
-                     background: decision.allowed ? ThusoTheme.indigoSoft : ThusoTheme.dangerSoft, size: 38)
+                     tint: decision.allowed ? ThusoTheme.charcoal : ThusoTheme.danger,
+                     background: decision.allowed ? ThusoTheme.paleSage : ThusoTheme.dangerSoft, size: 38)
             VStack(alignment: .leading, spacing: 3) {
                 Text(decision.allowed ? entry.title : "\(type?.name ?? "Record") · withheld")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 Text(decision.allowed ? entry.detail : (decision.reason ?? ""))
-                    .font(.caption).foregroundStyle(ThusoTheme.body)
+                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 if full {
                     Text("\(type?.name ?? "") · \(type?.fhir ?? "") · \(shortDate(entry.at))\(decision.allowed ? " · \(entry.by)" : "")")
-                        .font(.caption2).foregroundStyle(ThusoTheme.faint)
+                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 } else {
-                    Text(shortDate(entry.at)).font(.caption2).foregroundStyle(ThusoTheme.faint)
+                    Text(shortDate(entry.at)).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
                 if decision.allowed { ReleasedTag(entry: entry) }
             }
@@ -426,8 +424,8 @@ struct PatientFileOverview: View {
                 CareCard {
                     ForEach(patient.summaryPoints, id: \.self) { point in
                         HStack(alignment: .top, spacing: ThusoSpacing.space8) {
-                            Circle().fill(ThusoTheme.indigo).frame(width: 5, height: 5).padding(.top, 6)
-                            Text(point).font(.footnote).foregroundStyle(ThusoTheme.ink)
+                            Circle().fill(ThusoTheme.charcoal).frame(width: 5, height: 5).padding(.top, 6)
+                            Text(point).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
                         }
                     }
                 }
@@ -438,7 +436,7 @@ struct PatientFileOverview: View {
             CareCard {
                 if recent.isEmpty {
                     Text("Nothing in this patient's history is open to this viewer. That is a refusal, not an empty record.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.body)
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 } else {
                     ForEach(recent) { RecordEntryRow(entry: $0, decision: canOpen(viewer, $0)) }
                 }
@@ -446,7 +444,7 @@ struct PatientFileOverview: View {
             SectionHeading(title: "Actions")
             actions
             if !notice.isEmpty {
-                Text(notice).font(.caption).foregroundStyle(ThusoTheme.body)
+                Text(notice).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     .accessibilityAddTraits(.updatesFrequently)
             }
         }
@@ -454,11 +452,11 @@ struct PatientFileOverview: View {
 
     @ViewBuilder private var lastVisitCard: some View {
         CareCard {
-            Label("Last visit", systemImage: "calendar").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.body)
+            Label("Last visit", systemImage: "calendar").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             if clinical.allowed {
-                Text(shortDate(patient.lastVisit.at)).font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                Text(patient.lastVisit.service).font(.footnote).foregroundStyle(ThusoTheme.ink)
-                Text("\(patient.lastVisit.by) · \(patient.lastVisit.outcome)").font(.caption2).foregroundStyle(ThusoTheme.body)
+                Text(shortDate(patient.lastVisit.at)).font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(patient.lastVisit.service).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Text("\(patient.lastVisit.by) · \(patient.lastVisit.outcome)").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             } else {
                 RefusalCard(title: "Withheld", decision: clinical)
             }
@@ -466,28 +464,28 @@ struct PatientFileOverview: View {
     }
     @ViewBuilder private var nextAppointmentCard: some View {
         CareCard {
-            Label("Next appointment", systemImage: "calendar.badge.clock").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.body)
+            Label("Next appointment", systemImage: "calendar.badge.clock").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             if let next = patient.nextAppointment {
-                Text("\(shortDate(next.at)) · \(next.time)").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                Text(next.service).font(.footnote).foregroundStyle(ThusoTheme.ink)
-                Text(next.place).font(.caption2).foregroundStyle(ThusoTheme.body)
+                Text("\(shortDate(next.at)) · \(next.time)").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(next.service).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Text(next.place).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             } else {
                 Text("Nothing is booked. A missed appointment and an unbooked one are not the same thing, and this file does not blur them.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.body)
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
         }
     }
     @ViewBuilder private var medicationCard: some View {
         CareCard {
-            Label("Current medication", systemImage: "pills").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.body)
+            Label("Current medication", systemImage: "pills").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             if medicines.allowed {
                 if let first = current.first {
-                    Text("\(first.name) \(first.dose)").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                    Text(first.frequency).font(.footnote).foregroundStyle(ThusoTheme.ink)
+                    Text("\(first.name) \(first.dose)").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    Text(first.frequency).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
                     Text("\(current.count > 1 ? "\(current.count - 1) more · " : "")\(first.repeats)")
-                        .font(.caption2).foregroundStyle(ThusoTheme.body)
+                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 } else {
-                    Text("Nothing is currently prescribed.").font(.footnote).foregroundStyle(ThusoTheme.body)
+                    Text("Nothing is currently prescribed.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
             } else {
                 RefusalCard(title: "Withheld", decision: medicines)
@@ -525,13 +523,13 @@ struct PatientFileOverview: View {
             }
         }
         Text("Recorded \(longDate(latest.at)) by \(patient.careTeam[0].name). Each reading says where it came from. A weight the patient read off her own bathroom scale is in this record as exactly that, and never as something a clinician measured — which is why the mark is beside every number rather than a footnote under the card.")
-            .font(.caption2).foregroundStyle(ThusoTheme.body)
+            .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         NavigationLink("What the four marks mean") {
             ScrollView { VStack(alignment: .leading, spacing: ThusoSpacing.space16) { DemoBadge(); ProvenanceKey() }.padding(ThusoSpacing.space16) }
                 .thusoGround()
                 .navigationTitle("Where a reading came from").navigationBarTitleDisplayMode(.inline)
         }
-        .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
+        .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
         ClinicalChart(title: "Systolic blood pressure", unit: "mmHg",
                       readings: patient.vitals.map { Reading(label: dayLabel($0.at), value: $0.systolic) },
                       normal: 90...140, symbol: "heart")
@@ -573,20 +571,20 @@ struct VitalStat: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: ThusoSpacing.space8) {
-                Image(systemName: symbol).font(.footnote).foregroundStyle(ThusoTheme.indigo).frame(width: 18)
-                Text(name).font(.caption).foregroundStyle(ThusoTheme.body)
+                Image(systemName: symbol).font(.footnote).foregroundStyle(ThusoTheme.charcoal).frame(width: 18)
+                Text(name).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 Spacer(minLength: 8)
                 if provenance == nil {
                     Text("Not filed").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.mangoInk)
                 } else {
-                    Text(value).font(.system(.body, design: .rounded, weight: .semibold)).foregroundStyle(ThusoTheme.ink)
-                    Text(unit).font(.caption2).foregroundStyle(ThusoTheme.body)
+                    Text(value).font(.system(.body, design: .rounded, weight: .semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    Text(unit).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
             }
             if let provenance {
                 ProvenanceMark(provenance: provenance)
             } else {
-                Text(CaptureRules.provenanceIsRequired).font(.caption2).foregroundStyle(ThusoTheme.faint)
+                Text(CaptureRules.provenanceIsRequired).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
         }
         .accessibilityElement(children: .combine)
@@ -602,10 +600,10 @@ struct SectionHeading: View {
     var onAction: (() -> Void)?
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(title).font(.callout.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+            Text(title).font(.callout.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             Spacer(minLength: 8)
             if let action, let onAction {
-                Button(action, action: onAction).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.indigo)
+                Button(action, action: onAction).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             }
         }
         .padding(.top, 2)
@@ -647,9 +645,11 @@ struct PatientFileTimeline: View {
                         Button { filter = kind } label: {
                             Text(kind).font(.caption.weight(.semibold))
                                 .padding(.horizontal, 12).padding(.vertical, 8)
-                                .background(filter == kind ? ThusoTheme.indigoSoft : .white, in: Capsule())
-                                .foregroundStyle(filter == kind ? ThusoTheme.indigoDeep : ThusoTheme.body)
-                                .overlay(Capsule().stroke(ThusoTheme.line, lineWidth: 1))
+                                /* The same charcoal chip the tab strip above uses, so a filter and a
+                                   tab do not read as two families of control on one screen. */
+                                .background(filter == kind ? ThusoTheme.charcoal : ThusoTheme.surface, in: Capsule())
+                                .foregroundStyle(filter == kind ? ThusoTheme.surface : ThusoTheme.charcoal)
+                                .overlay(Capsule().stroke(filter == kind ? .clear : ThusoTheme.stone, lineWidth: 1))
                         }
                         .buttonStyle(.plain)
                         .accessibilityAddTraits(filter == kind ? [.isSelected] : [])
@@ -660,11 +660,11 @@ struct PatientFileTimeline: View {
             .accessibilityLabel("Filter by record type")
             Label("Protected entries are not listed here, on any patient, for any viewer without a release. A locked line would say one exists, which is the disclosure this class exists to prevent.",
                   systemImage: "lock")
-                .font(.caption2).foregroundStyle(ThusoTheme.body)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             CareCard {
                 if rows.isEmpty {
                     Text("Nothing under this filter. Change the record type, or choose all records. An empty filter is not an empty record.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.body)
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     Button("Show all records") { filter = "All records" }.buttonStyle(QuietButton())
                 } else {
                     ForEach(rows) { RecordEntryRow(entry: $0, decision: canOpen(viewer, $0), full: true) }
@@ -685,11 +685,11 @@ struct PatientFileConsultations: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             Label("Twelve sections, the same twelve whoever writes them, mapped to \(Records.soap.map(\.id).joined(separator: " · ")) as the reading order. A section marked as needing a capability is about who may write it; reading a prescription is not prescribing.",
                   systemImage: "doc.text")
-                .font(.caption2).foregroundStyle(ThusoTheme.body)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             if rows.isEmpty {
                 CareCard {
                     Text("No consultation in this file is open to this viewer. Consultations exist; this viewer is not one of the people who may read them.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.body)
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
             } else {
                 ForEach(rows) { consultation in
@@ -703,7 +703,7 @@ struct PatientFileConsultations: View {
                                 FieldRow(label: "Clinician and registration", value: "\(consultation.by) · \(consultation.registration)")
                                 FieldRow(label: "Place", value: consultation.place)
                                 Text("The standardised structure").font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(ThusoTheme.ink).padding(.top, 4)
+                                    .foregroundStyle(ThusoTheme.charcoal).padding(.top, 4)
                                 ForEach(Records.consultationSections) { section in
                                     ConsultationSectionRow(section: section, filled: consultation.sections.contains(section.id))
                                 }
@@ -712,8 +712,8 @@ struct PatientFileConsultations: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("\(shortDate(consultation.at)) · \(consultation.kind)")
-                                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                                Text(consultation.by).font(.caption).foregroundStyle(ThusoTheme.body)
+                                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                                Text(consultation.by).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                                 ReleasedTag(entry: consultation)
                             }
                         }
@@ -730,13 +730,13 @@ struct ConsultationSectionRow: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: ThusoSpacing.space8) {
                 Image(systemName: filled ? "checkmark.circle.fill" : "circle")
-                    .font(.caption).foregroundStyle(filled ? ThusoTheme.indigo : ThusoTheme.faint)
-                Text(section.name).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.ink)
+                    .font(.caption).foregroundStyle(filled ? ThusoTheme.charcoal : ThusoTheme.charcoal.opacity(0.72))
+                Text(section.name).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.charcoal)
             }
             Text("\(filled ? "Recorded" : section.required ? "Required and not recorded" : "Not recorded")\(section.gatedBy.map { " · written only by a party holding \($0)" } ?? "")")
-                .font(.caption2).foregroundStyle(ThusoTheme.body)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             if let note = section.note {
-                Text(note).font(.caption2).italic().foregroundStyle(ThusoTheme.faint)
+                Text(note).font(.caption2).italic().foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
         }
         .padding(.vertical, 2)
@@ -761,21 +761,21 @@ struct PatientFileMedication: View {
             CareCard {
                 if patient.allergies.isEmpty {
                     Label("No allergy has been recorded.", systemImage: "exclamationmark.shield")
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     Text("That is not the same as no allergy. Ask before dispensing.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.body)
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 } else {
                     Label("Allergies: \(patient.allergies.map { "\($0.substance) — \($0.reaction.lowercased()) (\($0.severity.lowercased()))" }.joined(separator: "; ")).",
                           systemImage: "exclamationmark.triangle")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
                     Text("Carried into this screen because the pharmacist needs it before anything else, not after the label is printed.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.body)
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
             }
             SectionHeading(title: "Current medicine")
             CareCard {
                 if current.isEmpty {
-                    Text("No current medicine is open to this viewer.").font(.footnote).foregroundStyle(ThusoTheme.body)
+                    Text("No current medicine is open to this viewer.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 } else {
                     ForEach(current) { medicine in
                         MedicineRow(medicine: medicine, detail: "\(medicine.frequency) · started \(medicine.started) · \(medicine.repeats)",
@@ -805,9 +805,9 @@ struct MedicineRow: View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             TileIcon(symbol: "pills", size: 38)
             VStack(alignment: .leading, spacing: 3) {
-                Text("\(medicine.name) \(medicine.dose)").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                Text(detail).font(.caption).foregroundStyle(ThusoTheme.body)
-                Text(attribution).font(.caption2).foregroundStyle(ThusoTheme.faint)
+                Text("\(medicine.name) \(medicine.dose)").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(attribution).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 ReleasedTag(entry: medicine)
             }
             Spacer(minLength: 0)
@@ -827,15 +827,15 @@ struct PatientFileResults: View {
         let order = can(viewer, "order-test")
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             if rows.isEmpty {
-                CareCard { Text("No result in this file is open to this viewer.").font(.footnote).foregroundStyle(ThusoTheme.body) }
+                CareCard { Text("No result in this file is open to this viewer.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72)) }
             } else {
                 ForEach(rows) { report in
                     CareCard {
                         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                             TileIcon(symbol: "testtube.2", size: 38)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(report.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                                Text("\(report.source) · \(shortDate(report.at))").font(.caption).foregroundStyle(ThusoTheme.body)
+                                Text(report.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                                Text("\(report.source) · \(shortDate(report.at))").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                             }
                             Spacer(minLength: 0)
                             StatusPill(text: report.status)
@@ -844,22 +844,22 @@ struct PatientFileResults: View {
                         ForEach(report.rows) { row in
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                                    Text(row.name).font(.caption).foregroundStyle(ThusoTheme.body)
+                                    Text(row.name).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                                     Spacer(minLength: 8)
                                     Text(row.value).font(.footnote.weight(.semibold))
-                                        .foregroundStyle(row.flag == nil ? ThusoTheme.ink : ThusoTheme.mangoInk)
+                                        .foregroundStyle(row.flag == nil ? ThusoTheme.charcoal : ThusoTheme.mangoInk)
                                 }
                                 Text("Reference range \(row.range)\(row.flag.map { " · \($0)" } ?? "")")
-                                    .font(.caption2).foregroundStyle(ThusoTheme.faint)
+                                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                             }
                             .padding(.vertical, 2)
                             .accessibilityElement(children: .combine)
                         }
                         Text("Fictional results. Reference ranges are indicative and are not a validated early-warning score.")
-                            .font(.caption2).foregroundStyle(ThusoTheme.faint)
+                            .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                         Label("Released by \(report.releasedBy). An abnormal result is held until a clinician releases it with an explanation — release is a clinical act, not a delivery step.",
                               systemImage: "checkmark.shield")
-                            .font(.caption2).foregroundStyle(ThusoTheme.body)
+                            .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                     }
                 }
             }
@@ -886,16 +886,16 @@ struct PatientFileReferrals: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             CareCard {
                 if rows.isEmpty {
-                    Text("No referral in this file is open to this viewer.").font(.footnote).foregroundStyle(ThusoTheme.body)
+                    Text("No referral in this file is open to this viewer.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 } else {
                     ForEach(rows) { referral in
                         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                             TileIcon(symbol: "paperplane", size: 38)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(referral.to).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                                Text(referral.reason).font(.caption).foregroundStyle(ThusoTheme.body)
+                                Text(referral.to).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                                Text(referral.reason).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                                 Text("\(shortDate(referral.at)) · \(referral.urgency) · \(referral.by)")
-                                    .font(.caption2).foregroundStyle(ThusoTheme.faint)
+                                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                                 StatusPill(text: referral.status, tone: referral.status.hasPrefix("Accepted") ? "teal" : "sky")
                             }
                             Spacer(minLength: 0)
@@ -912,7 +912,7 @@ struct PatientFileReferrals: View {
                than being quietly loosened on one platform and not the others. */
             Label("The contract lets a nurse read that her patient was referred, and reserves making a referral for a clinician holding “refer-patient”. This tab currently asks for the second, which is stricter than the record type is. Separating reading a referral from writing one is not built.",
                   systemImage: "paperplane")
-                .font(.caption2).foregroundStyle(ThusoTheme.body)
+                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
         }
     }
 }
@@ -927,15 +927,15 @@ struct PatientFileDocuments: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             CareCard {
                 if rows.isEmpty {
-                    Text("No document in this file is open to this viewer.").font(.footnote).foregroundStyle(ThusoTheme.body)
+                    Text("No document in this file is open to this viewer.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 } else {
                     ForEach(rows) { document in
                         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                             TileIcon(symbol: "doc.text", size: 38)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(document.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
-                                Text("\(document.kind) · \(document.by)").font(.caption).foregroundStyle(ThusoTheme.body)
-                                Text("\(shortDate(document.at)) · DocumentReference").font(.caption2).foregroundStyle(ThusoTheme.faint)
+                                Text(document.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                                Text("\(document.kind) · \(document.by)").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                                Text("\(shortDate(document.at)) · DocumentReference").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                             }
                             Spacer(minLength: 0)
                         }
@@ -965,26 +965,26 @@ struct PatientFileBilling: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             CareCard {
                 Label("A code is not anonymous.", systemImage: "creditcard")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 Text("Finance sees a service code and an amount and never a diagnosis in words — but a code can be looked up. A claim line for a protected service is withheld here for the same reason the words are.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.body)
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
             }
             CareCard {
                 if rows.isEmpty {
-                    Text("No claim line in this file is open to this viewer.").font(.footnote).foregroundStyle(ThusoTheme.body)
+                    Text("No claim line in this file is open to this viewer.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 } else {
                     ForEach(rows) { line in
                         VStack(alignment: .leading, spacing: 3) {
                             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
                                 Text("\(line.code) · \(line.service)").font(.footnote.weight(.semibold))
-                                    .foregroundStyle(ThusoTheme.ink)
+                                    .foregroundStyle(ThusoTheme.charcoal)
                                 Spacer(minLength: 8)
-                                Text("R\(line.amount)").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                                Text("R\(line.amount)").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                             }
                             Text("\(shortDate(line.at)) · \(line.payer) · \(line.status)")
-                                .font(.caption2).foregroundStyle(ThusoTheme.body)
+                                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                             if let note = line.note {
-                                Text(note).font(.caption2).foregroundStyle(ThusoTheme.faint)
+                                Text(note).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                             }
                         }
                         .padding(.vertical, 4)
@@ -992,14 +992,14 @@ struct PatientFileBilling: View {
                         Divider().overlay(ThusoTheme.line)
                     }
                     HStack {
-                        Text("Visible to this viewer").font(.caption).foregroundStyle(ThusoTheme.body)
+                        Text("Visible to this viewer").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                         Spacer()
                         Text("R\(total) · \(rows.count) of \(patient.billing.count) lines")
-                            .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.ink)
+                            .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     }
                     .accessibilityElement(children: .combine)
                     Text("Fictional claim lines. Nothing has been submitted to a scheme and no payment has been taken.")
-                        .font(.caption2).foregroundStyle(ThusoTheme.faint)
+                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
                 }
             }
             ProtectedLineNote(viewer: viewer, what: "claim line")
