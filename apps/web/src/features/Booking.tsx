@@ -10,7 +10,7 @@ import {
  cancellation, cost, estimate, hold, isHeld, labels as interpreting, modes as interpreterModes,
  resolve, statusFor, useSaslRequirement, waitSentence
 } from '../lib/interpreting';
-import { reasons, refusalById, reschedule, stateById, stateOf, windowSentence, wordsFor } from '../lib/cancelling';
+import { mayCancel, reasons, refusalById, reschedule, stateById, stateOf, windowSentence, wordsFor } from '../lib/cancelling';
 /* Booking, and the four things it used to lose.
  *
  * The date strip was five hand-typed labels starting "Fri 12 Sep" — a weekday that had not matched
@@ -253,6 +253,22 @@ export function CancelVisit({ visit, onCancel }: { visit: DemoVisit; onCancel: (
  const [reason, setReason] = useState<string>(cancelReasons[0]);
  const [done, setDone] = useState<string | null>(null);
  const state = stateOf(visit.date, visit.start);
+ /* The contract refuses one of the three states, and the screen has to refuse it too. A visit that
+    has already started is a clinical event happening in somebody's house — a booking screen cannot
+    end it, and offering the button anyway is how a person taps cancel while a nurse is standing in
+    front of them and then does not know what has happened. This became reachable rather than
+    theoretical when the sample visits moved to today. */
+ if (!mayCancel(state)) {
+  const refused = stateById(state);
+  return <div className="form-stack">
+   <div className="booking-summary"><span className="service-icon"><ServiceIcon name={visit.service.icon}/></span>
+    <div><h3>{visit.service.name}</h3><p>{visit.person} · {visit.address}</p></div></div>
+   <h3>{refused.name}</h3>
+   <p>{refused.patientWords}</p>
+   <p className="helper">{refused.detail}</p>
+   <NotConnected of="booking"/>
+  </div>;
+ }
 
  if (done) return <div className="success">
   <div className="success-icon"><Undo2 size={30}/></div>

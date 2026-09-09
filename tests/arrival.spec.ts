@@ -112,3 +112,25 @@ test('a patient watching a nurse downloads no map library to do it', async ({ pa
   await expect(page.locator('.livemap-canvas.schematic')).toBeVisible();
   expect(asked, `a patient's arrival screen fetched the map bundle: ${asked.join(', ')}`).toEqual([]);
 });
+
+/* The contract refuses one of its three cancellation states, and until now the screen did not.
+   `cancellation.json` says a visit that has already started cannot be cancelled from a booking
+   screen — it is a clinical event happening in somebody's house — and the screen offered the button
+   anyway. It became reachable rather than theoretical when the sample visits moved to today. */
+test('a visit that has already started refuses to be cancelled, in the contract’s words', async ({ page }) => {
+  const words = await page.evaluate(async () => {
+    const m = await import('/src/lib/cancelling.ts');
+    const started = m.stateOf('2020-01-01', '09:00');
+    return { state: started, mayCancel: m.mayCancel(started), said: m.stateById(started).patientWords };
+  }).catch(() => null) ?? await (async () => {
+    await page.goto('/');
+    return page.evaluate(async () => {
+      const m = await import('/src/lib/cancelling.ts');
+      const started = m.stateOf('2020-01-01', '09:00');
+      return { state: started, mayCancel: m.mayCancel(started), said: m.stateById(started).patientWords };
+    });
+  })();
+  expect(words.state).toBe('in-progress');
+  expect(words.mayCancel, 'a visit already under way must not be cancellable from a booking screen').toBe(false);
+  expect(words.said).toContain('already started');
+});
