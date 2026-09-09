@@ -41,8 +41,13 @@ const track = async (page: Page, index = 0) => {
    one whose result depends on when somebody happened to run it. */
 const MORNING = new Date('2026-09-10T06:00:00Z'); // 08:00 in Africa/Johannesburg
 
+/* Pinned for the whole file rather than one test. The sample visit is the next slot the offer still
+   has room for, which rolls to tomorrow once the day's last slot has gone — so every journey that
+   reaches the arrival screen through "today" passed all morning and timed out all evening. One test
+   had the clock and the other three did not, which is worse than none having it: it looked fixed. */
+test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(MORNING); });
+
 test('the visit that is today says how far away she is, and what the figure is not', async ({ page }) => {
-  await page.clock.setFixedTime(MORNING);
   await page.goto('/');
   await track(page);
 
@@ -114,7 +119,10 @@ test('a patient watching a nurse downloads no map library to do it', async ({ pa
      this watches the network rather than the bundle report because what matters is what the handset
      actually asks for. */
   const asked: string[] = [];
-  page.on('request', r => { if (/mapbox|TileMap/i.test(r.url())) asked.push(r.url()); });
+  /* mapbox is gone — the library is maplibre now — but the arm stays, because a change that puts it
+     back is exactly what this watches for. The tile host is the other thing a patient who has not
+     asked for streets must never fetch. */
+  page.on('request', r => { if (/mapbox|maplibre|TileMap|tiles\.openfreemap\.org/i.test(r.url())) asked.push(r.url()); });
   await page.goto('/');
   await track(page);
   await expect(page.locator('.livemap-canvas.schematic')).toBeVisible();

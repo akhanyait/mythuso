@@ -1173,6 +1173,45 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  }
 }
 
+/* Streets, and the three things that make drawing them defensible.
+   A tile request tells whoever serves it which square of Johannesburg somebody is looking at — for
+   a patient that is roughly which suburb she is in, and roughly when a nurse came to her house.
+   Nothing in this product had ever fetched a tile before, so nothing had ever had to say that.
+   The map agent could not add these checks; scripts/ was not its territory. */
+{
+ const geo = JSON.parse(read('packages/catalog/geography.json'));
+ const tiles = geo.rendering?.tiles, source = geo.rendering?.source, view = geo.window;
+ if(!tiles || !source) throw new Error('packages/catalog/geography.json no longer declares a tile source and its terms. An endpoint, a licence and an attribution are the three things a map may not be drawn without.');
+
+ /* 1. The zoom limit is the privacy control. One tile at maxZoom is the smallest area a request can
+    reveal, and the sentence a reader is shown quotes it in metres — so it is recomputed here rather
+    than trusted, and the two must agree. */
+ const metres = Math.round(40_075_017 * Math.cos(Math.abs(view.centre.lat) * Math.PI / 180) / 2 ** view.maxZoom);
+ if(Math.abs(metres - tiles.squareMetres) > 2) throw new Error(`geography.json says a tile at maxZoom ${view.maxZoom} covers ${tiles.squareMetres} m, and the arithmetic says ${metres} m. That figure is quoted to a patient to tell her how precisely a tile request locates her. Recompute it or change the zoom, but do not let them disagree.`);
+ if(view.maxZoom > 15) throw new Error(`geography.json raises maxZoom to ${view.maxZoom}. At sixteen and above a reader can pick out an individual house, and no screen in this product has a reason to. The limit is the privacy control, not a performance one.`);
+
+ /* 2. Off by default. A default is the setting nobody chooses, and a patient watching for a nurse is
+    not deciding about a mapping vendor. Her own press is what starts the processing. */
+ if(tiles.default !== 'off') throw new Error('geography.json turns tiles on by default. The request would then be made before the person has read the sentence describing it, and there is no operator agreement with the tile provider.');
+ for(const key of ['offSentence','onSentence']) {
+  if(!tiles[key]) throw new Error(`geography.json has no tiles.${key}. The switch that starts sending a viewport to a third party has to say so on the screen, beside itself, before it is pressed.`);
+ }
+
+ /* 3. The origin is allowed by exactly the two entries that draw a map, and by no other. A content
+    policy is the only thing standing between "we chose one tile host" and "a map can fetch from
+    anywhere", and it is a second copy of the contract's own hostname. */
+ for(const entry of ['index.html','staff.html']) {
+  if(!read(`apps/web/${entry}`).includes(source.host)) throw new Error(`apps/web/${entry} draws a map and its content policy does not allow ${source.host}. The tiles do not fail loudly — the map falls back to the schematic and nobody is told why.`);
+ }
+ for(const entry of ['landing.html','admin.html','status.html']) {
+  if(existsSync(`apps/web/${entry}`) && read(`apps/web/${entry}`).includes(source.host)) throw new Error(`apps/web/${entry} allows the tile host and draws no map. An entry that can reach a tile server is an entry that can leak a viewport; only the two that need it may.`);
+ }
+ /* And the attribution is a licence condition, not a courtesy. */
+ for(const key of ['licence','attribution','attributionUrl']) {
+  if(!source[key]) throw new Error(`geography.json's tile source has no ${key}. OpenStreetMap data is ODbL and the credit is a condition of using it, not a nicety.`);
+ }
+}
+
 /* Every entry the build produces must be served, and must be verified by the deploy.
    `status.html` shipped unreachable: nginx had no location for it, so `/status` fell through the
    catch-all and answered with the *landing page* — under a 200, which is a wrong answer wearing a
