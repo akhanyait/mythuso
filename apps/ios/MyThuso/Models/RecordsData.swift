@@ -2,9 +2,10 @@
 // Do not edit by hand — run `npm run records`. The build fails if this file and the record source
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// The areas, classes, record types, FHIR mappings, gating capabilities, consultation sections and
-// summary card are the contract itself. The reasoning about them, and the fictional patients they
-// are demonstrated on, are hand-written in Records.swift and Records.kt beside this file.
+// The areas, classes, record types, FHIR mappings, gating capabilities, consultation sections,
+// reference ranges and summary card are the contract itself. The reasoning about them, and the
+// fictional patients they are demonstrated on, are hand-written in Records.swift and Records.kt
+// beside this file.
 
 import Foundation
 
@@ -56,6 +57,20 @@ struct RecordSummaryCard {
     let why: String
     let fields: [String]
     let withheld: String
+}
+/// One of the seven readings a nurse takes, and the indicative adult range it is flagged against.
+/// Deliberately not named Observation: the assessment screen still declares its own, and this is
+/// the contract's copy that replaces it. Both ends of the range are inclusive.
+struct ObservationRange: Identifiable, Hashable {
+    let id: String
+    let label: String
+    let unit: String
+    let low: Double
+    let high: Double
+    /// The input's granularity. Below 1 is also the sign that the reading is written to one decimal.
+    let step: Double
+    let placeholder: String
+    var range: ClosedRange<Double> { low...high }
 }
 
 // MARK: - The contract
@@ -247,6 +262,22 @@ enum Records {
         .init(id: "O", name: "Objective", detail: "Vitals, examination and test findings."),
         .init(id: "A", name: "Assessment", detail: "The clinical assessment, or the diagnosis where the writer may make one."),
         .init(id: "P", name: "Plan", detail: "Treatment, medicine, tests, referral and follow-up.")
+    ]
+
+    static let observationsWhy = "The seven readings a nurse takes at the door, and the indicative adult range each is flagged against. They lived in a React component, which meant a number that decides whether a reading is put in front of a doctor was declared on a screen and two native apps were checked against that screen. A reference range is contract, not presentation. The sentence that qualifies it is not repeated here: it is the note on the “observations” consultation section above, and every platform renders that one."
+    /// The sentence every screen showing a range shows with it. Not written twice: it is the note
+    /// on the observations consultation section above.
+    static let observationsNote = "Reference ranges are indicative and are not a validated early-warning score."
+
+    /// Reference ranges are indicative and are not a validated early-warning score.
+    static let observations: [ObservationRange] = [
+        .init(id: "systolic", label: "Blood pressure — systolic", unit: "mmHg", low: 90, high: 140, step: 1, placeholder: "118"),
+        .init(id: "diastolic", label: "Blood pressure — diastolic", unit: "mmHg", low: 60, high: 90, step: 1, placeholder: "78"),
+        .init(id: "pulse", label: "Pulse", unit: "bpm", low: 50, high: 100, step: 1, placeholder: "72"),
+        .init(id: "respiratory", label: "Respiratory rate", unit: "breaths/min", low: 12, high: 20, step: 1, placeholder: "16"),
+        .init(id: "temperature", label: "Temperature", unit: "°C", low: 36.1, high: 37.5, step: 0.1, placeholder: "36.8"),
+        .init(id: "oxygen", label: "Oxygen saturation", unit: "%", low: 95, high: 100, step: 1, placeholder: "98"),
+        .init(id: "glucose", label: "Blood glucose", unit: "mmol/L", low: 4, high: 7.8, step: 0.1, placeholder: "5.2")
     ]
 
     static let summaryCard = RecordSummaryCard(

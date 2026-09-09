@@ -2,9 +2,10 @@
 // Do not edit by hand — run `npm run records`. The build fails if this file and the record source
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// The areas, classes, record types, FHIR mappings, gating capabilities, consultation sections and
-// summary card are the contract itself. The reasoning about them, and the fictional patients they
-// are demonstrated on, are hand-written in Records.swift and Records.kt beside this file.
+// The areas, classes, record types, FHIR mappings, gating capabilities, consultation sections,
+// reference ranges and summary card are the contract itself. The reasoning about them, and the
+// fictional patients they are demonstrated on, are hand-written in Records.swift and Records.kt
+// beside this file.
 
 package za.co.mythuso.model
 
@@ -25,6 +26,15 @@ data class ConsultationSection(
 )
 data class SoapHeading(val id: String, val name: String, val detail: String)
 data class RecordSummaryCard(val why: String, val fields: List<String>, val withheld: String)
+/**
+ * One of the seven readings a nurse takes, and the indicative adult range it is flagged against.
+ * Deliberately not named Observation: the assessment screen still declares its own, and this is the
+ * contract's copy that replaces it. Both ends of the range are inclusive.
+ */
+data class ObservationRange(
+    val id: String, val label: String, val unit: String,
+    val low: Double, val high: Double, val step: Double, val placeholder: String
+)
 
 val recordAreas = listOf(
     RecordArea("patients", "Patients", "Who the person is, what they live with, and the plan for their care"),
@@ -309,6 +319,25 @@ val soapHeadings = listOf(
     SoapHeading("O", "Objective", "Vitals, examination and test findings."),
     SoapHeading("A", "Assessment", "The clinical assessment, or the diagnosis where the writer may make one."),
     SoapHeading("P", "Plan", "Treatment, medicine, tests, referral and follow-up."),
+)
+
+const val observationsWhy =
+    "The seven readings a nurse takes at the door, and the indicative adult range each is flagged against. They lived in a React component, which meant a number that decides whether a reading is put in front of a doctor was declared on a screen and two native apps were checked against that screen. A reference range is contract, not presentation. The sentence that qualifies it is not repeated here: it is the note on the “observations” consultation section above, and every platform renders that one."
+
+/* The sentence every screen showing a range shows with it. Not written twice: it is the note on the
+   observations consultation section above. */
+const val observationsNote =
+    "Reference ranges are indicative and are not a validated early-warning score."
+
+/* Reference ranges are indicative and are not a validated early-warning score. */
+val observationRanges = listOf(
+    ObservationRange("systolic", "Blood pressure — systolic", "mmHg", 90.0, 140.0, 1.0, "118"),
+    ObservationRange("diastolic", "Blood pressure — diastolic", "mmHg", 60.0, 90.0, 1.0, "78"),
+    ObservationRange("pulse", "Pulse", "bpm", 50.0, 100.0, 1.0, "72"),
+    ObservationRange("respiratory", "Respiratory rate", "breaths/min", 12.0, 20.0, 1.0, "16"),
+    ObservationRange("temperature", "Temperature", "°C", 36.1, 37.5, 0.1, "36.8"),
+    ObservationRange("oxygen", "Oxygen saturation", "%", 95.0, 100.0, 1.0, "98"),
+    ObservationRange("glucose", "Blood glucose", "mmol/L", 4.0, 7.8, 0.1, "5.2"),
 )
 
 val recordSummaryCard = RecordSummaryCard(

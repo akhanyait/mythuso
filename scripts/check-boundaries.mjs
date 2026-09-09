@@ -51,23 +51,102 @@ for(const s of catalogue) if(s.nurseShare>=s.price) throw new Error(`Service ${s
 const worked=model.unitEconomics.worked;
 if(worked.price-worked.nurseShare-worked.paymentCost!==worked.platformRetains) throw new Error('The worked unit-economics example does not add up');
 
-/* Clinical reference ranges, locales and demo verification codes are duplicated across three
-   native codebases. Drift between them is a clinical-safety problem, not a cosmetic one, so it
-   is checked rather than trusted. */
-const clinicalSources = {
- web: 'apps/web/src/features/Clinical.tsx',
- ios: 'apps/ios/MyThuso/Features/AssessmentView.swift',
- android: 'apps/android/app/src/main/java/za/co/mythuso/ui/ClinicalScreens.kt'
-};
-const expectedRanges = [['systolic',90,140],['diastolic',60,90],['pulse',50,100],['respiratory',12,20],['temperature',36.1,37.5],['oxygen',95,100],['glucose',4,7.8]];
-for(const [platform,file] of Object.entries(clinicalSources)) {
- const source=read(file);
- for(const [id,low,high] of expectedRanges) {
-  const line=source.split('\n').find(l=>l.includes(`'${id}'`)||l.includes(`"${id}"`));
-  if(!line) throw new Error(`Missing observation '${id}' in the ${platform} assessment (${file})`);
-  const numbers=(line.match(/\d+(\.\d+)?/g)||[]).map(Number);
-  if(!numbers.includes(low)||!numbers.includes(high)) throw new Error(`Reference range drift for '${id}' in ${platform}: expected ${low}–${high} in ${file}`);
+/* ---- Reference ranges -------------------------------------------------------------------------
+
+   A reference range decides whether a reading is flagged to a doctor. Seven of them, and until this
+   check was rewritten they lived in the `observations` array of apps/web/src/features/Clinical.tsx
+   — a React component — and this file compared the iOS and Android assessments against *that TSX
+   file*. Two native apps were held to a screen, and the screen was the authority.
+
+   They are in packages/catalog/records.json now, beside the observations section of the standard
+   consultation that says they are indicative. The web reads them through lib/observations.ts; the
+   emitter writes them into RecordsData.swift and RecordsData.kt. So there are three checks here and
+   they are different questions:
+
+     1. The contract itself is a range — low below high, and every measure complete.
+     2. All three platforms carry it. The generated files are compared byte for byte further down,
+        so what is asked here is that the numbers reached the platform at all, which is the thing a
+        reader of a native file actually wants to know.
+     3. Nothing else anywhere types one. This is the check the other two cannot make: a second copy
+        that agrees today is a second copy that disagrees on the day one of them is corrected. */
+const recordContract = JSON.parse(read('packages/catalog/records.json'));
+const measures = recordContract.observations.measures;
+if(!measures?.length) throw new Error('packages/catalog/records.json declares no observations, so no reading can be flagged against anything');
+const observationsNote = recordContract.consultation.sections.find(s=>s.id==='observations')?.note;
+if(!observationsNote) throw new Error('The observations consultation section carries no note, so the reference ranges are stated with nothing qualifying them. "Indicative, and not a validated early-warning score" is the whole of what makes stating them honest.');
+for(const m of measures) {
+ for(const field of ['id','label','unit','low','high','step','placeholder']) {
+  if(m[field]===undefined) throw new Error(`Observation ${m.id ?? '(unnamed)'} in records.json has no ${field}`);
  }
+ if(!(m.low < m.high)) throw new Error(`Reference range for '${m.id}' is ${m.low}–${m.high}, which is not a range: every reading ever taken would be flagged`);
+ if(!(m.step > 0)) throw new Error(`Observation '${m.id}' has a step of ${m.step}, which is not a granularity`);
+}
+
+/* Where each platform's copy is expected to be. The web has no entry: it imports the JSON, so there
+   is nothing to compare it against but itself. */
+const rangeCarriers = {
+ ios: 'apps/ios/MyThuso/Models/RecordsData.swift',
+ android: 'apps/android/app/src/main/java/za/co/mythuso/model/RecordsData.kt'
+};
+for(const [platform,file] of Object.entries(rangeCarriers)) {
+ const source=read(file);
+ for(const m of measures) {
+  const line=source.split('\n').find(l=>l.includes(`"${m.id}"`)&&l.includes(`"${m.unit}"`));
+  if(!line) throw new Error(`Missing observation '${m.id}' in the ${platform} record contract (${file}). Run: npm run records`);
+  const numbers=(line.match(/\d+(\.\d+)?/g)||[]).map(Number);
+  if(!numbers.includes(m.low)||!numbers.includes(m.high)) throw new Error(`Reference range drift for '${m.id}' in ${platform}: expected ${m.low}–${m.high} in ${file}. Run: npm run records`);
+ }
+ if(!source.includes(observationsNote)) throw new Error(`${file} carries the reference ranges without the sentence that qualifies them. Run: npm run records`);
+}
+
+/* ---- And the check the other two cannot make ---------------------------------------------------
+
+   No screen, on any platform, may type a reference range. A file "types" one when a single line
+   names an observation and carries both ends of its range as numbers — which is exactly how all
+   three platforms used to declare them, and exactly what a fourth copy would look like.
+
+   Two files are quarantined. The hand-written native assessment screens still declare their own
+   seven, because the emitter's output cannot be adopted by them without editing them, and both
+   native apps are being rebuilt by other people as this lands. The quarantine is not a permanent
+   exemption and it cannot rot into one: an entry whose file has *stopped* typing a range is an
+   error too, so the day either screen switches to the generated list the build fails until its line
+   is deleted from below. Until then the quarantined files are still held to the contract's numbers
+   by the loop above them, so the copy cannot drift while it waits to be removed. */
+const RANGE_QUARANTINE = [
+ ['apps/ios/MyThuso/Features/AssessmentView.swift', 'switch Observation.all for the generated Records.observations'],
+ ['apps/android/app/src/main/java/za/co/mythuso/ui/ClinicalScreens.kt', 'switch observations for the generated observationRanges']
+];
+/* The contract, the generated copies of it, the emitter and this checker are where a range is
+   supposed to be written down. Everything else is a screen, a library or a test. */
+const RANGE_SOURCES = new Set([
+ 'packages/catalog/records.json',
+ 'scripts/check-boundaries.mjs',
+ 'scripts/emit-records.mjs',
+ ...Object.values(rangeCarriers)
+]);
+const typesARange = source => measures.filter(m => source.split('\n').some(line => {
+ if(!line.includes(`'${m.id}'`)&&!line.includes(`"${m.id}"`)) return false;
+ const numbers=(line.match(/\d+(\.\d+)?/g)||[]).map(Number);
+ return numbers.includes(m.low)&&numbers.includes(m.high);
+})).map(m => m.id);
+const quarantinedRanges=new Map(RANGE_QUARANTINE);
+for(const file of [
+ ...files('apps/web/src').filter(f=>/\.(tsx?|css)$/.test(f)),
+ ...files('packages/catalog'),
+ ...files('scripts').filter(f=>/\.mjs$/.test(f)),
+ ...files('tests').filter(f=>/\.ts$/.test(f)),
+ ...native
+]) {
+ if(RANGE_SOURCES.has(file)) continue;
+ const typed=typesARange(read(file));
+ if(quarantinedRanges.has(file)) {
+  if(!typed.length) throw new Error(`${file} no longer types a reference range, so its quarantine entry in RANGE_QUARANTINE is spent: ${quarantinedRanges.get(file)}. Delete the line — an exemption nobody can lose is how a rule stops being one.`);
+  continue;
+ }
+ if(typed.length) throw new Error(`${file} types the reference range for ${typed.map(id=>`'${id}'`).join(', ')}. A reference range decides whether a reading is put in front of a doctor, and it lives in packages/catalog/records.json. Read it: lib/observations.ts on web, Records.observations on iOS, observationRanges on Android.`);
+}
+for(const [file,todo] of RANGE_QUARANTINE) {
+ if(!existsSync(file)) throw new Error(`RANGE_QUARANTINE names ${file}, which does not exist (${todo}). A quarantine list that outlives its files is a list nobody reads.`);
 }
 /* ---- Localisation ----------------------------------------------------------------------------
 
@@ -291,6 +370,14 @@ const onboardingSources = {
 };
 const idValidators = ['apps/web/src/features/Onboarding.tsx','apps/ios/MyThuso/Models/Localisation.swift','apps/android/app/src/main/java/za/co/mythuso/model/Localisation.kt'];
 for(const file of idValidators) if(!/check digit/.test(read(file))) throw new Error(`Identity-number check-digit validation is missing from ${file}`);
+/* The three assessment screens. They no longer declare the reference ranges — those are in the
+   record contract — but they are still the three places one visit is worked through, so the demo
+   visit code and the attribution line are held in step across them here. */
+const clinicalSources = {
+ web: 'apps/web/src/features/Clinical.tsx',
+ ios: 'apps/ios/MyThuso/Features/AssessmentView.swift',
+ android: 'apps/android/app/src/main/java/za/co/mythuso/ui/ClinicalScreens.kt'
+};
 /* An attribution line is where a reader is being shown what accountability looks like. A placeholder
    registration number there is the one place a preview should not be fictional twice over. */
 const attributionSources = { ...clinicalSources,
@@ -404,6 +491,59 @@ if(existsSync('apps/api/src')) {
  /* The audit trail is only worth having if nothing rewrites it. */
  const store=read('apps/api/src/store.ts');
  if(/UPDATE audit|DELETE FROM audit/i.test(store)) throw new Error('The audit table must stay append-only');
+ /* ---- What every answer carries, and how long a request may take ---------------------------
+    Two controls that used to live only in docs/PRIVACY-AND-SECURITY.md, in the sentence "production
+    must supply HTTP security headers … at the hosting layer". A control owned by a hosting layer is
+    a control owned by nobody, and the hosting layer named in deploy/README.md serves five unrelated
+    production sites whose config this repository is forbidden to touch. So the service sets them,
+    and this is what keeps them set: a header quietly dropped from send() is a header nobody notices
+    is gone, because nothing about the answer looks different.
+
+    frame-ancestors and X-Frame-Options are the pair; if one is here without the other, something
+    was half-edited. HSTS is deliberately *not* required unconditionally — it is sent only where the
+    cookie is already Secure, and a development server that taught a browser to refuse localhost
+    over http for two years would be a header nobody could turn off. What is checked is that it is
+    conditional rather than absent, and that it never carries `preload`: a preload entry is a
+    submission to a list this service cannot withdraw itself from. */
+ const apiServer = read('apps/api/src/server.ts');
+ const TRANSPORT_HEADERS = [
+  ["content-security-policy", "frame-ancestors 'none'", 'nothing may frame an answer from this service'],
+  ["content-security-policy", "default-src 'none'", 'a JSON body that reaches a browser as a document must load nothing'],
+  ["x-frame-options", 'DENY', 'the older half of the same refusal, for the browsers that only read this one'],
+  ["permissions-policy", 'camera=()', 'an identity service asks for no camera; the teleconsultation contract says so in its own words'],
+  ["permissions-policy", 'microphone=()', 'and no microphone'],
+  ["permissions-policy", 'geolocation=()', 'and no location'],
+  ["cross-origin-resource-policy", 'same-origin', "somebody else's page may not read what this returned to a signed-in browser"],
+  ["cross-origin-opener-policy", 'same-origin', 'a window that opened this one may not reach back into it'],
+  ["x-content-type-options", 'nosniff', 'a JSON body is never guessed at'],
+  ["referrer-policy", 'no-referrer', 'a URL from this service is never handed to the next site']
+ ];
+ /* Read out of the declaration rather than out of the file. The comment above it quotes every one
+    of these directives to explain them, so grepping the whole file would pass on the explanation
+    while the header said something else — which is the exact failure this check is for. */
+ const transportBlock = apiServer.match(/const TRANSPORT_HEADERS: Record<string, string> = \{([\s\S]*?)\n\};/)?.[1];
+ if(!transportBlock) throw new Error('apps/api/src/server.ts no longer declares TRANSPORT_HEADERS as one object this check can read');
+ for(const [header, value, why] of TRANSPORT_HEADERS) {
+  const line = transportBlock.split('\n').find(l => l.includes(`'${header}'`));
+  if(!line) throw new Error(`apps/api/src/server.ts no longer sets ${header} on every answer: ${why}`);
+  if(!line.includes(value)) throw new Error(`apps/api/src/server.ts sets ${header} without "${value}": ${why}`);
+ }
+ if(!/\.\.\.TRANSPORT_HEADERS/.test(apiServer.split('function send(')[1] ?? '')) throw new Error('send() no longer spreads TRANSPORT_HEADERS, so the headers are declared and not sent');
+ if(!/config\.cookieSecure\)\s*res\.setHeader\('strict-transport-security'/.test(apiServer)) throw new Error('HSTS must be sent exactly where the cookie is already Secure, and nowhere else. A development server on plain http that sent it would teach a browser to refuse localhost over http for two years, and nobody can turn that off from here.');
+ const hsts = apiServer.match(/const HSTS = '([^']+)'/)?.[1];
+ if(!hsts) throw new Error('apps/api/src/server.ts no longer declares the HSTS header as a named constant this check can read');
+ if(/preload/.test(hsts)) throw new Error('The HSTS header must not carry preload: a preload entry is a submission to a list this service cannot withdraw itself from, and the domain it would be submitted for hosts five unrelated sites.');
+ if(!/includeSubDomains/.test(hsts)||!/max-age=\d{7,}/.test(hsts)) throw new Error(`HSTS is "${hsts}". A max-age under a few months, or one that leaves subdomains out, is a header that reads as protection and is not.`);
+ /* The body has been capped at 8 KiB since this service was written; time was not capped at all, so
+    it inherited Node's five-minute request timeout. A connection sending one header byte a minute
+    costs nothing to make and holds a socket for five minutes. Nothing here needs five minutes. */
+ for(const setting of ['requestTimeout', 'headersTimeout', 'keepAliveTimeout', 'maxHeadersCount']) {
+  if(!new RegExp(`server\\.${setting} =`).test(apiServer)) throw new Error(`apps/api/src/server.ts does not set ${setting} on the listening server, so a slow or oversized request is held to Node's defaults rather than to this service's. A body cap on its own caps the wrong half of a request.`);
+ }
+ const requestMs = Number(apiServer.match(/requestMs:\s*([\d_]+)/)?.[1].replace(/_/g, ''));
+ const headersMs = Number(apiServer.match(/headersMs:\s*([\d_]+)/)?.[1].replace(/_/g, ''));
+ if(!(requestMs > 0 && requestMs <= 30_000)) throw new Error(`The request timeout is ${requestMs} ms. Node's default is five minutes and that is what this exists to replace; anything above thirty seconds is not a cap.`);
+ if(!(headersMs > 0 && headersMs < requestMs)) throw new Error(`The header timeout is ${headersMs} ms against a request timeout of ${requestMs} ms. Headers must land sooner than the whole request, or the header cap never fires.`);
 }
 /* Three things the apps share are no longer written out by hand in each of them: the design tokens,
    the vetting table and the record contract are generated into CSS, Swift and Kotlin by
@@ -541,7 +681,8 @@ for(const [platform,paths] of Object.entries(geoSources)) {
    merge waiting to be invented by whoever is next in the file. */
 const capture=JSON.parse(read('packages/catalog/capture.json'));
 const NOT_RANGE_FLAGGED=['ecg','weight'];
-const observationIds=(read('apps/web/src/features/Clinical.tsx').match(/id: '([a-z]+)'/g)??[]).map(m=>m.slice(5,-1));
+/* Read from the contract, which is where the seven live now — not scraped out of a screen. */
+const observationIds=measures.map(m=>m.id);
 for(const device of capture.devices) {
  if(!device.measures.length) throw new Error(`Kit device ${device.id} measures nothing`);
  for(const measure of device.measures) {

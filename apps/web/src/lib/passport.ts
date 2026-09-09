@@ -1,4 +1,4 @@
-import { observations, flagOf, type ObsId } from '../features/Clinical';
+import { measureSpec as specOf, observations, flagOf, type ObsId } from './observations';
 import { isoIn, shortDateOf } from './scheduling';
 import { protectedCategories } from './records';
 import { devices as kitDevices } from './capture';
@@ -16,13 +16,12 @@ import { devices as kitDevices } from './capture';
  * the last reading set below rather than carrying its own number, which is what makes "what the
  * nurse found at this visit" a lookup instead of a coincidence.
  *
- * WHERE THE RANGES COME FROM, AND WHERE THEY SHOULD. Not one range is typed here. Every label,
- * unit and reference range is read from `observations` in features/Clinical.tsx, which is the one
- * place the web declares them and the one place scripts/check-boundaries.mjs compares against the
- * iOS and Android assessments. That is a feature importing into a library, which is the wrong way
- * round — and it is still better than a second copy. The right home for these seven ranges is
- * packages/catalog/records.json, beside the observation section that already says they are
- * indicative; until they are there, this module reads the single copy rather than making a second.
+ * WHERE THE RANGES COME FROM. Not one range is typed here. Every label, unit and reference range
+ * is read from `observations` in packages/catalog/records.json, through lib/observations.ts. This
+ * module used to import them out of features/Clinical.tsx — a library importing a feature, which
+ * was the wrong way round and was still better than a second copy. The ranges are in the contract
+ * now, beside the observation section that says they are indicative, and the same file is what the
+ * emitter writes into Swift and Kotlin, so there is one author for all three apps.
  *
  * Fictional patient, invented readings, nothing stored and nothing sent. */
 
@@ -34,7 +33,7 @@ export const reviewer = { name: 'Dr N. Khumalo', registration: 'MP 0741225' };
 export const reviewedBy = `${reviewer.name} · ${reviewer.registration}`;
 
 export type MeasureId = ObsId;
-export const measureSpec = (id: MeasureId) => observations.find(o => o.id === id)!;
+export const measureSpec = (id: MeasureId) => specOf(id);
 
 /** One set of observations, taken at one visit, on one day. */
 export type ReadingSet = {
@@ -71,7 +70,7 @@ export const flagFor = (id: MeasureId, value: number): Flag => flagOf(id, String
 export const isInRange = (id: MeasureId, value: number) => flagFor(id, value) === 'normal';
 export const rangeText = (id: MeasureId) => {
  const spec = measureSpec(id);
- return `${spec.range[0]}–${spec.range[1]} ${spec.unit}`;
+ return `${spec.low}–${spec.high} ${spec.unit}`;
 };
 export const formatValue = (id: MeasureId, value: number) => (measureSpec(id).step < 1 ? value.toFixed(1) : String(value));
 

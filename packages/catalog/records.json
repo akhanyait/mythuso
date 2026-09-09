@@ -649,6 +649,74 @@
    }
   ]
  },
+ "observations": {
+  "why": "The seven readings a nurse takes at the door, and the indicative adult range each is flagged against. They lived in a React component, which meant a number that decides whether a reading is put in front of a doctor was declared on a screen and two native apps were checked against that screen. A reference range is contract, not presentation. The sentence that qualifies it is not repeated here: it is the note on the “observations” consultation section above, and every platform renders that one.",
+  "measures": [
+   {
+    "id": "systolic",
+    "label": "Blood pressure — systolic",
+    "unit": "mmHg",
+    "low": 90,
+    "high": 140,
+    "step": 1,
+    "placeholder": "118"
+   },
+   {
+    "id": "diastolic",
+    "label": "Blood pressure — diastolic",
+    "unit": "mmHg",
+    "low": 60,
+    "high": 90,
+    "step": 1,
+    "placeholder": "78"
+   },
+   {
+    "id": "pulse",
+    "label": "Pulse",
+    "unit": "bpm",
+    "low": 50,
+    "high": 100,
+    "step": 1,
+    "placeholder": "72"
+   },
+   {
+    "id": "respiratory",
+    "label": "Respiratory rate",
+    "unit": "breaths/min",
+    "low": 12,
+    "high": 20,
+    "step": 1,
+    "placeholder": "16"
+   },
+   {
+    "id": "temperature",
+    "label": "Temperature",
+    "unit": "°C",
+    "low": 36.1,
+    "high": 37.5,
+    "step": 0.1,
+    "placeholder": "36.8"
+   },
+   {
+    "id": "oxygen",
+    "label": "Oxygen saturation",
+    "unit": "%",
+    "low": 95,
+    "high": 100,
+    "step": 1,
+    "placeholder": "98"
+   },
+   {
+    "id": "glucose",
+    "label": "Blood glucose",
+    "unit": "mmol/L",
+    "low": 4,
+    "high": 7.8,
+    "step": 0.1,
+    "placeholder": "5.2"
+   }
+  ]
+ },
  "summaryCard": {
   "why": "The page a stranger reads when there is no time to read the file. It is deliberately small: every field earns its place by changing what someone would do in the next ten minutes.",
   "fields": [

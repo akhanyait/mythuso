@@ -66,14 +66,25 @@ const banner = () => [
  'Do not edit by hand — run `npm run records`. The build fails if this file and the record source',
  'disagree, so an edit here is lost rather than merely wrong.',
  '',
- 'The areas, classes, record types, FHIR mappings, gating capabilities, consultation sections and',
- 'summary card are the contract itself. The reasoning about them, and the fictional patients they',
- 'are demonstrated on, are hand-written in Records.swift and Records.kt beside this file.'
+ 'The areas, classes, record types, FHIR mappings, gating capabilities, consultation sections,',
+ 'reference ranges and summary card are the contract itself. The reasoning about them, and the',
+ 'fictional patients they are demonstrated on, are hand-written in Records.swift and Records.kt',
+ 'beside this file.'
 ].map(line => (line ? `// ${line}` : '//')).join('\n');
 
 export function emitRecords(root = '') {
  const contract = JSON.parse(readFileSync(root + SOURCE, 'utf8'));
- const { areas, sensitivity, navigation, records, consultation, summaryCard } = contract;
+ const { areas, sensitivity, navigation, records, consultation, observations, summaryCard } = contract;
+ /* The qualification is not a field of its own anywhere. It is the note on the observations
+    section of the standard consultation, and both apps render that one sentence rather than a
+    second one written beside the numbers. Read here so a missing note fails generation rather
+    than shipping a range with nothing qualifying it. */
+ const observationsNote = consultation.sections.find(s => s.id === 'observations')?.note;
+ if (!observationsNote) throw new Error('The observations consultation section carries no note, so the reference ranges would be written into both native apps with nothing saying they are indicative');
+ /* A range whose ends are the wrong way round would flag every reading ever taken. It is the one
+    arithmetic error in this contract that a compiler cannot see, and Swift's ClosedRange traps on
+    it at runtime rather than at build time, so it is refused before either file is written. */
+ for (const m of observations.measures) if (!(m.low < m.high)) throw new Error(`Reference range for ${m.id} is ${m.low}\u2013${m.high}, which is not a range`);
 
  /* ---- iOS ------------------------------------------------------------------------------------
     The shape types are declared here rather than in Records.swift because they are the contract's
@@ -178,6 +189,20 @@ struct RecordSummaryCard {
     let fields: [String]
     let withheld: String
 }
+/// One of the seven readings a nurse takes, and the indicative adult range it is flagged against.
+/// Deliberately not named Observation: the assessment screen still declares its own, and this is
+/// the contract's copy that replaces it. Both ends of the range are inclusive.
+struct ObservationRange: Identifiable, Hashable {
+    let id: String
+    let label: String
+    let unit: String
+    let low: Double
+    let high: Double
+    /// The input's granularity. Below 1 is also the sign that the reading is written to one decimal.
+    let step: Double
+    let placeholder: String
+    var range: ClosedRange<Double> { low...high }
+}
 
 // MARK: - The contract
 
@@ -206,6 +231,16 @@ ${consultation.sections.map(swiftSection).join(',\n')}
 
     static let soap: [SoapHeading] = [
 ${consultation.soap.map(h => `        .init(id: ${swift(h.id)}, name: ${swift(h.name)}, detail: ${swift(h.detail)})`).join(',\n')}
+    ]
+
+    static let observationsWhy = ${swift(observations.why)}
+    /// The sentence every screen showing a range shows with it. Not written twice: it is the note
+    /// on the observations consultation section above.
+    static let observationsNote = ${swift(observationsNote)}
+
+    /// ${observationsNote}
+    static let observations: [ObservationRange] = [
+${observations.measures.map(m => `        .init(id: ${swift(m.id)}, label: ${swift(m.label)}, unit: ${swift(m.unit)}, low: ${m.low}, high: ${m.high}, step: ${m.step}, placeholder: ${swift(m.placeholder)})`).join(',\n')}
     ]
 
     static let summaryCard = RecordSummaryCard(
@@ -286,6 +321,15 @@ data class ConsultationSection(
 )
 data class SoapHeading(val id: String, val name: String, val detail: String)
 data class RecordSummaryCard(val why: String, val fields: List<String>, val withheld: String)
+/**
+ * One of the seven readings a nurse takes, and the indicative adult range it is flagged against.
+ * Deliberately not named Observation: the assessment screen still declares its own, and this is the
+ * contract's copy that replaces it. Both ends of the range are inclusive.
+ */
+data class ObservationRange(
+    val id: String, val label: String, val unit: String,
+    val low: Double, val high: Double, val step: Double, val placeholder: String
+)
 
 val recordAreas = listOf(
 ${areas.map(a => `    RecordArea(${kotlin(a.id)}, ${kotlin(a.name)}, ${kotlin(a.detail)}),`).join('\n')}
@@ -310,6 +354,19 @@ ${consultation.sections.map(section => kotlinSection(section) + ',').join('\n')}
 
 val soapHeadings = listOf(
 ${consultation.soap.map(h => `    SoapHeading(${kotlin(h.id)}, ${kotlin(h.name)}, ${kotlin(h.detail)}),`).join('\n')}
+)
+
+const val observationsWhy =
+    ${kotlin(observations.why)}
+
+/* The sentence every screen showing a range shows with it. Not written twice: it is the note on the
+   observations consultation section above. */
+const val observationsNote =
+    ${kotlin(observationsNote)}
+
+/* ${observationsNote} */
+val observationRanges = listOf(
+${observations.measures.map(m => `    ObservationRange(${kotlin(m.id)}, ${kotlin(m.label)}, ${kotlin(m.unit)}, ${m.low.toFixed(1)}, ${m.high.toFixed(1)}, ${m.step.toFixed(1)}, ${kotlin(m.placeholder)}),`).join('\n')}
 )
 
 val recordSummaryCard = RecordSummaryCard(

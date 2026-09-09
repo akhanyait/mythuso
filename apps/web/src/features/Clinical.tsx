@@ -14,26 +14,15 @@ import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
 import { ConsultationComposer, assessmentFields } from './Consultation';
 import { documentById, refusedDocuments } from '../lib/teleconsult';
 /* Indicative adult reference ranges, used only to flag a value for the nurse's attention.
-   This is not a validated triage or early-warning score and it never decides anything. */
-export const observations = [
- { id: 'systolic', label: 'Blood pressure — systolic', unit: 'mmHg', range: [90, 140], step: 1, placeholder: '118' },
- { id: 'diastolic', label: 'Blood pressure — diastolic', unit: 'mmHg', range: [60, 90], step: 1, placeholder: '78' },
- { id: 'pulse', label: 'Pulse', unit: 'bpm', range: [50, 100], step: 1, placeholder: '72' },
- { id: 'respiratory', label: 'Respiratory rate', unit: 'breaths/min', range: [12, 20], step: 1, placeholder: '16' },
- { id: 'temperature', label: 'Temperature', unit: '°C', range: [36.1, 37.5], step: 0.1, placeholder: '36.8' },
- { id: 'oxygen', label: 'Oxygen saturation', unit: '%', range: [95, 100], step: 1, placeholder: '98' },
- { id: 'glucose', label: 'Blood glucose', unit: 'mmol/L', range: [4, 7.8], step: 0.1, placeholder: '5.2' }
-] as const;
-export type ObsId = typeof observations[number]['id'];
-export function flagOf(id: ObsId, raw: string) {
- const spec = observations.find(o => o.id === id)!;
- if (!raw.trim()) return 'empty' as const;
- const value = Number(raw);
- if (Number.isNaN(value)) return 'invalid' as const;
- if (value < spec.range[0]) return 'low' as const;
- if (value > spec.range[1]) return 'high' as const;
- return 'normal' as const;
-}
+   This is not a validated triage or early-warning score and it never decides anything.
+
+   Not one of the seven is typed here any more. They were, and two native apps were checked against
+   this file for it — a number that decides whether a reading is put in front of a doctor, declared
+   on a screen. They are in packages/catalog/records.json now and read through lib/observations.ts,
+   which is also what the emitter writes into Swift and Kotlin. Re-exported so the screens that
+   already import them from here keep one import, and so nothing is tempted into a second copy. */
+import { observations, flagOf } from '../lib/observations';
+export { observations, flagOf, observationsNote, type ObsId } from '../lib/observations';
 /* One identity check in MyThuso, and this is the number it is demonstrated with. The nurse asks for
    it at the door and the doctor asks for it at the start of a teleconsultation — the same code read
    the same way, so a patient learns one thing rather than two. Exported rather than retyped there. */
@@ -159,7 +148,7 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
     <label><span>{o.label}<em>{o.unit}</em></span>
      <input inputMode="decimal" step={o.step} value={o.value} placeholder={o.placeholder} onChange={e => set(o.id, e.target.value.replace(/[^\d.]/g, ''))} aria-describedby={`${o.id}-flag`} aria-invalid={o.flag === 'invalid'}/>
     </label>
-    <small id={`${o.id}-flag`} role={o.flag === 'low' || o.flag === 'high' ? 'status' : undefined}>{o.flag === 'invalid' ? 'Enter a number.' : o.flag === 'low' ? `Below the indicative range (${o.range[0]}–${o.range[1]})` : o.flag === 'high' ? `Above the indicative range (${o.range[0]}–${o.range[1]})` : `Indicative range ${o.range[0]}–${o.range[1]}`}</small>
+    <small id={`${o.id}-flag`} role={o.flag === 'low' || o.flag === 'high' ? 'status' : undefined}>{o.flag === 'invalid' ? 'Enter a number.' : o.flag === 'low' ? `Below the indicative range (${o.low}–${o.high})` : o.flag === 'high' ? `Above the indicative range (${o.low}–${o.high})` : `Indicative range ${o.low}–${o.high}`}</small>
     {o.source && <div className="prov-row">
      <ProvenanceTag source={o.source}/>
      <CalibrationTag source={o.source}/>
@@ -434,13 +423,13 @@ function ReferralLetter({ reference, doctor, registration, reason, onBack, onClo
  *
  * "Protocols" was a card with one button on it that opened a dialog saying the workflow is not
  * drawn yet. It is the one section in the doctor's workspace that needs no service behind it to be
- * real: the reference ranges are already in this file, the line at which decision support stops is
- * already in the vetting contract, and the escalation ladder is already the select on the nurse's
- * findings step. Nothing here is new information. What was missing was a screen that says it in one
- * place, which is what a protocol is.
+ * real: the reference ranges are already in the record contract, the line at which decision support
+ * stops is already in the vetting contract, and the escalation ladder is already the select on the
+ * nurse's findings step. Nothing here is new information. What was missing was a screen that says it
+ * in one place, which is what a protocol is.
  *
- * Every figure below is read from the thing that enforces it. If a range moves in `observations`
- * the table moves with it, and a protocol that can disagree with the software is worse than none.
+ * Every figure below is read from the thing that enforces it. If a range moves in records.json the
+ * table moves with it, and a protocol that can disagree with the software is worse than none.
  */
 const escalations = [
  ['No escalation — routine visit', 'The readings are inside their indicative ranges and nothing the nurse saw contradicts them. The record still goes to a doctor; the patient is not waiting on it.'],
@@ -461,7 +450,7 @@ export function ClinicalProtocols() {
     <caption>Indicative adult ranges only. They flag a value for a clinician’s attention. They are not a validated triage or early-warning score, they are not adjusted for age, pregnancy or comorbidity, and nothing in MyThuso decides anything from them.</caption>
     <thead><tr><th scope="col">Observation</th><th scope="col">Low</th><th scope="col">High</th><th scope="col">Unit</th></tr></thead>
     <tbody>{observations.map(o => <tr key={o.id}>
-     <th scope="row">{o.label}</th><td>{o.range[0]}</td><td>{o.range[1]}</td><td>{o.unit}</td>
+     <th scope="row">{o.label}</th><td>{o.low}</td><td>{o.high}</td><td>{o.unit}</td>
     </tr>)}</tbody>
    </table>
   </div>
