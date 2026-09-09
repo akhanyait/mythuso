@@ -37,6 +37,51 @@ OTHERS=(liqzar.co.za artisanza.co.za skillsonwheels.co.za agcafrica.com bidza.co
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 
+# ── $HOST and $ALIASES are not just text ───────────────────────────────────────────────────────
+#
+# They are interpolated into three different languages below: a command a remote login shell runs as
+# root, an nginx directive, and a sed replacement. Each of those is a place where a character that
+# is not part of a host name stops being data.
+#
+# Both were reproduced against a sandbox rather than reasoned about. A single quote in $HOST closes
+# the quoting in `ssh "$TARGET" "... 'Host: $HOST' ..."` and everything after it runs as root on a
+# box that serves five other people's websites. A `;` and a `}` survive the sed into the site file,
+# and nginx accepts the result — `listen 80 default_server;` included, which is how MyThuso would
+# quietly start answering for every name on this machine that nobody else claimed. A space smuggles
+# a second name into server_name.
+#
+# So the names are checked once, here, against what a host name may actually contain, and nothing
+# downstream has to be careful. A label is 1 to 63 of [A-Za-z0-9-] and may not start or end with a
+# hyphen; the whole name is at most 253. $HOST is exactly one name, because a Host header carries
+# one; $ALIASES is a space-separated list of them.
+valid_hostname() {
+  case "$1" in ''|*[!A-Za-z0-9.-]*|.*|*.|*..*) return 1 ;; esac
+  [ "${#1}" -le 253 ] || return 1
+  local label
+  for label in $(printf '%s' "$1" | tr '.' ' '); do
+    case "$label" in ''|-*|*-) return 1 ;; esac
+    [ "${#label}" -le 63 ] || return 1
+  done
+  return 0
+}
+valid_hostname "$HOST" || {
+  echo "HOST is not a host name: <<$HOST>>"
+  echo "Refusing. It would reach a root shell on $TARGET and an nginx directive exactly as typed."
+  exit 1
+}
+for name in $ALIASES; do
+  valid_hostname "$name" || { echo "ALIASES contains something that is not a host name: <<$name>>. Refusing."; exit 1; }
+done
+# ssh reads a leading dash as an option, so a TARGET of "-oProxyCommand=..." is a command this
+# script would run. It is a name of a host in ~/.ssh/config, and those do not begin with a dash.
+case "$TARGET" in -*) echo "TARGET may not begin with a dash: <<$TARGET>>. Refusing."; exit 1 ;; esac
+
+# Every name in server_name has to be in the certificate. A certificate for the apex alone is a
+# browser warning on the first link anybody clicks who typed www, and the fix is a reissue rather
+# than an edit. Built from $ALIASES here so the two cannot drift apart.
+certbot_names="-d $HOST"
+for name in $ALIASES; do certbot_names="$certbot_names -d $name"; done
+
 # Asked from here rather than from the server, because this is the path a person actually takes —
 # DNS, the public internet, TLS, and Cloudflare in front of bidza.co.za. Checking from the box would
 # skip most of what can break. Both the baseline and the re-check run from the same place, so a
@@ -88,8 +133,14 @@ say "Checking $TARGET before touching it"
 ssh "$TARGET" "test -d /etc/nginx/sites-enabled && command -v nginx >/dev/null" \
   || { echo "nginx not found on $TARGET"; exit 1; }
 # A site file for this host that we did not write is a collision, not a redeploy.
+#
+# Both directories, because sites-enabled is not the only one nginx.conf includes: Debian's ships
+# `include /etc/nginx/conf.d/*.conf` as well, and a co-tenant configured there was invisible to this
+# check. Two server blocks claiming one name is not an error and does not fail `nginx -t` — nginx
+# prints "conflicting server name", exits 0, and silently serves one of the two. On this box the one
+# that loses would be somebody else's website, and every check we run would still be green.
 for name in $HOST $ALIASES; do
-  ssh "$TARGET" "! grep -rlE 'server_name[^;]*[ ]${name}[ ;]' /etc/nginx/sites-enabled/ 2>/dev/null | grep -qv mythuso.conf" \
+  ssh "$TARGET" "! grep -rlE 'server_name[^;]*[ ]${name}[ ;]' /etc/nginx/sites-enabled/ /etc/nginx/conf.d/ 2>/dev/null | grep -qv mythuso.conf" \
     || { echo "another nginx site already claims $name — stopping rather than guessing"; exit 1; }
 done
 
@@ -139,22 +190,121 @@ ssh "$TARGET" "set -e
 ssh "$TARGET" "printf 'MYTHUSO_HOST=%s\n' '$HOST' > /etc/mythuso/host.env && chmod 0644 /etc/mythuso/host.env"
 
 say "Installing the nginx site for $HOST"
+# The file it replaces is kept beside it for exactly as long as it takes nginx -t to have an opinion.
+# Without that, a site file that fails the test stays in sites-enabled: the running nginx carries on
+# with the configuration it already loaded, so nothing looks wrong today, and the next time nginx is
+# *started* rather than reloaded — a reboot, a package upgrade, somebody else's deploy — it refuses
+# to start at all and takes agcafrica, artisanza, bidza, liqzar and skillsonwheels down with us,
+# hours later, for a reason nobody will connect to this. A failed deploy of ours has to leave this
+# box exactly as it found it.
 sed "s/__HOST__/$HOST${ALIASES:+ $ALIASES}/g" deploy/nginx/mythuso.conf \
-  | ssh "$TARGET" "cat > /etc/nginx/sites-available/mythuso.conf && ln -sfn /etc/nginx/sites-available/mythuso.conf /etc/nginx/sites-enabled/mythuso.conf"
+  | ssh "$TARGET" "set -e
+      cd /etc/nginx/sites-available
+      if [ -f mythuso.conf ]; then cp -p mythuso.conf .mythuso.conf.prev; else rm -f .mythuso.conf.prev; fi
+      cat > mythuso.conf
+      ln -sfn /etc/nginx/sites-available/mythuso.conf /etc/nginx/sites-enabled/mythuso.conf"
+
+# Puts the box back the way it was, then says whether that was enough. If nginx -t still fails after
+# our file is gone, the fault was already there and is somebody else's — which is worth saying out
+# loud, because the person reading this at night will otherwise assume it was them.
+roll_back_site() {
+  ssh "$TARGET" "cd /etc/nginx/sites-available
+    if [ -f .mythuso.conf.prev ]; then mv .mythuso.conf.prev mythuso.conf
+    else rm -f mythuso.conf /etc/nginx/sites-enabled/mythuso.conf; fi
+    nginx -t" >/dev/null 2>&1 \
+    && echo "rolled our site file back; nginx -t passes again on $TARGET, nothing was reloaded" \
+    || echo "!! ROLLED BACK AND nginx -t STILL FAILS. That fault was already on this box and is not
+   ours. Do not restart nginx — a reload keeps the five co-tenants serving, a restart will not.
+   Find it with: ssh $TARGET nginx -t"
+}
+
+# ── Putting TLS back, because the line above just overwrote it ─────────────────────────────────
+#
+# certbot --nginx does not write a file of its own. It edits ours, in place, adding the 443
+# listener, the certificate paths and the http-to-https redirect — so the `cat >` above replaces all
+# of that with the template. Without this step the *second* deploy after TLS quietly returns the
+# site to plain http: the certificate is still on disk, still renewing, and nothing is serving it.
+# The health check notices within ten minutes, which is ten minutes of a health service answering
+# on http and no obvious reason why.
+#
+# `certbot install` re-applies the installer to a certificate that already exists. It asks Let's
+# Encrypt for nothing and cannot be rate-limited, which is what makes it safe on every deploy.
+say "Restoring TLS to the site file, if there is a certificate"
+ssh "$TARGET" "set -e
+  [ -d /etc/letsencrypt/live/$HOST ] || { echo 'tls       no certificate for $HOST yet — http only, see deploy/RUNBOOK.md'; exit 0; }
+  command -v certbot >/dev/null || { echo '!! $HOST has a certificate but this box has no certbot to put it back into the site file'; exit 1; }
+  certbot install --nginx --cert-name $HOST --redirect --non-interactive >/dev/null 2>&1 \
+    || { echo '!! certbot could not re-apply the certificate. The file this deploy wrote serves plain http only.'; exit 1; }
+  echo 'tls       certificate re-applied to the site file'" || {
+  echo "TLS could not be restored — rolling back rather than publishing an http-only health service"
+  roll_back_site
+  exit 1
+}
 
 say "Testing the whole nginx configuration"
-ssh "$TARGET" "nginx -t" || { echo "nginx config test failed — nothing reloaded"; exit 1; }
+# Two different failures, only one of which nginx calls an error.
+#
+# `nginx -t` refusing is the loud one. "conflicting server name" is the quiet one: it is a warning,
+# nginx -t still exits 0, and what it means is that two server blocks claim the same name and nginx
+# has picked one of them. On a box with five co-tenants the block that loses could be theirs, and
+# every other check in this script would still pass. So the output is read, not just its status.
+if ! nginx_out=$(ssh "$TARGET" "nginx -t" 2>&1); then
+  echo "$nginx_out"
+  echo "nginx config test failed — nothing reloaded"
+  roll_back_site
+  exit 1
+fi
+echo "$nginx_out"
+if printf '%s\n' "$nginx_out" | grep -q 'conflicting server name'; then
+  echo "!! nginx says a server name is claimed twice. One of those blocks is being ignored and it"
+  echo "   may be a co-tenant's. Not reloading."
+  roll_back_site
+  exit 1
+fi
 
 say "Reloading nginx (graceful; existing sites keep serving)"
 ssh "$TARGET" "systemctl reload nginx"
+ssh "$TARGET" "rm -f /etc/nginx/sites-available/.mythuso.conf.prev"
 
 say "Verifying by Host header, so this works before DNS does"
-ssh "$TARGET" "curl -sf -H 'Host: $HOST' http://127.0.0.1/ -o /dev/null -w 'landing  %{http_code}\n'"
-ssh "$TARGET" "curl -sf -H 'Host: $HOST' http://127.0.0.1/app/ -o /dev/null -w 'app      %{http_code}\n'"
-# Four audiences, four entries, four things that can be published broken. A deploy that only checks
-# the one page it was written for is a deploy that finds out about the other three from a user.
-ssh "$TARGET" "curl -sf -H 'Host: $HOST' http://127.0.0.1/staff/ -o /dev/null -w 'staff    %{http_code}\n'"
-ssh "$TARGET" "curl -sf -H 'Host: $HOST' http://127.0.0.1/admin/ -o /dev/null -w 'admin    %{http_code}\n'"
+# Five audiences, five entries, five things that can be published broken — the five inputs in
+# apps/web/vite.config.ts. A deploy that only checks the page it was written for is a deploy that
+# finds out about the others from a user, and that is exactly what happened to /status: the entry
+# was built, published and unreachable, and the four checks here all passed.
+#
+# Adding a sixth entry means adding a location to deploy/nginx/mythuso.conf and a line here. There
+# is no check that makes you: read the `input` block in apps/web/vite.config.ts against this list.
+#
+# A status code is not enough, and the reason is the same fault as /status: every one of these paths
+# falls through to the catch-all if its location block is missing, and the catch-all answers with
+# the landing page and a 200. Four of these five checks passed for a day while /status was a build
+# nobody could open. So each entry is asked to prove it is itself.
+#
+# The proof is the entry's own rollup chunk, whose name is the first asset its HTML references and
+# is different for every entry. Read out of the build rather than written down here, so it cannot
+# be a thing that says "staff" while the file says otherwise.
+verify_entry() { # <label> <path> <the built html this path must serve>
+  local marker
+  marker=$(grep -o 'assets/[A-Za-z0-9._-]*\.js' "apps/web/dist/$3" | head -1)
+  [ -n "$marker" ] || { echo "$1: apps/web/dist/$3 references no entry chunk — is this a build?"; exit 1; }
+  ssh "$TARGET" "body=\$(curl -sf -H 'Host: $HOST' http://127.0.0.1$2) || { echo '$1: $2 did not answer'; exit 1; }
+    case \"\$body\" in
+      *$marker*) echo '$(printf '%-8s' "$1") 200  $3' ;;
+      *) echo '!! $1: $2 answered 200 but did not serve $3 — it is falling through to another entry'; exit 1 ;;
+    esac"
+}
+verify_entry landing /        landing.html
+verify_entry app     /app/    index.html
+verify_entry staff   /staff/  staff.html
+verify_entry admin   /admin/  admin.html
+verify_entry status  /status/ status.html
+
+# And the form a person actually types. /status without the trailing slash used to fall through to
+# the catch-all and answer with the landing page and a 200 — a wrong page wearing a right page's
+# status code, which no check that only looks at the number can see.
+ssh "$TARGET" "code=\$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: $HOST' http://127.0.0.1/status)
+  echo \"/status  \$code (expected 301 to /status/)\"
+  [ \"\$code\" = 301 ] || { echo '!! /status is not redirecting — it is falling through to the landing page'; exit 1; }"
 
 # Only when it has been turned on. Until step four of deploy/README.md the correct state of the
 # identity service is "not running", and a deploy that reported that as a failure would teach
@@ -420,9 +570,10 @@ cat <<NOTE
 
 Published to $HOST on $TARGET. Co-hosted sites unchanged.
 
-Still yours to do:
+Still yours to do — deploy/RUNBOOK.md is this list with the failures written out:
   1. DNS: point $HOST at this server's address (an A record).
-  2. TLS: ssh $TARGET "certbot --nginx -d $HOST"
+  2. TLS: ssh $TARGET "certbot --nginx $certbot_names"
+     Every name in server_name is in that list. One missing is a browser warning, not a 404.
   3. The timers, once: ssh $TARGET "systemctl enable --now mythuso-healthcheck.timer"
      (the backup timer waits for the identity service — it has nothing to back up before then)
   4. Only then the identity service — see deploy/README.md. It must not be reachable over http.

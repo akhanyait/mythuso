@@ -12,6 +12,11 @@ HOST=mythuso.co.za ./deploy/deploy.sh     # somewhere else
 Verification runs with a `Host:` header against the server's own loopback, so a deployment can be
 confirmed before DNS is pointed anywhere.
 
+This file is why each step is the way it is. **[RUNBOOK.md](RUNBOOK.md) is the order to do them in,
+written for somebody doing it once, at night, who did not build any of this** — including how to
+check the five co-tenant sites before and after, which is the risk that matters most here and the
+one nobody remembers.
+
 ## The five sites this box also serves
 
 agcafrica.com, artisanza.co.za, bidza.co.za, liqzar.co.za and skillsonwheels.co.za are on the same
@@ -24,9 +29,24 @@ their owners finding out first:
   already down and is not ours to have broken — and a single difference is looked at twice, twenty
   seconds apart, because a deploy that cries wolf is a deploy somebody starts finishing by hand.
 - **`nginx -t` before any reload**, on the whole configuration, so a mistake in our site file is a
-  refused deploy rather than five refused websites.
+  refused deploy rather than five refused websites — **and the site file is rolled back when it
+  fails.** Refusing to reload is not enough on its own: the running nginx keeps serving the
+  configuration it already loaded, so nothing looks wrong, and a broken file left in
+  `sites-enabled` takes nginx down at the next *start* — a reboot, a package upgrade, somebody
+  else's deploy — hours later, for a reason nobody will connect back to this. The output is read as
+  well as its exit status, because `conflicting server name` is a warning: `nginx -t` exits 0 while
+  one of two blocks claiming a name is silently ignored, and on this box the block that loses could
+  be theirs.
 - **Nothing of theirs is ever edited.** MyThuso adds its own site file and nothing more, and the
-  deploy refuses outright if some other site already claims our host name.
+  deploy refuses outright if some other site already claims our host name — looking in
+  `/etc/nginx/conf.d/` as well as `/etc/nginx/sites-enabled/`, because Debian's `nginx.conf`
+  includes both and a co-tenant configured in the first was invisible to that check.
+- **`$HOST` and `$ALIASES` are validated as host names before anything else runs.** They are
+  interpolated into a command a remote root shell executes, into an nginx directive, and into a
+  `sed` replacement. A single quote in `$HOST` closes the quoting and runs the rest as root; a `;`
+  and a `}` survive into the site file and nginx accepts them, `default_server` included, which is
+  how MyThuso would start answering for every name on the machine nobody else claimed. Both were
+  reproduced against a sandbox before the check was written. Neither is reachable now.
 
 That check is the point of the script. Do not skip it by running the steps by hand.
 
@@ -38,21 +58,32 @@ That check is the point of the script. Do not skip it by running the steps by ha
 | `/app/` | Patients and families — runs with no backend, exactly as it does locally |
 | `/staff/` | The clinical workspaces: nurse, doctor, pharmacy partner, Control Tower |
 | `/admin/` | The back office |
+| `/status/` | What is connected and what is not. Fifteen capabilities, none of them live. The page a funder or a clinician is sent to when they want to know whether any of this is real |
 | `/assets/` | Hashed bundles, cached for a year; HTML is never cached |
 | `/opt/mythuso/ops` | The scheduled jobs and their systemd units, reinstalled on every deploy |
 | `/etc/mythuso/host.env` | The host the health check should be asking about, written by the deploy |
 | `/etc/mythuso/key.fingerprint` | One `name fingerprint` line per key this host holds. Not the keys, and not secret — it is how a key that changed without anybody rotating it becomes visible |
 
-### Four audiences on one host, and the one-line change when DNS moves
+### Five entries on one host, and the one-line change when DNS moves
 
-Each audience is its own build with its own bundle — `index.html`, `staff.html`, `admin.html` and
-`landing.html`, declared in `apps/web/vite.config.ts`. They are served from paths on one host rather
+Each audience is its own build with its own bundle — `index.html`, `staff.html`, `admin.html`,
+`landing.html` and `status.html`, declared in `apps/web/vite.config.ts`. **Every one of them needs a
+`location` in `deploy/nginx/mythuso.conf` and a line in `deploy.sh`'s verification, or the entry is
+a build nobody can open.** Nothing enforces that pairing; `status.html` was added, built, published
+and unreachable, and every check the deploy ran came back green, because without a block of its own
+`/status` fell through to the catch-all and answered with the landing page and a 200. That is why
+the verification now asks each path to prove which entry it served rather than only that it
+answered. A sixth entry means a `location`, a `verify_entry` line, and a row in the table above.
+
+They are served from paths on one host rather
 than from `staff.mythuso.co.za` and `admin.mythuso.co.za` for two reasons that are both temporary:
 `mythuso.co.za` is still being pointed at this box (see `deploy/dns/`), and a second name needs its
 own certificate before anything is served on it. Nothing in the applications assumes a path.
 
 When the apex is resolving here and certificates exist, the split is a change to
-`deploy/nginx/mythuso.conf` and nothing else. Copy the block, and in the copy replace
+`deploy/nginx/mythuso.conf` and nothing else. Copy the **`server` block** — not the `map` above it,
+which belongs to the file rather than to any one site and which nginx refuses to see twice — and in
+the copy replace
 
 ```nginx
 server_name __HOST__;
@@ -71,6 +102,35 @@ location / { try_files /staff.html =404; }
 
 — the same for `admin` — and add both names to `ALIASES` in `deploy/deploy.sh` and to
 `deploy/dns/mythuso.co.za.zone`. The `location /app/` and `location = /` blocks stay where they are.
+
+### The headers, and who sets what
+
+The identity service sets its own transport headers in `apps/api/src/server.ts`, for the reason
+written above them: a control that only exists in a particular nginx is a control that vanishes the
+first time the service runs anywhere else, and this nginx is not ours to rely on. So nginx does not
+need to set them *for the API* — and must be stopped from trying, because add_header does not
+replace a header the upstream already sent, it appends a second one. Two `X-Frame-Options` headers
+is not twice the protection; a browser handed `DENY, DENY` is entitled to make nothing of either.
+The commented `/api/` block therefore carries an `add_header` of its own, which is what severs the
+inheritance: nginx passes the server-level set down only to a level that declares none.
+
+The static entries are the other half, and they do need nginx. Each HTML file carries its own CSP in
+a `<meta http-equiv>`, but a meta tag cannot express `frame-ancestors`, so the only place that
+refusal can be stated for a page is a header. Hence `X-Frame-Options: DENY` and
+`Content-Security-Policy: frame-ancestors 'none'` at the server level of the site file — the same
+pair, and the same values, the API sends.
+
+The same inheritance rule was quietly costing us those headers. `/assets/`, `/fonts/` and a
+`~* \.html$` block each set their own `Cache-Control` with `add_header`, and every one of them
+therefore dropped all four security headers — so `/status.html`, `/landing.html` and every asset were
+served with no `X-Frame-Options` at all, with the pages rendering exactly as before. The cache
+lifetimes are now decided by one `map` at the top of the file and added once at the server level, so
+no location declares an `add_header` and none of them can drop part of the set.
+
+HSTS is not in the site file. It belongs in the `https` block certbot writes, and adding it to a
+port-80 block on a host with no certificate teaches every browser that visits to refuse the site for
+two years, with no way to take it back. `RUNBOOK.md` turns it on as its own step, after https has
+been seen working.
 
 **A path is not access control, and neither is a subdomain.** `/staff/` and `/admin/` are `noindex`
 and are not linked from the landing page, which keeps them out of a search result and out of
@@ -199,7 +259,11 @@ sign-in method.
 To turn it on, in this order:
 
 1. **DNS** — point the host at the server.
-2. **TLS** — `certbot --nginx -d <host>`.
+2. **TLS** — `certbot --nginx -d mythuso.co.za -d www.mythuso.co.za`. **Every name in `server_name`
+   goes in that command.** A certificate for the apex alone is a full-page browser warning for
+   anybody who typed `www`, which is most people, and it is not an edit afterwards — it is a
+   reissue. `deploy.sh` prints the list for you at the end of a run, built from `$HOST` and
+   `$ALIASES`, so the certificate and the site file cannot drift apart.
 3. **A number to send from** — an SMS provider account.
 4. **Install it**
 
