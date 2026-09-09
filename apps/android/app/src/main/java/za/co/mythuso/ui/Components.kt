@@ -45,12 +45,16 @@ import za.co.mythuso.model.Capabilities
  */
 @Composable fun ReviewLine(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = Slate, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = LocalSecondaryText.current)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = Charcoal, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
     }
 }
+/* Secondary text reads its colour from the surface it is on rather than from the theme, because the
+   two disagree on exactly one ground: faint is 5.05 on mist, 4.57 on cloud and 5.75 on a white card,
+   and 3.75 on the sage lead panel, which fails. A LeadCard and an SPanel(LEAD) both provide charcoal
+   at 11.11 for this, so a note dropped into one is right without anybody checking. */
 @Composable fun Note(text: String) {
-    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(text, style = MaterialTheme.typography.bodySmall, color = LocalSecondaryText.current)
 }
 
 /**
@@ -90,7 +94,7 @@ import za.co.mythuso.model.Capabilities
     val notice = Capabilities.notice(of) ?: return
     TonedCard {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Info, null, tint = Indigo, modifier = Modifier.size(18.dp))
+            Icon(Icons.Outlined.Info, null, tint = Charcoal, modifier = Modifier.size(18.dp))
             Text(notice, style = MaterialTheme.typography.bodySmall, color = BodyText)
         }
     }

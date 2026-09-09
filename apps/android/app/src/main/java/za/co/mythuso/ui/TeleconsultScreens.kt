@@ -120,9 +120,9 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
             CareCard {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TileIcon(if (out) Icons.Outlined.MeetingRoom else Icons.Outlined.Person,
-                        if (out) BodyText else Indigo, if (out) Canvas else IndigoSoft, 38.dp)
+                        if (out) BodyText else Indigo, if (out) Mist else IndigoSoft, 38.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(displayName(person), style = MaterialTheme.typography.titleSmall, color = if (out) Faint else Ink)
+                        Text(displayName(person), style = MaterialTheme.typography.titleSmall, color = if (out) Faint else Charcoal)
                         Text(person.name, style = MaterialTheme.typography.labelMedium, color = Indigo)
                         Text(person.place, style = MaterialTheme.typography.bodySmall, color = Faint)
                         Text("Can see: ${person.sees}", style = MaterialTheme.typography.bodySmall, color = Faint)
@@ -143,17 +143,17 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
     }
 
     @Composable fun Refusal(item: CallRefusal) {
-        Row(Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+        Row(Modifier.fillMaxWidth().background(Mist, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(Icons.Outlined.Block, null, tint = Danger)
-            Text(item.sentence, style = MaterialTheme.typography.bodySmall, color = Slate)
+            Text(item.sentence, style = MaterialTheme.typography.bodySmall, color = Charcoal)
         }
     }
 
     @Composable fun Row2(label: String, value: String) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             Text(label, style = MaterialTheme.typography.bodySmall, color = BodyText, modifier = Modifier.weight(1f))
-            Text(value, style = MaterialTheme.typography.labelMedium, color = Ink)
+            Text(value, style = MaterialTheme.typography.labelMedium, color = Charcoal)
         }
     }
 
@@ -167,7 +167,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 Text("Who will be able to see and hear you.", style = MaterialTheme.typography.titleMedium)
                 Text(Teleconsult.rule("presence-is-consented").sentence, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 CareCard {
-                    Text("Doctor for this appointment", style = MaterialTheme.typography.labelMedium, color = Ink)
+                    Text("Doctor for this appointment", style = MaterialTheme.typography.labelMedium, color = Charcoal)
                     FlowRowChips(callDoctorIds.map { store.vetting.subject(it)?.name ?: it }, setOf(store.vetting.subject(doctorId)?.name ?: doctorId)) { name ->
                         doctorId = callDoctorIds.firstOrNull { store.vetting.subject(it)?.name == name } ?: doctorId
                     }
@@ -179,7 +179,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     }
                 }
                 CareCard {
-                    Text("Who else is at the address or on the call", style = MaterialTheme.typography.labelMedium, color = Ink)
+                    Text("Who else is at the address or on the call", style = MaterialTheme.typography.labelMedium, color = Charcoal)
                     callParticipants.filter { !it.essential }.forEach { person ->
                         Setting(person.name, present[person.id] == true) { on ->
                             present[person.id] = on; consented[person.id] = false
@@ -204,7 +204,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                             verticalAlignment = Alignment.Top
                         ) {
                             Checkbox(consented[person.id] == true, null)
-                            Text("“${person.consentQuestion}”", style = MaterialTheme.typography.bodySmall, color = Ink)
+                            Text("“${person.consentQuestion}”", style = MaterialTheme.typography.bodySmall, color = Charcoal)
                         }
                         if (consented[person.id] != true) {
                             Text("If you say no: ${person.ifDeclined.orEmpty()}", style = MaterialTheme.typography.bodySmall, color = BodyText)
@@ -273,7 +273,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     Row2("Who could open it", "Three, and no more")
                     callRecording.whenItExists.whoMayView.forEach {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Outlined.Lock, null, tint = Indigo); Text(it, style = MaterialTheme.typography.bodySmall, color = Slate)
+                            Icon(Icons.Outlined.Lock, null, tint = Charcoal); Text(it, style = MaterialTheme.typography.bodySmall, color = Charcoal)
                         }
                     }
                     Row2("Kept for", "${callRecording.whenItExists.keptForDays} days")
@@ -292,7 +292,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         TileIcon(Icons.Outlined.VideocamOff, Indigo, IndigoSoft, 38.dp)
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(Teleconsult.mediaState(mediaState).name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                            Text(Teleconsult.mediaState(mediaState).name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                             Text(Teleconsult.mediaState(mediaState).detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                             Text(callMedia.sentence, style = MaterialTheme.typography.bodySmall, color = Faint)
                         }
@@ -321,7 +321,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 CareCard {
                     StatusPill("The patient sees", "quiet")
                     Text(Teleconsult.connectionState(connectionId).patientSees, style = MaterialTheme.typography.bodySmall, color = BodyText)
-                    HorizontalDivider(color = Line)
+                    HorizontalDivider(color = Stone)
                     StatusPill("The doctor sees", "quiet")
                     Text(Teleconsult.connectionState(connectionId).doctorSees, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
@@ -341,7 +341,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                                      style = MaterialTheme.typography.bodySmall, color = BodyText)
                             }
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(callReconnect.whoCallsWhom, style = MaterialTheme.typography.labelMedium, color = Ink)
+                                Text(callReconnect.whoCallsWhom, style = MaterialTheme.typography.labelMedium, color = Charcoal)
                                 Text(callReconnect.duringTheHold, style = MaterialTheme.typography.bodySmall, color = BodyText)
                                 if (nursePresent) Text(callReconnect.nurseInTheRoom, style = MaterialTheme.typography.bodySmall, color = BodyText)
                                 if (holdLeft == 0) {
@@ -358,19 +358,19 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 Teleconsult.permitted(connectionId, nursePresent).forEach { limit ->
                     Row(Modifier.fillMaxWidth().background(IndigoSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Icon(Icons.Outlined.Check, null, tint = Indigo)
+                        Icon(Icons.Outlined.Check, null, tint = Charcoal)
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(limit.name, style = MaterialTheme.typography.bodySmall, color = Ink)
+                            Text(limit.name, style = MaterialTheme.typography.bodySmall, color = Charcoal)
                             Text(limit.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                         }
                     }
                 }
                 Teleconsult.withdrawn(connectionId, nursePresent).forEach { limit ->
-                    Row(Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+                    Row(Modifier.fillMaxWidth().background(Mist, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(Icons.Outlined.Block, null, tint = Danger)
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(limit.name, style = MaterialTheme.typography.bodySmall, color = Ink)
+                            Text(limit.name, style = MaterialTheme.typography.bodySmall, color = Charcoal)
                             Text(if (limit.needs == "nurse" && !nursePresent)
                                 "Nobody is in the room to examine on the doctor’s behalf." else limit.detail,
                                  style = MaterialTheme.typography.bodySmall, color = BodyText)
@@ -410,7 +410,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 CareCard {
                     Teleconsult.sectionsFor(outcome).forEach { (section, written) ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                            Text(section.name, style = MaterialTheme.typography.bodySmall, color = if (written) Ink else Faint, modifier = Modifier.weight(1f))
+                            Text(section.name, style = MaterialTheme.typography.bodySmall, color = if (written) Charcoal else Faint, modifier = Modifier.weight(1f))
                             Text(if (written) "Yes" else "Not reached",
                                  style = MaterialTheme.typography.labelMedium, color = if (written) Indigo else Faint)
                         }

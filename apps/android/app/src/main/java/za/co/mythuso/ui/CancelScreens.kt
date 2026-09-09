@@ -64,7 +64,7 @@ import za.co.mythuso.model.*
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(selected, null)
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = Ink, modifier = Modifier.weight(1f))
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = Charcoal, modifier = Modifier.weight(1f))
     }
 }
 
@@ -72,7 +72,7 @@ import za.co.mythuso.model.*
 @Composable private fun RescheduleOffer(move: () -> Unit) {
     TonedCard {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-            Icon(Icons.Outlined.EventRepeat, null, tint = Indigo, modifier = Modifier.size(18.dp))
+            Icon(Icons.Outlined.EventRepeat, null, tint = Charcoal, modifier = Modifier.size(18.dp))
             Text(CancellationData.rescheduleSentence, style = MaterialTheme.typography.bodySmall, color = BodyText)
         }
         OutlinedButton(
@@ -103,7 +103,7 @@ import za.co.mythuso.model.*
                     refused -> state.name
                     else -> "Cancel this visit"
                 },
-                style = MaterialTheme.typography.titleLarge, color = Ink
+                style = MaterialTheme.typography.titleLarge, color = Charcoal
             )
         },
         text = {
@@ -112,21 +112,21 @@ import za.co.mythuso.model.*
                     /* The refusal, in the contract's words and nobody else's, with somewhere to go
                        that is not this screen. */
                     refused -> {
-                        Text(state.patientWords, style = MaterialTheme.typography.bodyMedium, color = Ink)
+                        Text(state.patientWords, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                         Note(state.detail)
                     }
                     done -> {
                         /* Verbatim. The late state says it was late and the early state says nothing
                            was charged, and which of those a person reads is arithmetic rather than
                            a choice made here. */
-                        Text(state.patientWords, style = MaterialTheme.typography.bodyMedium, color = Ink)
+                        Text(state.patientWords, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                         ReviewLine("Reference", visit.reference)
                         ReviewLine("Reason given", (chosen ?: Cancellation.reason("unstated")).text)
                         /* The three things cancelling does not undo. The record is kept, the consent
                            is untouched, and the interpreter is stood down without being charged to
                            the patient — each of which is a promise made somewhere else in this app
                            that cancelling a visit could quietly have broken. */
-                        Text("What this does not change", style = MaterialTheme.typography.titleSmall, color = Ink)
+                        Text("What this does not change", style = MaterialTheme.typography.titleSmall, color = Charcoal)
                         CancellationData.doesNotUndo.forEach { limit -> Note(limit.statement) }
                         /* One notice, from the capability, so it disappears from every screen on the
                            day a payment provider is connected rather than being hunted down by hand. */
@@ -136,14 +136,14 @@ import za.co.mythuso.model.*
                         ReviewLine("Visit", visit.service.name)
                         ReviewLine("When", visit.whenText)
                         ReviewLine("Reference", visit.reference)
-                        Text(state.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                        Text(state.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                         Note(state.detail)
 
                         /* Offered before the reasons, not after them. By the time somebody has
                            chosen why they are cancelling they have cancelled. */
                         RescheduleOffer(move)
 
-                        Text("Why are you cancelling?", style = MaterialTheme.typography.titleSmall, color = Ink)
+                        Text("Why are you cancelling?", style = MaterialTheme.typography.titleSmall, color = Charcoal)
                         CancellationData.reasons.forEach { reason ->
                             ChoiceRow(reason.text, chosen?.id == reason.id) { chosen = reason }
                         }
@@ -213,10 +213,10 @@ import za.co.mythuso.model.*
             onDismissRequest = close,
             containerColor = Color.White,
             shape = RoundedCornerShape(ThusoRadius.card),
-            title = { Text(state.name, style = MaterialTheme.typography.titleLarge, color = Ink) },
+            title = { Text(state.name, style = MaterialTheme.typography.titleLarge, color = Charcoal) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-                    Text(state.patientWords, style = MaterialTheme.typography.bodyMedium, color = Ink)
+                    Text(state.patientWords, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                     Note(state.detail)
                 }
             },
@@ -241,7 +241,7 @@ import za.co.mythuso.model.*
         shape = RoundedCornerShape(ThusoRadius.card),
         title = {
             Text(if (moved == null) "Move this visit" else "This visit has moved",
-                 style = MaterialTheme.typography.titleLarge, color = Ink)
+                 style = MaterialTheme.typography.titleLarge, color = Charcoal)
         },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {

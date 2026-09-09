@@ -172,7 +172,7 @@ private val Waiting = MangoInk
                     Canvas(Modifier.fillMaxWidth().aspectRatio(1f).semantics { contentDescription = summary; role = Role.Image }) {
                         val side = size.minDimension
                         fun at(point: BoxPoint) = Offset((point.x / 100.0).toFloat() * size.width, (point.y / 100.0).toFloat() * size.height)
-                        drawRect(Canvas, Offset.Zero, Size(size.width, size.height))
+                        drawRect(Mist, Offset.Zero, Size(size.width, size.height))
                         locatedZones.forEach { (zone, point) ->
                             drawCircle(IndigoSoft, (kmToBoxUnits(zone.radiusKm, mapWindow) / 100.0).toFloat() * side, at(point))
                         }
@@ -293,7 +293,7 @@ val incidents = listOf(
             Text("Demo incident log", style = MaterialTheme.typography.titleMedium)
             log.forEach { entry ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Outlined.CheckCircle, null, tint = Indigo); Text(entry, style = MaterialTheme.typography.bodyMedium)
+                    Icon(Icons.Outlined.CheckCircle, null, tint = Charcoal); Text(entry, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }

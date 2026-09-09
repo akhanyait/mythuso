@@ -96,7 +96,7 @@ import za.co.mythuso.model.heroSlides
                 ) {
                     Box(
                         Modifier.width(if (position == pager.currentPage) 24.dp else 8.dp).height(8.dp)
-                            .background(if (position == pager.currentPage) Indigo else Line, CircleShape)
+                            .background(if (position == pager.currentPage) Indigo else Stone, CircleShape)
                     )
                 }
             }
@@ -106,8 +106,8 @@ import za.co.mythuso.model.heroSlides
                     onClick = { playing = !playing },
                     modifier = Modifier.size(44.dp).semantics { contentDescription = if (playing) "Pause the highlights" else "Play the highlights" }
                 ) {
-                    Box(Modifier.size(32.dp).background(Color.White, CircleShape).border(1.dp, Line, CircleShape), Alignment.Center) {
-                        Icon(if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, null, tint = Slate, modifier = Modifier.size(18.dp))
+                    Box(Modifier.size(32.dp).background(Color.White, CircleShape).border(1.dp, Stone, CircleShape), Alignment.Center) {
+                        Icon(if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, null, tint = Charcoal, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -141,7 +141,7 @@ import za.co.mythuso.model.heroSlides
             Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 20.dp, end = 12.dp, bottom = 16.dp, top = 82.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Text(slide.title, style = MaterialTheme.typography.titleLarge, color = Slate, modifier = Modifier.fillMaxWidth(0.5f))
+            Text(slide.title, style = MaterialTheme.typography.titleLarge, color = Charcoal, modifier = Modifier.fillMaxWidth(0.5f))
             Text(slide.body, style = MaterialTheme.typography.bodySmall, color = BodyText, modifier = Modifier.fillMaxWidth(0.5f).padding(top = 8.dp))
             Button(onClick = onAction, shape = CircleShape, modifier = Modifier.padding(top = 12.dp)) {
                 Text(slide.cta, style = MaterialTheme.typography.titleSmall)
@@ -152,9 +152,9 @@ import za.co.mythuso.model.heroSlides
                 slide.trust.forEachIndexed { spot, label ->
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Box(Modifier.size(32.dp).background(Color.White.copy(alpha = 0.78f), CircleShape), Alignment.Center) {
-                            Icon(trustIcon(slide.symbols[spot]), null, tint = Indigo, modifier = Modifier.size(15.dp))
+                            Icon(trustIcon(slide.symbols[spot]), null, tint = Charcoal, modifier = Modifier.size(15.dp))
                         }
-                        Text(label, style = MaterialTheme.typography.labelMedium, color = Slate, textAlign = TextAlign.Center)
+                        Text(label, style = MaterialTheme.typography.labelMedium, color = Charcoal, textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -192,9 +192,9 @@ private fun trustIcon(name: String) = when (name) {
        Every plate ends in the page's own ground so the band has no bottom edge — the version before
        this one stopped in mid-air two thirds down the greeting and drew a line across it. */
     val plate = when (tone) {
-        1 -> listOf(TealSoft, Canvas)
-        2 -> listOf(AccentSoft, Canvas)
-        else -> listOf(IndigoSoft, Canvas)
+        1 -> listOf(TealSoft, Mist)
+        2 -> listOf(AccentSoft, Mist)
+        else -> listOf(IndigoSoft, Mist)
     }
     /* One slow clock; each bubble reads it at its own frequency and phase so nothing moves in step.
        Started only when motion is wanted. Pinning the value to zero is not the same as not running:

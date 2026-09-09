@@ -30,17 +30,25 @@ private fun style(size: Int, height: Int, weight: FontWeight, tracking: Double =
     TextStyle(fontSize = size.sp, lineHeight = height.sp, fontWeight = weight, letterSpacing = tracking.sp)
 
 /* Material's own roles, given the scale's numbers, so a composable that asks for
-   `MaterialTheme.typography.titleMedium` and one that asks for a size get the same answer. */
+   `MaterialTheme.typography.titleMedium` and one that asks for a size get the same answer.
+ *
+ * NOTHING IS BOLD. docs/DESIGN-LANGUAGE.md is explicit about it — headings are regular or medium
+ * weight and emphasis comes from size and from space — and the reason it matters here is that this
+ * app used to set every heading at 700 and every title at 600, so a screen with four headings on it
+ * had four separate claims on the reader's attention and no hierarchy at all. A 28 at 500 beside a
+ * 15 at 400 is a bigger difference than a 28 at 700 beside a 15 at 600, because the second pair are
+ * both shouting. It is also what makes the light 300 numeral the metric is set in read as a
+ * deliberate weight rather than as a rendering accident. */
 val ThusoTypography = Typography(
-    displayLarge = style(32, 38, FontWeight.Bold, -0.6),
-    displayMedium = style(32, 38, FontWeight.Bold, -0.6),
-    displaySmall = style(32, 38, FontWeight.Bold, -0.6),
-    headlineLarge = style(28, 34, FontWeight.Bold, -0.4),
-    headlineMedium = style(28, 34, FontWeight.Bold, -0.4),
-    headlineSmall = style(28, 34, FontWeight.Bold, -0.4),
-    titleLarge = style(18, 24, FontWeight.SemiBold, -0.1),
-    titleMedium = style(16, 22, FontWeight.SemiBold),
-    titleSmall = style(15, 21, FontWeight.SemiBold),
+    displayLarge = style(32, 38, FontWeight.Medium, -0.6),
+    displayMedium = style(32, 38, FontWeight.Medium, -0.6),
+    displaySmall = style(32, 38, FontWeight.Medium, -0.6),
+    headlineLarge = style(28, 34, FontWeight.Medium, -0.4),
+    headlineMedium = style(28, 34, FontWeight.Medium, -0.4),
+    headlineSmall = style(28, 34, FontWeight.Medium, -0.4),
+    titleLarge = style(18, 24, FontWeight.Medium, -0.1),
+    titleMedium = style(16, 22, FontWeight.Medium),
+    titleSmall = style(15, 21, FontWeight.Medium),
     bodyLarge = style(16, 24, FontWeight.Normal),
     bodyMedium = style(15, 22, FontWeight.Normal),
     bodySmall = style(13, 19, FontWeight.Normal),

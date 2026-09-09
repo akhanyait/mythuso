@@ -103,7 +103,7 @@ private val Flag = MangoInk
             0 -> {
                 Text("Confirm you’re at the right door.", style = MaterialTheme.typography.titleMedium)
                 Note("Ask ${patient.substringBefore(' ')} for the six-digit code in the MyThuso app. In this preview the code is 482190.")
-                Text("Visit code", style = MaterialTheme.typography.labelLarge, color = Slate)
+                Text("Visit code", style = MaterialTheme.typography.labelLarge, color = Charcoal)
                 CodeBoxes(otp, { otp = it; otpError = "" }, invalid = otpError.isNotEmpty(), label = "Visit code")
                 Note(otpError.ifEmpty { "The code changes for every visit and expires when the visit ends." })
                 Setting("I have seen the patient’s identity document, or a household member has confirmed identity.", identitySeen) { identitySeen = it }
@@ -139,10 +139,10 @@ private val Flag = MangoInk
                     if (kit != null) CareCard {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(observation.label, style = MaterialTheme.typography.titleSmall, color = Ink)
+                                Text(observation.label, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                                 Note("Indicative range ${observation.low}–${observation.high} ${observation.unit}")
                             }
-                            Text("${kit.value} ${observation.unit}", style = MaterialTheme.typography.titleLarge, color = Ink)
+                            Text("${kit.value} ${observation.unit}", style = MaterialTheme.typography.titleLarge, color = Charcoal)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ProvenanceMark(kit.provenance)
@@ -163,7 +163,7 @@ private val Flag = MangoInk
                             supportingText = { Text(message ?: "Indicative range ${observation.low}–${observation.high}", color = if (message != null) Flag else MaterialTheme.colorScheme.onSurfaceVariant) }
                         )
                         if (values[observation.id].orEmpty().isNotBlank()) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Where did this come from?", style = MaterialTheme.typography.labelLarge, color = Slate)
+                            Text("Where did this come from?", style = MaterialTheme.typography.labelLarge, color = Charcoal)
                             FlowRowChips(
                                 listOf(Provenance.MANUAL.label, Provenance.PATIENT_REPORTED.label),
                                 setOfNotNull(origin?.label)
@@ -180,14 +180,14 @@ private val Flag = MangoInk
                 if (unattributed.isNotEmpty()) CareCard {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Outlined.QuestionMark, null, tint = Flag)
-                        Text("${unattributed.size} number${if (unattributed.size > 1) "s are" else " is"} typed but not filed", style = MaterialTheme.typography.titleSmall, color = Ink)
+                        Text("${unattributed.size} number${if (unattributed.size > 1) "s are" else " is"} typed but not filed", style = MaterialTheme.typography.titleSmall, color = Charcoal)
                     }
                     Text("${unattributed.joinToString(", ") { it.label }} — say where each came from and it is filed. Until then it is not counted, because a record that cannot say where a value came from will eventually be read wrongly by somebody in a hurry.", style = MaterialTheme.typography.bodyMedium)
                 }
                 if (mapValue != null) CareCard {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Column(Modifier.weight(1f)) { Text("Mean arterial pressure", style = MaterialTheme.typography.titleSmall, color = Ink) }
-                        Text("%.0f mmHg".format(mapValue), style = MaterialTheme.typography.titleLarge, color = Ink)
+                        Column(Modifier.weight(1f)) { Text("Mean arterial pressure", style = MaterialTheme.typography.titleSmall, color = Charcoal) }
+                        Text("%.0f mmHg".format(mapValue), style = MaterialTheme.typography.titleLarge, color = Charcoal)
                     }
                     ProvenanceMark(Provenance.DERIVED)
                     ReviewLine("Calculated from", mapDerivedFrom(systolic!!, diastolic!!).joinToString(" and "))
@@ -238,7 +238,7 @@ private val Flag = MangoInk
                 if (signed) {
                     CareCard {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo); Text("Demo assessment closed.", style = MaterialTheme.typography.titleMedium)
+                            Icon(Icons.Outlined.VerifiedUser, null, tint = Charcoal); Text("Demo assessment closed.", style = MaterialTheme.typography.titleMedium)
                         }
                         Note("Nothing was transmitted, no record was written and no clinician was notified. In production this becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration.")
                     }
@@ -253,7 +253,7 @@ private val Flag = MangoInk
                         captured.forEach { observation ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(observation.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                                Text("${rawOf(observation)} ${observation.unit}${if (flag(observation) != null) " ⚠" else ""}", style = MaterialTheme.typography.bodyMedium, color = Slate)
+                                Text("${rawOf(observation)} ${observation.unit}${if (flag(observation) != null) " ⚠" else ""}", style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                                 originOf(observation)?.let { ProvenanceMark(it) }
                             }
                             kitFor(observation)?.takeIf { it.caveats.isNotEmpty() }?.let { kit ->
@@ -262,7 +262,7 @@ private val Flag = MangoInk
                         }
                         if (mapValue != null) Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Mean arterial pressure", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                            Text("%.0f mmHg".format(mapValue), style = MaterialTheme.typography.bodyMedium, color = Slate)
+                            Text("%.0f mmHg".format(mapValue), style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                             ProvenanceMark(Provenance.DERIVED)
                         }
                         ReviewLine("Symptoms", if (symptoms.isEmpty()) "None recorded" else symptoms.sorted().joinToString(", "))

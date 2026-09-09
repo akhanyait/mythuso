@@ -64,7 +64,7 @@ import za.co.mythuso.model.*
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(selected, null)
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = Ink)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
     }
 }
 
@@ -89,7 +89,7 @@ import za.co.mythuso.model.*
             Note(interpreterCost.sentence)
         }
 
-        Text(interpretingLabels.chooseMode, style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text(interpretingLabels.chooseMode, style = MaterialTheme.typography.titleMedium, color = Charcoal)
         CareCard {
             interpretingModes.forEach { option ->
                 ChoiceRow(option.name, mode == option.id) { mode = option.id; cancelled = false }
@@ -98,11 +98,11 @@ import za.co.mythuso.model.*
             Note(Interpreting.mode(mode).note)
         }
 
-        Text(interpretingLabels.rosterHeading, style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text(interpretingLabels.rosterHeading, style = MaterialTheme.typography.titleMedium, color = Charcoal)
         interpreterRoster.filter { it.mode == mode }.forEach { person ->
             val hours = Interpreting.availability(mode).filter { it.interpreter.id == person.id }
             CareCard {
-                Text(person.name, style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(person.name, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                 Note("${interpreterAccreditation.short} ${person.reference} · ${person.area}")
                 Note(person.settings.joinToString(", "))
                 Text(
@@ -114,7 +114,7 @@ import za.co.mythuso.model.*
         }
         Note(interpreterEstimate.horizonNote)
 
-        Text("Ask for an hour", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("Ask for an hour", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         CareCard {
             days.forEachIndexed { index, day ->
                 ChoiceRow("${day.weekday} ${day.dayNumber} ${day.month}", dayIndex == index) { dayIndex = index; cancelled = false }
@@ -134,25 +134,25 @@ import za.co.mythuso.model.*
             when (outcome) {
                 is InterpreterOutcome.Matched -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Outlined.CheckCircle, null, tint = Indigo)
-                        Text(interpretingLabels.matched, style = MaterialTheme.typography.titleMedium, color = Ink)
+                        Icon(Icons.Outlined.CheckCircle, null, tint = Charcoal)
+                        Text(interpretingLabels.matched, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     }
-                    Text(Interpreting.waitSentence(outcome), style = MaterialTheme.typography.bodyMedium, color = Ink)
+                    Text(Interpreting.waitSentence(outcome), style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                     Note("The visit is confirmed with ${outcome.slot.interpreter.name} named on it. Nothing is booked in this preview.")
                 }
                 is InterpreterOutcome.Held -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                         Icon(Icons.Outlined.HourglassEmpty, null, tint = MangoInk)
-                        Text("${interpretingLabels.noneFree} — ${interpretingLabels.heldBadge}", style = MaterialTheme.typography.titleMedium, color = Ink)
+                        Text("${interpretingLabels.noneFree} — ${interpretingLabels.heldBadge}", style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     }
-                    Text(Interpreting.waitSentence(outcome), style = MaterialTheme.typography.bodyMedium, color = Ink)
+                    Text(Interpreting.waitSentence(outcome), style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                     Note(interpreterHold.sentence)
                     Note(interpreterHold.whatHappensNext)
                 }
                 InterpreterOutcome.HeldUnknown -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                         Icon(Icons.Outlined.WarningAmber, null, tint = Danger)
-                        Text("${interpretingLabels.noneFree} — ${interpretingLabels.heldBadge}", style = MaterialTheme.typography.titleMedium, color = Ink)
+                        Text("${interpretingLabels.noneFree} — ${interpretingLabels.heldBadge}", style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     }
                     Text(interpreterEstimate.unknown, style = MaterialTheme.typography.titleMedium, color = Danger)
                     Note(interpreterEstimate.unknownDetail)
@@ -168,7 +168,7 @@ import za.co.mythuso.model.*
 
         if (outcome.isHeld) {
             CareCard {
-                Text(interpreterHold.title, style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(interpreterHold.title, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                 ReviewLine("Cancelling costs", "R${interpreterCancellation.fee}.00")
                 Note(interpreterCancellation.sentence)
                 Note(interpreterCancellation.notThePatientsChoice)
@@ -182,12 +182,12 @@ import za.co.mythuso.model.*
             }
         }
 
-        Text(interpretingLabels.vettingHeading, style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text(interpretingLabels.vettingHeading, style = MaterialTheme.typography.titleMedium, color = Charcoal)
         Note(Interpreting.rule("vetted-like-anybody-else").sentence)
         CareCard {
             Interpreting.role()?.checks?.forEach { check ->
                 Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(check.name, style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Text(check.name, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     Note(check.detail)
                     Note(check.renewMonths?.let { "Renewed every $it months" } ?: "Once")
                 }
@@ -208,21 +208,21 @@ import za.co.mythuso.model.*
             Note(interpreterAccreditation.whatWouldMakeItTrue)
         }
 
-        Text(interpretingLabels.refusalsHeading, style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text(interpretingLabels.refusalsHeading, style = MaterialTheme.typography.titleMedium, color = Charcoal)
         interpretingRefusals.forEach { refusal ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                 Icon(Icons.Outlined.Block, null, tint = Danger)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(refusal.title, style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Text(refusal.title, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     Text(refusal.sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 }
             }
         }
 
-        Text("The rules this screen is built out of", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("The rules this screen is built out of", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         interpretingRules.forEach { rule ->
             CareCard {
-                Text(rule.title, style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(rule.title, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                 Text(rule.sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             }
         }

@@ -69,7 +69,7 @@ private fun provenanceIcon(provenance: Provenance): ImageVector = when (provenan
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Icon(provenanceIcon(provenance), null, tint = IndigoDeep, modifier = Modifier.size(13.dp))
+        Icon(provenanceIcon(provenance), null, tint = Charcoal, modifier = Modifier.size(13.dp))
         Text(provenance.shortLabel, style = MaterialTheme.typography.labelMedium, color = IndigoDeep)
     }
 }
@@ -180,7 +180,7 @@ private fun stateTone(state: CaptureState) = when (state) {
         Heading("Thuso Kit", "Connected diagnostic capture.", "$visit · $patient. Six instruments, each with what it measures, how it would connect and when it was last calibrated.")
         CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.BluetoothDisabled, null, tint = Indigo)
+                Icon(Icons.Outlined.BluetoothDisabled, null, tint = Charcoal)
                 Text("Nothing here connects.", style = MaterialTheme.typography.titleMedium)
             }
             Text(
@@ -201,7 +201,7 @@ private fun stateTone(state: CaptureState) = when (state) {
             )
         }
 
-        Text("Paired instruments", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("Paired instruments", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         if (capture.paired.isEmpty()) EmptyStateCard("Nothing is paired", "Discover below. In this preview discovery is a timer and a list compiled into the app.")
         capture.paired.forEach { paired ->
             InstrumentCard(
@@ -217,7 +217,7 @@ private fun stateTone(state: CaptureState) = when (state) {
             )
         }
 
-        Text("Not paired", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("Not paired", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         CareCard {
             Text("Discover instruments", style = MaterialTheme.typography.titleMedium)
             Text(
@@ -234,7 +234,7 @@ private fun stateTone(state: CaptureState) = when (state) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TileIcon(instrumentIcon(instrument.id), size = 38.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(instrument.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                        Text(instrument.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                         Note("${instrument.transport} · measures ${instrument.measures.joinToString(", ") { measureLabels[it] ?: it }}")
                     }
                 }
@@ -286,7 +286,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TileIcon(instrumentIcon(paired.instrument.id), size = 40.dp)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(paired.instrument.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                Text(paired.instrument.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                 Note("${paired.serial} · ${paired.instrument.transport} · battery ${paired.battery}%")
             }
             CalibrationPill(paired.state)
@@ -302,9 +302,9 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         }
         if (!expanded) return@CareCard
 
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Stone)
         if (paired.instrument.measures.size > 1) {
-            Text("What are you measuring?", style = MaterialTheme.typography.labelLarge, color = Slate)
+            Text("What are you measuring?", style = MaterialTheme.typography.labelLarge, color = Charcoal)
             FlowRowChips(paired.instrument.measures.map { measureLabels[it] ?: it }, setOf(measureLabels[measure] ?: measure)) { chosen ->
                 measure = paired.instrument.measures.first { (measureLabels[it] ?: it) == chosen }
             }
@@ -313,11 +313,11 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Info, null, tint = MangoInk, modifier = Modifier.size(17.dp))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("What this instrument cannot decide for you", style = MaterialTheme.typography.labelLarge, color = Ink)
+                Text("What this instrument cannot decide for you", style = MaterialTheme.typography.labelLarge, color = Charcoal)
                 Text(paired.instrument.note, style = MaterialTheme.typography.bodyMedium)
             }
         }
-        Text(paired.instrument.records.label, style = MaterialTheme.typography.labelLarge, color = Slate)
+        Text(paired.instrument.records.label, style = MaterialTheme.typography.labelLarge, color = Charcoal)
         Note(paired.instrument.records.why)
         FlowRowChips(paired.instrument.records.options, setOfNotNull(detail.ifEmpty { null })) { option -> detail = option }
         if (detail.isEmpty()) Note("The reading is not taken until this is answered. It is recorded with the number, because it cannot be recovered from the number afterwards.")
@@ -328,9 +328,9 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         if (!mayCapture) Text(refusal.orEmpty(), style = MaterialTheme.typography.bodySmall, color = Danger)
 
         if (taken != null) {
-            HorizontalDivider(color = Line)
+            HorizontalDivider(color = Stone)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("${taken.value} ${taken.unit}", style = MaterialTheme.typography.titleLarge, color = Ink)
+                Text("${taken.value} ${taken.unit}", style = MaterialTheme.typography.titleLarge, color = Charcoal)
                 ProvenanceMark(taken.provenance)
                 StatusPill(taken.state.label, stateTone(taken.state))
             }
@@ -377,7 +377,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         /* offlineNeverServesStaleSilently, first thing on the screen and in words. */
         CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.Storage, null, tint = Indigo)
+                Icon(Icons.Outlined.Storage, null, tint = Charcoal)
                 Text("Read from this phone, ${ageText(capture.readAtMillis)}", style = MaterialTheme.typography.titleMedium)
             }
             Text(capture.where, style = MaterialTheme.typography.bodyMedium)
@@ -395,7 +395,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatusPill("${counts[state] ?: 0}", stateTone(state))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(state.label, style = MaterialTheme.typography.bodyMedium, color = Ink)
+                        Text(state.label, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                         Note(state.detail)
                     }
                 }
@@ -418,7 +418,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
            permission cannot otherwise be shown sending anything. */
         Column(
             Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(ThusoRadius.control))
-                .border(1.dp, Line, RoundedCornerShape(ThusoRadius.control))
+                .border(1.dp, Stone, RoundedCornerShape(ThusoRadius.control))
                 /* Announced as a button that expands, rather than as an unnamed tap target. */
                 .clickable(
                     onClickLabel = if (controls) "Hide the design-review controls" else "Show the design-review controls",
@@ -434,7 +434,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             if (controls) {
                 Note("None of this is in the product. It exists so a reviewer can see the states a phone with no internet permission can never reach on its own.")
                 Setting("Pretend a connection is available", capture.pretendConnected) { capture.pretendConnected = it }
-                Text("Set this phone’s clock wrong", style = MaterialTheme.typography.labelLarge, color = Slate)
+                Text("Set this phone’s clock wrong", style = MaterialTheme.typography.labelLarge, color = Charcoal)
                 Note("A phone that has been offline for a week may have drifted, or been set by hand. Anything taken while it is wrong keeps the wrong time as what the phone believed, and the server’s receipt time is what orders it.")
                 FlowRowChips(listOf("Correct", "3 hours slow", "40 minutes fast", "2 days slow"), setOf(when (capture.clockOffsetMinutes) {
                     -180L -> "3 hours slow"; 40L -> "40 minutes fast"; -2880L -> "2 days slow"; else -> "Correct"
@@ -461,12 +461,12 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         }
 
         if (waiting.isNotEmpty()) {
-            Text("Not yet ordered", style = MaterialTheme.typography.titleMedium, color = Ink)
+            Text("Not yet ordered", style = MaterialTheme.typography.titleMedium, color = Charcoal)
             Note("These have no established time. They are listed in the order this phone wrote them, which is the phone’s own sequence and not an authority about when anything happened.")
             waiting.forEach { reading -> QueueEntryCard(store, reading, resolver) }
         }
         if (landed.isNotEmpty()) {
-            Text("Ordered by the server’s receipt time", style = MaterialTheme.typography.titleMedium, color = Ink)
+            Text("Ordered by the server’s receipt time", style = MaterialTheme.typography.titleMedium, color = Charcoal)
             landed.forEach { reading -> QueueEntryCard(store, reading, resolver) }
         }
         if (ordered.isEmpty()) EmptyStateCard("The queue is empty", "Nothing has been captured on this phone. Take a reading on the Thuso Kit screen and it will appear here.")
@@ -485,7 +485,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(reading.label, style = MaterialTheme.typography.titleSmall, color = Ink)
+                Text(reading.label, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                 Note("${reading.visit} · ${reading.patient} · ${reading.id}")
             }
             Text("${reading.value} ${reading.unit}",
@@ -502,7 +502,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         TextButton(onClick = { open = !open }, shape = ThusoButtonShape) { Text(if (open) "Less" else "What travels with this reading") }
         if (open) {
             ProvenanceBlock(reading)
-            HorizontalDivider(color = Line)
+            HorizontalDivider(color = Stone)
             TimesBlock(reading)
         }
         reading.refusal?.let {
@@ -523,10 +523,10 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
 @Composable private fun ConflictBlock(store: PreviewStore, reading: CapturedReading, resolver: VettingSubject?) {
     val conflict = captureConflictById(reading.conflictId) ?: return
     val capture = store.capture
-    HorizontalDivider(color = Line)
+    HorizontalDivider(color = Stone)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Outlined.Balance, null, tint = MangoInk)
-        Text(conflict.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+        Text(conflict.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
     }
     Text(conflict.detail, style = MaterialTheme.typography.bodyMedium)
     Note("Resolved by: ${if (conflict.resolution == "clinician") "a clinician" else "the server"}.")
@@ -540,15 +540,15 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                 it.id != reading.id && it.visit == reading.visit && it.observationId == reading.observationId && !it.superseded
             }
             if (other == null) { Note("The other reading is no longer in this queue, so there is nothing to choose between."); return }
-            Text("Both readings, side by side", style = MaterialTheme.typography.labelLarge, color = Slate)
+            Text("Both readings, side by side", style = MaterialTheme.typography.labelLarge, color = Charcoal)
             Note("Neither is presented as the better one and neither is a correction of the other. They are two things that happened, and a clinician says which stands.")
             listOf(other, reading).forEach { candidate ->
                 Column(
-                    Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(ThusoRadius.control)).padding(12.dp),
+                    Modifier.fillMaxWidth().background(Mist, RoundedCornerShape(ThusoRadius.control)).padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("${candidate.value} ${candidate.unit}", style = MaterialTheme.typography.titleLarge, color = Ink)
+                        Text("${candidate.value} ${candidate.unit}", style = MaterialTheme.typography.titleLarge, color = Charcoal)
                         ProvenanceMark(candidate.provenance)
                     }
                     Note("${candidate.id} · this phone believed ${clockText(candidate.deviceMillis)}${candidate.serverMillis?.let { " · server received ${clockText(it)}" } ?: " · not yet received"}")
@@ -566,7 +566,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             val summary = capturer?.let { summarise(it) }
             val lapsed = summary?.lapsed.orEmpty()
             val lapsedOn = capturer?.records?.firstOrNull { record -> lapsed.any { it.id == record.checkId } }?.expiresOn
-            Text("Taken while cleared, arriving after the clearance ran out", style = MaterialTheme.typography.labelLarge, color = Slate)
+            Text("Taken while cleared, arriving after the clearance ran out", style = MaterialTheme.typography.labelLarge, color = Charcoal)
             ReviewLine("Captured by", "${reading.byName} · ${reading.byReference}")
             ReviewLine("Standing today", summary?.status?.label ?: "—")
             if (lapsed.isNotEmpty()) ReviewLine("What lapsed", lapsed.joinToString(" and ") { it.name })
@@ -592,7 +592,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             Note("Restoring the capturer’s own clearance resolves this too, and better: the reading then files on the registration it was taken under. That decision belongs in the Control Tower’s vetting pipeline, not here.")
         }
         "stale-write" -> {
-            Text("The record moved on while this waited", style = MaterialTheme.typography.labelLarge, color = Slate)
+            Text("The record moved on while this waited", style = MaterialTheme.typography.labelLarge, color = Charcoal)
             ReviewLine("Visit", reading.visit)
             ReviewLine("What changed", "A clinician signed the record for this visit while the entry was queued.")
             Text(

@@ -74,7 +74,7 @@ import za.co.mythuso.model.*
                         ) {
                             RadioButton(store.locale == option, null)
                             Column(Modifier.padding(start = ThusoSpacing.space4), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                                Text(option.native, style = MaterialTheme.typography.titleSmall, color = Ink)
+                                Text(option.native, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                                 Text(option.reviewLabel, style = MaterialTheme.typography.bodySmall, color = BodyText)
                             }
                         }
@@ -101,7 +101,7 @@ import za.co.mythuso.model.*
             }
             2 -> {
                 Heading("Verify", "Check your messages.", "In this preview the code is 240924.")
-                Text("Verification code", style = MaterialTheme.typography.labelLarge, color = Slate)
+                Text("Verification code", style = MaterialTheme.typography.labelLarge, color = Charcoal)
                 CodeBoxes(code, { code = it; codeError = "" }, invalid = codeError.isNotEmpty(), label = "Verification code")
                 if (codeError.isNotEmpty()) Note(codeError)
                 WizardActions("Different number", { step = 1 }, "Verify", code.length == 6) {
@@ -163,7 +163,7 @@ import za.co.mythuso.model.*
         if (submitted) {
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo)
+                    Icon(Icons.Outlined.VerifiedUser, null, tint = Charcoal)
                     Text("We’ve started your recovery", style = MaterialTheme.typography.titleMedium)
                 }
                 ReviewLine("Reference", "REC-0042 · Demo")
@@ -222,7 +222,7 @@ import za.co.mythuso.model.*
         /* South African Sign Language is an official language and is not in the list above, because
            there is no written form for a radio button to switch the interface into. It is a
            communication requirement on the account instead. */
-        Text(ThusoLanguageNotes.signLanguageName, style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text(ThusoLanguageNotes.signLanguageName, style = MaterialTheme.typography.titleLarge, color = Charcoal)
         Text(ThusoLanguageNotes.signLanguageStatus, style = MaterialTheme.typography.bodyMedium, color = BodyText)
         CareCard {
             Row(
@@ -232,20 +232,20 @@ import za.co.mythuso.model.*
             ) {
                 Checkbox(signs, null)
                 Column {
-                    Text(ThusoLanguageNotes.signLanguageRequirement, style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Text(ThusoLanguageNotes.signLanguageRequirement, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     Text(ThusoLanguageNotes.signLanguageRequirementDetail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
             }
         }
         Note(ThusoLanguageNotes.signLanguageWhyNotListed)
-        Text("What a visit and a call must do", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("What a visit and a call must do", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         ThusoLanguageNotes.signLanguageMustHappen.forEach { (title, sentence) ->
             CareCard {
-                Text(title, style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(title, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                 Text(sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             }
         }
-        Text("What must never happen", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("What must never happen", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         ThusoLanguageNotes.signLanguageNeverHappens.forEach { sentence ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                 Icon(Icons.Outlined.Block, null, tint = Danger)
@@ -264,7 +264,7 @@ import za.co.mythuso.model.*
         CareCard {
             if (state == LoadState.READY) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Outlined.CheckCircle, null, tint = Indigo)
+                    Icon(Icons.Outlined.CheckCircle, null, tint = Charcoal)
                     Text("The real content, with nothing standing in for it.")
                 }
             } else {

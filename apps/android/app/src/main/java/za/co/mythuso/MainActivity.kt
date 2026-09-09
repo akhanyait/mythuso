@@ -84,14 +84,17 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
         }
     }
     if (onboarding) {
-        Surface(color = Canvas, modifier = Modifier.fillMaxSize()) {
+        Surface(color = Mist, modifier = Modifier.fillMaxSize()) {
             Box(Modifier.systemBarsPadding()) { OnboardingScreen(store) { onboarding = false } }
         }
         return
     }
     val role = workspace
-    /* A band of the brand behind the greeting, not a field the height of the screen: it used to be
-       470dp, which is most of a phone, and it sat behind a rotating promotion. */
+    /* The band of indigo bubbles that used to sit behind the greeting is gone. It was the right
+       answer when the ground was a flat canvas and there was nothing else to look at; over the
+       luminous ground it was a second texture drawn on top of the first, in the one accent this
+       palette no longer leads with, and the two argued along a hard edge 210dp down. HeroTexture
+       still exists and is still what the onboarding illustrations sit on. */
     val onHome = page == "Home" && detail == null && role == null
     /* A rail rather than a bottom bar in two cases.
        The first is width: 600dp is Material's own compact/medium boundary, and below it a thumb
@@ -117,11 +120,14 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
        title from the first card without drawing a line. */
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
-    Box(Modifier.fillMaxSize().background(Canvas)) {
-        if (onHome) Box(Modifier.fillMaxWidth().height(210.dp)) { HeroTexture() }
+    /* The luminous ground, and it is the whole background rather than a band. It is a static brush:
+       three pale tints drawn once, none of them darker than the floor every contrast figure in
+       tokens.json is measured against. Nothing about it moves — a ground that drifts is a box that
+       keeps changing under a thumb, and this is a phone somebody is holding on a doorstep. */
+    Box(Modifier.fillMaxSize().background(auroraBrush())) {
         Row(Modifier.fillMaxSize()) {
             if (wide) NavigationRail(
-                containerColor = Color.White,
+                containerColor = Color.Transparent,
                 header = {
                     Image(
                         painterResource(R.drawable.mythuso_logo), "MyThuso",
@@ -135,14 +141,18 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                         selected = selectedKey == destination.key && detail == null,
                         onClick = { onSelect(destination.key) },
                         icon = { Icon(destination.icon, null) },
-                        label = { Text(label(destination), maxLines = 3, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall) }
+                        label = { Text(label(destination), maxLines = 3, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall) },
+                        colors = NavigationRailItemDefaults.colors(
+                            selectedIconColor = SurfaceWhite, selectedTextColor = Charcoal,
+                            indicatorColor = Charcoal, unselectedIconColor = Faint, unselectedTextColor = Faint
+                        )
                     )
                 }
                 Spacer(Modifier.weight(1f))
             }
             Scaffold(
                 modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-                containerColor = if (onHome) Color.Transparent else Canvas,
+                containerColor = Color.Transparent,
                 topBar = {
                     TopAppBar(
                         title = {
@@ -160,16 +170,20 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                         actions = { if (role == null) IconButton(onClick = { detail = "Notifications" }) { Icon(Icons.Outlined.Notifications, "Notifications") } },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = Color.Transparent,
-                            scrolledContainerColor = Color.White,
-                            titleContentColor = Ink,
-                            navigationIconContentColor = Slate,
-                            actionIconContentColor = Slate
+                            scrolledContainerColor = GlassFloor,
+                            titleContentColor = Charcoal,
+                            navigationIconContentColor = Charcoal,
+                            actionIconContentColor = Charcoal
                         ),
                         scrollBehavior = scrollBehavior
                     )
                 },
                 bottomBar = {
-                    if (!wide) NavigationBar(containerColor = Color.White) {
+                    /* The selected destination is a filled charcoal pill, which is what an active row
+                       is everywhere else in this language. Material's default is a tinted lozenge in
+                       the primary container colour; a sage lozenge would have been the one place in
+                       the app where sage carried a label. */
+                    if (!wide) NavigationBar(containerColor = SurfaceWhite) {
                         destinations.forEach { destination ->
                             NavigationBarItem(
                                 selected = selectedKey == destination.key && detail == null,
@@ -185,7 +199,11 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                                         textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis,
                                         style = MaterialTheme.typography.labelSmall
                                     )
-                                }
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = SurfaceWhite, selectedTextColor = Charcoal,
+                                    indicatorColor = Charcoal, unselectedIconColor = Faint, unselectedTextColor = Faint
+                                )
                             )
                         }
                     }

@@ -70,7 +70,7 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
             }
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(icon, null, tint = Indigo)
+                    Icon(icon, null, tint = Charcoal)
                     Text(heading, style = MaterialTheme.typography.titleMedium)
                 }
                 Text(body, style = MaterialTheme.typography.bodyMedium)
@@ -89,7 +89,7 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
     Column(
         Modifier.fillMaxWidth().heightIn(min = TouchTarget)
             .background(Color.White, RoundedCornerShape(ThusoRadius.control))
-            .border(1.dp, Line, RoundedCornerShape(ThusoRadius.control)).clickable { open = !open }.padding(12.dp),
+            .border(1.dp, Stone, RoundedCornerShape(ThusoRadius.control)).clickable { open = !open }.padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -106,7 +106,7 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
 @Composable fun EmptyStateCard(title: String, message: String) {
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Inbox, null, tint = Indigo)
+            Icon(Icons.Outlined.Inbox, null, tint = Charcoal)
             Text(title, style = MaterialTheme.typography.titleMedium)
         }
         Text(message, style = MaterialTheme.typography.bodyMedium)

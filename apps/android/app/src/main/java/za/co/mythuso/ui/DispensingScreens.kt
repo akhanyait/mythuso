@@ -89,7 +89,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             "A fictional prescription. Nothing is dispensed and no pharmacy is contacted.")
 
         CareCard {
-            Text(rx.reference, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Ink)
+            Text(rx.reference, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Charcoal)
             Note("${rx.patient} · ${rx.patientBorn} · issued ${rx.issuedInDays * -1} days ago")
             ReviewLine("Prescribed by", "${prescriber.name} · ${prescriber.reference}")
             ReviewLine("Dispensed by", "${rx.pharmacist.name} · ${rx.pharmacist.registration}")
@@ -99,18 +99,18 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
         /* Both answers come from the vetting register in its own words. A licence and a registration
            are not badges on a partner page; they are what decides whether anything here does
            anything. */
-        Text("Dispensing pharmacy", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("Dispensing pharmacy", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         FlowRowChips(pharmacies.map { it.name }, setOf(pharmacy.name)) { name ->
             pharmacyId = pharmacies.first { it.name == name }.id; handed = emptySet()
         }
-        Text("Prescriber", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("Prescriber", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         FlowRowChips(prescribers.map { it.name }, setOf(prescriber.name)) { name ->
             prescriberId = prescribers.first { it.name == name }.id; handed = emptySet()
         }
         if (!mayDispense.allowed) Alert(mayDispense.reason.orEmpty())
         if (!mayPrescribe.allowed) Alert(mayPrescribe.reason.orEmpty())
 
-        Text("What a substitution may and may not change", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("What a substitution may and may not change", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
             Text("NEVER, WITHOUT THE PRESCRIBER", style = MaterialTheme.typography.labelSmall, color = Faint)
             substitutionNeverChanges.forEach { Bullet(it.what, it.why) }
@@ -120,11 +120,11 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             DispensingRefusalRow(Dispensing.refusal("substitute-the-molecule"))
         }
 
-        Text("The three classes", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("The three classes", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         substitutionClasses.forEach { klass ->
             CareCard {
                 StatusPill(klass.shortName, klass.tone)
-                Text(klass.name, style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(klass.name, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                 Text(klass.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 Note(klass.whoDecides)
             }
@@ -138,7 +138,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
         )
 
         Text("${rx.items.size} items · ${rx.substituted.size} substituted",
-            style = MaterialTheme.typography.titleLarge, color = Ink)
+            style = MaterialTheme.typography.titleLarge, color = Charcoal)
         Text(Dispensing.rule("substitution-is-clinical").sentence,
             style = MaterialTheme.typography.bodyMedium, color = BodyText)
         rx.items.forEach { item ->
@@ -155,7 +155,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
         Text(Dispensing.rule("substitution-is-signed").sentence,
             style = MaterialTheme.typography.bodyMedium, color = BodyText)
 
-        Text("The handover", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("The handover", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
             dispensingHandover.forEachIndexed { index, step ->
                 val done = open && (index < 2 || (step.id == "told" && everyItemTold) ||
@@ -164,18 +164,18 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
                     Icon(if (done) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked, null,
                         tint = if (done) Indigo else Faint)
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(step.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
+                        Text(step.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
                         Text(step.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                     }
                 }
             }
         }
 
-        Text("The chronic authorisation", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("The chronic authorisation", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
-                    Text(auth.reference, style = MaterialTheme.typography.titleLarge, color = Ink)
+                    Text(auth.reference, style = MaterialTheme.typography.titleLarge, color = Charcoal)
                     Text("${auth.programme} · ${auth.condition}", style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
                 StatusPill("${Dispensing.repeatsRemaining} of ${auth.repeatsAuthorised} left",
@@ -199,7 +199,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             if (collectTried) {
                 val answer = Dispensing.collectionAnswer
                 if (answer.allowed) {
-                    Text(answer.reason, style = MaterialTheme.typography.bodyMedium, color = Slate)
+                    Text(answer.reason, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                 } else {
                     Alert(answer.reason)
                     Text(Dispensing.rule("early-is-refused-with-a-date").sentence,
@@ -213,14 +213,14 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
                 Modifier.fillMaxWidth().background(IndigoSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text("What happens at the end", style = MaterialTheme.typography.titleMedium, color = Slate)
-                Text(auth.endsWith, style = MaterialTheme.typography.bodyMedium, color = Slate)
+                Text("What happens at the end", style = MaterialTheme.typography.titleMedium, color = Charcoal)
+                Text(auth.endsWith, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                 Text(Dispensing.rule("ends-in-a-review").sentence,
-                    style = MaterialTheme.typography.bodyMedium, color = Slate)
+                    style = MaterialTheme.typography.bodyMedium, color = Charcoal)
             }
         }
 
-        Text("What this screen will not do", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("What this screen will not do", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         dispensingRefusals.forEach { CareCard { DispensingRefusalRow(it) } }
         Note("Nothing is dispensed, no stock is checked and no prescriber is notified. Every date above is arithmetic on the demo contract, and none of the clinical wording here has been read by a pharmacist.")
     }
@@ -234,7 +234,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
     CareCard {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(item.dispensed, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
+                Text(item.dispensed, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
                 Text("${item.molecule} ${item.strength} · ${item.form} · ${item.dose} · ${item.quantity}",
                     style = MaterialTheme.typography.bodySmall, color = BodyText)
             }
@@ -254,11 +254,11 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 
         item.writtenReason?.let { reason ->
             Column(
-                Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+                Modifier.fillMaxWidth().background(Mist, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text("${pharmacist.name} · ${pharmacist.registration}",
-                    style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
+                    style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
                 Text("${pharmacist.role} · the prescriber was told the same day",
                     style = MaterialTheme.typography.bodySmall, color = Faint)
                 Text(reason, style = MaterialTheme.typography.bodyMedium, color = BodyText)
@@ -276,7 +276,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             Text(
                 if (told) "Handed over"
                 else "Nothing is handed over before the patient has been told what it is",
-                style = MaterialTheme.typography.bodyMedium, color = if (told) Ink else Faint
+                style = MaterialTheme.typography.bodyMedium, color = if (told) Charcoal else Faint
             )
         }
         Note(item.note)
@@ -291,13 +291,13 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Hearing, null, tint = IndigoDeep)
+            Icon(Icons.Outlined.Hearing, null, tint = Charcoal)
             Text(Dispensing.headline(item), style = MaterialTheme.typography.labelLarge, color = IndigoDeep)
         }
         if (item.wasSubstituted) {
             Text("It replaces ${item.prescribed}.", style = MaterialTheme.typography.bodyMedium, color = IndigoDeep)
         }
-        Text(item.patientWords, style = MaterialTheme.typography.bodyLarge, color = Slate)
+        Text(item.patientWords, style = MaterialTheme.typography.bodyLarge, color = Charcoal)
         if (item.sameness.isNotEmpty()) {
             Text("THE SAME", style = MaterialTheme.typography.labelSmall, color = Faint)
             item.sameness.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = BodyText) }
@@ -309,10 +309,10 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 
 @Composable private fun GroundRow(ground: SubstitutionGround) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
-        Icon(Icons.Outlined.Info, null, tint = Indigo)
+        Icon(Icons.Outlined.Info, null, tint = Charcoal)
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(if (ground.section == null) ground.name else "${ground.name} · section ${ground.section}",
-                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Ink)
+                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Charcoal)
             Text(ground.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
         }
     }
@@ -322,7 +322,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
         Text("•", color = Indigo)
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(what, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Ink)
+            Text(what, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Charcoal)
             Text(why, style = MaterialTheme.typography.bodySmall, color = BodyText)
         }
     }
@@ -330,11 +330,11 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 
 @Composable private fun Box3(label: String, value: String, note: String) {
     Column(
-        Modifier.fillMaxWidth().background(Canvas, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
+        Modifier.fillMaxWidth().background(Mist, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = Faint)
-        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Ink)
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Charcoal)
         Text(note, style = MaterialTheme.typography.bodySmall, color = BodyText)
     }
 }
@@ -345,13 +345,13 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top
     ) {
         Icon(Icons.Outlined.CalendarMonth, null, tint = MangoInk)
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = Slate)
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
     }
 }
 
 @Composable private fun DispensingRefusalRow(item: DispensingRefusal) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
         Icon(Icons.Outlined.Block, null, tint = Danger)
-        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Slate)
+        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
     }
 }

@@ -92,11 +92,11 @@ private fun grantSentence(roleId: String, capability: String): String? =
         CareCard {
             Text("The same file, through different eyes", style = MaterialTheme.typography.titleMedium)
             Note("Every tab, action and field group below asks the vetting module whether this party may see it. Change the viewer and watch the file change shape — that is the demonstration, and it is the only way to tell whether a refusal was designed or assumed.")
-            Text("Open the file of", style = MaterialTheme.typography.labelLarge, color = Slate)
+            Text("Open the file of", style = MaterialTheme.typography.labelLarge, color = Charcoal)
             FlowRowChips(filePatients.map { it.name }, setOf(patient.name)) { name ->
                 patientId = filePatients.first { it.name == name }.id; notice = ""
             }
-            Text(thuso(Phrase.VIEWING_AS, store.locale), style = MaterialTheme.typography.labelLarge, color = Slate)
+            Text(thuso(Phrase.VIEWING_AS, store.locale), style = MaterialTheme.typography.labelLarge, color = Charcoal)
             /* The chip carries the role as well as the name, because “Kagiso Molefe” does not tell a
                reviewer that the next tap is a Control Tower operator, and that is the whole point of
                the switch. */
@@ -186,7 +186,7 @@ private fun grantSentence(roleId: String, capability: String): String? =
 @Composable private fun ColumnScope.RefusalBody(title: String, decision: VettingDecision) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Outlined.Lock, null, tint = Danger)
-        Text(title, style = MaterialTheme.typography.titleSmall, color = Ink)
+        Text(title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
     }
     Text(decision.reason.orEmpty(), style = MaterialTheme.typography.bodyMedium)
     if (decision.blockedBy.isNotEmpty()) Note("Outstanding: ${decision.blockedBy.joinToString(" · ") { it.name }}")
@@ -234,7 +234,7 @@ private fun grantSentence(roleId: String, capability: String): String? =
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TileIcon(Icons.Outlined.PersonOutline)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Patient ${patient.id}", style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Text("Patient ${patient.id}", style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     Note("The file is open. The person is not.")
                 }
             }
@@ -248,7 +248,7 @@ private fun grantSentence(roleId: String, capability: String): String? =
                     )
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(patient.name, style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Text(patient.name, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     Note("${patient.id} · ${patient.sex} · ${ageFrom(patient.dob)} years")
                 }
             }
@@ -308,8 +308,8 @@ private val withheldCategorySentence: String = run {
     else "${decision.reason.orEmpty()} Ask the patient, or the clinician they released it to."
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Lock, null, tint = Indigo)
-            Text("A category is withheld from this header.", style = MaterialTheme.typography.titleSmall, color = Ink)
+            Icon(Icons.Outlined.Lock, null, tint = Charcoal)
+            Text("A category is withheld from this header.", style = MaterialTheme.typography.titleSmall, color = Charcoal)
         }
         Text(recordSummaryCard.withheld, style = MaterialTheme.typography.bodyMedium)
         Text(withheldCategorySentence, style = MaterialTheme.typography.bodyMedium)
@@ -336,44 +336,44 @@ private val withheldCategorySentence: String = run {
 
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.CalendarMonth, null, tint = Indigo, modifier = Modifier.size(17.dp))
+            Icon(Icons.Outlined.CalendarMonth, null, tint = Charcoal, modifier = Modifier.size(17.dp))
             Text("Last visit", style = MaterialTheme.typography.labelLarge, color = BodyText)
         }
         if (clinical.allowed) {
-            Text(shortDate(patient.lastVisit.at), style = MaterialTheme.typography.titleMedium, color = Ink)
+            Text(shortDate(patient.lastVisit.at), style = MaterialTheme.typography.titleMedium, color = Charcoal)
             Text(patient.lastVisit.service, style = MaterialTheme.typography.bodyMedium)
             Note("${patient.lastVisit.by} · ${patient.lastVisit.outcome}")
         } else RefusalBody("Withheld", clinical)
     }
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.EventAvailable, null, tint = Indigo, modifier = Modifier.size(17.dp))
+            Icon(Icons.Outlined.EventAvailable, null, tint = Charcoal, modifier = Modifier.size(17.dp))
             Text("Next appointment", style = MaterialTheme.typography.labelLarge, color = BodyText)
         }
         val next = patient.nextAppointment
         if (next != null) {
-            Text("${shortDate(next.at)} · ${next.time}", style = MaterialTheme.typography.titleMedium, color = Ink)
+            Text("${shortDate(next.at)} · ${next.time}", style = MaterialTheme.typography.titleMedium, color = Charcoal)
             Text(next.service, style = MaterialTheme.typography.bodyMedium)
             Note(next.place)
         } else Note("Nothing is booked. A missed appointment and an unbooked one are not the same thing, and this file does not blur them.")
     }
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Medication, null, tint = Indigo, modifier = Modifier.size(17.dp))
+            Icon(Icons.Outlined.Medication, null, tint = Charcoal, modifier = Modifier.size(17.dp))
             Text("Current medication", style = MaterialTheme.typography.labelLarge, color = BodyText)
         }
         when {
             !medicines.allowed -> RefusalBody("Withheld", medicines)
             current.isEmpty() -> Note("Nothing is currently prescribed.")
             else -> {
-                Text("${current.first().name} ${current.first().dose}", style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text("${current.first().name} ${current.first().dose}", style = MaterialTheme.typography.titleMedium, color = Charcoal)
                 Text(current.first().frequency, style = MaterialTheme.typography.bodyMedium)
                 Note("${if (current.size > 1) "${current.size - 1} more · " else ""}${current.first().repeats}")
             }
         }
     }
 
-    Text("Latest observations", style = MaterialTheme.typography.titleMedium, color = Ink)
+    Text("Latest observations", style = MaterialTheme.typography.titleMedium, color = Charcoal)
     if (clinical.allowed) {
         /* Every tile wears where its number came from. It is the difference between a file that can
            be read in a hurry and one that will be read wrongly in a hurry: the last set here was
@@ -402,23 +402,21 @@ private val withheldCategorySentence: String = run {
         Note("The mean arterial pressure is calculated from the systolic and diastolic above. It is exactly as good as those two readings and it names them, because a derived value whose inputs are unknown is not a value.")
         ClinicalChart(
             "Systolic blood pressure", "mmHg",
-            patient.vitals.map { Reading(dayMonth(it.at), it.systolic.toDouble()) }, 90.0..140.0,
-            icon = Icons.Outlined.MonitorHeart
+            patient.vitals.map { Reading(dayMonth(it.at), it.systolic.toDouble()) }, 90.0..140.0
         )
         ClinicalChart(
             "Pulse", "bpm",
-            patient.vitals.map { Reading(dayMonth(it.at), it.pulse.toDouble()) }, 50.0..100.0,
-            icon = Icons.Outlined.Favorite
+            patient.vitals.map { Reading(dayMonth(it.at), it.pulse.toDouble()) }, 50.0..100.0
         )
     } else RefusalCard("Observations are not open to this viewer", clinical)
 
-    Text("Clinical summary", style = MaterialTheme.typography.titleMedium, color = Ink)
+    Text("Clinical summary", style = MaterialTheme.typography.titleMedium, color = Charcoal)
     if (clinical.allowed) CareCard {
         patient.summaryPoints.forEach { point -> Text("· $point", style = MaterialTheme.typography.bodyMedium) }
     } else RefusalCard("The clinical summary is not open to this viewer", clinical)
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Recent activity", style = MaterialTheme.typography.titleMedium, color = Ink, modifier = Modifier.weight(1f))
+        Text("Recent activity", style = MaterialTheme.typography.titleMedium, color = Charcoal, modifier = Modifier.weight(1f))
         TextButton(onClick = { go("Timeline") }, shape = ThusoButtonShape) { Text("Open the timeline") }
     }
     CareCard {
@@ -426,7 +424,7 @@ private val withheldCategorySentence: String = run {
         else recent.forEach { entry -> EntryRow(entry, canOpen(viewer, entry), full = false) }
     }
 
-    Text("Actions", style = MaterialTheme.typography.titleMedium, color = Ink)
+    Text("Actions", style = MaterialTheme.typography.titleMedium, color = Charcoal)
     CareCard {
         fileActions.forEachIndexed { index, action ->
             val allowed = can(viewer, action.capability)
@@ -449,7 +447,7 @@ private val withheldCategorySentence: String = run {
                     Note(allowed.reason.orEmpty())
                 }
             }
-            if (index < fileActions.lastIndex) HorizontalDivider(color = Line)
+            if (index < fileActions.lastIndex) HorizontalDivider(color = Stone)
         }
     }
     if (notice.isNotEmpty()) Text(
@@ -464,10 +462,10 @@ private val withheldCategorySentence: String = run {
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Icon(icon, null, tint = Indigo, modifier = Modifier.size(15.dp))
+            Icon(icon, null, tint = Charcoal, modifier = Modifier.size(15.dp))
             Text(name, style = MaterialTheme.typography.bodySmall, color = BodyText)
         }
-        Text(value, style = MaterialTheme.typography.titleSmall, color = Ink)
+        Text(value, style = MaterialTheme.typography.titleSmall, color = Charcoal)
         provenance?.let { ProvenanceMark(it) }
     }
 }
@@ -493,7 +491,7 @@ private val withheldCategorySentence: String = run {
     ) else CareCard {
         rows.forEachIndexed { index, entry ->
             EntryRow(entry, canOpen(viewer, entry), full = true)
-            if (index < rows.lastIndex) HorizontalDivider(color = Line)
+            if (index < rows.lastIndex) HorizontalDivider(color = Stone)
         }
     }
 }
@@ -511,7 +509,7 @@ private val withheldCategorySentence: String = run {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 if (decision.allowed) entry.title else "${type?.name ?: "Record"} · withheld",
-                 style = MaterialTheme.typography.titleSmall, color = Ink
+                 style = MaterialTheme.typography.titleSmall, color = Charcoal
             )
             Text(
                 if (decision.allowed) entry.detail else decision.reason.orEmpty(),
@@ -537,7 +535,7 @@ private val withheldCategorySentence: String = run {
         CareCard(Modifier.clickable { open = !open }) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("${shortDate(consultation.at)} · ${consultation.kind}", style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text("${shortDate(consultation.at)} · ${consultation.kind}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
                     Note(consultation.by)
                 }
                 Icon(
@@ -553,7 +551,7 @@ private val withheldCategorySentence: String = run {
                 ReviewLine("Treatment plan", consultation.plan)
                 ReviewLine("Clinician and registration", "${consultation.by} · ${consultation.registration}")
                 ReviewLine("Place", consultation.place)
-                Text("The standardised structure", style = MaterialTheme.typography.titleSmall, color = Ink)
+                Text("The standardised structure", style = MaterialTheme.typography.titleSmall, color = Charcoal)
                 consultationSections.forEach { section ->
                     val filled = section.id in consultation.sections
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -583,7 +581,7 @@ private val withheldCategorySentence: String = run {
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Warning, null, tint = if (patient.allergies.isNotEmpty()) Danger else MangoInk)
-            Text(if (patient.allergies.isNotEmpty()) "Allergies" else "No allergy has been recorded", style = MaterialTheme.typography.titleSmall, color = Ink)
+            Text(if (patient.allergies.isNotEmpty()) "Allergies" else "No allergy has been recorded", style = MaterialTheme.typography.titleSmall, color = Charcoal)
         }
         Text(
             if (patient.allergies.isNotEmpty())
@@ -593,21 +591,21 @@ private val withheldCategorySentence: String = run {
             style = MaterialTheme.typography.bodyMedium
         )
     }
-    Text("Current medicine", style = MaterialTheme.typography.titleMedium, color = Ink)
+    Text("Current medicine", style = MaterialTheme.typography.titleMedium, color = Charcoal)
     if (current.isEmpty()) Note("No current medicine is open to this viewer.")
     else CareCard {
         current.forEachIndexed { index, medicine ->
             MedicineRow(medicine, "${medicine.frequency} · started ${medicine.started} · ${medicine.repeats}",
                 medicine.prescriber + (medicine.dispensedBy?.let { " · last dispensed $it" } ?: " · not yet dispensed"))
-            if (index < current.lastIndex) HorizontalDivider(color = Line)
+            if (index < current.lastIndex) HorizontalDivider(color = Stone)
         }
     }
     if (past.isNotEmpty()) {
-        Text("Stopped", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("Stopped", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         CareCard {
             past.forEachIndexed { index, medicine ->
                 MedicineRow(medicine, "Stopped ${medicine.stopped} · started ${medicine.started}", medicine.prescriber)
-                if (index < past.lastIndex) HorizontalDivider(color = Line)
+                if (index < past.lastIndex) HorizontalDivider(color = Stone)
             }
         }
     }
@@ -621,7 +619,7 @@ private val withheldCategorySentence: String = run {
     ) {
         TileIcon(Icons.Outlined.Medication, size = 36.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${medicine.name} ${medicine.dose}", style = MaterialTheme.typography.titleSmall, color = Ink)
+            Text("${medicine.name} ${medicine.dose}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
             Text(detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
             Note(attribution)
             ReleasedTag(medicine)
@@ -639,7 +637,7 @@ private val withheldCategorySentence: String = run {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TileIcon(Icons.Outlined.Science, size = 40.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(report.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text(report.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                     Note("${report.source} · ${shortDate(report.at)}")
                 }
                 StatusPill(report.status)
@@ -660,7 +658,7 @@ private val withheldCategorySentence: String = run {
                             row.value + (row.flag?.let { " · $it" } ?: ""),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = if (row.flag != null) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (row.flag != null) MangoInk else Slate
+                            color = if (row.flag != null) MangoInk else Charcoal
                         )
                     }
                     Note("Reference range ${row.range}")
@@ -687,13 +685,13 @@ private val withheldCategorySentence: String = run {
             ) {
                 TileIcon(Icons.AutoMirrored.Outlined.Send, size = 36.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(referral.to, style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text(referral.to, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                     Text(referral.reason, style = MaterialTheme.typography.bodySmall, color = BodyText)
                     Note("${shortDate(referral.at)} · ${referral.urgency} · ${referral.by}")
                     StatusPill(referral.status, if (referral.status.startsWith("Accepted")) "teal" else "sky")
                 }
             }
-            if (index < rows.lastIndex) HorizontalDivider(color = Line)
+            if (index < rows.lastIndex) HorizontalDivider(color = Stone)
         }
     }
     ProtectedLine(viewer, "referral")
@@ -712,12 +710,12 @@ private val withheldCategorySentence: String = run {
             ) {
                 TileIcon(Icons.Outlined.Description, size = 36.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(document.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text(document.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                     Text("${document.kind} · ${document.by}", style = MaterialTheme.typography.bodySmall, color = BodyText)
                     Note("${shortDate(document.at)} · DocumentReference")
                 }
             }
-            if (index < rows.lastIndex) HorizontalDivider(color = Line)
+            if (index < rows.lastIndex) HorizontalDivider(color = Stone)
         }
     }
     ProtectedLine(viewer, "document")
@@ -735,7 +733,7 @@ private val withheldCategorySentence: String = run {
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.AutoMirrored.Outlined.ReceiptLong, null, tint = Danger)
-            Text("A code is not anonymous.", style = MaterialTheme.typography.titleSmall, color = Ink)
+            Text("A code is not anonymous.", style = MaterialTheme.typography.titleSmall, color = Charcoal)
         }
         Text(
             "Finance sees a service code and an amount and never a diagnosis in words — but a code can be looked up. A claim line for a protected service is withheld here for the same reason the words are.",
@@ -754,16 +752,16 @@ private val withheldCategorySentence: String = run {
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${line.code} · ${line.service}", style = MaterialTheme.typography.titleSmall, color = Ink, modifier = Modifier.weight(1f))
-                    Text(rands(line.amount), style = MaterialTheme.typography.titleSmall, color = Slate)
+                    Text("${line.code} · ${line.service}", style = MaterialTheme.typography.titleSmall, color = Charcoal, modifier = Modifier.weight(1f))
+                    Text(rands(line.amount), style = MaterialTheme.typography.titleSmall, color = Charcoal)
                 }
                 Note("${shortDate(line.at)} · ${line.payer}")
                 StatusPill(line.status, if (line.status == "Rejected") "danger" else "quiet")
                 line.note?.let { Note(it) }
             }
-            if (index < rows.lastIndex) HorizontalDivider(color = Line)
+            if (index < rows.lastIndex) HorizontalDivider(color = Stone)
         }
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Stone)
         ReviewLine("Visible to this viewer", "${rands(total)} · ${rows.size} of ${patient.billing.size} lines")
     }
     ProtectedLine(viewer, "claim line")

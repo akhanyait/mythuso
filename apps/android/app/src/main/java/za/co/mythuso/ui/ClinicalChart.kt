@@ -16,7 +16,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
 import kotlin.math.min
@@ -28,7 +27,7 @@ data class Reading(val label: String, val value: Double, val note: String = "—
  * because a reading a patient cannot read is not a reading.
  */
 @OptIn(ExperimentalLayoutApi::class)
-@Composable fun ClinicalChart(title: String, unit: String, readings: List<Reading>, normal: ClosedFloatingPointRange<Double>? = null, decimals: Int = 0, icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
+@Composable fun ClinicalChart(title: String, unit: String, readings: List<Reading>, normal: ClosedFloatingPointRange<Double>? = null, decimals: Int = 0) {
     var showTable by remember { mutableStateOf(false) }
     fun format(value: Double) = "%.${decimals}f".format(value)
     val latest = readings.last()
@@ -38,38 +37,20 @@ data class Reading(val label: String, val value: Double, val note: String = "—
     val direction = if (delta > 0) "higher than" else if (delta < 0) "lower than" else "unchanged from"
     val rangeNote = normal?.let { "Indicative reference range ${format(it.start)} to ${format(it.endInclusive)} $unit; the latest reading is ${if (inRange) "inside" else "outside"} that range." } ?: ""
     val summary = "$title. Latest sample reading ${format(latest.value)} $unit on ${latest.label}, $direction the first reading of ${format(first.value)} on ${first.label}. $rangeNote Fictional data."
+    /* The metric shape, which this card had upside down: the status was a pill beside the title and
+       the reading underneath it was set bold. A chip above a large thin numeral with its name below
+       is the signature of the language, and it is what makes a reading here read the same way as a
+       balance or a count anywhere else in the product. The number and its unit stay one fact — they
+       are drawn by one composable and cannot be separated by a layout at any font scale. */
     CareCard {
-        StatusHeader(if (inRange) "Within sample range" else "Outside sample range", if (inRange) "teal" else "amber") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (icon != null) { Icon(icon, null, tint = Indigo, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(ThusoSpacing.space8)) }
-                Text(title, style = MaterialTheme.typography.titleSmall)
-            }
-        }
-        /* A FlowRow rather than a Row, and the reading and its unit held together inside it.
-           This was a Row of three, with the unit carrying `Modifier.weight(1f)`. A Row measures its
-           unweighted children first and hands the weighted one whatever is left, so at the largest
-           font scale — where the number and the change-since line had both grown — "mmHg" was
-           given nothing: zero dp wide, and not drawn at all. A blood pressure of 136 with no unit
-           on it is not a smaller version of the reading, it is a different claim, and neither a
-           screenshot at the default scale nor the semantics tree showed it missing.
-           The number and the unit are one fact and are never allowed to be separated; the change
-           since the first reading is context and is the thing that drops to its own line. */
-        FlowRow(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8),
-            verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)
-        ) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(format(latest.value), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.width(4.dp))
-                Text(unit, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(
-                if (delta == 0.0) "No change" else "${if (delta > 0) "+" else ""}${format(delta)} since ${first.label}",
-                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.Bottom)
-            )
-        }
+        Metric(
+            value = format(latest.value), unit = unit, label = title,
+            chip = if (inRange) "In range" else "Outside range", flagged = !inRange
+        )
+        Text(
+            if (delta == 0.0) "No change" else "${if (delta > 0) "+" else ""}${format(delta)} since ${first.label}",
+            style = MaterialTheme.typography.bodySmall, color = Faint
+        )
         Canvas(Modifier.fillMaxWidth().height(74.dp).semantics { contentDescription = summary }) {
             val values = readings.map { it.value }
             val low = min(values.min(), normal?.start ?: Double.MAX_VALUE)
@@ -81,24 +62,24 @@ data class Reading(val label: String, val value: Double, val note: String = "—
             fun y(value: Double) = size.height - size.height * ((value - minimum) / (maximum - minimum)).toFloat()
             if (normal != null) {
                 val top = y(normal.endInclusive)
-                drawRect(TealSoft, Offset(0f, top), Size(size.width, max(y(normal.start) - top, 1f)))
+                drawRect(PaleSage, Offset(0f, top), Size(size.width, max(y(normal.start) - top, 1f)))
             }
             val path = Path()
             readings.forEachIndexed { index, reading ->
                 if (index == 0) path.moveTo(x(index), y(reading.value)) else path.lineTo(x(index), y(reading.value))
             }
-            drawPath(path, Indigo, style = Stroke(width = 4f))
+            drawPath(path, Charcoal, style = Stroke(width = 3f))
             readings.forEachIndexed { index, reading ->
                 val last = index == readings.lastIndex
-                drawCircle(if (last) Color.White else Indigo, if (last) 7f else 5f, Offset(x(index), y(reading.value)))
-                if (last) drawCircle(Indigo, 7f, Offset(x(index), y(reading.value)), style = Stroke(width = 3f))
+                drawCircle(if (last) SurfaceWhite else Charcoal, if (last) 7f else 4f, Offset(x(index), y(reading.value)))
+                if (last) drawCircle(Charcoal, 7f, Offset(x(index), y(reading.value)), style = Stroke(width = 3f))
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Note(first.label); Note(latest.label)
         }
         TextButton(onClick = { showTable = !showTable }, shape = ThusoButtonShape) {
-            Icon(Icons.Outlined.TableChart, null, tint = Indigo)
+            Icon(Icons.Outlined.TableChart, null, tint = Charcoal)
             Spacer(Modifier.width(8.dp))
             Text(if (showTable) "Hide readings" else "Show readings as a table")
         }

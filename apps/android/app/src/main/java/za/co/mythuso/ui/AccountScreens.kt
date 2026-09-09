@@ -29,7 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import za.co.mythuso.model.CaptureState
+import za.co.mythuso.model.Passport
 import za.co.mythuso.model.PreviewStore
+import za.co.mythuso.model.Scheduling
+import za.co.mythuso.model.readingSets
 import za.co.mythuso.model.householdMemberById
 import za.co.mythuso.model.mokoenaHousehold
 
@@ -53,7 +56,7 @@ import za.co.mythuso.model.mokoenaHousehold
     ScreenColumn {
         Box(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.card))
-                .background(Brush.linearGradient(listOf(IndigoDeep, Indigo)))
+                .background(Charcoal)
                 .padding(ThusoSpacing.space20)
                 .semantics(mergeDescendants = true) {}
         ) {
@@ -63,7 +66,7 @@ import za.co.mythuso.model.mokoenaHousehold
                     Text("Your health.\nYour story.", style = MaterialTheme.typography.headlineSmall, color = Color.White)
                     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                         Text("Lerato Molefe", style = MaterialTheme.typography.titleSmall, color = Color.White)
-                        Text("ID: TH-2048-3920", style = MaterialTheme.typography.bodySmall, color = IndigoSoft)
+                        Text("ID: TH-2048-3920", style = MaterialTheme.typography.bodySmall, color = SurfaceWhite)
                     }
                 }
                 Image(
@@ -81,22 +84,22 @@ import za.co.mythuso.model.mokoenaHousehold
                 selectedTabIndex = tabs.indexOf(tab),
                 containerColor = Color.Transparent,
                 edgePadding = 0.dp,
-                divider = { HorizontalDivider(color = Line) }
+                divider = { HorizontalDivider(color = Stone) }
             ) {
                 tabs.forEach { name ->
                     Tab(
                         selected = tab == name, onClick = { tab = name },
                         text = { Text(name, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
-                        selectedContentColor = Indigo, unselectedContentColor = BodyText
+                        selectedContentColor = Charcoal, unselectedContentColor = Faint
                     )
                 }
             }
             when (tab) {
                 "Records" -> CareCard(padding = ThusoSpacing.space8) {
                     MenuRow("Visit summary", "Fictional document · 4 September", Icons.Outlined.Description) { open("Visit summary") }
-                    HorizontalDivider(color = Line)
+                    HorizontalDivider(color = Stone)
                     MenuRow("Laboratory results", "Fasting panel · Released", Icons.Outlined.Science) { open("Laboratory order LAB-0023") }
-                    HorizontalDivider(color = Line)
+                    HorizontalDivider(color = Stone)
                     MenuRow("Medical certificate", "Doctor reviewed · Demo", Icons.Outlined.VerifiedUser) { open("Medical certificate") }
                 }
                 "Medications" -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
@@ -107,12 +110,12 @@ import za.co.mythuso.model.mokoenaHousehold
                     Section("Connected devices") {
                         StateBlock(deviceState, "Readings from your connected devices", "Health Connect access", { deviceState = LoadState.READY }) {
                             CareCard(padding = ThusoSpacing.space8) {
-                                MenuRow("Health Connect", "Choose exactly which readings you share", Icons.Outlined.MonitorHeart) { open("Health Connect") }
-                                HorizontalDivider(color = Line)
+                                MenuRow("Health Connect", "What would be read, and what never would", Icons.Outlined.MonitorHeart) { open("Health Connect") }
+                                HorizontalDivider(color = Stone)
                                 /* The patient's side of the kit is the readings it wrote into her record, not
                                    the pairing surface — that one is a clinician's, and it opens under a
                                    nurse's registration. */
-                                MenuRow("Thuso Kit readings", "What a nurse’s instruments wrote into your record", Icons.Outlined.Sensors) { open("Thuso Kit readings") }
+                                MenuRow("Thuso Kit readings", "The instruments, and how a device reading is filed", Icons.Outlined.Sensors) { open("Thuso Kit readings") }
                             }
                         }
                         StatePicker("Preview the device permission state", deviceState) { deviceState = it }
@@ -125,16 +128,31 @@ import za.co.mythuso.model.mokoenaHousehold
                     }
                 }
                 else -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space24)) {
+                    /* Where things stand, and then the way to the shape of it. This used to be three
+                       charts drawn from arrays of literal dates — "12 Aug" through "4 Sep" — which
+                       were right the week they were typed and a year wrong by the next winter. The
+                       numbers are the record's own now, dated in offsets from today, and the four
+                       curves are one tap away rather than stacked on the overview. */
+                    val latest = Passport.latestSet
+                    val outside = Passport.outsideRange(latest)
+                    SPanel(tone = PanelTone.LEAD) {
+                        SChip(if (outside.isEmpty()) "All inside range" else "${outside.size} outside range", flagged = outside.isNotEmpty())
+                        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
+                            Text("Your last visit", style = MaterialTheme.typography.titleMedium, color = Charcoal)
+                            Text(Scheduling.longDate(Passport.dateOf(latest.dayOffset)), style = MaterialTheme.typography.bodySmall, color = Charcoal)
+                        }
+                        MetricRow(Passport.headlineMeasures.filter { latest.values.containsKey(it.id) }.map { observation ->
+                            val value = latest.values.getValue(observation.id)
+                            MetricSpec(
+                                Passport.format(observation, value), observation.label, observation.unit,
+                                chip = Passport.chipFor(observation, value),
+                                flagged = Passport.flagOf(observation, value) != "normal"
+                            )
+                        })
+                    }
                     Section("Health trends") {
-                        ClinicalChart("Blood pressure", "mmHg", listOf(
-                            Reading("12 Aug", 128.0), Reading("19 Aug", 134.0), Reading("28 Aug", 141.0, "Missed medication"), Reading("4 Sep", 136.0)
-                        ), 90.0..140.0, icon = Icons.Outlined.MonitorHeart)
-                        ClinicalChart("Heart rate", "bpm", listOf(
-                            Reading("12 Aug", 76.0), Reading("19 Aug", 74.0), Reading("28 Aug", 80.0), Reading("4 Sep", 72.0)
-                        ), 50.0..100.0, icon = Icons.Outlined.Favorite)
-                        ClinicalChart("Blood glucose", "mmol/L", listOf(
-                            Reading("12 Aug", 5.6), Reading("19 Aug", 6.1), Reading("28 Aug", 5.4), Reading("4 Sep", 5.2)
-                        ), 4.0..7.8, 1, icon = Icons.Outlined.Bloodtype)
+                        PlainRow("How your readings have changed", "${readingSets.size} visits over the last ${Passport.monthsCovered} months") { open("Health trends") }
+                        PlainRow("Your last completed visit", "What was measured, and what the doctor said") { open("Visit summary") }
                     }
                     Section("Do something with it") {
                         Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
@@ -159,14 +177,14 @@ import za.co.mythuso.model.mokoenaHousehold
 @Composable fun ActionTile(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier, click: () -> Unit) {
     Column(
         modifier.heightIn(min = 88.dp).background(Color.White, RoundedCornerShape(ThusoRadius.card))
-            .border(1.dp, Line, RoundedCornerShape(ThusoRadius.card)).clickable(onClick = click)
+            .border(1.dp, Stone, RoundedCornerShape(ThusoRadius.card)).clickable(onClick = click)
             .padding(ThusoSpacing.space12)
             .semantics(mergeDescendants = true) {},
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
     ) {
-        Icon(icon, null, tint = Indigo, modifier = Modifier.size(24.dp))
+        Icon(icon, null, tint = Charcoal, modifier = Modifier.size(24.dp))
         Spacer(Modifier.height(ThusoSpacing.space8))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = Slate, textAlign = TextAlign.Center)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Charcoal, textAlign = TextAlign.Center)
     }
 }
 @Composable fun ToolRow(name: String, click: () -> Unit) = PlainRow(name, click = click)
@@ -191,7 +209,7 @@ import za.co.mythuso.model.mokoenaHousehold
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
                 Image(painterResource(R.drawable.mythuso_patient), null, Modifier.size(56.dp).clip(CircleShape), contentScale = ContentScale.Crop)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                    Text("Lerato Molefe", style = MaterialTheme.typography.titleLarge, color = Ink)
+                    Text("Lerato Molefe", style = MaterialTheme.typography.titleLarge, color = Charcoal)
                     Text("View and edit your profile", style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
                 Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Faint)
@@ -200,20 +218,20 @@ import za.co.mythuso.model.mokoenaHousehold
         Section("Your care") {
             CareCard(padding = ThusoSpacing.space8) {
                 MenuRow("My family", "Manage your loved ones", Icons.Outlined.People) { open("My family") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("Care plans", "Ongoing care and subscriptions", Icons.Outlined.FavoriteBorder) { open("Care plans") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("Payments", "Cards, history and refunds", Icons.Outlined.CreditCard) { open("Thuso Wallet") }
             }
         }
         Section("Settings") {
             CareCard(padding = ThusoSpacing.space8) {
                 MenuRow("Notifications", "Visit updates and messages", Icons.Outlined.Notifications) { open("Notifications") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("Privacy & settings", "Your data and app preferences", Icons.Outlined.Tune) { open("Privacy & settings") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("Language", "Read MyThuso your way", Icons.Outlined.Language) { open("Language") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("Interpreters", "South African Sign Language: who is free, and what happens when nobody is", Icons.Outlined.Language) { open("Interpreters") }
             }
         }
@@ -226,7 +244,7 @@ import za.co.mythuso.model.mokoenaHousehold
                                           "Pharmacy and laboratory orders", "Dispatch, incidents and vetting"))
                     .forEachIndexed { index, (role, detail) ->
                         MenuRow("$role workspace", detail, workspaceSections(role).first().icon) { open("$role workspace") }
-                        if (index < workspaceRoles.size - 1) HorizontalDivider(color = Line)
+                        if (index < workspaceRoles.size - 1) HorizontalDivider(color = Stone)
                     }
             }
             Note("A role preview for design review. Nothing here authenticates anybody or grants access to a record.")
@@ -234,19 +252,19 @@ import za.co.mythuso.model.mokoenaHousehold
         Section("For design review") {
             CareCard(padding = ThusoSpacing.space8) {
                 MenuRow("First-run & recovery", "Sign-up, one-time code and lost access", Icons.Outlined.PersonAdd) { firstRun() }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("System states", "Loading, error, offline and denied", Icons.Outlined.Layers) { open("System states") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("Explore the roadmap", "All 21 modules in the proposal", Icons.Outlined.GridView) { open("Roadmap") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("Vetting & verification", "Every party MyThuso vets, and what each is refused until it passes", Icons.Outlined.VerifiedUser) { open("Vetting pipeline") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("Patient file", "The clinician-facing record, and what each viewer is refused", Icons.Outlined.FolderShared) { open("Patient file") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("Consultation record", "One structure for every encounter, in long form or SOAP", Icons.Outlined.EditNote) { open("Consultation record") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("Household record", "One household, and what each member may see of the others", Icons.Outlined.Groups) { open("Household record") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 MenuRow("Health summary", "The shareable summary, bound to a purpose and a period", Icons.Outlined.Share) { open("Health summary") }
             }
         }
@@ -274,7 +292,7 @@ import za.co.mythuso.model.mokoenaHousehold
                    "Thuso Locum", "Thuso Academy", "Thuso Money", "Thuso Cover", "Thuso Devices", "Thuso Kit", "Thuso AI", "Thuso Doctor")
                 .forEachIndexed { index, feature ->
                     MenuRow(feature, "", Icons.Outlined.GridView) { open(feature) }
-                    if (index < 14) HorizontalDivider(color = Line)
+                    if (index < 14) HorizontalDivider(color = Stone)
                 }
         }
     }
@@ -282,6 +300,12 @@ import za.co.mythuso.model.mokoenaHousehold
 @Composable fun DetailScreen(title: String, store: PreviewStore, open: (String) -> Unit, firstRun: () -> Unit) {
     when {
         title == "Health Passport" -> PassportScreen(open)
+        /* The three the passport offered and could not open. A completed visit is looked up by the
+           day it happened rather than handed its readings, so a visit and what was measured at it
+           cannot disagree — they never met before, which is why they never did. */
+        title == "Health trends" -> HealthTrendsScreen(open)
+        title == "Visit summary" -> PastVisitScreen(store, Passport.latestSet.dayOffset, open)
+        isDevicePermissionScreen(title) -> DevicePermissionScreen(title, open)
         title == "My family" -> FamilyScreen(store, open)
         title == "Privacy & settings" -> PrivacyScreen(store, open)
         title == "Care plans" -> PlansScreen(open)
@@ -339,7 +363,7 @@ import za.co.mythuso.model.mokoenaHousehold
             DemoBadge()
             Heading("MyThuso", title, "Connected to your care journey.")
             CareCard {
-                Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo)
+                Icon(Icons.Outlined.VerifiedUser, null, tint = Charcoal)
                 if (title.startsWith("Visit:")) {
                     Text("Confirmed · Demo"); Text("Sister Naledi Mokoena · Registered nurse"); Text("Have your medication list ready.")
                 }
@@ -375,8 +399,8 @@ import za.co.mythuso.model.mokoenaHousehold
     }
 }
 @Composable fun PrivacyScreen(store: PreviewStore, open: (String) -> Unit) { ScreenColumn { Heading("Your privacy matters", "Your data. Your choices.", "Demo preferences reset when the app restarts."); CareCard { Setting("Care reminders", store.reminders) { store.reminders = it }; Setting("Wearable readings", store.wearableSharing) { store.wearableSharing = it }; Setting("Product updates", store.marketing) { store.marketing = it } }; CareCard { listOf("Access history", "Request a correction", "Request account deletion", "Information Officer").forEach { item -> ToolRow(item) { open(item) } } }; Text("Production POPIA compliance requires governance, lawful processing, verified technical controls and a clinical retention schedule. These are UI previews.", style = MaterialTheme.typography.bodySmall) } }
-@Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); listOf(Triple("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), Triple("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), Triple("Thuso Mom", "R249 / month", "Pregnancy and baby’s first year"), Triple("Thuso Senior", "R699 / month", "Weekly care and family support"), Triple("Thuso Recover", "Custom pricing", "Personalised recovery support")).forEach { (name, price, description) -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Indigo); Text(name, style = MaterialTheme.typography.titleLarge); Text(description); Text(price, style = MaterialTheme.typography.headlineSmall, color = Indigo); OutlinedButton(onClick = { open(name) }, shape = ThusoButtonShape) { Text("Explore plan") } } } } }
-@Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Slate); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
+@Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); listOf(Triple("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), Triple("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), Triple("Thuso Mom", "R249 / month", "Pregnancy and baby’s first year"), Triple("Thuso Senior", "R699 / month", "Weekly care and family support"), Triple("Thuso Recover", "Custom pricing", "Personalised recovery support")).forEach { (name, price, description) -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Charcoal); Text(name, style = MaterialTheme.typography.titleLarge); Text(description); Text(price, style = MaterialTheme.typography.headlineSmall, color = Indigo); OutlinedButton(onClick = { open(name) }, shape = ThusoButtonShape) { Text("Explore plan") } } } } }
+@Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Charcoal); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
 /* A clinical workspace navigates as itself.
  *
  * Every role used to open one long screen under the patient's own bottom bar, so a nurse on a
@@ -458,7 +482,7 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
         entries.firstOrNull()?.let { (label, value, note) ->
             LeadCard(Modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" }) {
                 Text(label, style = MaterialTheme.typography.labelMedium, color = Indigo)
-                Text(value, style = MaterialTheme.typography.displaySmall, color = Ink)
+                Text(value, style = MaterialTheme.typography.displaySmall, color = Charcoal)
                 Text(note, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             }
         }
@@ -469,7 +493,7 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
                     padding = ThusoSpacing.space12
                 ) {
                     Text(label, style = MaterialTheme.typography.bodySmall, color = Faint)
-                    Text(value, style = MaterialTheme.typography.titleLarge, color = Ink)
+                    Text(value, style = MaterialTheme.typography.titleLarge, color = Charcoal)
                     Text(note, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
             }

@@ -322,7 +322,11 @@ fun ageText(millis: Long, now: Long = System.currentTimeMillis()): String {
     return when {
         seconds < 0 -> "at a time this phone has not reached yet"
         seconds < 45 -> "just now"
-        seconds < 90 -> "a minute ago"
+        /* Two minutes, not ninety seconds. Between the two the next branch divides by sixty and gets
+           one, so the queue told a nurse her work was read "1 minutes ago" for half a minute of
+           every hour. The hours and days branches already hand over at a multiple of their own unit
+           and do not have it. */
+        seconds < 120 -> "a minute ago"
         seconds < 3600 -> "${seconds / 60} minutes ago"
         seconds < 7200 -> "an hour ago"
         seconds < 86400 -> "${seconds / 3600} hours ago"

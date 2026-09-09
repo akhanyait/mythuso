@@ -99,9 +99,9 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                 }
                 CareCard {
                     MenuRow(thuso(Phrase.VETTING_RENEWALS, store.locale), "Sorted by soonest expiry", Icons.Outlined.Update) { open("Renewals due") }
-                    HorizontalDivider(color = Line)
+                    HorizontalDivider(color = Stone)
                     MenuRow("Decision log", "Append-only, including the lapses nobody decided", Icons.Outlined.History) { open("Vetting decision log") }
-                    HorizontalDivider(color = Line)
+                    HorizontalDivider(color = Stone)
                     MenuRow(thuso(Phrase.VETTING_APPLY, store.locale), "Any of the thirteen vetted roles", Icons.Outlined.PersonAdd) { open("Apply for vetting") }
                 }
                 FlowRowChips(listOf("All roles") + vettingRoles.map { it.name }, setOf(filter)) { filter = it }
@@ -109,7 +109,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                     CareCard(Modifier.clickable { open("Vetting: ${subject.id}") }) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(subject.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Ink)
+                                Text(subject.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Charcoal)
                                 Note("${vettingRoleById(subject.roleId)?.name} · ${subject.reference}${subject.zone?.let { " · $it" } ?: ""}")
                             }
                             StatusPill(summary.status.label, tone(summary.status))
@@ -146,7 +146,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                     CareCard {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("${renewal.check.name} · ${renewal.subject.name}", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = Ink)
+                                Text("${renewal.check.name} · ${renewal.subject.name}", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                                 Note("${vettingRoleById(renewal.subject.roleId)?.name} · ${vettingAuthorityById(renewal.check.authority)?.short}")
                             }
                             StatusPill(if (overdue) "Lapsed" else "${renewal.days} days", if (overdue) "danger" else if (renewal.days <= EXPIRY_WARNING_DAYS) "amber" else "quiet")
@@ -176,7 +176,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
         vetting.log.forEach { event ->
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(event.kind.label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = Ink, modifier = Modifier.weight(1f))
+                    Text(event.kind.label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = Charcoal, modifier = Modifier.weight(1f))
                     StatusPill(event.id, "quiet")
                 }
                 Note("${event.subjectName} · ${event.checkId?.let { vettingCheckById(event.roleId, it)?.name ?: it } ?: vettingRoleById(event.roleId)?.name ?: event.roleId}")
@@ -230,14 +230,14 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
             FlowRowChips(vettingReviewers, setOf(vetting.reviewer)) { vetting.reviewer = it }
             Note("A high-risk check needs two different reviewers. Change who you are acting as to second one — the same signature twice is one signature.")
         }
-        Text("Checks", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("Checks", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         summary.states.forEach { (check, state) ->
             val record = recordFor(subject, check.id)
             val authority = vettingAuthorityById(check.authority)
             val awaiting = needsSecondReviewer(subject, check.id)
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(check.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Ink, modifier = Modifier.weight(1f))
+                    Text(check.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Charcoal, modifier = Modifier.weight(1f))
                     StatusPill(if (awaiting) "Awaiting second" else state.label, if (awaiting) "sky" else tone(state))
                 }
                 Note(check.detail)
@@ -274,12 +274,12 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
         }
         /* The matrix is the module's whole argument: not a list of documents, but a refusal with a
            reason, in the words the applicant is owed. */
-        Text("What this party may do", style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("What this party may do", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         capabilityDecisions(subject).forEach { (capability, _, decision) ->
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(if (decision.allowed) Icons.Outlined.CheckCircle else Icons.Outlined.Block, null, tint = if (decision.allowed) Indigo else Danger)
-                    Text(capability.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Ink, modifier = Modifier.weight(1f))
+                    Text(capability.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Charcoal, modifier = Modifier.weight(1f))
                     StatusPill(if (decision.allowed) "Allowed" else "Refused", if (decision.allowed) "teal" else "danger")
                 }
                 Note(capability.detail)
@@ -332,7 +332,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
             Heading("Vetting", "Application lodged", "Nothing was transmitted, and no register was contacted.")
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Outlined.Schedule, null, tint = Indigo)
+                    Icon(Icons.Outlined.Schedule, null, tint = Charcoal)
                     Text("$applicant · ${role?.name}", style = MaterialTheme.typography.titleMedium)
                 }
                 Text("You are refused everything on the list below until each check passes. That is the honest position, and it is what the applicant is told rather than “your application is being processed”.", style = MaterialTheme.typography.bodyMedium)
@@ -354,7 +354,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             RadioButton(roleId == option.id, { roleId = option.id }, Modifier.semantics { selected = roleId == option.id })
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(option.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Ink)
+                                Text(option.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Charcoal)
                                 Note(option.summary)
                                 Note("${option.checks.size} checks · ${option.workspace} workspace")
                             }
@@ -413,7 +413,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                     val on = check.id in attached
                     CareCard {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(check.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Ink, modifier = Modifier.weight(1f))
+                            Text(check.name, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, color = Charcoal, modifier = Modifier.weight(1f))
                             if (check.risk == "high") StatusPill("Two reviewers", "quiet")
                         }
                         Note(check.detail)
@@ -458,7 +458,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                     role?.grants?.forEach { grant ->
                         val capability = vettingCapabilityById(grant.capability)
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(capability?.name ?: grant.capability, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = Ink)
+                            Text(capability?.name ?: grant.capability, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                             Text(grant.refusal, style = MaterialTheme.typography.bodyMedium, color = Danger)
                         }
                     }

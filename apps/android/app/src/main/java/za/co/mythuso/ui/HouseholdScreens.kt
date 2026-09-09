@@ -94,7 +94,7 @@ private val householdRecordType = recordTypeById("household")
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TileIcon(Icons.Outlined.Groups)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(household.name, style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Text(household.name, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     Note("FHIR ${householdRecordType?.fhir ?: "Group"} · ${household.id} · ${household.area}")
                 }
             }
@@ -113,7 +113,7 @@ private val householdRecordType = recordTypeById("household")
                 if (roster.isEmpty()) CareCard {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Icon(Icons.Outlined.Lock, null, tint = Danger)
-                        Text("Nothing here is yours to see.", style = MaterialTheme.typography.titleSmall, color = Ink)
+                        Text("Nothing here is yours to see.", style = MaterialTheme.typography.titleSmall, color = Charcoal)
                     }
                     Text(refusal, style = MaterialTheme.typography.bodyMedium)
                     Note("Not one member is named, and no count of them is given. A refusal that still told you how many people live here, and which of them have records, would be a refusal in name only.")
@@ -123,7 +123,7 @@ private val householdRecordType = recordTypeById("household")
 
                 opened?.let { (member, visibility) ->
                     if (atLeast(visibility.level, AccessLevel.EMERGENCY)) CareCard {
-                        Text(member.name, style = MaterialTheme.typography.titleMedium, color = Ink,
+                        Text(member.name, style = MaterialTheme.typography.titleMedium, color = Charcoal,
                             modifier = Modifier.semantics { heading() })
                         Note("${visibility.level.label} · ${visibility.reason}")
                         if (visibility.level == AccessLevel.EMERGENCY) {
@@ -213,7 +213,7 @@ private val householdRecordType = recordTypeById("household")
                     )
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(member.name, style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Text(member.name, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     Note("${member.relation} · $age years · ${member.reference}")
                 }
             }
@@ -249,8 +249,8 @@ private val householdRecordType = recordTypeById("household")
             "whether or not anything is held behind it, and no count of them is given."
     }) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Lock, null, tint = Indigo)
-            Text("A category is withheld from every record here.", style = MaterialTheme.typography.titleSmall, color = Ink)
+            Icon(Icons.Outlined.Lock, null, tint = Charcoal)
+            Text("A category is withheld from every record here.", style = MaterialTheme.typography.titleSmall, color = Charcoal)
         }
         Text("Every record in this household has parts only the person themselves can release. This line stands on all of them, whether or not there is anything behind it — a notice that appeared only where there was something to hide would be the disclosure it is meant to prevent, and a count of the records it stood on would be another one.",
             style = MaterialTheme.typography.bodyMedium)
@@ -280,7 +280,7 @@ private val householdRecordType = recordTypeById("household")
                 TileIcon(Icons.Outlined.CalendarMonth, size = 38.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("${formatVettingDate(appointment.on)} · ${appointment.time} · ${firstName(member)}",
-                        style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
+                        style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
                     Note(if (atLeast(visibility.level, AccessLevel.SUMMARY)) appointment.service
                     else "A booked visit. What it is for is not part of the household calendar.")
                 }
@@ -323,7 +323,7 @@ private val householdRecordType = recordTypeById("household")
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TileIcon(icon, size = 38.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(who, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Ink)
+                    Text(who, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
                     Note(what)
                 }
             }
@@ -349,13 +349,13 @@ private val householdRecordType = recordTypeById("household")
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = BodyText)
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = Slate)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
     }
 }
 
 @Composable fun ColumnScope.WithheldSummaryNotice() {
     Column(
-        Modifier.fillMaxWidth().background(Canvas, MaterialTheme.shapes.medium).padding(12.dp)
+        Modifier.fillMaxWidth().background(Mist, MaterialTheme.shapes.medium).padding(12.dp)
             .semantics(mergeDescendants = true) {
                 contentDescription = "Withheld from every summary. ${recordSummaryCard.withheld} " +
                     "The categories are ${summaryWithheldCategories.joinToString(", ")}. " +
@@ -364,10 +364,10 @@ private val householdRecordType = recordTypeById("household")
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Lock, null, tint = IndigoDeep, modifier = Modifier.size(18.dp))
+            Icon(Icons.Outlined.Lock, null, tint = Charcoal, modifier = Modifier.size(18.dp))
             Text("Withheld from every summary.", style = MaterialTheme.typography.titleSmall, color = IndigoDeep)
         }
-        Text(recordSummaryCard.withheld, style = MaterialTheme.typography.bodyMedium, color = Slate)
+        Text(recordSummaryCard.withheld, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
         CategoryChips()
     }
 }
@@ -402,7 +402,7 @@ private val householdRecordType = recordTypeById("household")
         CareCard {
             Text("Share this summary", style = MaterialTheme.typography.titleMedium)
             Note("A summary that is valid forever is a summary you have lost. Choose what it is for; the purpose chooses the fields and the hours.")
-            Text("What is this summary for?", style = MaterialTheme.typography.labelLarge, color = Slate)
+            Text("What is this summary for?", style = MaterialTheme.typography.labelLarge, color = Charcoal)
             FlowRowChips(sharePurposes.map { it.name }, setOf(purpose.name)) { name ->
                 purposeId = sharePurposes.first { it.name == name }.id
                 val chosen = sharePurposes.first { it.name == name }
@@ -495,7 +495,7 @@ private val householdRecordType = recordTypeById("household")
             Text("What a scanner would read.", style = MaterialTheme.typography.titleSmall, color = Info)
         }
         Text("The reference above, and nothing else — 100 bits from the device’s own secure generator, not your patient number and not a number anyone can count up to. Someone holding it is answered with your initials ($initials), whether the summary is valid, expired or revoked, what it was made for, and when it stops. Not your name, not your date of birth, not one clinical word.",
-            style = MaterialTheme.typography.bodyMedium, color = Slate)
+            style = MaterialTheme.typography.bodyMedium, color = Charcoal)
         Text("No code is drawn here. The picture would only be a way to lose the reference, and the reference is the part that matters.",
             style = MaterialTheme.typography.bodySmall, color = BodyText)
     }

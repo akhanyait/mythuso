@@ -1,5 +1,8 @@
 package za.co.mythuso.ui
 
+import za.co.mythuso.model.Passport
+import za.co.mythuso.model.passportHolder
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -101,7 +104,7 @@ import androidx.compose.foundation.text.KeyboardActions
     var areaMenu by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${thuso(Phrase.GREETING, store.locale)} 👋", style = MaterialTheme.typography.headlineSmall, color = Ink,
+            Text("${thuso(Phrase.GREETING, store.locale)} 👋", style = MaterialTheme.typography.headlineSmall, color = Charcoal,
                  modifier = Modifier.semantics { heading() })
             Text(thuso(Phrase.GREETING_SUB, store.locale), style = MaterialTheme.typography.bodyMedium, color = BodyText)
         }
@@ -116,7 +119,7 @@ import androidx.compose.foundation.text.KeyboardActions
                         DropdownMenuItem(
                             text = { Text(area) },
                             onClick = { store.careArea = area; areaMenu = false },
-                            trailingIcon = { if (area == store.careArea) Icon(Icons.Outlined.Check, null, tint = Indigo) }
+                            trailingIcon = { if (area == store.careArea) Icon(Icons.Outlined.Check, null, tint = Charcoal) }
                         )
                     }
                 }
@@ -132,14 +135,14 @@ import androidx.compose.foundation.text.KeyboardActions
 @Composable private fun ContextChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, label: String, click: () -> Unit) {
     Row(
         Modifier.heightIn(min = TouchTarget).clip(CircleShape).background(Color.White.copy(alpha = 0.92f))
-            .border(1.dp, Line, CircleShape).clickable(onClick = click)
+            .border(1.dp, Stone, CircleShape).clickable(onClick = click)
             .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space8)
             .semantics { contentDescription = label },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(icon, null, tint = Slate, modifier = Modifier.size(16.dp))
-        Text(text, style = MaterialTheme.typography.labelMedium, color = Slate, modifier = Modifier.weight(1f, fill = false))
+        Icon(icon, null, tint = Charcoal, modifier = Modifier.size(16.dp))
+        Text(text, style = MaterialTheme.typography.labelMedium, color = Charcoal, modifier = Modifier.weight(1f, fill = false))
         Icon(Icons.Outlined.ExpandMore, null, tint = Faint, modifier = Modifier.size(16.dp))
     }
 }
@@ -156,7 +159,7 @@ import androidx.compose.foundation.text.KeyboardActions
                all three apps say the same thing about having nothing booked. */
             LeadCard(Modifier.semantics(mergeDescendants = true) {}) {
                 TileIcon(Icons.Outlined.EditCalendar, size = 44.dp)
-                Text(SchedulingData.noUpcoming, style = MaterialTheme.typography.titleLarge, color = Ink)
+                Text(SchedulingData.noUpcoming, style = MaterialTheme.typography.titleLarge, color = Charcoal)
                 Text(SchedulingData.noUpcomingDetail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             }
         } else {
@@ -173,7 +176,7 @@ import androidx.compose.foundation.text.KeyboardActions
                     .semantics(mergeDescendants = true) { contentDescription = spoken }
             ) {
                 StatusHeader(visit.status, if (visit.isScheduled) "teal" else "amber") {
-                    Text(visit.service.name, style = MaterialTheme.typography.titleLarge, color = Ink)
+                    Text(visit.service.name, style = MaterialTheme.typography.titleLarge, color = Charcoal)
                     Text(visit.shortWhenText, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 }
                 /* An arrival estimate belongs to "come now" and to nothing else; a visit booked for a
@@ -181,7 +184,7 @@ import androidx.compose.foundation.text.KeyboardActions
                 if (visit.isScheduled) IconLine(Icons.Outlined.Schedule, "${visit.service.duration} minutes")
                 else IconLine(Icons.Outlined.Bolt, "Looking for the nearest nurse")
                 IconLine(Icons.Outlined.LocationOn, visit.address)
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
                 NurseRow { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Faint) }
             }
         }
@@ -196,12 +199,12 @@ import androidx.compose.foundation.text.KeyboardActions
         OutlinedTextField(
             store.careQuery, { store.careQuery = it }, placeholder = { Text("What care do you need today?") },
             leadingIcon = { Icon(Icons.Outlined.Search, null, tint = Faint) },
-            singleLine = true, shape = RoundedCornerShape(ThusoRadius.control),
+            singleLine = true, shape = RoundedCornerShape(ThusoRadius.pill),
             textStyle = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search for care" },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { book(null) }),
-            colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = Line)
+            colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = Faint)
         )
     }
 }
@@ -229,15 +232,15 @@ import androidx.compose.foundation.text.KeyboardActions
                        a refusal, a visit nobody has picked up. */
                     TileIcon(serviceIcon(service.id))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                        Text(service.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                        Text(service.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                         Text(service.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                     }
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                        Text("R${service.price}", style = MaterialTheme.typography.titleSmall, color = Slate)
+                        Text("R${service.price}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
                         Text("${service.duration} min", style = MaterialTheme.typography.bodySmall, color = Faint)
                     }
                 }
-                if (index < 3) HorizontalDivider(color = Line)
+                if (index < 3) HorizontalDivider(color = Stone)
             }
         }
     }
@@ -258,10 +261,10 @@ import androidx.compose.foundation.text.KeyboardActions
                         .heightIn(min = TouchTarget).padding(horizontal = ThusoSpacing.space8, vertical = ThusoSpacing.space8)
                         .semantics(mergeDescendants = true) {}
                 ) {
-                    Text(name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text(name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                     Text(value, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
-                if (index < results.size - 1) HorizontalDivider(color = Line)
+                if (index < results.size - 1) HorizontalDivider(color = Stone)
             }
         }
     }
@@ -297,7 +300,7 @@ import androidx.compose.foundation.text.KeyboardActions
                 }
                 if (portrait != null) PersonRow(member, relationship, portrait) { open("My family") }
                 else MenuRow(member, relationship, Icons.Outlined.AccountCircle) { open("My family") }
-                HorizontalDivider(color = Line)
+                HorizontalDivider(color = Stone)
             }
             MenuRow("Add a family member", "", Icons.Outlined.PersonAdd) { open("My family") }
         }
@@ -307,7 +310,7 @@ import androidx.compose.foundation.text.KeyboardActions
            a panel the colour of the thing behind it is not a panel. */
         TonedCard {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-                Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo, modifier = Modifier.size(18.dp))
+                Icon(Icons.Outlined.VerifiedUser, null, tint = Charcoal, modifier = Modifier.size(18.dp))
                 Text("Booking for someone opens their booking, never their record. What you may see is decided in My family.",
                      style = MaterialTheme.typography.bodySmall, color = BodyText)
             }
@@ -318,7 +321,7 @@ import androidx.compose.foundation.text.KeyboardActions
 @Composable private fun PassportPromo(store: PreviewStore, open: (String) -> Unit) {
     Box(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.card))
-            .background(Brush.linearGradient(listOf(IndigoDeep, Indigo)))
+            .background(Charcoal)
             .clickable { open("Health Passport") }.padding(ThusoSpacing.space20)
             .semantics(mergeDescendants = true) {}
     ) {
@@ -326,8 +329,8 @@ import androidx.compose.foundation.text.KeyboardActions
             StatusPill("THUSO PASS", "light")
             Text("Your health.\nOne safe place.", style = MaterialTheme.typography.titleLarge, color = Color.White)
             Text("Every visit, reading and result, in a record you own and control.",
-                  style = MaterialTheme.typography.bodySmall, color = IndigoSoft)
-            Text("${thuso(Phrase.OPEN_PASSPORT, store.locale)} →", style = MaterialTheme.typography.titleSmall, color = IndigoSoft)
+                  style = MaterialTheme.typography.bodySmall, color = SurfaceWhite)
+            Text("${thuso(Phrase.OPEN_PASSPORT, store.locale)} →", style = MaterialTheme.typography.titleSmall, color = SurfaceWhite)
         }
     }
 }
@@ -343,7 +346,7 @@ import androidx.compose.foundation.text.KeyboardActions
             contentScale = ContentScale.Crop
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Sister Naledi Mokoena", style = MaterialTheme.typography.titleSmall, color = Ink)
+            Text("Sister Naledi Mokoena", style = MaterialTheme.typography.titleSmall, color = Charcoal)
             Text("Registered Nurse (SANC)", style = MaterialTheme.typography.bodySmall, color = BodyText)
         }
         trailing?.invoke()
@@ -389,10 +392,10 @@ fun serviceIcon(id: String) = when (id) {
             OutlinedTextField(
                 store.careQuery, { store.careQuery = it }, placeholder = { Text("Find a service") },
                 leadingIcon = { Icon(Icons.Outlined.Search, null, tint = Faint) },
-                singleLine = true, shape = RoundedCornerShape(ThusoRadius.control),
+                singleLine = true, shape = RoundedCornerShape(ThusoRadius.pill),
                 textStyle = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Find a service" },
-                colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = Line)
+                colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = Faint)
             )
             if (filtered.isEmpty()) EmptyStateCard("No matching services", "Try another name, or browse the whole catalogue.")
             else filtered.chunked(columns).forEach { row ->
@@ -418,14 +421,14 @@ fun serviceIcon(id: String) = when (id) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
             TileIcon(serviceIcon(service.id))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                Text(service.name, style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(service.name, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                 Text(service.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
             }
             Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Faint, modifier = Modifier.size(20.dp))
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-            Text("From R${service.price}", style = MaterialTheme.typography.titleSmall, color = Slate)
-            Text("·", style = MaterialTheme.typography.bodySmall, color = Line)
+            Text("From R${service.price}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
+            Text("·", style = MaterialTheme.typography.bodySmall, color = Stone)
             Text("${service.duration} minutes", style = MaterialTheme.typography.bodySmall, color = Faint)
         }
     }
@@ -454,7 +457,7 @@ fun serviceIcon(id: String) = when (id) {
            nowhere else in this design and reads as a different product the moment it opens. */
         containerColor = Color.White,
         shape = RoundedCornerShape(ThusoRadius.card),
-        title = { Text(if (step == 4) "Your demo visit is booked" else "Your home visit", style = MaterialTheme.typography.titleLarge, color = Ink) },
+        title = { Text(if (step == 4) "Your demo visit is booked" else "Your home visit", style = MaterialTheme.typography.titleLarge, color = Charcoal) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (step < 4) StepDots(step + 1, 4, labels[step])
@@ -463,12 +466,12 @@ fun serviceIcon(id: String) = when (id) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             TileIcon(serviceIcon(service.id))
                             Column(Modifier.weight(1f)) {
-                                Text(service.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                                Text(service.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                                 Text("Registered nurse", style = MaterialTheme.typography.bodySmall, color = BodyText)
                             }
-                            Text("R${service.price}", style = MaterialTheme.typography.titleMedium, color = Ink)
+                            Text("R${service.price}", style = MaterialTheme.typography.titleMedium, color = Charcoal)
                         }
-                        Text("Who is this visit for?", style = MaterialTheme.typography.labelMedium, color = Slate)
+                        Text("Who is this visit for?", style = MaterialTheme.typography.labelMedium, color = Charcoal)
                         (listOf("Lerato Molefe") + store.family).forEach { name ->
                             Row(
                                 Modifier.fillMaxWidth().clickable { person = name }.semantics { selected = person == name },
@@ -478,7 +481,7 @@ fun serviceIcon(id: String) = when (id) {
                         OutlinedTextField(address, { address = it }, label = { Text("Visit location") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     }
                     1 -> {
-                        Text(SchedulingData.chooseWhen, style = MaterialTheme.typography.titleSmall, color = Ink)
+                        Text(SchedulingData.chooseWhen, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                         /* Two different promises, chosen rather than inferred: an arrival estimate
                            answers "when will somebody get here", which is only a question for one. */
                         SchedulingData.kinds.forEach { option ->
@@ -488,7 +491,7 @@ fun serviceIcon(id: String) = when (id) {
                             ) {
                                 RadioButton(kind == option.id, { kind = option.id })
                                 Column(Modifier.weight(1f).padding(top = 12.dp)) {
-                                    Text(option.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                                    Text(option.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                                     Text(option.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                                 }
                             }
@@ -507,7 +510,7 @@ fun serviceIcon(id: String) = when (id) {
                         }
                     }
                     2 -> {
-                        Text("How would you like to pay?", style = MaterialTheme.typography.titleSmall, color = Ink)
+                        Text("How would you like to pay?", style = MaterialTheme.typography.titleSmall, color = Charcoal)
                         listOf("Card" to "Visa ending 4242", "Cash" to "Pay the nurse after the visit", "Thuso Wallet" to "Demo balance R500.00").forEach { (name, detail) ->
                             Row(
                                 Modifier.fillMaxWidth().clickable { payment = name }.semantics { selected = payment == name },
@@ -515,7 +518,7 @@ fun serviceIcon(id: String) = when (id) {
                             ) {
                                 RadioButton(payment == name, { payment = name })
                                 Column(Modifier.weight(1f)) {
-                                    Text(name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                                    Text(name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                                     Text(detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                                 }
                             }
@@ -594,21 +597,21 @@ fun serviceIcon(id: String) = when (id) {
     onSlot: (String) -> Unit,
     footer: String
 ) {
-    Text(SchedulingData.scheduledHeading, style = MaterialTheme.typography.titleSmall, color = Ink)
+    Text(SchedulingData.scheduledHeading, style = MaterialTheme.typography.titleSmall, color = Charcoal)
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         days.forEachIndexed { index, offered ->
             Column(
                 Modifier.widthIn(min = 66.dp).heightIn(min = 72.dp).padding(vertical = 4.dp)
-                    .background(if (day == index) Indigo else Color.White, RoundedCornerShape(ThusoRadius.card))
-                    .border(1.dp, if (day == index) Indigo else Line, RoundedCornerShape(ThusoRadius.card))
+                    .background(if (day == index) Charcoal else SurfaceWhite, RoundedCornerShape(ThusoRadius.card))
+                    .border(1.dp, if (day == index) Indigo else Stone, RoundedCornerShape(ThusoRadius.card))
                     .clickable { onDay(index) }
                     .semantics { selected = day == index; contentDescription = Scheduling.longDate(offered.date) },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(offered.weekday, style = MaterialTheme.typography.labelMedium, color = if (day == index) IndigoSoft else BodyText)
-                Text(offered.dayNumber, style = MaterialTheme.typography.titleMedium, color = if (day == index) Color.White else Ink)
-                Text(offered.month, style = MaterialTheme.typography.labelMedium, color = if (day == index) IndigoSoft else BodyText)
+                Text(offered.weekday, style = MaterialTheme.typography.labelMedium, color = if (day == index) SurfaceWhite else Faint)
+                Text(offered.dayNumber, style = MaterialTheme.typography.titleMedium, color = if (day == index) SurfaceWhite else Charcoal)
+                Text(offered.month, style = MaterialTheme.typography.labelMedium, color = if (day == index) SurfaceWhite else Faint)
             }
         }
     }
@@ -617,8 +620,8 @@ fun serviceIcon(id: String) = when (id) {
             row.forEach { time ->
                 Box(
                     Modifier.weight(1f).heightIn(min = TouchTarget)
-                        .background(if (slot == time) Indigo else Color.White, RoundedCornerShape(ThusoRadius.control))
-                        .border(1.dp, if (slot == time) Indigo else Line, RoundedCornerShape(ThusoRadius.control))
+                        .background(if (slot == time) Charcoal else SurfaceWhite, RoundedCornerShape(ThusoRadius.control))
+                        .border(1.dp, if (slot == time) Indigo else Stone, RoundedCornerShape(ThusoRadius.control))
                         .clickable { onSlot(time) }.semantics { selected = slot == time },
                     Alignment.Center
                 ) { Text(time, style = MaterialTheme.typography.titleSmall, color = if (slot == time) Color.White else BodyText) }
@@ -656,6 +659,10 @@ fun serviceIcon(id: String) = when (id) {
                        it can be moved and cancelled; the sample rows beside it are pictures of visits
                        and are offered neither, because there is nothing there to act on. */
                     val visit: BookedVisit? = null,
+                    /* Where the row goes when it is opened. A completed visit has a summary; a
+                       sample beside it has nothing behind it and stays inert rather than opening a
+                       screen about a visit that did not happen. */
+                    val opens: String? = null,
                     /* And the record of one that was cancelled, which is what puts the reason on the
                        row. The Cancelled tab held a single sample and no way to add to it, so the
                        product displayed the outcome of an action it did not offer. */
@@ -671,7 +678,14 @@ fun serviceIcon(id: String) = when (id) {
     fun sample(title: String, place: String, status: String, tone: String, offset: Long, start: String, minutes: Int) =
         Row5(title, place, status, tone, Scheduling.today().plusDays(offset), start, minutes, false)
     val rows = when (tab) {
-        "Past" -> listOf(sample("Wound care", "Home visit · Sandton", "Completed", "teal", -3, "10:00", 40))
+        /* The visit the passport's last reading set was taken at, dated from that set rather than
+           from a number typed here, so the row and the summary it opens cannot disagree about when
+           it happened — they could not disagree before because they never met. */
+        "Past" -> listOf(
+            Row5(services.first { it.id == "vitals" }.name, "Home visit · Sandton · ${passportHolder.name}",
+                 "Completed", "teal", Passport.dateOf(Passport.latestSet.dayOffset), "09:00",
+                 services.first { it.id == "vitals" }.duration, false, opens = "Visit summary")
+        )
         /* Cancelled visits are kept, with the reason given, and the sample below them is left where
            it was: a tab that empties itself the moment somebody uses it teaches nothing. */
         "Cancelled" -> store.cancelled.map { entry ->
@@ -696,13 +710,13 @@ fun serviceIcon(id: String) = when (id) {
             PrimaryTabRow(
                 selectedTabIndex = tabs.indexOf(tab),
                 containerColor = Color.Transparent,
-                divider = { HorizontalDivider(color = Line) }
+                divider = { HorizontalDivider(color = Stone) }
             ) {
                 tabs.forEach { name ->
                     Tab(
                         selected = tab == name, onClick = { tab = name },
                         text = { Text(name, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
-                        selectedContentColor = Indigo, unselectedContentColor = BodyText
+                        selectedContentColor = Charcoal, unselectedContentColor = Faint
                     )
                 }
             }
@@ -717,12 +731,12 @@ fun serviceIcon(id: String) = when (id) {
                                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
                                 ) {
                                     Text(row.weekday, style = MaterialTheme.typography.labelSmall, color = Faint)
-                                    Text(row.dayNumber, style = MaterialTheme.typography.titleLarge, color = Ink)
+                                    Text(row.dayNumber, style = MaterialTheme.typography.titleLarge, color = Charcoal)
                                     Text(row.month, style = MaterialTheme.typography.labelSmall, color = Faint)
                                 }
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
                                     StatusHeader(row.status, row.tone) {
-                                        Text(row.title, style = if (row.nurse) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleSmall, color = Ink)
+                                        Text(row.title, style = if (row.nurse) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleSmall, color = Charcoal)
                                     }
                                     IconLine(Icons.Outlined.Schedule, row.time)
                                     IconLine(Icons.Outlined.LocationOn, row.place)
@@ -730,7 +744,7 @@ fun serviceIcon(id: String) = when (id) {
                                 }
                             }
                             if (row.nurse) {
-                                HorizontalDivider(color = Line)
+                                HorizontalDivider(color = Stone)
                                 NurseRow()
                             }
                             /* Every visit that exists can be moved and can be cancelled — not only
@@ -747,7 +761,7 @@ fun serviceIcon(id: String) = when (id) {
                                rows all offering "Cancel this visit" are three identical stops to a
                                screen reader with nothing to tell them apart. */
                             row.visit?.let { visit ->
-                                HorizontalDivider(color = Line)
+                                HorizontalDivider(color = Stone)
                                 Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
                                     OutlinedButton(
                                         onClick = { moving = visit },
@@ -773,8 +787,14 @@ fun serviceIcon(id: String) = when (id) {
                         /* Merged only where the card is not also holding its own buttons: a card with
                            Reschedule and View details in it is three things to a screen reader and
                            has to stay three, or the buttons disappear into the sentence. */
+                        val opens = row.opens
                         if (row.nurse) LeadCard(content = body)
                         else if (row.visit != null) CareCard(content = body)
+                        else if (opens != null) CareCard(
+                            Modifier.clickable { open(opens) }.semantics(mergeDescendants = true) {
+                                contentDescription = "${row.spoken}. Opens the visit summary."
+                            }, content = body
+                        )
                         else CareCard(Modifier.semantics(mergeDescendants = true) { contentDescription = row.spoken }, content = body)
                     }
                 }
@@ -783,17 +803,17 @@ fun serviceIcon(id: String) = when (id) {
         }
         Box(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.card))
-                .background(Brush.linearGradient(listOf(IndigoDeep, Indigo)))
+                .background(Charcoal)
                 .semantics(mergeDescendants = true) {}
         ) {
             Image(painterResource(R.drawable.mythuso_family), null, Modifier.align(Alignment.BottomEnd).height(140.dp), contentScale = ContentScale.Fit)
             Column(Modifier.padding(ThusoSpacing.space20).fillMaxWidth(0.62f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
                 Text("Care that fits your life.", style = MaterialTheme.typography.titleLarge, color = Color.White)
-                Text("Easy booking. Trusted professionals.", style = MaterialTheme.typography.bodySmall, color = IndigoSoft)
+                Text("Easy booking. Trusted professionals.", style = MaterialTheme.typography.bodySmall, color = SurfaceWhite)
                 Button(
                     onClick = { open("Book care") }, shape = RoundedCornerShape(ThusoRadius.control),
                     modifier = Modifier.heightIn(min = TouchTarget),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = IndigoDeep)
+                    colors = ButtonDefaults.buttonColors(containerColor = SurfaceWhite, contentColor = Charcoal)
                 ) {
                     Text("Book another visit", style = MaterialTheme.typography.labelLarge)
                     Spacer(Modifier.width(ThusoSpacing.space8))

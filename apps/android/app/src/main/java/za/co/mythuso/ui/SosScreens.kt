@@ -142,10 +142,10 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
         EmergencyFirst()
         Note(sosEmergency.whyFirst)
 
-        Text("If it is not that, three questions", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("If it is not that, three questions", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         Note(sosRouting.noAlgorithm)
         CareCard {
-            Text(sosRedFlags.prompt, style = MaterialTheme.typography.titleMedium, color = Ink)
+            Text(sosRedFlags.prompt, style = MaterialTheme.typography.titleMedium, color = Charcoal)
             Note(sosRedFlags.help)
             sosRedFlags.conditions.forEach { condition ->
                 val ticked = condition.id in flagged
@@ -167,7 +167,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                     Icon(if (ticked) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null,
                         tint = if (ticked) Danger else Faint)
                     Column {
-                        Text(condition.name, style = MaterialTheme.typography.bodyLarge, color = Ink)
+                        Text(condition.name, style = MaterialTheme.typography.bodyLarge, color = Charcoal)
                         Text(condition.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                     }
                 }
@@ -184,9 +184,9 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
             ) {
                 Icon(if (none) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null,
                     tint = if (none) Indigo else Faint)
-                Text(sosRedFlags.noneLabel, style = MaterialTheme.typography.bodyLarge, color = Ink)
+                Text(sosRedFlags.noneLabel, style = MaterialTheme.typography.bodyLarge, color = Charcoal)
             }
-            Text(sosRouting.isNotTriage, style = MaterialTheme.typography.bodyMedium, color = Slate)
+            Text(sosRouting.isNotTriage, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
         }
 
         if (flagged.isNotEmpty()) {
@@ -196,9 +196,9 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(outcome.headline, style = MaterialTheme.typography.titleLarge, color = Danger)
-                Text(outcome.detail, style = MaterialTheme.typography.bodyMedium, color = Slate)
+                Text(outcome.detail, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                 flagged.sorted().forEach { id ->
-                    Sos.condition(id)?.let { Text("• ${it.name}", style = MaterialTheme.typography.titleSmall, color = Ink) }
+                    Sos.condition(id)?.let { Text("• ${it.name}", style = MaterialTheme.typography.titleSmall, color = Charcoal) }
                 }
                 Text(sosRedFlags.endsTheQuestions, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 DialLine()
@@ -208,12 +208,12 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
 
         if (none) {
             CareCard {
-                Text(sosRouting.questions[1].prompt, style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(sosRouting.questions[1].prompt, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                 FlowRowChips(sosCoverage.areas + SOS_ELSEWHERE, setOfNotNull(area)) { picked ->
                     area = picked; requested = false
                 }
                 Note(sosRouting.questions[1].help)
-                Text(sosRouting.questions[2].prompt, style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(sosRouting.questions[2].prompt, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                 FlowRowChips(listOf("Yes", "No"), setOfNotNull(canAnswer?.let { if (it) "Yes" else "No" })) { picked ->
                     canAnswer = picked == "Yes"; requested = false
                 }
@@ -237,11 +237,11 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                 Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(ThusoRadius.card)).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(outcome.headline, style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(outcome.headline, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                 Text(outcome.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
-                Text(failure.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                Text(failure.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                 Text(failure.what, style = MaterialTheme.typography.bodyMedium, color = BodyText)
-                Text(failure.instead, style = MaterialTheme.typography.bodyMedium, color = Slate)
+                Text(failure.instead, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                 if (door.failureId == "vetting") {
                     candidates.filter { !it.second.allowed }.forEach {
                         Text("${it.first.name}: ${it.second.reason.orEmpty()}",
@@ -255,7 +255,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
         if (door == SosDoor.UrgentVisit) {
             val outcome = Sos.outcome("urgent-visit")
             CareCard {
-                Text(outcome.headline, style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(outcome.headline, style = MaterialTheme.typography.titleMedium, color = Charcoal)
                 Text(outcome.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 ReviewLine("Thuso SOS urgent visit", "R $sosVisitPrice")
                 ReviewLine("Of that, to the nurse", "R $sosVisitNurseShare")
@@ -263,19 +263,19 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
             }
             CareCard {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                    Text(sosTarget.title, style = MaterialTheme.typography.titleMedium, color = Ink, modifier = Modifier.weight(1f))
+                    Text(sosTarget.title, style = MaterialTheme.typography.titleMedium, color = Charcoal, modifier = Modifier.weight(1f))
                     StatusPill(Sos.targetLabel, "amber")
                 }
                 Text(sosTarget.statement, style = MaterialTheme.typography.bodyMedium, color = BodyText)
-                Text(sosTarget.whenItCannotBeMet, style = MaterialTheme.typography.bodyMedium, color = Slate)
+                Text(sosTarget.whenItCannotBeMet, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                 Note(sosTarget.estimateIsNotTheTarget)
             }
-            Text("Who could come", style = MaterialTheme.typography.titleLarge, color = Ink)
+            Text("Who could come", style = MaterialTheme.typography.titleLarge, color = Charcoal)
             CareCard {
                 candidates.forEach { (subject, decision, eta) ->
                     Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                            Text(subject.name, style = MaterialTheme.typography.titleSmall, color = Ink, modifier = Modifier.weight(1f))
+                            Text(subject.name, style = MaterialTheme.typography.titleSmall, color = Charcoal, modifier = Modifier.weight(1f))
                             StatusPill(if (decision.allowed) "Cleared" else "Refused", if (decision.allowed) "teal" else "danger")
                         }
                         Text("${subject.zone.orEmpty()} · ${subject.reference} · ${arrivalLine(eta)}",
@@ -292,12 +292,12 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                 }
                 Note(sosTarget.arrivalUnknown)
                 Text(Sos.rule("urgency-does-not-relax-vetting").sentence,
-                    style = MaterialTheme.typography.bodyMedium, color = Slate)
+                    style = MaterialTheme.typography.bodyMedium, color = Charcoal)
             }
         }
 
         if (requested) {
-            Text(sosStandDown.title, style = MaterialTheme.typography.titleLarge, color = Ink)
+            Text(sosStandDown.title, style = MaterialTheme.typography.titleLarge, color = Charcoal)
             CareCard {
                 Text(sosStandDown.statement, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 Note(sosStandDown.chargeRule)
@@ -317,11 +317,11 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                         Text("Preview: nobody answers the callback", style = MaterialTheme.typography.bodyMedium, color = BodyText)
                     }
                     if (unanswered) {
-                        Text(sosStandDown.noAnswerRule, style = MaterialTheme.typography.bodyMedium, color = Slate,
+                        Text(sosStandDown.noAnswerRule, style = MaterialTheme.typography.bodyMedium, color = Charcoal,
                             modifier = Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp))
                     }
                 } else {
-                    Text("Stood down · ${chosen.label}", style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text("Stood down · ${chosen.label}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
                     Text(sosStandDown.nurseNote, style = MaterialTheme.typography.bodyMedium, color = BodyText)
                     ReviewLine("What the nurse is told", chosen.nurseIsTold)
                     ReviewLine("What is recorded", chosen.recorded)
@@ -330,61 +330,61 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
             }
         }
 
-        Text("When this does not work", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("When this does not work", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         Note("Four ways a button like this fails and one way vetting stops it. Each says what to do instead, because a failure screen without one is a dead end wearing an apology.")
         sosFailures.forEach { failure ->
             CareCard {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.WarningAmber, null, tint = MangoInk)
-                    Text(failure.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text(failure.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                 }
                 Text(failure.what, style = MaterialTheme.typography.bodyMedium, color = BodyText)
-                Text(failure.instead, style = MaterialTheme.typography.bodyMedium, color = Slate)
+                Text(failure.instead, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
             }
         }
 
-        Text("Where and when", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("Where and when", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
             Text(sosCoverage.statement, style = MaterialTheme.typography.bodyMedium, color = BodyText)
-            Text(sosCoverage.areas.joinToString(" · "), style = MaterialTheme.typography.titleSmall, color = Slate)
+            Text(sosCoverage.areas.joinToString(" · "), style = MaterialTheme.typography.titleSmall, color = Charcoal)
             ReviewLine("Hours", "${sosCoverage.hours.days}, ${sosCoverage.hours.opensAt}–${sosCoverage.hours.closesAt}")
             Note(sosCoverage.hours.note)
             Note(sosCoverage.honestNote)
         }
 
-        Text("${sosAlert.name} · the panic button", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("${sosAlert.name} · the panic button", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
-            Text("${sosAlert.name} · R $sosAlertMonthly a month", style = MaterialTheme.typography.titleMedium, color = Ink)
+            Text("${sosAlert.name} · R $sosAlertMonthly a month", style = MaterialTheme.typography.titleMedium, color = Charcoal)
             Text(sosAlert.what, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             Note(sosAlert.phaseNote)
             sosAlert.honesty.forEach {
                 Text(it.sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             }
-            Text(sosAlert.notCover, style = MaterialTheme.typography.bodyMedium, color = Slate)
+            Text(sosAlert.notCover, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
         }
 
-        Text(sosRecord.title, style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text(sosRecord.title, style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
             Text(sosRecord.statement, style = MaterialTheme.typography.bodyMedium, color = BodyText)
-            sosRecord.kept.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = Slate) }
-            HorizontalDivider(color = Line)
+            sosRecord.kept.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = Charcoal) }
+            HorizontalDivider(color = Stone)
             sosRecord.notKept.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = BodyText) }
         }
 
-        Text("The promises this screen makes", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("The promises this screen makes", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         sosRules.forEach { rule ->
             CareCard {
-                Text(rule.title, style = MaterialTheme.typography.titleSmall, color = Ink)
+                Text(rule.title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                 Text(rule.sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             }
         }
 
-        Text("What this screen will not do", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("What this screen will not do", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         sosRefusals.forEach { refusal ->
             CareCard {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                     Icon(Icons.Outlined.Block, null, tint = Danger)
-                    Text(refusal.sentence, style = MaterialTheme.typography.bodyMedium, color = Slate)
+                    Text(refusal.sentence, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                 }
             }
         }
@@ -405,7 +405,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
             Icon(Icons.Outlined.LocalHospital, null, tint = Danger)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(sosEmergency.headline, style = MaterialTheme.typography.titleLarge, color = Danger)
-                Text(sosEmergency.lead, style = MaterialTheme.typography.bodyMedium, color = Slate)
+                Text(sosEmergency.lead, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
             }
         }
         sosEmergency.numbers.forEach { number ->
@@ -416,13 +416,13 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
             ) {
                 Text(number.number, style = MaterialTheme.typography.titleLarge, color = Danger)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(number.name, style = MaterialTheme.typography.titleSmall, color = Ink)
+                    Text(number.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                     Text(number.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
                     Text(number.whenToUse, style = MaterialTheme.typography.bodySmall, color = Faint)
                 }
             }
         }
-        Text(sosEmergency.notAnAmbulance, style = MaterialTheme.typography.bodyMedium, color = Slate)
+        Text(sosEmergency.notAnAmbulance, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
         Text(sosEmergency.previewNote, style = MaterialTheme.typography.bodyMedium, color = BodyText)
     }
 }

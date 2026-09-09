@@ -179,7 +179,7 @@ private data class ConsultationSignature(
                         if (heading.id == "O") readings.forEach { reading ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(reading.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                                Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Slate)
+                                Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                                 ProvenanceMark(reading.provenance)
                             }
                         }
@@ -198,8 +198,8 @@ private data class ConsultationSignature(
         }
         if (neverGranted.isNotEmpty()) CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.MedicalServices, null, tint = Indigo)
-                Text("Not on this form at all", style = MaterialTheme.typography.titleSmall, color = Ink)
+                Icon(Icons.Outlined.MedicalServices, null, tint = Charcoal)
+                Text("Not on this form at all", style = MaterialTheme.typography.titleSmall, color = Charcoal)
             }
             Text(
                 "${neverGranted.joinToString(", ") { it.name.lowercase() }.replaceFirstChar { it.uppercase() }} ${if (neverGranted.size > 1) "are" else "is"} absent rather than offered and refused after it has been written. A ${role?.name?.lowercase() ?: "party"} is never granted ${if (neverGranted.size > 1) "those capabilities" else "that capability"}.",
@@ -212,7 +212,7 @@ private data class ConsultationSignature(
         val signed = signature
         if (signed != null) CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.VerifiedUser, null, tint = Indigo)
+                Icon(Icons.Outlined.VerifiedUser, null, tint = Charcoal)
                 Text("Demo consultation signed.", style = MaterialTheme.typography.titleMedium)
             }
             ReviewLine("Clinician", signed.name)
@@ -261,18 +261,18 @@ private data class ConsultationSignature(
            to change what a reading was — it gets to say what it makes of it, which is the free field
            underneath. */
         if (section.id == "observations" && decision.allowed && readings.isNotEmpty()) {
-            Text("Readings captured on this visit", style = MaterialTheme.typography.labelLarge, color = Slate)
+            Text("Readings captured on this visit", style = MaterialTheme.typography.labelLarge, color = Charcoal)
             readings.forEach { reading ->
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(reading.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                        Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Slate)
+                        Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                         ProvenanceMark(reading.provenance)
                     }
                     if (reading.state != CaptureState.STORED) StatusPill(reading.state.label, "sky")
                     if (reading.superseded) StatusPill("Superseded · kept", "quiet")
                     ProvenanceBlock(reading, patient)
-                    HorizontalDivider(color = Line)
+                    HorizontalDivider(color = Stone)
                 }
             }
             Note("Carried from the capture queue rather than retyped. A number copied into a text box arrives in the record as something a clinician wrote, and the whole point of recording an origin is that the record can still tell the difference in a year’s time.")

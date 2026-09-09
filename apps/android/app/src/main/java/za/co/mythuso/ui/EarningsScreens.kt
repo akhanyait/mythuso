@@ -93,14 +93,14 @@ private fun rand(amount: Int): String {
                     tint = if (dispatchable.allowed) Indigo else MangoInk)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(if (dispatchable.allowed) "Cleared for visits" else "You will not be sent new visits",
-                        style = MaterialTheme.typography.titleMedium, color = Ink)
+                        style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     Text(
                         if (dispatchable.allowed) "Every check is verified and in date. Visits can be sent to you."
                         else dispatchable.reason.orEmpty(),
                         style = MaterialTheme.typography.bodyMedium, color = BodyText
                     )
                     if (!dispatchable.allowed) Text(Earnings.rule("suspension-is-not-confiscation").sentence,
-                        style = MaterialTheme.typography.bodyMedium, color = Slate)
+                        style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                 }
             }
         }
@@ -114,7 +114,7 @@ private fun rand(amount: Int): String {
             "Since ${payTaxYear.startsOn} · ${payTaxYear.label}")
         Note(Earnings.rule("accrued-is-not-paid").sentence)
 
-        Text("Where the money goes", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("Where the money goes", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
             FlowRowChips(Earnings.pricedServices.map { it.name }, setOf(service.name)) { name ->
                 serviceId = Earnings.pricedServices.first { it.name == name }.id
@@ -138,13 +138,13 @@ private fun rand(amount: Int): String {
             Note("Across the nine services at launch that is ${rand(Earnings.shareLow)} to ${rand(Earnings.shareHigh)} a visit — the same range the public page advertises, read from the same catalogue.")
         }
 
-        Text("Your weeks", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("Your weeks", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         Note(payCycle.note)
         payWeeks.forEach { week ->
             WeekCard(week, openWeek == week.id) { openWeek = if (openWeek == week.id) null else week.id }
         }
 
-        Text("Tax", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("Tax", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
             LabelledAmount("Reached your account since ${payTaxYear.startsOn}", rand(Earnings.paidThisTaxYear))
             LabelledAmount("Tax withheld by MyThuso", rand(0))
@@ -153,13 +153,13 @@ private fun rand(amount: Int): String {
             Refusal(Earnings.refusal("advise-on-tax"))
         }
 
-        Text("Where you are paid", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("Where you are paid", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 TileIcon(Icons.Outlined.AccountBalance, size = 38.dp)
                 Column {
                     Text("${payoutAccount.bank} · ${payoutAccount.maskedNumber}",
-                        style = MaterialTheme.typography.titleMedium, color = Ink)
+                        style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     Text(payoutAccount.holder, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
             }
@@ -174,8 +174,8 @@ private fun rand(amount: Int): String {
                     Note("Before anything changes, we check it is you. Nothing here is sent.")
                     payoutAccount.reverify.forEach { step ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
-                            Icon(Icons.Outlined.Lock, null, tint = Indigo)
-                            Text(step, style = MaterialTheme.typography.bodyMedium, color = Slate)
+                            Icon(Icons.Outlined.Lock, null, tint = Charcoal)
+                            Text(step, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                         }
                     }
                     OutlinedTextField(code, { code = it.filter(Char::isDigit).take(6) },
@@ -185,7 +185,7 @@ private fun rand(amount: Int): String {
                 }
                 else -> {
                     Text("Waiting ${payoutAccount.coolingOffHours} hours",
-                        style = MaterialTheme.typography.titleMedium, color = Ink)
+                        style = MaterialTheme.typography.titleMedium, color = Charcoal)
                     Text(Earnings.rule("account-change-waits").sentence,
                         style = MaterialTheme.typography.bodyMedium, color = BodyText)
                     OutlinedButton({ accountStage = "settled"; code = "" }, shape = ThusoButtonShape) { Text("Cancel the change") }
@@ -193,7 +193,7 @@ private fun rand(amount: Int): String {
             }
         }
 
-        Text("What this screen will not do", style = MaterialTheme.typography.titleLarge, color = Ink)
+        Text("What this screen will not do", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         payRefusals.filter { it.id != "advise-on-tax" }.forEach { CareCard { Refusal(it) } }
         Note("No money moves in this preview. Payment runs, bank verification and a real ledger arrive with the payment provider, and every amount above is arithmetic on the demo catalogue.")
     }
@@ -207,7 +207,7 @@ private fun rand(amount: Int): String {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
         Box(Modifier.padding(top = 4.dp).size(11.dp).background(colour, RoundedCornerShape(3.dp)))
         Column {
-            Text(amount, style = MaterialTheme.typography.titleMedium, color = Ink)
+            Text(amount, style = MaterialTheme.typography.titleMedium, color = Charcoal)
             Text(note, style = MaterialTheme.typography.bodySmall, color = Faint)
         }
     }
@@ -216,7 +216,7 @@ private fun rand(amount: Int): String {
 @Composable private fun Metric(label: String, value: String, note: String) {
     CareCard {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = BodyText)
-        Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Ink)
+        Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Charcoal)
         Text(note, style = MaterialTheme.typography.bodySmall, color = Faint)
     }
 }
@@ -224,14 +224,14 @@ private fun rand(amount: Int): String {
 @Composable private fun LabelledAmount(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = BodyText, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text(value, style = MaterialTheme.typography.titleMedium, color = Charcoal)
     }
 }
 
 @Composable private fun Refusal(item: PayRefusal) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
         Icon(Icons.Outlined.Block, null, tint = Danger)
-        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Slate)
+        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
     }
 }
 
@@ -244,7 +244,7 @@ private fun rand(amount: Int): String {
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top
         ) {
             Column {
-                Text(rand(week.total), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Ink)
+                Text(rand(week.total), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Charcoal)
                 Text("Week to ${Scheduling.shortDate(week.ends)} · ${week.visits} visits",
                     style = MaterialTheme.typography.bodySmall, color = Faint)
             }
@@ -262,10 +262,10 @@ private fun rand(amount: Int): String {
                 Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(line.service ?: Earnings.lineKind(line.kind).name,
-                            style = MaterialTheme.typography.bodyLarge, color = Ink, modifier = Modifier.weight(1f))
+                            style = MaterialTheme.typography.bodyLarge, color = Charcoal, modifier = Modifier.weight(1f))
                         Text(if (line.amount < 0) "− ${rand(line.amount)}" else rand(line.amount),
                             style = MaterialTheme.typography.titleSmall,
-                            color = if (line.amount < 0) Danger else Ink)
+                            color = if (line.amount < 0) Danger else Charcoal)
                     }
                     Text("${line.reference} · ${line.patient}", style = MaterialTheme.typography.bodySmall, color = Faint)
                     line.plan?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Indigo) }
