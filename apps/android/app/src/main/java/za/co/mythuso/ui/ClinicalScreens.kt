@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,7 +37,32 @@ val observations = listOf(
 )
 private val Flag = MangoInk
 
-@Composable fun VisitAssessmentScreen(store: PreviewStore, reference: String = "TH-2048", patient: String = "Lerato Molefe", close: () -> Unit) {
+/* The labels a held part's facts are written under.
+ *
+ * A part's `detail` is what that part holds, said in the nurse's own terms — so reading it back is
+ * how the assessment comes back rather than a second, hidden copy of the same state. The labels are
+ * constants because they are read as well as written: a label typed twice and spelt differently
+ * once is an assessment that reloads with half of a consent.
+ *
+ * The visit code is deliberately not among them. It is a secret that expires with the visit, and
+ * what is worth keeping is that it matched — not the six digits themselves. */
+private const val FACT_CODE = "Visit code"
+private const val FACT_IDENTITY = "Identity"
+private const val FACT_CONSENT_READINGS = "Readings today"
+private const val FACT_CONSENT_RECORD = "Into the Health Passport"
+private const val FACT_SYMPTOMS = "Symptoms"
+private const val FACT_NEXT_STEP = "Next step"
+private const val FACT_NOTES = "Visit notes"
+private const val FACT_SIGNED_BY = "Signed by"
+private const val FACT_REGISTRATION = "Registration"
+private const val AGREED = "Agreed"
+private const val NOT_AGREED = "Not agreed"
+private const val NO_SYMPTOMS = "None recorded"
+private const val NO_NOTES = "None written"
+
+private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.label == label }?.value
+
+@Composable fun VisitAssessmentScreen(store: PreviewStore, reference: String = "TH-2048", patient: String = "Lerato Molefe", close: () -> Unit, open: (String) -> Unit = {}) {
     /* The signature carries the registration it was made under, read from the same vetting record
        dispatch asks before it offers the visit rather than a number typed into this screen. An
        attribution line is where a reader is shown what accountability looks like, and it is the one
@@ -45,28 +71,81 @@ private val Flag = MangoInk
     /* Recording an observation is writing into somebody's record, so it asks the same question the
        consultation form asks before it offers a field. */
     val mayWrite = nurse?.let { can(it, "write-clinical-note") }
-    var stage by remember { mutableIntStateOf(0) }
-    var otp by remember { mutableStateOf("") }
-    var otpError by remember { mutableStateOf("") }
-    var identitySeen by remember { mutableStateOf(false) }
-    var consentAssessment by remember { mutableStateOf(false) }
-    var consentRecord by remember { mutableStateOf(false) }
-    val values = remember { mutableStateMapOf<String, String>() }
+    /* Where this assessment lives between screens, and it is not this screen.
+     *
+     * Every var below used to be `remember {}`, which is to say it lived nowhere: walking away from
+     * the screen, or Android reclaiming the process behind it, lost the whole assessment — and a
+     * nurse who loses one writes it again in the car from memory, which is a different record. So
+     * each finished part is held in the visit queue, on the disk, and this screen starts by reading
+     * back whatever is already there for this visit. See model/VisitQueue.kt.
+     *
+     * The state is derived from the parts rather than kept beside them. A second copy of “what has
+     * been done” is a second thing to get wrong, and it is the copy that would be stale. */
+    val queue = store.visitQueue
+    val heldParts = queue.forVisit(reference)
+    fun partOf(kind: VisitPartKind) = heldParts.firstOrNull { it.kind == kind }
+    val identityPart = partOf(VisitPartKind.IDENTITY)
+    val consentPart = partOf(VisitPartKind.CONSENT)
+    val observationsPart = partOf(VisitPartKind.OBSERVATIONS)
+    val findingsPart = partOf(VisitPartKind.FINDINGS)
+    val signOffPart = partOf(VisitPartKind.SIGN_OFF)
+    val stages = listOf("Identity", "Consent", "Observations", "Findings", "Sign-off")
+    /* Where she got to, worked out from what is held rather than written down separately. The first
+       stage with nothing behind it is the one she is standing on. */
+    val furthest = listOf(identityPart, consentPart, observationsPart, findingsPart)
+        .indexOfFirst { it == null }.let { if (it < 0) 4 else it }
+    var stage by rememberSaveable(reference) { mutableIntStateOf(furthest) }
+    var otp by rememberSaveable(reference) { mutableStateOf("") }
+    var otpError by rememberSaveable(reference) { mutableStateOf("") }
+    var identitySeen by rememberSaveable(reference) { mutableStateOf(identityPart != null) }
+    var consentAssessment by rememberSaveable(reference) { mutableStateOf(consentPart?.fact(FACT_CONSENT_READINGS) == AGREED) }
+    var consentRecord by rememberSaveable(reference) { mutableStateOf(consentPart?.fact(FACT_CONSENT_RECORD) == AGREED) }
+    /* The typed readings come back as readings, with their origins on them, rather than as a map of
+       strings this screen would have had to guess the provenance of a second time. */
+    val values = remember(reference) {
+        mutableStateMapOf<String, String>().apply {
+            observationsPart?.readings?.forEach { put(it.observationId, it.value) }
+        }
+    }
     /* Origin is its own map rather than a field on the value with a default, because the moment it
        has a default it has been guessed, and the contract is blunt about that: there is no default
        and no unknown, and a value nobody can say the origin of is not filed. A number typed into
        the box below is therefore not a reading yet. It becomes one when somebody says where it
        came from. */
-    val origins = remember { mutableStateMapOf<String, Provenance>() }
+    val origins = remember(reference) {
+        mutableStateMapOf<String, Provenance>().apply {
+            observationsPart?.readings?.forEach { put(it.observationId, it.provenance) }
+        }
+    }
     /* A nurse may want to take by hand what the kit already gave her — a cuff reading she does not
        believe, most often. Overriding does not erase the kit's reading; it leaves it in the queue,
-       where it becomes the other half of a two-readings-one-observation decision. */
-    val overridden = remember { mutableStateMapOf<String, Boolean>() }
-    var symptoms by remember { mutableStateOf(setOf<String>()) }
-    var notes by remember { mutableStateOf("") }
-    var escalation by remember { mutableStateOf("No escalation — routine visit") }
-    var signed by remember { mutableStateOf(false) }
-    val stages = listOf("Identity", "Consent", "Observations", "Findings", "Sign-off")
+       where it becomes the other half of a two-readings-one-observation decision.
+
+       Restored by arithmetic rather than by a flag on the disk: an observation the held part has a
+       hand-taken reading for, and which the kit also has one standing for, was overridden. There is
+       nothing a stored flag could say that those two facts do not already. */
+    val overridden = remember(reference) {
+        mutableStateMapOf<String, Boolean>().apply {
+            observationsPart?.readings?.forEach { reading ->
+                if (store.capture.standingFor(reference, reading.observationId) != null) put(reading.observationId, true)
+            }
+        }
+    }
+    /* A plain remember rather than a saveable one: a Set has no bundle of its own, and the copy that
+       matters is the held part on the disk. */
+    var symptoms by remember(reference) {
+        mutableStateOf(
+            findingsPart?.fact(FACT_SYMPTOMS)?.takeIf { it != NO_SYMPTOMS }
+                ?.split(", ")?.filter { it.isNotBlank() }?.toSet() ?: emptySet()
+        )
+    }
+    var notes by rememberSaveable(reference) {
+        mutableStateOf(findingsPart?.fact(FACT_NOTES)?.takeIf { it != NO_NOTES } ?: "")
+    }
+    var escalation by rememberSaveable(reference) {
+        mutableStateOf(findingsPart?.fact(FACT_NEXT_STEP) ?: "No escalation — routine visit")
+    }
+    var signed by rememberSaveable(reference) { mutableStateOf(signOffPart != null) }
 
     fun kitFor(observation: Observation): CapturedReading? =
         if (overridden[observation.id] == true) null else store.capture.standingFor(reference, observation.id)
@@ -96,8 +175,40 @@ private val Flag = MangoInk
     val alsoCaptured = store.capture.forVisit(reference)
         .filter { it.observationId in notRangeFlagged && !it.superseded && it.state != CaptureState.REFUSED }
 
+    /* Finishing a stage puts it on the disk. Nothing is sent — the app declares no permissions at
+       all — and the state the part is left in says exactly that: captured, held here, hers to
+       correct until she signs. A nurse who steps back and changes the readings has corrected them
+       rather than taken a second set, so the held part is replaced rather than stacked; the store
+       does that, not this screen. */
+    fun holdPart(kind: VisitPartKind, summary: String, detail: List<VisitPartFact>, readings: List<CapturedReading> = emptyList()) {
+        nurse?.let { queue.hold(kind, reference, patient, summary, detail, readings, it) }
+    }
+    /* The typed readings, as readings. Each one carries the origin somebody chose for it, so what is
+       held on the phone is what would be filed rather than a screen's copy of it. The kit's own
+       readings are not copied in here: they are already in the capture ledger with their instrument,
+       serial and calibration attached, and a second copy of a reading is a second thing to disagree
+       with. */
+    fun typedReadings(): List<CapturedReading> = captured.mapNotNull { observation ->
+        val origin = origins[observation.id] ?: return@mapNotNull null
+        val value = values[observation.id] ?: return@mapNotNull null
+        val now = System.currentTimeMillis()
+        CapturedReading(
+            id = "VQ-$reference-${observation.id}", visit = reference, patient = patient,
+            observationId = observation.id, label = observation.label, unit = observation.unit,
+            value = value, provenance = origin,
+            caveats = if (origin == Provenance.PATIENT_REPORTED)
+                listOf("What ${patient.substringBefore(' ')} said, recorded as what they said. It is not a finding, and no clinician observed it.")
+            else emptyList(),
+            byId = nurse?.id.orEmpty(), byName = nurse?.name.orEmpty(), byReference = nurse?.reference.orEmpty(),
+            deviceMillis = now, writtenMillis = now, state = CaptureState.CAPTURED
+        )
+    }
+
     ScreenColumn {
         StepDots(stage + 1, stages.size, stages[stage])
+        /* Above the work on every stage, because “has any of this left the phone” is a question a
+           nurse answers by looking rather than by opening something. */
+        VisitQueueStanding(store, open)
         ReviewLine("Visit", "$reference · $patient")
         when (stage) {
             0 -> {
@@ -110,7 +221,18 @@ private val Flag = MangoInk
                 Note("If the code fails, the visit does not start. The nurse contacts the Control Tower instead of proceeding.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = close, shape = ThusoButtonShape) { Text("Leave") }
-                    Button(onClick = { if (otp == "482190") stage = 1 else otpError = "That code doesn’t match this visit. Call the Control Tower before continuing." }, enabled = otp.length == 6 && identitySeen, shape = ThusoButtonShape) { Text("Confirm identity") }
+                    Button(onClick = {
+                        if (otp == "482190") {
+                            holdPart(
+                                VisitPartKind.IDENTITY, "Visit code confirmed at the door, and identity seen",
+                                listOf(
+                                    VisitPartFact(FACT_CODE, "Six digits, matched"),
+                                    VisitPartFact(FACT_IDENTITY, "Document seen by the nurse")
+                                )
+                            )
+                            stage = 1
+                        } else otpError = "That code doesn’t match this visit. Call the Control Tower before continuing."
+                    }, enabled = otp.length == 6 && identitySeen, shape = ThusoButtonShape) { Text("Confirm identity") }
                 }
             }
             1 -> {
@@ -123,7 +245,18 @@ private val Flag = MangoInk
                 Note("Refusal is recorded as a valid outcome, not a failed visit. A guardian consents for a child or where authority is verified.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { stage = 0 }, shape = ThusoButtonShape) { Text("Back") }
-                    Button(onClick = { stage = 2 }, enabled = consentAssessment, shape = ThusoButtonShape) { Text("Start observations") }
+                    Button(onClick = {
+                        holdPart(
+                            VisitPartKind.CONSENT,
+                            if (consentRecord) "Agreed to today’s readings and to them going into her Health Passport"
+                            else "Agreed to today’s readings. Not to them going into her Health Passport",
+                            listOf(
+                                VisitPartFact(FACT_CONSENT_READINGS, if (consentAssessment) AGREED else NOT_AGREED),
+                                VisitPartFact(FACT_CONSENT_RECORD, if (consentRecord) AGREED else NOT_AGREED)
+                            )
+                        )
+                        stage = 2
+                    }, enabled = consentAssessment, shape = ThusoButtonShape) { Text("Start observations") }
                 }
             }
             2 -> {
@@ -209,7 +342,15 @@ private val Flag = MangoInk
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { stage = 1 }, shape = ThusoButtonShape) { Text("Back") }
-                    Button(onClick = { stage = 3 }, enabled = captured.isNotEmpty(), shape = ThusoButtonShape) { Text("Record findings") }
+                    Button(onClick = {
+                        holdPart(
+                            VisitPartKind.OBSERVATIONS,
+                            "${captured.size} ${if (captured.size == 1) "reading" else "readings"} taken at this visit",
+                            captured.map { VisitPartFact(it.label, "${rawOf(it)} ${it.unit}") },
+                            typedReadings()
+                        )
+                        stage = 3
+                    }, enabled = captured.isNotEmpty(), shape = ThusoButtonShape) { Text("Record findings") }
                 }
             }
             3 -> {
@@ -231,7 +372,19 @@ private val Flag = MangoInk
                 if (escalation.contains("Emergency")) Note("In production this opens the emergency pathway immediately and alerts the Control Tower before the form is finished.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { stage = 2 }, shape = ThusoButtonShape) { Text("Back") }
-                    Button(onClick = { stage = 4 }, shape = ThusoButtonShape) { Text("Review sign-off") }
+                    Button(onClick = {
+                        holdPart(
+                            VisitPartKind.FINDINGS,
+                            if (symptoms.isEmpty() && notes.isBlank()) "Nothing reported, and $escalation".lowercase().replaceFirstChar { it.uppercase() }
+                            else "What ${patient.substringBefore(' ')} reported, and what happens next",
+                            listOf(
+                                VisitPartFact(FACT_SYMPTOMS, if (symptoms.isEmpty()) NO_SYMPTOMS else symptoms.sorted().joinToString(", ")),
+                                VisitPartFact(FACT_NEXT_STEP, escalation),
+                                VisitPartFact(FACT_NOTES, notes.ifBlank { NO_NOTES })
+                            )
+                        )
+                        stage = 4
+                    }, shape = ThusoButtonShape) { Text("Review sign-off") }
                 }
             }
             else -> {
@@ -241,6 +394,14 @@ private val Flag = MangoInk
                             Icon(Icons.Outlined.VerifiedUser, null, tint = Charcoal); Text("Demo assessment closed.", style = MaterialTheme.typography.titleMedium)
                         }
                         Note("Nothing was transmitted, no record was written and no clinician was notified. In production this becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration.")
+                        /* Sealed is not sent, and the difference is the whole feature. Everything
+                           she did is on this phone and comes back from a crash or a restart; none of
+                           it is anywhere a doctor can read it. */
+                        Note("Every piece of this visit is sealed and held on this phone. It survives ${queue.survives.replaceFirstChar { it.lowercase() }} Until it sends, no doctor can read it and the Control Tower does not know the visit is done.")
+                        OutlinedButton(
+                            onClick = { open("Visit queue") },
+                            Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape
+                        ) { Text("See what is waiting on this phone") }
                     }
                     Button(onClick = close, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Back to the workspace") }
                 } else {
@@ -273,7 +434,21 @@ private val Flag = MangoInk
                     Note("A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.")
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { stage = 3 }, shape = ThusoButtonShape) { Text("Back") }
-                        Button(onClick = { signed = true }, enabled = mayWrite?.allowed != false, shape = ThusoButtonShape) { Text("Sign demo assessment") }
+                        /* Signing is the nurse saying she is finished, and it seals everything this
+                           visit holds at once — the contract's own word for the state she leaves it
+                           in. After it there is nothing left for her to do, and the phone owes it a
+                           connection. */
+                        Button(onClick = {
+                            holdPart(
+                                VisitPartKind.SIGN_OFF, "Signed on this phone, and not yet filed",
+                                listOf(
+                                    VisitPartFact(FACT_SIGNED_BY, nurse?.name ?: "Sister Naledi Mokoena"),
+                                    VisitPartFact(FACT_REGISTRATION, nurse?.reference ?: "SANC registration")
+                                )
+                            )
+                            queue.seal(reference)
+                            signed = true
+                        }, enabled = mayWrite?.allowed != false, shape = ThusoButtonShape) { Text("Sign demo assessment") }
                     }
                 }
             }

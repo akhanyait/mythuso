@@ -32,12 +32,15 @@ private fun underWayNow(service: CareService, person: String, address: String): 
         began.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")), "Card")
 }
 /**
- * Everything the preview holds. All of it is in memory and lost on restart, with one deliberate
- * exception: the capture queue, which is the nurse's own work and is written to this phone. The
- * reasoning for that one exception is in CaptureQueue.kt, and it is the contract's — an entry that
- * has been captured survives a crash, a restart and a sign-out.
+ * Everything the preview holds. All of it is in memory and lost on restart, with two deliberate
+ * exceptions: the capture queue and the visit queue, which are the nurse's own work and are written
+ * to this phone. The reasoning is in CaptureQueue.kt and VisitQueue.kt, and it is the contract's —
+ * an entry that has been captured survives a crash, a restart and a sign-out.
+ *
+ * Two books rather than one, because they are two files: a ledger that will not parse must not take
+ * the other one down with it.
  */
-class PreviewStore(book: CaptureBook = MemoryBook()) {
+class PreviewStore(book: CaptureBook = MemoryBook(), visitBook: CaptureBook = MemoryBook()) {
     /* Seeded with a real date rather than the string "12 September · 09:00", which stopped being
        true the day after somebody typed it.
        The second one began ten minutes ago, computed from the clock for the same reason. It is here
@@ -47,9 +50,18 @@ class PreviewStore(book: CaptureBook = MemoryBook()) {
        existed in the contract and on no screen. A refusal nobody can reach is a refusal nobody has
        tested. */
     val visits = mutableStateListOf(
-        BookedVisit(services[0], "Lerato Molefe", "Home visit · Sandton",
+        /* Randburg rather than Sandton. Sandton is not one of the three areas the booking screen
+           offers and not one of the five suburbs geography.json says MyThuso works in, so a visit
+           booked there was a visit the app's own coverage refuses — and the arrival screen is where
+           that finally became visible. */
+        BookedVisit(services[0], "Lerato Molefe", "Home visit · Randburg",
             "scheduled", Scheduling.today().plusDays(5), "09:00", "Card"),
-        underWayNow(services[7], "Nomsa Molefe", "Home visit · Rosebank")
+        /* Soweto rather than Rosebank, which is the suburb the assigned nurse works out of. A visit
+           in the nurse's own suburb is a real state and the arrival screen has a sentence for it —
+           there is no distance between one zone centre and itself — but it was the only state the
+           preview could reach, so the straight line the whole screen is an argument about was never
+           drawn. Soweto is a covered area and one of the three the booking screen offers. */
+        underWayNow(services[7], "Nomsa Molefe", "Home visit · Soweto")
     )
     /* Cancelled visits are kept rather than deleted, which is the cancellation contract's first
        limit: a visit that vanishes is one nobody can ask about afterwards — not the patient, not the
@@ -77,6 +89,12 @@ class PreviewStore(book: CaptureBook = MemoryBook()) {
        screen are the readings the assessment fills in and the consultation record carries, rather
        than three lists that agree by luck. */
     val capture = CaptureStore(book)
+    /* And the rest of the visit, one level up: the identity check, the consent, the findings and the
+       signature. They lived in a screen's `remember {}` until now, which is to say they lived
+       nowhere — see VisitQueue.kt. Held here rather than in the assessment so that walking away from
+       the screen, or the process being reclaimed behind it, is not the same thing as losing an
+       assessment. */
+    val visitQueue = VisitQueueStore(visitBook)
     /* Which visits a clinician has already signed. It is the thing stale-write is a disagreement
        with, so the queue has to be able to ask something rather than assume. */
     val signedVisits = mutableStateListOf("TH-2045")

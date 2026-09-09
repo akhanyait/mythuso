@@ -151,6 +151,10 @@ import za.co.mythuso.model.mokoenaHousehold
                         })
                     }
                     Section("Health trends") {
+                        /* First of the three, because it is the question the other two assume has
+                           already been answered: a chart of a number nobody has explained is a
+                           picture of an unanswered question. */
+                        PlainRow("What your readings mean", "What each measurement is, and who decides what it means for you") { open("What your readings mean") }
                         PlainRow("How your readings have changed", "${readingSets.size} visits over the last ${Passport.monthsCovered} months") { open("Health trends") }
                         PlainRow("Your last completed visit", "What was measured, and what the doctor said") { open("Visit summary") }
                     }
@@ -304,9 +308,16 @@ import za.co.mythuso.model.mokoenaHousehold
            day it happened rather than handed its readings, so a visit and what was measured at it
            cannot disagree — they never met before, which is why they never did. */
         title == "Health trends" -> HealthTrendsScreen(open)
+        /* The question a person actually opened the passport with, and the one it answered least:
+           what does this number mean. Written text with its own provenance on it — never a model. */
+        title == "What your readings mean" -> ExplainReadingsScreen(open)
         title == "Visit summary" -> PastVisitScreen(store, Passport.latestSet.dayOffset, open)
         isDevicePermissionScreen(title) -> DevicePermissionScreen(title, open)
         title == "My family" -> FamilyScreen(store, open)
+        /* The payer's own view of what they pay for. Its own route rather than a tab inside the
+           family screen: a sponsor is not a guardian, and putting the two behind one door is the
+           blur the whole contract is written to prevent. */
+        title == "Care you pay for" -> SponsoredCareScreen(store, open)
         title == "Privacy & settings" -> PrivacyScreen(store, open)
         title == "Care plans" -> PlansScreen(open)
         title == "Thuso Wallet" -> WalletScreen(open)
@@ -316,7 +327,15 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Roadmap" -> RoadmapScreen(store, open)
         title == "First-run & recovery" -> firstRun()
         title == "Invite a guardian" -> InviteGuardianScreen(store) { open("My family") }
-        title == "Visit assessment" -> VisitAssessmentScreen(store, close = { open("Nurse workspace") })
+        title == "Visit assessment" -> VisitAssessmentScreen(store, close = { open("Nurse workspace") }, open = open)
+        /* The whole visit, one level up from the readings. Its own route because it is worth opening
+           when no instrument is anywhere near — it is where the morning’s work sits when there is no
+           signal, and on this platform it is on the disk rather than in memory. */
+        title == "Visit queue" -> VisitQueueScreen(store, open)
+        /* Where is your nurse. The suburb and never a position, and nothing at all before the day —
+           see model/Arrival.kt for why that is arithmetic rather than copy. */
+        title.startsWith("Where is your nurse") ->
+            ArrivalScreen(store, title.substringAfter('·', "").trim(), open)
         /* Thuso Kit and the queue underneath it are one feature read from two ends: the nurse takes
            a reading on the first and the record has to live with it on the second. Two routes rather
            than one screen with a tab, because the queue is worth opening when no instrument is
@@ -395,12 +414,18 @@ import za.co.mythuso.model.mokoenaHousehold
             ToolRow("Sponsor verification · Themba Molefe") { open("Vetting: S-021") }
             Note("Being a parent in the app is not proof of being a guardian in law, and paying is not permission. Both are vetted separately.")
         }
+        /* The word "sponsored care" has been on this screen since it was written with nothing behind
+           it. There is now: what has been drawn, and where the line is. */
+        CareCard {
+            Text("Care you pay for", style = MaterialTheme.typography.titleMedium)
+            ToolRow("What has been used, and what it lets you see") { open("Care you pay for") }
+        }
         Note("Sponsoring care does not automatically grant access to health records.")
     }
 }
 @Composable fun PrivacyScreen(store: PreviewStore, open: (String) -> Unit) { ScreenColumn { Heading("Your privacy matters", "Your data. Your choices.", "Demo preferences reset when the app restarts."); CareCard { Setting("Care reminders", store.reminders) { store.reminders = it }; Setting("Wearable readings", store.wearableSharing) { store.wearableSharing = it }; Setting("Product updates", store.marketing) { store.marketing = it } }; CareCard { listOf("Access history", "Request a correction", "Request account deletion", "Information Officer").forEach { item -> ToolRow(item) { open(item) } } }; Text("Production POPIA compliance requires governance, lawful processing, verified technical controls and a clinical retention schedule. These are UI previews.", style = MaterialTheme.typography.bodySmall) } }
 @Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); listOf(Triple("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), Triple("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), Triple("Thuso Mom", "R249 / month", "Pregnancy and baby’s first year"), Triple("Thuso Senior", "R699 / month", "Weekly care and family support"), Triple("Thuso Recover", "Custom pricing", "Personalised recovery support")).forEach { (name, price, description) -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Charcoal); Text(name, style = MaterialTheme.typography.titleLarge); Text(description); Text(price, style = MaterialTheme.typography.headlineSmall, color = Indigo); OutlinedButton(onClick = { open(name) }, shape = ThusoButtonShape) { Text("Explore plan") } } } } }
-@Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Charcoal); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
+@Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Charcoal); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") }; ToolRow("Care you pay for") { open("Care you pay for") } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
 /* A clinical workspace navigates as itself.
  *
  * Every role used to open one long screen under the patient's own bottom bar, so a nurse on a
@@ -532,10 +557,15 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
                    before anything else on this screen: is my work safe? */
                 CareCard {
                     Text("On this phone", style = MaterialTheme.typography.titleMedium)
-                    val held = store.capture.readings.count { it.state != CaptureState.STORED }
-                    val needing = store.capture.readings.count { it.state == CaptureState.CONFLICTED }
-                    ToolRow("Waiting to send") { open("Capture queue") }
-                    Note("$held reading${if (held == 1) "" else "s"} held here · $needing needing a decision")
+                    /* Both queues, counted together. A nurse has not got two queues, so she must not
+                       be shown two numbers here and a third somewhere else. */
+                    val readingsHeld = store.capture.readings.count { it.state != CaptureState.STORED }
+                    val partsHeld = store.visitQueue.parts.count { it.isPending }
+                    val needing = store.capture.readings.count { it.state == CaptureState.CONFLICTED } +
+                        store.visitQueue.conflicted.size
+                    ToolRow("Waiting to send") { open("Visit queue") }
+                    Note("$partsHeld ${if (partsHeld == 1) "piece" else "pieces"} of a visit and $readingsHeld reading${if (readingsHeld == 1) "" else "s"} held here · $needing needing a decision")
+                    Note("Held on the disk, not in memory. It comes back from a crash, a force-quit and a restart.")
                 }
                 CareCard {
                     Text("Today’s work", style = MaterialTheme.typography.titleMedium)
@@ -553,7 +583,7 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
             }
             role == "Nurse" && section == "Thuso Kit" -> CareCard {
                 Text("Instruments and what they wrote", style = MaterialTheme.typography.titleMedium)
-                listOf("Thuso Kit", "Capture queue").forEach { item -> ToolRow(item) { open(item) } }
+                listOf("Thuso Kit", "Capture queue", "Visit queue").forEach { item -> ToolRow(item) { open(item) } }
             }
             role == "Nurse" && section == "Earnings" -> CareCard {
                 Text("Your money", style = MaterialTheme.typography.titleMedium)

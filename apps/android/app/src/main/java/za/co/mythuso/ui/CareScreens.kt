@@ -436,7 +436,7 @@ fun serviceIcon(id: String) = when (id) {
 @Composable fun BookingDialog(service: CareService, store: PreviewStore, close: () -> Unit) {
     var step by remember { mutableIntStateOf(0) }
     var person by remember { mutableStateOf("Lerato Molefe") }
-    var address by remember { mutableStateOf("Home visit · Sandton") }
+    var address by remember { mutableStateOf("Home visit · Randburg") }
     var day by remember { mutableIntStateOf(0) }
     var slot by remember { mutableStateOf("09:00") }
     var payment by remember { mutableStateOf("Card") }
@@ -774,6 +774,24 @@ fun serviceIcon(id: String) = when (id) {
                                         Modifier.weight(1f).heightIn(min = TouchTarget),
                                         shape = ThusoButtonShape
                                     ) { Text("View details") }
+                                }
+                                /* Only on the Upcoming tab, and only where there is a visit behind
+                                   the row. What the screen shows depends on the day — the suburb and
+                                   nothing else until the day itself — and that is decided by
+                                   model/Arrival.kt rather than by whether this button is drawn. */
+                                /* Outlined rather than a bare text button. Between two buttons above
+                                   it and a red one below it, a line of charcoal text on its own read
+                                   as a heading — it was found by looking at the three together. The
+                                   pin says what kind of answer is behind it before the words do. */
+                                if (tab == "Upcoming") OutlinedButton(
+                                    onClick = { open("Where is your nurse · ${visit.reference}") },
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)
+                                        .semantics { contentDescription = "Where is the nurse for the ${row.title} visit, ${row.time}" },
+                                    shape = ThusoButtonShape
+                                ) {
+                                    Icon(Icons.Outlined.LocationOn, null, Modifier.size(17.dp), tint = Charcoal)
+                                    Spacer(Modifier.width(ThusoSpacing.space8))
+                                    Text("Where is your nurse?")
                                 }
                                 TextButton(
                                     onClick = { cancelling = visit },

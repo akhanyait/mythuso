@@ -45,6 +45,9 @@ interface CaptureBook {
     fun write(text: String)
     /** A file that will not parse is kept, not deleted. Losing work to a bad parse is still losing work. */
     fun quarantine(reason: String)
+    /** What the kept-aside file is now called, once one exists. A screen that says work was kept
+     *  and cannot say where it was kept has asked to be believed rather than checked. */
+    val setAside: String? get() = null
     val where: String
     val survives: String
     val doesNotSurvive: String
@@ -64,10 +67,16 @@ class MemoryBook : CaptureBook {
 /**
  * A single JSON file in the app's private storage, written whole and renamed into place, so a
  * process killed mid-write leaves the previous queue intact rather than half of two.
+ *
+ * The name is a parameter because there is more than one thing on this phone worth keeping and one
+ * file per thing is the point: a parse failure in the readings must not take the rest of the visit
+ * down with it, and the reverse. The machinery — the temp file, the rename, the quarantine — is the
+ * same machinery, written once.
  */
-class FileBook(private val directory: File) : CaptureBook {
-    private val file = File(directory, "capture-queue.json")
-    private val pending = File(directory, "capture-queue.json.writing")
+class FileBook(private val directory: File, private val name: String = "capture-queue.json") : CaptureBook {
+    private val file = File(directory, name)
+    private val pending = File(directory, "$name.writing")
+    private val stem = name.removeSuffix(".json")
     override fun read(): String? = if (file.exists()) runCatching { file.readText() }.getOrNull() else null
     override fun write(text: String) {
         runCatching {
@@ -77,8 +86,11 @@ class FileBook(private val directory: File) : CaptureBook {
             if (!pending.renameTo(file)) { file.writeText(text); pending.delete() }
         }
     }
+    override var setAside: String? = null
+        private set
     override fun quarantine(reason: String) {
-        runCatching { file.renameTo(File(directory, "capture-queue.unreadable-${System.currentTimeMillis()}.json")) }
+        val aside = File(directory, "$stem.unreadable-${System.currentTimeMillis()}.json")
+        runCatching { file.renameTo(aside) }.onSuccess { setAside = aside.name }
     }
     override val where = "A file in this app’s own private storage on this phone. Nothing is sent anywhere: the app declares no permissions at all, internet included."
     override val survives = "Closing the app, the process being killed, a crash, restarting the phone, and signing out."
@@ -94,7 +106,7 @@ private fun JSONObject.putIf(key: String, value: String?) { if (value != null) p
 private fun JSONObject.text(key: String): String? = if (isNull(key)) null else optString(key, "").ifEmpty { null }
 private fun JSONObject.millis(key: String): Long? = if (isNull(key) || !has(key)) null else optLong(key)
 
-private fun readingToJson(reading: CapturedReading): JSONObject = JSONObject().apply {
+internal fun readingToJson(reading: CapturedReading): JSONObject = JSONObject().apply {
     put("id", reading.id); put("visit", reading.visit); put("patient", reading.patient)
     put("observationId", reading.observationId); put("label", reading.label); put("unit", reading.unit)
     put("value", reading.value); put("provenance", reading.provenance.id)
@@ -112,7 +124,7 @@ private fun readingToJson(reading: CapturedReading): JSONObject = JSONObject().a
     putIf("countersignedBy", reading.countersignedBy); putIf("countersignedReference", reading.countersignedReference)
     putIf("resolutionNote", reading.resolutionNote)
 }
-private fun jsonToReading(json: JSONObject): CapturedReading? {
+internal fun jsonToReading(json: JSONObject): CapturedReading? {
     /* provenanceIsRequired, enforced where it can actually be enforced: a row that comes back off
        the disk without an origin is dropped from the reading, not defaulted into one. It is the one
        case where losing a row is right — a value nobody can say the origin of is not filed. */

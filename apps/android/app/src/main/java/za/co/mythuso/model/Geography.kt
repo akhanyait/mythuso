@@ -42,6 +42,9 @@ object Geography {
     fun zoneById(id: String): Zone? = GeographyData.zones.firstOrNull { it.id == id }
     fun zoneNamed(name: String): Zone? = GeographyData.zones.firstOrNull { it.name.equals(name, ignoreCase = true) }
     fun refusal(id: String): GeographyRefusal = GeographyData.refusals.first { it.id == id }
+    /** A privacy rule by id, so a screen renders the contract's own statement and its own reason
+     *  rather than a paraphrase of either. */
+    fun rule(id: String): GeographyRule = GeographyData.privacyRules.first { it.id == id }
 
     /** Rounded to the precision the contract declares, on the way *in*. Doing it at the point of
      *  drawing would leave the sharper number sitting in memory for the next screen to render, and

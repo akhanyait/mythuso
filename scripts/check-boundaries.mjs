@@ -717,8 +717,7 @@ for(const document of passport.documents) if(document.dayOffset!==undefined) thr
    fails until its line is deleted from below. Until then the loop holds both files to every value in
    the contract, word for word and number for number, so neither copy can drift while it waits. */
 const PASSPORT_QUARANTINE = [
- ['apps/ios/MyThuso/Models/Passport.swift', 'read PassportData for the holder, the reviewer, the readings and the review'],
- ['apps/android/app/src/main/java/za/co/mythuso/model/Passport.kt', 'read PassportData for the holder, the reviewer, the readings and the review']
+ ['apps/ios/MyThuso/Models/Passport.swift', 'read PassportData for the holder, the reviewer, the readings and the review']
 ];
 /* The contract, the generated copies of it, the emitter and this checker are where the record is
    supposed to be written down. Everything else is a screen, a library or a test. */

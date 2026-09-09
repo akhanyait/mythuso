@@ -41,12 +41,15 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun MyThusoApp() {
-    /* The capture queue is the one thing this preview writes to the phone, so it is the one thing
-       that needs somewhere to write. It is read once, here, on the way in: a queue loaded a frame
-       later is a queue that shows empty first, and an empty queue is the exact lie the rule about
-       not losing a nurse's work exists to prevent. */
+    /* The two queues are the only things this preview writes to the phone, so they are the only
+       things that need somewhere to write. Both are read once, here, on the way in: a queue loaded a
+       frame later is a queue that shows empty first, and an empty queue is the exact lie the rule
+       about not losing a nurse's work exists to prevent. Two files rather than one, so a ledger that
+       will not parse cannot take the other one with it. */
     val context = LocalContext.current
-    val store = remember(context) { PreviewStore(FileBook(context.filesDir)) }
+    val store = remember(context) {
+        PreviewStore(FileBook(context.filesDir), FileBook(context.filesDir, "visit-parts.json"))
+    }
     var page by remember { mutableStateOf("Home") }
     /* The service a home shortcut chose, handed to the catalogue once and then cleared, so going
        back to Book care later does not reopen a booking nobody asked for. */

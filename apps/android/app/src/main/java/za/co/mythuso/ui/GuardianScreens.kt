@@ -17,6 +17,18 @@ import za.co.mythuso.model.PreviewStore
  * Paying for someone's care is not the same as being allowed to read their records.
  * Scope, duration and verification are three separate decisions, so they are three separate steps.
  */
+/* The three scopes a person can be given, least first.
+ *
+ * Top-level rather than local to the invitation, because the sponsor's screen needs the first of
+ * them by name: the least MyThuso can grant anybody is bookings and payments, and a sponsorship is
+ * not even that. Two copies of the smallest scope would be two answers to the one question a sponsor
+ * is entitled to ask. */
+val guardianScopes = listOf(
+    "Bookings and payments only" to "They can arrange and pay for visits. They see no clinical information at all.",
+    "Visit summaries only" to "They see what happened at a visit and what to do next. No history, results or medicines.",
+    "Full Health Passport" to "Everything you can see. Appropriate for a guardian of a child, or where you have chosen to share fully."
+)
+
 @Composable fun InviteGuardianScreen(store: PreviewStore, close: () -> Unit) {
     var step by remember { mutableIntStateOf(0) }
     var name by remember { mutableStateOf("") }
@@ -25,11 +37,6 @@ import za.co.mythuso.model.PreviewStore
     var expires by remember { mutableStateOf("Until I revoke it") }
     var understood by remember { mutableStateOf(false) }
     val minor = relationship == "Child under 18"
-    val scopes = listOf(
-        "Bookings and payments only" to "They can arrange and pay for visits. They see no clinical information at all.",
-        "Visit summaries only" to "They see what happened at a visit and what to do next. No history, results or medicines.",
-        "Full Health Passport" to "Everything you can see. Appropriate for a guardian of a child, or where you have chosen to share fully."
-    )
     ScreenColumn {
         Text("Step ${step + 1} of 4 · ${listOf("Who", "What they see", "For how long", "Review")[step]}", style = MaterialTheme.typography.labelMedium, color = Indigo)
         when (step) {
@@ -53,7 +60,7 @@ import za.co.mythuso.model.PreviewStore
             }
             1 -> {
                 Heading("Thuso Family", "What should ${name.substringBefore(' ')} see?", "Start with the least you can live with. You can widen it later in one tap.")
-                scopes.forEach { (title, body) ->
+                guardianScopes.forEach { (title, body) ->
                     CareCard(Modifier.clickable { scope = title }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(scope == title, { scope = title })
