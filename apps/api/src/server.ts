@@ -38,13 +38,49 @@ function sessionCookie(token: string, config: Config): string {
 const clearCookie = (config: Config) =>
   [`${COOKIE}=`, 'Path=/', 'HttpOnly', 'SameSite=Strict', 'Max-Age=0', ...(config.cookieSecure ? ['Secure'] : [])].join('; ');
 
+/* ---- What every answer carries, whatever it says --------------------------------------------
+ *
+ * docs/PRIVACY-AND-SECURITY.md used to say that "production must supply HTTP security headers … at
+ * the hosting layer". That is a control described in a document and owned by nobody: a service that
+ * is only safe behind a particular nginx is a service that is unsafe the first time it is run
+ * anywhere else, and the deployment it names hosts five other sites whose config this repository is
+ * forbidden to touch. So the service sets them itself. A proxy may add more; it can no longer be
+ * the only thing that adds any.
+ *
+ * Every one of these is about a JSON API and not about a page:
+ *   - `frame-ancestors 'none'` and `x-frame-options` — nothing may frame an answer from here. This
+ *     API's session cookie is SameSite=Strict, so a frame cannot spend it, but a framed error page
+ *     is still a page an attacker chose to show somebody.
+ *   - `default-src 'none'` — there is nothing to load. A JSON body that somehow reaches a browser
+ *     as a document fetches nothing, runs nothing and submits nothing.
+ *   - `permissions-policy` — an API needs no camera, no microphone and no geolocation, and the
+ *     teleconsultation contract says in its own words that nothing here touches the first two.
+ *   - `cross-origin-resource-policy: same-origin` — a `<script src>` or an `<img src>` on somebody
+ *     else's page may not read what this returned to a signed-in browser.
+ *   - `cross-origin-opener-policy` — a window that opened this one may not reach back into it.
+ *
+ * HSTS is the one that is conditional, and deliberately so. It is sent only where the cookie is
+ * already `Secure`, which is production — sending it from a development server on plain http
+ * teaches a developer's browser to refuse localhost over http for a year, and a header nobody can
+ * turn off is worse than one nobody set. Two years, subdomains included, and no `preload`: a
+ * preload entry is a submission to a list this service cannot withdraw itself from. */
+const TRANSPORT_HEADERS: Record<string, string> = {
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'no-referrer',
+  'content-security-policy': "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+  'x-frame-options': 'DENY',
+  'permissions-policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+  'cross-origin-resource-policy': 'same-origin',
+  'cross-origin-opener-policy': 'same-origin'
+};
+const HSTS = 'max-age=63072000; includeSubDomains';
+
 function send(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
-    'x-content-type-options': 'nosniff',
-    'referrer-policy': 'no-referrer',
+    ...TRANSPORT_HEADERS,
     ...headers
   });
   res.end(payload);
@@ -452,6 +488,10 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
   });
 
   return async function handle(req: IncomingMessage, res: ServerResponse) {
+    /* Sent once here rather than folded into send(), because it is the one header that depends on
+       how the service is deployed rather than on what it is answering. `cookieSecure` is production,
+       and production is the only place this is over TLS. */
+    if (config.cookieSecure) res.setHeader('strict-transport-security', HSTS);
     const origin = req.headers.origin;
     const allowed = origin !== undefined && config.allowedOrigins.includes(origin);
     if (allowed) {
@@ -461,7 +501,7 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     }
     if (req.method === 'OPTIONS') {
       if (!allowed) return send(res, 403, { error: 'origin-not-allowed' });
-      res.writeHead(204, { 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '600' });
+      res.writeHead(204, { ...TRANSPORT_HEADERS, 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '600' });
       return res.end();
     }
     const route = `${req.method} ${(req.url ?? '/').split('?')[0]}`;
@@ -483,9 +523,38 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     }
   };
 }
+/* ---- How long a request may take, and how much of it may be headers -------------------------
+ *
+ * The body has been capped at 8 KiB since this service was written. Time was not capped at all, so
+ * the service inherited Node's defaults — a 300-second request timeout and no header cap of its
+ * own. A connection that opens, sends one header byte a minute and never finishes costs nothing to
+ * make and holds a socket for five minutes, and a few thousand of them are the whole of a slowloris.
+ * Nothing here needs five minutes: the slowest thing this service does is one AES-GCM unwrap and
+ * one SQLite transaction.
+ *
+ * These are set on the listening server rather than inside a handler because they are properties of
+ * the connection, and a handler does not run until the headers are already in. */
+export const serverTimeouts = {
+  /* From the first byte of the request to the last byte of the body. */
+  requestMs: 15_000,
+  /* From the first byte to the end of the headers. Deliberately below requestMs — a client that
+     cannot finish its headers in five seconds is not a client with a slow connection, it is a
+     client that has stopped. */
+  headersMs: 5_000,
+  /* How long an idle keep-alive connection is held open afterwards. */
+  keepAliveMs: 5_000,
+  /* Node counts headers, not bytes, and 8 KiB of body against an unbounded header set is a cap on
+     the wrong half of the request. */
+  maxHeaders: 40
+};
+
 export function start(config = loadConfig()) {
   const store = openStore(config.databasePath);
   const server = createServer(createApp(config, store));
+  server.requestTimeout = serverTimeouts.requestMs;
+  server.headersTimeout = serverTimeouts.headersMs;
+  server.keepAliveTimeout = serverTimeouts.keepAliveMs;
+  server.maxHeadersCount = serverTimeouts.maxHeaders;
   server.listen(config.port, () => {
     console.log(`MyThuso identity and vetting service on :${config.port} (${config.environment}) — holds no health information`);
     if (config.returnCodesInResponse) console.log('Development mode: one-time codes are returned in the response. This is refused in production.');

@@ -4,6 +4,10 @@ This is a requirements and release-gate document, not a claim that the UI is POP
 
 Authoritative starting points: [Information Regulator POPIA resources](https://inforegulator.org.za/popia/), [special personal information provisions, including section 32](https://inforegulator.org.za/knowledge-base/category/popia/chapter-3-conditions-for-lawful-processing/part-b-processing-of-special-personal-information/), [guidance on special personal information](https://inforegulator.org.za/wp-content/uploads/2020/07/InfoRegSA-GuidanceNote-Processing-SpecialPersonalInformation-20210628.pdf), [prior authorisation](https://eservices.inforegulator.org.za/priorauthorisation/default.aspx).
 
+The table below is the *plan*. Which of its controls exist in code today, which are written and
+unreachable, and which are prose is the section immediately after it — read that one first if the
+question is "is this done".
+
 | Control | Preview now | Required before real information |
 |---|---|---|
 | Data minimisation | Fictional fixtures; memory-only state; no analytics | Purpose/field inventory, minimum collection, privacy impact assessment |
@@ -20,6 +24,81 @@ Authoritative starting points: [Information Regulator POPIA resources](https://i
 | Devices | No device access. The permission-denied state is designed, and declining never blocks a visit | Applicable registration/exemption assessment, validated readings, signed firmware and secure pairing |
 | Incidents | Severity triage, immediate-action choice, handover note and demo log; a critical severity states that the form never precedes calling emergency services | Detection, containment, investigation, real paging, and notifications under applicable law; rehearsed playbooks and accountable owners |
 | Research and marketing | Off by default in preview | Separate purpose assessment; no assumption that pseudonymised health data is anonymous |
+
+## Which of these controls actually exists
+
+Written 9 September 2026 at commit `153c7c4`, by reading `apps/api/src/**`, `apps/api/test/**` and
+`scripts/check-boundaries.mjs` rather than by reading the table above.
+
+**Why this section exists.** The table above describes fourteen controls. Several of them are real
+and several are not, and until now the two were written in the same voice — a "**Built**" in bold
+beside a sentence about what production will need, in a paragraph long enough that a reader looking
+for "is this done" would give up before finding out. This document is what stands behind the claim
+that MyThuso treats health data as special personal information under POPIA. A control that exists
+only in a document is a control nobody has, and a document that cannot say which of its own controls
+those are is worse than one that claims nothing.
+
+Nothing here changes the state of `clinical-records`. It is not connected, no clinical record
+exists, and every row below that says "no clinical record exists yet" means exactly that.
+
+**Implemented** means there is code in `apps/api/src` that runs, with a test. **Partly** means the
+mechanism exists and something material about it does not — usually that nothing calls it.
+**Absent** means there is no code: a screen in the web preview, a sentence in this file, or a
+structure that holds nothing is not an implemented control, however carefully written.
+
+| Control | State | Where it is | What checks it |
+|---|---|---|---|
+| Data minimisation | **Partly** | `src/personalData.ts` — a holdings register naming every table, its class (`erase`/`anonymise`/`retain`) and its retention basis. There is no analytics or telemetry code anywhere in the service | `test/personal-data.test.ts` — "it names every table the service actually has, and none it does not". **No boundary check.** The register is an inventory, not a limit: nothing stops a field being collected. The purpose/field inventory and the privacy impact assessment are governance work and are **absent** |
+| Identity | **Implemented** | `src/identity.ts`, `src/totp.ts`, `src/twoFactor.ts`, `src/sensitive.ts`, `src/config.ts` — peppered HMAC over codes and session tokens, `timingSafeEqual`, attempt burning, per-number and per-address rate limits, sliding idle and absolute session caps, no account enumeration, RFC 6238 TOTP with its secret sealed at rest, hashed single-use recovery codes, a ten-minute half-signed-in challenge | `test/identity.test.ts`, `test/two-factor.test.ts`, `test/totp.test.ts` (RFC vectors), `test/server.test.ts` — "a known and an unknown number are answered identically", "one address cannot walk through a list of numbers", "neither the code nor the session token is stored in the clear". Production refusals for a weak pepper, echoed codes, no SMS provider and an http origin, all in `src/config.ts`. **No boundary check on any of it** |
+| ↳ Role-based step-up | **Absent in the service** | `src/stepUp.ts` derives which roles must carry a second factor from the vetting grants, and `decideStepUp`'s `'capability'` branch is **never called**: only `second-factor.disable` and `account.erasure` reach `stepUp()`. The service has no notion of a role on a session | `test/two-factor.test.ts` covers the function. Nothing covers its absence from the routes, because there is nothing to cover |
+| ↳ Home Affairs verification | **Adapter built, never used** | `src/vetting/identityProvider.ts` — signed requests, signature-verified idempotent callback, a fifteen-minute replay window, a sandbox that runs without secrets, and a production refusal to sandbox. It has never spoken to a provider: no partner has been contracted and no key exists | `test/vetting-authority.test.ts` — "production refuses to run without credentials rather than sandboxing", "with no provider configured, Home Affairs is not integrated rather than sandboxed" |
+| ↳ OIDC, clinician verification, guardian authority, device binding, audited recovery | **Absent** | Nothing in `apps/api/src` | — |
+| Authorisation | **Partly, and the gap is the important half** | `src/protection/gate.ts` (five refusals in order: capability, vetting standing, purpose, the patient's own release, break-glass — which overrides the capability check only), `src/vetting/**` (evidence vault, lifecycle, standing resolved out of stored evidence on every read), `src/protection/bootstrap.ts` (a signed, single-use, fifteen-minute console authorisation), `src/vetting/authority.ts` (one adapter per authority, `not-integrated` a first-class answer; thirteen of thirteen answer it) | `test/protection-gate.test.ts`, `test/vetting.test.ts`, `test/vetting-authority.test.ts`. Boundary checks: only `src/protection/**` may import the crypto; the 45-day renewal warning may not move; an interpreter may not be granted a record capability. **The gap: no HTTP route reaches the vault's read or write surface.** `enrol`, `submit`, `open`, `decide`, `second`, `suspend`, `restore` and `standing` are called from the tests and from nowhere else in `src/`. The gate is a library with a test suite, not a running gate |
+| Consent | **Implemented, and it is the most complete control here** | `src/consent/**` — consent to a version of a purpose, the SHA-256 of the exact wording and withdrawal sentence as the proof, a decision naming superseded wording refused outright, withdrawal as its own entry, required and optional purposes separated structurally, and a `record_access_log` hash-chained in its own right with its head sealed periodically into the gate's keyed chain. Routes exist and are reachable | `test/consent.test.ts` (60 tests) and `test/access-log-integrity.test.ts` (22). **Eleven boundary checks** — both sides build the fingerprint from the identical expression; both read `consent.json` rather than restate it; no wording string is duplicated in any of the four codebases; both ledgers stay append-only; the access log may grow no column a reading could go in; the chain columns must exist; the consent module may not import the audit chain or the crypto; the verifier may not seal what it is verifying |
+| ↳ Who wrote the consent down | **Absent** | `POST /consent/give` never sets `recordedBy` or `recordedAs`, so the "a nurse read it aloud" and "a guardian gave it" routes are library-level only. A signed-in person can declare the route themselves | The route id is validated; the authority behind it is not |
+| ↳ Recipient, scope and expiry per grant; downstream propagation | **Absent** | Nothing. There is no recipient because there is no clinical record and no party to give one to | — |
+| Family care | **Absent** | There is no guardian code in `apps/api/src`. `gate.ts` carries two comments marking where a guardian's authority is *meant* to be checked. `apps/web/src/features/Guardian.tsx` is a preview screen: no table, no route, no test | — |
+| Export | **Absent** | `GET /account/data` returns the holdings register and the retention plan — what is held and why, not the data. There is no scoped export, no expiry, no secure delivery, and the route does not ask for step-up | — |
+| Deletion | **Implemented, with a stated reach** | `src/personalData.ts` (holdings, retention bases, disposal dates that are `null` where no honest date exists, a thirty-day section 24 clock), `src/erasure.ts` (seven-day grace, immediate sign-out, an unreachable `.invalid` tombstone), `src/retention.ts` (a sweep that is a dry run unless committed) | `test/personal-data.test.ts`, `test/account.test.ts`, `test/capture.test.ts` — "disposal reaches what is settled and never what is still waiting". **The reach:** `erasePerson` touches six identity tables. The fourteen `retain` holdings are never erased, which the register says in the answer, calls a partial refusal in that word, and points at the Information Regulator |
+| ↳ Correction | **Absent** | There is no correction path in the service, distinct from deletion or otherwise. The web preview has a request screen | — |
+| ↳ An operator queue and proof of response | **Absent** | The thirty-day clock is a number computed into a response body. Nothing enforces it and nobody is paged by it | — |
+| Audit | **Implemented** | `src/protection/audit.ts` — a hash chain keyed from the key ring, `verify()` naming the first break, the key pinned to the oldest version so a rotation does not stop the log verifying, and a field allowlist that *throws* on anything outside it. `src/protection/seal.ts` commits the consent log's head into it | `test/protection-audit.test.ts` — "an entry appended by somebody without the key is caught", "the value that was read is refused, by name". Boundary check: `UPDATE audit` / `DELETE FROM audit` fails the build |
+| ↳ Publishing the chain head somewhere the operator does not control | **Absent, and correctly described as absent** | This is what turns evidence of tampering into evidence somebody else can check. It is the same gap on both chains | — |
+| ↳ The health verification routes | **Open** | `GET /health/audit`, `/health/access-log` and `/health/verification` return counts only, and are unauthenticated and reachable from wherever the service listens. The comment beside them says they answer "on the loopback to a script"; nothing in the code restricts them to it | — |
+| Encryption | **Implemented** | `src/protection/crypto.ts` — AES-256-GCM, a per-record data key wrapped under an HKDF-derived key, the record's identity in the associated data so a ciphertext cannot be moved between patients, blind indexes, versioned roots. `src/protection/rotation.ts` and `npm run rotate` re-wrap on an indexed `key_version`, resumable, dry run unless committed. `src/sensitive.ts` for identity values | `test/protection-crypto.test.ts` (RFC 5869 vectors; "a value written for another server does not open here"), `test/protection-rotation.test.ts` ("a half-finished rotation leaves a working database of mixed versions", "a rotation does not break the audit chain"). Boundary check: nothing outside `src/protection/` may import the crypto. Production refusals for a malformed key, a missing index version and an unusable key ring |
+| ↳ HSM or KMS, split-knowledge custody, per-patient derivation, re-encryption | **Absent** | All four need a vendor or a key ceremony. Rotation is not re-encryption and this document should not let the two be read as one |
+| Transport | **Implemented 9 September 2026** | `src/server.ts` — every answer, including a refusal and a preflight, carries `content-security-policy: default-src 'none'; frame-ancestors 'none'`, `x-frame-options: DENY`, `permissions-policy` refusing camera, microphone and geolocation, `cross-origin-resource-policy` and `cross-origin-opener-policy: same-origin`, `x-content-type-options`, `referrer-policy` and `cache-control: no-store`. HSTS — two years, subdomains, **no preload** — is sent only where the cookie is already `Secure`. The listening server caps the request at 15 s, the headers at 5 s, the idle connection at 5 s and the header count at 40 | `test/server.test.ts` — six tests over the headers and two over the timeouts. **Nine boundary checks** in `check-boundaries.mjs`: each header is read out of the `TRANSPORT_HEADERS` declaration rather than grepped for in the file, `send()` must spread it, HSTS must stay conditional on `cookieSecure` and must never carry `preload`, and the four timeouts must be set with headers landing sooner than the whole request. This replaces the sentence "production must supply HTTP security headers … at the hosting layer", which was a control owned by nobody, on a box hosting five sites whose config this repository may not touch |
+| ↳ TLS itself | **Absent from the service, by design** | `createServer` is plain HTTP. TLS terminates at the proxy; `deploy/README.md` says so, and the service is switched off until it exists |
+| Residence and transfers | **Absent** | Nothing in the service. The one outbound call it can make is to Smile Identity (`identityProvider.ts`), with no region assertion, no subprocessor register and no section 72 handling — and it is never made, because no provider is contracted | — |
+| Clinical AI | **Not applicable to the service; enforced in the catalogue** | There is no model, no inference and no reference range in `apps/api/src`. The ranges and the sentence qualifying them live in `packages/catalog/records.json` | `check-boundaries.mjs` refuses ranges with no qualifying note, refuses a range whose ends are the wrong way round, holds all three platforms to the contract's numbers, and refuses any screen that types one |
+| Devices | **Partly, and not as the row above describes it** | The service does not touch a device — but `src/capture/**` holds device identity, the device's claimed time, the measured skew and a SHA-256 commitment to a sealed reading it does not keep. The logic and its four conflicts are real and tested. **No route reaches it**: `server.ts` opens the tables and nothing more | `test/capture.test.ts`. The claim "no device access" in the row above is true of the network and misleading about the schema — which is why it is written out here. Signed firmware, secure pairing and validated readings are **absent** |
+| Incidents | **Absent** | No incident code in `apps/api/src`. The Control Tower's log is a web preview. No detection, no containment, no paging, no notification | — |
+| Research and marketing | **Partly** | A direct-marketing consent is structurally not a basis for opening a record: `ACCESS_BASES` in `src/consent/contract.ts` excludes it | `test/consent.test.ts` — "a direct-marketing consent is not a basis for opening a record". There is no research pipeline and no pseudonymisation, so there is nothing else to be off by default |
+
+### The three things this table says that the one above does not
+
+**A library with a test suite is not a running control.** The gate, the vetting vault, the clinical
+access log's `open()` and the whole of offline capture are written, tested and unreachable: no HTTP
+route calls any of them. That is defensible — there is no clinical record for them to guard yet —
+but "**Built** in `apps/api`" reads as *running* and it is not, and a funder or an auditor reading
+the row above would be entitled to believe otherwise.
+
+**Twenty tables, and none of them clinical.** `people`, `challenges`, `sessions`, `audit`, `starts`,
+`second_factors`, `recovery_codes`, `second_factor_challenges`, `erasure_requests`,
+`consent_decisions`, `record_access_log`, `protected_access_log`, seven `vetting_*`, and
+`capture_entries` / `capture_conflicts`. Not one holds a clinical value, and that is enforced rather
+than asserted: `scripts/check-boundaries.mjs` parses table and column *identifiers* — not the prose
+around them — and fails the build on a clinical one. The three closest to the line are named in the
+Devices row and in the section on offline capture below.
+
+**What is not rate-limited.** Four things are: `POST /auth/start` (per number and per address),
+`POST /auth/verify` and `POST /auth/second-factor` (per challenge, then burnt), and the two step-up
+routes (counted out of the append-only audit table). Everything else is not — `POST /account/name`,
+`POST /consent/give`, `POST /consent/withdraw`, `POST /vetting/identity/callback` and all four
+`GET /health*` routes. That is a real gap and it is written down here rather than fixed, because a
+limiter is a decision about what a legitimate caller may do and nobody has made it.
+
+---
 
 ## What the service does and does not hold
 
@@ -314,7 +393,11 @@ African counsel. Nothing in the code or in this section is legal advice.
 
 ## Concrete preview protections
 
-No backend calls, analytics or external media dependencies are included. The browser’s fixture state is not written to localStorage, sessionStorage or IndexedDB. Web CSP disallows objects, off-origin scripts and form submission; inline styles remain allowed for presentation. Production must supply HTTP security headers (including CSP frame-ancestors, HSTS, Permissions-Policy and Referrer-Policy) at the hosting layer. The development CSP allows same-host WebSocket connections for Vite.
+No backend calls, analytics or external media dependencies are included. The browser’s fixture state is not written to localStorage, sessionStorage or IndexedDB. Web CSP disallows objects, off-origin scripts and form submission; inline styles remain allowed for presentation. The development CSP allows same-host WebSocket connections for Vite.
+
+The identity service sets its own security headers rather than waiting for a hosting layer to supply them. That sentence used to read “production must supply HTTP security headers … at the hosting layer”, which is a control owned by nobody — and the box named in `deploy/README.md` serves five unrelated production sites whose config this repository is forbidden to touch, so “the hosting layer” was never going to be edited for this. Every answer from `apps/api`, refusals and preflights included, now carries `default-src 'none'; frame-ancestors 'none'`, `X-Frame-Options: DENY`, a `Permissions-Policy` refusing camera, microphone and geolocation, `Cross-Origin-Resource-Policy` and `Cross-Origin-Opener-Policy: same-origin`, `X-Content-Type-Options`, `Referrer-Policy: no-referrer` and `Cache-Control: no-store`. HSTS — two years, subdomains included, **no `preload`** — is sent only where the session cookie is already `Secure`, because a development server that taught a browser to refuse `localhost` over http for two years would be a header nobody could turn off. A proxy may add more; it can no longer be the only thing that adds any. Nine boundary checks keep each of them set, and hold HSTS to being conditional.
+
+Time is capped as well as size. The body has been held to 8 KiB since the service was written; the request is now capped at fifteen seconds, the headers at five, an idle keep-alive connection at five, and the header count at forty. Before that the service inherited Node's defaults — a five-minute request timeout and no header cap — so a connection sending one header byte a minute cost nothing to open and held a socket for five minutes. Nothing here needs five minutes.
 
 Android denies cleartext and disables backup; no network or sensitive permissions are declared. SwiftUI/Compose implement screens directly. The no-WebView gate scans native source; it does not replace an audit of future third-party binary SDKs. No production credentials or private proposal contents are copied into public web assets. The catalogue and branding intentionally appear in the UI; deployment is not authorised or performed by this work.
 

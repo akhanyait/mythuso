@@ -1,7 +1,7 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
-import { createApp } from '../src/server.ts';
+import { createApp, serverTimeouts } from '../src/server.ts';
 import { openStore, type Store } from '../src/store.ts';
 import { ConfigError, loadConfig } from '../src/config.ts';
 
@@ -131,6 +131,77 @@ describe('responses do not leak', () => {
     assert.equal(response.headers.get('cache-control'), 'no-store');
     assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
     assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
+  });
+  /* These used to be a sentence in docs/PRIVACY-AND-SECURITY.md saying production must supply them
+     at the hosting layer — which is a control nobody owns, on a box hosting five other sites whose
+     config this repository may not touch. The service sets them itself now. */
+  test('nothing may frame an answer, and an answer loads nothing', async () => {
+    const response = await call('/health');
+    const csp = response.headers.get('content-security-policy') ?? '';
+    assert.match(csp, /frame-ancestors 'none'/);
+    assert.match(csp, /default-src 'none'/);
+    assert.equal(response.headers.get('x-frame-options'), 'DENY');
+    assert.equal(response.headers.get('cross-origin-resource-policy'), 'same-origin');
+    assert.equal(response.headers.get('cross-origin-opener-policy'), 'same-origin');
+  });
+  test('an API asks for no camera, no microphone and no location', async () => {
+    const policy = (await call('/health')).headers.get('permissions-policy') ?? '';
+    for (const feature of ['camera=()', 'microphone=()', 'geolocation=()']) assert.match(policy, new RegExp(feature.replace(/[()]/g, '\\$&')));
+  });
+  test('a refusal carries them too, and so does a preflight', async () => {
+    const refused = await call('/admin/secrets');
+    assert.equal(refused.status, 404);
+    assert.equal(refused.headers.get('x-frame-options'), 'DENY');
+    const preflight = await fetch(`${base}/auth/start`, { method: 'OPTIONS', headers: { origin: ORIGIN } });
+    assert.equal(preflight.status, 204);
+    assert.equal(preflight.headers.get('x-frame-options'), 'DENY');
+  });
+  /* Sent only where the cookie is already Secure. A development server on plain http that taught a
+     browser to refuse localhost over http for two years would be a header nobody could turn off. */
+  test('HSTS is not sent from a development server', async () => {
+    assert.equal((await call('/health')).headers.get('strict-transport-security'), null);
+  });
+  test('HSTS is sent where the cookie is Secure', async () => {
+    const production = loadConfig({
+      MYTHUSO_ENV: 'production', MYTHUSO_AUTH_PEPPER: 'q'.repeat(40), MYTHUSO_SMS_PROVIDER: 'clickatell',
+      MYTHUSO_ALLOWED_ORIGINS: 'https://app.mythuso.co.za', MYTHUSO_INFORMATION_OFFICER: 'Information Officer',
+      MYTHUSO_PROTECTION_KEYS: '1:' + 'a'.repeat(64)
+    } as NodeJS.ProcessEnv);
+    const secure = openStore(':memory:');
+    const listener = createServer(createApp(production, secure));
+    await new Promise<void>(resolve => listener.listen(0, '127.0.0.1', resolve));
+    const address = listener.address();
+    const at = `http://127.0.0.1:${typeof address === 'object' && address ? address.port : 0}`;
+    const header = (await fetch(`${at}/health`)).headers.get('strict-transport-security') ?? '';
+    listener.close(); secure.close();
+    assert.match(header, /max-age=63072000/);
+    assert.match(header, /includeSubDomains/);
+    /* No preload. A preload entry is a submission to a list this service cannot withdraw itself
+       from, and the domain it would be submitted for hosts five unrelated sites. */
+    assert.doesNotMatch(header, /preload/);
+  });
+});
+
+/* A body has been capped at 8 KiB since this service was written. Time was not capped at all, so a
+   connection that sends one header byte a minute held a socket for Node's default five minutes.
+   Nothing here needs five minutes: the slowest thing it does is an AES-GCM unwrap and one SQLite
+   transaction. */
+describe('a request may not take forever', () => {
+  test('the listening server caps the request, the headers and the idle connection', async () => {
+    const listener = createServer(createApp(config, store));
+    listener.requestTimeout = serverTimeouts.requestMs;
+    listener.headersTimeout = serverTimeouts.headersMs;
+    listener.keepAliveTimeout = serverTimeouts.keepAliveMs;
+    listener.maxHeadersCount = serverTimeouts.maxHeaders;
+    assert.ok(listener.requestTimeout > 0 && listener.requestTimeout <= 30_000, 'a request is capped, and well under Node\'s five minutes');
+    assert.ok(listener.headersTimeout > 0 && listener.headersTimeout < listener.requestTimeout, 'headers must land sooner than the whole request');
+    assert.ok(listener.keepAliveTimeout > 0);
+    assert.ok((listener.maxHeadersCount ?? 0) > 0, 'Node counts headers rather than their bytes, so the count is what there is to cap');
+    listener.close();
+  });
+  test('the headers a slow client is given are the ones it cannot outwait', () => {
+    assert.equal(serverTimeouts.headersMs, 5_000);
+    assert.equal(serverTimeouts.requestMs, 15_000);
   });
 });
 

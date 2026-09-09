@@ -46,29 +46,29 @@ the most screens from drawings into a product.
 
 ### 1. Blocking, and visible in the first five minutes
 
-- **A past visit cannot be opened.** A completed visit has no summary, no "what the nurse found",
-  no rebook. It is the screen a returning patient wants most, and the clinical data behind it
-  already exists in `records.json`.
-- **A cancelled visit shows no reason and no refund state**, though both are now in
-  `cancellation.json` and the cancel flow records them.
-- **The Health Passport has no trends screen and no device permission screen.** Three device
-  integrations are offered and none can be opened.
-- **A family member's profile does not exist.** You cannot book for them from there, nor see or
-  change what you have shared.
+Four of the five that were here are closed, and `docs/FLOW-COMPLETENESS.md` names the commit for
+each: a past visit opens and rebooks, a cancelled one shows its reason and which side of the window
+it fell on, the trends screen draws every reading against the contract's ranges, and a family
+member's profile shows their visits and books for them.
+
+- **The Health Passport still has no device permission screen.** Three device integrations are
+  offered and the More tab now says plainly that none is connected — but *Review permission* does
+  not open anything.
 - **`emergency` has no partner and the SOS screen says so** — but the escalation path from a nurse
   in a house to an ambulance is the single most consequential unfinished journey in the product.
+- **"Chat to our care team", at the foot of the booking catalogue, opens a booking.** There is no
+  care team chat. It is the one journey still marked *blocking* in the flow audit, and the fix is
+  either a screen or removing the control.
 
 ### 2. Structural, and invisible until it bites
 
-- **Per-entry stylesheets.** Every entry ships ~140 kB of CSS including screens it never renders —
-  a patient downloads the dispatch board's rules and the admin console's tables. The same defect as
-  the map bundle, one layer down, and the fix is the same shape.
-- **A 300 weight in the Inter subset.** The design language calls for hairline numerals; the subset
-  starts at 400 and `font-synthesis` is off, so the reference's thinnest figures cannot be drawn.
 - **The native apps have not had the glass pass.** iOS and Android build green and carry the new
   palette, but not the shapes. Three apps that look like relatives rather than one product.
-- **`docs/FLOW-COMPLETENESS.md` is a snapshot, not a check.** It was true when written and several
-  of its rows are now closed. A walked-journey audit that runs in CI would keep it honest.
+- **The controls in `docs/PRIVACY-AND-SECURITY.md` are not all controls.** The document now says
+  which of its fourteen are implemented, which are written and unreachable, and which are prose —
+  and the honest headline is that the gate, the vetting vault, the clinical access log's `open()`
+  and the whole of offline capture are libraries with test suites that no HTTP route calls. That is
+  defensible while there is no clinical record to guard; it is not what "Built" reads as.
 
 ### 3. Recorded gaps that need a person, not a programmer
 
@@ -94,10 +94,9 @@ already draws them for the Control Tower. The patient sees none of it. This is m
 existing capability to a second audience, and it is the feature most likely to be described to a
 friend.
 
-### 2. A visit summary a patient can act on
-After a visit: what was measured, what was in range, what the doctor said, what happens next, and
-one button to rebook. Every part of that already exists in the clinical record; nothing assembles
-it for the person it is about.
+### 2. ~~A visit summary a patient can act on~~ — built
+What was measured, what was in range, what the doctor said, and one button that rebooks with the
+same patient chosen. `tests/patient-screens.spec.ts` holds it.
 
 ### 3. Offline capture for the nurse
 A nurse in a house in Soweto with one bar cannot lose an assessment. The kit capture flow already
@@ -109,12 +108,14 @@ feature and it is the kind of thing that decides whether nurses stay.
 care" as a state. Nobody can see what they are paying for. This is the second revenue line in the
 proposal and it has no screen at all.
 
-### 5. Nurse earnings forecasting
-Earnings shows what has been earned. A nurse deciding whether to take a shift wants to know what a
-week looks like if she does. The arithmetic is already in `earnings.json`.
+### 5. ~~Nurse earnings forecasting~~ — built
+*If you take a shift* sits above the nurse's weeks and answers what one is worth before she commits
+to it. Kept here struck through rather than deleted, because a recommendation list that quietly
+loses the ones somebody took is a list nobody can audit.
 
 ### 6. An "explain this to me" layer on the Health Passport
-Reference ranges are already rendered; what a reading *means* is not. This is where `screening`
+Reference ranges are already rendered — and, since the move into `packages/catalog/records.json`,
+rendered from one place on all three platforms. What a reading *means* is not. This is where `screening`
 will eventually live, and a written, sourced, non-AI version of it could exist now — and would be
 more defensible than the model that replaces it.
 
