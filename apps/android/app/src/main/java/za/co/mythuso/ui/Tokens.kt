@@ -49,6 +49,11 @@ val Info = Color(0xFF175CD3)
 val InfoSoft = Color(0xFFEFF4FF)
 val Focus = Color(0xFFFFB347)
 val FocusEdge = Color(0xFF0F172A)
+val CharcoalMutedOnSurface = Color(0xFF5C5C5C)
+val CharcoalMutedOnMist = Color(0xFF575757)
+val CharcoalMutedOnCloud = Color(0xFF545454)
+val CharcoalMutedOnPaleSage = Color(0xFF4C5049)
+val CharcoalMutedOnSoftSage = Color(0xFF464A44)
 
 object ThusoRadius {
     val card = 12.dp
@@ -76,6 +81,7 @@ object ThusoType {
     val body = 15.sp
     val caption = 13.sp
     val metric = 32.sp
+    val metricLarge = 40.sp
     val minimumBody = 14.sp
     /** Nothing in any of the three apps renders text below this. */
     val minimumRendered = 13.sp

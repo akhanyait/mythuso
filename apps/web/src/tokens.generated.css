@@ -43,6 +43,11 @@
  --info-soft:#eff4ff;
  --focus:#ffb347;
  --focus-edge:#0f172a;
+ --charcoal-muted-on-surface:#5c5c5c;
+ --charcoal-muted-on-mist:#575757;
+ --charcoal-muted-on-cloud:#545454;
+ --charcoal-muted-on-pale-sage:#4c5049;
+ --charcoal-muted-on-soft-sage:#464a44;
  --r-card:12px;
  --r-panel:18px;
  --r-control:10px;
