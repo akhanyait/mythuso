@@ -811,6 +811,24 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  }
 }
 
+/* The status page carries no framework.
+   It is the page somebody opens when they suspect nothing works — on a metered connection, in a car
+   park, having just been told by a screen that it does not book a visit. It was first written as a
+   React component and 93% of what it shipped was react-dom: 65 kB gzipped to draw a list that never
+   changes after it is drawn. It builds the DOM directly now and ships under five.
+
+   Nothing on it is interactive, so there is nothing for a framework to do. This check exists because
+   the easiest way to undo that is to import one component. */
+if(existsSync('apps/web/src/status.ts')) {
+ const status = read('apps/web/src/status.ts');
+ if(/from\s+['"]react/.test(status)||/from\s+['"]react-dom/.test(status)) throw new Error('apps/web/src/status.ts imports React. The status page ships without a framework on purpose — it is the one page whose job is to load when everything else is failing, and react-dom was 93% of its weight. Build the nodes directly.');
+ if(existsSync('apps/web/src/features/Status.tsx')) throw new Error('apps/web/src/features/Status.tsx is back. The status page renders without React; a .tsx component for it will pull the framework into the entry that exists to be small.');
+ /* And it may not grow a shell. The design system and its own sheet, nothing else. */
+ for(const bad of ['./App', './shells/', './features/', 'surface/app.css']) {
+  if(status.includes(bad)) throw new Error(`apps/web/src/status.ts imports ${bad}. The status page takes core.css and its own sheet and stops — no shell, no feature modules, no app.css.`);
+ }
+}
+
 /* Cancelling a visit.
    Both native apps promised on the booking confirmation that a visit may be cancelled up to two
    hours before it, and neither offered a cancel control. The web offered the control and never
