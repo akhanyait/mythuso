@@ -14,6 +14,7 @@ import { emitInterpreting } from './emit-interpreting.mjs';
 import { emitScheduling } from './emit-scheduling.mjs';
 import { emitGeography } from './emit-geography.mjs';
 import { emitCapabilities } from './emit-capabilities.mjs';
+import { emitCancellation } from './emit-cancellation.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -419,7 +420,8 @@ const generated = [
  { source: 'packages/catalog/interpreting.json', command: 'npm run interpreting', files: emitInterpreting() },
  { source: 'packages/catalog/scheduling.json', command: 'npm run scheduling', files: emitScheduling() },
  { source: 'packages/catalog/geography.json', command: 'npm run geography', files: emitGeography() },
- { source: 'packages/catalog/capabilities.json', command: 'npm run capabilities', files: emitCapabilities() }
+ { source: 'packages/catalog/capabilities.json', command: 'npm run capabilities', files: emitCapabilities() },
+ { source: 'packages/catalog/cancellation.json', command: 'npm run cancellation', files: emitCancellation() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
