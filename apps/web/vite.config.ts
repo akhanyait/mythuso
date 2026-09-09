@@ -6,22 +6,30 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 export default defineConfig({
   plugins: [react()],
-  /* Four entries, one per audience, because they are four applications rather than one wearing four
+  /* Five entries, one per audience, because they are five applications rather than one wearing five
      sets of navigation.
        index    — patients and families
        staff    — nurse, doctor, pharmacy partner, Control Tower
        admin    — the back office
        landing  — the public page
+       status   — what is connected and what is not, for anyone deciding whether to trust it
      The split is what a person reading about MyThuso, or a patient opening their own visits on a
      mid-range phone on metered data, does not have to pay for: neither of them downloads a dispatch
      board, a vetting queue or an operations console. Rollup shares whatever the entries genuinely
      have in common — React, the design system, the contracts — into common chunks, so the cost of a
-     fourth entry is the code only that entry uses. */
+     fifth entry is the code only that entry uses.
+
+     Status is the smallest of the five and is meant to stay that way. It is the page somebody opens
+     when they suspect nothing works, which is as likely to be on a metered connection in a car park
+     as at a desk, so it imports the design system's core and the capability contract and stops
+     there — no shell, no feature modules, no app.css. If this entry ever starts pulling a screen in
+     behind it, that is the regression, not the size. */
   build: { rollupOptions: { input: {
     app: resolve(import.meta.dirname, 'index.html'),
     staff: resolve(import.meta.dirname, 'staff.html'),
     admin: resolve(import.meta.dirname, 'admin.html'),
-    landing: resolve(import.meta.dirname, 'landing.html')
+    landing: resolve(import.meta.dirname, 'landing.html'),
+    status: resolve(import.meta.dirname, 'status.html')
   } } },
   server: {
     host: '0.0.0.0',

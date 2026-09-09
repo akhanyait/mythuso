@@ -15,6 +15,17 @@ export type Capability = typeof contract.capabilities[number];
 export const capabilities = contract.capabilities;
 export const rules = contract.rules;
 
+/* The rules are the contract's own reasoning, and the public status page renders one of them word
+   for word: the one that says a row may not read "Connected" until there is a file to point at.
+   Looked up by id and thrown on rather than found-or-undefined, for the same reason `capability`
+   is — a rule that quietly renders as nothing is a paragraph of accountability that has silently
+   left the page. */
+export const rule = (id: string) => {
+ const found = rules.find(r => r.id === id);
+ if (!found) throw new Error(`No rule "${id}" in packages/catalog/capabilities.json`);
+ return found;
+};
+
 export const capability = (id: string): Capability => {
  const found = capabilities.find(c => c.id === id);
  /* Throwing rather than returning undefined, because the failure this guards against is a screen

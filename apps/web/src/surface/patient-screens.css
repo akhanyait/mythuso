@@ -268,3 +268,18 @@
  .home-context{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;gap:var(--space-8)}
  .home-head{gap:var(--space-16)}
 }
+
+/* ---- The visit code, at the width a phone actually has ------------------------------------
+   Six boxes that flex to fill their row, which at 320px is 41.5px each — and 34.7px the moment the
+   sixth digit lands and the confirming tick claims 34 of the row's pixels. Under the 44px floor
+   `packages/design-tokens/tokens.json` sets, not on its `targets.knownUndersized` list, and on the
+   one control in the patient's flow where a mistyped digit means starting the code again. The same
+   defect was found and fixed under `.clinical` and never carried across, which is what a rule
+   scoped to one surface tends to do.
+
+   A floor rather than a fixed width, so the boxes still stretch on a wide screen; the gap comes
+   down to the smallest step on the scale, which is what lets six 44px boxes sit on one line at
+   320px; and the row is allowed to wrap so the tick takes a second line rather than taking the
+   width from the digits. The digits are the target. The tick is a reassurance and can move. */
+.code-input{flex-wrap:wrap;gap:var(--space-4);justify-content:center}
+.code-input input{min-width:44px}
