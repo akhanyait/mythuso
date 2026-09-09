@@ -70,12 +70,18 @@ export const capabilitiesNeedingSecondFactor = (grants: readonly string[]): stri
 /**
  * The occasions this service can actually step up on.
  *
- * `capability` is the clinical case above and is decided by the grants. The other two are account
- * actions this service does perform: turning the second factor off, and asking to be erased. Both
- * are things a person who has picked up an unlocked phone would do, and both are irreversible in
- * the way that matters.
+ * `capability` is the clinical case above and is decided by the grants. Since apps/api/src/actor.ts
+ * resolves a session to its vetted role, that branch is reached by the routes that reach the vault
+ * rather than only by a test: a nurse's account is granted work that carries a second factor, so the
+ * demand follows her sign-in whatever she is doing with it.
+ *
+ * The other three are account actions this service performs itself: turning the second factor off,
+ * asking to be erased, and taking a copy of everything. The first two are irreversible in the way
+ * that matters; the third is not irreversible at all and is here for the opposite reason — it is the
+ * one request on this service that assembles a person's whole record into a single answer, which
+ * makes it exactly what somebody holding an unlocked phone would ask for.
  */
-export type StepUpAction = 'capability' | 'second-factor.disable' | 'account.erasure';
+export type StepUpAction = 'capability' | 'second-factor.disable' | 'account.erasure' | 'account.export';
 
 export type StepUpDecision = {
  /** Ask for a code now. Never true when nothing is enrolled to answer with. */
@@ -107,6 +113,8 @@ export function decideStepUp(input: { action: StepUpAction; enrolled: boolean; g
   enrolmentOwed: false,
   because: input.action === 'second-factor.disable'
    ? 'Turning off your second factor is asked for with your second factor, so somebody holding your unlocked phone cannot quietly remove it.'
-   : 'Asking for your account to be erased is asked for with a code, so it cannot be done by somebody who has picked up your signed-in phone.'
+   : input.action === 'account.export'
+    ? 'A copy of everything MyThuso holds about you is the one answer on this service that puts your whole record in one place, so it is asked for with a code rather than with a session somebody could be borrowing.'
+    : 'Asking for your account to be erased is asked for with a code, so it cannot be done by somebody who has picked up your signed-in phone.'
  };
 }

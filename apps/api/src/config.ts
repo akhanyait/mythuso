@@ -190,6 +190,25 @@ export const limits = {
      because it is one sign-in rather than a session. */
   secondFactorChallengeSeconds: 10 * 60,
   maxSecondFactorAttempts: 6,
+  /* ---- What a legitimate caller may do, and the honest status of this number -----------------
+     docs/PRIVACY-AND-SECURITY.md said for months that everything except the sign-in door was
+     unlimited, and left it there with a reason that was correct: "a limiter is a decision about
+     what a legitimate caller may do and nobody has made it". Somebody has now made it, and it is
+     recorded here as what it is.
+
+     **Sixty writes per caller per fifteen minutes is a proposal, not a measurement.** Nobody has
+     watched a real session, because there are no real sessions. What it was arrived at from is the
+     busiest honest sequence this service can currently produce: a reviewer clearing a newly
+     enrolled party is one enrolment, one submission per check, one decision per check and one
+     second reviewer per high-risk check — roughly twenty-five writes for one party — and a reviewer
+     working through two of them in a sitting doubles it. Sixty leaves that room and still refuses a
+     script, which would be making thousands rather than dozens. Sign-up is nowhere near it: a
+     consent decision per purpose, a name and an enrolment is under twenty.
+
+     It shares `rateWindowSeconds` with the sign-in limits, because two windows would be two things
+     to reason about at three in the morning. When the first real caller exists, this number should
+     be checked against what they actually do and changed — and the change is one constant. */
+  writesPerCallerPerWindow: 60,
   recoveryCodeCount: 10,
   /* Seven days between asking to be erased and being erased. Long enough for somebody who did not
      mean it, or whose phone was taken, to stop it; short enough that "when is it gone" is answered

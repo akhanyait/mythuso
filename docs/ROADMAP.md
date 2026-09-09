@@ -64,11 +64,16 @@ member's profile shows their visits and books for them.
 
 - **The native apps have not had the glass pass.** iOS and Android build green and carry the new
   palette, but not the shapes. Three apps that look like relatives rather than one product.
-- **The controls in `docs/PRIVACY-AND-SECURITY.md` are not all controls.** The document now says
-  which of its fourteen are implemented, which are written and unreachable, and which are prose —
-  and the honest headline is that the gate, the vetting vault, the clinical access log's `open()`
-  and the whole of offline capture are libraries with test suites that no HTTP route calls. That is
-  defensible while there is no clinical record to guard; it is not what "Built" reads as.
+- **The controls in `docs/PRIVACY-AND-SECURITY.md` are more of them than they were.** The document
+  audits its own twenty-six rows: eleven are now implemented, five partial and six absent, up from
+  six, four and twelve. The gate and the vetting vault are no longer libraries with test suites —
+  nine routes reach them, and the actor comes off the session rather than off the request, which was
+  the reason they had none. Export, correction, the section 24 queue and a security compromise
+  register landed with them, and the unlimited write routes now carry a caller limit whose number is
+  labelled a proposal. **What is left needs a person or a contract, not a programmer:** the clinical
+  access log's `open()` is waiting for a record to open, offline capture for a device this service
+  can identify rather than be told about, and the remaining nine absent controls each name a vendor,
+  a key ceremony, an agreement, or a fact about a person that no code can establish.
 
 ### 3. Recorded gaps that need a person, not a programmer
 

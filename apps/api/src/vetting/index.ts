@@ -56,7 +56,7 @@ import { authorityAnswerDueAt, daysUntil, expiryFrom, noticesFor, resolve, type 
 import type { IdentityCallback, IdentityProvider } from './identityProvider.ts';
 import { catalogueCheck, roleChecks, roleName, type AuthorityAnswerRow, type VettingStore } from './store.ts';
 
-export { openVettingStore, vettingSource, SEALED_COLUMNS, roleChecks, roleName } from './store.ts';
+export { openVettingStore, vettingSource, SEALED_COLUMNS, roleChecks, roleGrants, roleName, knownRole } from './store.ts';
 export type { VettingStore, BootstrapCeremonyRecord, AuthorityAnswerRow } from './store.ts';
 export * from './contract.ts';
 export { RENEWAL_MILESTONES, AUTHORITY_ANSWER_MONTHS, authorityAnswerDueAt, daysUntil, expiryFrom, noticesFor, resolve, severityFor, dedupeKey } from './expiry.ts';

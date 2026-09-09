@@ -1,0 +1,96 @@
+{
+ "_note": "The account holder's own health record — the fixture the Health Passport is drawn from, and until this file existed the only fixture in this repository that was typed three times with nothing comparing the copies. apps/web/src/lib/passport.ts, apps/ios/MyThuso/Models/Passport.swift and apps/android/app/src/main/java/za/co/mythuso/model/Passport.kt each declared their own holder, their own reviewer, their own four sets of readings and their own three sentences of review. The Kotlin file said so at the top and named the fix: 'It belongs in packages/catalog as a passport fixture with an emit-passport.mjs beside it.' This is that file. The web reads it, scripts/emit-passport.mjs writes it into Swift and Kotlin, and scripts/check-boundaries.mjs holds the two hand-written native copies to it while the apps around them are rebuilt.",
+
+ "_fiction": "Lerato Molefe is not a person, these seven readings were taken from nobody, and no doctor wrote the review below. Every screen that shows any of it says so. A health record fixture that could be mistaken for a real one is the failure this whole repository is arranged against.",
+
+ "_derivedElsewhere": "Not one reference range, unit or label is here. A reading is judged against packages/catalog/records.json, which is where the seven ranges live beside the observation section that calls them indicative, and the sentence qualifying them has exactly one author there. What a permission would never read is that same file's protected categories. What the kit measures with is packages/catalog/capture.json's instruments. And the day a document was issued is the day of the last reading set below, so a document cannot claim to have been issued on a day no visit happened.",
+
+ "holder": { "name": "Lerato Molefe", "passportId": "TH-2048-3920", "issuedBy": "Akhanya IT Innovations" },
+
+ "reviewer": {
+  "name": "Dr N. Khumalo",
+  "registration": "MP 0741225",
+  "why": "A nurse records and a doctor reviews. They are two acts with two names on them, and every screen showing the second names the person who did it — one name, read by the timeline, the document list and the past-visit summary rather than typed into each of them."
+ },
+
+ "readingSetsNote": "Four home visits over three months, oldest first. Every day is an offset from today rather than a date, because the charts these draw were once literal arrays labelled '12 Aug' through '4 Sep' — right the week somebody typed them and a year wrong by the next winter. The third set is the one worth opening: a systolic above its upper reference on the day a dose was missed, with the reason the person gave for it at the visit.",
+ "readingSets": [
+  { "dayOffset": -87, "values": { "systolic": 128, "diastolic": 82, "pulse": 76, "respiratory": 16, "temperature": 36.7, "oxygen": 98, "glucose": 5.6 } },
+  { "dayOffset": -59, "values": { "systolic": 134, "diastolic": 86, "pulse": 74, "respiratory": 16, "temperature": 36.6, "oxygen": 98, "glucose": 6.1 } },
+  { "dayOffset": -31, "values": { "systolic": 141, "diastolic": 90, "pulse": 80, "respiratory": 18, "temperature": 37.0, "oxygen": 97, "glucose": 5.4 }, "note": "Missed medication" },
+  { "dayOffset": -3, "values": { "systolic": 136, "diastolic": 85, "pulse": 72, "respiratory": 16, "temperature": 36.8, "oxygen": 98, "glucose": 5.2 } }
+ ],
+
+ "headline": {
+  "measures": ["systolic", "diastolic", "pulse", "glucose"],
+  "why": "The four the trends screen leads with. Seven charts on one phone screen is a wall; these are the four a person with a blood-pressure diagnosis actually watches, and the rest are one tap below in the same shape. The other three are not listed here — they are whatever the observation contract holds that is not one of these, so a reading added to records.json appears on the second screen without anybody editing this file."
+ },
+
+ "lastReview": {
+  "assessment": "Blood pressure is coming down again. The reading a month ago was above the reference range on the day a dose was missed; this one is inside it. Nothing here needs an urgent appointment.",
+  "plan": "Keep taking the medicine at the same time each morning. Bring the boxes to the next visit so the nurse can check what is left.",
+  "next": "A nurse visit in about four weeks, or sooner if you feel unwell.",
+  "reviewedDayOffset": -2,
+  "why": "Written in the second person, in words a person can act on, and dated after the visit it reviews rather than at it. A summary that presents a nurse's observation as a clinical conclusion has quietly issued one."
+ },
+
+ "documentsNote": "What the record holds, rather than what a screen offers to generate. None of these carries a date of its own: each is issued out of the visit the last reading set was taken at, so a document cannot claim a day on which no visit happened. Every one is marked reviewed by the doctor named above, because a clinical document nobody signed is not a document.",
+ "documents": [
+  { "name": "Visit summary", "kind": "Clinical summary", "reviewed": true },
+  { "name": "Laboratory results", "kind": "Pathology report", "reviewed": true, "opens": "Laboratory order LAB-0023" },
+  { "name": "Medical certificate", "kind": "Certificate", "reviewed": true }
+ ],
+
+ "devicesNote": "The integrations the passport offers and cannot open. Each owes the same three answers before a person could sensibly say yes: exactly what would be read, exactly what would not, and the fact that none of it is connected. The third is not written here — it is the devices capability's notice in packages/catalog/capabilities.json, rendered rather than restated. What is here is the part no other contract holds: how a particular operating system asks the question, and where a person goes to take the answer back. Apple Health is the iPhone's store and Health Connect is Android's, so each native app offers one of them; the web screen is read on both phones and offers all three.",
+ "devices": [
+  {
+   "id": "apple-health",
+   "name": "Apple Health",
+   "offeredOn": ["web", "ios"],
+   "sheet": "iOS asks you, on your own phone, one reading type at a time. MyThuso never sees the question and never sees a type you decline.",
+   "withdraw": "Health → Sharing → Apps, on your phone. Withdrawing it stops new readings; it does not remove what is already on your record."
+  },
+  {
+   "id": "health-connect",
+   "name": "Health Connect",
+   "offeredOn": ["web", "android"],
+   "sheet": "Health Connect asks you, on your own phone, one reading type at a time. MyThuso never sees the question and never sees a type you decline.",
+   "withdraw": "Health Connect → App permissions, on your phone. Withdrawing it stops new readings; it does not remove what is already on your record."
+  },
+  {
+   "id": "thuso-kit",
+   "name": "Thuso Kit",
+   "offeredOn": ["web", "ios", "android"],
+   "sheet": "The kit is paired at a visit, by the nurse, in front of you. Nothing pairs itself and nothing pairs while you are not there.",
+   "withdraw": "Ask the nurse to unpair it, or unpair it from this screen once the kit is connected. An unpaired instrument sends nothing."
+  }
+ ],
+
+ "refusals": [
+  {
+   "id": "no-interpretation",
+   "sentence": "Nothing on this screen interprets a reading for you. What a number means for a particular person is a clinical judgement, and MyThuso does not make one.",
+   "why": "A trends screen that says which way a line is going has almost interpreted it. The chip beside a reading says where it sits against a published range and stops there; what it means for this person is the doctor's to say, and the screen says whose."
+  },
+  {
+   "id": "protected-not-by-permission",
+   "sentence": "These are released by you, entry by entry, and a permission sheet cannot hand one over on your behalf.",
+   "why": "The protected categories come from packages/catalog/records.json and are released one entry at a time by the person they are about. An operating system's health permission is a single yes; it is the wrong shape for that release and must never be treated as it."
+  },
+  {
+   "id": "asks-for-nothing-else",
+   "sentence": "A permission it does not need is a permission it does not ask for.",
+   "why": "Said on the screen where a person is deciding rather than in a privacy page. It is also checkable: a reading type MyThuso has nowhere to file is a reading type it does not request."
+  },
+  {
+   "id": "nothing-goes-back",
+   "sentence": "Readings would come in. Your record would not go out to a store you did not choose to put it in.",
+   "why": "The half of a permission screen that is usually missing. A list of what an app would read tells a person nothing without the list of what it would not, and the direction of travel is what somebody handing over a phone's health store is actually asking about."
+  },
+  {
+   "id": "reading-types-only",
+   "sentence": "MyThuso asks for reading types and nothing else.",
+   "why": "Location, messages and whatever else is on the phone are not clinical information and there is nowhere in the record for them to go. A capability with no destination is a capability that exists to be misused later."
+  }
+ ]
+}

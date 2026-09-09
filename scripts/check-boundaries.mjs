@@ -15,6 +15,7 @@ import { emitScheduling } from './emit-scheduling.mjs';
 import { emitGeography } from './emit-geography.mjs';
 import { emitCapabilities } from './emit-capabilities.mjs';
 import { emitCancellation } from './emit-cancellation.mjs';
+import { emitPassport } from './emit-passport.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -544,6 +545,98 @@ if(existsSync('apps/api/src')) {
  const headersMs = Number(apiServer.match(/headersMs:\s*([\d_]+)/)?.[1].replace(/_/g, ''));
  if(!(requestMs > 0 && requestMs <= 30_000)) throw new Error(`The request timeout is ${requestMs} ms. Node's default is five minutes and that is what this exists to replace; anything above thirty seconds is not a cap.`);
  if(!(headersMs > 0 && headersMs < requestMs)) throw new Error(`The header timeout is ${headersMs} ms against a request timeout of ${requestMs} ms. Headers must land sooner than the whole request, or the header cap never fires.`);
+
+ /* ---- A library with a test suite is not a running control -----------------------------------
+
+    docs/PRIVACY-AND-SECURITY.md's sharpest sentence for months was that the authorisation gate had
+    a real vault, a real test suite and no HTTP route reaching either — and it named the eight calls
+    that were reached from the tests and from nowhere else. They have routes now, and this is what
+    stops them quietly losing them again during a refactor that "tidied up an unused endpoint".
+
+    The check is on the calls rather than on the route strings on purpose: a path can be renamed and
+    the control is unchanged, and a call that disappears is the control disappearing. */
+ const VAULT_SURFACE = {
+  'enrol': 'nobody can be put on the register',
+  'submit': 'no certificate can be put in',
+  'open': 'no certificate can be taken out',
+  'decide': 'no check can be verified or declined',
+  'second': 'the two-reviewer rule is decided by nobody',
+  'suspend': 'nobody can be stood down',
+  'restore': 'nobody stood down can be brought back',
+  'standing': 'nobody can be told where they stand'
+ };
+ for(const [call, cost] of Object.entries(VAULT_SURFACE)) {
+  if(!new RegExp(`vetting!?\\.${call}\\(`).test(apiServer)) throw new Error(`No route in apps/api/src/server.ts calls vetting.${call}(), so ${cost}. The gate and the vault were written, tested and unreachable for months and docs/PRIVACY-AND-SECURITY.md called that out by name: a library with a test suite is not a running control.`);
+ }
+ /* And the thing that made those routes safe to add at all. The comment beside the intake ledger has
+    always said it: a route that takes an actor id off a request body and hands it to the gate is
+    precisely the hole the gate exists to close, because anybody who can POST is then anybody. The id
+    comes off the session cookie and the role out of vetting_parties — apps/api/src/actor.ts — and
+    nothing on a request may name either. */
+ for(const file of files('apps/api/src').filter(f=>f.endsWith('.ts'))) {
+  for(const line of read(file).split('\n')) {
+   if(/\b(actorId|actorRole)\s*:/.test(line)&&/\bbody\b/.test(line)) throw new Error(`${file} builds a gate request out of a request body: ${line.trim()}. Who is asking is resolved from the session and from the vetting register, never declared — see apps/api/src/actor.ts. An actor off a body is the whole of the hole the gate exists to close.`);
+  }
+ }
+
+ /* ---- What a legitimate caller may do --------------------------------------------------------
+    This file used to say, in prose, that everything except the sign-in door was unlimited. The
+    limiter lives in handle() rather than on each route, which is the only arrangement in which a
+    route added next year cannot forget it — so what is checked is that it is still there, that it
+    is still counted against a named constant, and that the exemption list has not grown. The three
+    exempted routes carry their own and tighter limits, counted against the number and the address;
+    everything else, writes and the health routes, is held to the caller limit. */
+ const dispatcher = apiServer.split('return async function handle(')[1] ?? '';
+ if(!/store\.countWrites\(/.test(dispatcher)||!/store\.recordWrite\(/.test(dispatcher)) throw new Error('apps/api/src/server.ts no longer counts writes per caller in handle(). A limiter on each route is a limiter the next route forgets; this one is on the way in, before any handler runs.');
+ /* The comparison specifically, not merely a mention of the constant. A dispatcher that counts
+    against a literal and then quotes the constant back in the refusal message is the worst of both:
+    the number a caller is told about and the number they are held to have come apart. */
+ if(!/>=\s*limits\.writesPerCallerPerWindow/.test(dispatcher)) throw new Error('The caller limit in apps/api/src/server.ts is not compared against limits.writesPerCallerPerWindow. A number typed into a dispatcher is a number nobody can find the reasoning for, and the reasoning — including that the number is a proposal rather than a measurement — is in apps/api/src/config.ts.');
+ const selfLimited = (apiServer.match(/const SELF_LIMITED = new Set\(\[([^\]]*)\]\)/)?.[1] ?? '').match(/'[^']+'/g) ?? [];
+ if(!selfLimited.length) throw new Error('apps/api/src/server.ts no longer declares SELF_LIMITED as one list this check can read.');
+ for(const route of selfLimited) {
+  if(!/^'POST \/auth\/(start|verify|second-factor)'$/.test(route)) throw new Error(`${route} is exempted from the caller limit in apps/api/src/server.ts. Only the three sign-in routes are, and only because each already carries a tighter limit of its own counted against the mobile number and the address. Nothing is exempt for being harmless: a route nobody thought about is exactly the one that is unlimited a year later.`);
+ }
+ /* The health routes answer the loopback and now only there. The comment beside them always said
+    they "answer on the loopback to a script"; until this landed nothing in the code said so, and
+    /health/audit walks the whole hash chain for whoever asks. */
+ if(!/route\.startsWith\('GET \/health\/'\)\s*&&\s*!LOOPBACK\.has/.test(dispatcher)) throw new Error('apps/api/src/server.ts no longer holds the /health/* routes to the loopback. They run real work for whoever asks — one of them verifies the whole audit chain — and the comment beside them has claimed they answer a script on the box since they were written.');
+
+ /* ---- The proof that a request was answered --------------------------------------------------
+    Append-only for the same reason the audit table is, and checked the same way: a proof of an
+    answer that somebody could go back and improve is not a proof of anything. */
+ const subjectRequests = read('apps/api/src/subjectRequests.ts');
+ if(/UPDATE subject_request_responses|DELETE FROM subject_request_responses/i.test(subjectRequests)) throw new Error('The record of what MyThuso answered a data subject must stay append-only. A response somebody can edit afterwards proves a date and nothing else.');
+
+ /* ---- The breach register must not become a copy of the breach -------------------------------
+    A register of what leaked, listing everybody it leaked about, kept in the file most likely to be
+    opened by the largest number of people during the worst week the company has. It holds a count.
+    Enforced on the identifiers rather than on the prose above them, exactly as the clinical-table
+    check is. */
+ const incidentColumns = (tablesIn(read('apps/api/src/incidents.ts')).find(t => t.name === 'incidents')?.columns ?? []).map(c => c.toLowerCase());
+ if(!incidentColumns.length) throw new Error('apps/api/src/incidents.ts no longer creates the incidents table, or this check can no longer read it.');
+ for(const column of incidentColumns) {
+  if(/^(person_id|subject_id|people|phone|name|full_name|account_id|affected_people|patient.*)$/.test(column)) throw new Error(`The incident register has grown a column somebody could be named in: incidents.${column}. It holds how many people an incident reached and never which ones — who has to be told is worked out at the time from the records it touched, not curated in the register beforehand.`);
+ }
+ /* ---- And the export carries nothing that is a key -------------------------------------------
+    An export is the one route on a platform designed to put everything in one place, which is what
+    makes it the one worth reading twice. The list is declared by the module that does the excluding
+    — apps/api/src/subjectExport.ts — so a section added to the answer later is held to it without
+    anybody remembering to come back here. */
+ const exportRoute = (apiServer.match(/routes\.set\('POST \/account\/export'[\s\S]*?\n  \}\);/) ?? [])[0] ?? '';
+ if(!exportRoute) throw new Error('apps/api/src/server.ts no longer declares POST /account/export in a form this check can read.');
+ const forbiddenKeys = (read('apps/api/src/subjectExport.ts').match(/export const FORBIDDEN_KEYS: readonly string\[\] = \[([^\]]*)\]/)?.[1] ?? '').match(/'[^']+'/g) ?? [];
+ if(forbiddenKeys.length < 5) throw new Error('apps/api/src/subjectExport.ts no longer declares FORBIDDEN_KEYS as one list this check can read.');
+ for(const raw of forbiddenKeys) {
+  const key = raw.slice(1, -1);
+  if(new RegExp(`\\b${key}\\s*:`).test(exportRoute)) throw new Error(`POST /account/export sends "${key}", which apps/api/src/subjectExport.ts lists as never exported. ${key === 'secret' || key === 'recoveryCodes' ? 'An export carrying a second factor hands it to whoever ends up with the file.' : 'It is a key rather than information about a person.'}`);
+ }
+ if(!/stepUp\(person\.id, 'account\.export'/.test(exportRoute)) throw new Error('POST /account/export no longer demands a step-up. It is the one answer on this service that puts a whole record in one place, which is exactly what somebody holding an unlocked phone would ask for.');
+ /* Nobody answers their own request. An operator who is also a data subject is ordinary and fine;
+    an operator recording the answer to their own request is the one arrangement in which the proof
+    of response proves nothing. */
+ const respondRoute = (apiServer.match(/routes\.set\('POST \/operator\/requests\/respond'[\s\S]*?\n  \}\);/) ?? [])[0] ?? '';
+ if(!/personId === held\.person\.id/.test(respondRoute)) throw new Error('POST /operator/requests/respond no longer refuses somebody answering their own section 24 request. That is the one arrangement in which the proof that a request was answered proves nothing.');
 }
 /* Three things the apps share are no longer written out by hand in each of them: the design tokens,
    the vetting table and the record contract are generated into CSS, Swift and Kotlin by
@@ -567,13 +660,141 @@ const generated = [
  { source: 'packages/catalog/scheduling.json', command: 'npm run scheduling', files: emitScheduling() },
  { source: 'packages/catalog/geography.json', command: 'npm run geography', files: emitGeography() },
  { source: 'packages/catalog/capabilities.json', command: 'npm run capabilities', files: emitCapabilities() },
- { source: 'packages/catalog/cancellation.json', command: 'npm run cancellation', files: emitCancellation() }
+ { source: 'packages/catalog/cancellation.json', command: 'npm run cancellation', files: emitCancellation() },
+ { source: 'packages/catalog/passport.json', command: 'npm run passport', files: emitPassport() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
   if(!existsSync(file.path)) throw new Error(`${file.path} has not been generated from ${source}. Run: ${command}`);
   if(statSync(file.path).mtimeMs<statSync(source).mtimeMs) throw new Error(`${file.path} is older than ${source}. Run: ${command}`);
   if(read(file.path)!==file.content) throw new Error(`${file.path} is not what ${source} generates. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: ${command}`);
+ }
+}
+
+/* ---- The Health Passport's own record ----------------------------------------------------------
+
+   Four sets of readings, a reviewing doctor, three sentences of review, a passport number, three
+   documents and the five sentences the device screens refuse in. All of it fictional, and until
+   packages/catalog/passport.json existed all of it was typed three times: apps/web/src/lib/
+   passport.ts, apps/ios/MyThuso/Models/Passport.swift and .../model/Passport.kt each declared their
+   own copy with nothing comparing them, and two of the three had already drifted to a different
+   number of charts. The Kotlin file said so at the top and named the fix — "it belongs in
+   packages/catalog as a passport fixture with an emit-passport.mjs beside it". This is the check
+   that makes the fix stick.
+
+   Three questions, and they are different ones:
+
+     1. The contract is a record. The visits are oldest first and in the past, every reading is a
+        measure the assessment collects and can therefore be judged, no document carries a date of
+        its own, and the doctor did not review readings before they were taken.
+     2. The two hand-written native copies still agree with it, word for word and number for number,
+        for as long as they exist. They are quarantined rather than corrected because both native
+        apps are being rebuilt by other people as this lands.
+     3. Nothing else types one. What counts as typing a passport value is deliberately narrow: a
+        line does it when it names a measure in quotes and carries both that measure's reading and
+        the day the set was taken, and a file does it when it repeats the reviewer's registration or
+        one of the three sentences of the last review. The holder's name is not one of them —
+        "Lerato Molefe" is the preview's patient on thirty screens, and a check that fires on a
+        booking form naming her is a check somebody deletes. */
+const passport=JSON.parse(read('packages/catalog/passport.json'));
+const passportSets=passport.readingSets;
+const passportMeasureIds=new Set(measures.map(m=>m.id));
+if(!passportSets.length) throw new Error('packages/catalog/passport.json holds no readings, so the Health Passport has nothing to chart and the completed visit has nothing to look up');
+passportSets.reduce((previous,set)=>{
+ if(!(set.dayOffset<0)) throw new Error(`A reading set in packages/catalog/passport.json is dated ${set.dayOffset} days from today. The passport is a record of visits that have happened, and a reading taken in the future is a reading nobody took.`);
+ if(previous!==null&&!(set.dayOffset>previous)) throw new Error(`packages/catalog/passport.json lists its reading sets out of order at day ${set.dayOffset}. They are oldest first: every chart, the latest set and the completed visit's lookup read that order rather than sorting it.`);
+ for(const id of Object.keys(set.values)) if(!passportMeasureIds.has(id)) throw new Error(`The reading set ${Math.abs(set.dayOffset)} days ago carries "${id}", which is not an observation in packages/catalog/records.json. A reading with no reference range cannot be flagged, so it would be shown to a patient with nothing said about where it sits.`);
+ return set.dayOffset;
+},null);
+const latestPassportSet=passportSets[passportSets.length-1];
+if(passport.lastReview.reviewedDayOffset<latestPassportSet.dayOffset) throw new Error(`The last review is dated ${Math.abs(passport.lastReview.reviewedDayOffset)} days ago and the visit it reviews was ${Math.abs(latestPassportSet.dayOffset)} days ago. A doctor cannot have reviewed readings that had not been taken.`);
+for(const id of passport.headline.measures) if(!passportMeasureIds.has(id)) throw new Error(`The passport leads with "${id}", which is not an observation in packages/catalog/records.json, so the trends screen would open on a chart of nothing.`);
+for(const document of passport.documents) if(document.dayOffset!==undefined) throw new Error(`The document "${document.name}" in packages/catalog/passport.json carries a day of its own. Documents are issued out of the visit the last reading set was taken at, and a stored date is one that can disagree with the visit it came from.`);
+/* Two hand-written files still declare the record themselves. They cannot adopt the generated one
+   without being edited, and both native apps are being rebuilt by other people as this lands. The
+   quarantine is not a permanent exemption and it cannot rot into one: an entry whose file has
+   *stopped* typing the record is an error too, so the day either model reads PassportData the build
+   fails until its line is deleted from below. Until then the loop holds both files to every value in
+   the contract, word for word and number for number, so neither copy can drift while it waits. */
+const PASSPORT_QUARANTINE = [
+ ['apps/ios/MyThuso/Models/Passport.swift', 'read PassportData for the holder, the reviewer, the readings and the review'],
+ ['apps/android/app/src/main/java/za/co/mythuso/model/Passport.kt', 'read PassportData for the holder, the reviewer, the readings and the review']
+];
+/* The contract, the generated copies of it, the emitter and this checker are where the record is
+   supposed to be written down. Everything else is a screen, a library or a test. */
+const PASSPORT_SOURCES = new Set([
+ 'packages/catalog/passport.json',
+ 'scripts/check-boundaries.mjs',
+ 'scripts/emit-passport.mjs',
+ 'apps/ios/MyThuso/Models/PassportData.swift',
+ 'apps/android/app/src/main/java/za/co/mythuso/model/PassportData.kt'
+]);
+/* Two lists, and the difference between them is the whole design. `passportProhibited` is what no
+   file outside those sources may type. `passportHeld` is wider — it is everything a quarantined copy
+   is measured against while it waits, because holding one file to a value is not the same as
+   forbidding that value everywhere. */
+const passportProhibited=[passport.reviewer.registration,passport.lastReview.assessment,passport.lastReview.plan,passport.lastReview.next];
+const passportHeld=[...passportProhibited,passport.holder.name,passport.holder.passportId,passport.holder.issuedBy,passport.reviewer.name];
+const typesAPassportValue=source=>{
+ const typed=passportProhibited.filter(sentence=>source.includes(sentence));
+ for(const set of passportSets) for(const [id,value] of Object.entries(set.values)) {
+  if(source.split('\n').some(line=>{
+   if(!line.includes(`'${id}'`)&&!line.includes(`"${id}"`)) return false;
+   const numbers=(line.match(/\d+(\.\d+)?/g)||[]).map(Number);
+   return numbers.includes(value)&&numbers.includes(Math.abs(set.dayOffset));
+  })) typed.push(`the ${id} taken ${Math.abs(set.dayOffset)} days ago`);
+ }
+ return typed;
+};
+/* A reading set wraps over two lines in Swift and sits on one in Kotlin, so a quarantined copy is
+   read as a window from its day offset rather than line by line: the day, and then every reading of
+   that set written against its own name. */
+const declaresPassportSet=(source,set)=>{
+ const start=source.search(new RegExp(`-${Math.abs(set.dayOffset)}\\b`));
+ const window=start<0?'':source.slice(start,start+400);
+ return Object.entries(set.values).filter(([id,value])=>!new RegExp(`"${id}"\\s*(?:to|:)\\s*${String(value).replace('.','\\.')}(\\.0)?\\b`).test(window)).map(([id])=>id);
+};
+for(const [file,todo] of PASSPORT_QUARANTINE) {
+ if(!existsSync(file)) throw new Error(`PASSPORT_QUARANTINE names ${file}, which does not exist (${todo}). A quarantine list that outlives its files is a list nobody reads.`);
+ const source=read(file);
+ if(!typesAPassportValue(source).length) throw new Error(`${file} no longer types a passport value, so its quarantine entry in PASSPORT_QUARANTINE is spent: ${todo}. Delete the line — an exemption nobody can lose is how a rule stops being one.`);
+ for(const value of passportHeld) if(!source.includes(value)) throw new Error(`${file} is quarantined and has drifted from packages/catalog/passport.json: it no longer carries "${value.length>60?`${value.slice(0,60)}…`:value}" word for word. Either take the record from PassportData and delete its quarantine line, or keep the copy identical. A quarantine is a delay, not a licence to disagree.`);
+ for(const set of passportSets) {
+  const wrong=declaresPassportSet(source,set);
+  if(wrong.length) throw new Error(`${file} disagrees with packages/catalog/passport.json about the ${wrong.join(', ')} taken ${Math.abs(set.dayOffset)} days ago, or has lost that visit altogether. Run: npm run passport, and read PassportData.`);
+ }
+}
+const quarantinedPassport=new Map(PASSPORT_QUARANTINE);
+for(const file of [
+ ...files('apps/web/src').filter(f=>/\.tsx?$/.test(f)),
+ ...files('packages/catalog'),
+ ...files('scripts').filter(f=>/\.mjs$/.test(f)),
+ ...files('tests').filter(f=>/\.ts$/.test(f)),
+ ...native
+]) {
+ if(PASSPORT_SOURCES.has(file)||quarantinedPassport.has(file)) continue;
+ const typed=typesAPassportValue(read(file));
+ if(typed.length) throw new Error(`${file} types ${typed.map(t=>`"${t}"`).join(', ')} out of the Health Passport's record. That record lives in packages/catalog/passport.json: lib/passport.ts reads it on the web, PassportData on iOS and Android.`);
+}
+/* And the sentences. A refusal is only a refusal where somebody reads it, so each platform is asked
+   whether it still says these words — in a screen, not in its copy of the contract, which is why the
+   three files that read the contract are left out of the search. A platform that has adopted the
+   contract instead of typing it says so by naming PassportData or deviceIntegrations, and that
+   counts as saying it. What is refused is a platform that quietly says neither. */
+const passportReaders=['apps/web/src/lib/passport.ts','apps/ios/MyThuso/Models/PassportData.swift','apps/android/app/src/main/java/za/co/mythuso/model/PassportData.kt'];
+const readsThePassport=/PassportData\.|\bdeviceIntegrations\b/;
+const passportScreens = {
+ web: files('apps/web/src').filter(f=>/\.tsx?$/.test(f)&&!passportReaders.includes(f)).map(read).join('\n'),
+ ios: files('apps/ios/MyThuso').filter(f=>/\.swift$/.test(f)&&!passportReaders.includes(f)).map(read).join('\n'),
+ android: files('apps/android/app/src/main').filter(f=>/\.kt$/.test(f)&&!passportReaders.includes(f)).map(read).join('\n')
+};
+const passportSays=(platform,sentence)=>passportScreens[platform].includes(sentence)||readsThePassport.test(passportScreens[platform]);
+for(const refusal of passport.refusals) for(const platform of Object.keys(passportScreens)) {
+ if(!passportSays(platform,refusal.sentence)) throw new Error(`${platform} no longer says "${refusal.sentence}" anywhere a person would read it. ${refusal.why} A refusal that exists only in the contract has been made on nobody's behalf.`);
+}
+for(const device of passport.devices) for(const platform of device.offeredOn) {
+ for(const sentence of [device.sheet,device.withdraw]) {
+  if(!passportSays(platform,sentence)) throw new Error(`${platform} offers ${device.name} and no longer says "${sentence}". How the permission is asked, and where it is taken back again, are the two answers a person needs before saying yes; packages/catalog/passport.json holds both.`);
  }
 }
 

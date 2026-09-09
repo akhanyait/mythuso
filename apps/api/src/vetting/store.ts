@@ -129,12 +129,19 @@ export const SEALED_COLUMNS: readonly SealedColumn[] = [
 /* The catalogue, indexed. Read, never restated: a check added to packages/catalog/vetting.json is a
    check this module owes the moment it is added. */
 type CatalogueCheck = { id: string; name: string; authority: string; renewMonths: number | null; risk: string; evidence: string };
-type CatalogueRole = { id: string; name: string; checks: readonly CatalogueCheck[] };
+type CatalogueGrant = { capability: string; refusal: string };
+type CatalogueRole = { id: string; name: string; checks: readonly CatalogueCheck[]; grants: readonly CatalogueGrant[] };
 const ROLES = new Map<string, CatalogueRole>((catalogue.roles as readonly CatalogueRole[]).map(role => [role.id, role] as const));
 export const roleChecks = (roleId: string): readonly CatalogueCheck[] => ROLES.get(roleId)?.checks ?? [];
 export const catalogueCheck = (roleId: string, checkId: string): CatalogueCheck | undefined =>
  roleChecks(roleId).find(check => check.id === checkId);
 export const roleName = (roleId: string): string => ROLES.get(roleId)?.name ?? roleId;
+/* What the role is granted, by capability id. Read by src/stepUp.ts through src/actor.ts to decide
+   whether this account's *work* has to carry a second factor — which is a property of the work and
+   never a setting on the account. An unknown role grants nothing, which is the only safe answer. */
+export const roleGrants = (roleId: string): readonly string[] =>
+ (ROLES.get(roleId)?.grants ?? []).map(grant => grant.capability);
+export const knownRole = (roleId: string): boolean => ROLES.has(roleId);
 
 /** One founding ceremony, as it can be asked about afterwards. Never the token, only its fingerprint. */
 export type BootstrapCeremonyRecord = {

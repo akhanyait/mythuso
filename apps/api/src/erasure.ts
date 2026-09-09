@@ -158,6 +158,17 @@ export class Erasure {
   return request && request.cancelledAt === null && request.completedAt === null ? request : null;
  }
 
+ /**
+  * Every erasure somebody has asked for and not been answered about, whatever its grace period.
+  *
+  * Separate from `due()` on purpose. `due()` is what the sweep may carry out; this is what POPIA
+  * section 24's thirty days is running against. Carrying a request out and answering it are two
+  * different acts, and a service that only tracked the first would erase people in silence.
+  */
+ outstanding(): { personId: string; requestedAt: number }[] {
+  return this.#store.openErasureRequests().map(request => ({ personId: request.personId, requestedAt: request.requestedAt }));
+ }
+
  /** Erasures whose grace period has run out. The sweep asks; nothing here runs on a timer. */
  due(at: number = this.#now()): string[] {
   return this.#store.erasuresDue(at).map(request => request.personId);

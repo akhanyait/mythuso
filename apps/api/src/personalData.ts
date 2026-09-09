@@ -275,6 +275,13 @@ export const HOLDINGS: Holding[] = [
   basis: 'spent-material'
  },
  {
+  label: 'The count of what you have asked this service to do lately',
+  table: 'write_attempts',
+  disposition: 'erase',
+  because: 'One line for each thing you asked MyThuso to change, with no detail of what it was — the time, the account and which button. It is kept for fifteen minutes so that nobody, including somebody signed in as you, can drive this service in a loop. Deleted with everything else, and swept away on its own within a day in any case.',
+  basis: 'spent-material'
+ },
+ {
   label: 'Your authenticator app and recovery codes',
   table: 'second_factors, recovery_codes, second_factor_challenges',
   disposition: 'erase',
@@ -298,6 +305,27 @@ export const HOLDINGS: Holding[] = [
   disposition: 'retain',
   because: 'The date you asked and the date it was done. It holds no name and no number. Deleting it would leave MyThuso unable to show that your request was honoured, which is the one thing the Information Regulator would ask for.',
   basis: 'proof-of-request'
+ },
+ {
+  label: 'What you asked to have corrected',
+  table: 'correction_requests',
+  disposition: 'retain',
+  because: 'Which detail you said was wrong, what you said it should be, and why — in your own words, kept as you wrote them. It is kept for the same reason the record of an erasure request is: it is the only thing that can show MyThuso was asked and what it did about it. Correction is a separate right from deletion under POPIA section 24, and asking for one is never treated as asking for the other.',
+  basis: 'proof-of-request'
+ },
+ {
+  label: 'What MyThuso answered, and who answered it',
+  table: 'subject_request_responses',
+  disposition: 'retain',
+  because: 'The reply to each request you made, the name of the person who gave it, the date, and whether the record was changed, refused, or left as it was with your own account of it attached. It is written once and never edited: a proof of an answer that somebody could go back and improve is not a proof of anything. Nobody may record the answer to their own request.',
+  basis: 'proof-of-request'
+ },
+ {
+  label: 'The security incident register',
+  table: 'incidents',
+  disposition: 'retain',
+  because: 'What went wrong, when it was found, what stopped it, whether anybody\'s information was reached, and whether the Information Regulator and the people affected were told. It holds no name and no number, and there is nowhere in it either could be written — only a count of how many people an incident reached, because a register of what leaked must never become a second copy of it. This line is here only if you are the MyThuso worker who reported or closed one; it holds nothing about you as a person receiving care.',
+  basis: 'audit-integrity'
  },
  {
   label: 'The sign-in security log',

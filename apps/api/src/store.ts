@@ -30,7 +30,7 @@ export type ErasureRequest = {
 };
 /* What the retention sweep is allowed to touch. The audit table is deliberately not in this list
    and never will be: a log something can delete from is not a log. */
-export type SweepableTable = 'challenges' | 'starts' | 'sessions' | 'second_factor_challenges';
+export type SweepableTable = 'challenges' | 'starts' | 'sessions' | 'second_factor_challenges' | 'write_attempts';
 export type AuditEvent = {
   at: number; event: string; personId: string | null; phone: string | null;
   address: string | null; agentHash: string | null; detail: string | null;
@@ -68,11 +68,15 @@ export type Store = {
   findErasureRequest(personId: string): ErasureRequest | null;
   cancelErasureRequest(personId: string, at: number): void;
   erasuresDue(at: number): ErasureRequest[];
+  openErasureRequests(): ErasureRequest[];
   erasePerson(personId: string, phone: string, tombstone: string, at: number): void;
   countSweepable(table: SweepableTable, before: number): number;
   sweep(table: SweepableTable, before: number): number;
+  recordWrite(at: number, subject: string, route: string): void;
+  countWrites(subject: string, since: number): number;
   appendAudit(event: AuditEvent): void;
   recentAudit(limit: number): AuditEvent[];
+  auditForPerson(personId: string, phone: string, limit: number): AuditEvent[];
   countAuditEvents(event: string, personId: string, since: number): number;
   close(): void;
 };
@@ -112,6 +116,15 @@ CREATE TABLE IF NOT EXISTS second_factor_challenges (
 CREATE TABLE IF NOT EXISTS erasure_requests (
   person_id TEXT PRIMARY KEY, requested_at INTEGER NOT NULL, erase_after INTEGER NOT NULL,
   cancelled_at INTEGER, completed_at INTEGER);
+-- One row per write this service accepted, for the caller limit in server.ts. Deliberately the same
+-- shape as the starts table, which has rate-limited the sign-in door since this service was
+-- written: an at, a subject and what was asked for. It is spent material and the sweep clears it,
+-- because a limiter that accumulated for ever would be the one table in here that grew with
+-- traffic rather than with people. The subject is an account id where a session resolved and the
+-- caller's address where it did not, so a limit cannot be escaped by signing out.
+CREATE TABLE IF NOT EXISTS write_attempts (
+  at INTEGER NOT NULL, subject TEXT NOT NULL, route TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS write_attempts_subject ON write_attempts (subject, at);
 `;
 /* The sweep's reach, written once so nothing can be handed a table name from a request. Each is
    spent material: a code that has been used or has expired, an address that asked for one outside
@@ -120,7 +133,8 @@ const SWEEPS: Record<SweepableTable, string> = {
   challenges: 'FROM challenges WHERE (consumed_at IS NOT NULL OR expires_at < ?)',
   starts: 'FROM starts WHERE at < ?',
   sessions: 'FROM sessions WHERE (revoked_at IS NOT NULL OR expires_at < ?)',
-  second_factor_challenges: 'FROM second_factor_challenges WHERE (consumed_at IS NOT NULL OR expires_at < ?)'
+  second_factor_challenges: 'FROM second_factor_challenges WHERE (consumed_at IS NOT NULL OR expires_at < ?)',
+  write_attempts: 'FROM write_attempts WHERE at < ?'
 };
 export function openStore(path: string): Store {
   const db = new DatabaseSync(path);
@@ -230,6 +244,12 @@ export function openStore(path: string): Store {
     erasuresDue(at) {
       return db.prepare('SELECT person_id AS personId, requested_at AS requestedAt, erase_after AS eraseAfter, cancelled_at AS cancelledAt, completed_at AS completedAt FROM erasure_requests WHERE cancelled_at IS NULL AND completed_at IS NULL AND erase_after <= ? ORDER BY erase_after').all(at) as unknown as ErasureRequest[];
     },
+    /* Every erasure request still waiting, whatever its grace period. `erasuresDue` answers "what
+       can the sweep carry out now"; this answers "what has somebody asked for and not been answered
+       about", which is the section 24 clock and a different question. */
+    openErasureRequests() {
+      return db.prepare('SELECT person_id AS personId, requested_at AS requestedAt, erase_after AS eraseAfter, cancelled_at AS cancelledAt, completed_at AS completedAt FROM erasure_requests WHERE cancelled_at IS NULL AND completed_at IS NULL ORDER BY requested_at').all() as unknown as ErasureRequest[];
+    },
     erasePerson(personId, phone, tombstone, at) {
       /* One transaction. A half-carried-out erasure — the number gone, the sessions still live — is
          worse than one that has not started, because nobody would notice the difference. */
@@ -257,6 +277,13 @@ export function openStore(path: string): Store {
       const result = db.prepare(`DELETE ${SWEEPS[table]}`).run(before);
       return Number(result.changes);
     },
+    recordWrite(at, subject, route) {
+      db.prepare('INSERT INTO write_attempts (at, subject, route) VALUES (?, ?, ?)').run(at, subject, route);
+    },
+    countWrites(subject, since) {
+      const row = db.prepare('SELECT COUNT(*) AS n FROM write_attempts WHERE subject = ? AND at >= ?').get(subject, since) as { n: number };
+      return row.n;
+    },
     appendAudit(e) {
       db.prepare('INSERT INTO audit (at, event, person_id, phone, address, agent_hash, detail) VALUES (?, ?, ?, ?, ?, ?, ?)')
         .run(e.at, e.event, e.personId, e.phone, e.address, e.agentHash, e.detail);
@@ -264,6 +291,13 @@ export function openStore(path: string): Store {
     countAuditEvents(event, personId, since) {
       const row = db.prepare('SELECT COUNT(*) AS n FROM audit WHERE event = ? AND person_id = ? AND at >= ?').get(event, personId, since) as { n: number };
       return row.n;
+    },
+    /* A person's own lines out of the append-only log, for the subject export. Matched on the id and
+       on the number together: the earliest events in a sign-in happen before an account exists, so
+       they carry a number and no id, and an export that showed only the id-bearing ones would hide
+       exactly the lines somebody looking for an intrusion came for. */
+    auditForPerson(personId, phone, limit) {
+      return db.prepare('SELECT at, event, person_id AS personId, phone, address, agent_hash AS agentHash, detail FROM audit WHERE person_id = ? OR phone = ? ORDER BY at DESC, rowid DESC LIMIT ?').all(personId, phone, limit) as unknown as AuditEvent[];
     },
     recentAudit(limit) {
       return db.prepare('SELECT at, event, person_id AS personId, phone, address, agent_hash AS agentHash, detail FROM audit ORDER BY at DESC, rowid DESC LIMIT ?').all(limit) as unknown as AuditEvent[];

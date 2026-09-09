@@ -272,13 +272,29 @@ describe('the bootstrap is not reachable over HTTP', () => {
     assert.ok('unsealed' in body);
   });
 
-  test('there is no route that seeds a party or decides a check', async () => {
-    for (const path of ['/vetting/bootstrap', '/vetting/parties', '/admin/bootstrap', '/vetting/evidence']) {
+  test('there is no route that opens a founding ceremony', async () => {
+    /* The vault's ordinary surface now has routes and the ceremony still does not, which is the
+       distinction this test exists for. `enrol` and `submit` are decided by the gate against a
+       reviewer who was themselves cleared; the bootstrap is what happens before there is one, it
+       takes an authorisation signed from the key ring, and nothing arriving over HTTP has ever held
+       key material. A 404 is the whole of the answer: there is no door, not a locked one. */
+    for (const path of ['/vetting/bootstrap', '/admin/bootstrap', '/vetting/ceremony', '/vetting/seed']) {
       const response = await fetch(`${keyedBase}${path}`, {
         method: 'POST', headers: { 'content-type': 'application/json', origin: ORIGIN },
         body: JSON.stringify({ id: 'admin-1', roleId: 'admin' })
       });
       assert.equal(response.status, 404, `${path} answered ${response.status}`);
+    }
+  });
+
+  test('the vault routes that do exist refuse a caller with no session at all', async () => {
+    for (const path of ['/vetting/parties', '/vetting/evidence', '/vetting/evidence/decide', '/vetting/evidence/second', '/vetting/parties/suspend', '/vetting/parties/restore', '/vetting/evidence/open']) {
+      const response = await fetch(`${keyedBase}${path}`, {
+        method: 'POST', headers: { 'content-type': 'application/json', origin: ORIGIN },
+        body: JSON.stringify({ id: 'admin-1', roleId: 'admin', partyId: 'admin-1', evidenceId: 'x', decision: 'verified', version: 1 })
+      });
+      assert.equal(response.status, 401, `${path} answered ${response.status}`);
+      assert.deepEqual(await response.json(), { error: 'no-session' });
     }
   });
 });
