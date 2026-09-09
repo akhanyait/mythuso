@@ -5,6 +5,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicInteger
 
 /* When a visit happens.
  *
@@ -60,6 +61,15 @@ object Scheduling {
     fun endTime(start: String, minutes: Int): String = runCatching {
         LocalTime.parse(start).plusMinutes(minutes.toLong()).format(DateTimeFormatter.ofPattern("HH:mm"))
     }.getOrDefault(start)
+
+    /* A visit's own name for itself, issued once and never reissued.
+       It exists because of what moving a visit has to mean: packages/catalog/cancellation.json says
+       a rescheduled visit keeps its reference, its person, its address and its service, and that a
+       moved visit is therefore the same visit rather than a new one — which is what leaves the
+       interpreter held for it, the consent given for it and the record of it still applying. A visit
+       with nothing to be identified by cannot make that claim, and cannot be checked on it. */
+    private val issued = AtomicInteger(2045)
+    fun newReference(): String = "TH-${issued.incrementAndGet()}"
 }
 
 /* Everything a person chose, carried whole. A scheduled visit cannot exist without its date, which
@@ -71,7 +81,10 @@ data class BookedVisit(
     val kind: String,
     val date: LocalDate?,
     val start: String?,
-    val payment: String
+    val payment: String,
+    /* Issued when the visit is created and carried through `copy`, so moving a visit cannot mint a
+       new one by accident. See Scheduling.newReference() for why a visit needs a name at all. */
+    val reference: String = Scheduling.newReference()
 ) {
     val isScheduled: Boolean get() = kind == "scheduled"
     val status: String get() = if (isScheduled) "Confirmed" else SchedulingData.asapPending

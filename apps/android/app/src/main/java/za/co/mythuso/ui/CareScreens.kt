@@ -494,38 +494,10 @@ fun serviceIcon(id: String) = when (id) {
                             }
                         }
                         if (scheduled) {
-                        Text(SchedulingData.scheduledHeading, style = MaterialTheme.typography.titleSmall, color = Ink)
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            days.forEachIndexed { index, offered ->
-                                Column(
-                                    Modifier.widthIn(min = 66.dp).heightIn(min = 72.dp).padding(vertical = 4.dp)
-                                        .background(if (day == index) Indigo else Color.White, RoundedCornerShape(ThusoRadius.card))
-                                        .border(1.dp, if (day == index) Indigo else Line, RoundedCornerShape(ThusoRadius.card))
-                                        .clickable { day = index }
-                                        .semantics { selected = day == index; contentDescription = Scheduling.longDate(offered.date) },
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Text(offered.weekday, style = MaterialTheme.typography.labelMedium, color = if (day == index) IndigoSoft else BodyText)
-                                    Text(offered.dayNumber, style = MaterialTheme.typography.titleMedium, color = if (day == index) Color.White else Ink)
-                                    Text(offered.month, style = MaterialTheme.typography.labelMedium, color = if (day == index) IndigoSoft else BodyText)
-                                }
-                            }
-                        }
-                        slots.chunked(3).forEach { row ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                row.forEach { time ->
-                                    Box(
-                                        Modifier.weight(1f).heightIn(min = TouchTarget)
-                                            .background(if (slot == time) Indigo else Color.White, RoundedCornerShape(ThusoRadius.control))
-                                            .border(1.dp, if (slot == time) Indigo else Line, RoundedCornerShape(ThusoRadius.control))
-                                            .clickable { slot = time }.semantics { selected = slot == time },
-                                        Alignment.Center
-                                    ) { Text(time, style = MaterialTheme.typography.titleSmall, color = if (slot == time) Color.White else BodyText) }
-                                }
-                            }
-                        }
-                        Note("${Scheduling.longDate(chosen.date)} · $slot – $endTime (${service.duration} minutes)")
+                            VisitTimePicker(
+                                days, day, { day = it }, slots, slot, { slot = it },
+                                "${Scheduling.longDate(chosen.date)} · $slot – $endTime (${service.duration} minutes)"
+                            )
                         } else {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Outlined.Bolt, null, tint = MangoInk, modifier = Modifier.size(16.dp))
@@ -575,7 +547,12 @@ fun serviceIcon(id: String) = when (id) {
                                  style = MaterialTheme.typography.bodySmall, color = BodyText,
                                  modifier = Modifier.weight(1f))
                         }
-                        Note("You can cancel or reschedule up to 2 hours before the visit.")
+                        /* The window, from packages/catalog/cancellation.json rather than typed
+                           here. This sentence was a hand-written string in this file and another in
+                           Swift, promising a right the app then offered no way to exercise — the two
+                           hours had no contract behind them, so nothing could notice when they
+                           disagreed. */
+                        Note(CancellationData.windowSentence)
                     }
                     else -> Note("No nurse has been dispatched and no payment was taken. Your demo visit is now in the Visits tab.")
                 }
@@ -598,6 +575,59 @@ fun serviceIcon(id: String) = when (id) {
         dismissButton = { if (step < 4) TextButton(onClick = { if (step == 0) close() else step -= 1 }, shape = ThusoButtonShape) { Text(if (step == 0) "Cancel" else "Back") } }
     )
 }
+/* The one date-and-time picker in this app.
+ *
+ * It was inline in the booking dialog, which is where it belongs and is not where it can stay: a
+ * visit can be moved as well as booked, and a second picker built for the move is a second set of
+ * offered days, a second slot grid and a second footer that will one day disagree with the first
+ * about which days exist. It takes what it shows rather than computing it, so the days on offer are
+ * still Scheduling.offeredDays() wherever they came from.
+ *
+ * The footer is the caller's sentence because the two callers say different things about the same
+ * choice: booking states the visit's length, moving states what the visit is moving to. */
+@Composable fun VisitTimePicker(
+    days: List<OfferedDay>,
+    day: Int,
+    onDay: (Int) -> Unit,
+    slots: List<String>,
+    slot: String,
+    onSlot: (String) -> Unit,
+    footer: String
+) {
+    Text(SchedulingData.scheduledHeading, style = MaterialTheme.typography.titleSmall, color = Ink)
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        days.forEachIndexed { index, offered ->
+            Column(
+                Modifier.widthIn(min = 66.dp).heightIn(min = 72.dp).padding(vertical = 4.dp)
+                    .background(if (day == index) Indigo else Color.White, RoundedCornerShape(ThusoRadius.card))
+                    .border(1.dp, if (day == index) Indigo else Line, RoundedCornerShape(ThusoRadius.card))
+                    .clickable { onDay(index) }
+                    .semantics { selected = day == index; contentDescription = Scheduling.longDate(offered.date) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(offered.weekday, style = MaterialTheme.typography.labelMedium, color = if (day == index) IndigoSoft else BodyText)
+                Text(offered.dayNumber, style = MaterialTheme.typography.titleMedium, color = if (day == index) Color.White else Ink)
+                Text(offered.month, style = MaterialTheme.typography.labelMedium, color = if (day == index) IndigoSoft else BodyText)
+            }
+        }
+    }
+    slots.chunked(3).forEach { row ->
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            row.forEach { time ->
+                Box(
+                    Modifier.weight(1f).heightIn(min = TouchTarget)
+                        .background(if (slot == time) Indigo else Color.White, RoundedCornerShape(ThusoRadius.control))
+                        .border(1.dp, if (slot == time) Indigo else Line, RoundedCornerShape(ThusoRadius.control))
+                        .clickable { onSlot(time) }.semantics { selected = slot == time },
+                    Alignment.Center
+                ) { Text(time, style = MaterialTheme.typography.titleSmall, color = if (slot == time) Color.White else BodyText) }
+            }
+        }
+    }
+    Note(footer)
+}
+
 /* The list of visits.
  *
  * Three states of the same list — upcoming, past, cancelled — is what a tab row is for, so it is a
@@ -612,25 +642,46 @@ fun serviceIcon(id: String) = when (id) {
     val tabs = listOf("Upcoming", "Past", "Cancelled")
     var tab by remember { mutableStateOf(tabs.first()) }
     var state by remember { mutableStateOf(LoadState.READY) }
+    /* Which visit somebody is cancelling, and which they are moving. Two states rather than one
+       because the cancel flow can hand over to the move — packages/catalog/cancellation.json offers
+       the move first, and again to anybody who says the day is the problem. */
+    var cancelling by remember { mutableStateOf<BookedVisit?>(null) }
+    var moving by remember { mutableStateOf<BookedVisit?>(null) }
     /* A row's date block and its time come from the same date, so the weekday shown can never
        disagree with the day it names. Every booked visit used to be given Triple("FRI","12","SEP")
        whatever day it was booked for. */
     data class Row5(val title: String, val place: String, val status: String, val tone: String,
-                    val date: java.time.LocalDate?, val start: String?, val minutes: Int, val nurse: Boolean) {
+                    val date: java.time.LocalDate?, val start: String?, val minutes: Int, val nurse: Boolean,
+                    /* The visit this row is drawn from, where there is one. A row with a visit behind
+                       it can be moved and cancelled; the sample rows beside it are pictures of visits
+                       and are offered neither, because there is nothing there to act on. */
+                    val visit: BookedVisit? = null,
+                    /* And the record of one that was cancelled, which is what puts the reason on the
+                       row. The Cancelled tab held a single sample and no way to add to it, so the
+                       product displayed the outcome of an action it did not offer. */
+                    val cancelled: CancelledVisit? = null) {
         val weekday get() = date?.let { Scheduling.format(it, "EEE").uppercase() } ?: "NOW"
         val dayNumber get() = date?.let { Scheduling.format(it, "d") } ?: ""
         val month get() = date?.let { Scheduling.format(it, "MMM").uppercase() } ?: ""
         val time get() = start?.let { "$it – ${Scheduling.endTime(it, minutes)}" } ?: SchedulingData.asapPending
-        val spoken get() = "$title, $status. ${date?.let { Scheduling.longDate(it) } ?: ""} $time. $place"
+        val reasonLine get() = cancelled?.let { "Reason given: ${it.reason.text}" }
+        val spoken get() = "$title, $status. ${date?.let { Scheduling.longDate(it) } ?: ""} $time. $place" +
+            (reasonLine?.let { ". $it" } ?: "")
     }
     fun sample(title: String, place: String, status: String, tone: String, offset: Long, start: String, minutes: Int) =
         Row5(title, place, status, tone, Scheduling.today().plusDays(offset), start, minutes, false)
     val rows = when (tab) {
         "Past" -> listOf(sample("Wound care", "Home visit · Sandton", "Completed", "teal", -3, "10:00", 40))
-        "Cancelled" -> listOf(sample("Blood tests", "Home visit · Soweto", "Cancelled", "amber", -12, "08:00", 25))
+        /* Cancelled visits are kept, with the reason given, and the sample below them is left where
+           it was: a tab that empties itself the moment somebody uses it teaches nothing. */
+        "Cancelled" -> store.cancelled.map { entry ->
+            Row5(entry.visit.service.name, "${entry.visit.address} · ${entry.visit.person}", "Cancelled", "amber",
+                 entry.visit.date, entry.visit.start, entry.visit.service.duration, false, cancelled = entry)
+        } + listOf(sample("Blood tests", "Home visit · Soweto", "Cancelled", "amber", -12, "08:00", 25))
         else -> store.visits.mapIndexed { index, visit ->
             Row5(visit.service.name, "${visit.address} · ${visit.person}", visit.status,
-                 if (visit.isScheduled) "teal" else "amber", visit.date, visit.start, visit.service.duration, index == 0)
+                 if (visit.isScheduled) "teal" else "amber", visit.date, visit.start, visit.service.duration,
+                 index == 0, visit = visit)
         } + listOf(
             sample("Wound care", "Home visit · Sandton", "Pending", "amber", 17, "10:00", 40),
             sample("Mother & baby", "Home visit · Rivonia", "Scheduled", "sky", 29, "14:00", 45)
@@ -675,21 +726,55 @@ fun serviceIcon(id: String) = when (id) {
                                     }
                                     IconLine(Icons.Outlined.Schedule, row.time)
                                     IconLine(Icons.Outlined.LocationOn, row.place)
+                                    row.reasonLine?.let { IconLine(Icons.AutoMirrored.Outlined.Notes, it) }
                                 }
                             }
                             if (row.nurse) {
                                 HorizontalDivider(color = Line)
                                 NurseRow()
+                            }
+                            /* Every visit that exists can be moved and can be cancelled — not only
+                               the one at the top of the list. The booking confirmation has promised
+                               both since before this file had a control for either, and a promise
+                               kept on one row out of three is a promise nobody can rely on.
+
+                               Cancelling is quieter than the rest and deliberately so: it is the
+                               action a person has to be able to find and the one nothing should
+                               nudge them towards. It is not hidden, because a hidden way out is how
+                               somebody ends up simply not answering the door.
+
+                               Both controls carry a description naming the visit they act on. Three
+                               rows all offering "Cancel this visit" are three identical stops to a
+                               screen reader with nothing to tell them apart. */
+                            row.visit?.let { visit ->
+                                HorizontalDivider(color = Line)
                                 Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-                                    OutlinedButton(onClick = { open("Reschedule visit") }, Modifier.weight(1f).heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("Reschedule") }
-                                    Button(onClick = { open("Visit: ${row.title} · ${row.time}") }, Modifier.weight(1f).heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("View details") }
+                                    OutlinedButton(
+                                        onClick = { moving = visit },
+                                        Modifier.weight(1f).heightIn(min = TouchTarget)
+                                            .semantics { contentDescription = "Move the ${row.title} visit, ${row.time}" },
+                                        shape = ThusoButtonShape
+                                    ) { Text("Reschedule") }
+                                    if (row.nurse) Button(
+                                        onClick = { open("Visit: ${row.title} · ${row.time}") },
+                                        Modifier.weight(1f).heightIn(min = TouchTarget),
+                                        shape = ThusoButtonShape
+                                    ) { Text("View details") }
                                 }
+                                TextButton(
+                                    onClick = { cancelling = visit },
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)
+                                        .semantics { contentDescription = "Cancel the ${row.title} visit, ${row.time}" },
+                                    shape = ThusoButtonShape,
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Danger)
+                                ) { Text("Cancel this visit") }
                             }
                         }
                         /* Merged only where the card is not also holding its own buttons: a card with
                            Reschedule and View details in it is three things to a screen reader and
                            has to stay three, or the buttons disappear into the sentence. */
                         if (row.nurse) LeadCard(content = body)
+                        else if (row.visit != null) CareCard(content = body)
                         else CareCard(Modifier.semantics(mergeDescendants = true) { contentDescription = row.spoken }, content = body)
                     }
                 }
@@ -717,6 +802,17 @@ fun serviceIcon(id: String) = when (id) {
             }
         }
     }
+    cancelling?.let { visit ->
+        CancelVisitDialog(
+            visit, store,
+            close = { cancelling = null },
+            /* The way out of the cancel flow that keeps the visit. It closes one dialog and opens
+               the other on the same visit, so the move happens to the thing that was about to be
+               cancelled rather than to a fresh copy of it. */
+            move = { cancelling = null; moving = visit }
+        )
+    }
+    moving?.let { visit -> RescheduleVisitDialog(visit, store) { moving = null } }
 }
 @Composable fun IconLine(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

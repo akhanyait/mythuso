@@ -101,10 +101,29 @@ class FontScaleTests {
         auditBothScales("The Health Passport") { openTab("Passport") }
     }
 
+    /* The cancel dialog, at both ends of the scale. It is here rather than only in
+       CancellationJourneyTests because three of the four defects this suite found were invisible at
+       the default scale — a blood-pressure unit and a review's field name were each measured 0dp
+       wide at 2.0 while looking perfectly correct at 1.0. A dialog is the likeliest place for that
+       to happen again: it is width-constrained by the framework rather than by this layout, so a
+       row that fits on the screen need not fit inside it. */
+    @Test fun theCancelDialogIsUsableAtBothFontScales() {
+        auditBothScales("The cancel dialog") { openCancelDialog() }
+    }
+
     // MARK: - The journeys
 
     private fun openTab(label: String) {
         rule.onAllNodes(isTab() and hasText(label)).onFirst().performClick()
+        rule.waitForIdle()
+    }
+
+    private fun openCancelDialog() {
+        openTab("Visits")
+        /* Scrolled to: at the largest font scale the first visit card's action row is already below
+           the fold, and clicking an un-scrolled node lands nowhere silently. */
+        rule.onAllNodes(describedStartingWith("Cancel the") and hasClickAction())
+            .onFirst().performScrollTo().performClick()
         rule.waitForIdle()
     }
 

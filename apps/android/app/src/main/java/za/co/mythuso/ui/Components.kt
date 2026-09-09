@@ -2,6 +2,8 @@ package za.co.mythuso.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -11,6 +13,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import za.co.mythuso.model.Capabilities
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable fun FlowRowChips(options: List<String>, selected: Set<String>, onToggle: (String) -> Unit) {
@@ -68,5 +71,27 @@ import androidx.compose.ui.unit.dp
         Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.width(12.dp))
         Switch(checked, null)
+    }
+}
+
+/**
+ * The one way a screen here says it is not wired to anything yet.
+ *
+ * It draws nothing when the capability is connected, which is the whole point: nobody has to
+ * remember to go and delete a banner when an integration lands, because there is no banner to
+ * delete. There is a boolean in packages/catalog/capabilities.json and a build that refuses to let
+ * it be flipped without evidence. The web has had this since the notices were swept up
+ * (apps/web/src/components/NotConnected.tsx) and iOS has `CapabilityNotice`; Android had neither,
+ * so its screens said nothing at all about what is real.
+ *
+ * One per screen. A reader told the same thing three times has been told it none.
+ */
+@Composable fun NotConnected(of: String) {
+    val notice = Capabilities.notice(of) ?: return
+    TonedCard {
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Outlined.Info, null, tint = Indigo, modifier = Modifier.size(18.dp))
+            Text(notice, style = MaterialTheme.typography.bodySmall, color = BodyText)
+        }
     }
 }
