@@ -152,7 +152,7 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    underneath saying what it is. No text is ever inside this box, which is what makes the wash safe
    to animate at all — nothing a reader has to read sits on a ground that is changing. */
 .landing-portrait{margin:0;min-width:0}
-.landing-portrait-frame{position:relative;overflow:hidden;border-radius:var(--r-panel);background:var(--pale-sage);border:1px solid var(--stone);aspect-ratio:4 / 5;display:grid;align-items:end;justify-items:center}
+.landing-portrait-frame{position:relative;overflow:hidden;border-radius:var(--r-panel);background:var(--pale-sage);border:1px solid var(--stone);aspect-ratio:4 / 5;display:grid;align-items:end;justify-items:center;color:var(--charcoal)}
 .landing-portrait-frame img{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:contain;object-position:bottom center}
 .landing-portrait-frame.soft{background:var(--cloud)}
 

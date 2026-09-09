@@ -116,17 +116,27 @@
 }
 .s-panel.quiet { background: var(--cloud); border-color: transparent; }
 /* The one panel a screen is about. Sage as a ground, charcoal on it at 11.11:1. */
-.s-panel.lead { background: var(--pale-sage); border-color: transparent; }
+/* The lead panel paints sage, so it provides charcoal to everything inside it rather than leaving
+   each child to remember. faint on paleSage is 3.75 and fails; charcoal is 11.11. Nothing computed
+   that pair, because the ground and the colour are set by two different rules and the failure only
+   exists where they meet — which is the shape of every contrast bug in this project so far. */
+.s-panel.lead { background: var(--pale-sage); border-color: transparent; color: var(--charcoal); }
+.s-panel.lead p, .s-panel.lead small, .s-panel.lead .s-metric-label { color: var(--charcoal); }
 
 .s-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-12); }
 .s-panel-head h2, .s-panel-head h3 { font-size: 16px; font-weight: 600; margin: 0; }
 .s-panel-head p { font-size: 13px; color: var(--faint); margin: 2px 0 0; }
 
+/* --faint, not --stone, on anything that is a control.
+   SC 1.4.11 holds a control's own boundary to 3:1 because it is the only thing saying where the
+   control is. stone measures 1.36 on white and clears nothing; faint is 5.75. A card's edge is not
+   a control and keeps stone. Found by Android's own sweep, working the ratio out by hand — the pair
+   had never been declared, so nothing computed it on any of the three platforms. */
 /* The small circular affordance at a card's trailing edge. */
 .s-open {
  width: 44px; height: 44px; flex-shrink: 0;
  display: grid; place-items: center;
- border: 1px solid var(--stone);
+ border: 1px solid var(--faint);
  border-radius: var(--r-pill);
  background: var(--surface);
  color: var(--charcoal);
@@ -142,15 +152,15 @@
  border-radius: 6px;
  background: var(--cloud);
 }
-.s-segments i.on { background: var(--soft-sage); }
-.s-segments i.now { background: var(--sage-slate); }
+.s-segments i.on { background: var(--soft-sage);color:var(--charcoal)}
+.s-segments i.now { background: var(--sage-slate);color:var(--charcoal)}
 
 /* ---- A search field: a pill, with the button as its own circle ---- */
 .s-search { display: flex; align-items: center; gap: var(--space-8); }
 .s-search-go {
  width: 48px; height: 48px; flex-shrink: 0;
  display: grid; place-items: center;
- border: 1px solid var(--stone);
+ border: 1px solid var(--faint);
  border-radius: var(--r-pill);
  background: var(--surface);
  color: var(--charcoal);

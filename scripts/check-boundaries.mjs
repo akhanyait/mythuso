@@ -1062,14 +1062,35 @@ if(existsSync('apps/web/src/surface/glass.css')) {
    So it is checked. Any rule that paints a sage background may not also set a colour that is not
    charcoal, and may not leave one to be inherited from a lighter ground. */
 const sageFills = /(--pale-sage|--soft-sage|--muted-sage|--sage-slate)\)/;
+/* A surface that paints sage must also set a colour, and that colour must be charcoal.
+   The first version of this check only saw a rule that did both at once. It missed the real case:
+   `.s-panel.lead` painted sage and set no colour, `.s-panel-head p` set faint and painted nothing,
+   and faint landed on sage at 3.75:1 through inheritance across two rules that were each fine on
+   their own. A guard that only reads one declaration at a time cannot see a failure that only
+   exists where two of them meet — so a sage ground must now carry its own foreground down. */
 for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/surface/surface.css','apps/web/src/surface/patient.css','apps/web/src/surface/clinical.css','apps/web/src/shells/shells.css']) {
  if(!existsSync(sheet)) continue;
- for(const rule of read(sheet).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+ /* Comments stripped first. A CSS comment sitting above a rule is captured as part of that rule's
+    selector by any regex this simple, so the error named a paragraph of prose instead of a class —
+    and a repair scripted from that name edits the comment. Same whole-file mistake as the notice
+    check, in a fourth language. */
+ const sheetCode = read(sheet).replace(/\/\*[\s\S]*?\*\//g, '');
+ for(const rule of sheetCode.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
   const [, selector, body] = rule;
   if(!/background[^;]*:/.test(body)) continue;
-  const paintsSage = body.split(';').some(d => /^\s*background/.test(d) && sageFills.test(d));
+  /* A charcoal gradient with a trace of sage mixed into it is a dark ground, not a sage one — its
+     text is white, and forcing charcoal onto it would be the actual defect. So a declaration that
+     names charcoal alongside the sage is not a sage surface. */
+  const paintsSage = body.split(';').some(d =>
+   /^\s*background/.test(d) && sageFills.test(d) && !/--charcoal/.test(d));
   if(!paintsSage) continue;
   const colour = body.split(';').find(d => /^\s*color\s*:/.test(d));
+  /* A surface only has to provide a foreground if something could be read on it. A pseudo-element
+     overlay, and a bar declared shorter than the 13px type floor, cannot hold a word between them —
+     requiring a colour there would be noise, and noise is how a check gets switched off. */
+  const decorative = /::(before|after)/.test(selector)
+   || (/height:\s*(\d+)px/.test(body) && Number(body.match(/height:\s*(\d+)px/)[1]) < 13);
+  if(!colour && !decorative) throw new Error(`${sheet}: "${selector.trim().slice(0,60)}" paints a sage background and sets no colour, so whatever a child inherits lands on sage unmeasured — faint gets 3.75:1 there and fails. Set color: var(--charcoal) on the surface that paints the sage; a child cannot be relied on to remember. If nothing can be read on it, say so by giving it a height under the type floor or making it a pseudo-element.`);
   if(colour && !/--charcoal|--ink\)/.test(colour)) throw new Error(`${sheet}: "${selector.trim().slice(0,60)}" paints a sage background and sets ${colour.trim()}. Charcoal is the only foreground measured against the sage ramp — faint on paleSage is 3.70 and fails. Everything read on sage is charcoal.`);
  }
 }

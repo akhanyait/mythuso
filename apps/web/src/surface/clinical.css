@@ -433,12 +433,12 @@
 .clinical .earn-bar { height: 14px; gap: var(--space-4); }
 .clinical .earn-bar i { border-radius: var(--r-pill); }
 .clinical .earn-bar i.yours { background: var(--charcoal); }
-.clinical .earn-bar i.fee { background: var(--muted-sage); }
-.clinical .earn-bar i.platform { background: var(--pale-sage); }
+.clinical .earn-bar i.fee { background: var(--muted-sage); color: var(--charcoal);}
+.clinical .earn-bar i.platform { background: var(--pale-sage); color: var(--charcoal);}
 .clinical .earn-legend .key { border-radius: var(--r-pill); }
 .clinical .earn-legend .key.yours { background: var(--charcoal); }
-.clinical .earn-legend .key.fee { background: var(--muted-sage); }
-.clinical .earn-legend .key.platform { background: var(--pale-sage); }
+.clinical .earn-legend .key.fee { background: var(--muted-sage); color: var(--charcoal);}
+.clinical .earn-legend .key.platform { background: var(--pale-sage); color: var(--charcoal);}
 .clinical .earn-legend strong { color: var(--charcoal); font-weight: 500; font-size: 18px; }
 .clinical .earn-legend small { color: var(--faint); }
 /* The credential gauge is charcoal rather than sage, and deliberately so. It carries role="img"
@@ -725,7 +725,7 @@
 .clinical .tc-limit.ok { background: color-mix(in srgb, var(--charcoal) 4%, transparent); }
 .clinical .tc-limit.ok svg { color: var(--charcoal); }
 .clinical .interp-outcome { border-color: var(--pane-line); border-radius: var(--r-panel); }
-.clinical .interp-outcome.matched { background: var(--pale-sage); border-color: transparent; }
+.clinical .interp-outcome.matched { background: var(--pale-sage); border-color: transparent; color: var(--charcoal);}
 .clinical .interp-outcome strong { color: var(--charcoal); }
 .clinical .interp-outcome p { color: var(--charcoal); }
 .clinical .access-row .access-mark, .clinical .access-rule svg { color: var(--charcoal); }
@@ -996,7 +996,7 @@
  border-radius: var(--r-pill);
  background: var(--cloud);
 }
-.clinical .fc-track i { display: block; height: 100%; border-radius: var(--r-pill); background: var(--soft-sage); }
+.clinical .fc-track i { display: block; height: 100%; border-radius: var(--r-pill); background: var(--soft-sage); color: var(--charcoal);}
 /* The tick is charcoal on sage at 8.94:1 and on cloud at 13.53:1, so it is visible against both
    halves of the track it sits on the join of. 3:1 is what SC 1.4.11 asks of a meaningful graphic;
    this is the graphic, so it is not drawn in a sage. */

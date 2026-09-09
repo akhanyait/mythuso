@@ -10,7 +10,7 @@ import { HeroCarousel } from '../components/HeroCarousel';
 import { FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
 import type { DemoVisit } from './Booking';
-import { endTime, isoIn, labels as schedulingLabels, longDateOf, shortDateOf, visitEnds, weekdayOf } from '../lib/scheduling';
+import { endTime, isoIn, labels as schedulingLabels, longDateOf, shortDateOf, slots, visitEnds, weekdayOf } from '../lib/scheduling';
 import { holdStatus } from '../lib/interpreting';
 import { activity as walletActivity, balance as walletBalance, topUpAmounts } from '../lib/wallet';
 import type { CancelState } from '../lib/cancelling';
@@ -107,8 +107,21 @@ export const rowFor=(visit:DemoVisit,id:string):VisitRow=>
    was right not to: an app that takes a booking outside phase one has moved the disappointment to
    the patient's front door. And a visit list where nothing is ever today is a list where the one
    screen a person opens on the morning of their visit can never be seen. */
+/* The next slot the offer still has room for today, or the first one tomorrow. Derived rather than
+   typed, because a fixed time is only in the future for part of the day. */
+const nextSlot=()=>{
+ const now=new Date();
+ const minutes=now.getHours()*60+now.getMinutes();
+ const ahead=slots.find(t=>{const [h,m]=t.split(':').map(Number);return h*60+m>minutes+60;});
+ return ahead?{dayOffset:0,start:ahead}:{dayOffset:1,start:slots[0]!};
+};
 export const sampleVisitRows=():VisitRow[]=>[
- sample('VIS-0051',services[0],'Lerato Molefe','Home visit · Melville',0,'09:00','Confirmed','','upcoming'),
+ /* The one visit that is genuinely still ahead. It was today at 09:00, which is upcoming for nine
+    hours a day and a visit that has already happened for the other fifteen — and since a started
+    visit now refuses to be cancelled, the cancel journey stopped working every evening. The slot is
+    the next one the offer actually has room for, and the day moves to tomorrow once none is left,
+    so "upcoming" is true whenever anybody looks. */
+ sample('VIS-0051',services[0],'Lerato Molefe','Home visit · Melville',nextSlot().dayOffset,nextSlot().start,'Confirmed','','upcoming'),
  sample('VIS-0052',services[1],'Lerato Molefe','Home visit · Melville',17,'10:00','Pending','amber','upcoming'),
  sample('VIS-0053',services[2],'Thabo Molefe','Home visit · Randburg',29,'14:00','Scheduled','sky','upcoming'),
  sample('VIS-0044',services[1],'Lerato Molefe','Home visit · Melville',latestSet.dayOffset,'10:00','Completed','','past'),

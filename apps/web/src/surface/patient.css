@@ -173,17 +173,17 @@
  box-shadow: none;
  translate: none;
 }
-.patient-surface .result-row:hover { background: var(--pale-sage); }
+.patient-surface .result-row:hover { background: var(--pale-sage);color:var(--charcoal)}
 /* Three actions on a visit, and at 320px they wrap rather than squeezing under the 44px floor. */
 .patient-surface .visit-actions { flex-wrap: wrap; }
 .patient-surface .visit-actions > * { flex: 1 1 120px; }
-.patient-surface .choice-row.selected { border-color: var(--charcoal); background: var(--pale-sage); }
+.patient-surface .choice-row.selected { border-color: var(--charcoal); background: var(--pale-sage);color:var(--charcoal)}
 .patient-surface .add-member { background: transparent; border-style: dashed; border-color: var(--sage-slate); }
 /* The one plan a screen leads with keeps its sage ground. The card recipe above is deliberately
    greedy — it has to reach thirty call sites — so the two cards that are meant to be tinted say so
    after it. */
 .patient-surface .plan-card.featured,
-.patient-surface .module-card.highlight { background: var(--pale-sage); border-color: transparent; }
+.patient-surface .module-card.highlight { background: var(--pale-sage); border-color: transparent; color: var(--charcoal); }
 
 /* ---- The one panel a screen is about ----
    Frosted and more opaque than the ground, with a soft luminance behind whatever the screen is
@@ -256,8 +256,7 @@
  .patient-surface .settings-link:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
  .patient-surface .help-card {
   background: var(--pale-sage);
-  border-radius: var(--r-panel, 18px);
- }
+  border-radius: var(--r-panel, 18px); color: var(--charcoal);}
  .patient-surface .help-symbol { background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--charcoal); }
  .patient-surface .sidebar .profile { border-top-color: var(--stone); }
 }
@@ -384,7 +383,7 @@
 .patient-surface .wallet-hero > span { color: var(--surface); }
 .patient-surface .promo-dark button { background: var(--surface); color: var(--charcoal); }
 .patient-surface .wallet-hero .secondary { background: color-mix(in srgb, var(--surface) 16%, transparent); border-color: color-mix(in srgb, var(--surface) 34%, transparent); color: var(--surface); }
-.patient-surface .promo-card { background: var(--pale-sage); border-color: transparent; border-radius: var(--r-panel, 18px); }
+.patient-surface .promo-card { background: var(--pale-sage); border-color: transparent; border-radius: var(--r-panel, 18px); color: var(--charcoal);}
 
 /* ---- The four steps of joining something you cannot join yet ----
    A numbered list whose numbers are drawn rather than counted, because the marker has to be a filled
@@ -462,7 +461,7 @@
 .patient-surface .onboard-steps li.done b { background: var(--sage-slate); color: var(--charcoal); }
 .patient-surface .onboard-steps li { color: var(--faint); }
 .patient-surface .onboard-steps li.current { color: var(--charcoal); }
-.patient-surface .locale-choice label.selected { border-color: var(--charcoal); background: var(--pale-sage); }
+.patient-surface .locale-choice label.selected { border-color: var(--charcoal); background: var(--pale-sage); color: var(--charcoal);}
 .patient-surface .success-icon { background: var(--pale-sage); color: var(--charcoal); }
 
 /* ---- Charts: a soft sage fill fading to nothing ----

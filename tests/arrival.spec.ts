@@ -34,7 +34,15 @@ const track = async (page: Page, index = 0) => {
   await expect(page.getByRole('heading', { name: 'Where is your nurse?' })).toBeVisible();
 };
 
+/* The sample visit is the next slot the offer still has room for, which after the last slot of the
+   day rolls to tomorrow — a visit cannot be both "later today" and "today" at eight in the evening.
+   So the clock is pinned to a morning in Johannesburg for the journeys that depend on the hour.
+   Before this, these passed all morning and failed all evening, which is the worst kind of test:
+   one whose result depends on when somebody happened to run it. */
+const MORNING = new Date('2026-09-10T06:00:00Z'); // 08:00 in Africa/Johannesburg
+
 test('the visit that is today says how far away she is, and what the figure is not', async ({ page }) => {
+  await page.clock.setFixedTime(MORNING);
   await page.goto('/');
   await track(page);
 
