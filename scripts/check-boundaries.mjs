@@ -1172,6 +1172,20 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  }
 }
 
+/* The muted alpha is a token, not a number to retype.
+   tokens.json declares opacity.charcoalMuted at 0.72 and explains why it must stay an alpha: a
+   flattened grey fails on sage, and the same ink at 72% darkens with whatever it sits on. The
+   emitter did not write it, so iOS spent it as a literal in 485 places and Android used a local
+   constant. Both now read the token, and this keeps it that way. */
+{
+ const alpha = tokens.opacity?.charcoalMuted;
+ if(alpha === undefined) throw new Error('packages/design-tokens/tokens.json no longer declares opacity.charcoalMuted. Every muted label on three platforms reads it, and a flattened grey cannot replace it — that is the note above it.');
+ const literal = new RegExp(`opacity\\(\\s*${String(alpha).replace('.', '\\.')}f?\\s*\\)`);
+ for(const file of native.filter(f => !/Data\.(swift|kt)$/.test(f) && !/Tokens\.(swift|kt)$/.test(f))) {
+  if(literal.test(read(file))) throw new Error(`${file} writes the muted alpha ${alpha} as a literal. It is opacity.charcoalMuted in packages/design-tokens/tokens.json and reaches both platforms as ThusoOpacity — a second copy of the one value that has to darken with its ground is how the three platforms end up dimming text by three different amounts.`);
+ }
+}
+
 /* No screen may name a nurse who is not on the register.
    Sister Naledi Mokoena was N-205 in the vetting register, the capture ledger, the visit queue and
    the consultation record — and **N-114** on all three dispatch boards and in the arrival view. One

@@ -63,7 +63,7 @@ struct PastVisitView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(service.name).thusoFont(ThusoType.cardTitle, weight: .semibold)
                         .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
-                    Text("\(person) · \(address)").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text("\(person) · \(address)").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: ThusoSpacing.space8)
@@ -88,7 +88,7 @@ struct PastVisitView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(Passport.nurse.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(Passport.nurse.role).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(Passport.nurse.role).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -131,7 +131,7 @@ struct PastVisitView: View {
     @ViewBuilder private func rangePanel(_ readings: ReadingSet) -> some View {
         SurfacePanel {
             Text("Every reading taken on \(Scheduling.longDate(readings.date)), with the indicative range it is judged against.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 .fixedSize(horizontal: false, vertical: true)
             RangeTable(rows: measures.map { observation in
                 let value = readings.values[observation.id]!
@@ -215,7 +215,7 @@ struct RangeTable: View {
                         Text(row.value).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityLabel("\(columns.1): \(row.value)")
-                        Text("\(columns.2) \(rangeText(row))").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        Text("\(columns.2) \(rangeText(row))").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -230,7 +230,7 @@ struct RangeTable: View {
                     Text(columns.1)
                     Text(columns.2)
                 }
-                .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 .accessibilityHidden(true)
                 ForEach(rows) { row in
                     Divider().overlay(ThusoTheme.stone).gridCellColumns(3)

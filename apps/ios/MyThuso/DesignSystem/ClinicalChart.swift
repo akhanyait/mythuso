@@ -45,14 +45,14 @@ struct ClinicalChart: View {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
                 if let symbol {
                     Image(systemName: symbol).font(.footnote)
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).accessibilityHidden(true)
+                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).accessibilityHidden(true)
                 }
                 Text(latest.value == first.value ? "No change since \(first.label)" : "\(latest.value > first.value ? "+" : "")\(format(latest.value - first.value)) since \(first.label)")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .fixedSize(horizontal: false, vertical: true)
             }
             plot.frame(height: plotHeight).accessibilityElement().accessibilityLabel(summary)
-            HStack { Text(first.label); Spacer(); Text(latest.label) }.font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            HStack { Text(first.label); Spacer(); Text(latest.label) }.font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             DisclosureGroup(isExpanded: $showTable) {
                 VStack(spacing: 0) {
                     ForEach(readings) { reading in
@@ -65,7 +65,7 @@ struct ClinicalChart: View {
                         .accessibilityElement(children: .combine)
                         Divider()
                     }
-                    Text("Fictional data, not a medical record.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
+                    Text("Fictional data, not a medical record.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
                 }
             } label: {
                 /* The whole row answers the tap, not just the words. At the largest content size

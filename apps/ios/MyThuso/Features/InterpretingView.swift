@@ -54,7 +54,7 @@ struct InterpretingView: View {
                 vettingCard
                 refusalsCard
                 rulesCard
-                Text(Interpreting.notYetBuilt).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(Interpreting.notYetBuilt).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             .padding(ThusoSpacing.space16)
         }
@@ -65,8 +65,8 @@ struct InterpretingView: View {
     private var requirementCard: some View {
         CareCard {
             Toggle(Interpreting.labels.requirementOn, isOn: $required)
-            Text(Interpreting.rule("requirement-travels").sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-            Label(Interpreting.cost.sentence, systemImage: "checkmark.seal").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(Interpreting.rule("requirement-travels").sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Label(Interpreting.cost.sentence, systemImage: "checkmark.seal").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
     }
 
@@ -76,8 +76,8 @@ struct InterpretingView: View {
             Picker(Interpreting.labels.chooseMode, selection: $mode) {
                 ForEach(Interpreting.modes) { Text($0.name).tag($0.id) }
             }.pickerStyle(.segmented)
-            Text(Interpreting.mode(mode).detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-            Text(Interpreting.mode(mode).note).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(Interpreting.mode(mode).detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(Interpreting.mode(mode).note).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
     }
 
@@ -89,16 +89,16 @@ struct InterpretingView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(person.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     Text("\(Interpreting.accreditation.short) \(person.reference) · \(person.area)")
-                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-                    Text(person.settings.joined(separator: ", ")).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(person.settings.joined(separator: ", ")).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     Text(hours.isEmpty
                          ? Interpreting.labels.modeUnavailable
                          : "Free " + hours.map { "\(Scheduling.shortDate($0.date)) \($0.slot)" }.joined(separator: " · "))
-                        .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Text(Interpreting.estimate.horizonNote).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(Interpreting.estimate.horizonNote).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
     }
 
@@ -127,23 +127,23 @@ struct InterpretingView: View {
                     .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 Text(Interpreting.waitSentence(outcome)).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                 Text("The visit is confirmed with \(free.interpreter.name) named on it. Nothing is booked in this preview.")
-                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             case .held:
                 Label("\(Interpreting.labels.noneFree) — \(Interpreting.labels.heldBadge)", systemImage: "hourglass")
                     .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.mangoInk)
                 Text(Interpreting.waitSentence(outcome)).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
-                Text(Interpreting.hold.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-                Text(Interpreting.hold.whatHappensNext).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(Interpreting.hold.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(Interpreting.hold.whatHappensNext).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             case .heldUnknown:
                 Label("\(Interpreting.labels.noneFree) — \(Interpreting.labels.heldBadge)", systemImage: "exclamationmark.triangle")
                     .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
                 Text(Interpreting.estimate.unknown)
                     .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
-                Text(Interpreting.estimate.unknownDetail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(Interpreting.estimate.unknownDetail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             if outcome.isHeld {
                 Label(Interpreting.hold.whyNotDispatched, systemImage: "xmark.octagon")
-                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
         }
     }
@@ -153,14 +153,14 @@ struct InterpretingView: View {
             Text(Interpreting.hold.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             HStack { Text("Cancelling costs"); Spacer(); Text("R\(Interpreting.cancellation.fee).00").fontWeight(.semibold) }
                 .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
-            Text(Interpreting.cancellation.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-            Text(Interpreting.cancellation.notThePatientsChoice).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-            Text(Interpreting.cancellation.keepsTheRequirement).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(Interpreting.cancellation.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(Interpreting.cancellation.notThePatientsChoice).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(Interpreting.cancellation.keepsTheRequirement).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Button(Interpreting.cancellation.label) { cancelled = true }
                 .buttonStyle(QuietButton()).disabled(cancelled)
             if cancelled {
                 Text("Recorded against \(Interpreting.cancellation.attributedTo), not against the patient. Nothing was cancelled — this is a preview.")
-                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
         }
     }
@@ -168,18 +168,18 @@ struct InterpretingView: View {
     private var vettingCard: some View {
         CareCard {
             Text(Interpreting.labels.vettingHeading).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(Interpreting.rule("vetted-like-anybody-else").sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(Interpreting.rule("vetted-like-anybody-else").sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             ForEach(interpreterRole?.checks ?? []) { check in
                 VStack(alignment: .leading, spacing: 3) {
                     Text(check.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text(check.detail).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text(check.detail).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     Text(check.renewMonths.map { "Renewed every \($0) months" } ?? "Once")
-                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             if let refusal = interpreterRole?.grants.first?.refusal {
-                Label(refusal, systemImage: "person.badge.shield.checkmark").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Label(refusal, systemImage: "person.badge.shield.checkmark").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             /* Drafted, and said so on the screen rather than in a commit message. The same rule the
                locale table is held to: a claim that something was checked needs a name, an
@@ -187,9 +187,9 @@ struct InterpretingView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(Interpreting.accreditation.body) (\(Interpreting.accreditation.short)) — \(Interpreting.accreditation.isConfirmed ? "confirmed" : "drafted, not confirmed")")
                     .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
-                Text(Interpreting.accreditation.route).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-                Text(Interpreting.accreditation.uncertainty).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-                Text(Interpreting.accreditation.whatWouldMakeItTrue).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(Interpreting.accreditation.route).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(Interpreting.accreditation.uncertainty).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(Interpreting.accreditation.whatWouldMakeItTrue).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
         }
     }
@@ -202,7 +202,7 @@ struct InterpretingView: View {
                     Image(systemName: "xmark.octagon").foregroundStyle(ThusoTheme.danger)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(refusal.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                        Text(refusal.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        Text(refusal.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -216,7 +216,7 @@ struct InterpretingView: View {
             ForEach(Interpreting.rules) { rule in
                 VStack(alignment: .leading, spacing: 3) {
                     Text(rule.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text(rule.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text(rule.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

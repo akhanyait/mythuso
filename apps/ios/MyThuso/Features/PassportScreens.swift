@@ -67,7 +67,7 @@ struct HealthTrendsView: View {
                 CareSectionHeader("The ranges these are judged against")
                 SurfacePanel {
                     Text("Indicative reference ranges. They are a guide for a healthy adult and are not a validated early-warning score; your own doctor may work to different numbers for you.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         .fixedSize(horizontal: false, vertical: true)
                     RangeTable(rows: Observation.all.map { observation in
                         let value = latest.values[observation.id]
@@ -147,7 +147,7 @@ struct DevicePermissionView: View {
                     Text(integration.name).thusoFont(ThusoType.cardTitle, weight: .semibold)
                         .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
                     Text("Readings from \(integration.platform)").font(.footnote)
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).fixedSize(horizontal: false, vertical: true)
+                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: ThusoSpacing.space8)
                 MetricChip(text: "Not connected", flagged: true)
@@ -163,7 +163,7 @@ struct DevicePermissionView: View {
         CareSectionHeader("What would be read")
         SurfacePanel {
             Text("Every reading type MyThuso would ask \(integration.name) for, and nothing else. It asks for these because they are what a visit records; a category it has nowhere to file is a category it does not request.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 .fixedSize(horizontal: false, vertical: true)
             RangeTable(rows: Passport.readable.map { observation in
                 RangeTable.Row(name: observation.label, value: observation.unit,
@@ -204,7 +204,7 @@ struct DevicePermissionView: View {
         CareSectionHeader("The instruments in the kit")
         SurfacePanel {
             Text("What a nurse carries, what each instrument measures, and how often it has to be calibrated. An instrument out of calibration still produces a reading; what it stops producing is one anybody should act on without saying so.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 .fixedSize(horizontal: false, vertical: true)
             RangeTable(rows: Passport.kitInstruments.map { instrument in
                 RangeTable.Row(name: instrument.name,

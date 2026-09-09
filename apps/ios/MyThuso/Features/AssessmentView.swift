@@ -285,15 +285,15 @@ struct VisitAssessmentView: View {
             if let kitReading = fromKit[observation.id] {
                 if let line = kitReading.instrumentLine {
                     Text(provenance == .device ? line : "\(line) — read by hand, so this is a clinician’s reading of that instrument")
-                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 if let label = kitReading.qualifierLabel, let qualifier = kitReading.qualifier {
-                    Text("\(label): \(qualifier)").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text("\(label): \(qualifier)").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 CaveatNote(caveats: kitReading.caveats)
             }
             if provenance == .patientReported {
-                Text("In the record as what they said, not as something you observed.").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text("In the record as what they said, not as something you observed.").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
         }
         .padding(.vertical, 3)
@@ -412,7 +412,7 @@ struct VisitAssessmentView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         HStack { Text(derived.label).font(.caption).foregroundStyle(.secondary); Spacer(); Text("\(derived.value) \(derived.unit)").font(.system(.subheadline, design: .rounded, weight: .semibold)) }
                         ProvenanceMark(provenance: .derived)
-                        Text(derived.workings).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        Text(derived.workings).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     }
                 }
                 ForEach(unranged) { ReadingRow(reading: $0) }

@@ -100,13 +100,13 @@ struct StatePicker: View {
     var body: some View {
         DisclosureGroup(isExpanded: $open) {
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                Text(title).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(title).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 Picker(title, selection: $state) { ForEach(LoadState.allCases) { Text($0.rawValue).tag($0) } }
                     .pickerStyle(.segmented).labelsHidden()
             }.padding(.top, ThusoSpacing.space8)
         } label: {
             HStack(spacing: ThusoSpacing.space8) {
-                Text("Preview states").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text("Preview states").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 if state != .ready { StatusPill(text: state.rawValue, tone: "amber") }
             }
         }

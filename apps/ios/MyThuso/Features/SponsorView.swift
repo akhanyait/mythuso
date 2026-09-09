@@ -79,7 +79,7 @@ struct SponsoredCareView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(person).thusoFont(ThusoType.cardTitle, weight: .semibold)
                         .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
-                    Text(relation).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text(relation).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 .accessibilityElement(children: .combine)
                 Spacer(minLength: 0)
@@ -108,7 +108,7 @@ struct SponsoredCareView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
                             Text(line.on.formatted(sponsorDay)).font(.footnote)
-                                .foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                             Spacer(minLength: ThusoSpacing.space8)
                             Text(sponsorAmount(line.amount)).font(.subheadline.weight(.semibold))
                                 .monospacedDigit().foregroundStyle(ThusoTheme.charcoal)
@@ -138,11 +138,11 @@ struct SponsoredCareView: View {
                 Text(Sponsorship.currentDetail.detail).font(.footnote)
                     .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
                 Text("\(first) decides this, in her own account. It is not a setting on this screen and there is no way to ask for it.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .fixedSize(horizontal: false, vertical: true)
                 if Sponsorship.serviceIsNamed {
                     Text(Sponsorship.namingNote).font(.footnote)
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

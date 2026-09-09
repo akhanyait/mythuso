@@ -39,7 +39,7 @@ struct VisitQueueView: View {
                 if !queue.held.isEmpty {
                     CareSectionHeader("Held on this phone")
                     Text("Not sealed yet, because the visit is not finished. Signing the assessment seals everything it holds at once.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         .fixedSize(horizontal: false, vertical: true)
                     ForEach(queue.held) { PartCard(part: $0) }
                 }
@@ -108,7 +108,7 @@ struct VisitQueueView: View {
         if queue.sealed.isEmpty {
             if queue.held.isEmpty {
                 Text("Nothing is sealed. An empty queue means every piece of this visit has been answered for.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .fixedSize(horizontal: false, vertical: true)
             }
         } else {
@@ -116,7 +116,7 @@ struct VisitQueueView: View {
             ForEach(queue.sealed) { PartCard(part: $0) }
             if queue.pretendNoSignal {
                 Text("Sending needs a connection. Nothing is dropped to make a send succeed and nothing is retried behind your back.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -133,7 +133,7 @@ struct VisitQueueView: View {
         }
         ForEach(queue.conflicted) { PartCard(part: $0) }
         Text("Nothing here is filed and nothing is thrown away. A reading two clinicians disagree about is settled on the Thuso Kit surface, where both versions can be put side by side; a whole assessment that arrives against a signed record goes to the Control Tower.")
-            .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -202,7 +202,7 @@ struct VisitQueueView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text(queue.ledgerPath).font(.system(.footnote, design: .monospaced))
-                .foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).textSelection(.enabled)
+                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -312,7 +312,7 @@ struct CaptureStandingStrip: View {
                 .foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(standing).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(sentence).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(sentence).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -321,7 +321,7 @@ struct CaptureStandingStrip: View {
                merely true, and merely true is charcoal on white. */
             MetricChip(text: chip, tone: waiting == 0 ? .neutral : .attention)
             Image(systemName: "chevron.right").font(.footnote.weight(.semibold))
-                .foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).accessibilityHidden(true)
+                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).accessibilityHidden(true)
         }
     }
 
@@ -356,14 +356,14 @@ struct PartCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(part.kind.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(part.summary).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text(part.summary).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: ThusoSpacing.space8)
                 MetricChip(text: part.state.name, flagged: part.state == .conflicted)
             }
             .accessibilityElement(children: .combine)
-            Text("\(part.visitReference) · \(part.patient)").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text("\(part.visitReference) · \(part.patient)").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Hairline()
             ForEach(part.detail) { fact in FactRow(label: fact.label, value: fact.value) }
             FactRow(label: "On this phone since", value: writtenInWords(part.deviceCapturedAt))
@@ -371,7 +371,7 @@ struct PartCard: View {
                 FactRow(label: "Server receipt · what this is ordered by", value: writtenInWords(received))
             } else {
                 Text("Not received yet, so this has no time it happened — only a time this phone believed.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .fixedSize(horizontal: false, vertical: true)
             }
             if part.isPending {

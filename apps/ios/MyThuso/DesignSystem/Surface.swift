@@ -150,7 +150,7 @@ struct ThusoMetric: View {
             /* Charcoal, muted by opacity rather than by a grey of its own. A metric can sit on
                white or on the palest sage, and a fixed grey that reads on one does not read on the
                other — which is exactly what "sage is a fill and never a label" is about. */
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -198,7 +198,7 @@ enum ChipTone {
     var colours: (Color, Color, Color) {
         switch self {
         case .neutral: return (ThusoTheme.charcoal, ThusoTheme.surface, ThusoTheme.stone)
-        case .quiet: return (ThusoTheme.charcoal.opacity(0.72), ThusoTheme.cloud, .clear)
+        case .quiet: return (ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted), ThusoTheme.cloud, .clear)
         case .attention: return (ThusoTheme.mangoInk, ThusoTheme.mangoSoft, ThusoTheme.mangoInk.opacity(0.24))
         case .refused: return (ThusoTheme.danger, ThusoTheme.dangerSoft, ThusoTheme.danger.opacity(0.3))
         case .onDark: return (ThusoTheme.surface, ThusoTheme.surface.opacity(0.16), ThusoTheme.surface.opacity(0.3))
@@ -299,7 +299,7 @@ struct PanelHead<Trailing: View>: View {
                 Text(title).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
                 if let note {
-                    Text(note).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text(note).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -441,7 +441,7 @@ struct SurfaceHeading: View {
                    label in this language is — never a sage, which reads at 2.30:1 on the cloud
                    ground a quiet panel uses and cannot carry a word anywhere. */
                 Text(eyebrow.uppercased()).font(.footnote.weight(.semibold)).tracking(1.1)
-                    .foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             Text(title).font(.system(size: titleSize, weight: .regular)).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
@@ -468,7 +468,7 @@ struct FactRow: View {
                 /* Charcoal, muted by opacity rather than by a grey of its own. A metric can sit on
                  white or on the palest sage, and a fixed grey that reads on one does not read on
                  the other — which is exactly what "sage is a fill and never a label" is about. */
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 Spacer(minLength: ThusoSpacing.space8)
                 Text(value).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                     .multilineTextAlignment(.trailing)
@@ -477,7 +477,7 @@ struct FactRow: View {
                 /* Charcoal, muted by opacity rather than by a grey of its own. A metric can sit on
                  white or on the palest sage, and a fixed grey that reads on one does not read on
                  the other — which is exactly what "sage is a fill and never a label" is about. */
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 Text(value).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -496,7 +496,7 @@ struct StatedFact: View {
     var footnote: String?
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-            Text(term).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(term).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 .fixedSize(horizontal: false, vertical: true)
             Text(statement).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)

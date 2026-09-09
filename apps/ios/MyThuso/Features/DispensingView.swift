@@ -76,7 +76,7 @@ struct DispensingView: View {
             Text(Dispensing.prescription.reference)
                 .font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
             Text("\(Dispensing.prescription.patient) · \(Dispensing.prescription.patientBorn) · issued \(Dispensing.prescription.issued.formatted(dispensingDay))")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             row("Prescribed by", attributedTo(prescriberId))
             row("Dispensed by", "\(Dispensing.prescription.pharmacist.name) · \(Dispensing.prescription.pharmacist.registration)")
             row("At", attributedTo(pharmacyId))
@@ -113,11 +113,11 @@ struct DispensingView: View {
             heading("What a substitution may and may not change")
             CareCard {
                 Text("Never, without the prescriber").font(.caption.weight(.bold))
-                    .textCase(.uppercase).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .textCase(.uppercase).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 ForEach(Dispensing.neverChanges) { change in bullet(change.what, change.why) }
                 Divider()
                 Text("May change, and the patient is told").font(.caption.weight(.bold))
-                    .textCase(.uppercase).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .textCase(.uppercase).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 ForEach(Dispensing.mayChange) { change in bullet(change.what, change.why) }
                 refusal(Dispensing.refusal("substitute-the-molecule"))
             }
@@ -131,12 +131,12 @@ struct DispensingView: View {
                 CareCard {
                     StatusPill(text: klass.shortName, tone: klass.tone)
                     Text(klass.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text(klass.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-                    Text(klass.whoDecides).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text(klass.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(klass.whoDecides).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
             }
             Text("There is no fourth class called “may be substituted”. Section 22F of the Medicines and Related Substances Act 101 of 1965 makes telling the patient a duty on every substitution, with four exceptions — \(Dispensing.statutoryGrounds.map { "\($0.name.lowercased()) (\($0.section ?? ""))" }.joined(separator: ", ")) — so a silent swap is not the mild end of this screen. It is outside it.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
     }
 
@@ -146,12 +146,12 @@ struct DispensingView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("\(Dispensing.prescription.items.count) items · \(Dispensing.prescription.substituted.count) substituted")
             Text(Dispensing.rule("substitution-is-clinical").sentence)
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             ForEach(Dispensing.prescription.items) { item in itemCard(item) }
             Text(Dispensing.rule("patient-is-told-first").sentence)
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Text(Dispensing.rule("substitution-is-signed").sentence)
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
     }
 
@@ -164,16 +164,16 @@ struct DispensingView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(item.dispensed).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     Text("\(item.molecule) \(item.strength) · \(item.form) · \(item.dose) · \(item.quantity)")
-                        .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 Spacer(minLength: 8)
                 StatusPill(text: klass.shortName, tone: klass.tone)
             }
             Text(item.wasSubstituted ? "Written: \(item.prescribed)" : "Written and dispensed: \(item.prescribed)")
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             groundLine(ground)
             if let second = item.secondGround { groundLine(Dispensing.ground(second)) }
-            Text(klass.whoDecides).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(klass.whoDecides).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
 
             /* An item that must not be substituted carries no control. The refusal is the absence,
                and the sentence says where the route actually is. */
@@ -184,8 +184,8 @@ struct DispensingView: View {
                     Text("\(Dispensing.prescription.pharmacist.name) · \(Dispensing.prescription.pharmacist.registration)")
                         .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     Text("\(Dispensing.prescription.pharmacist.role) · the prescriber was told the same day")
-                        .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-                    Text(reason).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(reason).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
                 .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
@@ -203,10 +203,10 @@ struct DispensingView: View {
                 set: { on in if on { handed.insert(item.id) } else { handed.remove(item.id) } }
             )) {
                 Text(isTold ? "Handed over" : "Nothing is handed over before the patient has been told what it is")
-                    .font(.caption).foregroundStyle(isTold ? ThusoTheme.charcoal : ThusoTheme.charcoal.opacity(0.72))
+                    .font(.caption).foregroundStyle(isTold ? ThusoTheme.charcoal : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             .disabled(!isTold || !open)
-            Text(item.note).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(item.note).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
     }
 
@@ -221,13 +221,13 @@ struct DispensingView: View {
             }
             Text(item.patientWords).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
             if !item.sameness.isEmpty {
-                Text("The same").font(.caption.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text("The same").font(.caption.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 ForEach(item.sameness, id: \.self) { line in
-                    Text("• \(line)").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text("• \(line)").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
-                Text("Different").font(.caption.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text("Different").font(.caption.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 ForEach(item.differences, id: \.self) { line in
-                    Text("• \(line)").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text("• \(line)").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
             }
         }
@@ -247,7 +247,7 @@ struct DispensingView: View {
                             .foregroundStyle(ThusoTheme.charcoal.opacity(done ? 1 : 0.3))
                         VStack(alignment: .leading, spacing: 3) {
                             Text(step.label).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                            Text(step.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                            Text(step.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         }
                     }
                     .accessibilityElement(children: .combine)
@@ -267,7 +267,7 @@ struct DispensingView: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(auth.reference).font(.body.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-                        Text("\(auth.programme) · \(auth.condition)").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        Text("\(auth.programme) · \(auth.condition)").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     }
                     Spacer(minLength: 8)
                     StatusPill(text: "\(Dispensing.repeatsRemaining) of \(auth.repeatsAuthorised) left",
@@ -281,10 +281,10 @@ struct DispensingView: View {
                     Dispensing.strandedRepeats > 0
                         ? "Whichever comes first — \(Dispensing.strandedRepeats) of the repeats cannot be collected before it expires"
                         : "Whichever comes first")
-                Text(auth.note).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-                Text(auth.quantityNote).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(auth.note).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(auth.quantityNote).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 Text(Dispensing.rule("authorisation-is-boxed").sentence)
-                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 row("Last collected", Dispensing.lastCollectedOn.formatted(dispensingDay))
                 row("Next collection due", Dispensing.nextCollectionOn.formatted(dispensingDay))
                 Button("Collect a repeat") { collectTried = true }.buttonStyle(CareButton()).disabled(!open)
@@ -294,7 +294,7 @@ struct DispensingView: View {
                     } else {
                         alert(answer.reason, symbol: "calendar.badge.clock")
                         Text(Dispensing.rule("early-is-refused-with-a-date").sentence)
-                            .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                            .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     }
                 }
                 if Dispensing.isFinalRepeat {
@@ -316,7 +316,7 @@ struct DispensingView: View {
             heading("What this screen will not do")
             ForEach(Dispensing.refusals) { item in CareCard { refusal(item) } }
             Text("Nothing is dispensed, no stock is checked and no prescriber is notified. Every date above is arithmetic on the demo contract, and none of the clinical wording here has been read by a pharmacist.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
     }
 
@@ -328,7 +328,7 @@ struct DispensingView: View {
 
     private func row(_ label: String, _ value: String) -> some View {
         HStack(alignment: .top) {
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Spacer(minLength: 8)
             Text(value).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 .multilineTextAlignment(.trailing)
@@ -337,9 +337,9 @@ struct DispensingView: View {
 
     private func box(_ label: String, _ value: String, _ note: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(label).font(.caption2.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(label).font(.caption2.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Text(value).font(.body.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(note).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            Text(note).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
         .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
         .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
@@ -350,7 +350,7 @@ struct DispensingView: View {
             Text("•").foregroundStyle(ThusoTheme.charcoal)
             VStack(alignment: .leading, spacing: 2) {
                 Text(what).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(why).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(why).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
         }
         .accessibilityElement(children: .combine)
@@ -362,7 +362,7 @@ struct DispensingView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(ground.section == nil ? ground.name : "\(ground.name) · section \(ground.section ?? "")")
                     .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(ground.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(ground.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
         }
         .accessibilityElement(children: .combine)

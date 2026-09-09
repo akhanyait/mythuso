@@ -26,7 +26,7 @@ struct ServicesView: View {
                     }
                 }.buttonStyle(.plain)
                 Text("All clinical decisions require a registered clinician. Prescription services require a valid prescription.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).fixedSize(horizontal: false, vertical: true)
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).fixedSize(horizontal: false, vertical: true)
                     .padding(.bottom, ThusoSpacing.space16)
             }
             .padding(.vertical, ThusoSpacing.space16)
@@ -50,16 +50,16 @@ struct ServicesView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(service.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(service.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(service.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: ThusoSpacing.space8) {
                 VStack(alignment: typeSize.isAccessibilitySize ? .leading : .trailing, spacing: 2) {
                     Text("From R\(service.price)").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text("\(service.duration) min").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text("\(service.duration) min").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .accessibilityHidden(true)
             }
         }
@@ -118,7 +118,7 @@ struct BookingView: View {
                 TileIcon(symbol: service.symbol)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(service.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text("Registered nurse").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text("Registered nurse").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 Spacer(minLength: 6)
                 Text("R\(service.price)").font(.callout.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
@@ -133,7 +133,7 @@ struct BookingView: View {
             TextField("Visit location", text: $address)
         }
         Text("Sample availability and proposal pricing. Tests, medicines and prescriptions may require separate arrangements.")
-            .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         Button("Continue") { step = 1 }.buttonStyle(CareButton()).disabled(address.trimmingCharacters(in: .whitespaces).count < 5)
     }
     @ViewBuilder private var dateAndTime: some View {
@@ -147,7 +147,7 @@ struct BookingView: View {
                         Image(systemName: kind == option.id ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.charcoal)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(option.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                            Text(option.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                            Text(option.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         }
                         Spacer(minLength: 0)
                     }
@@ -158,7 +158,7 @@ struct BookingView: View {
         }
         if scheduled { VisitTimePicker(days: days, day: $day, slot: $slot, minutes: service.duration) } else {
             Label("We look for the nearest nurse who is free. Nobody is dispatched in this preview.", systemImage: "bolt.fill")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
         HStack(spacing: ThusoSpacing.space8) {
             Button("Back") { step = 0 }.buttonStyle(QuietButton())
@@ -175,7 +175,7 @@ struct BookingView: View {
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(option.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                            Text(option.1).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                            Text(option.1).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         }
                         Spacer(minLength: 0)
                     }
@@ -185,7 +185,7 @@ struct BookingView: View {
             .accessibilityAddTraits(payment == option.0 ? [.isSelected] : [])
         }
         Text("No card is stored and no payment is taken. Production payments run through a regulated provider, never through MyThuso directly.")
-            .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         HStack(spacing: ThusoSpacing.space8) {
             Button("Back") { step = 1 }.buttonStyle(QuietButton())
             Button("Continue") { step = 3 }.buttonStyle(CareButton())
@@ -203,10 +203,10 @@ struct BookingView: View {
                 Monogram(text: Arrival.nurse.initials)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Sister Naledi Mokoena").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text("Registered Nurse (SANC)").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text("Registered Nurse (SANC)").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 Spacer(minLength: ThusoSpacing.space4)
-                Text("★ 4.9").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text("★ 4.9").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             .accessibilityElement(children: .combine)
             Divider().overlay(ThusoTheme.line)
@@ -230,7 +230,7 @@ struct BookingView: View {
            there is a right disclosed to whoever already found it. It was a hand-typed string in
            this file and in one Kotlin file, promising two hours with nothing behind it and nothing
            to check it against. It is packages/catalog/cancellation.json's now. */
-        Text(Cancellation.windowSentence).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).frame(maxWidth: .infinity)
+        Text(Cancellation.windowSentence).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).frame(maxWidth: .infinity)
             .fixedSize(horizontal: false, vertical: true)
         Button("Back") { step = 2 }.buttonStyle(QuietButton())
     }
@@ -245,9 +245,9 @@ struct BookingView: View {
             Text("Your demo visit is booked.").font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
                 .multilineTextAlignment(.center)
             Text("\(service.name) for \(patient.split(separator: " ").first ?? "")")
-                .font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).multilineTextAlignment(.center)
+                .font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).multilineTextAlignment(.center)
             Text("This is a preview. No nurse has been dispatched and no payment was taken.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).multilineTextAlignment(.center)
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).multilineTextAlignment(.center)
             NavigationLink { VisitsView() } label: { Text("View my visits") }.buttonStyle(CareButton())
         }.frame(maxWidth: .infinity)
     }
@@ -286,7 +286,7 @@ struct VisitTimePicker: View {
                             .frame(minWidth: 62, minHeight: 68)
                             .background(day == index ? ThusoTheme.charcoal : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                             .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(day == index ? ThusoTheme.charcoal : ThusoTheme.line, lineWidth: 1))
-                            .foregroundStyle(day == index ? .white : ThusoTheme.charcoal.opacity(0.72))
+                            .foregroundStyle(day == index ? .white : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         }
                         .accessibilityLabel(Scheduling.longDate(offered.date))
                         .accessibilityAddTraits(day == index ? [.isSelected] : [])
@@ -304,13 +304,13 @@ struct VisitTimePicker: View {
                             .frame(maxWidth: .infinity, minHeight: 48)
                             .background(slot == time ? ThusoTheme.charcoal : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                             .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(slot == time ? ThusoTheme.charcoal : ThusoTheme.line, lineWidth: 1))
-                            .foregroundStyle(slot == time ? .white : ThusoTheme.charcoal.opacity(0.72))
+                            .foregroundStyle(slot == time ? .white : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     }.accessibilityAddTraits(slot == time ? [.isSelected] : [])
                 }
             }
             .sensoryFeedback(.selection, trigger: slot)
             Text("\(Scheduling.longDate(chosenDay.date)) · \(slot) – \(endTime) (\(minutes) minutes)")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -379,9 +379,9 @@ struct VisitsView: View {
                             CareCard(weight: row.nurse ? .lead : .plain) {
                                 HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                                     VStack(spacing: 1) {
-                                        Text(row.weekday).font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                                        Text(row.weekday).font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                                         Text(row.dayNumber).font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-                                        Text(row.monthName).font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                                        Text(row.monthName).font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                                     }
                                     .padding(.vertical, ThusoSpacing.space8).frame(minWidth: 52, minHeight: 58)
                                     .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
@@ -397,8 +397,8 @@ struct VisitsView: View {
                                             Spacer(minLength: 8)
                                             StatusPill(text: row.status, tone: row.tone)
                                         }
-                                        Label(row.time, systemImage: "clock").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
-                                        Label(row.place, systemImage: "mappin.and.ellipse").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                                        Label(row.time, systemImage: "clock").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                                        Label(row.place, systemImage: "mappin.and.ellipse").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                                         if let reason = row.reason {
                                             Label(reason, systemImage: "text.bubble").font(.caption).foregroundStyle(ThusoTheme.charcoal)
                                                 .fixedSize(horizontal: false, vertical: true)
@@ -429,7 +429,7 @@ struct VisitsView: View {
                                             VStack(alignment: .leading, spacing: 2) {
                                                 Text(Arrival.nurse.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                                                     .fixedSize(horizontal: false, vertical: true)
-                                                Text("Where is she?").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                                                Text("Where is she?").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                                             }
                                             Spacer(minLength: 0)
                                             Image(systemName: "location.circle").font(.body)
@@ -507,7 +507,7 @@ struct VisitDetailView: View {
                     Text("Have your medication list ready.").font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
                     Text("Secure messaging will be connected in the functionality phase.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).fixedSize(horizontal: false, vertical: true)
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).fixedSize(horizontal: false, vertical: true)
                 }
                 /* The one question a person waiting at home actually has. It is a destination now
                    rather than a sentence promising one later — and what it shows on the day, and
@@ -522,7 +522,7 @@ struct VisitDetailView: View {
                     HStack(spacing: ThusoSpacing.space8) { exits }
                     VStack(spacing: ThusoSpacing.space8) { exits }
                 }
-                Text(Cancellation.windowSentence).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(Cancellation.windowSentence).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, ThusoSpacing.space16)

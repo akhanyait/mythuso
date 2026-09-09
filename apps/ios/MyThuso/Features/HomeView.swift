@@ -59,7 +59,7 @@ struct HomeView: View {
                         Label("See the first-run and recovery flow", systemImage: "person.badge.plus").font(.footnote.weight(.semibold))
                     }.frame(minHeight: 44).contentShape(Rectangle())
                     .foregroundStyle(ThusoTheme.charcoal).frame(minHeight: 44)
-                    Text(thuso(.tagline, store.locale)).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text(thuso(.tagline, store.locale)).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, ThusoSpacing.space16)
@@ -81,7 +81,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
                 Text(thuso(.greeting, store.locale)).font(.title.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(thuso(.greetingSub, store.locale)).font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(thuso(.greetingSub, store.locale)).font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityElement(children: .combine)
@@ -141,7 +141,7 @@ struct HomeView: View {
                     TileIcon(symbol: "calendar.badge.plus")
                     Text(Scheduling.Label.noUpcoming).font(.headline).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(Scheduling.Label.noUpcomingDetail).font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text(Scheduling.Label.noUpcomingDetail).font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         .fixedSize(horizontal: false, vertical: true)
                     Button(thuso(.bookNurse, store.locale), action: book).buttonStyle(QuietButton())
                 }
@@ -155,7 +155,7 @@ struct HomeView: View {
                 TileIcon(symbol: visit.service.symbol)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(visit.service.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text(visit.shortWhenText).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text(visit.shortWhenText).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 if !stacked { Spacer(minLength: 6); StatusPill(text: visit.status, tone: visit.isScheduled ? "teal" : "amber") }
             }
@@ -170,21 +170,21 @@ struct HomeView: View {
                 Image(systemName: visit.isScheduled ? "clock" : "bolt.fill").font(.caption)
                 Text(visit.isScheduled ? "\(visit.service.duration) minutes" : "Looking for the nearest nurse").font(.footnote)
             }
-            .foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             HStack(spacing: ThusoSpacing.space4) {
                 Image(systemName: "mappin.and.ellipse").font(.caption)
                 Text(visit.address).font(.footnote)
             }
-            .foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+            .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Divider().overlay(ThusoTheme.line)
             HStack(spacing: ThusoSpacing.space12) {
                 Monogram(text: Arrival.nurse.initials)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Sister Naledi Mokoena").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text("Registered Nurse (SANC)").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text("Registered Nurse (SANC)").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 Spacer(minLength: 4)
-                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
         }
     }
@@ -209,7 +209,7 @@ struct HomeView: View {
        filtered. The search used to call book() and throw the query away. */
     private var searchField: some View {
         HStack(spacing: ThusoSpacing.space12) {
-            Image(systemName: "magnifyingglass").foregroundStyle(ThusoTheme.charcoal.opacity(0.72)).accessibilityHidden(true)
+            Image(systemName: "magnifyingglass").foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).accessibilityHidden(true)
             TextField("What care do you need today?", text: $store.careQuery).submitLabel(.search).onSubmit(book)
                 .accessibilityLabel("Search for care")
         }
@@ -247,15 +247,15 @@ struct HomeView: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(service.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(service.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Text(service.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: ThusoSpacing.space8) {
                 VStack(alignment: stacked ? .leading : .trailing, spacing: 2) {
                     Text("R\(service.price)").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text("\(service.duration) min").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                    Text("\(service.duration) min").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .accessibilityHidden(true)
             }
         }
@@ -279,7 +279,7 @@ struct HomeView: View {
                         let row = HStack(alignment: .firstTextBaseline) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(result.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                                Text(result.1).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                                Text(result.1).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                             }
                             if !stacked { Spacer(minLength: 8); StatusPill(text: result.2, tone: result.3) }
                         }
@@ -344,7 +344,7 @@ struct HomeView: View {
                it decorates. */
             Label("Booking for someone opens their booking, never their record. What you may see is decided in My family.",
                   systemImage: "checkmark.shield")
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Booking for someone opens their booking, never their record. What you may see is decided in My family.")

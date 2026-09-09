@@ -105,7 +105,7 @@ struct DispatchMap: View {
                 }
                 ForEach(Dispatch.nurses) { nurse in
                     if let point = Dispatch.plot(nurse.position) {
-                        Circle().fill(nurse.status == "Available" ? ThusoTheme.tealInk : ThusoTheme.charcoal.opacity(0.72))
+                        Circle().fill(nurse.status == "Available" ? ThusoTheme.tealInk : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                             .frame(width: 10, height: 10).position(x: point.x * size, y: point.y * size)
                     }
                 }
@@ -120,7 +120,7 @@ struct DispatchMap: View {
                 }
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
-                        Text(zone.name).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(0.72))
+                        Text(zone.name).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                             .position(x: point.x * size, y: (point.y - zone.radius) * size + 8)
                     }
                 }
