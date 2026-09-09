@@ -36,9 +36,12 @@ export type DemoVisit = Visit;
 const payments = [['Card', 'Visa ending 4242', CreditCard], ['Cash', 'Pay the nurse after the visit', CreditCard], ['Thuso Wallet', `Balance ${money(walletBalance)}`, CreditCard]] as const;
 const stepLabels = ['Who & where', 'When', 'Payment', 'Review'];
 
-export function Booking({ service, onComplete }: { service: Service; onComplete: (visit: DemoVisit) => void }) {
+/* `person` is who the catalogue was opened for. A family profile's "Book a visit for Nomsa" reached
+   this screen with the account holder selected, so the row promised the one thing the flow did not
+   do. It is still a select — the choice is never taken away — it just starts on the right person. */
+export function Booking({ service, person: forPerson, onComplete }: { service: Service; person?: string; onComplete: (visit: DemoVisit) => void }) {
  const [step, setStep] = useState(0);
- const [person, setPerson] = useState('Lerato Molefe');
+ const [person, setPerson] = useState(forPerson ?? 'Lerato Molefe');
  const [address, setAddress] = useState('Home visit · Sandton');
  const [kind, setKind] = useState<'scheduled' | 'asap'>('scheduled');
  /* Computed once per booking rather than per render, so the strip cannot shift under somebody

@@ -133,7 +133,12 @@ test('the passport uses the shared empty state for prescriptions, and keeps revi
   await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Records' }).click();
   const lab = page.locator('.record-row').filter({ hasText: 'Laboratory results' });
   await expect(lab).toContainText('Doctor reviewed');
-  await expect(lab).toContainText('4 September');
+  /* What this row owes a reader is a review status and an issue date, not one particular day. The
+     date used to be the literal "4 September" typed beside the document; it is derived from the
+     visit the document came out of now, so a document can no longer claim to have been issued on a
+     day no visit happened — and an assertion on the old literal would have been asserting the
+     defect. */
+  await expect(lab).toContainText(/issued \w+, \d{1,2} \w+ \d{4}/);
 });
 
 /* The three record actions were three 80px tiles with an 11px caption under an icon, sitting

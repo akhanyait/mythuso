@@ -213,11 +213,19 @@ test('every clinical chart is also available as a table', async ({ page }) => {
   await page.goto('/');
   await navigate(page, 'Health Passport');
   const chart = page.locator('.chart-card').filter({ hasText: 'Blood pressure' }).first();
-  await expect(chart.locator('svg.chart-plot')).toHaveAttribute('aria-label', /Latest reading 136 mmHg on 4 Sep/);
+  /* The date is not pinned any more. These readings were four literal arrays typed into the passport
+     and dated "12 Aug" through "4 Sep" — labels that were right the week they were written; they are
+     day offsets in lib/passport.ts now, so the day this chart names moves with the calendar and an
+     assertion on "4 Sep" would have been a test that failed on its own next winter. The reading, its
+     unit and the range it is judged against are what this journey is about, and all three are still
+     asserted exactly. */
+  await expect(chart.locator('svg.chart-plot')).toHaveAttribute('aria-label', /Latest reading 136 mmHg on \d/);
+  await expect(chart.locator('svg.chart-plot')).toHaveAttribute('aria-label', /reference range 90 to 140 mmHg; the latest reading is inside that range/);
   await expect(chart.getByRole('table')).toBeHidden();
   await chart.getByRole('button', { name: 'Show readings as a table' }).click();
   await expect(chart.getByRole('table')).toBeVisible();
-  await expect(chart.getByRole('row', { name: /28 Aug/ })).toContainText('Missed medication');
+  /* The note travels with the reading it belongs to, whatever day that reading now falls on. */
+  await expect(chart.getByRole('row').filter({ hasText: 'Missed medication' })).toContainText('141');
 });
 test('the shell can be read in isiZulu, Sesotho and Afrikaans', async ({ page }) => {
   await page.goto('/');

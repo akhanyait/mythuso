@@ -9,7 +9,7 @@ export const sampleInvitations: Invitation[] = [
 ];
 /* Paying for someone's care is not the same as being allowed to read their records.
    Scope, duration and verification are three separate decisions, so they are three separate steps. */
-const scopes = [
+export const scopes = [
  { id: 'booking', icon: FileText, title: 'Bookings and payments only', body: 'They can arrange and pay for visits. They see no clinical information at all.' },
  { id: 'summaries', icon: Eye, title: 'Visit summaries only', body: 'They see what happened at a visit and what to do next. No history, results or medicines.' },
  { id: 'full', icon: LockKeyhole, title: 'Full Health Passport', body: 'Everything you can see. Appropriate for a guardian of a child, or where you have chosen to share fully.' }

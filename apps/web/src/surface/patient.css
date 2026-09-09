@@ -495,3 +495,88 @@
  .patient-surface main > .passport-hero,
  .patient-surface main > .underline-tabs { animation: none; }
 }
+
+/* ---- Five screens that had no door ----
+   A completed visit, a cancelled one, the trends behind the passport's charts, a device permission
+   and a family member's profile. Nothing below invents a value: the spacing is the scale, the radii
+   are the tokens, and the only colours are the ramp the rest of this sheet already uses.
+
+   Two of them lead with figures, which is where most of this section's weight goes. `Metric` puts a
+   small chip above a large thin numeral and a small label below, and a row of six of those inside a
+   card needs room to breathe or it reads as a spreadsheet. */
+
+/* A table has a minimum width that a phone has not got. It scrolls inside its own box so that a
+   320px screen never makes the page scroll sideways — an overflow inside `main` is exactly the kind
+   a page-level check cannot see. */
+.patient-surface .table-scroll { overflow-x: auto; margin: 0 calc(var(--space-4) * -1); padding: 0 var(--space-4); }
+
+/* A dialog's close control is 44 square everywhere except where a long title squeezed it: at 320px
+   the flex row let it shrink to 38 wide, which is under the floor tokens.json sets and is not on the
+   exemption list. It cannot shrink now, on any dialog on this surface, whatever the title says. */
+.patient-surface .modal-heading .icon-button { flex: 0 0 auto; }
+
+/* The readings a nurse took, as figures. They wrap into as many columns as the width allows and each
+   keeps its own column rather than centring on whatever happened to fit. */
+.patient-surface .visit-findings { padding-bottom: var(--space-8); }
+.patient-surface .visit-findings .s-metrics { grid-template-columns: repeat(auto-fit, minmax(124px, 1fr)); gap: var(--space-20) var(--space-16); }
+.patient-surface .visit-findings .s-metric-value { font-size: 28px; }
+@media (min-width: 900px) { .patient-surface .visit-findings .s-metric-value { font-size: 32px; } }
+
+/* The one panel the trends screen is about: where things stand today, before any curve. It is the
+   lead panel — more opaque than the cards under it, which is the opposite of how glass is usually
+   misused and the reason the first thing you read is the most solid thing on the screen. */
+.patient-surface .trend-lead { padding: var(--space-20); }
+.patient-surface .trend-lead .lead-head { margin-bottom: var(--space-8); }
+.patient-surface .trend-lead .lead-head h2 { font-size: 18px; font-weight: 600; }
+.patient-surface .trend-lead .lead-head p { font-size: 13px; color: var(--faint); margin: 2px 0 0; }
+/* 124px rather than the surface default of 152: at 390px the panel has about 310px inside it, so
+   two 152px columns and a gap do not fit and four figures became four rows. Two abreast is what a
+   phone can actually hold. */
+.patient-surface .trend-lead .s-metrics,
+.patient-surface .profile-figures .s-metrics { grid-template-columns: repeat(auto-fit, minmax(124px, 1fr)); gap: var(--space-20) var(--space-16); padding-bottom: 0; }
+.patient-surface .profile-figures .s-metric-value { font-size: 32px; }
+
+/* A family member's identity and their two figures in one panel. They were two, which put the
+   person's name on the screen twice — once as the dialog's title and again immediately under it. */
+.patient-surface .profile-figures { display: grid; gap: var(--space-20); }
+.patient-surface .profile-who { display: flex; align-items: center; gap: var(--space-12); }
+.patient-surface .profile-who > div { flex: 1; min-width: 0; }
+.patient-surface .profile-who strong { display: block; font-size: 16px; font-weight: 600; }
+.patient-surface .profile-who small { font-size: 13px; color: var(--faint); }
+
+/* ---- A list of statements ----
+   Three of these five screens are mostly sentences: what a doctor said, what cancelling did not
+   undo, what a device would never be allowed to read. The obvious shape for them is `record-row`,
+   and the first draft used it — which put a sage tile with an identical icon in it beside every
+   single line. Seven ticks in a column, three shields, five Bluetooth marks. A tile that is the
+   same on every row has stopped carrying information and is only weight, and it is exactly the
+   defect the design language names: if every row has a coloured tile, the colour has stopped
+   meaning anything.
+
+   So there is no tile. A statement is a sentence at reading size, the reason under it is smaller and
+   quieter, and the separation is a hairline. The hierarchy is size and space, which is what this
+   language uses everywhere else. */
+.patient-surface .stated { display: grid; gap: var(--space-16); }
+.patient-surface .stated > div { display: grid; gap: var(--space-4); }
+.patient-surface .stated > div + div { border-top: 1px solid var(--stone); padding-top: var(--space-16); }
+.patient-surface .stated dt,
+.patient-surface .stated .stated-label { font-size: 13px; color: var(--faint); letter-spacing: .4px; text-transform: uppercase; }
+.patient-surface .stated p,
+.patient-surface .stated dd { font-size: 15px; line-height: 1.55; color: var(--charcoal); margin: 0; }
+.patient-surface .stated small { font-size: 13px; line-height: 1.55; color: var(--faint); }
+
+/* A short table of facts — the reading types a permission would cover, the instruments in the kit.
+   Denser than a list of rows and, unlike one, the units and the ranges line up in a column a reader
+   can run an eye down. */
+.patient-surface .fact-table th[scope="row"] { color: var(--charcoal); font-weight: 500; }
+
+/* Who the catalogue was opened for. A quiet row rather than a banner: it is a fact about the state
+   of the journey, not a thing to be sold. */
+.patient-surface .booking-for {
+ display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-8);
+ font-size: 14px; color: var(--charcoal);
+ background: var(--pale-sage); border-radius: var(--r-control);
+ padding: var(--space-12) var(--space-16); margin-bottom: var(--space-16);
+}
+.patient-surface .booking-for > svg { color: var(--charcoal); flex: 0 0 auto; }
+.patient-surface .booking-for .text-button { margin-left: auto; }

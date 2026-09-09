@@ -4,7 +4,8 @@ import { EmptyNote, Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
 import { EmptyState, StateBlock, useOffline, type LoadState } from '../components/States';
-import { InvitationList, type Invitation } from './Guardian';
+import { InvitationList, scopes, type Invitation } from './Guardian';
+import { Metric, Metrics } from '../surface/Surface';
 import { HeroCarousel } from '../components/HeroCarousel';
 import { FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
@@ -12,6 +13,12 @@ import type { DemoVisit } from './Booking';
 import { endTime, isoIn, labels as schedulingLabels, longDateOf, shortDateOf, visitEnds, weekdayOf } from '../lib/scheduling';
 import { holdStatus } from '../lib/interpreting';
 import { activity as walletActivity, balance as walletBalance, topUpAmounts } from '../lib/wallet';
+import type { CancelState } from '../lib/cancelling';
+import {
+ dateOf, documents as passportDocuments, headlineMeasures, latestSet, measureSpec, readingSets,
+ reviewedBy, seriesFor
+} from '../lib/passport';
+import { CancelledVisit, PastVisit } from './VisitSummary';
 import businessModel from '../../../../packages/catalog/business-model.json';
 /* One service, one card, one symbol.
  *
@@ -35,7 +42,7 @@ function ServiceCard({service,onOpen}:{service:Service;onOpen:()=>void}) {
    :<><strong className="later-price">{money(service.price)} planned</strong><span>Phase {service.phase}<ChevronRight size={16}/></span></>}</div>
  </button>;
 }
-export function Services({book,open,query=''}:{book:(s:Service)=>void;open:(s:string)=>void;query?:string}) {
+export function Services({book,open,query='',forPerson,clearPerson}:{book:(s:Service)=>void;open:(s:string)=>void;query?:string;forPerson?:string|null;clearPerson?:()=>void}) {
  const [category,setCategory]=useState('All services');
  const [search,setSearch]=useState(query);
  const filtered=services.filter(s=>(category==='All services'||s.category===category)&&`${s.name} ${s.description}`.toLowerCase().includes(search.toLowerCase()));
@@ -43,6 +50,10 @@ export function Services({book,open,query=''}:{book:(s:Service)=>void;open:(s:st
  const planned=filtered.filter(s=>s.phase!==1);
  return <>
   <div className="page-intro"><div className="eyebrow">Care, on your terms</div><h1>Professional care at your door</h1><p>Choose a service and we’ll match you with the nearest qualified nurse.</p></div>
+  {/* Who the catalogue was opened for, said out loud and reversible in one press. A booking that
+      arrives at the review step with somebody else's name on it is the one mistake this journey can
+      make that nobody would notice until a nurse knocked. */}
+  {forPerson&&<p className="booking-for" role="status"><Users size={16}/>Booking for <strong>{forPerson}</strong>{clearPerson&&<button className="text-button" onClick={clearPerson}>Book for myself instead</button>}</p>}
   <div className="catalog-tools"><label className="search-box"><Search size={18}/><input aria-label="Search services" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find a service…"/></label><span className="helper">{filtered.filter(s=>s.phase===1).length} bookable now · {filtered.length} in the catalogue</span></div>
   <div className="tabs" aria-label="Service categories">{['All services','Everyday care','Family health','Recovery','Tests & screening'].map(c=><button key={c} className={category===c?'selected':''} onClick={()=>setCategory(c)}>{c}</button>)}</div>
   {/* Bookable and planned are two groups, not one grid with a quieter twelfth card. The only
@@ -68,10 +79,17 @@ export function Services({book,open,query=''}:{book:(s:Service)=>void;open:(s:st
  * App.tsx now, so moving one moves it and standing one down moves it into Cancelled with its reason
  * — the journey finishes rather than stopping at the first screen that could act. */
 export type VisitGroup='upcoming'|'past'|'cancelled';
-export type VisitRow={id:string;visit:DemoVisit;status:string;tone:string;group:VisitGroup;reason?:string;booked?:boolean};
+/* `dayOffset` is kept on the row as well as inside the visit's ISO date, because the readings taken
+   at a visit are looked up by the day the visit happened. Two representations of one day sound like
+   a copy; they are not — the ISO date is derived from the offset, so they cannot disagree.
+   `cancelledState` and `cancelledOn` are recorded when a visit is stood down, never worked out
+   afterwards: which side of the window a visit fell on is a fact about the moment somebody pressed
+   cancel, and a visit whose date has since passed would compute the wrong answer forever. */
+export type VisitRow={id:string;visit:DemoVisit;status:string;tone:string;group:VisitGroup;reason?:string;booked?:boolean;dayOffset?:number;cancelledState?:CancelState;cancelledOn?:string};
 export type VisitAction='reschedule'|'cancel';
-const sample=(id:string,service:Service,person:string,address:string,dayOffset:number,start:string,status:string,tone:string,group:VisitGroup,reason?:string):VisitRow=>({
- id,group,reason,
+const sample=(id:string,service:Service,person:string,address:string,dayOffset:number,start:string,status:string,tone:string,group:VisitGroup,reason?:string,cancelledState?:CancelState,cancelledOn?:number):VisitRow=>({
+ id,group,reason,dayOffset,cancelledState,
+ cancelledOn:cancelledOn===undefined?undefined:dateOf(cancelledOn),
  visit:{service,person,address,kind:'scheduled',payment:'Card',status:'Confirmed',
   date:isoIn(new Date(Date.now()+dayOffset*86_400_000)),start},
  status,tone});
@@ -79,12 +97,15 @@ const sample=(id:string,service:Service,person:string,address:string,dayOffset:n
    contract's own word and the amber tone the pending states use. */
 export const rowFor=(visit:DemoVisit,id:string):VisitRow=>
  ({id,visit,status:visit.status,tone:visit.status===holdStatus||visit.kind==='asap'?'amber':'',group:'upcoming',booked:true});
+/* The completed visit takes its day from the last set of readings in the record rather than from a
+   number of its own, so "what was measured at this visit" is a lookup and not a coincidence. It was
+   -3 here and 4 September in the passport, which agreed with nothing. */
 export const sampleVisitRows=():VisitRow[]=>[
  sample('VIS-0051',services[0],'Lerato Molefe','Home visit · Sandton',5,'09:00','Confirmed','','upcoming'),
  sample('VIS-0052',services[1],'Lerato Molefe','Home visit · Sandton',17,'10:00','Pending','amber','upcoming'),
  sample('VIS-0053',services[2],'Thabo Molefe','Home visit · Rivonia',29,'14:00','Scheduled','sky','upcoming'),
- sample('VIS-0044',services[1],'Lerato Molefe','Home visit · Sandton',-3,'10:00','Completed','','past'),
- sample('VIS-0039',services[3],'Nomsa Molefe','Home visit · Soweto',-12,'08:00','Cancelled','amber','cancelled','I no longer need this visit')
+ sample('VIS-0044',services[1],'Lerato Molefe','Home visit · Sandton',latestSet.dayOffset,'10:00','Completed','','past'),
+ sample('VIS-0039',services[3],'Nomsa Molefe','Home visit · Soweto',-12,'08:00','Cancelled','amber','cancelled','I no longer need this visit','before-window',-16)
 ];
 export function Visits({rows:all,book,manage,view}:{rows:VisitRow[];open:(s:string)=>void;book:()=>void;manage:(id:string,action:VisitAction)=>void;view:(id:string)=>void}) {
  const [tab,setTab]=useState('Upcoming');
@@ -150,8 +171,15 @@ export function PageHeading({eyebrow,title,description}:{eyebrow:string;title:st
  * over whatever visit you had actually pressed, with one button that went to the Health Passport. It
  * is the visit now, and the two things a person opens a visit to do are on it. */
 const toBring=['Your identity document, so the nurse can confirm the right patient at the door','Every medicine you are taking, boxes and all','A chair and a light in a room you can close'] as const;
-export function VisitDetail({row,manage,navigate}:{row:VisitRow;manage:(id:string,action:VisitAction)=>void;navigate:(s:string)=>void}){
+export function VisitDetail({row,manage,navigate,rebook}:{row:VisitRow;manage:(id:string,action:VisitAction)=>void;navigate:(s:string)=>void;rebook:()=>void}){
  const {visit:v,status,tone,group,reason}=row;
+ /* Three visits, three screens. A completed visit and a cancelled one used to render this one — a
+    price, a nurse, and three things to have ready for a visit that had already happened or had been
+    stood down a fortnight before. Neither of them owes a person any of that; what each owes is in
+    VisitSummary.tsx. */
+ const shape={id:row.id,service:v.service,person:v.person,address:v.address,date:v.date,start:v.start,payment:v.payment};
+ if(group==='past') return <PastVisit row={shape} dayOffset={row.dayOffset} rebook={rebook} navigate={navigate}/>;
+ if(group==='cancelled') return <CancelledVisit row={shape} reason={reason} state={row.cancelledState??'before-window'} cancelledOn={row.cancelledOn} rebook={rebook} navigate={navigate}/>;
  return <div className="form-stack">
   <NotConnected of="booking"/>
   <div className="booking-summary"><span className="service-icon"><ServiceIcon name={v.service.icon}/></span><div><h3>{v.service.name}</h3><p>{v.service.duration} min · Registered nurse</p></div><strong>{money(v.service.price)}</strong></div>
@@ -164,13 +192,11 @@ export function VisitDetail({row,manage,navigate}:{row:VisitRow;manage:(id:strin
   <div className="nurse-row"><span className="avatar nurse-avatar">SN</span><div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div></div>
   <SectionTitle title="Have this ready"/>
   <div className="panel">{toBring.map(line=><div className="record-row static" key={line}><span className="service-icon"><Check size={20}/></span><span><strong>{line}</strong></span></div>)}</div>
-  {group==='upcoming'
-   ?<div className="button-row"><button className="secondary" onClick={()=>manage(row.id,'reschedule')}><CalendarClock size={16}/>Reschedule</button><button className="secondary" onClick={()=>manage(row.id,'cancel')}><Ban size={16}/>Cancel</button></div>
-   :<p className="helper">A {group} visit cannot be moved or cancelled. Book another one from My visits.</p>}
+  <div className="button-row"><button className="secondary" onClick={()=>manage(row.id,'reschedule')}><CalendarClock size={16}/>Reschedule</button><button className="secondary" onClick={()=>manage(row.id,'cancel')}><Ban size={16}/>Cancel</button></div>
   <button className="primary full" onClick={()=>navigate('Health Passport')}>Open my Health Passport<ArrowRight size={17}/></button>
  </div>;
 }
-export function Passport({open}:{open:(s:string)=>void}) {
+export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:string)=>void}) {
  const [tab,setTab]=useState('Overview');
  const [deviceState,setDeviceState]=useState<LoadState>('denied');
  return <>
@@ -192,11 +218,17 @@ export function Passport({open}:{open:(s:string)=>void}) {
   </section>
   <div className="underline-tabs" role="group" aria-label="Passport sections">{['Overview','Records','Medications','More'].map(t=><button key={t} className={tab===t?'selected':''} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t}</button>)}</div>
   {tab==='Overview'?<>
-   <SectionTitle title="Health trends" action="See all" onClick={()=>open('Health trends')}/>
+   {/* Three charts drawn from the record rather than from three arrays typed beside them. The
+       labels, the units and the reference ranges all come from lib/passport.ts, which reads the
+       assessment's own observation table — so a range shown to a patient here and a range a nurse is
+       held to at a visit cannot be two different numbers. The dates are day offsets, so "4 Sep" can
+       never be a year old. */}
+   <SectionTitle title="Health trends" action="See all" onClick={()=>navigate('Health trends')}/>
    <div className="chart-grid">
-    <ClinicalChart title="Blood pressure" unit="mmHg" normal={[90,140]} icon={<Heart size={16}/>} readings={[{label:'12 Aug',value:128},{label:'19 Aug',value:134},{label:'28 Aug',value:141,note:'Missed medication'},{label:'4 Sep',value:136}]}/>
-    <ClinicalChart title="Heart rate" unit="bpm" normal={[50,100]} icon={<Activity size={16}/>} readings={[{label:'12 Aug',value:76},{label:'19 Aug',value:74},{label:'28 Aug',value:80},{label:'4 Sep',value:72}]}/>
-    <ClinicalChart title="Blood glucose" unit="mmol/L" normal={[4,7.8]} icon={<Droplets size={16}/>} format={n=>n.toFixed(1)} readings={[{label:'12 Aug',value:5.6},{label:'19 Aug',value:6.1},{label:'28 Aug',value:5.4},{label:'4 Sep',value:5.2}]}/>
+    {headlineMeasures.slice(0,3).map(id=><ClinicalChart key={id} title={measureSpec(id).label} unit={measureSpec(id).unit}
+     normal={[measureSpec(id).range[0],measureSpec(id).range[1]]}
+     icon={id==='pulse'?<Activity size={16}/>:id==='glucose'?<Droplets size={16}/>:<Heart size={16}/>}
+     format={n=>measureSpec(id).step<1?n.toFixed(1):String(n)} readings={seriesFor(id)}/>)}
    </div>
    {/* Three actions that used to be three tall unlabelled tiles in a row of their own, sitting
        directly against the next section's heading. They are the home's shortcut row now: same
@@ -208,11 +240,16 @@ export function Passport({open}:{open:(s:string)=>void}) {
     <button className="shortcut-row" onClick={()=>{const blob=new Blob([JSON.stringify({demo:true,patient:'Lerato Molefe',readings:[{bloodPressure:'118/78',heartRate:72,glucose:5.2}],notice:'Fictional data. Not a medical record.'},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='mythuso-demo-passport.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}><span className="service-icon"><Download size={20}/></span><span className="shortcut-text"><strong>Export sample passport</strong><small>Downloads a JSON copy to your device. Nothing is sent anywhere.</small></span><ChevronRight size={17}/></button>
     <button className="shortcut-row" onClick={()=>open('Your care team')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Doctors</strong><small>The clinicians who have reviewed what is on your record.</small></span><ChevronRight size={17}/></button>
    </div>
+   {/* Dated from the visits they came out of. Three entries that said "4 September" and "28 August"
+       described a record that stopped moving the day somebody typed them. */}
    <SectionTitle title="Your care timeline"/>
-   <div className="panel">{['Wound care visit · 4 September','Doctor review completed · 4 September','Vitals recorded · 28 August'].map(t=><button className="record-row" key={t} onClick={()=>open(t)}><span className="service-icon"><FileText size={20}/></span><span><strong>{t}</strong><small>Reviewed by Dr N. Khumalo · MP 0741225</small></span><ChevronRight size={18}/></button>)}</div>
+   <div className="panel">{[['Nurse home visit',latestSet.dayOffset],['Doctor review completed',latestSet.dayOffset],['Vitals recorded',readingSets[readingSets.length-2].dayOffset]].map(([label,day])=>{
+    const title=`${label} · ${longDateOf(dateOf(day as number))}`;
+    return <button className="record-row" key={title} onClick={()=>open(title)}><span className="service-icon"><FileText size={20}/></span><span><strong>{title}</strong><small>Reviewed by {reviewedBy}</small></span><ChevronRight size={18}/></button>;
+   })}</div>
   </>:tab==='Records'?<>
    <SectionTitle title="Your documents"/>
-   <div className="panel document-list">{['Visit summary','Laboratory results','Medical certificate'].map(t=><button className="record-row" key={t} onClick={()=>open(t==='Laboratory results'?'Laboratory order LAB-0023':t)}><span className="service-icon"><FileText size={20}/></span><span><strong>{t}</strong><small>Issued 4 September</small></span><Pill>Doctor reviewed</Pill><ChevronRight size={17}/></button>)}</div>
+   <div className="panel document-list">{passportDocuments.map(doc=><button className="record-row" key={doc.name} onClick={()=>open(doc.opens??doc.name)}><span className="service-icon"><FileText size={20}/></span><span><strong>{doc.name}</strong><small>{doc.kind} · issued {longDateOf(dateOf(doc.dayOffset))}</small></span><Pill>{doc.reviewed?'Doctor reviewed':'Awaiting review'}</Pill><ChevronRight size={17}/></button>)}</div>
    <p className="helper"><ShieldCheck size={14}/>Every document says who issued it, when, and whether a registered doctor has reviewed it. A document with no review status is not a reviewed document.</p>
   </>
   /* An absence of prescriptions is an ordinary state, not a footnote, so it uses the same empty
@@ -228,7 +265,9 @@ export function Passport({open}:{open:(s:string)=>void}) {
      is already no. */
   :<><SectionTitle title="Connected devices"/><NotConnected of="devices"/>
    <StateBlock state={deviceState} subject="Readings from your connected devices" permission="Apple Health or Health Connect access" onRetry={()=>setDeviceState('ready')}>
-    <div className="catalog-grid">{['Apple Health','Health Connect','Thuso Kit'].map(t=><div className="panel module-card" key={t}><span className="tile-icon"><Bluetooth size={20}/></span><h3>{t}</h3><p>Choose exactly which readings you share, and stop sharing them without losing what is already on your record.</p><button className="secondary full" onClick={()=>open(`${t} connection`)}>How this connects<ArrowRight size={16}/></button></div>)}</div>
+    {/* Each card opens its own permission screen now: what would be read, what would never be, and
+        why none of it is switched on. They went to a paragraph about the roadmap before. */}
+    <div className="catalog-grid">{['Apple Health','Health Connect','Thuso Kit'].map(t=><div className="panel module-card" key={t}><span className="tile-icon"><Bluetooth size={20}/></span><h3>{t}</h3><p>Choose exactly which readings you share, and stop sharing them without losing what is already on your record.</p><button className="secondary full" onClick={()=>open(`${t} connection`)}>What this would read<ArrowRight size={16}/></button></div>)}</div>
    </StateBlock></>}
  </>}
 /* What a person may see of somebody else is a status, not a paragraph.
@@ -429,29 +468,92 @@ export function SponsorCare({navigate,people}:{navigate:(s:string)=>void;people:
   <button className="primary full" onClick={()=>setSent(true)}>Review the outcome<ArrowRight size={16}/></button>
  </div>;
 }
-/* A family member, opened. This was a dialog headed "Care without crossing boundaries" with a Got it
-   button — a sentence about a boundary rather than the boundary itself. It is a screen now: who they
-   are, what you may and may not see of them, and the three things you can actually do from here. */
-export function FamilyProfile({name,relation,navigate,open}:{name:string;relation:string;navigate:(s:string)=>void;open:(s:string)=>void}){
+/* A family member, opened — the whole of it, rather than the boundary in prose.
+ *
+ * This was a dialog headed "Care without crossing boundaries" with a Got it button, and then a
+ * screen that named the boundary and offered three rows, one of which opened the catalogue with
+ * nobody selected. The audit's three complaints were all still true afterwards: you could not book
+ * for them, you could not see what you had shared, and you could not change it.
+ *
+ * All three are here now. Booking opens with them already chosen as the patient. What has been
+ * shared is the account's own invitation list, filtered to this person, with the scope, the expiry
+ * and the way out on each row. And the visits arranged for them are the account's own visit list
+ * filtered the same way — because the thing a person opening their mother's profile wants from it
+ * is the visit they booked her. */
+const scopeTitles=scopes.map(sc=>sc.title);
+export function FamilyProfile({name,relation,navigate,open,visits,invitations,onRevoke,book,view}:{
+ name:string;relation:string;navigate:(s:string)=>void;open:(s:string)=>void;
+ visits:VisitRow[];invitations:Invitation[];onRevoke:(id:string)=>void;book:(person:string)=>void;view:(id:string)=>void
+}){
  const first=name.split(' ')[0];
  const own=relation==='You';
+ /* Sharing has a direction, and the first draft of this screen got it backwards. An invitation names
+    the person it was sent *to*, so an invitation to Nomsa is what Nomsa may see of the account
+    holder's record — never what the account holder may see of Nomsa's. There is no invitation in
+    the other direction because nobody has sent one, and the honest answer to "what may I see of my
+    mother" is therefore the same as it is on the family list: her bookings, and nothing clinical.
+    Only an accepted invitation grants anything; one awaiting acceptance or verification is shown as
+    what it is and grants nothing, which is the rule the household record already applies. */
+ const sharedWithThem=invitations.filter(i=>i.name===name);
+ const granted=sharedWithThem.filter(i=>i.status==='Active');
+ const seeOfThem=own?'Your own record':scopeTitles[0];
+ const mine=visits.filter(r=>r.visit.person===name);
+ const upcoming=mine.filter(r=>r.group==='upcoming');
  return <div className="form-stack">
-  <div className="booking-summary"><span className="avatar">{name.split(' ').map(s=>s[0]).slice(0,2).join('')}</span><div><h3>{name}</h3><p>{relation}</p></div><Pill tone={own?'teal':'sky'}>{own?'Your own record':'Booking only'}</Pill></div>
-  <SectionTitle title="What you may see"/>
-  <div className="panel">
-   <div className="record-row static"><span className="service-icon"><Check size={20}/></span><span><strong>Visits you arranged for {own?'yourself':first}</strong><small>The service, the day and whether it happened.</small></span></div>
+  <NotConnected of="messaging"/>
+  {/* Who they are and the two figures a person opens somebody else's profile for, in one panel. It
+      was two, which put the person's name on the screen twice — once as the dialog's own title and
+      again immediately underneath it. The figures answer "am I on top of my mother's care", which
+      is what this screen is for. */}
+  <div className="panel glass lead profile-figures">
+   <div className="profile-who">
+    <span className={`avatar ${own?'':'blue'}`}>{name.split(' ').map(part=>part[0]).slice(0,2).join('')}</span>
+    <div><strong>{relation}</strong><small>{name}</small></div>
+    <Pill tone={own?'teal':'sky'}>{own?'Your own record':'Booking only'}</Pill>
+   </div>
+   <Metrics>
+    <Metric value={String(mine.length)} label={own?'Visits on this account':`Visits arranged for ${first}`} chip={mine.length?'Arranged':'None yet'}/>
+    <Metric value={String(upcoming.length)} label="Still to come" chip={upcoming.length?'Booked':'Nothing booked'}/>
+   </Metrics>
+  </div>
+
+  <SectionTitle title={own?'Your visits on this account':`Visits you arranged for ${first}`}/>
+  {mine.length?<div className="panel">{mine.map(r=><button className="record-row" key={r.id} onClick={()=>view(r.id)}>
+   <span className="service-icon"><ServiceIcon name={r.visit.service.icon}/></span>
+   <span><strong>{r.visit.service.name}</strong><small>{r.visit.date?`${longDateOf(r.visit.date)} · ${r.visit.start}`:schedulingLabels.asapPending}</small></span>
+   <Pill tone={r.tone}>{r.status}</Pill><ChevronRight size={17}/>
+  </button>)}</div>
+  :<EmptyState title={`No visits for ${first} yet`} body={`Anything you arrange for ${first} appears here with the day, the nurse and what happened.`} action={`Book a visit for ${first}`} onAction={()=>book(name)}/>}
+
+  <SectionTitle title={own?'What you may see of your own record':`What you may see of ${first}`}/>
+  <div className="panel"><dl className="stated">
+   <div><dt>Today</dt><dd>{seeOfThem}</dd><small>{own?'It is yours, in full.':scopes.find(sc=>sc.title===seeOfThem)?.body??'What this account may open of theirs today.'}</small></div>
    {/* The sentence this screen exists to say, kept word for word from the dialog it replaces: booking
        and paying for somebody is not the same as reading about them. */}
-   <div className="record-row static"><span className="service-icon"><Ban size={20}/></span><span><strong>{own?'Nothing is hidden from you on your own record':`${first}’s readings, results, medicines and notes`}</strong><small>{own?'It is yours.':'Their clinical information remains private unless appropriate access is verified, and they can withdraw it at any time.'}</small></span></div>
-  </div>
+   {!own&&<div><dt>Not on this scope</dt><dd>{first}’s readings, results, medicines and notes.</dd><small>Their clinical information remains private unless appropriate access is verified, and they can withdraw it at any time. Ask {first} below; it is their decision, made on their own phone.</small></div>}
+   <div><dt>Never, on any scope</dt><dd>Sexual and reproductive health, mental health and HIV-related entries.</dd><small>Hidden under every scope, including the widest, unless {own?'you release them':`${first} releases them`} one by one.</small></div>
+  </dl></div>
+
+  {/* Sharing has a direction and this section is the other one: not what you may see of them, but
+      what they may see of you. It was a list under My family that never said who each row was about,
+      and it is where a person changes their mind — the revoke is on the row. */}
+  <SectionTitle title={own?'What you have shared with other people':`What ${first} may see of your record`}/>
+  {sharedWithThem.length?<>
+   <InvitationList invitations={sharedWithThem} onRevoke={onRevoke}/>
+   {!own&&<p className="helper"><LockKeyhole size={14}/>{granted.length?`${first} can see this much of your record until you withdraw it. Withdrawing takes effect immediately.`:`Nothing is open to ${first} yet. An invitation grants nothing until it is accepted and the person's identity is verified.`}</p>}
+  </>
+   :<div className="panel"><dl className="stated"><div><dt>Nothing is shared</dt>
+    <dd>{own?'Nobody has been given access to your record.':`${first} has not been given access to your record.`}</dd>
+    <small>{own?'Anyone you invite appears here with the scope you chose and the day it ends.':'Being in your circle opens nothing, and paying for somebody’s care opens nothing either. Access is a separate decision, made once and withdrawn at any time.'}</small></div></dl></div>}
+
   <SectionTitle title="What you can do"/>
   <div className="shortcut-list">
-   <button className="shortcut-row" onClick={()=>navigate('Book a nurse')}><span className="service-icon"><Stethoscope size={20}/></span><span className="shortcut-text"><strong>Book a visit for {first}</strong><small>Opens the catalogue with {first} as the patient.</small></span><ChevronRight size={17}/></button>
+   <button className="shortcut-row" onClick={()=>book(name)}><span className="service-icon"><Stethoscope size={20}/></span><span className="shortcut-text"><strong>Book a visit for {first}</strong><small>Opens the catalogue with {first} already chosen as the patient.</small></span><ChevronRight size={17}/></button>
+   <button className="shortcut-row" onClick={()=>open('Invite a guardian')}><span className="service-icon"><UserPlus size={20}/></span><span className="shortcut-text"><strong>{own?'Give somebody access to your record':`Ask ${first} for access`}</strong><small>{own?'You choose the scope and how long it lasts, and you can withdraw it at any time.':'They decide the scope and how long it lasts, on their own phone.'}</small></span><ChevronRight size={17}/></button>
    <button className="shortcut-row" onClick={()=>open('Thuso Family')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Open the household record</strong><small>The same household, seen through each person’s own permissions.</small></span><ChevronRight size={17}/></button>
-   {!own&&<button className="shortcut-row" onClick={()=>open('Invite a guardian')}><span className="service-icon"><UserPlus size={20}/></span><span className="shortcut-text"><strong>Ask {first} for access</strong><small>They decide the scope and how long it lasts, on their own phone.</small></span><ChevronRight size={17}/></button>}
+   <button className="shortcut-row" onClick={()=>navigate('Privacy & settings')}><span className="service-icon"><Eye size={20}/></span><span className="shortcut-text"><strong>Who has opened a record</strong><small>Every access, and every refusal, with the reason it was refused.</small></span><ChevronRight size={17}/></button>
   </div>
   <div className="privacy-note"><LockKeyhole size={19}/>Booking for somebody opens their booking, never their record. Sponsoring their care does not change that.</div>
-  <NotConnected of="messaging"/>
  </div>;
 }
 export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOnboarding:()=>void;navigate:(s:string)=>void}){return <>
