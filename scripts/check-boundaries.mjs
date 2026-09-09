@@ -274,9 +274,15 @@ for(const exempt of contrast.notMeasured) {
 const focusRing = contrast.pairs.filter(p => /focus ring/i.test(p.use));
 if(focusRing.length < 2) throw new Error('The contrast table no longer measures the focus ring against the grounds it appears on');
 const focusToken = focusRing[0].foreground;
-for(const outline of read('apps/web/src/styles.css').match(/outline:\s*\d+px solid var\(--[a-z-]+\)/g) ?? []) {
- const used = outline.match(/var\(--([a-z-]+)\)/)[1];
- if(used !== focusToken) throw new Error(`A focus outline in apps/web/src/styles.css uses --${used}, and the contrast table measures the ring as --${focusToken}. ${outline}`);
+/* styles.css was split per entry, so the design system is four sheets rather than one. Every check
+   that used to read the single file reads all four: a guard that follows a rename by narrowing its
+   own scope is a guard that stops guarding. */
+const designSheets = ['apps/web/src/surface/core.css','apps/web/src/surface/app.css','apps/web/src/surface/patient-screens.css','apps/web/src/surface/clinical-screens.css'];
+for(const sheet of designSheets) {
+ for(const outline of read(sheet).match(/outline:\s*\d+px solid var\(--[a-z-]+\)/g) ?? []) {
+  const used = outline.match(/var\(--([a-z-]+)\)/)[1];
+  if(used !== focusToken) throw new Error(`A focus outline in ${sheet} uses --${used}, and the contrast table measures the ring as --${focusToken}. ${outline}`);
+ }
 }
 const onboardingSources = {
  web: 'apps/web/src/features/Onboarding.tsx',
@@ -897,7 +903,7 @@ if(existsSync('apps/web/src/surface/glass.css')) {
    So it is checked. Any rule that paints a sage background may not also set a colour that is not
    charcoal, and may not leave one to be inherited from a lighter ground. */
 const sageFills = /(--pale-sage|--soft-sage|--muted-sage|--sage-slate)\)/;
-for(const sheet of ['apps/web/src/styles.css','apps/web/src/landing.css','apps/web/src/surface/surface.css','apps/web/src/surface/patient.css','apps/web/src/surface/clinical.css','apps/web/src/shells/shells.css']) {
+for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/surface/surface.css','apps/web/src/surface/patient.css','apps/web/src/surface/clinical.css','apps/web/src/shells/shells.css']) {
  if(!existsSync(sheet)) continue;
  for(const rule of read(sheet).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
   const [, selector, body] = rule;
@@ -1132,7 +1138,7 @@ void inventedNotices;
    So an animation that runs forever may only touch the compositor. A finite one may do as it likes:
    it stops, and the wait ends with it. */
 const composited = /^(transform|opacity|filter|background-position|background-size|box-shadow|color|background-color|border-color|stroke|fill|stroke-dashoffset)$/;
-for(const sheet of ['apps/web/src/styles.css','apps/web/src/landing.css','apps/web/src/map/map.css']) {
+for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/map/map.css']) {
  const css=read(sheet);
  const frames=new Map();
  for(const match of css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g)) frames.set(match[1], match[2]);

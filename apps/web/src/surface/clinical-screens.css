@@ -1,0 +1,369 @@
+/* The clinical workspaces and the back office.
+
+   The dispatch board, the patient file, the vetting queue, earnings and payouts, dispensing,
+   programmes, the teleconsultation room, the allocation tables — reachable only from staff.tsx and
+   admin.tsx. This is the block the roadmap meant by "a patient downloads the dispatch board's
+   rules": it is no longer in the patient entry.
+
+   This is where a later pass should fold these rules into surface/clinical.css; they are held apart
+   only because that file was being edited when the split was made. */
+
+.vetting-progress{height:8px;border-radius:5px;background:var(--line);overflow:hidden}
+.vetting-progress>div{height:100%;background:var(--indigo);border-radius:5px;transition:width .3s}
+.severity-critical{background:var(--danger-soft);color:var(--danger)}
+.check-in-review{background:var(--mango-soft);color:var(--mango-ink)}
+.map-panel{display:flex;flex-direction:column;gap:12px}
+.map-ground{fill:var(--canvas)}
+.map-grid{stroke:var(--line);stroke-width:.4}
+.map-zone{fill:var(--teal-light);stroke:var(--teal-mid);stroke-width:.4}
+.map-label{font-size:3.4px;fill:var(--faint);text-anchor:middle;paint-order:stroke;stroke:var(--canvas);stroke-width:1.1;font-weight:700}
+.map-key{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--body)}
+.metric{display:flex;flex-direction:column;gap:6px}
+@media(min-width:1000px){
+ .dispatch-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+/* ---- Admin console ---- */
+.admin-row{align-items:flex-start}
+.admin-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.alloc-row{display:grid;grid-template-columns:minmax(0,1fr) 1fr auto;gap:12px;align-items:center;padding:11px 0;font-size:13px;color:var(--body)}
+.alloc-row+.alloc-row{border-top:1px solid var(--line)}
+.alloc-bar{height:8px;border-radius:5px;background:var(--line);overflow:hidden}
+.alloc-bar>div{height:100%;background:var(--indigo);border-radius:5px}
+.vetting-bar,.vetting-filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.vetting-bar>.tabs{margin:0}
+.inline-field{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--body);flex:1;min-width:210px}
+.reason-form{margin:12px 0 4px;padding:14px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--r-control)}
+@media(min-width:1000px){
+ .vetting-grid{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
+}
+@media(max-width:700px){
+ .alloc-row{grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ .alloc-bar{grid-column:1/-1;order:3}
+ .admin-actions{width:100%}
+}
+/* ---- Clinician-facing patient file ----
+   A digital profile, not a paper folder: a header that stays put, eight tabs, and cards a nurse
+   can read at a doorway. Everything is single-column at phone width and widens from 700px, so the
+   file never scrolls sideways on the device it will actually be opened on. */
+.pf-review{margin-bottom:16px;background:var(--canvas)}
+.pf-review-heading{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.pf-review-controls{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.pf-review-controls .inline-field{flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+.pf-review-controls select{width:100%}
+.pf-review-status{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.pf-header{margin-bottom:16px}
+.pf-identity{display:flex;gap:12px;align-items:center}
+.pf-avatar svg{width:22px;height:22px}
+.pf-facts{display:grid;grid-template-columns:1fr;gap:0;margin:14px 0 0}
+.pf-chips{list-style:none;display:grid;grid-template-columns:1fr;gap:8px;padding:0;margin:14px 0 0}
+.pf-chip{background:var(--indigo-soft);border-radius:var(--r-control);padding:10px 13px;min-width:0}
+.pf-chip.danger{background:var(--danger-soft)}
+.pf-scope{margin-top:12px;align-items:flex-start}
+/* The refusal and the withheld notice are deliberately the loudest quiet things on the page. */
+.pf-refusal,.pf-withheld{display:flex;gap:12px;align-items:flex-start;border-radius:var(--r-control);padding:14px;margin-top:14px}
+.pf-refusal{background:var(--danger-soft);border:1px solid color-mix(in srgb, var(--danger) 22%, var(--surface))}
+.pf-withheld{background:var(--canvas);border:1px solid var(--line)}
+.pf-refusal-icon{flex-shrink:0}
+.pf-refusal .pf-refusal-icon{color:var(--danger)}
+.pf-withheld .pf-refusal-icon{color:var(--indigo)}
+.pf-withheld p+p{margin-top:7px}
+.pf-holds{font-size:13px;color:var(--body);line-height:1.65;margin-bottom:14px}
+.pf-not-built{margin-top:20px;align-items:flex-start}
+.pf-protected-line{margin-top:14px;align-items:flex-start}
+.pf-cards{display:grid;grid-template-columns:1fr;gap:11px;margin-bottom:18px}
+.pf-card{display:flex;flex-direction:column;gap:6px}
+.pf-card-key{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--faint)}
+.pf-card .pf-refusal{margin-top:4px}
+.pf-vitals{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:0;margin:0 0 12px}
+.pf-vital{display:flex;flex-direction:column;gap:5px;padding:13px}
+.pf-vital>strong small{font-size:13px;font-weight:500;color:var(--faint);margin-left:4px}
+.pf-bullets{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:11px}
+.pf-actions{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:0;margin:0}
+.pf-action{display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:100%;height:100%;text-align:left;padding:14px;border-radius:var(--r-card);border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow)}
+.pf-action.refused{background:var(--canvas);border-style:dashed}
+.pf-entry{align-items:flex-start}
+.pf-type{display:block;font-style:normal;font-size:13px;color:var(--faint);margin-top:5px;overflow-wrap:anywhere}
+.pf-consultation{margin-bottom:11px}
+.pf-consultation>summary{display:flex;flex-direction:column;gap:4px;cursor:pointer;list-style:none;padding:2px 0}
+.pf-consultation>summary::-webkit-details-marker{display:none}
+.pf-consultation[open]>summary{border-bottom:1px solid var(--line);padding-bottom:11px;margin-bottom:4px}
+.pf-sections{list-style:none;padding:0;margin:10px 0 0;display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:700px){
+ .pf-review-controls{flex-direction:row}
+ .pf-review-controls .inline-field{flex:1}
+ .pf-facts{grid-template-columns:1fr 1fr}
+ .pf-facts dd{text-align:left}
+ .pf-chips{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .pf-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .pf-vitals{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .pf-actions{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .pf-sections{grid-template-columns:1fr 1fr;column-gap:22px}
+}
+@media(min-width:1000px){
+ .pf-facts{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .pf-chips{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+/* In a vitals tile the instrument and its serial are the point of the tag, so they wrap rather
+   than truncate: a chip reading “Blood-…” has kept its shape and lost its fact. */
+.pf-vital .prov-row{margin-top:auto;padding-top:4px}
+.pf-vital .prov{white-space:normal;align-items:flex-start}
+.pf-vital .prov em{white-space:normal;overflow:visible;text-overflow:clip}
+.pf-vital .prov>svg{margin-top:2px}
+/* ---- Nurse earnings and payouts ----
+   The screen has one job beyond arithmetic: make it obvious which figures are money and which are
+   not. Paid weeks read as settled; everything else is deliberately quieter. */
+.earnings .earn-standing{display:flex;gap:13px;align-items:flex-start;border-radius:var(--r-card);padding:16px 18px;margin-top:14px}
+.earn-standing .earn-rule{color:inherit;opacity:.95}
+.earn-split label select{margin-top:8px}
+.earn-bar{display:flex;gap:3px;height:16px;margin:18px 0 14px}
+.earn-bar .yours{background:var(--indigo)}
+.earn-bar .fee{background:var(--mango)}
+.earn-bar .platform{background:var(--accent-soft)}
+.earn-legend{display:grid;gap:12px}
+.earn-legend .key{width:11px;height:11px;border-radius:3px;grid-row:1 / span 2}
+.earn-legend .key.yours{background:var(--indigo)}
+.earn-legend .key.fee{background:var(--mango)}
+.earn-legend .key.platform{background:var(--accent-soft)}
+.earn-weeks{display:flex;flex-direction:column;gap:10px}
+.earn-week{border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);overflow:hidden}
+.earn-week.failed{border-color:var(--danger)}
+.earn-week-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s ease}
+.earn-week.is-open .earn-week-body{grid-template-rows:1fr}
+.earn-week-body>div{overflow:hidden;padding:0 18px}
+.earn-week.is-open .earn-week-body>div{padding-bottom:18px}
+.earn-failure{display:flex;gap:11px;align-items:flex-start;background:var(--danger-soft);color:var(--danger);border-radius:var(--r-tile);padding:13px 15px;margin:10px 0}
+.earn-lines th[scope=row] small{display:block;font-weight:400;color:var(--faint);font-size:13px;margin-top:3px}
+.earn-lines td small{display:flex;gap:6px;align-items:flex-start;color:var(--faint);font-size:13px;margin-top:4px;line-height:1.5}
+.earn-lines td small svg{flex-shrink:0;margin-top:2px}
+.earn-lines .earn-amount{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.earn-lines tr.negative .earn-amount{color:var(--danger)}
+.earn-lines tfoot td{border-top:1px solid var(--line)}
+.earn-tax .review-line strong{font-variant-numeric:tabular-nums}
+.earn-account .record-row.plain{background:none;padding:0}
+.earn-pending{display:flex;gap:12px;align-items:flex-start;background:var(--mango-soft);color:var(--mango-ink);border-radius:var(--r-tile);padding:15px 16px}
+@media(min-width:700px){
+ .earn-legend{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* ---- Teleconsultation call --------------------------------------------------------------
+   The roster is the load-bearing element: a list of people, each with where they are standing and
+   what they can hear, and one of them possibly greyed out because the patient asked them to leave.
+   Everything else here is the same components the rest of the app uses. Nothing on this screen is a
+   video surface, because there is no video. */
+.tc-roster{display:grid;gap:10px}
+.tc-person{display:flex;gap:13px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);padding:15px 16px}
+.tc-person.is-out{background:var(--canvas);opacity:.72}
+.tc-person strong em{font-style:normal;font-size:13px;font-weight:600;color:var(--indigo);letter-spacing:.2px}
+.tc-person .pill.plain{align-self:center;white-space:nowrap}
+.tc-out-note{font-size:13px;line-height:1.6;color:var(--body);margin-top:8px}
+.tc-consent+.tc-consent{border-top:1px solid var(--line);padding-top:12px}
+.tc-identity+.tc-identity{margin-top:12px}
+.tc-ends{display:grid;gap:10px;margin-top:12px}
+.tc-media{display:flex;gap:12px;align-items:flex-start;background:var(--canvas);border:1px solid var(--line);border-radius:var(--r-card);padding:16px}
+.tc-recording{display:flex;gap:12px;align-items:flex-start;background:var(--mango-soft);color:var(--mango-ink);border-radius:var(--r-card);padding:16px}
+/* A dropped line is the most important state on the screen, so it gets the most space and a real
+   clock rather than a label that says "reconnecting". */
+.tc-dropped{display:flex;gap:14px;align-items:flex-start;background:var(--danger-soft);color:var(--danger);border-radius:var(--r-card);padding:17px;margin-top:12px}
+.tc-hold{display:grid;place-items:center;text-align:center;min-width:96px;padding:12px 10px;background:rgba(255,255,255,.55);border-radius:var(--r-tile)}
+.tc-limits{display:grid;gap:9px;margin-top:12px}
+.tc-limit{display:flex;gap:11px;align-items:flex-start;border-radius:var(--r-tile);padding:13px 15px}
+.tc-limit.ok{background:var(--indigo-soft)}
+.tc-limit.no{background:var(--canvas)}
+.tc-refusals{display:grid;gap:10px}
+.tc-sections td{white-space:nowrap}
+.tc-sections tr.negative td{color:var(--faint)}
+@media(min-width:700px){
+ .tc-ends{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .tc-limits{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .tc-refusals{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* ---------------------------------------------------------------------------------------------
+   Substitution, chronic authorisation, and programme administration.
+
+   Two screens, one appended block, because they share the same visual grammar: a classification
+   that has to be legible at a glance, a sentence that says why it applies, and a refusal that is
+   allowed to interrupt the layout. The refusal styles are deliberately not quiet — a screen where
+   the thing it will not do is the same weight as the thing it will is a screen where the reader
+   skims past the part that matters. Tone comes from the contract, so a class that changes tone in
+   packages/catalog/dispensing.json changes colour here without anybody editing this file. */
+.dispensing,.programmes{display:flex;flex-direction:column;gap:14px}
+.disp-switch{display:grid;gap:12px;border:0;padding:0;margin:0}
+@media(min-width:760px){
+ .disp-switch{grid-template-columns:1fr 1fr;align-items:end}
+}
+.disp-columns{display:grid;gap:16px}
+@media(min-width:700px){
+ .disp-columns{grid-template-columns:1fr 1fr}
+}
+.disp-columns h4{font-size:13px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--faint);margin-bottom:8px}
+.disp-columns ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.disp-columns li{font-size:13px;color:var(--body);line-height:1.6;padding-left:15px;position:relative}
+.disp-boundary{display:flex;flex-direction:column;gap:14px}
+.disp-classes{display:flex;flex-direction:column;gap:14px}
+.disp-class{display:grid;grid-template-columns:auto 1fr;gap:13px;align-items:start;padding-left:13px;border-left:3px solid var(--line)}
+.disp-class.interchangeable{border-left-color:var(--indigo)}
+.disp-class.pharmacist-judgement{border-left-color:var(--mango-ink)}
+.disp-class.must-not{border-left-color:var(--danger)}
+.disp-items{display:flex;flex-direction:column;gap:14px}
+.disp-item{display:flex;flex-direction:column;gap:11px;border-left:4px solid var(--line)}
+.disp-item.interchangeable{border-left-color:var(--indigo)}
+.disp-item.pharmacist-judgement{border-left-color:var(--mango-ink)}
+.disp-item.must-not{border-left-color:var(--danger)}
+.disp-item-head{display:flex;gap:13px;align-items:flex-start}
+.disp-prescribed{font-size:13px;color:var(--body);line-height:1.6}
+.disp-ground{display:flex;gap:9px;align-items:flex-start;font-size:13px;color:var(--body);line-height:1.6}
+/* The words a patient is actually owed. Set as speech rather than as a note: it is meant to be read
+   out, and a paragraph that looks like small print gets summarised instead of said. */
+.disp-telling{background:var(--indigo-soft);border-radius:var(--r-control);padding:15px;display:flex;flex-direction:column;gap:11px}
+.disp-telling-head{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--indigo-deep)}
+.disp-replaces{font-size:13px;color:var(--indigo-deep);line-height:1.6}
+.disp-words{font-family:var(--font-display);font-size:15px;line-height:1.65;color:var(--slate)}
+.disp-telling .disp-columns li:before{background:var(--indigo)}
+.disp-signed{display:flex;gap:11px;align-items:flex-start;background:var(--canvas);border:1px solid var(--line);border-radius:var(--r-control);padding:14px}
+.disp-hand em{font-style:normal}
+.disp-hand.is-blocked em{color:var(--faint)}
+.disp-rule{display:flex;gap:9px;align-items:flex-start;font-size:13px;color:var(--body);line-height:1.6}
+.disp-refusal{display:flex;gap:12px;align-items:flex-start;background:var(--danger-soft);border-radius:var(--r-control);padding:14px}
+.disp-refusals{display:flex;flex-direction:column;gap:11px}
+.disp-authorisation{display:flex;flex-direction:column;gap:13px}
+.disp-boxes{display:grid;gap:12px}
+@media(min-width:700px){
+ .disp-boxes{grid-template-columns:repeat(3,1fr)}
+}
+.disp-box{background:var(--canvas);border-radius:var(--r-control);padding:14px}
+.disp-box span{display:block;font-size:13px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:var(--faint)}
+.disp-ends{display:flex;gap:12px;align-items:flex-start;background:var(--indigo-soft);border-radius:var(--r-control);padding:15px}
+.disp-handover{margin-top:0}
+/* Programme administration. A suppressed row is not a blank: a blank reads as an error and invites
+   somebody to go and ask for the number, so the row keeps its name, says it is not reported, and
+   says why in the contract's own words. It is styled quieter than a published row and not hidden,
+   because the reader is meant to see how much is being withheld. */
+.prog-floor{display:flex;flex-direction:column;gap:14px}
+.prog-floor-grid{display:grid;gap:16px}
+@media(min-width:700px){
+ .prog-floor-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(min-width:1080px){
+ .prog-floor-grid{grid-template-columns:repeat(4,1fr)}
+}
+.prog-floor-grid span{display:block;font-size:13px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:var(--faint);margin-top:6px}
+.prog-report{display:flex;flex-direction:column;gap:13px}
+.prog-suppressed th small{display:block;font-size:13px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:var(--mango-ink);margin-top:3px}
+.prog-reconcile{display:flex;gap:9px;align-items:flex-start;background:var(--canvas);border-radius:var(--r-control);padding:14px;font-size:13px;color:var(--body);line-height:1.65}
+.prog-list,.prog-steps{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:11px;counter-reset:prog}
+.prog-list li,.prog-steps li{font-size:13px;color:var(--body);line-height:1.6}
+.prog-steps li{counter-increment:prog;padding-left:28px;position:relative}
+.programmes h4{font-size:13px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--faint)}
+.prog-never{background:var(--danger-soft);border-color:var(--danger-soft)}
+.prog-never h4{color:var(--danger)}
+.prog-declining,.prog-sponsor{display:flex;flex-direction:column;gap:13px}
+.prog-naming em{font-style:normal}
+.prog-statement td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+/* A table whose every column but the first is a figure. Marked on the table rather than guessed at
+   per cell, because a table where only some numeric columns are aligned is worse than one where
+   none is. */
+.figures td,.figures thead th:not(:first-child){text-align:right}
+.metric-grid>.panel.metric{border:0;border-radius:0;box-shadow:none;background:none;padding:var(--space-16) var(--space-20);gap:var(--space-4)}
+.metric-grid>.panel.metric>span{font-size:13px;color:var(--body)}
+.metric-grid>.panel.metric>strong{font-size:24px;letter-spacing:-.6px;line-height:1.15}
+.metric-grid>.panel.metric>small{font-size:13px;color:var(--faint);line-height:1.45}
+@media(max-width:699px){
+ .metric-grid>.panel.metric{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"label value" "note value";align-items:baseline;column-gap:var(--space-16);row-gap:2px;padding:var(--space-12) var(--space-16)}
+ .metric-grid>.panel.metric>span{grid-area:label}
+ .metric-grid>.panel.metric>strong{grid-area:value;font-size:22px;justify-self:end;align-self:center}
+ .metric-grid>.panel.metric>small{grid-area:note}
+ .metric-grid>.panel.metric+.panel.metric{border-top:1px solid var(--line)}
+}
+@media(min-width:700px){
+ .metric-grid>.panel.metric+.panel.metric{border-left:1px solid var(--line)}
+ .metric-grid>.panel.metric>strong{font-size:28px}
+ /* Six of them is two rows rather than one long strip, so the second row starts a column again. */
+ .metric-grid>.panel.metric:nth-child(n+4){border-top:1px solid var(--line)}
+ .metric-grid>.panel.metric:nth-child(4){border-left:0}
+}
+/* Secondary actions read as secondary: a row of links on the page's own ground, not two more
+   cards with the same shadow as the queue they sit under. */
+.tool-links{display:flex;flex-wrap:wrap;gap:var(--space-8)}
+.tool-link{display:inline-flex;align-items:center;gap:var(--space-8);min-height:44px;padding:var(--space-8) var(--space-16);border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);font-size:13px;font-weight:600;color:var(--slate)}
+.tool-link:hover{border-color:var(--indigo);color:var(--indigo-deep);background:var(--indigo-soft)}
+/* A door into a workflow, which is a screen with one thing on it. Given the shape of an empty
+   state rather than the shape of a list with one row in it — a symbol, what is behind the door,
+   the way through, and the sentence saying what the preview will not do once you are through. */
+.workflow-door{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-12);padding:var(--space-32);max-width:640px}
+.workflow-door .primary{margin-top:var(--space-4)}
+.workflow-door .helper{color:var(--faint)}
+/* ---- The clinical header's chips ----
+   Four tinted panels of which three carried the same tint told a reader that four things were
+   equally worth noticing. One of them is: an allergy that causes facial swelling. The rest are
+   facts. Only the toned chips — amber and danger, both set from the record rather than from
+   position — keep a colour; the plain ones sit on the neutral ground, which is what makes the
+   coloured one register at all. */
+.pf-chip{background:var(--canvas)}
+.pf-chip>span{color:var(--faint);opacity:1}
+/* ---- The dispatch map ----
+   Five saturated teal discs the size of a fist, each with a two-pixel teal edge, under pins drawn
+   in the same teal. The zones are the least important thing on the map — they say roughly where
+   Randburg is — and they were the loudest, which left the five states that actually decide a
+   dispatch competing with the background for the same colour. The zones are ground now: a faint
+   neutral wash with a hairline. Every saturated mark left on the map is a state in the key.
+
+   Colours here come from the palette rather than from the five hand-mixed hexes this map was drawn
+   with, so a nurse who is available is the same teal as every other "available" in the product and
+   one who is blocked by vetting is the same danger red as every other refusal. */
+.map-zone{fill:var(--indigo);fill-opacity:.05;stroke:var(--line);stroke-width:.35}
+.map-label{fill:var(--faint)}
+@media(min-width:1000px){
+ /* The map and the list were given half the screen each. The screen's own copy says the map is a
+    picture of the list and that everything can be dispatched from the list alone with a keyboard —
+    so the list is the screen, and the map is sized to what it draws. */
+ .dispatch-grid{grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:var(--space-20)}
+}
+.map-key{gap:var(--space-8) var(--space-16);margin-top:var(--space-4)}
+.map-panel .helper{max-width:none}
+@media(max-width:520px){
+ .tc-person{display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:13px;row-gap:var(--space-12);align-items:start}
+ .tc-person>.tc-avatar{grid-row:1;grid-column:1}
+ .tc-person>div{grid-column:2;grid-row:1}
+}
+/* The teleconsultation's refusals are the longest prose in the product and the ones most likely to
+   be read word for word. Ninety characters to a line is where an eye starts landing on the wrong
+   one coming back. */
+.teleconsult .tc-refusal p,.teleconsult>p,.tc-consent .helper,.tc-out-note{max-width:76ch}
+.earn-week>button{padding:var(--space-16) var(--space-20)}
+.earn-split label select{max-width:360px}
+@media(min-width:700px){
+ /* ---- Substitution: three classes, one column ----
+    Each class was its own two-column grid with an `auto` label column, so the three label columns
+    sized themselves independently and the three explanations began at three different left edges —
+    375, 419 and 379 pixels in. They are three answers to one question and they are read down, so
+    they share a column width. */
+ .disp-class{grid-template-columns:176px minmax(0,1fr);column-gap:var(--space-20)}
+}
+@media(max-width:699px){
+ .disp-class{grid-template-columns:minmax(0,1fr)}
+}
+/* The bullets in "never" and "may change" were pale mint on white and effectively invisible, which
+   left two lists of hanging indents with nothing marking the items. */
+.disp-columns li:before{background:var(--faint)}
+.disp-telling .disp-columns li:before{background:var(--indigo)}
+@media(min-width:700px){
+ /* ---- Where a reading came from ----
+    Five observations across a desktop row left each card about a hundred and fifty pixels wide, and
+    the provenance chip inside it — the instrument, by name and serial — broke over three lines
+    inside a shape with a 999px radius. A lozenge three lines tall is not a chip.
+ 
+    Three per row instead of five, so the chip has the width its own rule already assumed, and where
+    it still cannot fit it wraps as a labelled line rather than pretending to be a pill. The rule the
+    provenance palette carries is untouched: all four origins keep one weight, one border and one
+    text colour, and only the icon tint says which. */
+ .pf-vitals{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-12)}
+}
+@media(min-width:1200px){
+ .pf-vitals{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+.pf-vitals .prov{white-space:normal;border-radius:var(--r-tile);align-items:flex-start;padding:var(--space-8)}
+.pf-vitals .prov em{white-space:normal;overflow:visible;text-overflow:clip}
+@media(min-width:700px){
+ /* The split's own numbers: three figures a nurse compares against each other, so they sit together
+    rather than at three corners of the panel. */
+ .earn-legend{grid-template-columns:repeat(3,minmax(0,220px));gap:var(--space-24)}
+}

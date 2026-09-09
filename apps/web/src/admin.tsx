@@ -1,7 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import AdminApp from './shells/AdminShell';
-import './styles.css';
+import './surface/core.css';
+import './surface/app.css';
+import './surface/clinical-screens.css';
 import './shells/shells.css';
 /* The back-office entry. Separate from the clinical one because they are separate audiences with
    separate accounts, and a console of readiness, catalogue and finance has no business being

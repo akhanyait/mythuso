@@ -1,0 +1,270 @@
+/* The patient's own screens.
+
+   Thuso SOS, the consent centre, the access log, the home, the family list, the language table and
+   the search field — every rule here is reachable only from main.tsx. A nurse standing at somebody's
+   front door has no reason to download the emergency pathway's styling, and now does not.
+
+   This is where a later pass should fold these rules into surface/patient.css; they are held apart
+   only because that file was being edited when the split was made. */
+
+.topbar-divider{display:none}
+.location-button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.notification-button{position:relative}
+.tabbar .nav-count{position:absolute;transform:translate(13px,-9px);background:var(--danger);color:#fff;font-size:13px;font-weight:700;min-width:16px;height:16px;border-radius:999px;display:grid;place-items:center;padding:0 4px}
+.search-field:focus-within{outline:3px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 7px var(--focus-edge)}
+.visit-top{display:flex;align-items:center;gap:12px}
+/* The home used to open on a wash of mint. A clinical product earns its calm from restraint, not
+   from colour: the ground is the same neutral as every other screen, and the only saturated
+   thing above the fold is the action you came to take. */
+.workspace.is-home{background:var(--canvas)}
+.workspace.is-home .topbar{background:var(--canvas)}
+.workspace.is-home .topbar,.workspace.is-home main,.workspace.is-home .tabbar{position:relative;z-index:1}
+.profile-summary{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.onboard-steps{list-style:none;margin:0;padding:0;display:flex;gap:6px}
+.onboard-steps li b{display:none}
+.locale-choice{border:0;margin:0;padding:0;display:grid;gap:9px}
+.family-profile{display:flex;flex-direction:column;gap:9px;align-items:flex-start}
+.add-family{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:12px;padding:13px;border:1px dashed var(--accent-soft);border-radius:var(--r-control);color:var(--indigo);font-size:13px;font-weight:600;background:var(--indigo-soft)}
+.family-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 0;color:var(--body)}
+.family-row+.family-row{border-top:1px solid var(--line)}
+@media(min-width:700px){
+ .location-button{display:flex}
+}
+@media(min-width:1000px){
+ nav button>span:not(.nav-count):not(.new-dot){flex:1;min-width:0}
+ nav button>.nav-count,nav button>.new-dot{flex:0 0 auto}
+ .nav-count{background:var(--indigo);color:#fff;font-size:13px;font-weight:700;padding:2px 7px;border-radius:999px;min-width:20px;text-align:center}
+ .new-dot{width:7px;height:7px;min-width:7px;border-radius:50%;background:var(--mango)}
+ .help-card{background:var(--indigo-soft);border-radius:var(--r-card);padding:16px;margin-bottom:14px}
+ .help-symbol{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:#ffffffb3;color:var(--indigo);margin-bottom:10px}
+ .profile{border-top:1px solid var(--line);margin-top:12px;padding:14px 4px 0;display:flex;gap:10px;align-items:center;width:100%;text-align:left}
+ .onboard-steps{flex-direction:column;gap:12px}
+ .onboard-steps li b{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#ffffffb3;color:var(--teal-ink);font-size:13px;font-weight:700;flex-shrink:0}
+ .onboard-steps li.current b{background:var(--indigo);color:#fff}
+ .onboard-steps li.done b{background:var(--teal);color:#fff}
+}
+/* ---- Thuso SOS: the emergency pathway -----------------------------------------------------
+   The hierarchy is the feature. The emergency block is the loudest thing on the page, it is at
+   the top, and nothing MyThuso sells is allowed to look more urgent than it — so the offer, the
+   target and the nurse list are all quieter than a block whose only content is somebody else's
+   phone number. */
+.sos{display:flex;flex-direction:column;gap:14px}
+.sos-emergency{background:var(--danger-soft);border:2px solid var(--danger);border-radius:var(--r-card);padding:20px}
+.sos-emergency-head{display:flex;gap:13px;align-items:flex-start}
+.sos-numbers{display:grid;gap:9px;margin:15px 0 12px}
+.sos-numbers li{display:grid;grid-template-columns:auto 1fr;gap:13px;align-items:start;background:var(--surface);border-radius:var(--r-tile);padding:13px 15px}
+.sos-number{display:flex;gap:7px;align-items:center;font-size:22px;font-weight:700;letter-spacing:-.6px;color:var(--danger);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sos-numbers .sos-when{color:var(--faint)}
+.sos-not-ambulance,.sos-preview-note{display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.6;color:var(--slate)}
+.sos-preview-note{margin-top:9px;color:var(--body)}
+.sos-why-first{display:flex;gap:8px;align-items:flex-start}
+.sos-flags{display:flex;flex-direction:column;gap:8px}
+.sos-flags legend{font-size:16px;font-weight:600;letter-spacing:-.3px;padding-bottom:4px}
+.sos-flags label small{display:block;font-size:13px;line-height:1.55;color:var(--body);margin-top:3px}
+.sos-flags .sos-none{margin-top:4px}
+.sos-flags .sos-none.selected{border-color:var(--indigo);background:var(--indigo-soft)}
+.sos-reach{display:flex;flex-direction:column;gap:10px}
+.sos-yesno{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.sos-yesno legend{font-size:13px;font-weight:600;margin-bottom:7px}
+.sos-switch p.helper{grid-column:1 / -1}
+.sos-outcome{border-radius:var(--r-card);padding:18px;border:1px solid var(--line);background:var(--surface)}
+.sos-outcome.emergency{border:2px solid var(--danger);background:var(--danger-soft)}
+.sos-outcome.refused{border-color:color-mix(in srgb, var(--mango) 55%, var(--surface));background:var(--mango-soft)}
+.sos-outcome-head{display:flex;gap:12px;align-items:flex-start}
+.sos-outcome.emergency .sos-outcome-head svg{color:var(--danger)}
+.sos-outcome.refused .sos-outcome-head svg{color:var(--mango-ink)}
+.sos-flagged{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0}
+.sos-flagged li{background:var(--surface);border:1px solid var(--danger);color:var(--danger);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600}
+.sos-ends{font-size:13px;line-height:1.6;color:var(--slate)}
+.sos-dial{display:flex;gap:11px;align-items:center;background:var(--surface);border-radius:var(--r-tile);padding:14px 16px;margin-top:12px}
+.sos-dial span{font-size:13px;color:var(--body)}
+.sos-refusal-line{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.6;margin-top:9px}
+.sos-target-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:9px}
+.sos-instead{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.6;color:var(--slate);margin-top:9px}
+.sos-failures{display:grid;gap:10px}
+.sos-failure-head{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.sos-stand-down{display:flex;flex-direction:column;gap:10px}
+.sos-reasons{flex-wrap:wrap}
+.sos-unanswered{display:flex;gap:9px;align-items:center;font-size:13px;color:var(--body)}
+.sos-holding{display:flex;gap:11px;align-items:flex-start;background:var(--mango-soft);color:var(--mango-ink);border-radius:var(--r-tile);padding:14px 16px}
+.sos-stood-down{background:var(--canvas);border-radius:var(--r-tile);padding:16px}
+.sos-areas{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0}
+.sos-areas li{display:flex;gap:6px;align-items:center;background:var(--indigo-soft);color:var(--slate);border-radius:999px;padding:6px 13px;font-size:13px}
+.sos-honesty,.sos-kept,.sos-not-kept{display:grid;gap:9px;margin-top:11px}
+.sos-honesty li,.sos-kept li,.sos-not-kept li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:13px;line-height:1.6;color:var(--body)}
+.sos-rules{display:grid;gap:10px}
+@media(min-width:700px){
+ .sos-failures{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .sos-rules{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* ---- Consent, and the log of who opened your record ----
+   Two screens with one job between them: make a choice legible before it is made, and make what
+   happened afterwards readable by the person it happened to. Three things are load-bearing rather
+   than decorative. The state chip is the whole point of versioned consent — "agreed", "needs
+   answering again" and "withdrawn" have to look like three different things, because they are.
+   The refused rows in the access log are given the same weight as the allowed ones and a colour of
+   their own, since a refusal is the entry somebody actually opens this screen looking for. And the
+   retention list sits inside the card at rest rather than behind a confirmation, which is what
+   keeps withdrawal one tap: the person has already read what it does not undo. */
+.consent-centre,.access-log{display:grid;gap:16px}
+.consent-blocked{display:flex;gap:11px;align-items:flex-start;background:var(--mango-soft);color:var(--mango-ink);border-radius:var(--r-tile);padding:14px 16px;font-size:13px;line-height:1.6}
+.consent-group{display:grid;gap:12px}
+.consent-card{border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);padding:16px;display:grid;gap:12px}
+.consent-card.is-held{border-color:var(--indigo)}
+.consent-card.is-held-on-superseded-version{border-color:var(--mango-ink)}
+.consent-card.is-withdrawn,.consent-card.is-refused{background:var(--canvas)}
+.consent-card>header{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.consent-card h4{margin:0;font-size:14px;font-weight:650;letter-spacing:-.2px}
+.consent-card header small{display:block;color:var(--faint);margin-top:3px}
+.consent-state{border-radius:var(--r-pill);padding:4px 11px;font-size:13px;font-weight:650;white-space:nowrap;background:var(--canvas);color:var(--body)}
+.consent-wording{margin:0;padding:13px 15px;border-left:3px solid var(--indigo);background:var(--canvas);border-radius:0 var(--r-tile) var(--r-tile) 0;font-size:13px;line-height:1.65;color:var(--ink)}
+.consent-proof{display:flex;gap:16px;flex-wrap:wrap;color:var(--faint);font-size:13px}
+.consent-changed{background:var(--mango-soft);color:var(--mango-ink);border-radius:var(--r-tile);padding:13px 15px;display:grid;gap:6px}
+.consent-changed .muted{color:inherit;opacity:.85;font-size:13px}
+.consent-facts{display:grid;gap:12px}
+.consent-kept ul{margin:0;padding-left:17px;display:grid;gap:7px}
+.consent-kept li{font-size:13px;line-height:1.6;color:var(--body)}
+.consent-kept em{color:var(--faint);font-style:normal}
+.consent-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.consent-actions .helper{flex-basis:100%}
+.access-list{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.access-row{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r-tile);background:var(--surface);padding:13px 15px}
+.access-row.is-refused{border-color:var(--danger);background:var(--danger-soft)}
+.access-row .access-mark{color:var(--indigo-deep);margin-top:1px}
+.access-row.is-refused .access-mark{color:var(--danger)}
+.access-row em{display:block;font-style:normal;color:var(--body);font-size:13px;margin-top:4px}
+.access-reason{font-size:13px;line-height:1.6;color:var(--slate);margin-top:7px}
+@media(min-width:700px){
+ .consent-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .consent-kept{grid-column:1/-1}
+}
+/* Language and access. The table is the screen: eleven written languages, what each one covers and
+   whether a person has read it. Every cell has to survive 200% zoom and a 320px viewport, so it
+   scrolls inside its own box rather than pushing the page sideways, and the review state is a
+   worded pill rather than a coloured dot — a reader who cannot tell amber from green would
+   otherwise be told nothing at all by the one column that matters. */
+.language-table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+.language-table tbody th small{font-weight:400}
+.review-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--r-pill);font-size:13px;line-height:1.5;font-weight:600}
+.review-pill.checked{background:var(--indigo-soft);color:var(--indigo-deep)}
+.review-pill.drafted{background:var(--mango-soft);color:var(--mango-ink)}
+.access-rule{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+.access-rule:last-child{border-bottom:0}
+.access-rule span{font-size:13px;line-height:1.65;color:var(--body)}
+.access-subheading{font-size:14px;margin:22px 0 4px;color:var(--ink)}
+.tabbar .nav-count{min-width:18px;height:18px}
+.location-button{min-height:44px}
+/* ---- The patient home, restructured ----
+   The old home opened with a rotating promotional carousel about two thirds of a phone screen
+   tall, a script slogan competing with the greeting, and a photograph printed over the headline
+   and the button beneath it. The four service shortcuts started below the fold.
+
+   The order here is the order a returning patient needs: who and where, what is already arranged,
+   how to arrange the next thing, then results, plans and family. On a wide screen the appointment,
+   plan and family become a second column rather than the same phone layout stretched across
+   1440px. One promotional card survives, once, below the fold where it is an offer. */
+.home-head{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.home-context{display:flex;gap:8px;flex-wrap:wrap}
+.context-chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-control);font-size:13px;font-weight:550;color:var(--slate);box-shadow:var(--shadow)}
+.context-chip:hover{border-color:var(--accent-soft);background:var(--indigo-soft)}
+.context-chip .avatar.small{width:28px;height:28px;font-size:13px}
+.home-columns{display:grid;gap:20px;align-items:start}
+.home-main,.home-side{display:block;min-width:0}
+/* Icon only where the label would eat the field it belongs to: at 390px the word "Search"
+   truncated the placeholder it was meant to help with. */
+.search-field{padding-right:6px}
+.search-field input{min-width:0;flex:1}
+.search-field .search-go{min-height:44px;min-width:44px;padding:10px;border-radius:var(--r-control);font-size:13px;margin:5px 0 5px 6px;flex-shrink:0;gap:8px}
+@media(min-width:560px){
+ .search-field .search-go{padding:10px 18px}
+}
+.context-chip{max-width:100%}
+.context-chip>span:not(.avatar){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.book-cta{min-height:54px;font-size:15px;gap:11px;margin-bottom:8px}
+.shortcut-meta{text-align:right;flex-shrink:0}
+.result-list{padding:6px 4px}
+.result-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:12px;border-radius:var(--r-tile);min-height:56px}
+.result-row:hover{background:var(--canvas)}
+.visit-meta-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin:11px 0 2px;font-size:13px;color:var(--body)}
+.visit-meta-row span{display:inline-flex;align-items:center;gap:7px}
+.empty-visit{text-align:left}
+.reminder-row{display:flex;align-items:center;gap:13px;width:100%;text-align:left;min-height:64px}
+/* The one promotional card, below the fold, quiet enough to be declined. */
+.promo-card{margin-top:20px;border-radius:var(--r-card);background:var(--indigo-soft);border:1px solid var(--accent-soft);padding:22px 20px}
+.promo-card .secondary{min-height:46px;border-radius:999px;padding:12px 20px;font-size:13px}
+@media(min-width:1000px){
+ /* A care column and a narrower column for what is already arranged. Not the phone layout
+     stretched across the screen. */
+ .home-columns{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:26px}
+}
+/* Interpreters. Three states and only three, and the one worth styling is the third: nobody is free
+   and nobody can say when one will be. It is not a quieter version of a wait — it gets the danger
+   tone the refusals use, because a person reading it is being told to make another plan, and a
+   sentence in grey under a number-shaped layout is how "we do not know" gets read as "soon". */
+.interpreting{display:flex;flex-direction:column;gap:4px}
+.interp-roster{display:grid;gap:10px;margin-top:4px}
+@media(min-width:900px){
+ .interp-roster{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+.interp-person{display:flex;gap:12px;align-items:flex-start;background:var(--canvas);border-radius:var(--r-tile);padding:13px 15px}
+.interp-person strong em{display:block;font-style:normal;font-size:13px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:var(--faint);margin-top:3px}
+@media(min-width:1000px){
+ /* ---- Sign-up: the step list, and eleven languages ----
+    The step you are on was unreadable. On a phone the list is six four-pixel bars and the current
+    one is filled with indigo; from 1000px the same list becomes text, and the rule that filled the
+    bar outranked the rule that turned the background off — so "1 Welcome" was slate text on a solid
+    indigo block. The two states are separated here rather than left to specificity.
+ 
+    The rest is palette: the labels were teal-ink from the mint system, which made a numbered list of
+    plain steps look like eleven links. */
+ .onboard-steps li.current,.onboard-steps li.done{background:none}
+ .onboard-steps li{color:var(--body)}
+ .onboard-steps li b{background:var(--surface);color:var(--body)}
+ .onboard-steps li.done b{background:var(--indigo-soft);color:var(--indigo-deep)}
+ .onboard-steps li.current{color:var(--ink);font-weight:650}
+ .onboard-steps li.current b{background:var(--indigo);color:var(--surface)}
+}
+@media(min-width:700px){
+ /* Eleven options in one column ran the choice five hundred pixels down a screen with room for two.
+    Below that width they stay stacked: at 390px two columns is two truncated language names. */
+ .onboard-body .locale-choice{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* ---- The patient home, in three areas ----
+   Care, the appointment, and everything else. On a wide screen the appointment sits top right and
+   the care column runs the length of the page; on a phone all three stack in the order the home
+   was designed around — greeting, what is already arranged, how to arrange the next thing, the
+   rest — which the two-column markup only ever delivered on a wide screen. */
+.home-appointment{min-width:0}
+.home-columns{gap:var(--space-32) var(--space-24)}
+@media(max-width:999px){
+ /* Nothing arranged is a different screen from something arranged. With a visit booked, the visit is
+    what a returning patient opened the app for and it leads; with none, the thing they need is the
+    way to book one, so the empty card drops below the booking column rather than standing at the
+    top of the screen asking to be scrolled past. */
+ .home-appointment.is-empty{order:2}
+ .home-main{order:1}
+ .home-side{order:3}
+}
+@media(min-width:1000px){
+ /* The second row is flexible on purpose. The care column spans both rows, and grid only skips a
+     spanning item when sizing intrinsic tracks if one of the tracks it spans is flexible — without
+     that, seven hundred pixels of care column gets shared with the row holding the appointment and
+     opens a hole under it. */
+ .home-columns{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"main appointment" "main side";align-content:start}
+ .home-main{grid-area:main}
+ .home-appointment{grid-area:appointment;align-self:start}
+ .home-side{grid-area:side;align-self:start}
+}
+@media(min-width:700px){
+ /* The top bar carries the care area from 700px up, and the home carried it again directly beneath —
+    the same control, opening the same dialog, twice within forty pixels. Two ways to do one thing is
+    not generosity; it is a reader working out which of them is the real one. Below 700px the top bar
+    drops it and the home's chip is the only one, so this hides it exactly where the other exists. */
+ .home-context .context-chip:first-child{display:none}
+}
+@media(max-width:640px){
+ /* Where you are and who it is for: two facts, one line. They were two chips on two lines because a
+    suburb and a name will not both fit unless each is allowed to end in an ellipsis. */
+ .home-context{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);width:100%;gap:var(--space-8)}
+ .home-head{gap:var(--space-16)}
+}
