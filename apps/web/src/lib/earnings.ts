@@ -1,6 +1,6 @@
 import contract from '../../../../packages/catalog/earnings.json';
 import { businessModel, services, type Service } from './catalog';
-import { inDays } from './vetting';
+import { inDays, isoDate } from './vetting';
 /* What a nurse is owed, worked out rather than written down.
  *
  * Not one visit amount lives in earnings.json. A line names a service; the money comes from
@@ -17,7 +17,29 @@ type RawLine = {
  kind: string; service?: string; reference: string; onDays: number; patient: string;
  area?: string; plan?: string; amount?: number; reason?: string;
 };
-type RawWeek = { id: string; state: string; endsInDays: number; paysInDays: number; paidOnDays?: number; failure?: string; lines: RawLine[] };
+type RawWeek = { id: string; state: string; weeksAgo: number; paidDaysAfterPayDate?: number; failure?: string; lines: RawLine[] };
+
+/* The two dates of a pay week, worked out from the cycle rather than read off a fixed offset.
+   A day offset cannot say "the Sunday this week ends on" — it lands on the intended weekday one day
+   in seven, so the contract used to be right on Mondays and wrong for the rest of the week, and on
+   9 September every week ended on a Friday while the cycle above it said Sunday. */
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const onOrAfter = (from: Date, weekday: string) => {
+ const target = DAYS.indexOf(weekday);
+ const out = new Date(from);
+ out.setDate(out.getDate() + ((target - out.getDay() + 7) % 7));
+ return out;
+};
+const weekDates = (weeksAgo: number) => {
+ const today = new Date();
+ /* The week this one is: the current week's end is the next weekEndsOn, and each earlier week is
+    seven days before that. */
+ const ends = onOrAfter(today, cycle.weekEndsOn);
+ ends.setDate(ends.getDate() - 7 * weeksAgo);
+ /* It pays on the first paysOn strictly after it ends — Sunday to Wednesday, not Sunday to Sunday. */
+ const pays = onOrAfter(new Date(ends.getTime() + 86_400_000), cycle.paysOn);
+ return { ends: isoDate(ends), pays: isoDate(pays) };
+};
 
 export const cycle = contract.cycle;
 export const account = contract.account;
@@ -56,9 +78,12 @@ function buildLine(raw: RawLine): EarningLine {
 
 export const weeks: EarningWeek[] = (contract.weeks as RawWeek[]).map(raw => {
  const lines = raw.lines.map(buildLine);
- return {
-  id: raw.id, state: raw.state as WeekState, ends: inDays(raw.endsInDays), pays: inDays(raw.paysInDays),
-  paidOn: raw.paidOnDays === undefined ? undefined : inDays(raw.paidOnDays), failure: raw.failure, lines,
+ const { ends, pays } = weekDates(raw.weeksAgo);
+  return {
+  id: raw.id, state: raw.state as WeekState, ends, pays,
+  paidOn: raw.paidDaysAfterPayDate === undefined ? undefined
+   : isoDate(new Date(new Date(`${pays}T00:00:00Z`).getTime() + raw.paidDaysAfterPayDate * 86_400_000)),
+  failure: raw.failure, lines,
   total: lines.reduce((sum, line) => sum + line.amount, 0),
   visits: lines.filter(line => line.service).length
  };

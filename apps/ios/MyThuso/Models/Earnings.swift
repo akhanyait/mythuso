@@ -92,15 +92,35 @@ struct PayLine: Identifiable, Hashable {
 struct PayWeek: Identifiable, Hashable {
     let id: String
     let state: String
-    let endsInDays: Int
-    let paysInDays: Int
-    let paidOnDays: Int?
+    let weeksAgo: Int
+    /// Days after the pay date the money actually landed. A fact about a transfer, and unlike a week
+    /// boundary it is not tied to a weekday, so it stays an offset.
+    let paidDaysAfterPayDate: Int?
     let failure: String?
     let lines: [PayLine]
 
-    var ends: Date { Date().addingTimeInterval(TimeInterval(endsInDays) * 86_400) }
-    var pays: Date { Date().addingTimeInterval(TimeInterval(paysInDays) * 86_400) }
-    var paidOn: Date? { paidOnDays.map { Date().addingTimeInterval(TimeInterval($0) * 86_400) } }
+    /* Derived from the cycle rather than from a fixed offset. These used to be endsInDays and
+       paysInDays, which cannot express "the Sunday this week ends on": an offset lands on the
+       intended weekday one day in seven, so the contract was right on Mondays and wrong the rest of
+       the week. On 9 September every week ended on a Friday while the cycle said Sunday, and the
+       current one paid on a Monday while the same file said Wednesday. */
+    private static func onOrAfter(_ from: Date, _ weekday: String) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = Scheduling.zone
+        let names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        let target = (names.firstIndex(of: weekday) ?? 0) + 1
+        let start = calendar.startOfDay(for: from)
+        let ahead = (target - calendar.component(.weekday, from: start) + 7) % 7
+        return calendar.date(byAdding: .day, value: ahead, to: start) ?? start
+    }
+
+    var ends: Date {
+        let next = PayWeek.onOrAfter(Date(), Earnings.cycle.weekEndsOn)
+        return next.addingTimeInterval(TimeInterval(-7 * weeksAgo) * 86_400)
+    }
+    /// The first paysOn strictly after the week ends — Sunday to Wednesday, never Sunday to Sunday.
+    var pays: Date { PayWeek.onOrAfter(ends.addingTimeInterval(86_400), Earnings.cycle.paysOn) }
+    var paidOn: Date? { paidDaysAfterPayDate.map { pays.addingTimeInterval(TimeInterval($0) * 86_400) } }
     var total: Int { lines.reduce(0) { $0 + $1.amount } }
     /// Visits, not lines: a reversal is not a visit and counting it as one would overstate the week.
     var visits: Int { lines.filter { $0.service != nil }.count }

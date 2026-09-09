@@ -69,8 +69,8 @@ extension Earnings {
     ]
     static let taxYear = TaxYear(startsOn: "1 March", label: "2026/27", note: "The South African tax year. The total below is what has actually reached your account since it started — not what has been earned, because money still on its way is not income you have received.")
     static let weeks: [PayWeek] = [
-        PayWeek(id: "w-current", state: "accruing", endsInDays: 2, paysInDays: 5,
-                paidOnDays: nil, failure: nil,
+        PayWeek(id: "w-current", state: "accruing", weeksAgo: 0,
+                paidDaysAfterPayDate: nil, failure: nil,
                 lines: [
                     .init(kind: "visit", reference: "TH-2048", onDays: -1, patient: "L. Molefe",
                           area: "Rosebank", plan: nil, service: "Vitals & chronic check",
@@ -82,8 +82,8 @@ extension Earnings {
                           area: "Rosebank", plan: "Chronic Routine", service: "Injection & vaccination",
                           reason: nil, amount: 187)
                 ]),
-        PayWeek(id: "w-1", state: "in-transit", endsInDays: -5, paysInDays: 0,
-                paidOnDays: nil, failure: nil,
+        PayWeek(id: "w-1", state: "in-transit", weeksAgo: 1,
+                paidDaysAfterPayDate: nil, failure: nil,
                 lines: [
                     .init(kind: "visit", reference: "TH-2031", onDays: -11, patient: "K. Ndlovu",
                           area: "Rosebank", plan: nil, service: "Vitals & chronic check",
@@ -107,8 +107,8 @@ extension Earnings {
                           area: "Rosebank", plan: nil, service: "Sick-note visit",
                           reason: nil, amount: 187)
                 ]),
-        PayWeek(id: "w-2", state: "failed", endsInDays: -12, paysInDays: -7,
-                paidOnDays: nil, failure: "Your bank returned it: the account name did not match the account number. Nothing was lost — it is still owed to you and goes out with Wednesday's run once the account is corrected.",
+        PayWeek(id: "w-2", state: "failed", weeksAgo: 2,
+                paidDaysAfterPayDate: nil, failure: "Your bank returned it: the account name did not match the account number. Nothing was lost — it is still owed to you and goes out with Wednesday's run once the account is corrected.",
                 lines: [
                     .init(kind: "visit", reference: "TH-2014", onDays: -18, patient: "S. Dube",
                           area: "Parktown", plan: nil, service: "Wound care",
@@ -129,8 +129,8 @@ extension Earnings {
                           area: "Rosebank", plan: nil, service: "Blood tests",
                           reason: nil, amount: 224)
                 ]),
-        PayWeek(id: "w-3", state: "paid", endsInDays: -19, paysInDays: -14,
-                paidOnDays: -14, failure: nil,
+        PayWeek(id: "w-3", state: "paid", weeksAgo: 3,
+                paidDaysAfterPayDate: 2, failure: nil,
                 lines: [
                     .init(kind: "visit", reference: "TH-1990", onDays: -25, patient: "G. Mokoena",
                           area: "Melville", plan: nil, service: "Elderly care",

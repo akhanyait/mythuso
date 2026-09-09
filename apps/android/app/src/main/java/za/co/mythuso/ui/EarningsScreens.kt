@@ -245,7 +245,7 @@ private fun rand(amount: Int): String {
         ) {
             Column {
                 Text(rand(week.total), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Ink)
-                Text("Week to day ${week.endsInDays} · ${week.visits} visits",
+                Text("Week to ${Scheduling.shortDate(week.ends)} · ${week.visits} visits",
                     style = MaterialTheme.typography.bodySmall, color = Faint)
             }
             StatusPill(state.name, when (week.state) {

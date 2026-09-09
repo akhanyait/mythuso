@@ -1,5 +1,9 @@
 package za.co.mythuso.model
 
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.util.Locale
+
 /* What a nurse is paid, and what nobody is allowed to do to it.
 
    The public page tells South Africa that a MyThuso nurse keeps three quarters of every visit and
@@ -68,12 +72,32 @@ data class PayLine(
 data class PayWeek(
     val id: String,
     val state: String,
-    val endsInDays: Int,
-    val paysInDays: Int,
-    val paidOnDays: Int?,
+    val weeksAgo: Int,
+    /** Days after the pay date the money actually landed. A fact about a transfer, and unlike a week
+        boundary it is not tied to a weekday, so it stays an offset. */
+    val paidDaysAfterPayDate: Int?,
     val failure: String?,
     val lines: List<PayLine>
 ) {
+    /* Derived from the cycle rather than from a fixed offset. These used to be endsInDays and
+       paysInDays, which cannot express "the Sunday this week ends on": an offset lands on the
+       intended weekday one day in seven, so the contract was right on Mondays and wrong for the rest
+       of the week. On 9 September every week ended on a Friday while the cycle said Sunday, and the
+       current one paid on a Monday while the same file said Wednesday. */
+    private fun onOrAfter(from: LocalDate, weekday: String): LocalDate {
+        val target = DayOfWeek.valueOf(weekday.uppercase(Locale.UK))
+        val ahead = ((target.value - from.dayOfWeek.value) + 7) % 7
+        return from.plusDays(ahead.toLong())
+    }
+
+    val ends: LocalDate get() =
+        onOrAfter(Scheduling.today(), payCycle.weekEndsOn).minusWeeks(weeksAgo.toLong())
+
+    /** The first paysOn strictly after the week ends — Sunday to Wednesday, never Sunday to Sunday. */
+    val pays: LocalDate get() = onOrAfter(ends.plusDays(1), payCycle.paysOn)
+
+    val paidOn: LocalDate? get() = paidDaysAfterPayDate?.let { pays.plusDays(it.toLong()) }
+
     val total: Int get() = lines.sumOf { it.amount }
 
     /** Visits, not lines: a reversal is not a visit, and counting it as one would overstate the week. */

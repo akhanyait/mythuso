@@ -110,8 +110,8 @@ ${catalogue.filter(s => s.phase === 1).map(s => `        ${swift(s.id)}: ${s.nur
     ]
     static let taxYear = TaxYear(startsOn: ${swift(contract.taxYear.startsOn)}, label: ${swift(contract.taxYear.label)}, note: ${swift(contract.taxYear.note)})
     static let weeks: [PayWeek] = [
-${contract.weeks.map(week => `        PayWeek(id: ${swift(week.id)}, state: ${swift(week.state)}, endsInDays: ${week.endsInDays}, paysInDays: ${week.paysInDays},
-                paidOnDays: ${optInt(week.paidOnDays)}, failure: ${optSwift(week.failure)},
+${contract.weeks.map(week => `        PayWeek(id: ${swift(week.id)}, state: ${swift(week.state)}, weeksAgo: ${week.weeksAgo},
+                paidDaysAfterPayDate: ${optInt(week.paidDaysAfterPayDate)}, failure: ${optSwift(week.failure)},
                 lines: [
 ${week.lines.map(resolve).map(line => `                    .init(kind: ${swift(line.kind)}, reference: ${swift(line.reference)}, onDays: ${line.onDays}, patient: ${swift(line.patient)},
                           area: ${optSwift(line.area)}, plan: ${optSwift(line.plan)}, service: ${optSwift(line.serviceName)},
@@ -170,8 +170,8 @@ val payTaxYear = TaxYear(${kotlin(contract.taxYear.startsOn)}, ${kotlin(contract
 
 val payWeeks = listOf(
 ${contract.weeks.map(week => `    PayWeek(
-        ${kotlin(week.id)}, ${kotlin(week.state)}, ${week.endsInDays}, ${week.paysInDays},
-        ${optIntKt(week.paidOnDays)}, ${optKotlin(week.failure)},
+        ${kotlin(week.id)}, ${kotlin(week.state)}, ${week.weeksAgo},
+        ${optIntKt(week.paidDaysAfterPayDate)}, ${optKotlin(week.failure)},
         listOf(
 ${week.lines.map(resolve).map(line => `            PayLine(
                 ${kotlin(line.kind)}, ${kotlin(line.reference)}, ${line.onDays}, ${kotlin(line.patient)},

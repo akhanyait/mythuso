@@ -80,7 +80,7 @@ val payTaxYear = TaxYear("1 March", "2026/27", "The South African tax year. The 
 
 val payWeeks = listOf(
     PayWeek(
-        "w-current", "accruing", 2, 5,
+        "w-current", "accruing", 0,
         null, null,
         listOf(
             PayLine(
@@ -101,7 +101,7 @@ val payWeeks = listOf(
         )
     ),
     PayWeek(
-        "w-1", "in-transit", -5, 0,
+        "w-1", "in-transit", 1,
         null, null,
         listOf(
             PayLine(
@@ -142,7 +142,7 @@ val payWeeks = listOf(
         )
     ),
     PayWeek(
-        "w-2", "failed", -12, -7,
+        "w-2", "failed", 2,
         null, "Your bank returned it: the account name did not match the account number. Nothing was lost — it is still owed to you and goes out with Wednesday's run once the account is corrected.",
         listOf(
             PayLine(
@@ -178,8 +178,8 @@ val payWeeks = listOf(
         )
     ),
     PayWeek(
-        "w-3", "paid", -19, -14,
-        -14, null,
+        "w-3", "paid", 3,
+        2, null,
         listOf(
             PayLine(
                 "visit", "TH-1990", -25, "G. Mokoena",
