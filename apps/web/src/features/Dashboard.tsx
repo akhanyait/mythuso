@@ -173,8 +173,12 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
 
     <SectionTitle title="Your circle of care" action="My family" onClick={() => navigate('My family')}/>
     <div className="panel">
-     {[['NM', 'Nomsa Molefe', 'Mother · Sponsored care', 'peach'], ['TM', 'Thabo Molefe', 'Your son · 8 years', 'blue']].map(([initial, name, detail, tone]) =>
-      <button className="family-row" key={name} onClick={() => navigate('My family')}>
+     {/* "Sponsored care" used to be a word with nothing behind it: every row on this card went to
+         the family list, including the one naming a thing the family list does not answer. It goes
+         to the statement now — what has been used, what it cost, and what paying for it does not
+         let you see. */}
+     {[['NM', 'Nomsa Molefe', 'Mother · Sponsored care', 'peach', 'Care you sponsor'], ['TM', 'Thabo Molefe', 'Your son · 8 years', 'blue', 'My family']].map(([initial, name, detail, tone, target]) =>
+      <button className="family-row" key={name} onClick={() => navigate(target)}>
        <span className={`avatar ${tone}`}>{initial}</span>
        <span><strong>{name}</strong><small>{detail}</small></span>
        <ChevronRight size={17}/>

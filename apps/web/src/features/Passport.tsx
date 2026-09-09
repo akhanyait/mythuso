@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, ArrowRight, Bluetooth, Check, Droplets, Heart, LockKeyhole, ShieldCheck, Smartphone, Thermometer, Wind } from 'lucide-react';
+import { Activity, Ambulance, ArrowRight, Bluetooth, Check, ChevronDown, Droplets, Heart, LockKeyhole, ShieldCheck, Smartphone, Thermometer, TriangleAlert, Wind } from 'lucide-react';
 import { Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
@@ -11,6 +11,7 @@ import {
  dateOf, flagFor, formatValue, headlineMeasures, kitInstruments, latestSet, measureSpec, measuredIn,
  neverRead, otherMeasures, rangeText, readableMeasures, readingSets, seriesFor, type MeasureId
 } from '../lib/passport';
+import { explanations, provenance, urgentConditions } from '../lib/explain';
 
 /* Two screens the Health Passport offered and could not open.
  *
@@ -83,6 +84,10 @@ export function HealthTrends({ navigate }: { navigate: (page: string) => void })
    </div>
   </div>
   <p className="helper"><ShieldCheck size={14}/>Nothing on this screen interprets a reading for you. What a number means for a particular person is a clinical judgement, and MyThuso does not make one.</p>
+  {/* Which is not the same as saying nothing. What a measurement *is*, and what a number outside a
+      range may follow from, can be explained without interpreting anybody's reading — and a person
+      who is not told goes and asks a search engine, which will interpret it for them. */}
+  <button className="secondary full" onClick={() => navigate('What readings mean')}>What these readings mean<ArrowRight size={17}/></button>
   <button className="primary full" onClick={() => navigate('Book a nurse')}>Book a visit to have these taken again<ArrowRight size={17}/></button>
   {/* This is the only screen in the patient app that is not itself a navigation entry, so no row in
       the sidebar is lit while you are on it. A full-size way back is the difference between a
@@ -219,4 +224,105 @@ export function DevicePermission({ integration, navigate }: { integration: Integ
   <button className="primary full" onClick={() => navigate('Book a nurse')}>Book a visit — the nurse brings the instruments<ArrowRight size={17}/></button>
   <button className="secondary full" onClick={() => navigate('Health Passport')}>Back to your Health Passport<ArrowRight size={17}/></button>
  </div>;
+}
+
+/* ---- What a reading means ---------------------------------------------------------------------
+ *
+ * The passport has drawn seven reference ranges since it was written and has never said what one of
+ * them measures. "136 mmHg, 90–140" answers whether a number is inside the lines. It does not answer
+ * the question the person actually opened the screen with, and the question they actually opened the
+ * screen with gets asked of a search engine instead — which will diagnose them, confidently, in
+ * about four seconds.
+ *
+ * So it is answered here, in writing, by a person, with the provenance of the writing on the screen
+ * rather than in a policy. This is where `screening` will eventually live. It is worth saying that
+ * the written version is not a placeholder for the model: it is the thing the model will have to be
+ * better than, and unlike the model it can be read in full by a clinician before it ships.
+ *
+ * Three things hold the line. Each entry says what a reading outside the range *may* follow from,
+ * beginning with the ordinary reasons, because the ordinary reasons are usually the right ones.
+ * "What you can do" is never a change to a medicine. And every entry carries the red flags from
+ * packages/catalog/sos.json by id, with the door to the emergency pathway on the row — a screen that
+ * explains blood pressure to somebody having a stroke is a screen that has done harm.
+ *
+ * The rows are collapsed by default and only one is open at a time. Seven of these expanded is two
+ * thousand words, and a person came here about one reading. */
+
+const flagWord = (flag: ReturnType<typeof flagFor>) =>
+ flag === 'normal' ? 'inside the range' : flag === 'high' ? 'above the range' : flag === 'low' ? 'below the range' : 'not measured';
+
+export function ReadingsExplained({ navigate, open }: { navigate: (page: string) => void; open: (modal: string) => void }) {
+ const [shown, setShown] = useState<MeasureId | null>(null);
+ const measures = measuredIn(latestSet);
+ const inside = measures.filter(id => flagFor(id, latestSet.values[id]!) === 'normal').length;
+ return <>
+  <div className="page-intro"><div className="eyebrow">Health Passport</div><h1>What your readings mean.</h1>
+   <p>What each measurement is, what a number outside its range may follow from, and who decides what any of it means for you.</p></div>
+  <NotConnected of="screening"/>
+
+  {/* The lead is a count and not a verdict. "All inside range" is a fact about seven numbers on one
+      day; it is not "you are well", and the sentence under it says so before anything else does. */}
+  <section className="panel glass lead rise-2">
+   <div className="lead-head"><div><h2>Your last visit</h2><p>{longDateOf(dateOf(latestSet.dayOffset))}</p></div>
+    <Pill tone={inside === measures.length ? 'teal' : 'amber'}>{inside === measures.length ? 'All inside range' : `${measures.length - inside} outside range`}</Pill></div>
+   <Metrics>
+    <Metric value={String(inside)} unit={`of ${measures.length}`} label="Readings inside their range" chip="On the day they were taken"/>
+   </Metrics>
+   <p className="helper"><ShieldCheck size={14}/>{provenance.whoDecides}</p>
+  </section>
+
+  <SectionTitle title="Choose a reading"/>
+  <div className="panel explain-list">
+   {explanations.map(explanation => {
+    const id = explanation.id;
+    const spec = measureSpec(id);
+    const value = latestSet.values[id];
+    const flag = value === undefined ? undefined : flagFor(id, value);
+    const isOpen = shown === id;
+    /* No tile on these rows. Seven identical sage squares — two of them the same heart, for the two
+       halves of one blood-pressure reading — is a colour that has stopped carrying information, and
+       the space it took is where the one thing on the row that does mean something now sits: where
+       the last reading fell against its own range, as a word rather than as a tint. */
+    return <div className={`explain-item${isOpen ? ' open' : ''}`} key={id}>
+     <button className="record-row explain-row" aria-expanded={isOpen} onClick={() => setShown(isOpen ? null : id)}>
+      <span><strong>{spec.label}</strong>
+       <small>{rangeText(id)}{value === undefined ? '' : ` · your last was ${formatValue(id, value)} ${spec.unit}`}</small></span>
+      {flag && <Pill tone={flag === 'normal' ? '' : 'amber'}>{flagWord(flag)}</Pill>}
+      <ChevronDown size={18} className="explain-chevron"/>
+     </button>
+     {isOpen && <div className="explain-body">
+      <dl className="stated">
+       <div><dt>What it measures</dt><dd>{explanation.measures}</dd></div>
+       <div><dt>A reading above the range</dt><dd>{explanation.above}</dd></div>
+       <div><dt>A reading below the range</dt><dd>{explanation.below}</dd></div>
+       <div><dt>What you can do</dt><dd>{explanation.whatToDo}</dd></div>
+      </dl>
+      {/* The red flags, from the emergency contract by id. This screen can never invent a ninth or
+          soften one of the eight, and it is the only thing on the page with a door out of it. */}
+      <div className="privacy-note alert explain-urgent">
+       <TriangleAlert size={19}/>
+       <div>
+        <p>Not this screen: {urgentConditions(explanation).map(c => c.name.toLowerCase()).join(', ')}. Any of those is an emergency and needs an ambulance rather than a reading.</p>
+        <button className="text-button" onClick={() => open('Emergency & urgent care')}><Ambulance size={15}/>Open Thuso SOS</button>
+       </div>
+      </div>
+     </div>}
+    </div>;
+   })}
+  </div>
+
+  {/* Provenance, and it is on the screen rather than in a policy. A reader deciding how much weight
+      to give four paragraphs about their own blood pressure is owed this before the paragraphs. */}
+  <SectionTitle title="Where these words come from"/>
+  <div className="panel"><dl className="stated">
+   <div><dt>Written down, not generated</dt><dd>{provenance.written}</dd></div>
+   <div><dt>No clinician has reviewed this wording</dt><dd>{provenance.unreviewed}</dd></div>
+   <div><dt>The ranges are the nurse’s own</dt><dd>{provenance.ranges}</dd></div>
+   <div><dt>Nothing here changes a medicine</dt><dd>{provenance.neverChange}</dd></div>
+  </dl></div>
+  <div className="privacy-note"><LockKeyhole size={19}/>{capability('screening').blockedBy.join(' ')}</div>
+
+  <button className="primary full" onClick={() => navigate('Health trends')}>See how your readings have changed<ArrowRight size={17}/></button>
+  <button className="secondary full" onClick={() => navigate('Health Passport')}>Back to your Health Passport<ArrowRight size={17}/></button>
+ </>;
 }

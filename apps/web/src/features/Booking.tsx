@@ -42,7 +42,9 @@ const stepLabels = ['Who & where', 'When', 'Payment', 'Review'];
 export function Booking({ service, person: forPerson, onComplete }: { service: Service; person?: string; onComplete: (visit: DemoVisit) => void }) {
  const [step, setStep] = useState(0);
  const [person, setPerson] = useState(forPerson ?? 'Lerato Molefe');
- const [address, setAddress] = useState('Home visit · Sandton');
+ /* A suburb the coverage contract actually names. It was Sandton, which packages/catalog/geography.json
+    does not list, so a booking made here produced a visit no map in the product could draw. */
+ const [address, setAddress] = useState('Home visit · Melville');
  const [kind, setKind] = useState<'scheduled' | 'asap'>('scheduled');
  /* Computed once per booking rather than per render, so the strip cannot shift under somebody
     who opened the app just before midnight. */

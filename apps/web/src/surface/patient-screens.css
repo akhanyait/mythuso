@@ -283,3 +283,78 @@
    width from the digits. The digits are the target. The tick is a reassurance and can move. */
 .code-input{flex-wrap:wrap;gap:var(--space-4);justify-content:center}
 .code-input input{min-width:44px}
+/* ---- Arrival: where is she now ----------------------------------------------------------------
+   `.map-key` is laid out in clinical-screens.css, which a patient never downloads, so on the
+   patient's map the swatches arrived as a run-on line with the dots wrapping mid-phrase. It is laid
+   out here for the entry that actually renders it. */
+.map-key{display:flex;flex-wrap:wrap;gap:var(--space-8) var(--space-16);font-size:13px;color:var(--body);margin-top:var(--space-8)}
+.arrival-who{display:flex;align-items:center;gap:var(--space-12);min-width:0}
+.arrival-who strong{display:block;font-size:16px;font-weight:600;color:var(--charcoal)}
+.arrival-who small{display:block;font-size:13px;color:var(--faint)}
+.patient-surface .arrival-lead .s-metrics,
+.patient-surface .sponsor-lead .s-metrics{grid-template-columns:repeat(auto-fit,minmax(124px,1fr));gap:var(--space-20) var(--space-16)}
+/* The map is context, not subject: a plain panel on the ground rather than a second lead. A screen
+   where the picture is the largest thing has decided the picture is the answer, and here the answer
+   is the sentence beside it. The schematic is square, so the panel is held near square too —
+   letterboxed across a fifteen-hundred-pixel column it was a small drawing in a field of grey. */
+.arrival-map{display:flex;flex-direction:column;gap:var(--space-8)}
+.arrival-map .livemap{max-width:380px}
+.arrival-columns{display:grid;gap:var(--space-24)}
+.arrival-facts{display:flex;flex-direction:column;gap:var(--space-12);min-width:0}
+@media(min-width:960px){
+ /* Side by side above 960: the picture on the left at the size it is actually drawn, and the four
+    things it is not filling the width that would otherwise be grey. */
+ .arrival-columns{grid-template-columns:minmax(0,380px) minmax(0,1fr);align-items:start}
+}
+@media(max-width:520px){
+ /* A name, a role and a status chip will not share one line at 390px without the name wrapping into
+    the chip. The chip takes a line of its own instead, under the person it is about. The child
+    selector is deliberate: the shared rule gives every div in a lead head flex:1, and it wins. */
+ .patient-surface .arrival-lead .lead-head,
+ .patient-surface .sponsor-lead .lead-head{flex-wrap:wrap;gap:var(--space-8)}
+ .patient-surface .arrival-lead .lead-head > .arrival-who,
+ .patient-surface .sponsor-lead .lead-head > .sponsor-who{flex:1 1 100%}
+}
+
+/* The nurse row on a visit, made into the door to the arrival screen. It was a static strip naming
+   who was coming; the one thing a person wants from it on the morning of the visit is where she is,
+   so the whole row is the control and the words are on it. */
+.nurse-track{width:100%;text-align:left;display:flex;align-items:center;gap:var(--space-12);min-height:44px}
+.nurse-track-cta{margin-left:auto;display:inline-flex;align-items:center;gap:var(--space-8);font-size:13px;font-weight:600;color:var(--charcoal);white-space:nowrap}
+
+/* ---- Care you sponsor -------------------------------------------------------------------------
+   The two lists are the screen, so they are the same width, the same weight and side by side from
+   the width where two columns fit. Stacked on a phone in the order they are written: what you see,
+   then what you never see — because the second one is the answer somebody is going to test. */
+.sponsor-who{display:flex;align-items:center;gap:var(--space-12);min-width:0}
+.sponsor-who strong{display:block;font-size:16px;font-weight:600;color:var(--charcoal)}
+.sponsor-who small{display:block;font-size:13px;color:var(--faint)}
+.sponsor-columns{display:grid;gap:var(--space-12)}
+.sponsor-columns h3{font-size:15px;font-weight:600;margin:0 0 var(--space-8)}
+.sponsor-statement td:last-child,.sponsor-statement tfoot td{font-variant-numeric:tabular-nums;text-align:right}
+.sponsor-statement th[scope='col']:last-child{text-align:right}
+.sponsor-switch{align-items:flex-start}
+@media(min-width:820px){
+ /* Stretched rather than start-aligned: the second list is longer, and two panels of different
+    heights read as one main list with an afterthought beside it. They are the same claim. */
+ .sponsor-columns{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* ---- What your readings mean ------------------------------------------------------------------
+   A list of seven, one open at a time. The chevron turns rather than the row changing colour: a
+   disclosure that only announces itself by tint is one half the readers cannot see, and the
+   aria-expanded on the button is what actually carries the state. */
+.explain-item+.explain-item{border-top:1px solid var(--line)}
+.explain-row>span:first-child{flex:1;min-width:0}
+.explain-chevron{flex:0 0 auto;transition:transform var(--t-settle,180ms) var(--ease-soft,ease)}
+.explain-item.open .explain-chevron{transform:rotate(180deg)}
+.explain-body{padding:0 0 var(--space-16);display:flex;flex-direction:column;gap:var(--space-12)}
+/* The way out sits under the sentence rather than at the end of it. An inline-flex control with a
+   44px target inside a running line overlaps the line above it, which is exactly what it did. */
+.explain-urgent{align-items:flex-start}
+.explain-urgent>div{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-4);min-width:0}
+.explain-urgent p{margin:0}
+.explain-urgent .text-button{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:var(--mango-ink);font-weight:600}
+@media(prefers-reduced-motion:reduce){
+ .explain-chevron{transition:none}
+}

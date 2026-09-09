@@ -38,9 +38,20 @@ type Props = {
  /** Read to a screen reader in place of the graphic. Composed by the caller, which knows the counts. */
  summary: string;
  height?: number;
+ /* The straight line an estimate was measured along, drawn dashed and through everything in its
+    way. It exists because "straight line over 5.4 km — not a road route" is a sentence a reader can
+    skim past, and a line through the buildings is not: the picture and the caveat say the same
+    thing. It is deliberately dashed and deliberately not a route — nothing here is drawn as though
+    a road had been followed, which is the rule packages/geo/routing.ts holds the whole product to.
+
+    Only the schematic draws it. A build with a tile token would show the two pins and no line, and
+    that is a gap rather than a decision — TileMap needs the same three lines and this file cannot
+    be the place they are added, because the tile map is behind the dynamic import that keeps
+    mapbox-gl out of the patient's bundle. */
+ link?: { from: LatLng; to: LatLng } | null;
 };
 
-export function LiveMap({ markers, summary, height = 340 }: Props) {
+export function LiveMap({ markers, summary, height = 340, link = null }: Props) {
  /* A token can be present and still not work — revoked, over quota, blocked by a captive portal on
     a clinic's wifi. All three fall back to the schematic rather than to nothing. */
  const [tilesFailed, setTilesFailed] = useState(false);
@@ -48,10 +59,10 @@ export function LiveMap({ markers, summary, height = 340 }: Props) {
  return (
   <div className="livemap" style={{ height }}>
    {live
-    ? <Suspense fallback={<Schematic markers={markers} summary={summary}/>}>
+    ? <Suspense fallback={<Schematic markers={markers} summary={summary} link={link}/>}>
        <TileMap markers={markers} summary={summary} onTilesFailed={() => setTilesFailed(true)}/>
       </Suspense>
-    : <Schematic markers={markers} summary={summary}/>}
+    : <Schematic markers={markers} summary={summary} link={link}/>}
    <p className="livemap-note">{live ? coverage.sentence : rendering.withoutToken.sentence}</p>
   </div>
  );
@@ -74,7 +85,7 @@ function Mark({ marker, x, y }: { marker: MapMarker; x: number; y: number }) {
  );
 }
 
-function Schematic({ markers, summary }: { markers: MapMarker[]; summary: string }) {
+function Schematic({ markers, summary, link }: { markers: MapMarker[]; summary: string; link: { from: LatLng; to: LatLng } | null }) {
  return (
   <div className="livemap-canvas schematic">
    <svg viewBox="0 0 100 100" role="img" aria-label={summary} preserveAspectRatio="xMidYMid meet">
@@ -86,6 +97,8 @@ function Schematic({ markers, summary }: { markers: MapMarker[]; summary: string
      </g>
     ))}
     {zones.map(z => <circle key={z.id} cx={plot(z.at).x} cy={plot(z.at).y} r={radiusInBoxUnits(z.radiusKm)} className="map-zone"/>)}
+    {/* Under the pins, so a mark is never obscured by the line that was measured to it. */}
+    {link && <line x1={plot(link.from).x} y1={plot(link.from).y} x2={plot(link.to).x} y2={plot(link.to).y} className="map-straight"/>}
     {markers.map(marker => {
      const placement = place(marker.at);
      if (!placement.drawn) return null;

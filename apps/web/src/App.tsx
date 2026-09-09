@@ -11,7 +11,9 @@ import {
  type VisitAction, type VisitRow
 } from './features/Pages';
 import { HouseholdRecord, HealthSummary } from './features/Household';
-import { DevicePermission, HealthTrends, type Integration } from './features/Passport';
+import { DevicePermission, HealthTrends, ReadingsExplained, type Integration } from './features/Passport';
+import { Arrival } from './features/Arrival';
+import { SponsoredCare } from './features/Sponsor';
 import { stateOf } from './lib/cancelling';
 import { dateOf } from './lib/passport';
 import { Onboarding, SignIn } from './features/Onboarding';
@@ -25,6 +27,7 @@ import { LocaleContext, locales, clinicalRule, signLanguage, missingSets, type L
 import { useSaslRequirement } from './lib/interpreting';
 import { currentPerson, endSession, probe } from './lib/auth';
 import { modules, money, services, type Service } from './lib/catalog';
+import { coverage, zones } from './lib/geography';
 
 /* MyThuso for patients and families. One audience, one bundle.
  *
@@ -62,6 +65,10 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     patient that outlives the journey that set it is how somebody books a visit for the wrong
     person. */
  const [forPerson, setForPerson] = useState<string | null>(null);
+ /* Which visit the arrival screen is about. It is a page rather than a dialog because it is the one
+    screen a person opens on the morning of a visit and stays on, and a modal that has to be held
+    open while somebody waits for a knock at the door is a modal in the way. */
+ const [tracking, setTracking] = useState<string | null>(null);
  const [members, setMembers] = useState<string[]>([]);
  const [invitations, setInvitations] = useState<Invitation[]>(sampleInvitations);
  const [query, setQuery] = useState('');
@@ -71,6 +78,10 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
  const [live, setLive] = useState(false);
  const navigate = (p: string) => { if (p !== 'Book a nurse') setForPerson(null); setPage(p); window.scrollTo({ top: 0, behavior: 'instant' }); };
  const bookFor = (person: string) => { setForPerson(person); setModal(null); setViewing(null); setPage('Book a nurse'); window.scrollTo({ top: 0, behavior: 'instant' }); };
+ const track = (id: string) => { setViewing(null); setTracking(id); navigate('Arrival'); };
+ /* The demo household, in one place. It was built inline inside the dialog props, which meant the
+    only screen that could ask who somebody is to the account holder was a dialog. */
+ const people = ['Lerato Molefe', 'Nomsa Molefe', 'Thabo Molefe', ...members];
  useEffect(() => { document.title = `${page} · MyThuso`; }, [page]);
  useEffect(() => { document.documentElement.lang = locale; }, [locale]);
  /* If an identity service is answering, the preview stops pretending: you are signed in only if it
@@ -106,10 +117,13 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
   <PatientShell page={page} navigate={navigate} open={setModal} locale={locale} location={location} visitCount={rows.filter(row => row.group === 'upcoming').length}>
    {page === 'Overview' ? <Dashboard navigate={navigate} book={setBooking} open={setModal} query={query} setQuery={setQuery} visits={booked.map(row => row.visit)} location={location} viewVisit={() => setViewing(booked[0]?.id ?? null)}/>
     : page === 'Book a nurse' ? <Services book={setBooking} open={setModal} query={query} forPerson={forPerson} clearPerson={() => setForPerson(null)}/>
-     : page === 'My visits' ? <Visits rows={rows} open={setModal} book={() => navigate('Book a nurse')} manage={manage} view={setViewing}/>
+     : page === 'My visits' ? <Visits rows={rows} open={setModal} book={() => navigate('Book a nurse')} manage={manage} view={setViewing} track={track}/>
       : page === 'Health Passport' ? <Passport open={setModal} navigate={navigate}/>
        : page === 'Health trends' ? <HealthTrends navigate={navigate}/>
-       : page === 'My family' ? <Family members={members} invitations={invitations} onRevoke={id => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i))} open={setModal}/>
+       : page === 'What readings mean' ? <ReadingsExplained navigate={navigate} open={setModal}/>
+       : page === 'Arrival' ? <Arrival row={rows.find(row => row.id === tracking) ?? rows.find(row => row.group === 'upcoming')} navigate={navigate} view={setViewing}/>
+       : page === 'Care you sponsor' ? <SponsoredCare person={people[1]} relation={relationOf(people[1], people)} navigate={navigate} open={setModal}/>
+       : page === 'My family' ? <Family members={members} invitations={invitations} onRevoke={id => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i))} open={setModal} navigate={navigate}/>
         : page === 'Care plans' ? <Plans open={setModal}/>
          : page === 'Thuso Wallet' ? <WalletPage open={setModal}/>
           : page === 'Privacy & settings' ? <Privacy open={setModal}/>
@@ -125,13 +139,13 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
       over a visit that was stood down a fortnight ago, was the same sentence doing three jobs. */}
   {viewing && rowById(viewing) && <Modal surface={SURFACE} title={visitTitle(rowById(viewing)!.group)} onClose={() => setViewing(null)}>
    <VisitDetail row={rowById(viewing)!} manage={manage} navigate={p => { navigate(p); setViewing(null); }}
-    rebook={() => bookFor(rowById(viewing)!.visit.person)}/></Modal>}
+    rebook={() => bookFor(rowById(viewing)!.visit.person)} track={track}/></Modal>}
   {managing && rowById(managing.id) && <Modal surface={SURFACE} title={managing.action === 'reschedule' ? 'Move this visit' : 'Cancel this visit'} onClose={() => setManaging(null)}>
    {managing.action === 'reschedule'
     ? <Reschedule visit={rowById(managing.id)!.visit} onMove={(date, start) => { moveVisit(managing.id, date, start); setManaging(null); navigate('My visits'); }}/>
     : <CancelVisit visit={rowById(managing.id)!.visit} onCancel={reason => { standDown(managing.id, reason); setManaging(null); navigate('My visits'); }}/>}
   </Modal>}
-  {modal && <Modal surface={SURFACE} title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding(true); }, reopen: (m: string) => setModal(m), locale, setLocale, query, setQuery, location, setLocation, people: ['Lerato Molefe', 'Nomsa Molefe', 'Thabo Molefe', ...members], addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut, rows, invitations, bookFor, viewVisit: (id: string) => { setModal(null); setViewing(id); }, revoke: (id: string) => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i)) })}</Modal>}
+  {modal && <Modal surface={SURFACE} title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding(true); }, reopen: (m: string) => setModal(m), locale, setLocale, query, setQuery, location, setLocation, people, addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut, rows, invitations, bookFor, viewVisit: (id: string) => { setModal(null); setViewing(id); }, revoke: (id: string) => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i)) })}</Modal>}
  </>;
 }
 /* A dialog is rendered into the browser's top layer rather than inside the shell that opened it, so
@@ -210,7 +224,9 @@ function modalBody(p: BodyProps) {
   <a className="primary full" href="/staff.html"><Stethoscope size={17}/>Open MyThuso for clinicians</a>
   <div className="privacy-note"><ShieldCheck size={20}/>Nothing about this account grants access to a clinical workspace.</div>
  </div>;
- if (modal === 'Your location') return <form className="form-stack" onSubmit={e => { e.preventDefault(); p.close(); }}><p className="muted">Choose a demo care area. No GPS access is requested.</p><label>Care area<select value={p.location} onChange={e => p.setLocation(e.target.value)}><option>Rosebank, Johannesburg</option><option>Soweto, Johannesburg</option><option>Randburg, Johannesburg</option></select></label><button className="primary">Save location<ArrowRight size={16}/></button></form>;
+ /* The care areas are the coverage contract's own zones. Three of the five were typed here, which is
+    how a picker comes to offer a suburb the map cannot draw and the dispatch board does not cover. */
+ if (modal === 'Your location') return <form className="form-stack" onSubmit={e => { e.preventDefault(); p.close(); }}><p className="muted">Choose a demo care area. No GPS access is requested.</p><label>Care area<select value={p.location} onChange={e => p.setLocation(e.target.value)}>{zones.map(z => <option key={z.id}>{z.name}, {coverage.city}</option>)}</select></label><p className="helper">{coverage.sentence}</p><button className="primary">Save location<ArrowRight size={16}/></button></form>;
  if (modal === 'How can we help?') return <div className="form-stack"><p className="muted">Explore services or get help with your care journey.</p><form className="search-box" onSubmit={e => { e.preventDefault(); p.navigate('Book a nurse'); }}><Search size={18}/><input aria-label="Search for care" placeholder="What care are you looking for?" value={p.query} onChange={e => p.setQuery(e.target.value)}/><button className="icon-button" aria-label="Search"><ArrowRight size={18}/></button></form><div className="empty-note">Live support and emergency dispatch are not connected in this design preview.</div></div>;
  return <Detail title={modal} close={p.close} navigate={p.navigate} signOut={p.signOut}/>;
 }

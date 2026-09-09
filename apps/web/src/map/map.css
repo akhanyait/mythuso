@@ -151,3 +151,16 @@
 .key-nurse-blocked { background: var(--danger); }
 .key-visit-waiting { background: var(--mango-ink); border-radius: 2px !important; }
 .key-visit-assigned { background: var(--indigo); border-radius: 2px !important; }
+
+/* ---- The line an estimate was measured along ----
+   Dashed, hairline, and drawn straight through whatever is between the two suburbs — which is the
+   whole point of it. A solid line here would read as a road, and the one thing this product must
+   never do is show a straight line where a reader will see a route. Charcoal at a low opacity so it
+   sits under the marks rather than competing with them; it carries no text and means nothing on its
+   own, so it is never the only way the caveat is stated. */
+.livemap-canvas.schematic .map-straight {
+ stroke: var(--charcoal);
+ stroke-width: .5;
+ stroke-dasharray: 1.6 1.4;
+ opacity: .55;
+}

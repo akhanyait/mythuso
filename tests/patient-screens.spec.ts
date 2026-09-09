@@ -190,3 +190,41 @@ test('a preselected patient does not outlive the journey that set it', async ({ 
   await page.locator('.service-card').first().click();
   await expect(page.getByRole('dialog').getByLabel('Who is this visit for?')).toHaveValue('Lerato Molefe');
 });
+
+/* The layer under the reference ranges: what a reading actually is.
+ *
+ * The passport has drawn seven ranges since it was written and has never said what one of them
+ * measures, so the question a person opened the screen with — should I be worried — got asked of a
+ * search engine instead. What is asserted here is the line the answer must not cross: it explains a
+ * measurement, it never diagnoses, it says who decides, and it says out loud that no clinician has
+ * read the wording. All four are sentences somebody could quietly soften, and `screening` is the
+ * capability in this product easiest to overstate. */
+test('the passport explains a measurement, refuses to diagnose, and says who decides', async ({ page }) => {
+  await page.goto('/');
+  await navigate(page, 'Health Passport');
+  await page.getByRole('button', { name: /What these readings mean/ }).click();
+  await expect(page.getByRole('heading', { name: 'What your readings mean.' })).toBeVisible();
+  /* The screening capability's own notice, above everything, because this is where screening will
+     eventually live and a written explanation is not a screening result. */
+  await expect(page.getByText(/Nothing here is screened by software/)).toBeVisible();
+
+  /* One row per observation, and the row carries where the last reading fell as a word rather than
+     only as a tint. */
+  await expect(page.locator('.explain-item')).toHaveCount(7);
+  const oxygen = page.locator('.explain-item').filter({ hasText: 'Oxygen saturation' });
+  await expect(oxygen).toContainText('95–100 %');
+  await oxygen.getByRole('button').first().click();
+  await expect(oxygen.getByText(/The share of your blood that is carrying oxygen/)).toBeVisible();
+  /* What to do is never a change to a medicine, and the entry says what a low reading is usually
+     caused by before it says anything else. */
+  await expect(oxygen.getByText(/Warm your hand/)).toBeVisible();
+  /* The red flags are the emergency contract's, by id, with the door out of this screen on the row.
+     A screen that explains blood pressure to somebody having a stroke has done harm. */
+  await expect(oxygen.getByText(/Any of those is an emergency and needs an ambulance rather than a reading/)).toBeVisible();
+  await expect(oxygen.getByRole('button', { name: /Open Thuso SOS/ })).toBeVisible();
+
+  await expect(page.getByText(/No clinician has reviewed this wording yet/)).toBeVisible();
+  await expect(page.getByText(/What it means for you is a clinical judgement/)).toBeVisible();
+  await expect(page.getByText(/Nothing here is a reason to start, stop or change a medicine/)).toBeVisible();
+  expect(await noSidewaysScroll(page)).toEqual([]);
+});

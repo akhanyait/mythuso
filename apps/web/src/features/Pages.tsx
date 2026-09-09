@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, CalendarClock, Check, ChevronRight, CircleHelp, ClipboardPlus, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, PenLine, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, Users, UserPlus, Wallet, Zap } from 'lucide-react';
+import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, ClipboardPlus, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, HandCoins, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, PenLine, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, Users, UserPlus, Wallet, Zap } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
@@ -19,6 +19,7 @@ import {
  reviewedBy, seriesFor
 } from '../lib/passport';
 import { CancelledVisit, PastVisit } from './VisitSummary';
+import { assignedNurse } from '../lib/arrival';
 import businessModel from '../../../../packages/catalog/business-model.json';
 /* One service, one card, one symbol.
  *
@@ -100,14 +101,20 @@ export const rowFor=(visit:DemoVisit,id:string):VisitRow=>
 /* The completed visit takes its day from the last set of readings in the record rather than from a
    number of its own, so "what was measured at this visit" is a lookup and not a coincidence. It was
    -3 here and 4 September in the passport, which agreed with nothing. */
+/* The suburbs are the coverage contract's own zones now, and the first visit is today.
+   Sandton and Rivonia were typed here and are not places packages/catalog/geography.json says
+   MyThuso works in — which meant the arrival view could not draw a single one of these visits, and
+   was right not to: an app that takes a booking outside phase one has moved the disappointment to
+   the patient's front door. And a visit list where nothing is ever today is a list where the one
+   screen a person opens on the morning of their visit can never be seen. */
 export const sampleVisitRows=():VisitRow[]=>[
- sample('VIS-0051',services[0],'Lerato Molefe','Home visit · Sandton',5,'09:00','Confirmed','','upcoming'),
- sample('VIS-0052',services[1],'Lerato Molefe','Home visit · Sandton',17,'10:00','Pending','amber','upcoming'),
- sample('VIS-0053',services[2],'Thabo Molefe','Home visit · Rivonia',29,'14:00','Scheduled','sky','upcoming'),
- sample('VIS-0044',services[1],'Lerato Molefe','Home visit · Sandton',latestSet.dayOffset,'10:00','Completed','','past'),
+ sample('VIS-0051',services[0],'Lerato Molefe','Home visit · Melville',0,'09:00','Confirmed','','upcoming'),
+ sample('VIS-0052',services[1],'Lerato Molefe','Home visit · Melville',17,'10:00','Pending','amber','upcoming'),
+ sample('VIS-0053',services[2],'Thabo Molefe','Home visit · Randburg',29,'14:00','Scheduled','sky','upcoming'),
+ sample('VIS-0044',services[1],'Lerato Molefe','Home visit · Melville',latestSet.dayOffset,'10:00','Completed','','past'),
  sample('VIS-0039',services[3],'Nomsa Molefe','Home visit · Soweto',-12,'08:00','Cancelled','amber','cancelled','I no longer need this visit','before-window',-16)
 ];
-export function Visits({rows:all,book,manage,view}:{rows:VisitRow[];open:(s:string)=>void;book:()=>void;manage:(id:string,action:VisitAction)=>void;view:(id:string)=>void}) {
+export function Visits({rows:all,book,manage,view,track}:{rows:VisitRow[];open:(s:string)=>void;book:()=>void;manage:(id:string,action:VisitAction)=>void;view:(id:string)=>void;track:(id:string)=>void}) {
  const [tab,setTab]=useState('Upcoming');
  /* The only one of the five states anything on this screen can honestly be in today. Nothing
     fetches a visit list yet, so error and permission-denied would be a picker wearing a hat; the
@@ -135,10 +142,15 @@ export function Visits({rows:all,book,manage,view}:{rows:VisitRow[];open:(s:stri
         sit on row one alone, so a person looking at the visit they actually wanted to change was
         shown a card with nothing on it they could press. */}
     {group==='upcoming'&&<>
-     {i===0&&<div className="nurse-row"><span className="avatar nurse-avatar">SN</span><div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div></div>}
+     {i===0&&<div className="nurse-row"><span className="avatar nurse-avatar">{assignedNurse.initials}</span><div><strong>{assignedNurse.name}</strong><span>{assignedNurse.role}</span></div></div>}
+     {/* On every upcoming visit and not only the one that is today. The answer for a visit a
+         fortnight away is "nobody is on the way yet, and here is why you cannot watch her before
+         the day" — which is an answer, and hiding the control until the morning would leave a
+         person hunting for it on the one day they are in a hurry. */}
      <div className="visit-actions">
       <button className="secondary" onClick={()=>manage(id,'reschedule')}>Reschedule</button>
       <button className="secondary" onClick={()=>manage(id,'cancel')}>Cancel</button>
+      <button className="secondary" onClick={()=>track(id)}>Where is my nurse?</button>
       <button className="primary" onClick={()=>view(id)}>View details</button>
      </div>
     </>}
@@ -171,7 +183,7 @@ export function PageHeading({eyebrow,title,description}:{eyebrow:string;title:st
  * over whatever visit you had actually pressed, with one button that went to the Health Passport. It
  * is the visit now, and the two things a person opens a visit to do are on it. */
 const toBring=['Your identity document, so the nurse can confirm the right patient at the door','Every medicine you are taking, boxes and all','A chair and a light in a room you can close'] as const;
-export function VisitDetail({row,manage,navigate,rebook}:{row:VisitRow;manage:(id:string,action:VisitAction)=>void;navigate:(s:string)=>void;rebook:()=>void}){
+export function VisitDetail({row,manage,navigate,rebook,track}:{row:VisitRow;manage:(id:string,action:VisitAction)=>void;navigate:(s:string)=>void;rebook:()=>void;track:(id:string)=>void}){
  const {visit:v,status,tone,group,reason}=row;
  /* Three visits, three screens. A completed visit and a cancelled one used to render this one — a
     price, a nurse, and three things to have ready for a visit that had already happened or had been
@@ -189,7 +201,12 @@ export function VisitDetail({row,manage,navigate,rebook}:{row:VisitRow;manage:(i
   <div className="review-line"><span>Patient</span><strong>{v.person}</strong></div>
   <div className="review-line"><span>Status</span><strong><Pill tone={tone}>{status}</Pill></strong></div>
   {reason&&<div className="review-line"><span>Reason given</span><strong>{reason}</strong></div>}
-  <div className="nurse-row"><span className="avatar nurse-avatar">SN</span><div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div></div>
+  {/* Who is coming, and the one thing a person waiting at home actually wants from this screen. */}
+  <button className="nurse-row nurse-track" onClick={()=>track(row.id)}>
+   <span className="avatar nurse-avatar">{assignedNurse.initials}</span>
+   <div><strong>{assignedNurse.name}</strong><span>{assignedNurse.role}</span></div>
+   <span className="nurse-track-cta"><Navigation size={16}/>Where is she?</span>
+  </button>
   <SectionTitle title="Have this ready"/>
   <div className="panel">{toBring.map(line=><div className="record-row static" key={line}><span className="service-icon"><Check size={20}/></span><span><strong>{line}</strong></span></div>)}</div>
   <div className="button-row"><button className="secondary" onClick={()=>manage(row.id,'reschedule')}><CalendarClock size={16}/>Reschedule</button><button className="secondary" onClick={()=>manage(row.id,'cancel')}><Ban size={16}/>Cancel</button></div>
@@ -239,6 +256,10 @@ export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:stri
     <button className="shortcut-row" onClick={()=>open('Share my passport')}><span className="service-icon"><Share2 size={20}/></span><span className="shortcut-text"><strong>Share record</strong><small>Let a verified professional see a limited summary, for a period you set.</small></span><ChevronRight size={17}/></button>
     <button className="shortcut-row" onClick={()=>{const blob=new Blob([JSON.stringify({demo:true,patient:'Lerato Molefe',readings:[{bloodPressure:'118/78',heartRate:72,glucose:5.2}],notice:'Fictional data. Not a medical record.'},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='mythuso-demo-passport.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}><span className="service-icon"><Download size={20}/></span><span className="shortcut-text"><strong>Export sample passport</strong><small>Downloads a JSON copy to your device. Nothing is sent anywhere.</small></span><ChevronRight size={17}/></button>
     <button className="shortcut-row" onClick={()=>open('Your care team')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Doctors</strong><small>The clinicians who have reviewed what is on your record.</small></span><ChevronRight size={17}/></button>
+    {/* The ranges have been drawn here since this screen was written and nothing has ever said what
+        one of them measures. The row is on the overview rather than buried under More because "what
+        does this number mean" is the question a person opens a health record with. */}
+    <button className="shortcut-row" onClick={()=>navigate('What readings mean')}><span className="service-icon"><BookOpen size={20}/></span><span className="shortcut-text"><strong>What these readings mean</strong><small>What each measurement is, what a number outside its range may follow from, and who decides.</small></span><ChevronRight size={17}/></button>
    </div>
    {/* Dated from the visits they came out of. Three entries that said "4 September" and "28 August"
        described a record that stopped moving the day somebody typed them. */}
@@ -281,7 +302,7 @@ export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:stri
  * underneath it. Choosing somebody here opens their *booking*: the sentence that used to be buried
  * in the card body is now a word a person can see without reading, on every row where it applies. */
 const relationOf=(i:number)=>i===0?'You':i===1?'Mother':i===2?'Child · 8 years':'Added by you';
-export function Family({open,members,invitations,onRevoke}:{open:(s:string)=>void;members:string[];invitations:Invitation[];onRevoke:(id:string)=>void}) {return <><PageHeading eyebrow="THUSO FAMILY" title="Care for your whole circle." description="Be there for the people you love, wherever you are."/>
+export function Family({open,navigate,members,invitations,onRevoke}:{open:(s:string)=>void;navigate:(s:string)=>void;members:string[];invitations:Invitation[];onRevoke:(id:string)=>void}) {return <><PageHeading eyebrow="THUSO FAMILY" title="Care for your whole circle." description="Be there for the people you love, wherever you are."/>
  <NotConnected of="messaging"/>
  <SectionTitle title="Your circle"/>
  <div className="shortcut-list">{['Lerato Molefe','Nomsa Molefe','Thabo Molefe',...members].map((n,i)=>
@@ -294,6 +315,17 @@ export function Family({open,members,invitations,onRevoke}:{open:(s:string)=>voi
   <button className="shortcut-row add-member" onClick={()=>open('Add a family member')}><span className="tile-icon"><Plus size={20}/></span><span className="shortcut-text"><strong>Add a family member</strong><small>Grow your circle of care</small></span><ChevronRight size={17}/></button>
  </div>
  <p className="helper"><LockKeyhole size={14}/>Choosing somebody here opens their booking, never their record. Record access is a separate decision, made below and reviewed on their side.</p>
+ {/* "Sponsored care" has been a word under a name on the home screen with nothing behind it. It is
+     a section of its own rather than a badge on a row, because paying for somebody's care and being
+     allowed to see it are two different questions and this list is about the second one. */}
+ <SectionTitle title="Care you pay for"/>
+ <div className="shortcut-list">
+  <button className="shortcut-row" onClick={()=>navigate('Care you sponsor')}>
+   <span className="service-icon"><HandCoins size={20}/></span>
+   <span className="shortcut-text"><strong>Care you sponsor</strong><small>What has been used, what it cost, and what paying for it does not let you see.</small></span>
+   <ChevronRight size={17}/>
+  </button>
+ </div>
  <div className="section-title space-top"><h2>Guardians and shared access</h2><button className="secondary" onClick={()=>open('Invite a guardian')}><UserPlus size={16}/>Invite someone</button></div>
  {invitations.length?<InvitationList invitations={invitations} onRevoke={onRevoke}/>:<EmptyState title="Nobody else has access" body="When you invite a guardian or a family member, their access appears here with exactly what they can see and when it ends." action="Invite someone" onAction={()=>open('Invite a guardian')}/>}
  <div className="privacy-note"><LockKeyhole size={19}/>Paying for a family member’s care does not automatically grant access to their health records.</div></>}
