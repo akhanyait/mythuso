@@ -140,6 +140,11 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
 
         /* First, above everything MyThuso sells, and it does not move. */
         EmergencyFirst()
+        /* Under it and never over it. On this one pathway the ambulance number outranks anything
+           MyThuso has to say about itself — including the sentence saying the acknowledgement behind
+           this screen is simulated. The web has always rendered it here; this app said nothing at
+           all, which is the silence `a-simulation-says-so` is written against. */
+        NotConnected("emergency")
         Note(sosEmergency.whyFirst)
 
         Text("If it is not that, three questions", style = MaterialTheme.typography.titleLarge, color = Charcoal)

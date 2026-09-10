@@ -129,6 +129,12 @@ struct SosView: View {
                     CareHeading(eyebrow: "Thuso SOS", title: "Urgent care",
                                 subtitle: "Nothing on this screen dials anybody.")
                     emergencyFirst
+                    /* Under it and never over it. On this one pathway the ambulance number outranks
+                       anything MyThuso has to say about itself — including the sentence saying the
+                       acknowledgement behind this screen is simulated. The web has always rendered it
+                       here; this app said nothing at all, which is the silence the contract's
+                       `a-simulation-says-so` rule is written against. */
+                    CapabilityNotice(of: "emergency")
                     Text(Sos.emergency.whyFirst).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 Group {
