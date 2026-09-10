@@ -255,11 +255,32 @@ if ! nginx_out=$(ssh "$TARGET" "nginx -t" 2>&1); then
   exit 1
 fi
 echo "$nginx_out"
-if printf '%s\n' "$nginx_out" | grep -q 'conflicting server name'; then
-  echo "!! nginx says a server name is claimed twice. One of those blocks is being ignored and it"
-  echo "   may be a co-tenant's. Not reloading."
-  roll_back_site
-  exit 1
+# Whose conflict is it? The first real run of this script refused on thirty warnings, every one of
+# them naming bidza.co.za — two of that site's own files claim it, and have since before MyThuso
+# existed. Refusing on somebody else's pre-existing conflict is a deploy that can never run, on a
+# fault we are not allowed to fix: another site's config is not ours to edit.
+#
+# So the test is whether a name *we* claim is claimed twice. If it is, that is ours and we stop. If
+# it is not, we say so loudly — a co-tenant is silently losing a server block and somebody should
+# know — and carry on.
+conflicts=$(printf '%s\n' "$nginx_out" | grep -o 'conflicting server name "[^"]*"' | sed 's/.*"\(.*\)"/\1/' | sort -u)
+if [ -n "$conflicts" ]; then
+  ours=""
+  for name in $HOST $ALIASES; do
+    printf '%s\n' "$conflicts" | grep -qx "$name" && ours="$ours $name"
+  done
+  if [ -n "$ours" ]; then
+    echo "!! a name this deploy claims is claimed twice:$ours"
+    echo "   One of those blocks is being ignored and it may be a co-tenant's. Not reloading."
+    roll_back_site
+    exit 1
+  fi
+  echo "!! nginx reports server names claimed twice, none of them ours:"
+  # deliberately unquoted: one line per name, and these are host names by construction
+  # shellcheck disable=SC2086
+  printf '     %s\n' $conflicts
+  echo "   Those blocks belong to co-tenants and predate this deploy. One of each pair is being"
+  echo "   silently ignored — worth telling whoever owns them. Not ours to edit, so carrying on."
 fi
 
 say "Reloading nginx (graceful; existing sites keep serving)"
