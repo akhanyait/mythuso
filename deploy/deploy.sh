@@ -308,7 +308,12 @@ verify_entry() { # <label> <path> <the built html this path must serve>
   local marker
   marker=$(grep -o 'assets/[A-Za-z0-9._-]*\.js' "apps/web/dist/$3" | head -1)
   [ -n "$marker" ] || { echo "$1: apps/web/dist/$3 references no entry chunk — is this a build?"; exit 1; }
-  ssh "$TARGET" "body=\$(curl -sf -H 'Host: $HOST' http://127.0.0.1$2) || { echo '$1: $2 did not answer'; exit 1; }
+  # -L and --resolve, because certbot redirects http to https the moment a certificate exists. Without
+  # following, this reads nginx's 301 page, finds no chunk in it, and reports a site that is serving
+  # perfectly well as broken — which it did, on the first deploy after TLS. --resolve rather than a
+  # Host header on https, so the certificate's name matches and the check is not made to ignore an
+  # invalid one: a verification that skips certificate errors would pass on the day TLS is wrong.
+  ssh "$TARGET" "body=\$(curl -sfL --resolve '$HOST:443:127.0.0.1' --resolve '$HOST:80:127.0.0.1' http://$HOST$2) || { echo '$1: $2 did not answer'; exit 1; }
     case \"\$body\" in
       *$marker*) echo '$(printf '%-8s' "$1") 200  $3' ;;
       *) echo '!! $1: $2 answered 200 but did not serve $3 — it is falling through to another entry'; exit 1 ;;
