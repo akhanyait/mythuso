@@ -2663,7 +2663,7 @@ for (const [file, guard] of DAY_GUARDS) {
 const METRIC_STRIPS = [
  { file: 'apps/web/src/shells/StaffShell.tsx', after: 'const metricsOf = ', what: "the staff shell's metric strip" },
  { file: 'apps/ios/MyThuso/Features/WorkspaceView.swift', after: 'static func figures(_ role: String)', what: "the iOS workspace's metric strip" },
- { file: 'apps/android/app/src/main/java/za/co/mythuso/ui/AccountScreens.kt', after: 'fun workspaceUrgency(role: String)', what: "the Android workspace's metric strip" }
+ { file: 'apps/android/app/src/main/java/za/co/mythuso/ui/AccountScreens.kt', after: 'fun workspaceUrgency(role: String, store: PreviewStore)', what: "the Android workspace's metric strip" }
 ];
 /* Per file rather than per string, because "18" is a doctor's finished reviews on one strip and was
    "Available nurses 18" over a board of seven on another. A blessing granted to a number rather than
@@ -2684,8 +2684,6 @@ const FIGURE_QUARANTINE = [
   "the doctor's three: cases waiting, priority reviews, and the longest wait. They agree with the screen today and are still typed, because the review queue is drawn from features/Pages.tsx and that file does not export its rows. Export them and count, as the Control Tower and the partner already do"],
  ['apps/ios/MyThuso/Features/WorkspaceView.swift', 1,
   'the partner\'s "Next collection 11:15", which the web counts out of partnerCounts(). WorkspaceDay has no collections list for it to be counted from yet'],
- ['apps/android/app/src/main/java/za/co/mythuso/ui/AccountScreens.kt', 20,
-  'every figure and every chip in workspaceUrgency — and three of the four lies this check was written for are still live in it: "Active visits 24" over a board of three, "Available nurses 18" over seven, and "1 severity high" over an incident list whose worst entry is Critical. The rows exist in that tree; the strip does not read them. Written down with a number on it rather than left for the next sweep to find again']
 ];
 /* The block a strip is written in, found by counting braces from its declaration rather than by a
    regex deciding for itself what a metric strip is. Comments come out first: a `why` explaining that
@@ -2704,8 +2702,61 @@ function metricBlock(source, after, file) {
 }
 const uncommented = block => block.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:"'`\\])\/\/[^\n]*/g, '$1');
 /* A counted figure has no digit in a literal: it is String(rows.count), an interpolation over one,
-   or an expression. A typed one is a digit between quotes, which is what all four of them were. */
-const metricLiterals = block => (uncommented(block).match(/(["'`])(?:\\.|(?!\1)[^\\])*\1/g) ?? []).map(text => text.slice(1, -1));
+   or an expression. A typed one is a digit between quotes, which is what all four of them were.
+ *
+ * Finding those needs a scanner rather than a regular expression, and the reason is Kotlin. The
+ * Android strip counts its figures now, and it says so like this:
+ *
+ *   "Read ${if (flagged == 1) "one flag" else "$flagged flags"}"
+ *
+ * A regex that matches quote-to-quote reads that as the literal `Read ${if (flagged == 1) `, sees a
+ * 1 in it, and reports a typed figure in the one file that had just stopped typing them. The digit
+ * is in the *expression*, which is exactly what a counted figure is made of.
+ *
+ * So the scanner walks the block and understands three things: a string literal, an interpolation
+ * inside one — `${…}` in Kotlin and TypeScript, `\(…)` in Swift — and the fact that an interpolation
+ * may contain further string literals. It yields the static text between interpolations, and it
+ * recurses into the interpolations so a figure genuinely typed inside one is still caught: the hole
+ * this could have left is `"${if (late) "24" else "3"}"`, and it does not leave it. */
+function metricLiterals(block) {
+ const source = uncommented(block);
+ const out = [];
+ let i = 0;
+ const readString = quote => {
+  let text = '';
+  while (i < source.length) {
+   const ch = source[i];
+   /* Swift's interpolation opens with a backslash, so it has to be asked about before the escape
+      rule below — otherwise \\( is read as an escaped bracket and the expression inside it is
+      swallowed into the literal, digits and all. */
+   if (ch === '\\' && source[i + 1] === '(') { i += 2; readExpression(')'); continue; }
+   if (ch === '\\') { text += source.slice(i, i + 2); i += 2; continue; }
+   if (ch === quote) { i += 1; out.push(text); return; }
+   if (ch === '$' && source[i + 1] === '{') { i += 2; readExpression('}'); continue; }
+   text += ch; i += 1;
+  }
+  out.push(text);
+ };
+ /* An interpolation ends at the closer that balances it, and the strings inside it are read as
+    strings — which is what stops a quote in an expression from swallowing the rest of the file. */
+ function readExpression(closer) {
+  const opener = closer === '}' ? '{' : '(';
+  let depth = 1;
+  while (i < source.length) {
+   const ch = source[i];
+   if (ch === '"' || ch === "'" || ch === '`') { i += 1; readString(ch); continue; }
+   if (ch === opener) depth += 1;
+   else if (ch === closer) { depth -= 1; if (!depth) { i += 1; return; } }
+   i += 1;
+  }
+ }
+ while (i < source.length) {
+  const ch = source[i];
+  if (ch === '"' || ch === "'" || ch === '`') { i += 1; readString(ch); continue; }
+  i += 1;
+ }
+ return out;
+}
 const blessedFigure = new Set(TYPED_FIGURES.map(([file, text]) => `${file} ${text}`));
 const quarantinedFigures = new Map(FIGURE_QUARANTINE.map(([file, count, todo]) => [file, { count, todo }]));
 const blessingUsed = new Set();
