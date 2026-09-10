@@ -1307,6 +1307,39 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  if(match.role !== 'doctor') throw new Error(`packages/catalog/passport.json's reviewer "${reviewer.name}" is on the register as a ${match.role}, not a doctor. A nurse records and a doctor reviews — that separation is the point of naming the reviewer at all.`);
 }
 
+/* Nothing renders below the smallest size the design declares, and iOS does — 426 times.
+   `ThusoType.minimumRendered` is 13 and its comment says "Nothing in any of the three apps renders
+   text below this." The web is held to it: tests/accessibility.spec.ts measures rendered text at a
+   320px viewport and found twenty-odd rules that had drifted under, each one a number somebody
+   nudged to make a row fit. iOS was never measured the same way, and SwiftUI's `.caption` is 12
+   points at the default content size and `.caption2` is 11.
+
+   That is not caught by the Dynamic Type tests and could not be: those pair a screen against itself
+   at two content sizes and ask whether every string grew. A caption grows perfectly. It is simply
+   two points too small before it starts.
+
+   Ratcheted rather than fixed, and deliberately. The replacement is mechanical —
+   `.thusoFont(ThusoType.caption)` scales the same way and starts at 13 — but it is 414 text sites
+   across 22 files and a bulk edit with no visual pass is how a design language gets flattened in one
+   commit. So the number may fall and may not rise, every fix is noticed, and the day it reaches
+   zero this block fails and gets deleted. The twelve that size an SF Symbol rather than a word are
+   counted with the rest: a glyph has no legibility floor, but separating them by regex is a guess,
+   and a ratchet that guesses is a ratchet nobody trusts. */
+{
+ const SMALL_TYPE_ON_IOS = 426;
+ let found = 0;
+ const worst = [];
+ for(const file of files('apps/ios/MyThuso').filter(f => f.endsWith('.swift'))) {
+  const n = (read(file).match(/\.font\(\.caption2?\b/g) ?? []).length;
+  if(n) { found += n; worst.push([file, n]); }
+ }
+ if(found > SMALL_TYPE_ON_IOS) {
+  worst.sort((a, b) => b[1] - a[1]);
+  throw new Error(`iOS renders text below ThusoType.minimumRendered in ${found} places, and this ratchet allows ${SMALL_TYPE_ON_IOS}. .caption is 12 points and .caption2 is 11; the design's smallest declared size is 13. Use .thusoFont(ThusoType.caption), which scales the same way and starts at 13. Worst: ${worst.slice(0, 3).map(([f, n]) => `${f} (${n})`).join(', ')}.`);
+ }
+ if(found < SMALL_TYPE_ON_IOS) throw new Error(`iOS is down to ${found} places rendering text below ThusoType.minimumRendered, and this ratchet still says ${SMALL_TYPE_ON_IOS}. Lower it to ${found}${found ? '' : ' — or rather, delete this block, because it is spent'}. A ratchet nobody lowers is a ratchet that stops meaning anything.`);
+}
+
 /* Streets, and the three things that make drawing them defensible.
    A tile request tells whoever serves it which square of Johannesburg somebody is looking at — for
    a patient that is roughly which suburb she is in, and roughly when a nurse came to her house.
