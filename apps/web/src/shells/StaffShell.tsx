@@ -89,13 +89,12 @@ const workspaces = {
 export type StaffRole = keyof typeof workspaces;
 export const staffRoles = Object.keys(workspaces) as StaffRole[];
 
-/* "Sister Naledi Mokoena" initials to NM, not SN. A form of address is not part of a name, and an
-   avatar that reads SN for every sister on the register identifies nobody. */
-const HONORIFICS = /^(sister|brother|dr|mr|mrs|ms|prof)\b\.?$/i;
-export function initialsOf(name: string) {
- const words = name.split(/\s+/).filter(w => !HONORIFICS.test(w));
- return (words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? name).slice(0, 2)).toUpperCase();
-}
+/* How a name is shortened is a rule about names rather than about this sidebar, and lib/roster.ts
+   needs the same one. It moved to lib/names.ts, re-exported here so every existing reader keeps
+   working — a module in lib importing this shell closed the import graph and left the dispatch board
+   reading a roster that had not been built yet. */
+import { initialsOf } from '../lib/names';
+export { initialsOf };
 /* The register entry behind the person, and the sentence the sidebar shows about it. Derived from
    the same summarise() the vetting console decides with, so a workspace cannot look cleared here
    while the console has suspended it.

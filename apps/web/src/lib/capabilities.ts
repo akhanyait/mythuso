@@ -49,6 +49,21 @@ export const isSimulated = (id: string) => stateOf(id) === 'simulated';
 /** What a simulator produces, and — the half worth reading — what it refuses to produce. */
 export const simulationOf = (id: string) => capability(id).simulation ?? null;
 
+/* One refusal sentence, addressed by the slug of its own words rather than by an index or a
+   substring somebody typed. It is the same arrangement apps/api/src/simulation/contract.ts uses on
+   the other side of the boundary, and for the same reason: reword a refusal in the contract and the
+   slug stops resolving, so the screen fails loudly instead of going on refusing something in words
+   nobody says any more. The slug is deliberately not stored beside the sentence — a written-down id
+   is one more thing that can stay the same while the sentence under it changes. */
+export const refusalSlug = (sentence: string) =>
+ sentence.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+export function simulationRefusal(id: string, slug: string): string {
+ const refuses = simulationOf(id)?.refuses ?? [];
+ const found = refuses.find(sentence => refusalSlug(sentence) === slug);
+ if (!found) throw new Error(`Capability "${id}" has no simulation refusal reading "${slug}". It refuses: ${refuses.map(refusalSlug).join(', ')}.`);
+ return found;
+}
+
 /** The sentence to show, or nothing at all because the thing is real now.
  *
  *  A simulated capability is never quieter than an absent one. The failure this guards against is

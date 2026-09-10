@@ -23,6 +23,11 @@ const intoTheCall = async (d: Locator) => {
   await d.getByLabel('Visit code, digit 1 of 6').fill('482190');
   await d.getByRole('button', { name: /Confirm and continue/ }).click();
   await d.getByRole('button', { name: /Open the call/ }).click();
+  /* Opening the call now reaches a waiting room rather than a connected line: teleconsultation is
+     simulated, and a session broker answers with the states packages/catalog/teleconsult.json
+     declares before it answers with a rung of the ladder. The wait is compressed and the screen says
+     so; a journey that is not about the queue skips it rather than sitting in it. */
+  await d.getByRole('button', { name: /Skip the wait/ }).click();
 };
 
 test('everyone who can hear the patient is named, and asking the nurse out has a cost said first', async ({ page }) => {

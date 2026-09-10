@@ -1220,11 +1220,15 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
    credential gates dispatch, a nurse carrying an id the register has never heard of is precisely
    what vetting exists to catch, and nothing was watching.
 
-   So every N-nnn a hand-written source names must be a party the fixtures actually hold. */
+   So every N-nnn a hand-written source names must be a party the register actually holds. The nurses
+   moved out of apps/web/src/lib/vetting-fixtures.ts and into packages/catalog/roster.json, where
+   apps/api can read them too, so the register is read from there and from the fixtures both — the
+   fixtures still hold every party who is not a nurse. */
 {
  const fixtures = read('apps/web/src/lib/vetting-fixtures.ts');
- const known = new Set([...fixtures.matchAll(/id:\s*'(N-\d+)'/g)].map(m => m[1]));
- if(known.size < 2) throw new Error('scripts/check-boundaries.mjs can no longer read the nurse ids out of apps/web/src/lib/vetting-fixtures.ts, so the check that every named nurse is on the register is checking nothing.');
+ const rosterParties = JSON.parse(read('packages/catalog/roster.json')).nurses.map(n => n.id);
+ const known = new Set([...rosterParties, ...[...fixtures.matchAll(/id:\s*'(N-\d+)'/g)].map(m => m[1])]);
+ if(known.size < 2) throw new Error('scripts/check-boundaries.mjs can no longer read the nurse ids out of packages/catalog/roster.json or apps/web/src/lib/vetting-fixtures.ts, so the check that every named nurse is on the register is checking nothing.');
  const sources = files('apps/web/src')
   .concat(files('apps/ios/MyThuso')).concat(files('apps/android/app/src/main'))
   .filter(f => /\.(tsx?|swift|kt)$/.test(f) && !/Data\.(swift|kt)$/.test(f) && !f.endsWith('vetting-fixtures.ts'));
@@ -3587,6 +3591,64 @@ if(!carePoorFix.some(zone => careRoster.positions.poorFixMetres > zone.radiusKm 
    what is checked is that the arithmetic still covers them. A nurse rostered off in the middle of a
    visit somebody was allowed to book is the failure a pair of typed times produces on the day a slot
    or a duration changes. */
+/* ---- And nobody types a nurse's position again --------------------------------------------------
+ *
+ * The dispatch board carried five nurses with coordinates typed beside each row, the vetting console
+ * carried nine of the same people with different fields, and lib/arrival.ts carried a tenth and said
+ * in its own header that a second copy of a person is exactly the drift packages/catalog exists to
+ * stop. All three read the roster now, and where each of them is standing is arithmetic on the
+ * suburb she works in.
+ *
+ * The way that comes back is not a whole list reappearing — it is one row, added by somebody who
+ * needed a pin somewhere specific and had a coordinate to hand. So what is refused is the pairing:
+ * a party id and a decimal coordinate on the same line, anywhere but the contract. */
+/* A coordinate in the shape one is actually written in. A bare decimal matches a timestamp's
+   milliseconds and a price, so what is looked for is a latitude or a longitude being given a
+   value — which is exactly how a typed pin appears and nothing else is. */
+const careCoordinate = /\b(lat|lng|latitude|longitude)\b\s*[:=]\s*-?\d/i;
+const carePartyIds = careRoster.nurses.map(nurse => nurse.id);
+/* One file is quarantined and it is not an exemption. The SOS screen holds two on-call rotas with
+   positions of their own, and it belongs to the emergency seam rather than to this one — it names
+   the same parties the roster does and should read them from it, and that is somebody else's change
+   to make. The entry fails the build on the day it stops typing one, so the quarantine cannot rot
+   into a licence: whoever adopts the roster there deletes this line as part of doing it. */
+const CARE_POSITION_QUARANTINE = [
+ ['apps/web/src/features/Sos.tsx', "the two on-call rotas hold their own coordinates; read them from lib/roster.ts's placeOf"]
+];
+const careQuarantined = new Map(CARE_POSITION_QUARANTINE);
+const careTypesAPosition = source => source.split('\n').some(line =>
+ carePartyIds.some(id => line.includes(`'${id}'`) || line.includes(`"${id}"`)) && careCoordinate.test(line));
+/* The web, and only the web, and that is a limit rather than an oversight.
+   A test that posts a position at one of the eleven doors is testing a vendor's payload, and a
+   payload is where a coordinate belongs — refusing one there would be refusing the shape the seam
+   exists to describe. And both native dispatch boards hold sample coordinates of their own because
+   there is nothing for them to read: packages/catalog/roster.json deliberately has no emitter, since
+   generating a fictional workforce into Swift and Kotlin would put a list of people who do not exist
+   into two shipped binaries for no reader. Their boards are sample data drawn from real suburbs and
+   they say so; what this refuses is a second roster on the platform that has a real one. */
+for(const file of files('apps/web/src').filter(f => /\.tsx?$/.test(f))) {
+ const source = read(file);
+ if(careQuarantined.has(file)) {
+  if(!careTypesAPosition(source)) throw new Error(`CARE_POSITION_QUARANTINE in scripts/check-boundaries.mjs excuses ${file} — ${careQuarantined.get(file)} — and it no longer types one. Delete the line: an exemption nobody can lose is how a rule stops being one.`);
+  continue;
+ }
+ for(const line of source.split('\n')) {
+  const named = carePartyIds.find(id => line.includes(`'${id}'`) || line.includes(`"${id}"`));
+  if(named && careCoordinate.test(line)) throw new Error(`${file} puts a coordinate on the same line as ${named}. Where a nurse is standing is arithmetic on the suburb packages/catalog/roster.json says she works in — lib/roster.ts on the web, simulation/positions.ts in the service — and a typed one is the row that drifts first, because nothing compares a number somebody chose against a number somebody else chose.`);
+ }
+}
+for(const [file, todo] of CARE_POSITION_QUARANTINE) {
+ if(!existsSync(file)) throw new Error(`CARE_POSITION_QUARANTINE names ${file}, which does not exist (${todo}). A quarantine list that outlives its files is a list nobody reads.`);
+}
+/* And the two screens that used to hold their own roster read the shared one. Deleting the import is
+   how a second list starts, and it looks like a tidy-up at the time. */
+for(const [file, why] of [
+ ['apps/web/src/features/Dispatch.tsx', 'the Control Tower board'],
+ ['apps/web/src/lib/arrival.ts', "the patient's arrival view"]
+]) {
+ if(!/from '\.\.?\/(lib\/)?roster'/.test(read(file))) throw new Error(`${file} no longer reads apps/web/src/lib/roster.ts, so ${why} has a roster of its own again. Nine people in four places is where this started: the console had their checks, the board had their coordinates, and the arrival view had one of them a third time.`);
+}
+
 const careMinutes = hhmm => Number(hhmm.split(':')[0]) * 60 + Number(hhmm.split(':')[1]);
 const careSlots = careScheduling.offer.slots;
 const careLongest = Math.max(...careServices.map(s => s.duration));

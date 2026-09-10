@@ -6,6 +6,7 @@ import { NotConnected } from '../components/NotConnected';
 import { VettingApplication } from './Vetting';
 import { can, type VettingSubject } from '../lib/vetting';
 import { seededSubjects } from '../lib/vetting-fixtures';
+import { placeOf, rosterNurses } from '../lib/roster';
 import { etaFromRoute, noEta, provinceFor, routeUnavailable, straightLineEta,
  type Eta, type LatLng, type RouteResult } from '../../../../packages/geo/index.ts';
 import { LiveMap, type MapMarker } from '../map/LiveMap';
@@ -31,13 +32,34 @@ const initialJobs: Job[] = [
  { id: 'TH-2051', service: 'Vitals & chronic check', area: 'Randburg', window: '13:00 – 14:00', at: { lat: -26.099, lng: 28.004 }, priority: 'Routine' },
  { id: 'TH-2052', service: 'Post-operative check', area: 'Parktown', window: 'As soon as possible', at: { lat: -26.185, lng: 28.036 }, priority: 'Urgent' }
 ];
-const nurses: Nurse[] = [
- { id: 'N-205', name: 'Sister Naledi Mokoena', area: 'Rosebank', at: { lat: -26.150, lng: 28.046 }, status: 'Available', skills: ['Wound care', 'Chronic care'] },
- { id: 'N-206', name: 'Sister Palesa Khumalo', area: 'Soweto', at: { lat: -26.253, lng: 27.904 }, status: 'Available', skills: ['Wound care', 'Maternal'] },
- { id: 'N-208', name: 'Brother Sipho Ndlovu', area: 'Melville', at: { lat: -26.171, lng: 27.995 }, status: 'On a visit', skills: ['Post-operative', 'Chronic care'] },
- { id: 'N-207', name: 'Sister Refilwe Sithole', area: 'Randburg', at: null, status: 'Available', skills: ['Chronic care', 'Paediatric'] },
- { id: 'N-204', name: 'Sister Ayanda Dube', area: 'Soweto', at: { lat: -26.240, lng: 27.916 }, status: 'Available', skills: ['Elderly care', 'Chronic care'] }
-];
+
+/* The board's nurses were five rows typed here with coordinates beside them, and the vetting console
+   held nine of the same people with different fields and nothing comparing the two. They are the
+   simulated roster now — packages/catalog/roster.json, read by lib/roster.ts — and the position of
+   each is arithmetic on the suburb she works in rather than a coordinate somebody chose.
+
+   Which of them has no pin is the roster's business rather than this screen's, and there are three
+   different reasons for it: a phone in a bag, a suburb phase one does not reach, and a fix wider
+   than the suburb it would be drawn in. All three are geography.json's own sentences, and the row
+   carries the one that applies rather than a shared shrug. */
+/* A nurse working outside phase one is not on this board at all. She is not hidden — the vetting
+   console holds her, with her suburb and the reason she cannot be dispatched — but a dispatch board
+   is a picture of one city, and drawing somebody who could never be sent to any address on it would
+   make the count above it a count of people who cannot be assigned. */
+const onTheBoard = rosterNurses.filter(nurse => nurse.zone).map(nurse => ({ nurse, placement: placeOf(nurse) }));
+const nurses: Nurse[] = onTheBoard.map(({ nurse, placement }) => ({
+ id: nurse.id,
+ name: nurse.name,
+ area: nurse.zoneName,
+ at: placement.drawn ? placement.at : null,
+ status: nurse.onAVisit ? 'On a visit' : 'Available',
+ skills: nurse.scope
+}));
+const noPinBecause = new Map(onTheBoard.filter(entry => !entry.placement.drawn)
+ .map(entry => [entry.nurse.id, (entry.placement as { refusal: string }).refusal] as const));
+/* A nurse with no pin, for any of the three reasons the roster gives. The map summary a screen
+   reader hears carries the reasons rather than the count alone: "two not drawn" is a number a
+   controller can do nothing with. */
 const unlocated = nurses.filter(n => n.status !== 'Off duty' && !n.at).length;
 const province = provinceFor(mapWindow.centre)?.name ?? 'South Africa';
 
@@ -63,7 +85,7 @@ function etaFor(nurse: Nurse, job: Job): Eta {
  /* The coordinate layer refuses a missing position on its own, but it refuses it in its own words —
     "no coordinate was given" is a sentence for whoever is fixing the feed, not for whoever is
     deciding who to send. Both are true; the row gets the one an operator can act on. */
- if (!nurse.at) return noEta('No position is being shared by this nurse’s device, so there is nothing to measure from.');
+ if (!nurse.at) return noEta(noPinBecause.get(nurse.id) ?? 'No position is being shared by this nurse’s device, so there is nothing to measure from.');
  return straightLineEta(nurse.at, job.at, { sourceLabel: `dispatch:${nurse.id}` });
 }
 /* "Estimating" is a word rather than a dash, because an empty cell reads as nothing at all to a
@@ -134,7 +156,7 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
    onSelect: () => setSelected(j.id)
   }))
  ];
- const summary = `Dispatch map of ${coverage.city}, ${province}. ${waiting.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting${unlocated ? `, ${unlocated} not drawn because no position is being shared` : ''}.`;
+ const summary = `Dispatch map of ${coverage.city}, ${province}. ${waiting.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting${unlocated ? `, ${unlocated} not drawn — ${[...new Set(noPinBecause.values())].join(' ')}` : ''}.`;
  return <>
   <div className="shift-head">
    <div><h1>Dispatch</h1><p>{waiting.length ? `${waiting.length} visits awaiting a nurse` : 'Every visit has a nurse'} · {dispatchable} cleared for dispatch{refused ? ` · ${refused} refused by vetting` : ''}{dispatched.length ? ` · ${dispatched.length} sent` : ''}</p></div>
@@ -150,7 +172,11 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
      <div className="map-key">{marks.filter(m => m.id !== 'zone').map(m =>
       <span key={m.id}><i className={`key-${m.id}`}/>{m.name}</span>)}</div>
      <p className="helper">The map is a picture of the same information in the list beside it — every pin is projected from the coordinates the arrival estimates are measured from, so the two cannot drift apart. Everything can be dispatched from the list alone, with a keyboard.</p>
-     {unlocated > 0 && <p className="helper">{unlocated === 1 ? 'One nurse has no pin, because that device is not sharing a position.' : `${unlocated} nurses have no pin, because those devices are not sharing a position.`} They are in the list with the reason given, and can still be assigned from it.</p>}
+     {/* One line per reason rather than one count over all of them. "Two nurses have no pin" tells a
+         controller nothing they can act on; "her phone is telling us nothing" and "her device is
+         reporting a position wider than Melville" are different problems with different answers. */}
+     {[...noPinBecause.values()].filter((sentence, index, all) => all.indexOf(sentence) === index)
+       .map(sentence => <p className="helper" key={sentence}>{sentence} They are in the list with the reason given, and can still be assigned from it.</p>)}
     </div>
     <div className="panel">
      <div className="section-title"><h2>{waiting.length ? `Awaiting assignment · ${waiting.length}` : 'Nothing waiting'}</h2></div>
@@ -235,6 +261,9 @@ export function IncidentBoard({ open }: { open: (s: string) => void }) {
 }
 export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?: string; onClose: () => void }) {
  const incident = incidents.find(i => i.id === reference) ?? incidents[1];
+ /* Whoever is working the suburb the incident is in. It was a name typed beside a party id, which
+    is two copies of a person on a screen that already reads the roster three lines above. */
+ const reporter = rosterNurses.find(nurse => nurse.zoneName === incident.area) ?? rosterNurses[0];
  const [severity, setSeverity] = useState(incident.severity);
  const [action, setAction] = useState('');
  const [notes, setNotes] = useState('');
@@ -243,7 +272,7 @@ export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?:
   <h3>{incident.id} · {incident.title}</h3>
   <NotConnected of="dispatch"/>
   <div className="review-line"><span>Opened</span><strong>{incident.opened} · {incident.area}</strong></div>
-  <div className="review-line"><span>Reported by</span><strong>Sister Palesa Khumalo · N-206</strong></div>
+  <div className="review-line"><span>Reported by</span><strong>{reporter.name} · {reporter.id}</strong></div>
   <label>Severity<select value={severity} onChange={e => setSeverity(e.target.value)}><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label>
   {severity === 'Critical' && <div className="privacy-note alert"><CircleAlert size={19}/>A critical incident pages the on-call clinical lead immediately. The form is never a prerequisite for calling emergency services.</div>}
   <label>Immediate action<select value={action} onChange={e => setAction(e.target.value)}><option value="">Choose an action…</option>

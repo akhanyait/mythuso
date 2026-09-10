@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, CalendarDays, CalendarClock, Check, CircleAlert, Clock3, CreditCard, Hourglass, MapPin, ShieldCheck, Undo2, X, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Ban, CalendarDays, CalendarClock, Check, CircleAlert, Clock3, CreditCard, Hourglass, MapPin, ShieldCheck, Undo2, X, Zap } from 'lucide-react';
 import { type Service, money } from '../lib/catalog';
 import { balance as walletBalance } from '../lib/wallet';
 import { SectionTitle, ServiceIcon } from '../components/UI';
@@ -17,6 +17,9 @@ import { mayCancel, reasons, refusalById, reschedule, stateById, stateOf, window
    five is declined, because a booking flow that has only ever seen an authorisation has no screen
    for the other answer. */
 import { payForVisit, visitReference, type PaymentResult } from '../lib/simulation';
+import { areaOf, HOME_SUBURB, nurseFor } from '../lib/arrival';
+import { offersFor } from '../lib/roster';
+import { simulationOf } from '../lib/capabilities';
 /* Booking, and the four things it used to lose.
  *
  * The date strip was five hand-typed labels starting "Fri 12 Sep" — a weekday that had not matched
@@ -50,7 +53,7 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
  const [person, setPerson] = useState(forPerson ?? 'Lerato Molefe');
  /* A suburb the coverage contract actually names. It was Sandton, which packages/catalog/geography.json
     does not list, so a booking made here produced a visit no map in the product could draw. */
- const [address, setAddress] = useState('Home visit · Melville');
+ const [address, setAddress] = useState(`Home visit · ${HOME_SUBURB}`);
  const [kind, setKind] = useState<'scheduled' | 'asap'>('scheduled');
  /* Computed once per booking rather than per render, so the strip cannot shift under somebody
     who opened the app just before midnight. */
@@ -72,6 +75,11 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
  const [payAttempt, setPayAttempt] = useState(0);
  const ends = endTime(slot, service.duration);
  const scheduled = kind === 'scheduled';
+ /* Who this visit would be booked against. The roster is asked for the suburb the address names, and
+    it answers with everybody it would offer and everybody it would not — the refusals travel beside
+    the offers rather than being filtered out of them. */
+ const booked = nurseFor(address);
+ const { refused } = offersFor(areaOf(address));
  /* An "as soon as somebody is free" visit has no hour to resolve against, so it is resolved against
     the soonest one the app offers at all. Asking the roster nothing and dispatching anyway is the
     branch this whole block exists to remove. */
@@ -142,6 +150,7 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
    <div className="review-line"><span>Visit reference</span><strong>{reference}</strong></div>
   </> : throughAProvider ? null : <p className="helper">Nothing has been charged. You pay the nurse at the door.</p>}
   <NotConnected of="payments"/>
+  <div className="nurse-row"><span className="avatar nurse-avatar">{booked.initials}</span><div><strong>{booked.name}</strong><span>{booked.role} · {booked.area}</span></div></div>
   <NotConnected of="booking"/>
   <button className="primary full space-top" onClick={() => onComplete(done)}>View my visits<ArrowRight size={17}/></button>
  </div>;
@@ -228,7 +237,14 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
     {isHeld(outcome) && <p className="helper">{hold.whyNotDispatched}</p>}
    </>}
    <button className="text-button" onClick={() => setStep(1)}>{labels.changeDate}</button>
-   <div className="nurse-row"><span className="avatar nurse-avatar">SN</span><div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div><span className="rating">★ <strong>4.9</strong> (128 visits)</span></div>
+   {/* Somebody the roster would actually offer for this suburb, rather than one name printed on
+       every booking in Johannesburg. She is the simulated roster's answer, gated by the same vetting
+       the console decides with — and the people it will not offer are named underneath with the
+       reason, because a list that quietly drops a suspended nurse cannot tell a patient why the
+       person she saw last time is missing. */}
+   <div className="nurse-row"><span className="avatar nurse-avatar">{booked.initials}</span><div><strong>{booked.name}</strong><span>{booked.role}</span></div><span className="rating">{booked.area}</span></div>
+   <p className="helper">{simulationOf('booking')!.supplier} {refused.length === 1 ? 'One nurse on it is not being offered:' : `${refused.length} nurses on it are not being offered:`}</p>
+   <ul className="landing-list">{refused.map(({ nurse, refusal }) => <li key={nurse.id}><Ban size={16}/>{nurse.name} · {nurse.zoneName} — {refusal}</li>)}</ul>
    <div className="pay-row"><span className="service-icon"><CreditCard size={20}/></span><span>{payment === 'Card' ? '•••• 4242' : payment}</span><button className="text-button" onClick={() => setStep(2)}>Change</button></div>
    {/* A real gate on a real step: the address and the person are what a nurse is sent to, and
        neither is worth getting wrong. It is not where this screen says what is connected — that

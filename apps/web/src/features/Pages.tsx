@@ -19,7 +19,7 @@ import {
  readingSets, reviewedBy, seriesFor
 } from '../lib/passport';
 import { CancelledVisit, PastVisit } from './VisitSummary';
-import { assignedNurse } from '../lib/arrival';
+import { nurseFor } from '../lib/arrival';
 import businessModel from '../../../../packages/catalog/business-model.json';
 /* One service, one card, one symbol.
  *
@@ -159,7 +159,9 @@ export function Visits({rows:all,book,manage,view,track}:{rows:VisitRow[];open:(
         sit on row one alone, so a person looking at the visit they actually wanted to change was
         shown a card with nothing on it they could press. */}
     {group==='upcoming'&&<>
-     {i===0&&<div className="nurse-row"><span className="avatar nurse-avatar">{assignedNurse.initials}</span><div><strong>{assignedNurse.name}</strong><span>{assignedNurse.role}</span></div></div>}
+     {/* Who is coming to *this* address. It was one nurse named on every row whatever the suburb,
+         which is the same person walking into three houses in three suburbs at the same hour. */}
+     {i===0&&<div className="nurse-row"><span className="avatar nurse-avatar">{nurseFor(v.address).initials}</span><div><strong>{nurseFor(v.address).name}</strong><span>{nurseFor(v.address).role}</span></div></div>}
      {/* On every upcoming visit and not only the one that is today. The answer for a visit a
          fortnight away is "nobody is on the way yet, and here is why you cannot watch her before
          the day" — which is an answer, and hiding the control until the morning would leave a
@@ -220,8 +222,8 @@ export function VisitDetail({row,manage,navigate,rebook,track}:{row:VisitRow;man
   {reason&&<div className="review-line"><span>Reason given</span><strong>{reason}</strong></div>}
   {/* Who is coming, and the one thing a person waiting at home actually wants from this screen. */}
   <button className="nurse-row nurse-track" onClick={()=>track(row.id)}>
-   <span className="avatar nurse-avatar">{assignedNurse.initials}</span>
-   <div><strong>{assignedNurse.name}</strong><span>{assignedNurse.role}</span></div>
+   <span className="avatar nurse-avatar">{nurseFor(v.address).initials}</span>
+   <div><strong>{nurseFor(v.address).name}</strong><span>{nurseFor(v.address).role}</span></div>
    <span className="nurse-track-cta"><Navigation size={16}/>Where is she?</span>
   </button>
   <SectionTitle title="Have this ready"/>

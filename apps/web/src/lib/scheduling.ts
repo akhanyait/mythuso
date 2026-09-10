@@ -43,6 +43,19 @@ export function offeredDays(from: Date = new Date()): OfferedDay[] {
  });
 }
 
+/* The moment a slot actually is, with the offset asked of the timezone rather than assumed.
+   South Africa has one offset and does not move it, which is exactly the circumstance in which a
+   hard-coded +02:00 is never noticed — until a device set to another zone shifts a nurse's arrival
+   by two hours for the person waiting at home. `new Date('2026-03-04T09:00')` would read the
+   device's own zone, which is the same defect with fewer characters. */
+export const offsetIn = (at: Date = new Date()): string => {
+ const named = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, timeZoneName: 'longOffset' })
+  .formatToParts(at).find(part => part.type === 'timeZoneName')?.value ?? 'GMT+00:00';
+ return named.replace('GMT', '') || '+00:00';
+};
+export const instantOf = (iso: string, hhmm: string, at: Date = new Date()) =>
+ new Date(`${iso}T${hhmm}:00${offsetIn(at)}`);
+
 /** The weekday a date actually falls on. Asked of the date; never stored beside it. */
 export const weekdayOf = (iso: string) => parts(new Date(`${iso}T12:00:00Z`), { weekday: 'short' });
 export const longDateOf = (iso: string) =>

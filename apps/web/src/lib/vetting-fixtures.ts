@@ -1,3 +1,4 @@
+import roster from '../../../../packages/catalog/roster.json';
 import { checkById, inDays, inMonths, isoDate, recordEvent, roleById, type CheckRecord, type CheckState, type VettingEvent, type VettingSubject } from './vetting';
 
 /* Fictional parties, one per interesting state, so every refusal in the module can be seen rather
@@ -54,23 +55,40 @@ function build(seed: Seed): VettingSubject {
  return { ...seed, records };
 }
 
+/* The nine nurses are the simulated roster's, read rather than typed.
+ *
+ * They used to be nine build({...}) calls here, five more rows with coordinates beside them in
+ * features/Dispatch.tsx, and a tenth in lib/arrival.ts whose own header said it should not be there.
+ * packages/catalog/roster.json is the one list now, and apps/api reads the same file on its side of
+ * the boundary — one table with two readers rather than two tables that agree by luck.
+ *
+ * Only the exceptions travel. `expiresInDays` becomes a real date, so "this clearance lapsed nine
+ * days ago" stays true whenever the preview is opened; `secondedBy: null` becomes the absent second
+ * reviewer a high-risk check waits for. Everything the contract does not mention is verified and in
+ * date, decided at most two fifths of the way through its own renewal cycle. */
+type RosterException = { state?: string; expiresInDays?: number; secondedBy?: null; note?: string };
+const rosterOverrides = (checks: Record<string, RosterException> = {}): Record<string, Override> =>
+ Object.fromEntries(Object.entries(checks).map(([id, exception]) => [id, {
+  ...(exception.state ? { state: exception.state as CheckState } : {}),
+  ...(exception.expiresInDays === undefined ? {} : { expiresOn: inDays(exception.expiresInDays) }),
+  ...(exception.secondedBy === null ? { secondedBy: undefined } : {}),
+  ...(exception.note ? { note: exception.note } : {})
+ } as Override]));
+
+type RosterRow = {
+ id: string; name: string; reference: string; zone: string; scope: string[];
+ declined?: boolean; declinedReason?: string; appealed?: boolean;
+ checks?: Record<string, RosterException>;
+};
+const rosterNurseSeeds: Seed[] = (roster.nurses as RosterRow[]).map(nurse => ({
+ id: nurse.id, name: nurse.name, roleId: 'nurse', reference: nurse.reference,
+ zone: nurse.zone, scope: nurse.scope,
+ declined: nurse.declined, declinedReason: nurse.declinedReason, appealed: nurse.appealed,
+ overrides: rosterOverrides(nurse.checks)
+}));
+
 export const seededSubjects: VettingSubject[] = [
- build({ id: 'N-201', name: 'Sister Thandeka Zulu', roleId: 'nurse', reference: 'SANC 20014477', zone: 'Soweto', scope: ['Chronic care', 'Wound care'],
-  overrides: { 'police-clearance': { state: 'verified', expiresOn: inDays(21) } } }),                                  // renewal due, still dispatchable
- build({ id: 'N-202', name: 'Sister Boitumelo Nkosi', roleId: 'nurse', reference: 'SANC 20019902', zone: 'Randburg', scope: ['Maternal & child'],
-  overrides: { 'police-clearance': { state: 'in-review' }, references: { state: 'submitted' }, 'kit-training': { state: 'outstanding' }, 'popia-training': { state: 'outstanding' } } }),
- build({ id: 'N-203', name: 'Brother Lwazi Mahlangu', roleId: 'nurse', reference: 'SANC 20007731', zone: 'Tembisa', scope: ['Post-operative', 'Phlebotomy'],
-  overrides: { 'sanc-registration': { secondedBy: undefined }, 'kit-training': { state: 'in-review' } } }),             // waiting on a second reviewer
- build({ id: 'N-204', name: 'Sister Ayanda Dube', roleId: 'nurse', reference: 'SANC 20022145', zone: 'Soweto', scope: ['Elderly care'],
-  overrides: { 'police-clearance': { state: 'verified', expiresOn: inDays(-9) } } }),                                   // lapsed: suspended automatically
- build({ id: 'N-205', name: 'Sister Naledi Mokoena', roleId: 'nurse', reference: 'SANC 20016688', zone: 'Rosebank', scope: ['Wound care', 'Chronic care'] }),
- build({ id: 'N-206', name: 'Sister Palesa Khumalo', roleId: 'nurse', reference: 'SANC 20011203', zone: 'Soweto', scope: ['Wound care', 'Maternal & child'] }),
- build({ id: 'N-207', name: 'Sister Refilwe Sithole', roleId: 'nurse', reference: 'SANC 20018844', zone: 'Randburg', scope: ['Chronic care', 'Paediatric'] }),
- build({ id: 'N-208', name: 'Brother Sipho Ndlovu', roleId: 'nurse', reference: 'SANC 20013390', zone: 'Melville', scope: ['Post-operative', 'Chronic care'],
-  overrides: { indemnity: { state: 'verified', expiresOn: inDays(33) } } }),
- build({ id: 'N-209', name: 'Sister Zanele Mkhize', roleId: 'nurse', reference: 'SANC 20024401', zone: 'Alexandra', scope: ['Chronic care'],
-  declined: true, declinedReason: 'Two clinical references could not be confirmed with the institutions named.', appealed: true,
-  overrides: { references: { state: 'declined', note: 'Referee could not confirm the applicant worked in the unit stated.' } } }),
+ ...rosterNurseSeeds.map(build),
  build({ id: 'L-301', name: 'Sister Karabo Mothibi', roleId: 'locum', reference: 'SANC 20016688', zone: 'Roodepoort', scope: ['Chronic care', 'Paediatric'] }),
  build({ id: 'L-302', name: 'Sister Nokuthula Baloyi', roleId: 'locum', reference: 'SANC 20026117', zone: 'Midrand', scope: ['Wound care'],
   overrides: { 'shift-eligibility': { state: 'in-review', note: 'Declared 44 hours a week elsewhere. Clinical Director reviewing.' } } }),

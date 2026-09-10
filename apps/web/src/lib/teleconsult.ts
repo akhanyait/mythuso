@@ -169,3 +169,64 @@ export function sectionsFor(outcome: EncounterOutcome): WrittenSection[] {
    feature's own: the same capability, the same refusal, the same doctor. */
 export const mayConsult = (doctor: VettingSubject) => can(doctor, 'sign-clinical-review');
 export const roleNameOf = (subject?: VettingSubject) => subject && roleById(subject.roleId)?.name;
+/* ---- The simulated session broker -------------------------------------------------------------
+ *
+ * `teleconsultation` is blocked on a media stack, and this is what stands in for one so the call can
+ * be walked end to end. What it simulates is deliberately not media: **a session is a session
+ * object** — who is waiting, who is joining, and which rung of the ladder the line opened on. No
+ * camera, no microphone, no permission and no connection, which is what the capability's own
+ * refusals say and what scripts/check-boundaries.mjs holds both native apps to.
+ *
+ * Two things it will not do, and they are the ones worth writing down.
+ *
+ * It will not open on a better line than the ladder permits. teleconsult.json orders the four
+ * connection states by fidelity and says of the best of them that it is the rarest of the four on a
+ * South African mobile network at five in the afternoon. So the rung is drawn with a weight taken
+ * off its own fidelity — the worse it is, the likelier it is — because a simulator that opened every
+ * call on video would produce a product built entirely against its top rung, and sound only, which
+ * is how most of this country would hold this call, would stay the path nobody tries.
+ *
+ * And it will not make anybody wait the wait. A real queue is up to the fifteen minutes the contract
+ * allows a visit to wait; a screen that made a person sit through it would be a screen nobody could
+ * demonstrate. So the wait is played out in seconds and the screen says which wait it is standing
+ * in for, rather than quietly pretending a doctor answered in four.
+ *
+ * The choice is deterministic — the same visit reference opens on the same rung after the same wait,
+ * on every machine — and it is deliberately *not* the same arithmetic apps/api/src/simulation uses.
+ * That side seeds a generator; reproducing it here would mean a second copy of the generator in a
+ * browser bundle, which is the drift this repository is arranged against. Nothing compares the two
+ * sessions and nothing needs to: what both sides read from the contract is the ladder, the roster of
+ * participants and the fifteen minutes, and those are the facts a screen is built on. */
+
+/** A stable index from a reference. Not a random number and not pretending to be one: it is the
+    reference's own characters, so the same consultation opens the same way for ever. */
+const indexOf = (reference: string, over: number) =>
+ [...reference].reduce((total, character) => (total * 31 + character.charCodeAt(0)) % 100_003, 7) % over;
+
+const openingRungs = connectionStates.filter(state => state.fidelity > 0);
+const topRung = Math.max(...connectionStates.map(state => state.fidelity));
+/* One entry per point of missing fidelity, so audio is drawn three times as often as video. */
+const weightedRungs = openingRungs.flatMap(rung => Array.from({ length: topRung + 1 - rung.fidelity }, () => rung));
+
+export type SimulatedSession = {
+ /** The waiting-room states this call passes through, in order, as the contract declares them. */
+ steps: typeof waitingRoom;
+ /** The rung the line opens on. Never one the ladder does not have, and never above its top. */
+ connection: ConnectionState;
+ /** The wait this stands in for, in minutes. Shown; never sat through. */
+ standsForMinutes: number;
+};
+
+export function sessionFor(visitReference: string): SimulatedSession {
+ const connection = weightedRungs[indexOf(visitReference, weightedRungs.length)]!;
+ /* Never nobody-came: that is the state where no doctor arrives at all, and it is a different
+    journey with a different ending rather than a longer version of this one. */
+ const steps = waitingRoom.filter(state => state.id !== 'nobody-came');
+ return {
+  steps,
+  connection,
+  standsForMinutes: 1 + indexOf(`${visitReference}:wait`, maximumWaitMinutes)
+ };
+}
+
+

@@ -14,6 +14,15 @@ import { readFileSync } from 'node:fs';
  * exactly how that gets undone. The last test in this file is the one that would catch it. */
 
 const geography = JSON.parse(readFileSync(new URL('../packages/catalog/geography.json', import.meta.url), 'utf8'));
+/* The notice is read rather than carried. dispatch went from `absent` to `simulated`, the sentence
+   changed from "this is not switched on" to "this is simulated, and here is what it will not do",
+   and a spec holding its own copy of it failed for saying the old one — which is the same drift the
+   build fails over everywhere else it can reach. tests/status.spec.ts already does it this way. */
+const capabilities = JSON.parse(readFileSync(new URL('../packages/catalog/capabilities.json', import.meta.url), 'utf8'));
+const noticeFor = (id: string) => {
+  const found = capabilities.capabilities.find((c: { id: string }) => c.id === id);
+  return found.connected ? null : (found.simulation?.notice ?? found.notice);
+};
 
 const openVisits = async (page: Page) => {
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
@@ -52,8 +61,10 @@ test('the visit that is today says how far away she is, and what the figure is n
   await track(page);
 
   /* dispatch is not connected, so the contract's sentence is above everything. It is the first
-     thing asserted because it is the first thing that would be tidied away. */
-  await expect(page.getByText(/Dispatch is not connected/)).toBeVisible();
+     thing asserted because it is the first thing that would be tidied away — and it is read from the
+     contract, so it goes on being asserted through a change of state rather than through a change
+     of wording somebody has to remember to make here too. */
+  await expect(page.getByText(noticeFor('dispatch')!)).toBeVisible();
 
   /* The figure, with the chip saying what it is *above* it rather than a caveat underneath. A
      number that has to be qualified below is a number that gets quoted without the qualification. */

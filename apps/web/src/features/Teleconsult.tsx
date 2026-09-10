@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
  ArrowLeft, ArrowRight, BadgeCheck, Ban, Check, CircleAlert, CircleSlash, ClipboardList, DoorOpen,
  Hourglass, Info, KeyRound, Lock, MicOff, PhoneCall, PhoneOff, ShieldX, SignalLow, Users, VideoOff, WifiOff
@@ -12,9 +12,10 @@ import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
 import { type VettingSubject } from '../lib/vetting';
 import {
  clinicalLimits, connectionById, connectionStates, consentItems, identity, mayConclude, mayConsult,
- media, nameOf, outcomeOf, participants, permitted, recording, reconnect, refusalById, refusals,
- ruleById, sectionsFor, withdrawn, type Attempt, type Participant
+ maximumWaitMinutes, media, nameOf, outcomeOf, participants, permitted, recording, reconnect,
+ refusalById, refusals, ruleById, sectionsFor, sessionFor, withdrawn, type Attempt, type Participant
 } from '../lib/teleconsult';
+import { simulationOf } from '../lib/capabilities';
 import {
  participantId as interpreterParticipant, refusalById as interpreterRefusal,
  useSaslRequirement, withdrawal as interpreterWithdrawal
@@ -63,7 +64,14 @@ import {
  * and the rebooking is on the same screen. There is deliberately no second mechanism for adding an
  * interpreter; it is this participant or nobody.
  *
- * Nothing connects. No WebRTC, no camera, no microphone, no permission requested and none declared.
+ * How it connects, now that it does. teleconsultation is simulated rather than absent: a session
+ * broker in lib/teleconsult.ts answers with the waiting-room states the contract declares and the
+ * rung of the ladder the line opens on, and the screen walks them. What it simulates is a session
+ * object and never media — no WebRTC, no camera, no microphone, no permission requested and none
+ * declared, on either platform, and the build refuses one. The wait plays out in seconds and the
+ * screen says which wait it is standing in for, because a screen that made a person sit through
+ * eleven minutes is one nobody could demonstrate and a screen that pretended a doctor answered in
+ * four would be lying about the queue this feature exists to be honest about.
  */
 
 const doctors = subjectsByRole('doctor').filter(d => ['D-401', 'D-402'].includes(d.id));
@@ -124,7 +132,12 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
  const [codeError, setCodeError] = useState('');
  const [identityConfirmed, setIdentityConfirmed] = useState(false);
  const [mediaState, setMediaState] = useState(media.state);
- const [connectionId, setConnectionId] = useState('video');
+ /* What the broker would have sent for this consultation. Deterministic off the reference, so the
+    same call opens on the same rung after the same wait every time it is walked. */
+ const session = useMemo(() => sessionFor(reference), [reference]);
+ const [connectionId, setConnectionId] = useState(session.connection.id);
+ /* Which waiting-room state the call is in on its way to being connected. -1 is connected. */
+ const [waitingAt, setWaitingAt] = useState(0);
  const [everDropped, setEverDropped] = useState(false);
  const [resumed, setResumed] = useState(false);
  const [holdLeft, setHoldLeft] = useState(reconnect.holdSeconds);
@@ -144,6 +157,14 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
  const allowedNow = permitted(connectionId, nursePresent);
  const withheldNow = withdrawn(connectionId, nursePresent);
  const dropped = connectionId === 'dropped';
+
+ /* The waiting room, walked. Each state is the contract's own and the words under it are the
+    contract's own; what the screen compresses is only how long each one lasts. */
+ useEffect(() => {
+  if (stage !== 3 || waitingAt < 0 || waitingAt >= session.steps.length) return;
+  const step = setTimeout(() => setWaitingAt(at => (at + 1 >= session.steps.length ? -1 : at + 1)), 1400);
+  return () => clearTimeout(step);
+ }, [stage, waitingAt, session.steps.length]);
 
  /* The hold is real seconds, counted on this screen, because a countdown that is a label rather than
     a clock is exactly the reassurance this state must not give. */
@@ -289,7 +310,29 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    </div>
   </div>
 
+  : stage === 3 && waitingAt >= 0 ? <div className="form-stack tc-waiting">
+   {/* Between asking for a doctor and getting one. The contract is blunt about this on purpose: an
+       app that says "connecting…" for eleven minutes has lied for ten of them, so each state says
+       what is actually true and the position in the queue and the minutes waited are both shown,
+       because either one alone reads as better news than it is. */}
+   <h3>{session.steps[waitingAt]!.name}</h3>
+   <NotConnected of="teleconsultation"/>
+   <div className="tc-media">
+    <span className="tc-avatar"><Hourglass size={20}/></span>
+    <div>
+     <strong>{session.steps[waitingAt]!.patientWords.replace('{name}', doctor.name)}</strong>
+     <p className="tc-out-note">This is standing in for a {session.standsForMinutes}-minute wait, played out in seconds. A visit waits {maximumWaitMinutes} minutes for a doctor and then goes to the panel as a review instead; the screen shows you the queue rather than making you sit in it.</p>
+    </div>
+   </div>
+   <p className="helper" role="status">Step {waitingAt + 1} of {session.steps.length}. The line will open {session.connection.name.toLowerCase()}.</p>
+   <div className="button-row">
+    <button className="secondary" onClick={() => setStage(2)}><ArrowLeft size={16}/>Back</button>
+    <button className="primary" onClick={() => setWaitingAt(-1)}>Skip the wait<ArrowRight size={16}/></button>
+   </div>
+  </div>
+
   : stage === 3 ? <div className="form-stack">
+   <NotConnected of="teleconsultation"/>
    {/* Never asked is not the same fact as refused, and a screen that shows one state for both is
        telling the patient their answer did not matter. Both are here, switchable, so a review can
        see that they are different screens rather than one screen with a different word in it. */}
@@ -398,10 +441,15 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
 
    <SectionTitle title="What this screen will not do"/>
    <div className="tc-refusals">{refusals.filter(r => !['half-a-consultation', 'charge-for-a-failure'].includes(r.id)).map(r =>
-    <div className="tc-refusal" key={r.id}><Ban size={19}/><p>{r.sentence}</p></div>)}</div>
+    <div className="tc-refusal" key={r.id}><Ban size={19}/><p>{r.sentence}</p></div>)}
+    {/* And what the thing standing in for a media stack will not do. A screen is never quieter for
+        being simulated than it was for being absent, so the simulation's own refusals sit in the
+        same list as the feature's rather than being left in a contract nobody opens. */}
+    {simulationOf('teleconsultation')!.refuses.map(sentence =>
+     <div className="tc-refusal" key={sentence}><Ban size={19}/><p>{sentence}</p></div>)}</div>
    <EmptyNote>{ruleById('no-media-in-this-build').sentence} Nothing was transmitted, no encounter was written and no clinician was notified.</EmptyNote>
    <div className="button-row">
-    <button className="secondary" onClick={() => { setStage(0); setClosed(null); setDecisionReached(false); setResumed(false); setEverDropped(false); setConnectionId('video'); setCode(''); setCodeError(''); setIdentityConfirmed(false); setConsented({ doctor: false, nurse: false, guardian: false, interpreter: false }); setWithdrawnNote(null); setChosen({ nurse: true, guardian: false, interpreter: false }); }}><ArrowLeft size={16}/>Start again</button>
+    <button className="secondary" onClick={() => { setStage(0); setClosed(null); setDecisionReached(false); setResumed(false); setEverDropped(false); setConnectionId(session.connection.id); setWaitingAt(0); setCode(''); setCodeError(''); setIdentityConfirmed(false); setConsented({ doctor: false, nurse: false, guardian: false, interpreter: false }); setWithdrawnNote(null); setChosen({ nurse: true, guardian: false, interpreter: false }); }}><ArrowLeft size={16}/>Start again</button>
     {onClose && <button className="primary" onClick={onClose}>Close<Check size={17}/></button>}
    </div>
   </div>}

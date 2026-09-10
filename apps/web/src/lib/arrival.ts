@@ -1,7 +1,9 @@
 import { coverage, precision, privacyRuleById, refusalById, zoneByName, type Zone } from './geography';
 import { etaFromRoute, routeUnavailable, straightLineEta, noEta,
- type Eta, type RouteResult } from '../../../../packages/geo/index.ts';
-import { isoIn } from './scheduling';
+ type Eta, type LatLng, type RouteResult } from '../../../../packages/geo/index.ts';
+import { instantOf, isoIn } from './scheduling';
+import { assignedTo, legTo, type Leg, type RosterNurse } from './roster';
+import { roleById, authorityById } from './vetting';
 
 /* Where is she now — the one question this product could answer for a controller and not for the
  * person waiting at home.
@@ -40,15 +42,45 @@ import { isoIn } from './scheduling';
  * Nothing here reads a device. dispatch is not connected, the positions are the contract's own zone
  * centres, and no geolocation permission is requested by this file or by anything it calls. */
 
-/** The nurse this account's visits are assigned to. Typed here so that the three screens that name
-    her read one fixture; it belongs in a contract beside the dispatch roster. */
-export const assignedNurse = {
- name: 'Sister Naledi Mokoena',
- role: 'Registered Nurse (SANC)',
- initials: 'SN',
+/** The suburb half of "Home visit · Rosebank". A visit carries an address for the nurse who is
+    going there; what a map is allowed to know about it is the suburb, and this is that narrowing. */
+export const areaOf = (address: string) => address.split('·').pop()!.trim();
+
+/**
+ * The nurse a visit is assigned to, out of the simulated roster.
+ *
+ * She was four lines typed here — a name, a role, two initials and a suburb — with the note that it
+ * belonged in a contract beside the dispatch roster. It does, it is, and this reads it: the same nine
+ * people packages/catalog/roster.json holds, gated by the same vetting the console decides with, so a
+ * nurse suspended there cannot be the one a patient is told is coming. Which of them takes a visit is
+ * the straight line between two suburb centres and nothing else, so it is the same answer on every
+ * machine.
+ *
+ * The role is composed from the vetting register rather than typed: the role's own name and the
+ * short name of the authority that registers her.
+ */
+export type AssignedNurse = {
+ id: string; name: string; role: string; initials: string;
  /** A suburb in geography.json, never a coordinate. What a patient is told is the suburb. */
- area: 'Rosebank'
-} as const;
+ area: string;
+ zone: Zone | undefined;
+ roster: RosterNurse;
+};
+const NURSE_ROLE = `${roleById('nurse')!.name} (${authorityById('sanc')!.short})`;
+const asAssigned = (nurse: RosterNurse): AssignedNurse =>
+ ({ id: nurse.id, name: nurse.name, role: NURSE_ROLE, initials: nurse.initials, area: nurse.zoneName, zone: nurse.zone, roster: nurse });
+
+/** Who is coming to this address. The suburb decides; the address never leaves the visit. */
+export const nurseFor = (address: string): AssignedNurse => asAssigned(assignedTo(areaOf(address))!);
+/* The suburb this account's own care happens in. Booking defaults its address to it and the visits
+   in the list are written in it, so it is named once here rather than typed beside each of them —
+   and it is what decides who the Health Passport says took the readings, which has to be the same
+   person the visit list says is coming. */
+export const HOME_SUBURB = 'Melville';
+/* The one a screen with no visit in front of it names: the passport's record of a visit that has
+   already happened, and the row above the first booking. It is the roster's answer for that suburb
+   rather than a tenth copy of a person. */
+export const assignedNurse: AssignedNurse = nurseFor(`· ${HOME_SUBURB}`);
 
 /* The sentences a patient is owed when there is nothing to show. Each says what is refused and
    leaves the reader somewhere to stand, which is the difference between a state and a blank.
@@ -81,15 +113,11 @@ export const arrivalRefusals = {
 export const daysUntil = (iso: string, from: Date = new Date()) =>
  Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${isoIn(from)}T12:00:00Z`)) / 86_400_000);
 
-/** The suburb half of "Home visit · Rosebank". A visit carries an address for the nurse who is
-    going there; what a map is allowed to know about it is the suburb, and this is that narrowing. */
-export const areaOf = (address: string) => address.split('·').pop()!.trim();
-
 export type ArrivalVisit = { address: string; date?: string; start?: string; kind: 'scheduled' | 'asap' };
 
 export type Arrival =
  /** The day of the visit. A suburb for her, a suburb for you, and a line between them. */
- | { state: 'on-the-day'; from: Zone; to: Zone; eta: Eta }
+ | { state: 'on-the-day'; nurse: AssignedNurse; from: Zone; to: Zone; at: LatLng; leg: Leg | null; eta: Eta }
  /** Ahead of the day. The suburb is drawn; she is not. */
  | { state: 'another-day'; to: Zone; days: number; refusal: string }
  /** No time has been given, so nobody has been asked to come. */
@@ -106,7 +134,7 @@ export type Arrival =
 const routeFor = (_from: Zone, _to: Zone): RouteResult =>
  routeUnavailable('No routing provider is connected, so no road route can be drawn or timed.');
 
-export function arrivalFor(visit: ArrivalVisit, group: 'upcoming' | 'past' | 'cancelled'): Arrival {
+export function arrivalFor(visit: ArrivalVisit, group: 'upcoming' | 'past' | 'cancelled', now: Date = new Date()): Arrival {
  if (group !== 'upcoming') return { state: 'finished', refusal: arrivalRefusals.finished };
  const area = areaOf(visit.address);
  const to = zoneByName(area);
@@ -115,20 +143,29 @@ export function arrivalFor(visit: ArrivalVisit, group: 'upcoming' | 'past' | 'ca
   return { state: 'outside-coverage', area, refusal: outside.sentence, why: outside.why };
  }
  if (visit.kind === 'asap' || !visit.date) return { state: 'no-window', to, refusal: arrivalRefusals.noWindow };
- const days = daysUntil(visit.date);
+ const days = daysUntil(visit.date, now);
  if (days !== 0) return { state: 'another-day', to, days, refusal: arrivalRefusals.anotherDay };
- const from = zoneByName(assignedNurse.area);
+ const nurse = nurseFor(visit.address);
+ const from = nurse.zone;
  /* A nurse with no suburb is a nurse whose device is telling us nothing, and the contract has a
     sentence for that already. It is said out loud rather than left as an absent pin. */
  if (!from) return { state: 'no-window', to, refusal: refusalById('no-position-shared').sentence };
+ /* Where she actually is, which on the day is not where she started. She sets off so as to reach the
+    suburb at the start of the window, so the distance closes as the hour approaches and the figure
+    under it is arithmetic on the clock rather than a number that was true when the page opened.
+    Both ends are suburb centres, at every moment of the leg: geography.json's no-doorstep-at-either-end
+    read in both directions at once. */
+ const leg = visit.start ? legTo(nurse.roster, to, instantOf(visit.date, visit.start, now), now) : null;
+ const at = leg ? leg.at : from.at;
  const measured = etaFromRoute(routeFor(from, to));
  const eta = measured.minutes !== null ? measured
-  : from.id === to.id
-   /* Same suburb. A straight line between one zone centre and itself is nought kilometres, and
-      "1 minute away" is a promise about a doorstep this screen has refused to know about. */
-   ? noEta(`She is working in ${to.name}, which is your own suburb. There is no distance here to measure, and how long a nurse takes to reach a door on the same streets is not something this screen knows.`)
-   : straightLineEta(from.at, to.at, { sourceLabel: 'arrival' });
- return { state: 'on-the-day', from, to, eta };
+  : from.id === to.id || (leg !== null && leg.minutesIn >= leg.legMinutes)
+   /* Same suburb, or she has reached yours. A straight line between one zone centre and itself is
+      nought kilometres, and "1 minute away" is a promise about a doorstep this screen has refused to
+      know about. */
+   ? noEta(`She is in ${to.name}, which is your own suburb. There is no distance here to measure, and how long a nurse takes to reach a door on the same streets is not something this screen knows.`)
+   : straightLineEta(at, to.at, { sourceLabel: 'arrival' });
+ return { state: 'on-the-day', nurse, from, to, at, leg, eta };
 }
 
 /* The basis, in a patient's words rather than a controller's. The figures come off the Eta — there
