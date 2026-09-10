@@ -31,13 +31,13 @@ import { roleById, authorityById } from './vetting';
  * provider is connected; a straight line through Johannesburg is optimistic by roughly a third and
  * knows nothing about the M1, a school run or the visit she is finishing first.
  *
- * WHAT IS IN THE CONTRACT NOW, AND WHAT IS STILL NOT. The refusal sentences are in
- * packages/catalog/geography.json and read from it below; three of them as privacy rules, four as
- * refusals, none of them edited on the way. What is still not there is the fact that a nurse is
- * Sister Naledi Mokoena working out of Rosebank — that fixture is typed into features/Dispatch.tsx
- * as well, where she is nurse N-205, the id the vetting register holds, and two copies of a person
- * is exactly the drift packages/catalog exists to stop. It is reported rather than invented a third
- * time.
+ * WHAT IS IN THE CONTRACT NOW. The refusal sentences are in packages/catalog/geography.json and read
+ * from it below; three of them as privacy rules, the rest as refusals, none of them edited on the
+ * way. And the nurse is too. This file used to carry her — a name, a role, two initials and a suburb
+ * — beside a note saying that it belonged in a contract next to the dispatch roster, because
+ * features/Dispatch.tsx held the same person again with a coordinate typed beside her. Both read
+ * packages/catalog/roster.json now, through lib/roster.ts, and which of the nine takes a visit is
+ * the straight line between two suburb centres rather than a name anybody chose.
  *
  * Nothing here reads a device. dispatch is not connected, the positions are the contract's own zone
  * centres, and no geolocation permission is requested by this file or by anything it calls. */

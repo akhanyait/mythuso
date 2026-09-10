@@ -241,8 +241,12 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
        every booking in Johannesburg. She is the simulated roster's answer, gated by the same vetting
        the console decides with — and the people it will not offer are named underneath with the
        reason, because a list that quietly drops a suspended nurse cannot tell a patient why the
-       person she saw last time is missing. */}
-   <div className="nurse-row"><span className="avatar nurse-avatar">{booked.initials}</span><div><strong>{booked.name}</strong><span>{booked.role}</span></div><span className="rating">{booked.area}</span></div>
+       person she saw last time is missing.
+
+       What is gone from this row is a rating: "★ 4.9 (128 visits)" was invented, on the screen where
+       a person decides whether to let somebody into their house, about a nurse who does not exist.
+       Where she works is a fact the roster actually holds. */}
+   <div className="nurse-row"><span className="avatar nurse-avatar">{booked.initials}</span><div><strong>{booked.name}</strong><span>{booked.role}</span></div><span className="rating">Working in {booked.area}</span></div>
    <p className="helper">{simulationOf('booking')!.supplier} {refused.length === 1 ? 'One nurse on it is not being offered:' : `${refused.length} nurses on it are not being offered:`}</p>
    <ul className="landing-list">{refused.map(({ nurse, refusal }) => <li key={nurse.id}><Ban size={16}/>{nurse.name} · {nurse.zoneName} — {refusal}</li>)}</ul>
    <div className="pay-row"><span className="service-icon"><CreditCard size={20}/></span><span>{payment === 'Card' ? '•••• 4242' : payment}</span><button className="text-button" onClick={() => setStep(2)}>Change</button></div>

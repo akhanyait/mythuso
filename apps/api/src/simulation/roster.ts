@@ -1,5 +1,5 @@
 /**
- * A simulated nurse roster: nine fictional people, and the three of them the roster will not offer.
+ * A simulated nurse roster: nine fictional people, and the four of them it will not offer.
  *
  * ── What this stands in for ──────────────────────────────────────────────────────────────────
  *
