@@ -16,7 +16,18 @@
     "sign-in",
     "profile",
     "sign-out"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated one-time-code channel, in process.",
+    "notice": "Sign-in is simulated. The code is produced here and shown to you; no message leaves this machine and no provider is contacted.",
+    "refuses": [
+     "Send anything to a real handset.",
+     "Accept a code it did not itself produce.",
+     "Survive a restart as a real account would."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "booking",
@@ -32,7 +43,18 @@
     "booking",
     "visits",
     "visit-detail"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated nurse roster, in process.",
+    "notice": "The roster is simulated. These nurses are fictional and none of them has agreed to attend.",
+    "refuses": [
+     "Commit a real person to a time.",
+     "Offer a nurse whose simulated vetting has lapsed.",
+     "Book outside a zone dispatch can reach."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "payments",
@@ -48,7 +70,18 @@
     "booking",
     "wallet",
     "plans"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated South African card and EFT provider, in process.",
+    "notice": "Payment is simulated. No card is charged, no bank is contacted and no money moves.",
+    "refuses": [
+     "Hold a card number, even a fictional one.",
+     "Settle, because settlement is a fact about a bank.",
+     "Produce a receipt that does not say it is simulated."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "payouts",
@@ -63,7 +96,18 @@
    "surfaces": [
     "earnings",
     "payout-history"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated bank payout channel, in process.",
+    "notice": "The payout is simulated. Nothing is paid, and the bank details on this screen are fictional.",
+    "refuses": [
+     "Pay anybody.",
+     "Verify a real bank account.",
+     "Reverse a payout that never left."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "credential-verification",
@@ -79,7 +123,18 @@
     "vetting",
     "nurse-profile",
     "roster"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "Simulated answers from the thirteen authorities, in process.",
+    "notice": "Credential answers are simulated. No authority has been asked, and a cleared result here confirms nothing.",
+    "refuses": [
+     "Answer for a registration number that is not in the simulated register.",
+     "Return cleared for a lapsed check.",
+     "Be read as confirmation by any screen that grants a capability."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "dispatch",
@@ -96,7 +151,18 @@
     "dispatch",
     "control-tower",
     "incidents"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "Simulated nurse positions, in process.",
+    "notice": "Positions are simulated. No device is reporting, and this movement is generated on this machine.",
+    "refuses": [
+     "Carry a patient id, a visit id or an address.",
+     "Place a pin on anybody's home.",
+     "Claim an arrival time it has not derived."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "clinical-records",
@@ -114,7 +180,18 @@
     "patient-file",
     "assessment",
     "capture"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated record store holding fictional records, in process.",
+    "notice": "These records are simulated and every person in them is fictional. The controls around them are real and are exercised against this data.",
+    "refuses": [
+     "Hold one fact about a real person.",
+     "Leave the consent gate or the access log unexercised.",
+     "Outlive the process it runs in."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "teleconsultation",
@@ -129,7 +206,18 @@
    "surfaces": [
     "teleconsult",
     "waiting-room"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated session broker, in process.",
+    "notice": "The call is simulated. No camera or microphone is opened, and no media stack exists behind this screen.",
+    "refuses": [
+     "Open a camera or a microphone.",
+     "Declare a media permission on either native app.",
+     "Simulate a line quality better than the ladder permits."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "screening",
@@ -144,7 +232,18 @@
     "capture",
     "screening-result",
     "review-queue"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated screening model, in process.",
+    "notice": "This screening is simulated. No model produced it, and it is not a clinical opinion.",
+    "refuses": [
+     "Issue a diagnosis.",
+     "Be signed off by anybody but a named clinician.",
+     "Produce an urgent result without naming a red flag the emergency contract holds."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "voice",
@@ -162,7 +261,8 @@
     "voice",
     "home"
    ],
-   "neverSoften": "No microphone affordance may be drawn — not an enabled one, not a disabled one, not a decorative one. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed."
+   "neverSoften": "No microphone affordance may be drawn — not an enabled one, not a disabled one, not a decorative one. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.",
+   "state": "absent"
   },
   {
    "id": "devices",
@@ -177,7 +277,18 @@
     "kit",
     "capture",
     "provenance"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated instrument, in process.",
+    "notice": "The instrument is simulated. No Bluetooth session is opened and no device is contacted.",
+    "refuses": [
+     "Open a Bluetooth or eSIM session.",
+     "Declare a device permission on either native app.",
+     "Produce a reading without its provenance mark."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "dispensing",
@@ -193,7 +304,18 @@
     "dispensing",
     "orders",
     "prescription"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated pharmacy network, in process.",
+    "notice": "The pharmacy is simulated. No prescription is sent and no pharmacist has seen it.",
+    "refuses": [
+     "Substitute outside the classes the Act permits.",
+     "Change a molecule or a strength.",
+     "Dispense without a simulated pharmacist's registration."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "interpreting",
@@ -209,7 +331,18 @@
     "interpreting",
     "booking",
     "teleconsult"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated interpreter roster, in process.",
+    "notice": "The interpreter is simulated. Nobody has been booked and nobody is expecting this visit.",
+    "refuses": [
+     "Offer a family member or a child.",
+     "Charge a patient for a cancelled accommodation.",
+     "Dispatch a visit that needs an interpreter and has none."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "messaging",
@@ -225,7 +358,18 @@
     "invitations",
     "notifications",
     "requests"
-   ]
+   ],
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated delivery channel, in process.",
+    "notice": "Messages are simulated. A receipt is produced here; nothing reaches a handset, an inbox or a push service.",
+    "refuses": [
+     "Reach any address outside this machine.",
+     "Report a delivery it did not simulate.",
+     "Retry, because a simulated failure is a chosen failure."
+    ],
+    "reachableFromTheNetwork": false
+   }
   },
   {
    "id": "emergency",
@@ -242,7 +386,18 @@
     "sos",
     "alert"
    ],
-   "neverSoften": "The ambulance number on this screen is real and always shown first, connected or not. The one refusal on this pathway that is not about MyThuso is the one that matters most."
+   "neverSoften": "The ambulance number on this screen is real and always shown first, connected or not. The one refusal on this pathway that is not about MyThuso is the one that matters most.",
+   "state": "simulated",
+   "simulation": {
+    "supplier": "A simulated acknowledgement channel, in process.",
+    "notice": "This acknowledgement is simulated. No ambulance service has been contacted. In a real emergency call 10177, or 112 from a mobile.",
+    "refuses": [
+     "Replace or delay the emergency numbers on any screen.",
+     "Claim an ambulance is coming.",
+     "Answer at all until the real numbers have been shown first."
+    ],
+    "reachableFromTheNetwork": false
+   }
   }
  ],
  "rules": [
@@ -265,7 +420,28 @@
    "id": "scaffolding-is-not-a-disclosure",
    "statement": "A role switcher, a state picker and a gallery of loading states are development tools. They are removed from what ships, and removing them says nothing about whether anything is connected.",
    "why": "The two got tangled: taking the demo furniture out felt like claiming the product was live. They are separate questions and this file answers only the second."
+  },
+  {
+   "id": "simulated-is-not-connected",
+   "statement": "`state: simulated` never sets `connected: true`, and the two may not disagree. A simulated capability still lists everything blocking it.",
+   "why": "The whole hazard of a simulator is that it works. A person who has watched a payment go through end to end is one edit away from believing a payment provider exists, and the status page is the page a funder reads. So the boolean that removes every notice in the product is left alone, and the build fails if the state and the boolean drift apart."
+  },
+  {
+   "id": "a-simulation-says-so",
+   "statement": "A simulated capability renders its simulation notice, word for word, wherever the absent notice would have rendered. No screen may be quieter for being simulated than it was for being absent.",
+   "why": "The failure mode is not a screen that lies. It is a screen that stops speaking: the sentence goes away because something now answers, and nobody notices that what answers is a fixture. Silence is the disclosure failure, so the notice never disappears until the state is connected."
+  },
+  {
+   "id": "a-simulation-is-not-reachable-from-the-network",
+   "statement": "No simulator may be reached over HTTP. The eleven feed routes go on refusing every payload, and a simulated event enters in process through a function of its own.",
+   "why": "apps/api/src/feeds/index.ts argues that a route which could accept under some condition is a route somebody finds the condition for, usually late at night with a vendor on the phone. A simulation flag on those routes would be exactly that condition. So `decide` still has no acceptance to construct, and the simulators sit beside the boundary rather than inside it."
+  },
+  {
+   "id": "voice-stays-absent",
+   "statement": "`voice` is the one capability not simulated, and that is a decision rather than an omission.",
+   "why": "Simulating speech means one of two things: declaring a microphone permission, which the capability forbids anywhere in either app, or rendering a transcript of something nobody said. The blocker on voice was never the vendor — it is that nothing has been designed for what happens to a recording of a person describing a symptom in their own home. A simulator would produce a working screen on top of that undecided question, which is the shape of every readiness claim this file exists to refuse."
   }
  ],
- "_permissionsNote": "Neither app declares a single permission — no uses-permission in the Android manifest, no NS*UsageDescription on the iOS target. That is the strongest true sentence this product can say about itself, and several notices above depend on it: \"nothing here has a microphone\" is a special case of \"nothing here asks for anything\". A permission may be added only when a capability here names it under requiresPermissions, which forces whoever wants it to say which feature it serves, beside what is blocking that feature. scripts/check-boundaries.mjs fails an undeclared one on either platform — a whitelist, because the earlier version named RECORD_AUDIO and the microphone key specifically and would have let CAMERA or a location key through unnoticed."
+ "_permissionsNote": "Neither app declares a single permission — no uses-permission in the Android manifest, no NS*UsageDescription on the iOS target. That is the strongest true sentence this product can say about itself, and several notices above depend on it: \"nothing here has a microphone\" is a special case of \"nothing here asks for anything\". A permission may be added only when a capability here names it under requiresPermissions, which forces whoever wants it to say which feature it serves, beside what is blocking that feature. scripts/check-boundaries.mjs fails an undeclared one on either platform — a whitelist, because the earlier version named RECORD_AUDIO and the microphone key specifically and would have let CAMERA or a location key through unnoticed.",
+ "_simulationNote": "A capability has three states, not two. `absent` means nothing is behind it and the screen says so. `connected` means a contracted supplier answers, and the rule connected-needs-evidence holds it to a file that exists and an empty blockedBy. `simulated` is the third: a named simulator, running in this process, producing what the supplier would produce so the product can be walked end to end before anybody has signed anything. It was added because the founder asked to see the whole journey work, and the honest way to give him that is a third state rather than the second one. Marking these connected would have removed the notice from every screen and told a funder reading the status page that a health service is live. A simulated capability keeps its notice and changes what it says: not 'this is not switched on' but 'this is simulated, and here is what the simulation will not do'. blockedBy is untouched by simulation, because a simulator does not unblock anything — the SMS provider is still unsigned the day the simulated one works perfectly."
 }

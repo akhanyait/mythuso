@@ -37,14 +37,32 @@ export const capability = (id: string): Capability => {
 
 export const isConnected = (id: string) => capability(id).connected;
 
-/** The sentence to show, or nothing at all because the thing is real now. */
+export type CapabilityState = 'absent' | 'simulated' | 'connected';
+/* Three states, not two. `simulated` was added when the founder asked to walk the whole product end
+   to end before a single supplier had been signed, and the honest way to give him that was a third
+   state rather than the second one — marking these connected would have taken the notice off every
+   screen and told the status page a health service was live. See the contract's own
+   `simulated-is-not-connected` and `a-simulation-says-so`. */
+export const stateOf = (id: string): CapabilityState => capability(id).state as CapabilityState;
+export const isSimulated = (id: string) => stateOf(id) === 'simulated';
+
+/** What a simulator produces, and — the half worth reading — what it refuses to produce. */
+export const simulationOf = (id: string) => capability(id).simulation ?? null;
+
+/** The sentence to show, or nothing at all because the thing is real now.
+ *
+ *  A simulated capability is never quieter than an absent one. The failure this guards against is
+ *  not a screen that lies; it is a screen that stops speaking, because something answers now and
+ *  nobody notices that what answers is a fixture. So the notice only disappears at `connected`. */
 export const noticeFor = (id: string): string | null => {
  const found = capability(id);
- return found.connected ? null : found.notice;
+ if (found.connected) return null;
+ return found.simulation ? found.simulation.notice : found.notice;
 };
 
 /* What is standing between a capability and being real. Read by the admin console, which is the one
    surface whose job is to be honest about readiness rather than to get out of the way. */
 export const blockedBy = (id: string) => capability(id).blockedBy;
 export const connectedCount = capabilities.filter(c => c.connected).length;
+export const simulatedCount = capabilities.filter(c => c.state === 'simulated').length;
 export const everythingConnected = connectedCount === capabilities.length;

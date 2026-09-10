@@ -29,8 +29,14 @@ struct Capability: Identifiable, Hashable {
     /// A file somebody can open, or nil because there is nothing yet to point at.
     let evidence: String?
     let blockedBy: [String]
-    /// Rendered word for word while `connected` is false, and rendered by nobody once it is true.
+    /// What this capability says while nothing at all is behind it. A screen must not read this
+    /// directly — see `noticeToShow`, which is what a simulated capability says instead.
     let notice: String
+    /// "absent", "simulated" or "connected". The third state exists so the product can be walked end
+    /// to end before a supplier is signed, without the second state's claim being made.
+    let state: String
+    /// Present exactly when `state` is "simulated", and the build refuses any other combination.
+    let simulation: Simulation?
     let surfaces: [String]
     /// Carried by the two capabilities somebody would be tempted to soften — the voice, whose
     /// refusal is that no microphone affordance may be drawn at all, and the emergency pathway,
@@ -40,6 +46,19 @@ struct Capability: Identifiable, Hashable {
     /// which is what lets both native apps ask a device for nothing at all: the build refuses any
     /// permission no capability has named here.
     let requiresPermissions: [String]
+}
+
+/// A named stand-in, running in this process, producing what a supplier would produce.
+///
+/// The half worth reading is `refuses`. A simulation that refuses nothing is a fixture with a label
+/// on it, and the build fails on one that lists none.
+struct Simulation: Hashable {
+    let supplier: String
+    /// Rendered wherever the absent notice would have been. A simulated capability is never quieter
+    /// than an absent one: the failure guarded against is not a screen that lies, it is a screen
+    /// that stops speaking because something answers now and nobody notices it is a fixture.
+    let notice: String
+    let refuses: [String]
 }
 
 /// One of the rules about how the notices are used, rendered rather than only obeyed.
@@ -57,10 +76,14 @@ enum Capabilities {
     /// The sentence to show, or nothing at all because the thing is real now.
     static func notice(for id: String) -> String? {
         guard let capability = of(id), !capability.connected else { return nil }
-        return capability.notice
+        return capability.simulation?.notice ?? capability.notice
     }
 
     static func isConnected(_ id: String) -> Bool { of(id)?.connected ?? false }
+    static func isSimulated(_ id: String) -> Bool { of(id)?.state == "simulated" }
+
+    /// What a simulator stands in for, and what it will not do. Rendered on the readiness screens.
+    static func simulation(_ id: String) -> Simulation? { of(id)?.simulation }
 
     /// What stands between a capability and being real, in the contract's own words.
     static func blocking(_ id: String) -> [String] { of(id)?.blockedBy ?? [] }
@@ -70,4 +93,5 @@ enum Capabilities {
     static func neverSoften(_ id: String) -> String? { of(id)?.neverSoften }
 
     static var connectedCount: Int { all.filter(\.connected).count }
+    static var simulatedCount: Int { all.filter { $0.state == "simulated" }.count }
 }

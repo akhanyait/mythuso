@@ -19,6 +19,8 @@ package za.co.mythuso.model
  *  `neverSoften` is carried only by the two capabilities somebody would be tempted to soften, and
  *  `requiresPermissions` is empty on all of them — which is what lets both apps ask a device for
  *  nothing at all. */
+data class Simulation(val supplier: String, val notice: String, val refuses: List<String>)
+
 data class Capability(
     val id: String,
     val name: String,
@@ -26,10 +28,19 @@ data class Capability(
     val evidence: String?,
     val blockedBy: List<String>,
     val notice: String,
+    /** "absent", "simulated" or "connected". A simulated capability is never quieter than an absent
+     *  one: it renders [Simulation.notice] where the absent notice would have gone. */
+    val state: String,
+    val simulation: Simulation?,
     val surfaces: List<String>,
     val neverSoften: String?,
     val requiresPermissions: List<String>
-)
+) {
+    /** The sentence a screen shows, or null because the thing is real now. Never call [notice]
+     *  directly: a simulated capability that showed the absent sentence would be telling a nurse
+     *  nothing is connected while a simulator answers her. */
+    val noticeToShow: String? get() = if (connected) null else simulation?.notice ?: notice
+}
 
 data class CapabilityRule(val id: String, val statement: String, val why: String)
 
@@ -42,6 +53,12 @@ val capabilities = listOf(
             "An answer to what a one-time code costs somebody who has none. DNS and TLS were the second blocker here until 10 September and are done — mythuso.co.za serves https on both names, and the identity service is still switched off, because a certificate makes the endpoint safe to reach and does not make it safe to run."
         ),
         "Sign-in is not switched on yet. This account is local to your browser and disappears when you close it.",
+        "simulated",
+        Simulation("A simulated one-time-code channel, in process.", "Sign-in is simulated. The code is produced here and shown to you; no message leaves this machine and no provider is contacted.", listOf(
+            "Send anything to a real handset.",
+            "Accept a code it did not itself produce.",
+            "Survive a restart as a real account would."
+        )),
         listOf("sign-in", "profile", "sign-out"),
         null,
         emptyList()),
@@ -52,6 +69,12 @@ val capabilities = listOf(
             "Payment, because a visit nobody can pay for is not booked."
         ),
         "This does not book a visit. Nobody is dispatched and nothing is charged.",
+        "simulated",
+        Simulation("A simulated nurse roster, in process.", "The roster is simulated. These nurses are fictional and none of them has agreed to attend.", listOf(
+            "Commit a real person to a time.",
+            "Offer a nurse whose simulated vetting has lapsed.",
+            "Book outside a zone dispatch can reach."
+        )),
         listOf("booking", "visits", "visit-detail"),
         null,
         emptyList()),
@@ -62,6 +85,12 @@ val capabilities = listOf(
             "A merchant account."
         ),
         "No payment is taken. The prices shown are the catalogue's and no card is charged.",
+        "simulated",
+        Simulation("A simulated South African card and EFT provider, in process.", "Payment is simulated. No card is charged, no bank is contacted and no money moves.", listOf(
+            "Hold a card number, even a fictional one.",
+            "Settle, because settlement is a fact about a bank.",
+            "Produce a receipt that does not say it is simulated."
+        )),
         listOf("booking", "wallet", "plans"),
         null,
         emptyList()),
@@ -72,6 +101,12 @@ val capabilities = listOf(
             "Verified bank details, which need the identity service switched on."
         ),
         "No money moves. These figures are the catalogue's arithmetic on sample visits.",
+        "simulated",
+        Simulation("A simulated bank payout channel, in process.", "The payout is simulated. Nothing is paid, and the bank details on this screen are fictional.", listOf(
+            "Pay anybody.",
+            "Verify a real bank account.",
+            "Reverse a payout that never left."
+        )),
         listOf("earnings", "payout-history"),
         null,
         emptyList()),
@@ -82,6 +117,12 @@ val capabilities = listOf(
             "A contracted identity provider for the identity check."
         ),
         "No credential on this screen has been confirmed with the body that issued it. A reviewer has looked at a document the applicant supplied, which is not the same thing.",
+        "simulated",
+        Simulation("Simulated answers from the thirteen authorities, in process.", "Credential answers are simulated. No authority has been asked, and a cleared result here confirms nothing.", listOf(
+            "Answer for a registration number that is not in the simulated register.",
+            "Return cleared for a lapsed check.",
+            "Be read as confirmation by any screen that grants a capability."
+        )),
         listOf("vetting", "nurse-profile", "roster"),
         null,
         emptyList()),
@@ -93,6 +134,12 @@ val capabilities = listOf(
             "Booking, which is what would create something to dispatch."
         ),
         "Dispatch is not connected. These positions and visits are sample data, drawn from real coordinates.",
+        "simulated",
+        Simulation("Simulated nurse positions, in process.", "Positions are simulated. No device is reporting, and this movement is generated on this machine.", listOf(
+            "Carry a patient id, a visit id or an address.",
+            "Place a pin on anybody's home.",
+            "Claim an arrival time it has not derived."
+        )),
         listOf("dispatch", "control-tower", "incidents"),
         null,
         emptyList()),
@@ -104,6 +151,12 @@ val capabilities = listOf(
             "SA-resident hosting for special personal information."
         ),
         "This record is sample data. Nothing you type here is stored, and no real record exists behind this screen.",
+        "simulated",
+        Simulation("A simulated record store holding fictional records, in process.", "These records are simulated and every person in them is fictional. The controls around them are real and are exercised against this data.", listOf(
+            "Hold one fact about a real person.",
+            "Leave the consent gate or the access log unexercised.",
+            "Outlive the process it runs in."
+        )),
         listOf("passport", "patient-file", "assessment", "capture"),
         null,
         emptyList()),
@@ -114,6 +167,12 @@ val capabilities = listOf(
             "A doctor panel with a real rota."
         ),
         "This build has never asked this device for the camera or the microphone, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
+        "simulated",
+        Simulation("A simulated session broker, in process.", "The call is simulated. No camera or microphone is opened, and no media stack exists behind this screen.", listOf(
+            "Open a camera or a microphone.",
+            "Declare a media permission on either native app.",
+            "Simulate a line quality better than the ladder permits."
+        )),
         listOf("teleconsult", "waiting-room"),
         null,
         emptyList()),
@@ -123,6 +182,12 @@ val capabilities = listOf(
             "No model, no vendor and no licence. The frame around it — provenance, sign-off, conflict resolution — is built; the screening is not."
         ),
         "Nothing here is screened by software. The frame around a result is real; the result is sample data.",
+        "simulated",
+        Simulation("A simulated screening model, in process.", "This screening is simulated. No model produced it, and it is not a clinical opinion.", listOf(
+            "Issue a diagnosis.",
+            "Be signed off by anybody but a named clinician.",
+            "Produce an urgent result without naming a red flag the emergency contract holds."
+        )),
         listOf("capture", "screening-result", "review-queue"),
         null,
         emptyList()),
@@ -134,6 +199,8 @@ val capabilities = listOf(
             "Nothing has been designed for what happens to a recording of a person describing a symptom. Until that is answered under POPIA, there is nothing to switch on."
         ),
         "MyThuso cannot listen to you. Nothing here has a microphone, no speech is recorded or sent anywhere, and this is a drawing of an assistant rather than one.",
+        "absent",
+        null,
         listOf("assistant", "voice", "home"),
         "No microphone affordance may be drawn — not an enabled one, not a disabled one, not a decorative one. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.",
         emptyList()),
@@ -143,6 +210,12 @@ val capabilities = listOf(
             "No device is contacted. No Bluetooth or eSIM permission is declared."
         ),
         "No device is connected. These readings are sample data and no instrument has been paired.",
+        "simulated",
+        Simulation("A simulated instrument, in process.", "The instrument is simulated. No Bluetooth session is opened and no device is contacted.", listOf(
+            "Open a Bluetooth or eSIM session.",
+            "Declare a device permission on either native app.",
+            "Produce a reading without its provenance mark."
+        )),
         listOf("kit", "capture", "provenance"),
         null,
         emptyList()),
@@ -153,6 +226,12 @@ val capabilities = listOf(
             "A pharmacist's review of the substitution classes."
         ),
         "No prescription reaches a pharmacy. The substitution rules on this screen are real and have not been read by a pharmacist.",
+        "simulated",
+        Simulation("A simulated pharmacy network, in process.", "The pharmacy is simulated. No prescription is sent and no pharmacist has seen it.", listOf(
+            "Substitute outside the classes the Act permits.",
+            "Change a molecule or a strength.",
+            "Dispense without a simulated pharmacist's registration."
+        )),
         listOf("dispensing", "orders", "prescription"),
         null,
         emptyList()),
@@ -163,6 +242,12 @@ val capabilities = listOf(
             "SATI's accreditation route for SASL is drafted and unconfirmed."
         ),
         "No interpreter is contacted. The roster and the refusals are real; the people on it are not.",
+        "simulated",
+        Simulation("A simulated interpreter roster, in process.", "The interpreter is simulated. Nobody has been booked and nobody is expecting this visit.", listOf(
+            "Offer a family member or a child.",
+            "Charge a patient for a cancelled accommodation.",
+            "Dispatch a visit that needs an interpreter and has none."
+        )),
         listOf("interpreting", "booking", "teleconsult"),
         null,
         emptyList()),
@@ -172,6 +257,12 @@ val capabilities = listOf(
             "No SMS, email or push provider."
         ),
         "Nothing is sent. No message, invitation or reminder reaches anybody.",
+        "simulated",
+        Simulation("A simulated delivery channel, in process.", "Messages are simulated. A receipt is produced here; nothing reaches a handset, an inbox or a push service.", listOf(
+            "Reach any address outside this machine.",
+            "Report a delivery it did not simulate.",
+            "Retry, because a simulated failure is a chosen failure."
+        )),
         listOf("family", "invitations", "notifications", "requests"),
         null,
         emptyList()),
@@ -183,6 +274,12 @@ val capabilities = listOf(
             "The routing questions have not been reviewed by a clinician."
         ),
         "This does not call anybody. In a real emergency dial 10177 or 112 from your phone.",
+        "simulated",
+        Simulation("A simulated acknowledgement channel, in process.", "This acknowledgement is simulated. No ambulance service has been contacted. In a real emergency call 10177, or 112 from a mobile.", listOf(
+            "Replace or delay the emergency numbers on any screen.",
+            "Claim an ambulance is coming.",
+            "Answer at all until the real numbers have been shown first."
+        )),
         listOf("sos", "alert"),
         "The ambulance number on this screen is real and always shown first, connected or not. The one refusal on this pathway that is not about MyThuso is the one that matters most.",
         emptyList())
@@ -202,5 +299,17 @@ val capabilityRules = listOf(
         "The failure mode is never a lie. It is somebody clearing a banner off a layout because the screenshot looked better without it."),
     CapabilityRule("scaffolding-is-not-a-disclosure",
         "A role switcher, a state picker and a gallery of loading states are development tools. They are removed from what ships, and removing them says nothing about whether anything is connected.",
-        "The two got tangled: taking the demo furniture out felt like claiming the product was live. They are separate questions and this file answers only the second.")
+        "The two got tangled: taking the demo furniture out felt like claiming the product was live. They are separate questions and this file answers only the second."),
+    CapabilityRule("simulated-is-not-connected",
+        "`state: simulated` never sets `connected: true`, and the two may not disagree. A simulated capability still lists everything blocking it.",
+        "The whole hazard of a simulator is that it works. A person who has watched a payment go through end to end is one edit away from believing a payment provider exists, and the status page is the page a funder reads. So the boolean that removes every notice in the product is left alone, and the build fails if the state and the boolean drift apart."),
+    CapabilityRule("a-simulation-says-so",
+        "A simulated capability renders its simulation notice, word for word, wherever the absent notice would have rendered. No screen may be quieter for being simulated than it was for being absent.",
+        "The failure mode is not a screen that lies. It is a screen that stops speaking: the sentence goes away because something now answers, and nobody notices that what answers is a fixture. Silence is the disclosure failure, so the notice never disappears until the state is connected."),
+    CapabilityRule("a-simulation-is-not-reachable-from-the-network",
+        "No simulator may be reached over HTTP. The eleven feed routes go on refusing every payload, and a simulated event enters in process through a function of its own.",
+        "apps/api/src/feeds/index.ts argues that a route which could accept under some condition is a route somebody finds the condition for, usually late at night with a vendor on the phone. A simulation flag on those routes would be exactly that condition. So `decide` still has no acceptance to construct, and the simulators sit beside the boundary rather than inside it."),
+    CapabilityRule("voice-stays-absent",
+        "`voice` is the one capability not simulated, and that is a decision rather than an omission.",
+        "Simulating speech means one of two things: declaring a microphone permission, which the capability forbids anywhere in either app, or rendering a transcript of something nobody said. The blocker on voice was never the vendor — it is that nothing has been designed for what happens to a recording of a person describing a symptom in their own home. A simulator would produce a working screen on top of that undecided question, which is the shape of every readiness claim this file exists to refuse.")
 )

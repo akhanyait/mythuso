@@ -1483,6 +1483,36 @@ for(const c of capabilities.capabilities) {
   if(!existsSync(c.evidence)) throw new Error(`Capability "${c.id}" is marked connected and its evidence "${c.evidence}" does not exist. Something was deleted, or the claim was never true.`);
   if(c.blockedBy?.length) throw new Error(`Capability "${c.id}" is marked connected and still lists ${c.blockedBy.length} thing(s) blocking it, beginning "${c.blockedBy[0]}". Clear the list or clear the flag — a capability cannot be both.`);
  }
+ /* The third state, and the four things that keep it from becoming the second one.
+  *
+  * `simulated` exists because the founder asked to walk the whole product end to end before any
+  * supplier was signed. The honest way to give him that was a third state; marking these connected
+  * would have taken the notice off every screen and told the status page a health service was live.
+  *
+  * The hazard of a simulator is precisely that it works. Somebody who has watched a payment go
+  * through is one edit away from believing a payment provider exists. So four things are checked,
+  * and each of them is the reason a different person would have got this wrong:
+  *
+  *  1. The state and the boolean may not disagree. `connected` is what removes every notice in the
+  *     product, and it is left alone.
+  *  2. A simulation declares what it refuses. A block with a supplier and a notice and no refusals
+  *     is a fixture with a label on it; the refusals are the part that is worth reading.
+  *  3. A simulated capability still lists everything blocking it. A simulator unblocks nothing —
+  *     the SMS provider is still unsigned the day the simulated one works perfectly.
+  *  4. Nothing simulated is reachable over the network, which the eleven feed routes enforce for
+  *     real and this field records as an intention somebody would have to edit to break. */
+ const STATES = ['absent', 'simulated', 'connected'];
+ if(!STATES.includes(c.state)) throw new Error(`Capability "${c.id}" has state ${JSON.stringify(c.state)}, which is not one of ${STATES.join(', ')}. A capability with an unreadable state is one every screen guesses about.`);
+ if(c.connected !== (c.state === 'connected')) throw new Error(`Capability "${c.id}" says state "${c.state}" and connected ${c.connected}. Those are the same fact written twice and they disagree, which is the drift the simulated state was introduced to survive.`);
+ if(c.state === 'simulated') {
+  const sim = c.simulation;
+  if(!sim) throw new Error(`Capability "${c.id}" is marked simulated and carries no simulation block. Simulated is a claim that something answers; it needs to say what, and what it will not do.`);
+  if(!sim.supplier || !sim.notice) throw new Error(`Capability "${c.id}"'s simulation names no supplier or no notice. The notice is what the screen renders instead of falling silent, and silence is the disclosure failure this state was built to avoid.`);
+  if(!sim.refuses?.length) throw new Error(`Capability "${c.id}"'s simulation refuses nothing. A simulation that refuses nothing is a fixture with a label on it, and the refusals are the half worth reading.`);
+  if(sim.reachableFromTheNetwork !== false) throw new Error(`Capability "${c.id}"'s simulation does not declare itself unreachable from the network. The eleven feed routes accept nothing and a simulated event enters in process; a simulator on a route is the condition somebody finds at two in the morning with a vendor on the phone.`);
+  if(!c.blockedBy?.length) throw new Error(`Capability "${c.id}" is simulated and lists nothing blocking it. A simulator unblocks nothing — whoever it stands in for is still unsigned — and an empty blockedBy here is how a simulation quietly becomes a claim.`);
+  if(!c.notice) throw new Error(`Capability "${c.id}" is simulated and has dropped the sentence it said while absent. Keep it: the day the simulator is removed the screen must have something true to say.`);
+ }
 }
 /* Nothing here asks a device for anything.
    Neither app declares a single permission: no uses-permission in the Android manifest, no

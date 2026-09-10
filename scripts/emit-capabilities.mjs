@@ -81,7 +81,13 @@ export function emitCapabilities(root = '') {
    }
   }
   if (typeof capability.connected !== 'boolean') throw new Error(`Capability "${capability.id}" does not say whether it is connected, which is the only question this contract exists to answer.`);
- }
+
+  /* Three states, and the generator refuses a contract that half-declares one. A simulated
+     capability whose block did not reach the native apps would render the absent sentence — a nurse
+     told nothing is connected while a simulator answers her, which is the disclosure failure the
+     third state was introduced to prevent rather than a cosmetic one. */
+  if (!['absent', 'simulated', 'connected'].includes(capability.state)) throw new Error(`Capability "${capability.id}" has state ${JSON.stringify(capability.state)}. A generated file cannot carry a state nothing declares.`);
+  if ((capability.state === 'simulated') !== Boolean(capability.simulation)) throw new Error(`Capability "${capability.id}" says state "${capability.state}" and ${capability.simulation ? 'carries' : 'carries no'} simulation block. One of the two is wrong and the generated file would ship it to three platforms.`); }
  for (const rule of contract.rules) {
   for (const field of ['id', 'statement', 'why']) {
    if (typeof rule[field] !== 'string' || !rule[field]) throw new Error(`Rule "${rule.id ?? '?'}" has no ${field}.`);
@@ -101,6 +107,12 @@ ${contract.capabilities.map(c => `        Capability(id: ${swift(c.id)}, name: $
 ${(c.blockedBy ?? []).map(x => `                       ${swift(x)}`).join(',\n')}
                    ],
                    notice: ${swift(c.notice)},
+                   state: ${swift(c.state)},
+                   simulation: ${c.simulation ? `Simulation(supplier: ${swift(c.simulation.supplier)},
+                                              notice: ${swift(c.simulation.notice)},
+                                              refuses: [
+${c.simulation.refuses.map(x => `                                                  ${swift(x)}`).join(',\n')}
+                                              ])` : 'nil'},
                    surfaces: ${listSwift(c.surfaces ?? [])},
                    neverSoften: ${optionalSwift(c.neverSoften)},
                    requiresPermissions: ${listSwift(c.requiresPermissions ?? [])})`).join(',\n')}
@@ -129,6 +141,8 @@ package za.co.mythuso.model
  *  \`neverSoften\` is carried only by the two capabilities somebody would be tempted to soften, and
  *  \`requiresPermissions\` is empty on all of them — which is what lets both apps ask a device for
  *  nothing at all. */
+data class Simulation(val supplier: String, val notice: String, val refuses: List<String>)
+
 data class Capability(
     val id: String,
     val name: String,
@@ -136,10 +150,19 @@ data class Capability(
     val evidence: String?,
     val blockedBy: List<String>,
     val notice: String,
+    /** "absent", "simulated" or "connected". A simulated capability is never quieter than an absent
+     *  one: it renders [Simulation.notice] where the absent notice would have gone. */
+    val state: String,
+    val simulation: Simulation?,
     val surfaces: List<String>,
     val neverSoften: String?,
     val requiresPermissions: List<String>
-)
+) {
+    /** The sentence a screen shows, or null because the thing is real now. Never call [notice]
+     *  directly: a simulated capability that showed the absent sentence would be telling a nurse
+     *  nothing is connected while a simulator answers her. */
+    val noticeToShow: String? get() = if (connected) null else simulation?.notice ?: notice
+}
 
 data class CapabilityRule(val id: String, val statement: String, val why: String)
 
@@ -151,6 +174,10 @@ ${contract.capabilities.map(c => `    Capability(${kotlin(c.id)}, ${kotlin(c.nam
 ${(c.blockedBy ?? []).map(x => `            ${kotlin(x)}`).join(',\n')}
         ),
         ${kotlin(c.notice)},
+        ${kotlin(c.state)},
+        ${c.simulation ? `Simulation(${kotlin(c.simulation.supplier)}, ${kotlin(c.simulation.notice)}, listOf(
+${c.simulation.refuses.map(x => `            ${kotlin(x)}`).join(',\n')}
+        ))` : 'null'},
         ${listKotlin(c.surfaces ?? [])},
         ${optionalKotlin(c.neverSoften)},
         ${listKotlin(c.requiresPermissions ?? [])})`).join(',\n')}
