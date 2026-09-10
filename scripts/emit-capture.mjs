@@ -24,6 +24,13 @@
    on Android, where the file loses a lost phone and a second device exactly as the iOS one does and
    the sentence on screen mentions neither. Holding both is what makes that gap visible.
 
+   AND WHAT THE STORE DOES NOT SURVIVE IS NOT THE ONLY WAY IT CAN FAIL A NURSE. A store that is
+   working perfectly can still be handed to a phone with no room left on it, and that is a third
+   thing again from a disk that refuses a write without saying why and from a file that was written
+   correctly and will not read back. `writeFailures` is those three, on the same two-field shape:
+   `leaves` is outcome ids, `says` is the sentence. They were three sentences inside Android's
+   FileBook and nowhere else, so the day iOS grew one it would have grown a fourth author.
+
    Escaping: Swift needs its quotes escaped; Kotlin needs backslash, quote and dollar, because a
    lone $ starts a template. The sentences carry curly quotes, em-dashes and apostrophes, all of
    which are plain UTF-8 and need nothing. */
@@ -70,12 +77,40 @@ export function emitCapture(root = '') {
   if (both.length) throw new Error(`Store "${store.id}" both survives and is lost to ${both.join(', ')}. A store cannot do both, and a screen rendering this would say both.`);
  }
 
+ /* The same last-cheap-catch for the write failures. An outcome nobody declared, or a `saysFrom`
+    pointing at a promise this contract has not got, would compile into both apps as a string that
+    resolves to nothing — which on this section means a screen with an empty refusal on it. */
+ const outcomeIds = new Set(d.writeFailures.outcomes.map(o => o.id));
+ const failureSentence = failure => {
+  if (failure.says && failure.saysFrom) throw new Error(`Write failure "${failure.id}" carries both a says and a saysFrom. Two sources for one sentence is the drift this section exists to stop.`);
+  if (failure.says) return failure.says;
+  const promise = d[failure.saysFrom]?.sentence;
+  if (!promise) throw new Error(`Write failure "${failure.id}" says the sentence of "${failure.saysFrom}", which packages/catalog/capture.json's durability section has not got.`);
+  return promise;
+ };
+ const storeIds = new Set(d.stores.map(s => s.id));
+ for (const failure of d.writeFailures.failures) {
+  for (const id of failure.leaves) {
+   if (!outcomeIds.has(id)) throw new Error(`Write failure "${failure.id}" leaves "${id}" true, which is not in durability.writeFailures.outcomes`);
+  }
+  for (const id of failure.saidBy) {
+   if (!storeIds.has(id)) throw new Error(`Write failure "${failure.id}" is said by the store "${id}", which is not in durability.stores`);
+  }
+  failureSentence(failure);
+ }
+
  const swiftStore = s => `        .init(id: ${swift(s.id)}, platform: ${swift(s.platform)}, kind: ${swift(s.kind)},
               heldIn: ${swift(s.where)},
               survives: ${swiftList(s.survives)},
               lostTo: ${swiftList(s.lostTo)},
               saysSurvives: [${s.says.survives.map(line => `\n                  ${swift(line)}`).join(',')}],
               saysLostTo: [${s.says.lostTo.map(line => `\n                  ${swift(line)}`).join(',')}])`;
+
+ const swiftFailure = f => `        .init(id: ${swift(f.id)}, name: ${swift(f.name)},
+              detectedBy: ${swift(f.detectedBy)},
+              leaves: ${swiftList(f.leaves)},
+              says: ${swift(failureSentence(f))},
+              saidBy: ${swiftList(f.saidBy)})`;
 
  const swiftFile = `${banner()}
 
@@ -98,6 +133,20 @@ enum CaptureData {
         let saysSurvives: [String]
         let saysLostTo: [String]
     }
+    /// What is still true after the disk has refused the work. Named once, so that two platforms
+    /// cannot promise the same thing in words a check cannot compare.
+    struct WriteOutcome: Identifiable, Hashable { let id: String; let name: String }
+    /// A way the disk refuses. \`leaves\` is behaviour, in outcome ids; \`says\` is the one sentence
+    /// a screen renders; \`saidBy\` is which stores render it today, and it is deliberately not
+    /// every store that can suffer it.
+    struct WriteFailure: Identifiable, Hashable {
+        let id: String
+        let name: String
+        let detectedBy: String
+        let leaves: [String]
+        let says: String
+        let saidBy: [String]
+    }
 
 ${d._note.match(/.{1,94}(\s|$)/g).map(line => `    // ${line.trim()}`).join('\n')}
     static let durabilityEvents: [DurabilityEvent] = [
@@ -113,6 +162,20 @@ ${d.stores.map(swiftStore).join(',\n')}
     /// place.
     static func stores(on platform: String) -> [Store] { stores.filter { $0.platform == platform } }
     static func store(_ id: String) -> Store? { stores.first { $0.id == id } }
+
+${d.writeFailures._shape.match(/.{1,94}(\s|$)/g).map(line => `    // ${line.trim()}`).join('\n')}
+    static let writeOutcomes: [WriteOutcome] = [
+${d.writeFailures.outcomes.map(o => `        .init(id: ${swift(o.id)}, name: ${swift(o.name)})`).join(',\n')}
+    ]
+    static func writeOutcome(_ id: String) -> WriteOutcome? { writeOutcomes.first { $0.id == id } }
+
+    static let writeFailures: [WriteFailure] = [
+${d.writeFailures.failures.map(swiftFailure).join(',\n')}
+    ]
+    static func writeFailure(_ id: String) -> WriteFailure? { writeFailures.first { $0.id == id } }
+    /// The refusals a given store's screen renders today. A store with none of them is not a store
+    /// that cannot fail; it is a screen that has nothing to say when it does.
+    static func writeFailures(saidBy store: String) -> [WriteFailure] { writeFailures.filter { $0.saidBy.contains(store) } }
 
     /// ${d.quarantinedFile.why}
     static let quarantinedFile = ${swift(d.quarantinedFile.sentence)}
@@ -135,6 +198,14 @@ ${d.stores.map(swiftStore).join(',\n')}
         ${kotlinList(s.lostTo)},
         ${saysList(s.says.survives)},
         ${saysList(s.says.lostTo)}
+    )`;
+
+ const kotlinFailure = f => `    WriteFailure(
+        ${kotlin(f.id)}, ${kotlin(f.name)},
+        ${kotlin(f.detectedBy)},
+        ${kotlinList(f.leaves)},
+        ${kotlin(failureSentence(f))},
+        ${kotlinList(f.saidBy)}
     )`;
 
  const kotlinFile = `${banner()}
@@ -163,6 +234,26 @@ data class QueueStore(
     val saysLostTo: List<String>
 )
 
+/**
+ * What is still true after the disk has refused the work. Named once, so that two platforms cannot
+ * promise the same thing in words a check cannot compare.
+ */
+data class WriteOutcome(val id: String, val name: String)
+
+/**
+ * A way the disk refuses. leaves is behaviour, in outcome ids; says is the one sentence a screen
+ * renders; saidBy is which stores render it today, and it is deliberately not every store that can
+ * suffer it.
+ */
+data class WriteFailure(
+    val id: String,
+    val name: String,
+    val detectedBy: String,
+    val leaves: List<String>,
+    val says: String,
+    val saidBy: List<String>
+)
+
 ${d._note.match(/.{1,94}(\s|$)/g).map((line, i) => `${i ? '   ' : '/* '}${line.trim()}`).join('\n')} */
 val durabilityEvents = listOf(
 ${d.events.map(e => `    DurabilityEvent(${kotlin(e.id)}, ${kotlin(e.name)}),`).join('\n')}
@@ -172,6 +263,15 @@ val queueStores = listOf(
 ${d.stores.map(store => kotlinStore(store) + ',').join('\n')}
 )
 
+${d.writeFailures._shape.match(/.{1,94}(\s|$)/g).map((line, i) => `${i ? '   ' : '/* '}${line.trim()}`).join('\n')} */
+val writeOutcomes = listOf(
+${d.writeFailures.outcomes.map(o => `    WriteOutcome(${kotlin(o.id)}, ${kotlin(o.name)}),`).join('\n')}
+)
+
+val writeFailures = listOf(
+${d.writeFailures.failures.map(failure => kotlinFailure(failure) + ',').join('\n')}
+)
+
 object CaptureData {
     fun durabilityEvent(id: String) = durabilityEvents.firstOrNull { it.id == id }
     /* The stores this platform actually has. A screen asks for its own and never renders another
@@ -179,6 +279,12 @@ object CaptureData {
        place. */
     fun stores(platform: String) = queueStores.filter { it.platform == platform }
     fun store(id: String) = queueStores.firstOrNull { it.id == id }
+
+    fun writeOutcome(id: String) = writeOutcomes.firstOrNull { it.id == id }
+    fun writeFailure(id: String) = writeFailures.firstOrNull { it.id == id }
+    /* The refusals a given store's screen renders today. A store with none of them is not a store
+       that cannot fail; it is a screen that has nothing to say when it does. */
+    fun writeFailuresSaidBy(store: String) = writeFailures.filter { store in it.saidBy }
 
     /* ${d.quarantinedFile.why} */
     const val quarantinedFile = ${kotlin(d.quarantinedFile.sentence)}

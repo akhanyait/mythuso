@@ -166,6 +166,33 @@ the person it was "deleted with everything else". Both are fixed, both are teste
 boundary check refuses `write_windows` any column somebody could be identified by, because the whole
 justification for keeping it for ever is that there is nobody in it.
 
+**The only caller in this repository was asked, and it settled nothing.** The obvious candidate is
+the Playwright suite: it drives real HTTP at this service through the app's own `/api` proxy, and a
+full run is the busiest thing anybody here has ever pointed at it. So it was run against a live
+service on 10 September 2026 — 363 tests, both viewports — and the answer is that the harness is not
+a caller and does not become one by being busy. The proxy sets `changeOrigin`, so every request in
+the run arrives from one loopback address and the service sees a single caller; and of the sixty
+requests that caller was allowed before the limiter closed, **fifty-nine were `GET /health`** — the
+liveness probe the web app makes when a page loads — and the sixtieth was the `GET /health/limits`
+that read the measurement back. Nothing was signed up, nothing was consented to and nobody was
+vetted, because the suite drives a design preview that is built to run with no backend at all. The
+busiest window it can produce is a count of how many pages a browser opened, which is an answer to a
+different question. **Sixty is still a proposal, it is unchanged, and the paragraph above still
+describes the only two things that would settle it.** A test harness is not a nurse, and reporting
+its arithmetic as a measurement would be worse than having none.
+
+**One thing that run did find, and it is a decision rather than a number.** Those sixty were spent in
+five and a half minutes, and the rest of the run made **561 refused requests** — every one of them
+the same health probe on another page load. Read against the criterion above, *it is wrong the moment
+`refused` is not zero*, that is a limiter set absurdly low. It is not. It is a liveness probe being
+counted as something a caller chose to do, and one browser reloaded sixty times — or one office
+behind one router — arrives at the same place. Whether `GET /health` belongs inside a per-caller
+write budget at all is a decision about what a legitimate caller may do, which is the kind of
+decision this section exists to record rather than have somebody make quietly at three in the
+morning. It is not made here. What is written down here is that the question exists, that the 561 is
+not evidence about sixty, and that whatever `busiest` a suite run produces must never be quoted as
+though a person had done it.
+
 Three routes are exempt and only three: `POST /auth/start`, `/auth/verify` and `/auth/second-factor`,
 each of which already carries a tighter limit of its own counted against the mobile number, the
 address or the challenge. A boundary check refuses any addition to that list, because a route nobody

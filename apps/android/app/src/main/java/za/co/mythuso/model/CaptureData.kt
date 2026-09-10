@@ -32,6 +32,26 @@ data class QueueStore(
     val saysLostTo: List<String>
 )
 
+/**
+ * What is still true after the disk has refused the work. Named once, so that two platforms cannot
+ * promise the same thing in words a check cannot compare.
+ */
+data class WriteOutcome(val id: String, val name: String)
+
+/**
+ * A way the disk refuses. leaves is behaviour, in outcome ids; says is the one sentence a screen
+ * renders; saidBy is which stores render it today, and it is deliberately not every store that can
+ * suffer it.
+ */
+data class WriteFailure(
+    val id: String,
+    val name: String,
+    val detectedBy: String,
+    val leaves: List<String>,
+    val says: String,
+    val saidBy: List<String>
+)
+
 /* What the offline queue survives, and what loses it — as data, per platform, because it was
    prose twice about the same disk. Android's FileBook carried three sentences about a JSON file
    in the app's private storage; iOS's CaptureQueueView and VisitQueueView carried six about a
@@ -125,6 +145,47 @@ val queueStores = listOf(
     ),
 )
 
+/* The same separation the stores above use, and it is the point of both. `leaves` is what is
+   true after the failure, in outcome ids — behaviour, comparable between failures and checkable
+   across platforms. `says` is the one sentence a screen renders, word for word. `saidBy` is
+   which stores render it today, and it is deliberately not every store that can suffer the
+   failure: iOS's two file queues can run a phone out of room exactly as Android's can, and
+   neither of them says anything at all. That gap is left visible here rather than papered over,
+   which is what holding both fields is for. */
+val writeOutcomes = listOf(
+    WriteOutcome("held-in-memory", "The work is still in memory and still on the screen"),
+    WriteOutcome("not-on-disk", "The work is not on the disk, so closing the app now loses it"),
+    WriteOutcome("earlier-writes-intact", "Whatever was written down before this is untouched"),
+    WriteOutcome("nothing-deleted", "Nothing is deleted or overwritten to get past it"),
+    WriteOutcome("person-can-clear-it", "The person holding the phone can do something that clears it"),
+    WriteOutcome("renamed-aside", "The file that would not read back is renamed aside and kept"),
+    WriteOutcome("new-name-on-screen", "What that file is now called is on the screen"),
+)
+
+val writeFailures = listOf(
+    WriteFailure(
+        "disk-full", "The phone has no room left",
+        "The write threw, and the failure or one of the causes behind it named ENOSPC or said there was no space left on the device.",
+        listOf("held-in-memory", "not-on-disk", "earlier-writes-intact", "nothing-deleted", "person-can-clear-it"),
+        "This phone has no room left, so what you have just done could not be written down. It is still on the screen and it is still yours, but it is not on the disk: if the app closes now, it is gone. Free some space on the phone and it will be written again.",
+        listOf("android-private-file")
+    ),
+    WriteFailure(
+        "write-refused", "The disk would not take it, and did not say why",
+        "The write threw for any other reason.",
+        listOf("held-in-memory", "not-on-disk", "earlier-writes-intact", "nothing-deleted"),
+        "This phone would not take the write, and it did not say why. What you have just done is still on the screen and still yours, but it is not on the disk: if the app closes now, it is gone. Nothing that was already written down has been touched.",
+        listOf("android-private-file")
+    ),
+    WriteFailure(
+        "will-not-parse", "What is on the disk will not read back",
+        "The file exists and the parser would not take it. It is renamed aside before anything else is written to that name.",
+        listOf("nothing-deleted", "renamed-aside", "new-name-on-screen"),
+        "A file that will not parse is kept, not deleted. Losing work to a bad parse is still losing work.",
+        emptyList()
+    ),
+)
+
 object CaptureData {
     fun durabilityEvent(id: String) = durabilityEvents.firstOrNull { it.id == id }
     /* The stores this platform actually has. A screen asks for its own and never renders another
@@ -132,6 +193,12 @@ object CaptureData {
        place. */
     fun stores(platform: String) = queueStores.filter { it.platform == platform }
     fun store(id: String) = queueStores.firstOrNull { it.id == id }
+
+    fun writeOutcome(id: String) = writeOutcomes.firstOrNull { it.id == id }
+    fun writeFailure(id: String) = writeFailures.firstOrNull { it.id == id }
+    /* The refusals a given store's screen renders today. A store with none of them is not a store
+       that cannot fail; it is a screen that has nothing to say when it does. */
+    fun writeFailuresSaidBy(store: String) = writeFailures.filter { store in it.saidBy }
 
     /* The sibling of queuedIsNotLost: never dropped to make a sync succeed has to mean never dropped to make a parse succeed either. The unreadable file is renamed aside and the screen says what it is now called, because a screen that says work was kept and cannot say where it was kept has asked to be believed rather than checked. */
     const val quarantinedFile = "A file that will not parse is kept, not deleted. Losing work to a bad parse is still losing work."
