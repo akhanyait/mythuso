@@ -1,4 +1,4 @@
-import { createProtectionModule } from './protection/index.ts';
+import { createProtectionModule, parseWitness, renderWitness } from './protection/index.ts';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createHash, randomUUID } from 'node:crypto';
 import { loadConfig, limits, type Config } from './config.ts';
@@ -25,6 +25,10 @@ import {
 } from './consent/index.ts';
 
 import { SEALED_COLUMNS, VettingVault, authorityVerifiers, createIdentityProvider, openVettingStore, roleName, vettingSource } from './vetting/index.ts';
+import {
+  FEEDS, FEED_RULES, NO_SEAM as FEED_NO_SEAM, REFUSAL_SENTENCES as FEED_REFUSAL_KINDS,
+  decide as decideFeed, describe as describeFeed
+} from './feeds/index.ts';
 
 const COOKIE = 'mythuso_session';
 type Handler = (req: IncomingMessage, res: ServerResponse, body: Record<string, unknown>, caller: Caller) => void;
@@ -978,10 +982,39 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
      answers on the loopback to a script, and what it is for is noticing, not reading. */
   routes.set('GET /health/audit', (_req, res) => {
     if (!protection) return send(res, 200, { configured: false, note: 'No protection keys are configured, so there is no chain to verify.' });
+    /* The witness statement is rendered here and it is not sent anywhere. Publishing a head is
+       absent and stays absent: the whole value of it is that the place it goes is not MyThuso's, and
+       a second endpoint on the same box is the operator publishing to the operator. What is new is
+       that there is now something to hand somebody, and — the half that was actually missing —
+       something to do with it when they hand it back. See the header of protection/witness.ts. */
     send(res, 200, {
       configured: true, ...protection.audit.verify(),
+      witness: {
+        statement: renderWitness(protection.witness(new Date(Date.now()).toISOString())),
+        published: false,
+        publishedTo: null,
+        note: 'Nothing here publishes this. A head written down by the operator and kept by the operator establishes nothing; what closes that is a notary, a regulator, a partner or a public transparency log, which is an agreement rather than a function. What this service can now do is answer whether it is still the same chain when a statement is brought back — POST /health/witness, on the loopback.'
+      },
       ...(vetting ? { bootstrap: vetting.bootstrapStanding() } : {})
     });
+  });
+  /**
+   * A statement from the past, brought back.
+   *
+   * The one question a hash chain cannot answer about itself: an empty log verifies, because there
+   * is nothing left to contradict it. Against a length and a head that somebody else has been
+   * holding, truncation stops being invisible.
+   *
+   * A POST on the loopback and deliberately not a route anybody else can reach, for a reason that is
+   * about the answer rather than the question: a public endpoint that says "no, this chain was
+   * truncated" is a public endpoint announcing an incident before the Information Officer has heard
+   * of it, and one that says yes is an oracle for testing forgeries against.
+   */
+  routes.set('POST /health/witness', (_req, res, body) => {
+    if (!protection) return send(res, 200, { configured: false, note: 'No protection keys are configured, so there is no chain to check a statement against.' });
+    const previous = parseWitness(asString(body.statement));
+    if (!previous) return send(res, 400, { error: 'unreadable-statement', message: 'That is not a witness statement this service wrote. It is refused rather than half-read: a statement that parses loosely is one that can be made to say a shorter chain than it did.' });
+    send(res, 200, { configured: true, ...protection.witnessCheck(previous) });
   });
   /* Whether the log of who opened whose record still says what it said when it was written.
      Separate from /health/audit because the two answer different questions and can fail
@@ -1006,6 +1039,29 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     if (!vetting) return send(res, 200, { configured: false, note: 'No protection keys are configured, so there is no vault and no verification layer.' });
     send(res, 200, { configured: true, ...vetting.verificationStanding() });
   });
+  /**
+   * The material that would settle the one number in this service that is a proposal.
+   *
+   * `limits.writesPerCallerPerWindow` is sixty and it says beside itself that nobody arrived at it
+   * by watching anybody, because there is nobody to watch. This answers the two questions that would
+   * change it: how close does an honest caller actually come to sixty (`busiest`, which is a lower
+   * bound — see the WriteWindow note in store.ts), and how often was sixty not enough (`refused`,
+   * which is exact).
+   *
+   * Loopback only, like the other three, and for a plainer reason than theirs: these numbers are not
+   * about anybody at all, but a public endpoint reporting how busy a service is and when it starts
+   * refusing is a public endpoint telling somebody how much traffic it takes to reach the ceiling.
+   */
+  routes.set('GET /health/limits', (_req, res) => send(res, 200, {
+    limit: limits.writesPerCallerPerWindow,
+    windowSeconds: limits.rateWindowSeconds,
+    settled: false,
+    whatWouldSettleIt:
+      'The largest number of requests a real caller makes in fifteen minutes, watched over enough weeks to include a reviewer clearing a backlog, and the number of times the limit refused somebody who was working honestly. Both are below. Neither means anything yet: there are no real callers, so every window here is a developer or a test.',
+    windows: store.writeWindows(96),
+    windowsNote:
+      'A window appears only after the sweep has rolled it up, which happens once the attempts behind it are older than any limiter can still count. busiest is the most one caller did inside a fixed fifteen-minute bucket and is therefore a lower bound on what the sliding limiter saw; refused is exact. There is no account, no address and no route in any of them.'
+  }));
 
   /**
    * The accredited identity provider's callback.
@@ -1027,6 +1083,74 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     if (!verdict.ok) return send(res, 401, { error: 'callback-refused' });
     send(res, 200, { ok: true, repeated: verdict.repeated });
   });
+
+  /* ---- The eleven doors that are all locked -------------------------------------------------
+   *
+   * One route per feed in packages/catalog/feeds.json, registered from the contract rather than
+   * written out, so a feed added next year cannot forget to be refused. Every one of them accepts
+   * nothing: it reads the payload, refuses it, records that it refused, and answers with the
+   * capability's own not-connected sentence out of packages/catalog/capabilities.json.
+   *
+   * They are POSTs and they are not in SELF_LIMITED, so the caller limit in handle() already holds
+   * them by address — a vendor pointing a retry loop at a route that will never accept anything is
+   * exactly the caller that limit was written for.
+   *
+   * The refusal goes into the gate's hash chain rather than into a table of its own. Two reasons.
+   * The chain is already tamper-evident and already has a field allowlist that throws on anything
+   * outside it, which is the property that matters most for a log fed by strangers; and every string
+   * written here comes out of a file in this repository — the contract's name for a forbidden field,
+   * the contract's refusal kind, our own declared field names — so there is no path by which a key a
+   * vendor typed reaches the log. What is not in the contract is counted, never named. See the
+   * header of apps/api/src/feeds/index.ts, which is where that rule is argued.
+   *
+   * Where there are no protection keys there is no chain, and the refusal is still a refusal — it is
+   * simply not written down. That is the same state in which the gate decides nothing and the access
+   * log is not opened, and config.ts already refuses to start production in it.
+   */
+  for (const feed of FEEDS) {
+    routes.set(`POST /feeds/${feed.id}`, (_req, res, body, caller) => {
+      const refusal = decideFeed(feed, body);
+      protection?.audit.append({
+        event: 'feed.refused', capability: refusal.capability, purpose: 'feed-ingestion',
+        recordType: 'feed', recordId: refusal.feed,
+        ...(refusal.forbidden ? { field: refusal.forbidden.field } : {}),
+        allowed: false, reason: refusal.sentence,
+        blockedBy: [
+          refusal.kind,
+          ...refusal.missing.map(field => `missing:${field}`),
+          ...refusal.wrongType.map(field => `wrong-type:${field}`),
+          ...(refusal.unknownFields ? [`undeclared-fields:${refusal.unknownFields}`] : [])
+        ]
+      });
+      /* The caller's address is deliberately not in the entry above. It is already counted by the
+         write limiter, and an audit entry is about what was refused rather than about who is on the
+         other end of a connection nobody has contracted with yet. */
+      void caller;
+      send(res, refusal.status, {
+        error: refusal.kind,
+        feed: refusal.feed,
+        capability: refusal.capability,
+        message: refusal.sentence,
+        notice: refusal.notice,
+        ...(refusal.forbidden ? { forbidden: refusal.forbidden } : {}),
+        ...(refusal.missing.length ? { missing: refusal.missing } : {}),
+        ...(refusal.wrongType.length ? { wrongType: refusal.wrongType } : {}),
+        ...(refusal.unknownFields ? { undeclaredFields: refusal.unknownFields } : {}),
+        expects: `GET /feeds/${feed.id}`
+      });
+    });
+    /* What a vendor would otherwise be sent as a PDF that is out of date the week after. It
+       discloses nothing: every word of it is in a file in this repository and none of it is about a
+       person. */
+    routes.set(`GET /feeds/${feed.id}`, (_req, res) => send(res, 200, describeFeed(feed)));
+  }
+  routes.set('GET /feeds', (_req, res) => send(res, 200, {
+    holds: 'Nothing. Every feed below refuses every payload, including a well-formed one.',
+    rules: FEED_RULES,
+    refusalKinds: FEED_REFUSAL_KINDS,
+    noSeam: FEED_NO_SEAM,
+    feeds: FEEDS.map(describeFeed)
+  }));
 
   return async function handle(req: IncomingMessage, res: ServerResponse) {
     /* Sent once here rather than folded into send(), because it is the one header that depends on
@@ -1064,7 +1188,11 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
        disclosure and a cheap way to make the service do something expensive. The counts they return
        are about nobody in particular, which is why this is a refusal rather than a session: a health
        check is a script on the box, and a script on the box has a loopback address. */
-    if (route.startsWith('GET /health/') && !LOOPBACK.has(caller.address)) {
+    /* On the path rather than on `GET /health/`, which is what it said until a POST arrived under
+       the same prefix. A restriction written against a method is a restriction the first route with
+       a different method walks straight past, and the one that did would have been an oracle for
+       testing forged witness statements against. */
+    if (`${(req.url ?? '/').split('?')[0]}`.startsWith('/health/') && !LOOPBACK.has(caller.address)) {
       return send(res, 403, { error: 'loopback-only', message: 'The integrity and verification counts are answered on the loopback, to the health check running beside the service. They say nothing about anybody, and they are not a public statement about how sound this service is.' });
     }
 
@@ -1083,6 +1211,13 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
       const subject = identity.resolve(readCookie(req.headers.cookie, COOKIE))?.person.id ?? `address:${caller.address}`;
       const at = now();
       if (store.countWrites(subject, at - limits.rateWindowSeconds * 1000) >= limits.writesPerCallerPerWindow) {
+        /* Counted into the window summary, not against the caller. A refusal recorded in
+           write_attempts would extend the lockout it caused, which is a limiter that punishes being
+           limited — and it would still not be countable, because the row would be indistinguishable
+           from an accepted one. It goes into write_windows instead, where it is the one number in
+           the measurement that is exact: `busiest` says how close an honest caller came to sixty,
+           and this says how often sixty was not enough. Nothing about the caller is written. */
+        store.recordWriteRefusal(at, limits.rateWindowSeconds * 1000);
         return send(res, 429, {
           error: 'too-many-requests',
           message: `That is more than ${limits.writesPerCallerPerWindow} requests in fifteen minutes from one caller, which is more than anything this service does honestly. Wait, and try again. Nothing has been lost.`

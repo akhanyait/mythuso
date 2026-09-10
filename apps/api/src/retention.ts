@@ -38,17 +38,33 @@ export type SweepReport = {
  /** Accounts whose seven days ran out. Erased when committed, listed when not. */
  erasuresDue: string[];
  erasuresCarriedOut: number;
+ /** How many fifteen-minute windows were summarised before the attempts behind them were deleted. */
+ windowsRolledUp: number;
 };
 
 export function sweep(store: Store, options: { commit: boolean; now?: number }): SweepReport {
  const at = options.now ?? Date.now();
  const spent = at - limits.spentCodeRetentionDays * DAY;
  const ended = at - limits.endedSessionRetentionDays * DAY;
+ const windowMs = limits.rateWindowSeconds * 1000;
+ /* ---- write_attempts, which this sweep did not touch until now ------------------------------
+    The table has been in `SweepableTable` and in the store's list of what may be deleted since the
+    caller limit landed, and personalData.ts tells a data subject it is "swept away on its own within
+    a day in any case". It was not in this plan, so it was not: the one table in this service that
+    grows with traffic rather than with people was growing without limit, and the sentence saying
+    otherwise was true of the machinery and false of the schedule. Two windows are kept rather than
+    one, so that a limiter counting a sliding fifteen minutes always has the whole of it. */
+ const spentAttempts = at - 2 * windowMs;
+ /* Summarised before they are deleted, because after they are deleted there is nothing to summarise.
+    This is the only chance to turn a caller's requests into a number about nobody, and it is taken
+    on the same pass so that the roll-up cannot fall behind the sweep and quietly lose a week. */
+ const windowsRolledUp = options.commit ? store.rollUpWriteWindows(spentAttempts, windowMs) : 0;
  const plan: { what: string; table: SweepableTable; before: number }[] = [
   { what: 'One-time codes that were used or expired', table: 'challenges', before: spent },
   { what: 'Numbers and addresses that asked for a code', table: 'starts', before: spent },
   { what: 'Half-finished sign-ins owing a second factor', table: 'second_factor_challenges', before: spent },
-  { what: 'Sessions that were signed out or ran out', table: 'sessions', before: ended }
+  { what: 'Sessions that were signed out or ran out', table: 'sessions', before: ended },
+  { what: 'Requests counted against the caller limit, once no limiter can still count them', table: 'write_attempts', before: spentAttempts }
  ];
  const lines = plan.map(({ what, table, before }) => ({
   what, table,
@@ -60,7 +76,7 @@ export function sweep(store: Store, options: { commit: boolean; now?: number }):
  const due = erasure.due(at);
  let carriedOut = 0;
  if (options.commit) for (const personId of due) if (erasure.carryOut(personId)) carriedOut += 1;
- return { commit: options.commit, at, lines, erasuresDue: due, erasuresCarriedOut: carriedOut };
+ return { commit: options.commit, at, lines, erasuresDue: due, erasuresCarriedOut: carriedOut, windowsRolledUp };
 }
 
 export function print(report: SweepReport, log: (line: string) => void = console.log): void {
@@ -74,6 +90,9 @@ export function print(report: SweepReport, log: (line: string) => void = console
  log(`    due      : ${report.erasuresDue.length}`);
  for (const id of report.erasuresDue.slice(0, 10)) log(`      · ${id}`);
  log(report.commit ? `    erased   : ${report.erasuresCarriedOut}` : '    (nothing erased)');
+ log('\n  Fifteen-minute windows summarised before their attempts were deleted');
+ log(report.commit ? `    rolled up: ${report.windowsRolledUp}  (write_windows — five integers each, nobody in them)` : '    (nothing rolled up)');
+ log(`    read them back with GET /health/limits, which answers on the loopback. ${limits.writesPerCallerPerWindow} is still a proposal.`);
  log('    the append-only sign-in log is never touched, by this or by anything else\n');
  if (!report.commit) log('  Re-run with --commit to apply.\n');
 }

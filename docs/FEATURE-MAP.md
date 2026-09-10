@@ -86,6 +86,11 @@ These flows exist on all three platforms, with the same steps, the same wording 
 ## What the new flows deliberately refuse to do
 
 - A failed visit code stops the visit. It does not warn and continue.
+- A vendor feed that carries more than was asked for is refused at the door rather than stripped on
+  arrival, because a field that is stripped is a field that was received. A position feed may not
+  carry a patient id, a roster may not say why somebody is off work, a pharmacy may not send back a
+  diagnosis, a media session may not arrive with a recording, and a model may not return a
+  prescription.
 - Out-of-range readings are flagged for the nurse's attention and labelled as *not* a validated early-warning score. Nothing is triaged automatically.
 - A nurse assessment is never presented as a diagnosis, and a doctor cannot sign a decision without recording why.
 - Abnormal laboratory results are held until a clinician releases them with an explanation.
@@ -197,6 +202,27 @@ These flows exist on all three platforms, with the same steps, the same wording 
 - Leaving a programme stops the counting from that day. It does not un-publish a figure already issued, and the
   screen says so rather than promising something nobody could keep.
 - Nothing in any of these flows is transmitted, stored or acted upon.
+
+## Delivered as build guarantees, 10 September 2026 — the ingestion boundary
+
+Fifteen capabilities are declared and none is connected. Most of them are blocked on something no
+engineer can produce: a contracted SMS provider, a payment provider, a nurse roster, live device
+positions, agreements with thirteen credentialing authorities, a pharmacy network, an interpreter
+service, an ambulance partner, a media stack, an AI licence. Nobody can sign a contract from inside a
+repository, and nothing here changes that. **Not one capability became connected, and reaching
+`connected: true` is now strictly harder than it was.**
+
+What landed is the seam each of those suppliers would arrive through, described as data and held by a
+check, plus the door itself: eleven routes in `apps/api` that validate a payload, refuse it, record
+that they refused, and answer with the capability's own not-connected sentence.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **Eleven feed seams, one per supplier that would have to be signed.** Each says what would have to arrive as a schema derived from what the product already renders, points at the sample data standing in for it today rather than changing it, names the conditions that must be true before it may be switched on, and lists the fields that must never arrive at all | A capability may not be marked `connected` while any switch-on condition of any feed serving it is unmet — so the flag now needs the specific things somebody would otherwise satisfy in their head at eleven at night. No feed may accept a field another feed refuses by name. Every capability is either served by a seam or carries a written reason there is none: `voice` (the blocker is not a vendor but an unanswered question about recording somebody describing a symptom in their home), `devices` (`src/capture/**` already is the seam) and `clinical-records` (there must not be a route). A feed may not record its section 72 determination as made | `packages/catalog/feeds.json`, twenty checks in `scripts/check-boundaries.mjs` |
+| **The doors themselves, all locked.** A route per feed, registered from the contract rather than written out, so a feed added next year cannot forget to be refused. `GET /feeds` is what a vendor would otherwise be sent as a PDF that goes out of date the week after | Every route refuses every payload, **including a well-formed one** — the correct answer to a correct payload, from a service with no adapter behind it. `decide()` returns a refusal type with no success variant. A forbidden field is refused **before** the shape is checked and at every depth, on a canonical spelling, so a patient id in a position feed is caught as `patientId`, `patient_id`, `PATIENT-ID` or nested inside a wrapper. A capability marked connected makes the route throw rather than start accepting | `apps/api/src/feeds/**`, `apps/api/test/feeds.test.ts` (21 tests) |
+| **Nothing a stranger typed is written down.** A JSON key is a string somebody else chose, and `{"bp 180 over 110 mmHg": 1}` is a valid one | A forbidden field is reported by **the contract's** name for it, never the sender's. A field that is simply not in the schema is reported as a **count**, never as a name. No value is read, kept, echoed or hashed. Asserted against the response body *and* against the audit chain — the sharpest refusal in the work, because the ordinary way an audit trail becomes a second copy of a record is a free-text field nobody constrained | `apps/api/src/feeds/index.ts`, `apps/api/test/feeds.test.ts` |
+| **The chain head can now be carried off the machine and brought back.** Publishing it is still absent and still needs a second organisation; what was missing and was *not* an agreement is the ability to check one | A statement is refused rather than half-read. A chain shorter than one witnessed is refused. A chain truncated to a prefix and grown again with real entries is refused on the hash at the witnessed position — the case `verify()` calls intact. A statement made over an empty chain vouches for nothing and is not blessed. The module may not reach a network, and may not lose the sentence saying it publishes nothing | `apps/api/src/protection/witness.ts`, `apps/api/test/witness.test.ts` |
+| **The one number in the service that is a proposal can now be measured.** Sixty writes per caller per fifteen minutes was arrived at by reasoning, not by watching anybody | `write_windows` may not grow a column somebody could be identified by — five integers per window and nothing to join to anything. `busiest` is declared a lower bound rather than presented as the figure, because the limiter slides and the bucket does not. Two things the holdings register promised and no code carried out are fixed: `write_attempts` was never swept, and an erasure never reached it | `apps/api/src/store.ts`, `src/retention.ts`, `GET /health/limits`, `apps/api/test/write-windows.test.ts` |
 
 ## Delivered as build guarantees, 9 September 2026
 

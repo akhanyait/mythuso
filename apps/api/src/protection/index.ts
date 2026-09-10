@@ -12,6 +12,11 @@ import { AccessGate, type ReleaseRegister, type VettingSource } from './gate.ts'
 import { HashChainAudit, sqliteAuditStore, type Database } from './audit.ts';
 import { createLogSeal, type LogLink, type LogSeal, type SealedLogVerdict } from './seal.ts';
 import { createRotation, type SealedColumn } from './rotation.ts';
+import { statement, stillExtends, type Witness, type WitnessVerdict } from './witness.ts';
+
+/* Which chain a witness statement is about. The gate's own log is the one that would be published;
+   the consent module's is already sealed into it, so a head over this one covers both. */
+export const WITNESS_LOG = 'protected_access_log';
 export type { AccessRequest, AccessOutcome, Gate, AuditChain, AuditLink, Purpose, Binding, Sealed, KeyVersion } from './contract.ts';
 export type { Database } from './audit.ts';
 
@@ -27,6 +32,10 @@ export type { SealedColumn, Rotation, RotationReport, RotationStanding, ColumnSt
    held. See seal.ts for what that is worth and for the window it leaves. */
 export { SEAL_EVENT, SEAL_EVERY, SEAL_AFTER_MS } from './seal.ts';
 export type { LogSeal, LogHead, LogLink, SealedLogVerdict, SealRecord } from './seal.ts';
+/* The checking half of publishing a chain head. The publishing half needs a second organisation and
+   is still absent — see the header of witness.ts, which says what this is not. */
+export { EMPTY_HEAD, parse as parseWitness, render as renderWitness, statement as witnessStatement, stillExtends } from './witness.ts';
+export type { Witness, WitnessVerdict } from './witness.ts';
 export { printRotation } from './rotation.ts';
 
 /* The one authorisation in the service that is produced by a person at a console rather than by a
@@ -103,10 +112,28 @@ export function createProtectionModule(config: ProtectionConfig, db: Database, s
     and so cannot live on the other side either. */
  const seal = createLogSeal({ audit, store: auditStore, now: sources.now, ...(sources.seal ?? {}) });
  const logSeal: LogSeal = { appended: seal.appended, sealNow: seal.sealNow };
+ /* The witness. It reads one hash by position out of the store and never the entries, which is
+    deliberately the smallest thing that answers the question — a caller who can ask "what did entry
+    four hundred hash to" cannot read what entry four hundred said. Nothing here publishes anything:
+    what is absent is a recipient, and a recipient is an agreement rather than a function. */
+ const hashAt = (position: number): string | null => auditStore.all()[position - 1]?.hash ?? null;
  return {
   gate, audit, rotation, bootstrap, logSeal,
   sealsFor: (logId: string) => seal.sealsFor(logId),
   verifySealedLog: (logId: string, links: readonly LogLink[]): SealedLogVerdict => seal.verify(logId, links),
+  /** The chain as it stands, as a block of text meant to leave this machine. It is not published. */
+  witness: (at: string): Witness => {
+   const verified = audit.verify();
+   return statement(WITNESS_LOG, { length: verified.length, head: verified.intact ? verified.head : audit.head() }, at);
+  },
+  /** Whether this chain is still the chain a statement from the past was made about. */
+  witnessCheck: (previous: Witness): WitnessVerdict => {
+   const verified = audit.verify();
+   return stillExtends(
+    { intact: verified.intact, length: verified.length, head: verified.intact ? verified.head : audit.head() },
+    hashAt, previous
+   );
+  },
   keyVersions: keys.versions, currentKeyVersion: keys.current
  };
 }

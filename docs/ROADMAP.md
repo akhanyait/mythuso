@@ -40,6 +40,29 @@ a line of code.
 decision. `payments` is a single South African integration and unlocks `payouts`. Those three turn
 the most screens from drawings into a product.
 
+### The seams are built. The suppliers are not
+
+Written 10 September 2026. Nobody can sign a contract from inside a repository, so none of the above
+moved. What did land is the shape of each hole: `packages/catalog/feeds.json` describes **eleven
+feed seams**, one per supplier that would have to be signed, and `apps/api/src/feeds/**` serves a
+route for each of them that **refuses every payload, including a well-formed one**, answering with the
+capability's own not-connected sentence. Every capability is either served by a seam or carries a
+written reason there is none — `voice`, `devices` and `clinical-records`, each for a different reason.
+
+What that changes about the table above is the size of the job. Connecting a supplier should now be a
+data change and a small adapter: the schema is agreed, the refusals are written down, the tests are
+green, and what is missing is the vendor rather than the code. It should also be a slightly *harder*
+decision than it was, and deliberately — a capability may no longer be marked `connected` while any
+of the conditions its seam wrote down is unmet, which for `dispatch` means a position feed carrying
+the accuracy the device reported, and for `credential-verification` means an authority's answer
+naming which check it answers.
+
+The three things it is worth reading before signing anybody: **what each feed must never accept**,
+which is the half of the work that will matter on the day a vendor sends more than was asked for;
+**what must be true before the switch is thrown**, which is the specific list somebody would
+otherwise satisfy in their head; and the **section 72 determination** each supplier will owe, which
+is recorded against each of the eleven as undetermined and which no code can answer.
+
 ---
 
 ## Outstanding — work the product already implies
@@ -70,7 +93,12 @@ member's profile shows their visits and books for them.
   nine routes reach them, and the actor comes off the session rather than off the request, which was
   the reason they had none. Export, correction, the section 24 queue and a security compromise
   register landed with them, and the unlimited write routes now carry a caller limit whose number is
-  labelled a proposal. **What is left needs a person or a contract, not a programmer:** the clinical
+  labelled a proposal — and which can now actually be measured, from a table of five integers per
+  fifteen minutes with nobody in it. Two of the six absent controls were looked at again on 10
+  September: **HSM or KMS stays absent on purpose** (split custody on a single box is a longer way of
+  not splitting a key), and **publishing the chain head stays absent** while the half of it that is
+  not an agreement — taking a published head back and asking whether this is still that chain — is
+  built and tested. **What is left needs a person or a contract, not a programmer:** the clinical
   access log's `open()` is waiting for a record to open, offline capture for a device this service
   can identify rather than be told about, and the remaining nine absent controls each name a vendor,
   a key ceremony, an agreement, or a fact about a person that no code can establish.

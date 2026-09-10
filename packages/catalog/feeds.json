@@ -1,0 +1,1547 @@
+{
+ "_note": "The eleven places the outside world would have to reach in, described before anybody has signed a contract to reach in through one of them. Fifteen capabilities are declared in capabilities.json and none is connected; most of them are blocked on something no engineer can produce — a contracted SMS provider, a payment provider, a nurse roster, live device positions, agreements with thirteen credentialing authorities, a pharmacy network, an interpreter service, an ambulance partner, a media stack, an AI licence. None of that can be built here. What can be built is the shape of the hole each one leaves: what would have to arrive, what the product does while it does not, what would have to be true before the switch is thrown, and — the part that is worth the most — what must never arrive at all. When a vendor is finally signed, connecting them should be a data change and a small adapter, not a rebuild and not a re-litigation of what the screens already promise.",
+ "_honestyNote": "Nothing in this file connects anything, and it is written so that it cannot. Every route it declares refuses every payload, including a perfectly formed one, and answers with the capability's own not-connected sentence out of capabilities.json. `beforeSwitchOn` makes `connected: true` harder to reach rather than easier: scripts/check-boundaries.mjs refuses a connected capability unless every switch-on condition of every feed serving it is recorded as met and names a file that exists. A seam that made the boolean easier to flip would be the opposite of the thing this repository is careful about.",
+ "_whyNoNativeEmitter": "Every other contract in packages/catalog is generated into Swift and Kotlin, because all three apps render it. This one is not, and the reason is not that it was skipped. A feed schema is a contract between this service and a supplier; no phone has any business holding the shape of a payment provider's callback, and emitting it would put a vendor's integration surface into two app-store binaries for no reader. What the apps render is the capability's notice, which comes from capabilities.json and is generated. The seam behind the notice is the server's.",
+ "_supplierNote": "Every supplier named here becomes an operator under POPIA section 21 the moment a contract is signed, and one outside South Africa raises section 72. Neither is answered anywhere and neither can be from inside a repository: a section 72 determination is a legal determination about a named recipient in a named country, and there is no named recipient. So each feed carries the question against the thing that will raise it, unanswered and marked unanswered, rather than a subprocessor register with nothing in it.",
+ "fieldTypes": [
+  {
+   "id": "string",
+   "detail": "Text, non-empty. Never a place a value belonging in a clinical record could be written — the neverAccepts list on each feed is what actually holds that line."
+  },
+  {
+   "id": "integer",
+   "detail": "A whole number. Money is always an integer of cents, never a decimal of rand: a provider that reports rand as a floating-point number will disagree with the catalogue by a cent, and it will do it on somebody's payout."
+  },
+  {
+   "id": "number",
+   "detail": "A finite number."
+  },
+  {
+   "id": "boolean",
+   "detail": "True or false, and not a string spelling one of them."
+  },
+  {
+   "id": "instant",
+   "detail": "An ISO 8601 instant carrying an offset — 2026-09-10T14:32:07+02:00. An instant with no offset is a claim about a timezone the sender did not state, and this product runs in one country with one offset, which is exactly the circumstance in which nobody notices."
+  },
+  {
+   "id": "iso-date",
+   "detail": "A calendar date, yyyy-mm-dd, where the thing stated is a day rather than a moment — an expiry on a certificate."
+  },
+  {
+   "id": "coordinate",
+   "detail": "A finite decimal degree. packages/geo refuses one outside South Africa rather than dropping it."
+  },
+  {
+   "id": "list",
+   "detail": "A list of strings. Nothing here takes a list of objects: one request carries one record. A batch that half-succeeds is a batch nobody can reason about at three in the morning, and the first thing a vendor integration needs is a row-level answer."
+  }
+ ],
+ "refusalKinds": [
+  {
+   "id": "forbidden-field",
+   "http": 422,
+   "sentence": "That payload carries a field this feed must never accept. It has not been read, stored or forwarded, and the refusal is recorded by the field's name in this contract rather than by the name that was sent.",
+   "why": "The day a vendor sends more than was asked for is the day somebody notices too late. Stripping an unwanted field is not the same as refusing it: a field that is stripped is a field that was received, logged by whatever sat in front, and held in whatever buffer the strip happened after. So it is a refusal at the door, and it is checked before the shape is, because a payload with a patient id in it is a more interesting fact than a payload with a missing timestamp."
+  },
+  {
+   "id": "wrong-shape",
+   "http": 422,
+   "sentence": "That payload is not the shape this feed declares. Read GET /feeds for what it is.",
+   "why": "The schema is closed: a field that is not declared is refused rather than ignored. An ignored field is a field a vendor believes is being used, and the first time anybody finds out otherwise is when somebody asks why the accuracy is not on the map."
+  },
+  {
+   "id": "not-connected",
+   "http": 503,
+   "sentence": "Nothing is connected behind this route. The payload was well formed and it has still been refused, and it will be refused in exactly this way until the capability it serves is connected in packages/catalog/capabilities.json.",
+   "why": "A well-formed payload that is accepted is an integration. This service has none, so the correct answer to a correct payload is still no — and it is the same no every time, so that a vendor writing against this seam starts from a refusal that already works rather than from a blank file."
+  }
+ ],
+ "rules": [
+  {
+   "id": "the-route-accepts-nothing",
+   "statement": "Every feed route refuses every payload. There is no field, header, flag or configuration that makes one succeed. Acceptance arrives with an adapter, written when a contract exists.",
+   "why": "A route that could accept under some condition is a route somebody will find the condition for. The value of a seam is that it is a refusal that already works — the shape is agreed, the tests are green, and what is missing is the vendor rather than the code."
+  },
+  {
+   "id": "only-names-this-file-chose-are-written-down",
+   "statement": "A refusal records a forbidden field by the name this contract gives it, never by the name that arrived. A field that is simply not in the schema is recorded as a count and never as a name.",
+   "why": "A key in a JSON object is a string a stranger chose. `{\"bp 180 over 110 mmHg\": 1}` is a valid key, and a refusal log that copied it would be a log holding whatever a vendor typed — which is precisely how an audit trail becomes a second copy of a record with weaker protection and a longer retention. So the only strings that reach the log are strings already in this file."
+  },
+  {
+   "id": "the-forbidden-check-is-deliberately-loose-and-the-shape-check-is-not",
+   "statement": "A forbidden field is matched on its canonical form — lower-cased with everything that is not a letter or a digit removed — at every depth of the payload. An accepted field must match its declared name exactly, at the top level.",
+   "why": "The asymmetry is the point. A tripwire should be hard to step over: patientId, patient_id, PATIENT-ID and Patient Id are one field, and a vendor nesting it inside a wrapper object has still sent it. A schema should be hard to guess at: a field the sender spelled differently is a field they were not asked for."
+  },
+  {
+   "id": "the-notice-comes-from-the-capability",
+   "statement": "A feed does not write its own not-connected sentence. It names a capability and the sentence is rendered from packages/catalog/capabilities.json, word for word.",
+   "why": "The same rule the screens follow, for the same reason. When an integration lands, one boolean changes and the sentence stops being said — in the apps and at the door, on the same day."
+  },
+  {
+   "id": "what-happens-while-it-is-absent-is-already-right",
+   "statement": "Each feed points at the sample data and the notice the product shows today. Neither is changed by this file, and neither should be: they are correct, and they are the honest state of a product with no suppliers.",
+   "why": "The temptation on work like this is to improve the drawing while describing the plumbing. The drawing is finished. What was missing was a written account of what would replace it."
+  },
+  {
+   "id": "a-supplier-becomes-an-operator",
+   "statement": "Each feed records that its supplier becomes an operator under POPIA section 21 on signature, and whether the section 72 question about cross-border transfer has been determined. It is false on all eleven and no code changes that.",
+   "why": "A subprocessor register is a list of contracts and there are no contracts. What can exist before them is the question, written against the feed that will raise it, so that the determination is made when the vendor is chosen rather than after they are live."
+  }
+ ],
+ "noSeam": [
+  {
+   "capability": "voice",
+   "decision": "No route, and this is a decision rather than an omission.",
+   "why": "The blocker on voice is not a vendor. capabilities.json names three things and only the first is procurement: there is no speech model, no microphone permission is declared on either app, and nothing has been designed for what happens to a recording of a person describing a symptom in their own home. Building the ingestion half of that would be building the easy half of a thing whose hard half is undecided, and the route would sit in the source looking like readiness. The capability also carries a neverSoften note forbidding a microphone affordance anywhere, and a transcript route is a microphone affordance with the drawing left off."
+  },
+  {
+   "capability": "devices",
+   "decision": "No new route. The seam already exists and it is apps/api/src/capture/**.",
+   "why": "Device identity, the device's claimed time, the measured skew and a SHA-256 commitment to a reading the service does not keep are all built and tested there, with four named conflicts. What is missing is not a schema — it is device binding, which is a key per device minted in a ceremony this repository cannot perform, and until that exists a device id read off a request body is a claim. A second ingestion boundary beside it would be two places to get the same thing wrong."
+  },
+  {
+   "capability": "clinical-records",
+   "decision": "No route, and there must not be one.",
+   "why": "It is the one capability on the list blocked by nothing external. What blocks it is docs/PRIVACY-AND-SECURITY.md, an Information Officer's sign-off on retention and SA-resident hosting for special personal information. A feed route would be a way for a clinical record to arrive in a service whose boundary check fails the build on a clinical table, and that check is load-bearing."
+  }
+ ],
+ "feeds": [
+  {
+   "id": "message-delivery",
+   "name": "Whether a message actually arrived",
+   "capabilities": [
+    "messaging",
+    "accounts"
+   ],
+   "supplier": "A contracted SMS, email or push provider. MYTHUSO_SMS_PROVIDER is already refused as absent in production by apps/api/src/config.ts, and there is no adapter behind the name.",
+   "route": "POST /feeds/message-delivery",
+   "arrives": "A delivery receipt: whether one message this service asked to be sent reached the handset, and if it did not, why.",
+   "derivedFrom": [
+    "apps/api/src/identity.ts",
+    "apps/api/src/store.ts",
+    "apps/api/src/config.ts"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "messaging",
+    "sample": [
+     "apps/api/src/config.ts"
+    ],
+    "unchanged": "In development the one-time code is returned in the response body, and config.ts refuses that outright in production. Nothing is sent to anybody. That is correct and this file does not change it."
+   },
+   "accepts": [
+    {
+     "field": "messageId",
+     "type": "string",
+     "required": true,
+     "why": "The reference this service handed the provider when it asked for the send. Ours, not theirs: a reference only the provider understands cannot be matched to a challenge here, and \"the code never arrived\" stays unanswerable."
+    },
+    {
+     "field": "status",
+     "type": "string",
+     "required": true,
+     "why": "queued, sent, delivered or failed. Four values rather than a boolean, because sent and delivered are different facts and the difference is the whole of what a receipt is for."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When the provider observed it. A code lives for ten minutes; a receipt with no time cannot say whether it beat the expiry."
+    },
+    {
+     "field": "failureReason",
+     "type": "string",
+     "required": false,
+     "why": "In words, not a code. A person who did not get their code is shown a sentence, and a sentence assembled from a provider's numeric code is a sentence written by a lookup table."
+    },
+    {
+     "field": "providerReference",
+     "type": "string",
+     "required": false,
+     "why": "Their own id for the send, so a support conversation with the provider has a handle. It is never the correlation key."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-receipt-names-the-send-this-service-asked-for",
+     "must": "The provider echoes messageId exactly as it was given, on every receipt including a failure.",
+     "why": "Without it a receipt is a fact about the provider rather than about anybody's sign-in, and the only question anybody asks — did this person's code reach them — cannot be answered from it.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "failure-is-a-value-the-provider-actually-sends",
+     "must": "The provider reports failed as an event in its own right, not as the absence of a success.",
+     "why": "A provider that reports only success turns every silence into a success by default, and the silences are the entire population of people who cannot sign in.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "oneTimeCode",
+     "refusal": "A delivery receipt may not carry the one-time code.",
+     "why": "The code is the credential. apps/api/src/identity.ts keeps only a peppered HMAC of it and never the code itself, and a receipt carrying it in the clear would undo that in one field — turning the delivery log into a list of live sign-in codes, which would be the one table in this service worth stealing outright.",
+     "also": [
+      "code",
+      "otp",
+      "pin",
+      "passcode",
+      "verificationCode"
+     ]
+    },
+    {
+     "field": "message",
+     "refusal": "A delivery receipt may not carry the text of the message.",
+     "why": "The body of a message to a patient is about their care: a reminder names a visit, an invitation names a family member. A receipt needs to know whether it arrived, never what it said.",
+     "also": [
+      "body",
+      "text",
+      "content",
+      "smsBody"
+     ]
+    },
+    {
+     "field": "phone",
+     "refusal": "A delivery receipt may not carry the mobile number.",
+     "why": "This service already knows which number a challenge belongs to. A receipt that restates it makes the delivery log a second copy of the mobile-number list, kept for a different period and justified by nothing.",
+     "also": [
+      "msisdn",
+      "recipient",
+      "to",
+      "mobile",
+      "phoneNumber",
+      "cellphone"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "Most SMS aggregators route through infrastructure outside South Africa, and one that does is a cross-border transfer of a mobile number under section 72. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "payment-result",
+   "name": "What happened when somebody tried to pay",
+   "capabilities": [
+    "payments"
+   ],
+   "supplier": "A South African payment provider, contracted, behind a merchant account.",
+   "route": "POST /feeds/payment-result",
+   "arrives": "The result of one attempt to take money for one visit.",
+   "derivedFrom": [
+    "packages/catalog/services.json",
+    "packages/catalog/business-model.json",
+    "packages/catalog/cancellation.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "payments",
+    "sample": [
+     "packages/catalog/services.json"
+    ],
+    "unchanged": "Prices are the catalogue's and no card is charged. cancellation.json deliberately states no late-cancellation charge and points at this capability for the sentence, so the money question disappears from the cancel screen the day a provider is connected. That arrangement is right and this file does not touch it."
+   },
+   "accepts": [
+    {
+     "field": "reference",
+     "type": "string",
+     "required": true,
+     "why": "The visit reference this service issued. The provider's own reference is not the key: a payment matched on a provider's id is a payment that cannot be matched at all if the provider is changed."
+    },
+    {
+     "field": "outcome",
+     "type": "string",
+     "required": true,
+     "why": "authorised, declined, reversed or settled. Authorised and settled are separate values because a nurse's payout is arithmetic on money that has actually arrived."
+    },
+    {
+     "field": "amountCents",
+     "type": "integer",
+     "required": true,
+     "why": "Cents, as a whole number. services.json states prices in whole rand; a provider reporting rand as a decimal will disagree by a cent, and it will do it on a payout rather than on a test."
+    },
+    {
+     "field": "currency",
+     "type": "string",
+     "required": true,
+     "why": "ZAR, stated rather than assumed. A single-currency product that never states the currency is a product that silently accepts another one."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When the provider decided. earnings.json closes a week on a Monday and pays on a Wednesday, and which side of the close a payment fell on is the whole question."
+    },
+    {
+     "field": "declineReason",
+     "type": "string",
+     "required": false,
+     "why": "In words a person reads. \"Your bank sent it back. It is still owed to you\" is the register this product writes in, and it cannot be assembled from a numeric code."
+    },
+    {
+     "field": "providerReference",
+     "type": "string",
+     "required": false,
+     "why": "Their handle for the transaction, for a support conversation. Never the correlation key."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "authorised-and-settled-are-not-collapsed",
+     "must": "The provider reports authorisation and settlement as separate events with separate times.",
+     "why": "earnings.json already carries in-transit and paid as different states with a settled flag. A provider that reports only success collapses them, and the first consequence is a nurse paid out of money that has not arrived.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-reversal-names-what-it-reverses",
+     "must": "A reversal carries the reference of the payment it reverses.",
+     "why": "earnings.json has a reversal line kind with a sign of -1. A reversal that does not name the original is a debit landing on a nurse's week that nobody can explain to her.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-amount-is-reconciled-rather-than-believed",
+     "must": "Every amount is checked against what the catalogue says the visit costs before it is written anywhere.",
+     "why": "A provider's amount that nothing checks is a provider's amount. The catalogue is the price, and a mismatch is an incident rather than a rounding.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "cardNumber",
+     "refusal": "A payment result may not carry a card number, in whole or in part.",
+     "why": "This service is not in scope for PCI DSS and must never become so by accident. A provider that posts a primary account number into a callback puts the whole service into a compliance regime nobody chose, in a field nobody asked for and a log nobody scoped for it.",
+     "also": [
+      "pan",
+      "card",
+      "cardNo",
+      "primaryAccountNumber",
+      "maskedPan",
+      "last4"
+     ]
+    },
+    {
+     "field": "cvv",
+     "refusal": "A payment result may not carry a card security code.",
+     "why": "Nothing may store one, ever, including for the moment it sits in a request buffer. There is no version of this feed in which it is useful.",
+     "also": [
+      "cvc",
+      "cv2",
+      "cvv2",
+      "securityCode"
+     ]
+    },
+    {
+     "field": "description",
+     "refusal": "A payment result may not carry a narrative naming what was bought.",
+     "why": "The catalogue's service names are the closest this product comes to a diagnosis — a wound-care visit, a maternal check. A settlement file listing them against a person is health information on a bank statement, held for a bank's retention period, and MyThuso must not be the party that put it there.",
+     "also": [
+      "narrative",
+      "statementText",
+      "merchantNarrative",
+      "lineItem",
+      "productName",
+      "serviceName",
+      "basket"
+     ]
+    },
+    {
+     "field": "idNumber",
+     "refusal": "A payment result may not carry a South African identity number.",
+     "why": "It is the raw material of impersonation, and the reference already identifies the visit. A table accumulating one per transaction would be the most attractive table in the database.",
+     "also": [
+      "identityNumber",
+      "saIdNumber",
+      "nationalId",
+      "idNo",
+      "passportNumber"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "A South African acquirer is domestic; a provider settling through an offshore processor is not. Not determined, and it is a question about the provider that is chosen rather than about payments in general.",
+    "determined": false
+   }
+  },
+  {
+   "id": "payout-advice",
+   "name": "What happened to a nurse's week",
+   "capabilities": [
+    "payouts"
+   ],
+   "supplier": "The same payment provider, plus verified bank details — which need the identity service switched on, which needs an SMS provider.",
+   "route": "POST /feeds/payout-advice",
+   "arrives": "What happened to one week's payment run for one nurse.",
+   "derivedFrom": [
+    "packages/catalog/earnings.json",
+    "apps/web/src/lib/earnings.ts"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "payouts",
+    "sample": [
+     "packages/catalog/earnings.json"
+    ],
+    "unchanged": "The figures are the catalogue's arithmetic over sample visits, the account number is shown masked, and a failed week already carries the sentence a nurse would actually read. None of that changes."
+   },
+   "accepts": [
+    {
+     "field": "weekId",
+     "type": "string",
+     "required": true,
+     "why": "The earnings week this settles, as earnings.json names it. A payout is a week, not a visit."
+    },
+    {
+     "field": "partyId",
+     "type": "string",
+     "required": true,
+     "why": "The vetted party being paid. Not a bank account: the account is the means, the party is the payee, and only one of the two belongs in a message this service receives."
+    },
+    {
+     "field": "outcome",
+     "type": "string",
+     "required": true,
+     "why": "in-transit, paid or failed — earnings.json's own settled states, so a provider's vocabulary is translated at the door rather than throughout the product."
+    },
+    {
+     "field": "amountCents",
+     "type": "integer",
+     "required": true,
+     "why": "Cents. The same reason as the payment feed and the same failure if it is not."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When it moved. The cycle clears in one to two days and a nurse is told which day."
+    },
+    {
+     "field": "failureReason",
+     "type": "string",
+     "required": false,
+     "why": "In words. earnings.json already carries the sentence for a returned payment and it says the money is still owed, which a provider's return code does not."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-failure-never-clears-the-week",
+     "must": "A failed outcome leaves the week owed and cannot move it to paid.",
+     "why": "The money is still owed. A feed that could mark a failed run paid would close the one state a nurse most needs left open, and she would find out by not being paid.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-failure-says-what-it-is-in-words-a-nurse-reads",
+     "must": "Every failure maps to a sentence in earnings.json before it reaches a screen.",
+     "why": "\"Your bank sent it back. It is still owed to you\" is a sentence somebody wrote for a person who is short of money this week. A provider's code rendered raw is not.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "accountNumber",
+     "refusal": "A payout advice may not carry a bank account number.",
+     "why": "earnings.json shows a masked number and nothing in this service needs the rest. An advice that restated it would put the whole workforce's bankable details into a callback log, which is a payroll fraud waiting for one person with read access.",
+     "also": [
+      "bankAccount",
+      "accountNo",
+      "iban",
+      "beneficiaryAccount"
+     ]
+    },
+    {
+     "field": "branchCode",
+     "refusal": "A payout advice may not carry a branch code.",
+     "why": "With an account number it is a payment instruction; on its own it is a field nobody here reads.",
+     "also": [
+      "sortCode",
+      "routingNumber",
+      "bic",
+      "swift"
+     ]
+    },
+    {
+     "field": "idNumber",
+     "refusal": "A payout advice may not carry a South African identity number.",
+     "why": "apps/api/src/vetting/authority.ts already refuses to write one down when it asks an authority. A bank's reply is not the place it gets written down instead.",
+     "also": [
+      "identityNumber",
+      "saIdNumber",
+      "nationalId",
+      "idNo",
+      "passportNumber"
+     ]
+    },
+    {
+     "field": "patientName",
+     "refusal": "A payout advice may not name the people a nurse attended.",
+     "why": "A bank's advice that listed them would make the payment provider a holder of who saw whom — which is a care relationship, and a care relationship is health information about the patient.",
+     "also": [
+      "patient",
+      "patientFullName",
+      "beneficiaryName",
+      "subjectName"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "Not determined. A payout provider holds bank details for the whole workforce, which raises the transfer question more sharply than the collection side does.",
+    "determined": false
+   }
+  },
+  {
+   "id": "nurse-roster",
+   "name": "Who is working, where, and when",
+   "capabilities": [
+    "booking"
+   ],
+   "supplier": "A real workforce roster: the people MyThuso actually employs or contracts, with hours they have actually agreed to work.",
+   "route": "POST /feeds/nurse-roster",
+   "arrives": "One nurse's availability for one shift.",
+   "derivedFrom": [
+    "packages/catalog/scheduling.json",
+    "packages/catalog/geography.json",
+    "apps/web/src/lib/vetting-fixtures.ts"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "booking",
+    "sample": [
+     "apps/web/src/lib/vetting-fixtures.ts",
+     "packages/catalog/scheduling.json"
+    ],
+    "unchanged": "Booking offers five days from tomorrow over a fixed set of hours, and the nurses on the board are fixtures who are also on the vetting register. Nobody is dispatched and nothing is charged."
+   },
+   "accepts": [
+    {
+     "field": "partyId",
+     "type": "string",
+     "required": true,
+     "why": "A party the vetting register already knows. The roster names people; it does not create them."
+    },
+    {
+     "field": "zone",
+     "type": "string",
+     "required": true,
+     "why": "One of the zones geography.json declares. A nurse rostered somewhere dispatch cannot reach is a nurse on a board with no coverage behind her."
+    },
+    {
+     "field": "scope",
+     "type": "list",
+     "required": true,
+     "why": "What she is cleared to do, in the vocabulary the vetting role already uses. A roster with no scope makes every nurse eligible for every visit."
+    },
+    {
+     "field": "shiftStartsAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the shift begins, with an offset. scheduling.json runs on Africa/Johannesburg and a roster that assumed it would be right until the first supplier ran on UTC."
+    },
+    {
+     "field": "shiftEndsAt",
+     "type": "instant",
+     "required": true,
+     "why": "When it ends. It is what stops the position feed reporting — see the dispatch seam — and a shift with no end is a person who is never off duty."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "every-name-on-it-is-already-a-vetted-party",
+     "must": "A roster row for a party the vetting register does not hold is refused, not created.",
+     "why": "The gate resolves standing out of stored evidence on every read, so a lapsed clearance withdraws dispatch by arithmetic. A roster that could introduce a person is a roster that can put somebody nobody cleared in front of a patient, and the arithmetic would be running over a party with no evidence rather than refusing.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-zone-is-one-dispatch-can-actually-reach",
+     "must": "The zone is checked against geography.json rather than stored as given.",
+     "why": "Coverage is one city and five zones, said out loud on the SOS screen. A roster naming a sixth would quietly extend a coverage claim the product makes in words.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "patientId",
+     "refusal": "A roster may not name who a nurse is seeing.",
+     "why": "A roster is who is free. The moment a row carries a patient, the availability feed becomes a record of who is being visited and when, held by whoever supplies the roster — which may be a staffing agency with no obligation this service can enforce.",
+     "also": [
+      "patient",
+      "patientRef",
+      "patientReference",
+      "subjectId",
+      "beneficiaryId",
+      "memberId"
+     ]
+    },
+    {
+     "field": "homeAddress",
+     "refusal": "A roster may not carry a nurse's home address.",
+     "why": "The product needs to know which zone she works, never where she sleeps. A roster is also the file most widely read inside an operations team, which makes it the worst place for it.",
+     "also": [
+      "residentialAddress",
+      "homeStreet",
+      "livesAt"
+     ]
+    },
+    {
+     "field": "absenceReason",
+     "refusal": "A roster may not say why somebody is not working.",
+     "why": "\"Off sick\" is health information about an employee. It is special personal information under POPIA about a person who is not even the patient, and a roster is exactly the document where it would be typed without anybody thinking about it.",
+     "also": [
+      "sickNote",
+      "absenceType",
+      "leaveReason",
+      "unavailableBecause",
+      "healthNote"
+     ]
+    },
+    {
+     "field": "idNumber",
+     "refusal": "A roster may not carry a South African identity number.",
+     "why": "The party id already identifies her, and the vetting layer deliberately holds no identity number for anybody.",
+     "also": [
+      "identityNumber",
+      "saIdNumber",
+      "nationalId",
+      "idNo",
+      "passportNumber"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "A staffing system hosted offshore transfers employment information about South African nurses. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "nurse-position",
+   "name": "Where a nurse actually is",
+   "capabilities": [
+    "dispatch"
+   ],
+   "supplier": "Live positions from nurse devices — a fleet product, or the app's own background reporting, which is a decision nobody has made.",
+   "route": "POST /feeds/nurse-position",
+   "arrives": "One nurse's current position, once.",
+   "derivedFrom": [
+    "packages/geo/eta.ts",
+    "packages/geo/routing.ts",
+    "packages/catalog/geography.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "dispatch",
+    "sample": [
+     "packages/catalog/geography.json"
+    ],
+    "unchanged": "The positions on the Control Tower map are sample data drawn from real coordinates, one nurse deliberately has no position at all, and the arrival estimate says when it does not know. Every part of that is correct."
+   },
+   "accepts": [
+    {
+     "field": "partyId",
+     "type": "string",
+     "required": true,
+     "why": "Whose position it is, as the vetting register names her."
+    },
+    {
+     "field": "lat",
+     "type": "coordinate",
+     "required": true,
+     "why": "Latitude in decimal degrees. Rounded to three places on receipt, which is about 110 metres, because geography.json says a position is a suburb rather than a doorstep."
+    },
+    {
+     "field": "lng",
+     "type": "coordinate",
+     "required": true,
+     "why": "Longitude, and refused outside South Africa rather than dropped."
+    },
+    {
+     "field": "accuracyMetres",
+     "type": "number",
+     "required": true,
+     "why": "What the device believed its own error was. Required — see the switch-on condition, which is the sharpest thing in this file."
+    },
+    {
+     "field": "reportedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the device took the fix, not when the server received it. The two differ by exactly the amount that matters when somebody is waiting at home."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-position-with-no-accuracy-is-not-drawn",
+     "must": "Every position carries the accuracy the device reported, and a position whose accuracy is worse than the zone it would be drawn in is not drawn at all.",
+     "why": "geography.json rounds every coordinate to three decimals, so everything is rendered at 110-metre precision whatever the device actually knew. A coordinate with no accuracy therefore arrives on a patient's screen looking exactly as certain as one from a good fix — and a person waiting at home reads a dot on a map as a fact. A coordinate without an accuracy is a false precision, and this is the one field that makes the difference between a measurement and a decoration.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-age-of-a-position-is-shown-or-the-position-is-not",
+     "must": "reportedAt is carried through to whatever renders it, and a position older than the routing module's stale threshold is shown as stale rather than as current.",
+     "why": "packages/geo already models this: an estimate carries ageSeconds and a route goes stale after ninety seconds. A feed with no report time makes every position look current, which is the same failure as the missing accuracy with a clock instead of a radius.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "reporting-stops-when-the-shift-does",
+     "must": "A position for a party whose rostered shift has ended is refused, and the reporting on the device stops rather than being filtered on the server.",
+     "why": "Continuous location on a worker's own phone outside working hours is surveillance of an employee, not dispatch. Filtering it on arrival is not the same as not collecting it: the fix was still taken, still transmitted and still held by whatever it passed through on the way here.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "patientId",
+     "refusal": "A position feed may not carry a patient id.",
+     "why": "The nurse's coordinate is, by the nature of a home visit, already within a few metres of somebody's front door. Adding the patient's identity to it turns a track of a worker into a record of who is ill and where they live — held by a location vendor, for a location vendor's retention period. This is the single most important refusal in this file, and it is refused at the door rather than stripped on arrival, because a field that is stripped is a field that was received.",
+     "also": [
+      "patient",
+      "patientRef",
+      "patientReference",
+      "subjectId",
+      "beneficiaryId",
+      "memberId"
+     ]
+    },
+    {
+     "field": "visitId",
+     "refusal": "A position feed may not name the visit.",
+     "why": "The same failure, one indirection away. A visit reference resolves to a patient and an address for anybody holding both feeds.",
+     "also": [
+      "visit",
+      "visitRef",
+      "visitReference",
+      "bookingId",
+      "jobId"
+     ]
+    },
+    {
+     "field": "track",
+     "refusal": "A position feed may not carry a history.",
+     "why": "geography.json states it in its own words: a position is the current one or it is absent. A feed that arrives as a trail means a trail exists whatever the map chooses to draw, and the trail of a nurse doing home visits is a list of the houses she went into.",
+     "also": [
+      "trail",
+      "history",
+      "positions",
+      "breadcrumbs",
+      "path",
+      "route",
+      "locations"
+     ]
+    },
+    {
+     "field": "address",
+     "refusal": "A position feed may not carry a reverse-geocoded street address.",
+     "why": "A coordinate rounded to 110 metres is a suburb. A street address is a front door, and nothing in this product has ever needed one from this feed.",
+     "also": [
+      "streetAddress",
+      "formattedAddress",
+      "placeName",
+      "addressLine1",
+      "geocodedAddress"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "Fleet and location platforms are overwhelmingly hosted outside South Africa, and this is the feed where a transfer would be continuous rather than occasional. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "credential-answer",
+   "name": "What an issuing authority said",
+   "capabilities": [
+    "credential-verification"
+   ],
+   "supplier": "An agreement or accreditation with each of thirteen authorities. All thirteen adapters answer not-integrated today.",
+   "route": "POST /feeds/credential-answer",
+   "arrives": "One authority's answer to one enquiry MyThuso made.",
+   "derivedFrom": [
+    "apps/api/src/vetting/authority.ts",
+    "apps/api/src/vetting/store.ts",
+    "packages/catalog/vetting.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "credential-verification",
+    "sample": [
+     "apps/api/src/vetting/authority.ts"
+    ],
+    "unchanged": "Thirteen adapters answer not-integrated, which is a first-class outcome rather than an error, and a party's standing composes the sentence \"cleared by review, with no authority confirmation\" for as long as that is true. That arrangement is already right and it is the model this whole file was written from."
+   },
+   "accepts": [
+    {
+     "field": "reference",
+     "type": "string",
+     "required": true,
+     "why": "The enquiry reference this service minted when it asked. It identifies the question, not the credential."
+    },
+    {
+     "field": "checkId",
+     "type": "string",
+     "required": true,
+     "why": "Which of the party's checks this answers. See the switch-on condition — it is the field the whole gate rests on."
+    },
+    {
+     "field": "authority",
+     "type": "string",
+     "required": true,
+     "why": "Which body answered, in the vocabulary vetting.json already uses."
+    },
+    {
+     "field": "outcome",
+     "type": "string",
+     "required": true,
+     "why": "One of the six the adapter interface already declares — confirmed, not-found, mismatch, expired, unavailable, not-integrated — and no seventh."
+    },
+    {
+     "field": "checkedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the authority answered. A re-verification sweep is arithmetic over these times."
+    },
+    {
+     "field": "detail",
+     "type": "string",
+     "required": true,
+     "why": "In the words a person reads. Never a credential value and never a provider stack trace — the adapter interface says so already."
+    },
+    {
+     "field": "expiresOn",
+     "type": "iso-date",
+     "required": false,
+     "why": "Where the authority states its own validity date. Usually it does not, which is why this is optional and why the expiry arithmetic has a fallback."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "an-answer-names-the-check-it-answers",
+     "must": "Every answer carries checkId, and an answer that names only the party is refused.",
+     "why": "The gate withdraws a capability by arithmetic when a check lapses: a nurse whose police clearance ran out last night is refused this morning without anybody noticing first. An answer that names only the person tells the gate that something about her is confirmed and nothing about which of her checks — so a current SANC registration would answer a lapsed SAPS clearance, and the arithmetic that makes the whole vetting layer worth having would stop working in the direction that fails open.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "unreachable-is-never-read-as-agreement",
+     "must": "unavailable and not-integrated remain distinct values that no caller may collapse into confirmed.",
+     "why": "authority.ts already states it: an adapter that cannot reach its authority returns unavailable, never confirmed, never silence and never the previous answer dressed up as a fresh one. The temptation is at half past four on a Friday with somebody waiting to be dispatched.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "idNumber",
+     "refusal": "An authority's answer may not echo back a South African identity number.",
+     "why": "The verification layer deliberately never writes the credential value down — it says so in its own header, because a table with one identity number per enquiry would become the most attractive table in the database. An answer that echoed it back would undo that in the reply rather than in the request, which is the half nobody reviews.",
+     "also": [
+      "identityNumber",
+      "saIdNumber",
+      "nationalId",
+      "idNo",
+      "passportNumber"
+     ]
+    },
+    {
+     "field": "biometric",
+     "refusal": "An authority's answer may not carry a fingerprint, a photograph or any other biometric.",
+     "why": "Home Affairs is reached through an accredited provider, and the person types their number into the provider's own flow so that this service never sees it. An answer carrying a biometric would make this service a holder of one, which is special personal information under POPIA and a category nothing here is built for.",
+     "also": [
+      "fingerprint",
+      "photo",
+      "photograph",
+      "image",
+      "faceImage",
+      "selfie",
+      "portrait"
+     ]
+    },
+    {
+     "field": "convictions",
+     "refusal": "A police clearance answer may not list offences.",
+     "why": "MyThuso needs to know whether a person is cleared. It does not need to know what for, and it must not become a criminal-record database about its own workforce — a holding with no purpose here, no retention basis in the register, and a very long memory.",
+     "also": [
+      "offences",
+      "offenses",
+      "criminalRecord",
+      "charges",
+      "previousConvictions"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "Twelve of the thirteen are South African statutory bodies. The thirteenth is reached through an accredited identity provider whose processing location is a term of a contract nobody has signed. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "pharmacy-order",
+   "name": "What a pharmacy did with a prescription",
+   "capabilities": [
+    "dispensing"
+   ],
+   "supplier": "A contracted pharmacy network, and a pharmacist's review of the substitution classes.",
+   "route": "POST /feeds/pharmacy-order",
+   "arrives": "One step of the handover chain, from the pharmacy that took it.",
+   "derivedFrom": [
+    "packages/catalog/dispensing.json",
+    "packages/catalog/vetting.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "dispensing",
+    "sample": [
+     "packages/catalog/dispensing.json"
+    ],
+    "unchanged": "No prescription reaches a pharmacy. The substitution rules are real, held to section 22F of the Medicines and Related Substances Act, and have not been read by a pharmacist — which the notice says out loud."
+   },
+   "accepts": [
+    {
+     "field": "prescriptionReference",
+     "type": "string",
+     "required": true,
+     "why": "The prescription this is about. Ours."
+    },
+    {
+     "field": "pharmacyPartyId",
+     "type": "string",
+     "required": true,
+     "why": "The vetted pharmacy, so the gate can decide whether it may still act at the moment it acts rather than at the moment it was onboarded."
+    },
+    {
+     "field": "state",
+     "type": "string",
+     "required": true,
+     "why": "One of the handover steps dispensing.json already names — checked, decided, told, accepted, recorded. The chain of custody is the contract's, not the supplier's."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When it happened. A chain of custody with no times is a list."
+    },
+    {
+     "field": "pharmacistRegistration",
+     "type": "string",
+     "required": true,
+     "why": "The SAPC registration of the pharmacist who did it. See the switch-on condition."
+    },
+    {
+     "field": "substitutionGround",
+     "type": "string",
+     "required": false,
+     "why": "Where an item was substituted, which of the grounds in dispensing.json it stands on. Optional on the field and not optional in fact — the switch-on condition is what makes it so."
+    },
+    {
+     "field": "note",
+     "type": "string",
+     "required": false,
+     "why": "The pharmacist's own words about this step, where they wrote any."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-state-change-names-the-pharmacist-who-made-it",
+     "must": "Every message carries a registration that resolves to a pharmacist on the vetting register.",
+     "why": "The handover chain attributes each step to a person. An order state with nobody behind it is a chain of custody with a gap in it, and the gap is always at the step somebody later asks about.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-pharmacy-that-is-not-cleared-cannot-move-an-order",
+     "must": "The gate decides the pharmacy's standing on every message rather than at connection time.",
+     "why": "A pharmacy without a current responsible pharmacist is already refused a prescription by the vetting layer. A feed authenticated once at setup would let a pharmacy whose registration lapsed in March keep moving orders in June.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-substitution-arrives-with-one-of-the-grounds-in-the-contract",
+     "must": "A reported substitution carries a ground from dispensing.json, and one that does not is refused.",
+     "why": "Section 22F allows substitution and names four exceptions. A substitution reported with no ground is one nobody can defend afterwards, and the person it would be defended to is a patient who was handed a different box.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "diagnosis",
+     "refusal": "A pharmacy's message may not carry a diagnosis.",
+     "why": "A pharmacy is told what to dispense, never why. Substitution under section 22F turns on the molecule, the strength and the class — never on the condition — so an indication has no function in this feed at all, and its only effect would be to put a diagnosis into a supplier's system that had no need of it and no obligation this service can enforce.",
+     "also": [
+      "icd10",
+      "icd",
+      "condition",
+      "clinicalImpression",
+      "provisionalDiagnosis"
+     ]
+    },
+    {
+     "field": "indication",
+     "refusal": "A pharmacy's message may not carry what the medicine is for.",
+     "why": "The same fact wearing a clinical word. Some medicines name their condition on the box, which is a reason to be careful about the box rather than a reason to put the condition in a feed.",
+     "also": [
+      "treatmentFor",
+      "usedFor",
+      "reasonForMedicine",
+      "therapeuticIndication"
+     ]
+    },
+    {
+     "field": "patientName",
+     "refusal": "A pharmacy's message may not name the patient.",
+     "why": "The prescription reference already identifies it. An inbound message that restates the name is a second copy arriving from outside, into a log written for a different purpose.",
+     "also": [
+      "patient",
+      "patientFullName",
+      "beneficiaryName",
+      "subjectName"
+     ]
+    },
+    {
+     "field": "idNumber",
+     "refusal": "A pharmacy's message may not carry a South African identity number.",
+     "why": "It identifies nothing this feed needs identified.",
+     "also": [
+      "identityNumber",
+      "saIdNumber",
+      "nationalId",
+      "idNo",
+      "passportNumber"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "A South African pharmacy group is domestic; its dispensing software may not be. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "interpreter-roster",
+   "name": "Which interpreters are free",
+   "capabilities": [
+    "interpreting"
+   ],
+   "supplier": "An interpreter service, and — before that — somebody who can confirm which body actually accredits a South African Sign Language interpreter.",
+   "route": "POST /feeds/interpreter-roster",
+   "arrives": "One interpreter's availability for one shift.",
+   "derivedFrom": [
+    "packages/catalog/interpreting.json",
+    "packages/catalog/scheduling.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "interpreting",
+    "sample": [
+     "packages/catalog/interpreting.json"
+    ],
+    "unchanged": "The roster and the refusals are real; the people on it are not. A visit with no interpreter is held rather than dispatched, cancelling one costs nothing and is recorded against MyThuso rather than the patient. All of that stands."
+   },
+   "accepts": [
+    {
+     "field": "partyId",
+     "type": "string",
+     "required": true,
+     "why": "The interpreter as a vetted party, with their own six checks and one capability."
+    },
+    {
+     "field": "mode",
+     "type": "string",
+     "required": true,
+     "why": "One of the three modes interpreting.json declares. A remote interpreter and one in the room are not interchangeable and the contract says why."
+    },
+    {
+     "field": "area",
+     "type": "string",
+     "required": true,
+     "why": "Where they can work in person. For a remote interpreter it is still stated, because \"anywhere\" is a claim."
+    },
+    {
+     "field": "settings",
+     "type": "list",
+     "required": true,
+     "why": "The settings this interpreter works in — a clinical consultation, a home visit, mental health. It is about the interpreter's own competence and it is the only field here that touches a clinical word legitimately."
+    },
+    {
+     "field": "shiftStartsAt",
+     "type": "instant",
+     "required": true,
+     "why": "With an offset, and intersected against the hours the product actually offers."
+    },
+    {
+     "field": "shiftEndsAt",
+     "type": "instant",
+     "required": true,
+     "why": "The same."
+    },
+    {
+     "field": "accreditationReference",
+     "type": "string",
+     "required": false,
+     "why": "Their membership number with whichever body turns out to be the right one. Optional precisely because that question is open."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "somebody-who-would-know-has-confirmed-the-accreditation-route",
+     "must": "The body that accredits a South African Sign Language interpreter is confirmed by a Deaf South African, an accredited SASL interpreter, or SATI, DeafSA or PanSALB — and interpreting.json records who and when.",
+     "why": "The contract already says nobody has confirmed it. Connecting a roster before that is connecting to the wrong register, and the people it would fail are the ones with the least ability to say so in the room. This is the one blocker on this list that is not a contract: it is a question nobody has asked.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "an-interpreter-is-a-vetted-party-and-not-a-name-on-a-list",
+     "must": "A roster row for somebody the vetting register does not hold is refused.",
+     "why": "The same rule as the nurse roster and for a stronger reason: an interpreter is in the room for the most private conversation this product ever hosts.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "patientId",
+     "refusal": "An interpreter roster may not name who they will interpret for.",
+     "why": "interpreting.json refuses the interpreter anything that opens a record. A roster row naming the patient would hand them one by the back door, before the consultation and without anybody deciding to.",
+     "also": [
+      "patient",
+      "patientRef",
+      "patientReference",
+      "subjectId",
+      "beneficiaryId",
+      "memberId"
+     ]
+    },
+    {
+     "field": "presentingComplaint",
+     "refusal": "An interpreter roster may not say why an interpreter is needed.",
+     "why": "\"Mental health\" appears in settings as a setting the interpreter is competent in, which is a fact about them. Why this patient needs one is a fact about the patient.",
+     "also": [
+      "complaint",
+      "reasonForVisit",
+      "chiefComplaint",
+      "whyNeeded"
+     ]
+    },
+    {
+     "field": "disability",
+     "refusal": "An interpreter roster may not carry anything about the person who needs the interpreter.",
+     "why": "Whether somebody is Deaf is health information about them and special personal information under POPIA. A roster is a document about who is free to work.",
+     "also": [
+      "deaf",
+      "impairment",
+      "hearingLoss",
+      "specialNeeds",
+      "accessibilityNeed"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "Remote interpreting is routinely resold across borders. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "emergency-acknowledgement",
+   "name": "Whether an ambulance is coming",
+   "capabilities": [
+    "emergency"
+   ],
+   "supplier": "A contracted ambulance partner, an urgent rota, and a clinician's review of the routing questions.",
+   "route": "POST /feeds/emergency-acknowledgement",
+   "arrives": "A partner's answer to one alert MyThuso raised.",
+   "derivedFrom": [
+    "packages/catalog/sos.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "emergency",
+    "sample": [
+     "packages/catalog/sos.json"
+    ],
+    "unchanged": "This does not call anybody, and 10177 is on the screen above anything MyThuso sells. Six named failures each say what to do instead. Not one word of that is changed by a signed contract."
+   },
+   "accepts": [
+    {
+     "field": "alertReference",
+     "type": "string",
+     "required": true,
+     "why": "The alert this answers. Ours."
+    },
+    {
+     "field": "partnerId",
+     "type": "string",
+     "required": true,
+     "why": "Which partner answered, so a decline can be routed on and a silence can be attributed."
+    },
+    {
+     "field": "state",
+     "type": "string",
+     "required": true,
+     "why": "accepted, declined, en-route, arrived or stood-down. Declined is a first-class value for the same reason not-integrated is one in the vetting layer."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When. The target is stated in minutes and a target with no clock is a slogan."
+    },
+    {
+     "field": "reason",
+     "type": "string",
+     "required": false,
+     "why": "Why it was declined or stood down, in words."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "the-ambulance-number-is-still-shown-first",
+     "must": "10177 and 112 are on the screen above anything MyThuso offers, with a partner contracted exactly as without one.",
+     "why": "The emergency capability carries a neverSoften note saying so, and it is the refusal on this pathway that is not about MyThuso at all. A signed contract is the moment it becomes tempting to move it down the page, and that is precisely why the condition is written here rather than assumed.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-decline-is-answered-by-the-product-and-never-by-silence",
+     "must": "Every declined or unanswered alert lands on one of the six failures in sos.json, each of which says what to do instead.",
+     "why": "An unanswered emergency is the worst failure this product has. A feed that models only acceptance makes silence the default outcome, and silence looks exactly like a request still being handled.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-partner-that-cannot-be-reached-is-a-failure-and-never-an-acceptance",
+     "must": "An unreachable partner produces a failure, never an assumed acceptance and never a stale prior answer.",
+     "why": "The same fail-closed rule the credential layer already states, in the one place where failing open would put nobody in an ambulance.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "symptoms",
+     "refusal": "An acknowledgement may not carry a symptom list.",
+     "why": "sos.json states exactly what is kept: the time it was raised and by whom, which door it went through, and which red flag was ticked — that last one only if a nurse is actually sent. An acknowledgement coming back with the flags restated would put a symptom list into an inbound message for every alert including the ones stood down, which is most of them.",
+     "also": [
+      "redFlags",
+      "flags",
+      "presentation",
+      "chiefComplaint",
+      "clinicalNotes"
+     ]
+    },
+    {
+     "field": "diagnosis",
+     "refusal": "An acknowledgement may not carry a diagnosis.",
+     "why": "The routing questions route; they do not triage, and the contract says so in its own words. A partner's clinical opinion arriving through this feed would be a triage decision entering a product that has deliberately refused to make one.",
+     "also": [
+      "icd10",
+      "icd",
+      "condition",
+      "clinicalImpression",
+      "provisionalDiagnosis"
+     ]
+    },
+    {
+     "field": "patientName",
+     "refusal": "An acknowledgement may not name the patient.",
+     "why": "The alert reference identifies it.",
+     "also": [
+      "patient",
+      "patientFullName",
+      "beneficiaryName",
+      "subjectName"
+     ]
+    },
+    {
+     "field": "address",
+     "refusal": "An acknowledgement may not echo the address back.",
+     "why": "The partner is told where to go — outbound, once, to the people who have to drive there. An acknowledgement that returns it is an address round-tripped through a log for no reader.",
+     "also": [
+      "streetAddress",
+      "formattedAddress",
+      "placeName",
+      "addressLine1",
+      "geocodedAddress"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "An ambulance partner is necessarily local. Their dispatch platform may not be. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "media-session",
+   "name": "What happened on the call",
+   "capabilities": [
+    "teleconsultation"
+   ],
+   "supplier": "A media stack. Neither app declares a camera or a microphone permission, deliberately, and a doctor panel with a real rota does not exist.",
+   "route": "POST /feeds/media-session",
+   "arrives": "One lifecycle event from one consultation: somebody joined, the line dropped, it ended.",
+   "derivedFrom": [
+    "packages/catalog/teleconsult.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "teleconsultation",
+    "sample": [
+     "packages/catalog/teleconsult.json"
+    ],
+    "unchanged": "This build has never asked either device for a camera or a microphone and no connection is opened. The four-rung connection ladder, the ninety-second hold and the seven encounter outcomes are the design of a consultation drawn at full size, and they are right."
+   },
+   "accepts": [
+    {
+     "field": "visitReference",
+     "type": "string",
+     "required": true,
+     "why": "Which consultation. Ours."
+    },
+    {
+     "field": "event",
+     "type": "string",
+     "required": true,
+     "why": "waiting, joining, joined, left, dropped or ended — the waiting-room states and the connection ladder the contract already declares."
+    },
+    {
+     "field": "participantRole",
+     "type": "string",
+     "required": true,
+     "why": "Which of the five participants, by role rather than by name. Who may see and hear the patient is consented to per participant, and the roster is the product's rather than the vendor's."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When. The reconnect hold is ninety seconds and it has to be counted from something."
+    },
+    {
+     "field": "connectionId",
+     "type": "string",
+     "required": false,
+     "why": "Which rung of the ladder the line was on. What a doctor may conclude shrinks with it, so it is clinical information about the encounter rather than a quality metric."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-join-is-gated-by-the-visit-code-and-not-by-holding-a-link",
+     "must": "Joining a consultation requires the six-digit visit code, and a room URL alone admits nobody.",
+     "why": "teleconsult.json's one identity mechanism is that code, held by the patient and expiring when the visit ends. Every media vendor's default is a room URL, which is a bearer token: anybody holding it is in the consultation, and links are forwarded. A link that works without the code is a second identity mechanism the contract does not have and did not choose.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-permission-is-declared-against-this-capability-before-it-is-asked-for",
+     "must": "A camera or microphone permission appears under requiresPermissions on the teleconsultation capability before either app declares one.",
+     "why": "Neither app asks the device for anything today, and several notices a person reads depend on that being true. The boundary check already refuses an undeclared permission on either platform. Declaring one is not a build step; it is a decision about pointing a camera at somebody in their own home, and it belongs in the file that also holds what is blocking the feature.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "recording-stays-refused-until-the-contract-answers-its-own-questions",
+     "must": "Recording remains refused until teleconsult.json records who may view a recording, for how long it is kept and what happens to it afterwards — with those answers made by somebody, not defaulted.",
+     "why": "The contract lists those questions unanswered and refuses recording outright in the preview. A vendor is switched on with recording enabled by default rather more often than not.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "recordingUrl",
+     "refusal": "A session event may not carry a recording.",
+     "why": "Recording is refused outright in this build, and a session event arriving with a recording URL means a recording exists whatever any screen says. The vendor's default is to record; this is the field where that default arrives, and refusing it at the door is the difference between a policy and a setting somebody forgot.",
+     "also": [
+      "recording",
+      "mediaUrl",
+      "recordingId",
+      "archiveUrl",
+      "compositionUrl"
+     ]
+    },
+    {
+     "field": "transcript",
+     "refusal": "A session event may not carry a transcript.",
+     "why": "A transcript of a consultation is the consultation, in text, with a longer life and weaker protection. It is also the exact artefact the voice capability refuses, for the same reason.",
+     "also": [
+      "captions",
+      "subtitles",
+      "speechToText",
+      "transcription"
+     ]
+    },
+    {
+     "field": "joinUrl",
+     "refusal": "A session event may not carry a join link.",
+     "why": "A bearer link that arrives in a log is a bearer link in a log, readable by everybody who can read the log, for as long as the log is kept.",
+     "also": [
+      "roomUrl",
+      "joinLink",
+      "roomToken",
+      "sessionToken",
+      "accessToken",
+      "inviteUrl"
+     ]
+    },
+    {
+     "field": "diagnosis",
+     "refusal": "A session event may not carry a clinical conclusion.",
+     "why": "What a doctor concluded is written by the doctor into the record, in a field records.json keeps separate from the nurse's assessment. It does not arrive from a media vendor.",
+     "also": [
+      "icd10",
+      "icd",
+      "condition",
+      "clinicalImpression",
+      "provisionalDiagnosis"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "Every serious media stack is offshore and routes media through the nearest edge, which on this continent is frequently not on it. This is the feed where a transfer would carry the content of a consultation. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "screening-result",
+   "name": "What a model made of a reading",
+   "capabilities": [
+    "screening"
+   ],
+   "supplier": "No model, no vendor and no licence.",
+   "route": "POST /feeds/screening-result",
+   "arrives": "One model's reading of one capture, as decision support.",
+   "derivedFrom": [
+    "packages/catalog/capture.json",
+    "packages/catalog/records.json",
+    "apps/api/src/capture/contract.ts"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "screening",
+    "sample": [
+     "packages/catalog/capture.json"
+    ],
+    "unchanged": "Nothing is screened by software. The frame around a result — provenance, calibration, countersignature, a named clinician's sign-off — is real and the result is sample data, which is exactly what the notice says."
+   },
+   "accepts": [
+    {
+     "field": "captureReference",
+     "type": "string",
+     "required": true,
+     "why": "Which capture entry was screened. The entry holds a commitment to a sealed reading and never the reading, which is the arrangement this feed must not disturb."
+    },
+    {
+     "field": "modelId",
+     "type": "string",
+     "required": true,
+     "why": "Which model. There is no such field anywhere in this codebase today, and that absence is the gap this seam names."
+    },
+    {
+     "field": "modelVersion",
+     "type": "string",
+     "required": true,
+     "why": "Which version of it. See the switch-on condition — it is the field that makes a withdrawal possible."
+    },
+    {
+     "field": "finding",
+     "type": "string",
+     "required": true,
+     "why": "The model's own words, carried as decision support. \"Possible atrial fibrillation, 102 bpm\" and \"Trace too noisy to interpret\" are both findings and the second one matters more."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When it was produced."
+    },
+    {
+     "field": "confidence",
+     "type": "number",
+     "required": false,
+     "why": "Where the model states one. Optional because a model that states none must not be made to invent one, and a screening layer that required a number would get a number."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-result-names-the-model-and-the-version-that-produced-it",
+     "must": "Every result carries modelId and modelVersion, and a result with neither is refused.",
+     "why": "The first thing that happens after a model version is found to be wrong is somebody asking which results came from it. A result with no version cannot be withdrawn, cannot be counted and cannot be excluded from an audit — and the reason it matters here rather than in general is that capture.json's whole model is provenance: every reading already says where it came from, and a screening result with no provenance would be the one thing in the record that does not.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-result-is-decision-support-until-a-named-clinician-signs-it",
+     "must": "A screening result never lands in the nurse's assessment or the doctor's diagnosis, and never becomes a record without a named clinician's signature over it.",
+     "why": "records.json already keeps those two fields apart on purpose. A model's output written into either of them is a clinical decision made by a supplier, and the person it would be attributed to is whoever's name is on the record.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-agreement-rate-is-measured-rather-than-asserted",
+     "must": "Any figure for how often screening agreed with a doctor is computed from signed reviews that exist, or it is not shown.",
+     "why": "The admin preview currently shows \"AI agreed with the doctor — 91%\" over a sample of 1,240 reviewed cases, as a string. It is sample data on a screen that says so, and the day screening is connected is the day that number stops being a drawing and starts being a claim about clinical safety. It should be computed by then or removed.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "diagnosis",
+     "refusal": "A model may not return a diagnosis.",
+     "why": "A model that returns a field called a diagnosis has made the clinical decision in the transport layer, and everything downstream is arguing with a fait accompli. The doctor's diagnosis is a doctor's, in a field of its own, signed.",
+     "also": [
+      "icd10",
+      "icd",
+      "condition",
+      "clinicalImpression",
+      "provisionalDiagnosis"
+     ]
+    },
+    {
+     "field": "prescription",
+     "refusal": "A model may not return a prescription.",
+     "why": "Prescribing is an act of a registered person under the Health Professions Act and the Medicines Act. A feed that could carry a dose is a feed somebody will one day wire to dispensing, and the wiring would be a two-line change.",
+     "also": [
+      "dose",
+      "dosage",
+      "medication",
+      "drug",
+      "rx",
+      "treatment"
+     ]
+    },
+    {
+     "field": "patientName",
+     "refusal": "A screening result may not name the patient.",
+     "why": "The capture reference names the entry. The model is given a reading, not a person, and a result that named the patient would reunite the two outside the vault the capture module was built to keep them apart in.",
+     "also": [
+      "patient",
+      "patientFullName",
+      "beneficiaryName",
+      "subjectName"
+     ]
+    },
+    {
+     "field": "idNumber",
+     "refusal": "A screening result may not carry a South African identity number.",
+     "why": "There is no version of this feed in which it has a function.",
+     "also": [
+      "identityNumber",
+      "saIdNumber",
+      "nationalId",
+      "idNo",
+      "passportNumber"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "Every clinical model of consequence is hosted offshore, and the payload is a reading from a patient. This is the transfer that would need a determination first rather than last. Not determined.",
+    "determined": false
+   }
+  }
+ ]
+}

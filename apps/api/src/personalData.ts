@@ -186,6 +186,17 @@ export const RETENTION_BASES: RetentionBasis[] = [
   inUse: true,
   note: 'Six years is MyThuso\'s own setting; no statute names a period for an access log. This is the separate log with its own period that the audit-integrity basis above says should eventually exist — it has one, and nothing yet carries it out: the retention sweep does not reach this table, and no row has ever been disposed of. That is a stated gap rather than a claim, and closing it needs a disposal that a boundary check can tell apart from a deletion.'
  },
+ {
+  id: 'service-measurement',
+  name: 'Counts about the service, with nobody in them',
+  authority: 'POPIA section 1: information that does not relate to an identifiable person is not personal information. It is named in this register anyway, because a register that lists only the tables it considers personal is a register whose silence about a table means two different things.',
+  anchor: 'never',
+  years: null,
+  rule: 'Five numbers for each fifteen minutes MyThuso has been running: how many callers there were, how many requests they made between them, the most any one of them made, and how many were turned away for asking too often. There is no account, no number, no address and no record of what was asked in it, so there is nothing of yours here to erase.',
+  conflictsWithErasure: false,
+  inUse: true,
+  note: 'There is no disposal date because there is nothing to dispose of on anybody\'s behalf. It exists to answer one question — whether sixty requests per caller per fifteen minutes is the right number — which nobody can answer today, because there are no real callers. When there are, it should be answered and this table should stop growing, or start being summarised further.'
+ },
  /* ── Written down, holding nothing ─────────────────────────────────────────────────────────
     These are the bases that make the conflict real, and not one of them applies to anything this
     service holds today, because no clinical record exists here. They are here so that when one
@@ -278,8 +289,15 @@ export const HOLDINGS: Holding[] = [
   label: 'The count of what you have asked this service to do lately',
   table: 'write_attempts',
   disposition: 'erase',
-  because: 'One line for each thing you asked MyThuso to change, with no detail of what it was — the time, the account and which button. It is kept for fifteen minutes so that nobody, including somebody signed in as you, can drive this service in a loop. Deleted with everything else, and swept away on its own within a day in any case.',
+  because: 'One line for each thing you asked MyThuso to change, with no detail of what it was — the time, the account and which button. It is kept for half an hour so that nobody, including somebody signed in as you, can drive this service in a loop. Deleted with everything else, and swept away on its own once no limit can still be counting it.',
   basis: 'spent-material'
+ },
+ {
+  label: 'How busy MyThuso was, with nobody in it',
+  table: 'write_windows',
+  disposition: 'retain',
+  because: 'Five numbers for each fifteen minutes MyThuso has been running: how many people were using it, how many requests they made between them, the most any one of them made, and how many were turned away for asking too often. Your requests were counted into it before they were deleted, and what is left is arithmetic — there is no account, no number, no address and no record of what was asked. There is nothing here to erase because there is nothing here of yours.',
+  basis: 'service-measurement'
  },
  {
   label: 'Your authenticator app and recovery codes',

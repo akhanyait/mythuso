@@ -35,6 +35,29 @@ export type AuditEvent = {
   at: number; event: string; personId: string | null; phone: string | null;
   address: string | null; agentHash: string | null; detail: string | null;
 };
+/**
+ * Fifteen minutes of this service's life, as five integers and nobody's name.
+ *
+ * `limits.writesPerCallerPerWindow` is sixty and docs/PRIVACY-AND-SECURITY.md says plainly that the
+ * number is a proposal rather than a measurement: nobody has watched a real session, because there
+ * are no real sessions. This is the material that would settle it, and it is deliberately the least
+ * that would.
+ *
+ * `busiest` is the largest number of requests any one caller made inside this fixed fifteen-minute
+ * bucket. The limiter counts a *sliding* fifteen minutes, so a caller working across a boundary is
+ * split between two buckets and `busiest` is therefore a **lower bound** on what the limiter would
+ * have seen. That is stated rather than corrected because the question it has to answer is "does an
+ * honest caller come anywhere near sixty", and a lower bound answers that in the direction that
+ * matters. `refused` is not an estimate: it is the exact count of requests the limiter turned away,
+ * and it is the number that says whether sixty is too tight.
+ *
+ * There is no subject, no address and no route in here. A window in which one caller made
+ * thirty-four requests says that somebody did; it does not say who, and there is nothing in the row
+ * to join to anything that would. If refusals ever appear, the next thing worth adding is which
+ * route they were on — safe to add, because a route is one of a closed set of strings out of this
+ * repository — and it is deliberately not added before there is a refusal to explain.
+ */
+export type WriteWindow = { windowStart: number; callers: number; writes: number; busiest: number; refused: number };
 export type Store = {
   database: DatabaseSync;
   findPersonByPhone(phone: string): Person | null;
@@ -74,6 +97,9 @@ export type Store = {
   sweep(table: SweepableTable, before: number): number;
   recordWrite(at: number, subject: string, route: string): void;
   countWrites(subject: string, since: number): number;
+  recordWriteRefusal(at: number, windowMs: number): void;
+  rollUpWriteWindows(before: number, windowMs: number): number;
+  writeWindows(limit: number): WriteWindow[];
   appendAudit(event: AuditEvent): void;
   recentAudit(limit: number): AuditEvent[];
   auditForPerson(personId: string, phone: string, limit: number): AuditEvent[];
@@ -125,6 +151,15 @@ CREATE TABLE IF NOT EXISTS erasure_requests (
 CREATE TABLE IF NOT EXISTS write_attempts (
   at INTEGER NOT NULL, subject TEXT NOT NULL, route TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS write_attempts_subject ON write_attempts (subject, at);
+-- Fifteen minutes of the service's life, with nobody in it. See WriteWindow above for what each
+-- number is and what it is a lower bound on. This is the one table here that survives an erasure
+-- untouched, and it survives it because there is nothing of anybody's in it to touch: five integers
+-- per window, no subject, no address, no route. It exists so that "sixty writes per caller per
+-- fifteen minutes" can stop being a proposal, which needs a real caller and a few weeks rather than
+-- another argument.
+CREATE TABLE IF NOT EXISTS write_windows (
+  window_start INTEGER PRIMARY KEY, callers INTEGER NOT NULL DEFAULT 0, writes INTEGER NOT NULL DEFAULT 0,
+  busiest INTEGER NOT NULL DEFAULT 0, refused INTEGER NOT NULL DEFAULT 0);
 `;
 /* The sweep's reach, written once so nothing can be handed a table name from a request. Each is
    spent material: a code that has been used or has expired, an address that asked for one outside
@@ -262,6 +297,14 @@ export function openStore(path: string): Store {
         db.prepare('DELETE FROM second_factors WHERE person_id = ?').run(personId);
         db.prepare('DELETE FROM recovery_codes WHERE person_id = ?').run(personId);
         db.prepare('DELETE FROM second_factor_challenges WHERE person_id = ?').run(personId);
+        /* The holdings register has said since the caller limit landed that this one is "deleted
+           with everything else", and it was not: the erasure reached six tables and this was the
+           seventh. It is a small holding and an easy one to miss, which is exactly why the register
+           is checked against the schema — and why a promise in the register that no line of code
+           carries out is worth more attention than the size of the table suggests. Erasing it also
+           clears whatever the person had spent of their own rate limit, which is correct: their
+           sessions are revoked on the line above and there is nobody left to limit. */
+        db.prepare('DELETE FROM write_attempts WHERE subject = ?').run(personId);
         db.prepare('UPDATE erasure_requests SET completed_at = ? WHERE person_id = ?').run(at, personId);
         db.exec('COMMIT');
       } catch (error) {
@@ -279,6 +322,39 @@ export function openStore(path: string): Store {
     },
     recordWrite(at, subject, route) {
       db.prepare('INSERT INTO write_attempts (at, subject, route) VALUES (?, ?, ?)').run(at, subject, route);
+    },
+    /* The one number in the measurement that is exact rather than a lower bound, and the one that
+       actually decides whether sixty is too tight. It is counted here rather than in the roll-up
+       because a refused request never reaches write_attempts — the limiter answers and returns
+       before anything is recorded, which is correct (counting a refusal against the caller would
+       make a lockout self-sustaining) and is why the refusals would otherwise be invisible. */
+    recordWriteRefusal(at, windowMs) {
+      const start = Math.floor(at / windowMs) * windowMs;
+      db.prepare('INSERT INTO write_windows (window_start, refused) VALUES (?, 1) ON CONFLICT (window_start) DO UPDATE SET refused = refused + 1').run(start);
+    },
+    /* Roll spent attempts up into windows nobody appears in, then say how many were folded. Only
+       attempts older than one window are considered: anything newer could still be counted by a
+       live limiter, and summarising a window that is still open would produce a number that changes
+       after it has been written down. The caller deletes the rows afterwards — this does not, so a
+       roll-up that runs twice writes the same numbers rather than half of them. */
+    rollUpWriteWindows(before, windowMs) {
+      /* CAST rather than a bare division: node:sqlite binds a JavaScript number as a REAL, so `at / ?`
+         is floating-point division and every attempt lands in a bucket of its own — which looks like
+         a working roll-up producing one window per request. */
+      const rows = db.prepare(`
+        SELECT window_start, SUM(per_caller) AS writes, COUNT(*) AS callers, MAX(per_caller) AS busiest FROM (
+          SELECT CAST(at / ? AS INTEGER) * ? AS window_start, subject, COUNT(*) AS per_caller
+          FROM write_attempts WHERE at < ? GROUP BY window_start, subject
+        ) GROUP BY window_start`).all(windowMs, windowMs, before) as unknown as { window_start: number; writes: number; callers: number; busiest: number }[];
+      const upsert = db.prepare(`INSERT INTO write_windows (window_start, callers, writes, busiest) VALUES (?, ?, ?, ?)
+        ON CONFLICT (window_start) DO UPDATE SET callers = excluded.callers, writes = excluded.writes, busiest = excluded.busiest`);
+      for (const row of rows) upsert.run(row.window_start, row.callers, row.writes, row.busiest);
+      return rows.length;
+    },
+    writeWindows(limit) {
+      const rows = db.prepare('SELECT window_start, callers, writes, busiest, refused FROM write_windows ORDER BY window_start DESC LIMIT ?')
+        .all(limit) as unknown as { window_start: number; callers: number; writes: number; busiest: number; refused: number }[];
+      return rows.map(row => ({ windowStart: row.window_start, callers: row.callers, writes: row.writes, busiest: row.busiest, refused: row.refused }));
     },
     countWrites(subject, since) {
       const row = db.prepare('SELECT COUNT(*) AS n FROM write_attempts WHERE subject = ? AND at >= ?').get(subject, since) as { n: number };
