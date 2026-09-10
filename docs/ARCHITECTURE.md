@@ -148,7 +148,7 @@ Before backend integration: threat model, data-flow inventory, access policy tes
 Before any pilot: independent penetration test, information/clinical governance approval, device and clinician verification, tested incident response, encrypted backup restore test, retention enforcement, partner/operator agreements, production monitoring with PHI redaction and a documented release acceptance sign-off. CI should pin third-party actions to reviewed commit SHAs and use short-lived OIDC deployment credentials before deployment is introduced.
 
 
-## Running the tests here, and three ways a green run can be a lie
+## Running the tests here, and four ways a run can lie to you
 
 Both of these cost real work before anybody noticed them, and neither is visible in a result.
 
@@ -168,6 +168,27 @@ with the tests; they were run against somebody else's application and reported a
 is now off: every run starts a server it owns, and a busy port fails loudly rather than borrowing.
 This is the same shape as the iOS trap below and it went unnoticed for longer, because a web run
 prints no clue about whose files it served.
+
+**Fewer workers makes the web suite worse, not better, and the instinct to slow it down is wrong.**
+Measured on 10 September on a quiet machine, same commit, three configurations:
+
+| Workers | Duration | Failed of 422 |
+|---|---|---|
+| 2, dev server | 5.7 min | 7 |
+| 1, dev server | 27.9 min | 41 |
+| 2, built bundle | 3.5 min | 6 |
+
+The failures are timeouts, they are a different set every run, and every one of them passes in
+isolation in seconds. So the variable is not contention between workers — it is how long one Vite
+dev server has been serving. A twenty-eight minute run degrades it far enough to lose forty tests;
+a four minute run barely touches it. Reaching for `--workers=1` when a run looks flaky is therefore
+exactly the wrong move, and it is the move everybody makes.
+
+Serving the built bundle (`vite preview`) instead of the dev server is faster and steadier, and it
+tests what actually ships. It is not adopted yet because it surfaced two specs that pass against the
+dev server and fail against the build — `arrival.spec.ts:147` and `states.spec.ts:265`, on both
+viewports. That difference is worth understanding before it is hidden by a config change: the built
+bundle is what mythuso.co.za serves.
 
 **An iOS test result on this machine is worthless unless it was isolated, and the check comes
 first.** Agents share the simulator and the default DerivedData path, so a run can compile and
