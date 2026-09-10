@@ -2954,7 +2954,7 @@ for (const [file, source] of [...simulationFiles, ['apps/web/src/lib/simulation.
 }
 
 /* Every refusal enforced, and every enforcement naming exactly one refusal.
-   `refusesTo('<capability>', /fragment/)` is how a simulator says no in the contract's own words:
+   `refusalSaying('<capability>', /fragment/)` is how a simulator says no in the contract's own words:
    the fragment selects, the sentence is returned. Two failures are possible and both are silent
    without this — a sentence added to the contract that nothing enforces, and a selector that has
    stopped matching because somebody reworded the sentence past it. */
@@ -2962,12 +2962,12 @@ const standingIn = new Set();
 for (const [, source] of simulationFiles) for (const [, id] of source.matchAll(/capability:\s*'([a-z-]+)'/g)) standingIn.add(id);
 const enforcements = [];
 for (const [file, source] of simulationFiles) {
- for (const [, id, pattern] of source.matchAll(/refusesTo\('([a-z-]+)',\s*\/(.+?)\/\)/g)) enforcements.push({ file, id, pattern });
+ for (const [, id, pattern] of source.matchAll(/refusalSaying\('([a-z-]+)',\s*\/(.+?)\/\)/g)) enforcements.push({ file, id, pattern });
 }
 const refusesOf = id => capabilities.capabilities.find(c => c.id === id)?.simulation?.refuses ?? [];
 for (const { file, id, pattern } of enforcements) {
  const matched = refusesOf(id).filter(sentence => new RegExp(pattern).test(sentence));
- if (matched.length !== 1) throw new Error(`${file} enforces refusesTo('${id}', /${pattern}/), which matches ${matched.length} of the ${refusesOf(id).length} things that capability says it refuses to do. A selector matching none is a refusal that has quietly stopped being enforced — usually because the sentence was reworded — and one matching two is a refusal nobody can tell from another.`);
+ if (matched.length !== 1) throw new Error(`${file} enforces refusalSaying('${id}', /${pattern}/), which matches ${matched.length} of the ${refusesOf(id).length} things that capability says it refuses to do. A selector matching none is a refusal that has quietly stopped being enforced — usually because the sentence was reworded — and one matching two is a refusal nobody can tell from another.`);
 }
 for (const id of [...standingIn].sort()) {
  const refuses = refusesOf(id);

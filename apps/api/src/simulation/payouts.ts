@@ -36,7 +36,7 @@ import {
  produced, refuse, register, seeded,
  type SimulationRequest, type Simulator, type SimulatorAnswer
 } from './index.ts';
-import { flatten, refusesTo, simulationOf } from './contract.ts';
+import { flatten, refusalSaying, simulationOf } from './contract.ts';
 import earnings from '../../../../packages/catalog/earnings.json' with { type: 'json' };
 
 const feed: Feed = feedById('payout-advice')!;
@@ -89,7 +89,7 @@ export const bankPayouts: Simulator = {
  capability: 'payouts',
  supplier: simulationOf('payouts').supplier,
  produce(request: SimulationRequest): SimulatorAnswer {
-  if (carryingBankDetails(request)) return refuse(bankPayouts, request, refusesTo('payouts', /^Pay anybody/));
+  if (carryingBankDetails(request)) return refuse(bankPayouts, request, refusalSaying('payouts', /^Pay anybody/));
 
   const detail = request.detail ?? {};
   const partyId = detail['partyId'];
@@ -123,7 +123,7 @@ register(bankPayouts);
  * the preview as though a bank had confirmed something.
  */
 export const verifyAccount = (request: SimulationRequest): SimulatorAnswer =>
- refuse(bankPayouts, request, refusesTo('payouts', /Verify a real bank account/));
+ refuse(bankPayouts, request, refusalSaying('payouts', /Verify a real bank account/));
 
 /**
  * Asked to pull a payout back. There is nothing to pull back.
@@ -133,4 +133,4 @@ export const verifyAccount = (request: SimulationRequest): SimulatorAnswer =>
  * reversal against the payment, and the earnings ledger already carries it as a line of its own.
  */
 export const reverse = (request: SimulationRequest): SimulatorAnswer =>
- refuse(bankPayouts, request, refusesTo('payouts', /Reverse a payout that never left/));
+ refuse(bankPayouts, request, refusalSaying('payouts', /Reverse a payout that never left/));

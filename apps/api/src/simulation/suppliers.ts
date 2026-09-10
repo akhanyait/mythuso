@@ -16,4 +16,4 @@ export {
 } from './messages.ts';
 export { CURRENCY, cardAndEft, priceInCents, reverse as reversePayment, type PaymentOutcome } from './payments.ts';
 export { bankPayouts, reverse as reversePayout, verifyAccount, type PayoutOutcome } from './payouts.ts';
-export { refusesTo, simulationOf, type Simulation } from './contract.ts';
+export { refusalSaying, simulationOf, type Simulation } from './contract.ts';

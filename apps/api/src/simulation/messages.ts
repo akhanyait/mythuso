@@ -39,7 +39,7 @@ import {
  pick, produced, refuse, register, seeded,
  type SimulatedRefusal, type SimulationRequest, type Simulator, type SimulatorAnswer
 } from './index.ts';
-import { flatten, refusesTo, simulationOf, standIn } from './contract.ts';
+import { flatten, refusalSaying, simulationOf, standIn } from './contract.ts';
 
 const feed: Feed = feedById('message-delivery')!;
 
@@ -121,9 +121,9 @@ const messageIdFor = (about: string): string => `MSG-${Math.floor(seeded(`messag
  * product's answer to a message that did not arrive is a new message, not the same one again.
  */
 export function send(request: SimulationRequest): SimulatorAnswer {
- if (handedAnAddress(request)) return refuse(messageChannel, request, refusesTo('messaging', /address outside this machine/));
+ if (handedAnAddress(request)) return refuse(messageChannel, request, refusalSaying('messaging', /address outside this machine/));
  const messageId = messageIdFor(request.subject);
- if (carried.has(messageId)) return refuse(messageChannel, request, refusesTo('messaging', /^Retry/));
+ if (carried.has(messageId)) return refuse(messageChannel, request, refusalSaying('messaging', /^Retry/));
 
  const rand = seeded(`delivery:${messageId}`);
  /* One in eight. Which sends land on which side of it is then a fact about the seed rather than a
@@ -158,7 +158,7 @@ export const messageChannel: Simulator = {
  supplier: simulationOf('messaging').supplier,
  produce(request: SimulationRequest): SimulatorAnswer {
   const record = carried.get(request.subject);
-  if (!record) return refuse(messageChannel, request, refusesTo('messaging', /did not simulate/));
+  if (!record) return refuse(messageChannel, request, refusalSaying('messaging', /did not simulate/));
   const at = (request.at ?? new Date()).toISOString();
   return produced(messageChannel, request, {
    messageId: request.subject,
@@ -189,7 +189,7 @@ export const signInCodes: Simulator = standIn({
   /* The first refusal, and the one the whole arrangement rests on: the office is never told where
      to send. A screen knows the number a person typed and keeps it; what reaches here is a handle
      for the attempt. Nothing that leaves this machine exists, because nothing to leave for does. */
-  if (handedAnAddress(request)) return refuse(signInCodes, request, refusesTo('accounts', /handset/));
+  if (handedAnAddress(request)) return refuse(signInCodes, request, refusalSaying('accounts', /handset/));
 
   /* The channel's refusal is passed through as the channel's, not restamped as the office's. They
      are different capabilities with different lists of what they will not do, and a `messaging`
@@ -236,9 +236,9 @@ export type Verified = { verified: true; challenge: string; at: string };
 export function verify(challengeId: string, code: string, at?: Date): Verified | SimulatedRefusal {
  const request: SimulationRequest = { subject: challengeId, at };
  const challenge = challenges.get(challengeId);
- if (!challenge) return refuse(signInCodes, request, refusesTo('accounts', /restart/));
+ if (!challenge) return refuse(signInCodes, request, refusalSaying('accounts', /restart/));
  const now = (at ?? new Date()).getTime();
- if (now > challenge.expiresAt || code !== challenge.code) return refuse(signInCodes, request, refusesTo('accounts', /did not itself produce/));
+ if (now > challenge.expiresAt || code !== challenge.code) return refuse(signInCodes, request, refusalSaying('accounts', /did not itself produce/));
  return { verified: true, challenge: challengeId, at: new Date(now).toISOString() };
 }
 

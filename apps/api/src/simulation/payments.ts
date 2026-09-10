@@ -36,7 +36,7 @@ import {
  pick, produced, refuse, register, seeded,
  type SimulationRequest, type Simulator, type SimulatorAnswer
 } from './index.ts';
-import { flatten, refusesTo, simulationOf } from './contract.ts';
+import { flatten, refusalSaying, simulationOf } from './contract.ts';
 import catalogue from '../../../../packages/catalog/services.json' with { type: 'json' };
 
 const feed: Feed = feedById('payment-result')!;
@@ -101,17 +101,17 @@ export const cardAndEft: Simulator = {
  capability: 'payments',
  supplier: simulationOf('payments').supplier,
  produce(request: SimulationRequest): SimulatorAnswer {
-  if (carryingACard(request)) return refuse(cardAndEft, request, refusesTo('payments', /card number/));
+  if (carryingACard(request)) return refuse(cardAndEft, request, refusalSaying('payments', /card number/));
 
   const detail = request.detail ?? {};
   /* Asked to settle. The sentence is the contract's and the reason is in the header: this process
      does not know whether money reached a bank, and the one thing a nurse's payout is built on is
      that somebody only claims it when it has. */
-  if (detail['outcome'] === 'settled' || detail['settle'] === true) return refuse(cardAndEft, request, refusesTo('payments', /^Settle/));
+  if (detail['outcome'] === 'settled' || detail['settle'] === true) return refuse(cardAndEft, request, refusalSaying('payments', /^Settle/));
   /* And asked to stamp somebody else's number on the receipt. `providerReference` is the only field
      in this payload where a receipt says whose it is, and every one this produces begins SIM- so
      that a receipt carries its own disclosure even when it is read away from the screen. */
-  if (detail['providerReference'] !== undefined) return refuse(cardAndEft, request, refusesTo('payments', /receipt/));
+  if (detail['providerReference'] !== undefined) return refuse(cardAndEft, request, refusalSaying('payments', /receipt/));
 
   const amountCents = amountFor(detail);
   /* One attempt, not one visit. A card declined is tried again — with the same card, with another
@@ -147,9 +147,9 @@ register(cardAndEft);
  * the same key the authorisation carried.
  */
 export function reverse(request: SimulationRequest): SimulatorAnswer {
- if (carryingACard(request)) return refuse(cardAndEft, request, refusesTo('payments', /card number/));
+ if (carryingACard(request)) return refuse(cardAndEft, request, refusalSaying('payments', /card number/));
  const detail = request.detail ?? {};
- if (detail['providerReference'] !== undefined) return refuse(cardAndEft, request, refusesTo('payments', /receipt/));
+ if (detail['providerReference'] !== undefined) return refuse(cardAndEft, request, refusalSaying('payments', /receipt/));
  const rand = seeded(`reversal:${request.subject}`);
  return produced(cardAndEft, request, {
   reference: request.subject,
