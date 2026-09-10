@@ -182,17 +182,8 @@
     "assessment",
     "capture"
    ],
-   "state": "simulated",
-   "simulation": {
-    "supplier": "A simulated record store holding fictional records, in process.",
-    "notice": "These records are simulated and every person in them is fictional. The controls around them are real and are exercised against this data.",
-    "refuses": [
-     "Hold one fact about a real person.",
-     "Leave the consent gate or the access log unexercised.",
-     "Outlive the process it runs in."
-    ],
-    "reachableFromTheNetwork": false
-   }
+   "state": "absent",
+   "_whyNotSimulated": "Marked simulated on 10 September and put back the same day, because nothing was ever built to stand behind it. The simulation notice said 'the controls around them are real and are exercised against this data', and no simulator was exercising anything — a false sentence on a clinical screen, which is the exact failure the third state was introduced to prevent rather than to commit. It is the one capability whose seam is a refusal by design: feeds.json's noSeam entry says there is no ingestion route for a clinical record and there must not be one. A record store standing in here is buildable and worth building — it would exercise the consent gate, the access log and the export against fictional people — but it is a piece of work, not a state change, and the state may not run ahead of it."
   },
   {
    "id": "teleconsultation",

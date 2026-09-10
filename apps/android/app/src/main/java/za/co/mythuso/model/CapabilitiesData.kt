@@ -152,12 +152,8 @@ val capabilities = listOf(
             "SA-resident hosting for special personal information."
         ),
         "This record is sample data. Nothing you type here is stored, and no real record exists behind this screen.",
-        "simulated",
-        Simulation("A simulated record store holding fictional records, in process.", "These records are simulated and every person in them is fictional. The controls around them are real and are exercised against this data.", listOf(
-            "Hold one fact about a real person.",
-            "Leave the consent gate or the access log unexercised.",
-            "Outlive the process it runs in."
-        )),
+        "absent",
+        null,
         listOf("passport", "patient-file", "assessment", "capture"),
         null,
         emptyList()),

@@ -3020,6 +3020,19 @@ const HELD_BY_THE_BUILD = {
  'Declare a device permission on either native app.': 'and its own simulation refuses to declare one'
 };
 
+/* And the question in the other direction, which nothing was asking.
+ *
+ * Everything below walks the simulators and checks them against the contract. Nothing walked the
+ * contract and checked it against the simulators — so `clinical-records` sat marked `simulated`
+ * with nothing whatsoever behind it, and its screen told a patient "the controls around them are
+ * real and are exercised against this data" while no simulator existed to exercise anything. A
+ * false sentence on a clinical screen, produced by the state that was introduced to prevent exactly
+ * that. The state may not run ahead of the work. */
+for (const capability of capabilities.capabilities) {
+ if (capability.state !== 'simulated') continue;
+ if (!standingIn.has(capability.id)) throw new Error(`Capability "${capability.id}" is marked simulated in packages/catalog/capabilities.json and nothing in ${simulationDir} stands behind it. Its screens are rendering a simulation notice — a sentence saying something answers — with nothing answering. Build the simulator or put the state back to "absent"; a state is a claim, and this one is made on a screen.`);
+}
+
 for (const id of [...standingIn].sort()) {
  const refuses = refusesOf(id);
  if (!refuses.length) throw new Error(`Something in ${simulationDir} stands in for capability "${id}" and that capability lists nothing it refuses to do. A simulation that refuses nothing is a fixture with a label on it.`);

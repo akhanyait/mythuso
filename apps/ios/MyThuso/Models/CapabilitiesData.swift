@@ -136,14 +136,8 @@ extension Capabilities {
                        "SA-resident hosting for special personal information."
                    ],
                    notice: "This record is sample data. Nothing you type here is stored, and no real record exists behind this screen.",
-                   state: "simulated",
-                   simulation: Simulation(supplier: "A simulated record store holding fictional records, in process.",
-                                              notice: "These records are simulated and every person in them is fictional. The controls around them are real and are exercised against this data.",
-                                              refuses: [
-                                                  "Hold one fact about a real person.",
-                                                  "Leave the consent gate or the access log unexercised.",
-                                                  "Outlive the process it runs in."
-                                              ]),
+                   state: "absent",
+                   simulation: nil,
                    surfaces: ["passport", "patient-file", "assessment", "capture"],
                    neverSoften: nil,
                    requiresPermissions: []),
