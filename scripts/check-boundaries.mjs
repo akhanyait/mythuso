@@ -2812,6 +2812,39 @@ for (const [file, text, why] of TYPED_FIGURES) {
 }
 
 
+/* ---- The wall between the simulators and the network --------------------------------------------
+
+   The whole value of `simulated` as a third state is that it did not require the eleven doors to
+   grow a condition. feeds/index.ts spends a page arguing that a route which could accept under some
+   condition is a route somebody eventually finds the condition for, late at night, with a vendor on
+   the phone — and it made `decide` return a type with no acceptance variant so the condition cannot
+   be written. A simulation flag on a route would have been exactly that condition.
+
+   So the simulators sit beside the boundary rather than inside it, and this is what keeps them
+   there: the HTTP layer may not reach the simulation directory at all. Not "should not" — the build
+   fails, because the first person to want a demonstration over the wire will reach for exactly this
+   import and it will look entirely reasonable at the time. */
+const httpLayer = ['apps/api/src/server.ts', 'apps/api/src/feeds/index.ts', 'apps/api/src/feeds/contract.ts'];
+for (const file of httpLayer) {
+ const source = read(file);
+ const reaches = /from\s+['"][^'"]*simulation[^'"]*['"]/.exec(source) ?? /import\s*\(\s*['"][^'"]*simulation/.exec(source);
+ if (reaches) throw new Error(`${file} imports from the simulation directory (${reaches[0]}). Nothing a request can reach may touch a simulated supplier: the eleven feed routes accept nothing, and a simulated event enters in process through simulation/emit. An import here is how "accepts nothing" quietly becomes "accepts nothing unless".`);
+}
+/* And the simulators themselves may not answer for a capability the contract has not marked
+   simulated, which is the same drift in the other direction: a stand-in behind a screen that is
+   still telling a nurse nothing is connected. */
+const simulationDir = 'apps/api/src/simulation';
+if (existsSync(simulationDir)) {
+ const simulatedIds = new Set(capabilities.capabilities.filter(c => c.state === 'simulated').map(c => c.id));
+ for (const entry of readdirSync(simulationDir)) {
+  if (!entry.endsWith('.ts') || entry === 'index.ts') continue;
+  const source = read(`${simulationDir}/${entry}`);
+  for (const [, claimed] of source.matchAll(/capability:\s*'([a-z-]+)'/g)) {
+   if (!simulatedIds.has(claimed)) throw new Error(`${simulationDir}/${entry} simulates capability "${claimed}", which packages/catalog/capabilities.json does not mark simulated. A stand-in behind a screen still saying nothing is connected is worse than no stand-in: something answers and the screen denies it.`);
+  }
+ }
+}
+
 /* ---- The eleven doors that are all locked ------------------------------------------------------
 
    packages/catalog/feeds.json describes, for each capability blocked on a supplier nobody has
