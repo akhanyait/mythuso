@@ -736,8 +736,25 @@ const PASSPORT_SOURCES = new Set([
  'scripts/check-boundaries.mjs',
  'scripts/emit-passport.mjs',
  'apps/ios/MyThuso/Models/PassportData.swift',
- 'apps/android/app/src/main/java/za/co/mythuso/model/PassportData.kt'
+ 'apps/android/app/src/main/java/za/co/mythuso/model/PassportData.kt',
+ /* The vetting register, and it is here for a reason worth reading rather than as an exemption.
+    The passport names a doctor, and the register is the authority on doctors — it is where their
+    registration is issued, checked and lapsed. Before this, passport.json held "Dr N. Khumalo ·
+    MP 0741225", a number no authority ever issued, precisely because the register was forbidden to
+    hold the same string and so nothing could compare the two. Forbidding the copy did not prevent
+    the second copy; it prevented the comparison.
+    So the register may hold it, and `the passport's reviewer is a party the register knows` below
+    fails the build if the two ever disagree. A checked copy beats a copy nobody may look at. */
+ 'apps/web/src/lib/vetting-fixtures.ts',
+ 'apps/ios/MyThuso/Models/Vetting.swift',
+ 'apps/android/app/src/main/java/za/co/mythuso/model/Vetting.kt'
 ]);
+/* Three of them, which is the register's own problem rather than the passport's: the vetted parties
+   are hand-written in all three applications and generated in none, so a doctor's registration
+   already exists in triplicate before any other contract quotes it. That is the next generator this
+   repository owes itself and it is written up in docs/ROADMAP.md rather than fixed here — moving the
+   party list into the catalogue touches every screen that names a person, and it is not a change to
+   make in the middle of another one. */
 /* Two lists, and the difference between them is the whole design. `passportProhibited` is what no
    file outside those sources may type. `passportHeld` is wider — it is everything a quarantined copy
    is measured against while it waits, because holding one file to a value is not the same as
@@ -1217,6 +1234,61 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
    if(!known.has(id)) throw new Error(`${file} names nurse ${id}, and the vetting register has no such party. A nurse who is not on the register is a nurse nothing has vetted — which is the one thing this product refuses to let a dispatch board do. Use the id the register holds, or add her to it.`);
   }
  }
+}
+
+/* And no screen may name a professional registration the register has never issued.
+   The nurse-id check above was written after one nurse turned out to have two ids, the second
+   existing nowhere. It caught N-nnn and nothing else, and underneath it three registration numbers
+   were doing exactly the same thing in the places it matters most:
+
+     · The Health Passport's reviewer was "Dr N. Khumalo · MP 0741225". Dr Lerato Khumalo is on the
+       register at HPCSA MP0612885. Same surname, invented number, and it reached both native apps
+       through the generated passport data.
+     · The access log — the screen that answers "who has been in your record" — named "Dr A. Dlamini
+       · HPCSA MP 0784512" and "Sister Naledi Mokoena · SANC 21847". Both people are on the register,
+       under other numbers.
+
+   A patient reading that log is being told who opened their record. Answering with a registration no
+   authority issued is worse than answering with nothing, because it invites them to go and check it.
+   And on a product whose premise is that a credential gates dispatch, a clinician whose number the
+   register has never heard of is the thing vetting exists to catch.
+
+   Matched loosely on purpose — spacing and the HPCSA prefix vary between the register and the
+   screens, and a check that insisted on one spelling would have missed all three of these. */
+{
+ const fixtures = read('apps/web/src/lib/vetting-fixtures.ts');
+ const registrationLike = /(?:HPCSA\s+)?\b(?:MP|SANC|SAPC)\s?\d{4,}/g;
+ const plain = text => text.toUpperCase().replace(/HPCSA/g, '').replace(/[^A-Z0-9]/g, '');
+ const issued = new Set([...fixtures.matchAll(registrationLike)].map(m => plain(m[0])));
+ if(issued.size < 5) throw new Error('scripts/check-boundaries.mjs can no longer read professional registrations out of apps/web/src/lib/vetting-fixtures.ts, so the check that every clinician named on a screen is one the register issued is reading nothing at all.');
+ const named = files('apps/web/src').concat(files('packages/catalog'))
+  .concat(files('apps/ios/MyThuso')).concat(files('apps/android/app/src/main'))
+  .filter(f => /\.(tsx?|json|swift|kt)$/.test(f) && !f.endsWith('vetting-fixtures.ts'));
+ for(const file of named) {
+  for(const [match] of read(file).matchAll(registrationLike)) {
+   if(!issued.has(plain(match))) throw new Error(`${file} names the registration "${match}", and the vetting register has never issued it. A clinician carrying a number no authority gave them is exactly what vetting exists to catch — and on the access log it is a patient being invited to check something that does not exist. Use the party's reference from apps/web/src/lib/vetting-fixtures.ts, or add them to the register.`);
+  }
+ }
+}
+
+/* The passport's reviewer is a party the register knows, under the register's own number.
+   A nurse records and a doctor reviews, and the passport says who reviewed. That doctor has to be
+   somebody the vetting register issued a registration to, or the sentence is decoration — and it was
+   decoration: "Dr N. Khumalo · MP 0741225" against a register holding Dr Lerato Khumalo at HPCSA
+   MP0612885. Same surname, invented number, generated into both native apps.
+
+   Name and registration are compared, not just the number. Half a match is the more dangerous half:
+   the right registration under the wrong name is a screen telling a patient that somebody else read
+   their record. */
+{
+ const reviewer = JSON.parse(read('packages/catalog/passport.json')).reviewer;
+ const fixtures = read('apps/web/src/lib/vetting-fixtures.ts');
+ const parties = [...fixtures.matchAll(/name:\s*'([^']+)',\s*roleId:\s*'([a-z-]+)',\s*reference:\s*'([^']+)'/g)]
+  .map(m => ({ name: m[1], role: m[2], reference: m[3] }));
+ if(parties.length < 5) throw new Error('scripts/check-boundaries.mjs can no longer read the vetted parties out of apps/web/src/lib/vetting-fixtures.ts, so the check that the passport names a real doctor is reading nothing at all.');
+ const match = parties.find(p => p.name === reviewer.name && p.reference === reviewer.registration);
+ if(!match) throw new Error(`packages/catalog/passport.json says the Health Passport was reviewed by "${reviewer.name} · ${reviewer.registration}", and the vetting register holds no party under that name and that registration. A patient is being told who read their record; the answer has to be somebody the register issued a number to.`);
+ if(match.role !== 'doctor') throw new Error(`packages/catalog/passport.json's reviewer "${reviewer.name}" is on the register as a ${match.role}, not a doctor. A nurse records and a doctor reviews — that separation is the point of naming the reviewer at all.`);
 }
 
 /* Streets, and the three things that make drawing them defensible.

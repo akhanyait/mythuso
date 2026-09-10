@@ -21,7 +21,7 @@ object PassportData {
     data class Refusal(val id: String, val sentence: String)
 
     val holder = Holder("Lerato Molefe", "TH-2048-3920", "Akhanya IT Innovations")
-    val reviewer = Reviewer("Dr N. Khumalo", "MP 0741225")
+    val reviewer = Reviewer("Dr Lerato Khumalo", "HPCSA MP0612885")
 
     // Four home visits over three months, oldest first. Every day is an offset from today rather
     // than a date, because the charts these draw were once literal arrays labelled '12 Aug'

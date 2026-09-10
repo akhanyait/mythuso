@@ -22,7 +22,7 @@ enum PassportData {
 
     static let holder = Holder(name: "Lerato Molefe", passportId: "TH-2048-3920",
                                issuedBy: "Akhanya IT Innovations")
-    static let reviewer = Reviewer(name: "Dr N. Khumalo", registration: "MP 0741225")
+    static let reviewer = Reviewer(name: "Dr Lerato Khumalo", registration: "HPCSA MP0612885")
 
     /* Four home visits over three months, oldest first. Every day is an offset from today rather
        than a date, because the charts these draw were once literal arrays labelled '12 Aug'

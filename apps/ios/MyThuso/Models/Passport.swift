@@ -89,7 +89,7 @@ struct PassportReview {
 enum Passport {
     static let holder = PassportHolder(name: "Lerato Molefe", passportId: "TH-2048-3920",
                                        issuedBy: "Akhanya IT Innovations")
-    static let reviewer = PassportReviewer(name: "Dr N. Khumalo", registration: "MP 0741225")
+    static let reviewer = PassportReviewer(name: "Dr Lerato Khumalo", registration: "HPCSA MP0612885")
     /// The nurse who took these readings. The same one the visit list and dispatch already name.
     static let nurse = (name: "Sister Naledi Mokoena", role: "Registered Nurse (SANC)")
     /// The reference the completed visit was booked under. One of the references this preview's
