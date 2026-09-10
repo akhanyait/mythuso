@@ -36,7 +36,7 @@
  */
 import dispensing from '../../../../packages/catalog/dispensing.json' with { type: 'json' };
 import { instant, mustPassTheSeam, refusalSaying, supplierOf } from './contract.ts';
-import { produced, refuse, register, seeded, type SimulationRequest, type Simulator, type SimulatorAnswer } from './index.ts';
+import { produced, refuse, register, type SimulationRequest, type Simulator, type SimulatorAnswer } from './index.ts';
 
 const CAPABILITY = 'dispensing';
 const FEED = 'pharmacy-order';
@@ -170,19 +170,25 @@ register(PHARMACY);
 /**
  * The whole chain of custody for one prescription, in the contract's order.
  *
- * This is what makes the seam walkable: five messages from a pharmacy that took a prescription,
- * ending in what was actually handed over. Which item the simulated pharmacist is deciding about is
- * chosen off the seed rather than off a clock, so the same prescription produces the same handover
- * on every machine, for ever.
+ * This is what makes the seam walkable: a pharmacy's messages from taking a prescription to what was
+ * actually handed over. The decision step repeats, once per item, because that is what the step is —
+ * "each item classed, with the ground for it and the pharmacist's name on anything changed" — and
+ * because a walk that showed one item chosen at random would show a substitution on some
+ * prescriptions and not on others. Three of the five items on this one are dispensed as written and
+ * two are substituted on different grounds, and a reader should see all five.
+ *
+ * There is no randomness here at all. The whole chain is determined by the prescription, so the same
+ * reference produces the same messages on every machine, for ever.
  */
 export function handover(reference: string, at: Date = new Date()): SimulatorAnswer[] {
- const rand = seeded(`pharmacy:${reference}`);
- const item = ITEMS[Math.floor(rand() * ITEMS.length)]!;
- return STEPS.map((state, index) => produce({
+ const messages: { state: string; itemId?: string }[] = STEPS.flatMap(state =>
+  state === 'decided' ? ITEMS.map(item => ({ state, itemId: item.id })) : [{ state }]
+ );
+ return messages.map((message, index) => produce({
   subject: reference,
-  /* A minute a step, so the chain has an order a reader can follow rather than five identical times. */
+  /* A minute a message, so the chain has an order a reader can follow rather than one time repeated. */
   at: new Date(at.getTime() + index * 60_000),
-  detail: { state, itemId: item.id }
+  detail: message
  }));
 }
 

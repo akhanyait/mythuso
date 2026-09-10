@@ -33,10 +33,20 @@ describe('the simulated pharmacy network', () => {
   assert.equal(PHARMACY.supplier, 'A simulated pharmacy network, in process.');
  });
 
- test('walks the whole chain of custody the contract names, in its order', () => {
+ test('walks the whole chain of custody the contract names, in its order, deciding every item', () => {
   const chain = handover(SAMPLE_PRESCRIPTION, new Date('2026-09-10T09:00:00Z'));
-  assert.deepEqual(chain.map(answer => payloadOf(answer).state), [...STEPS]);
+  const states = chain.map(answer => String(payloadOf(answer).state));
+  /* The decision step repeats once per item; the other four happen once each. */
+  assert.deepEqual([...new Set(states)], [...STEPS]);
+  assert.equal(states.filter(state => state === 'decided').length, dispensing.prescription.items.length);
+  assert.equal(chain.length, STEPS.length - 1 + dispensing.prescription.items.length);
   for (const step of chain) assertTheSeamWouldRecogniseIt(step);
+ });
+
+ test('shows both a substitution and an item dispensed as written, or it walks nothing worth seeing', () => {
+  const decided = handover(SAMPLE_PRESCRIPTION).map(payloadOf).filter(payload => payload.state === 'decided');
+  assert.ok(decided.some(payload => payload.substitutionGround !== undefined), 'no item on this walk was substituted');
+  assert.ok(decided.some(payload => payload.substitutionGround === undefined), 'every item on this walk was substituted');
  });
 
  test('carries none of the four fields that seam never accepts, under any spelling', () => {
