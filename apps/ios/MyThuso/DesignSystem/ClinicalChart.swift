@@ -17,6 +17,7 @@ struct ClinicalChart: View {
     var symbol: String? = nil
     @State private var showTable = false
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /* The plot is a drawing, not text, so it does not grow on its own — and a 74-point plot under a
        headline that has tripled in height reads as an afterthought. It grows with the reader. */
     @ScaledMetric(relativeTo: .body) private var plotHeight: CGFloat = 76
@@ -53,7 +54,32 @@ struct ClinicalChart: View {
             }
             plot.frame(height: plotHeight).accessibilityElement().accessibilityLabel(summary)
             HStack { Text(first.label); Spacer(); Text(latest.label) }.font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
-            DisclosureGroup(isExpanded: $showTable) {
+            /* A button rather than a DisclosureGroup.
+             *
+             * MyThusoUITests found this twice, on two screens and at two content sizes: "Show
+             * readings as a table is laid out clear of the bars and still cannot be tapped". A
+             * DisclosureGroup outside a Form keeps its gesture on its own chevron, so a
+             * contentShape put on the label — which is what the previous attempt at this did —
+             * widens a rectangle nothing is listening to. The table underneath is every value on
+             * the chart in words, so the control that opens it is the whole of this chart's
+             * accessibility story, and it has to be a target rather than nearly one. */
+            Button { withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) { showTable.toggle() } } label: {
+                HStack(spacing: ThusoSpacing.space8) {
+                    Text(showTable ? "Hide readings" : "Show readings as a table")
+                        .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    Image(systemName: showTable ? "chevron.up" : "chevron.down")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).accessibilityHidden(true)
+                }
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(showTable ? "Hides the table of readings" : "Shows every reading on this chart as a table")
+            if showTable {
                 VStack(spacing: 0) {
                     ForEach(readings) { reading in
                         HStack {
@@ -67,17 +93,6 @@ struct ClinicalChart: View {
                     }
                     Text("Fictional data, not a medical record.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
                 }
-            } label: {
-                /* The whole row answers the tap, not just the words. At the largest content size
-                   the label alone was laid out clear of everything and still not hittable. */
-                HStack {
-                    Text(showTable ? "Hide readings" : "Show readings as a table")
-                        .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                }
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
             }
         }
     }
