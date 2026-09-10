@@ -147,6 +147,33 @@ Before backend integration: threat model, data-flow inventory, access policy tes
 
 Before any pilot: independent penetration test, information/clinical governance approval, device and clinician verification, tested incident response, encrypted backup restore test, retention enforcement, partner/operator agreements, production monitoring with PHI redaction and a documented release acceptance sign-off. CI should pin third-party actions to reviewed commit SHAs and use short-lived OIDC deployment credentials before deployment is introduced.
 
+
+## Running the tests here, and two ways a green run can be a lie
+
+Both of these cost real work before anybody noticed them, and neither is visible in a result.
+
+**The web suite is pinned to two workers.** `playwright.config.ts` says why: the suite has grown
+from 222 tests to 376, and above two workers on this machine a full run loses fifteen to twenty of
+them — a different set each time, every one a timeout waiting for a control that is present and
+passes on its own. It is contention, not a defect, and the point is that it does not look like
+contention. It looks like twenty broken tests. Somebody assumed four workers would be enough and
+wrote a comment saying it passed twice *before running it*; it failed twenty.
+
+**An iOS test result on this machine is worthless unless it was isolated, and the check comes
+first.** Agents share the simulator and the default DerivedData path, so a run can compile and
+execute *another worktree's bundle* into your log. That happened three times in one night. The rule,
+in the order that matters:
+
+1. Grep the log for the worktree that actually compiled it — **before reading a single failure**.
+2. Run alone, with your own `-derivedDataPath`.
+3. Use an explicit device id, never a name. A run once exited 0 having executed no tests at all,
+   because `xcodebuild` could not resolve a destination by name and printed the device list instead.
+   A green exit code from a suite that never ran is the same defect as a check that passes because
+   it measured nothing.
+
+The first step is the one that saves the mistake. Reading five failures closely and *then* asking
+whose code produced them costs a design decision, which is exactly what it cost.
+
 ## Design choices
 
 The interface follows a single mobile-first design language, defined in `packages/design-tokens/tokens.json` and emitted three times — CSS custom properties, a SwiftUI `ThusoTheme`, and Compose colour values — by `scripts/emit-tokens.mjs`. Each platform still spends those tokens in its own way; only the numbers are shared. Its repeating units are a soft tinted icon tile, an 18px white card on a pale canvas, a capsule status pill, and a teal primary action. Phones get a five-item bottom tab bar; from 1000px the web widens into a sidebar rather than stretching the phone layout. Long flows share one pattern: `Step N of M`, a label, and a dot indicator, with one box per digit wherever a code is entered.

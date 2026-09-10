@@ -254,6 +254,30 @@ check that fails the build on a clinical table in `apps/api` still refuses one.
 
 The demo verification codes, the identity check-digit validation, what a nurse is paid — a visit's amount exists in one file and is derived everywhere else, including in the claim the public page makes about it — and the whole vetting table — thirteen roles, seventy-six checks, every issuing authority's credential format, every scope of practice and every refusal sentence word for word — are duplicated in three codebases by design — each app is genuinely native. `scripts/check-boundaries.mjs` fails the build if any of them drift apart. The clinical reference ranges used to head that list and no longer do, for the reason the whole list exists: they lived in the `observations` array of `apps/web/src/features/Clinical.tsx` — a React component — and the boundary check compared the iOS and Android assessments against *that TSX file*, so two native apps were held to a screen. Seven numbers that decide whether a reading is put in front of a doctor are contract, not presentation. They are in `packages/catalog/records.json` now, beside the consultation section that says they are indicative; the web reads them through `lib/observations.ts`, the emitter writes them into `RecordsData.swift` and `RecordsData.kt`, and a check refuses any screen on any platform that types one. The locale table used to be on that list and is not any more: it is generated from `packages/catalog/locales.json` into Swift and Kotlin and read directly by the web, so the two disagreements the old check could not see — isiZulu calling vetting one thing on iOS and another on Android, and a button reading "Apply to join" on one and "Start an application" on the other — have nowhere left to come from. The substitution table, the programme floor and the interpreter roster joined the generated list on the same terms: `packages/catalog/dispensing.json`, `packages/catalog/programmes.json` and `packages/catalog/interpreting.json` are emitted into Swift and Kotlin and read directly by the web, and none of the three generators writes down a conclusion — no authorisation expiry, no suppressed cohort, and no wait — so the arithmetic that decides when a repeat stops, which groups an employer may be told about and when an interpreter could actually be there is done three times from the same numbers rather than once by a generator.
 
+**Live, and what that changed.** https://mythuso.co.za went up on 10 September — five entries over
+TLS on liqzar-server, beside five unrelated production sites that were checked before the deploy,
+after it, and again after certbot rewrote nginx. The deploy refused its first real run and rolled
+itself back, on thirty conflicting-server-name warnings that were all bidza.co.za's and predate this
+product; it asks whose conflict it is now, and reports a co-tenant's rather than stopping on it.
+Three ways it could have reached another site's config were closed, one of them arbitrary root
+command execution proved by creating a file. The health-check timer is enabled and reports honestly
+that it is not checking the identity service or the backups, because neither is enabled.
+
+**The map draws real streets, and asks first.** MapLibre and OpenFreeMap need no key, so the swap
+removed a vendor rather than adding one. Tiles are **off by default**: a request tells whoever
+serves it which square of Johannesburg somebody is looking at, and for a patient that is roughly
+which suburb she is in and roughly when a nurse came to her house. The disclosure sits beside the
+switch before it is pressed, and the 1.1 km figure in it is recomputed by the build from the zoom
+limit, which fails if the sentence disagrees. Measured: zero tile requests before pressing, eleven
+after.
+
+**Eleven seams, all locked.** For every capability blocked on a supplier nobody has signed,
+`packages/catalog/feeds.json` says what must arrive, what happens while it does not, what must be
+true before it may be switched on, and what must never arrive — a nurse's coordinate may not carry
+a patient id, a settlement file may not name the service, a media session may not carry a recording
+URL. `apps/api` serves a route per feed that refuses every payload including a well-formed one, and
+nothing a stranger typed is written down: an undeclared field is recorded as a count, never a name.
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only
