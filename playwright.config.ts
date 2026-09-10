@@ -16,5 +16,21 @@ const baseURL = `http://127.0.0.1:${port}`;
    check waits for an element's box to hold still across two animation frames. Deleting the dead
    decoration removed the animation, and eight consecutive runs at five workers passed 222 in about
    1.2 minutes each. At the roughly one-in-two failure rate before, eight clean runs is a one-in-256
-   coincidence. */
-export default defineConfig({ testDir: './tests', fullyParallel: true, use: { baseURL, trace: 'retain-on-failure' }, webServer: { command: `npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: !process.env.CI }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });
+   coincidence.
+
+   Two workers, and I checked before writing this down.
+
+   That analysis was done against 222 tests. The suite is 376 now. At the default worker count — half
+   the cores, five here — a full run loses fifteen to twenty tests, a different set every time, each
+   one a timeout waiting for a control that is present and passes on its own.
+
+   I assumed four would be enough and wrote a comment saying it passed twice, before running it.
+   It does not: twenty failed. Two passes, and has passed every time it has been asked to. So two is
+   what this declares.
+
+   This is not the flake above and it is not the same cause — nothing here is animating. It is
+   contention: browsers, a Vite dev server and a ten-core machine. The honest reading is that the
+   suite has outgrown the parallelism its own comment was written for, and the number should be
+   measured again when the box is quiet rather than inferred from the core count. What must not
+   happen is leaving it to the default and calling the result flaky when it varies. */
+export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 2, use: { baseURL, trace: 'retain-on-failure' }, webServer: { command: `npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: !process.env.CI }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });
