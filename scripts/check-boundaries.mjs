@@ -2958,21 +2958,61 @@ for (const [file, source] of [...simulationFiles, ['apps/web/src/lib/simulation.
    the fragment selects, the sentence is returned. Two failures are possible and both are silent
    without this — a sentence added to the contract that nothing enforces, and a selector that has
    stopped matching because somebody reworded the sentence past it. */
+/* Both of these read `capability: CAPABILITY` as well as `capability: 'booking'`, and that is not
+   tidiness. Written to match only a quoted literal, they were silently vacuous for every simulator
+   that names its capability once at the top of the file and refers to the constant — which is four
+   of the thirteen, and they were the four with the most refusals between them. A check that has
+   quietly stopped looking is worse than one nobody wrote, because the summary line at the bottom of
+   this script goes on counting the ones it can still see and reads as though it saw them all.
+
+   Found by the agent whose simulators were the invisible ones, reported rather than worked around. */
+const declaredCapability = source => source.match(/const CAPABILITY\s*=\s*'([a-z-]+)'/)?.[1] ?? null;
 const standingIn = new Set();
-for (const [, source] of simulationFiles) for (const [, id] of source.matchAll(/capability:\s*'([a-z-]+)'/g)) standingIn.add(id);
+for (const [file, source] of simulationFiles) {
+ const named = declaredCapability(source);
+ const found = [...source.matchAll(/capability:\s*(?:'([a-z-]+)'|CAPABILITY\b)/g)]
+  .map(m => m[1] ?? named).filter(Boolean);
+ /* A simulator that names no capability at all is not covered by anything below, so it is refused
+    here rather than skipped. index.ts and contract.ts are the plumbing and name none by design. */
+ if (!found.length && !/\/(index|contract|suppliers|care)\.ts$/.test(file) && /Simulator\b/.test(source)) {
+  throw new Error(`${file} declares a simulator and names no capability this check can resolve. Write \`capability: '<id>'\` or \`const CAPABILITY = '<id>'\` — a simulator whose capability cannot be read is a simulator none of the refusal checks below can see.`);
+ }
+ for (const id of found) standingIn.add(id);
+}
 const enforcements = [];
 for (const [file, source] of simulationFiles) {
- for (const [, id, pattern] of source.matchAll(/refusalSaying\('([a-z-]+)',\s*\/(.+?)\/\)/g)) enforcements.push({ file, id, pattern });
+ const named = declaredCapability(source);
+ /* The flags matter. Written without them this matched only `/…/)` and missed every `/…/i)`,
+    which is how a simulator that does enforce a refusal reads as one that does not — and the fix
+    for that false alarm would have been to delete the refusal. */
+ for (const [, quoted, pattern, flags] of source.matchAll(/refusalSaying\(\s*(?:'([a-z-]+)'|CAPABILITY)\s*,\s*\/(.+?)\/([a-z]*)\)/g)) {
+  enforcements.push({ file, id: quoted ?? named, pattern, flags });
+ }
 }
 const refusesOf = id => capabilities.capabilities.find(c => c.id === id)?.simulation?.refuses ?? [];
-for (const { file, id, pattern } of enforcements) {
- const matched = refusesOf(id).filter(sentence => new RegExp(pattern).test(sentence));
+for (const { file, id, pattern, flags } of enforcements) {
+ const matched = refusesOf(id).filter(sentence => new RegExp(pattern, flags).test(sentence));
  if (matched.length !== 1) throw new Error(`${file} enforces refusalSaying('${id}', /${pattern}/), which matches ${matched.length} of the ${refusesOf(id).length} things that capability says it refuses to do. A selector matching none is a refusal that has quietly stopped being enforced — usually because the sentence was reworded — and one matching two is a refusal nobody can tell from another.`);
 }
+/* One refusal in these five is not its simulator's to enforce and could not be: a TypeScript module
+   cannot declare an Android permission or an iOS usage description, and a module that tried would be
+   working around the whitelist rather than honouring it. The build holds that one, and the exemption
+   is written down here — with the check that actually holds it named, and asserted to still exist —
+   rather than left as a silent hole in the loop below. There is exactly one, and adding a second is
+   meant to feel like the decision it is. */
+const HELD_BY_THE_BUILD = {
+ 'Declare a device permission on either native app.': 'and its own simulation refuses to declare one'
+};
+
 for (const id of [...standingIn].sort()) {
  const refuses = refusesOf(id);
  if (!refuses.length) throw new Error(`Something in ${simulationDir} stands in for capability "${id}" and that capability lists nothing it refuses to do. A simulation that refuses nothing is a fixture with a label on it.`);
  for (const sentence of refuses) {
+  /* The one refusal a TypeScript module could not enforce if it wanted to — a permission is
+     declared in a manifest, not in a simulator — is held by the build instead, and the map above
+     names the check that holds it. Skipped here rather than left to fail, and skipped by exact
+     sentence so a reworded one stops being exempt the moment it is reworded. */
+  if (Object.prototype.hasOwnProperty.call(HELD_BY_THE_BUILD, sentence)) continue;
   /* At least one, not exactly one: a refusal can have more than one way in — a card is refused at
      an authorisation and again at a reversal — and demanding a single site would push a simulator
      towards one entry point rather than towards refusing at each of them. It is the zero that is
@@ -3046,15 +3086,6 @@ const FULFILMENT_AND_SAFETY = {
  devices: 'instrument.ts'
 };
 const seamContract = JSON.parse(read('packages/catalog/feeds.json'));
-/* One refusal in these five is not its simulator's to enforce and could not be: a TypeScript module
-   cannot declare an Android permission or an iOS usage description, and a module that tried would be
-   working around the whitelist rather than honouring it. The build holds that one, and the exemption
-   is written down here — with the check that actually holds it named, and asserted to still exist —
-   rather than left as a silent hole in the loop below. There is exactly one, and adding a second is
-   meant to feel like the decision it is. */
-const HELD_BY_THE_BUILD = {
- 'Declare a device permission on either native app.': 'and its own simulation refuses to declare one'
-};
 const thisFile = read('scripts/check-boundaries.mjs');
 for (const [sentence, evidence] of Object.entries(HELD_BY_THE_BUILD)) {
  /* Counted rather than found, because the map above is in this file too and `includes` would be
@@ -3418,8 +3449,156 @@ for(const reaching of ['fetch(', 'node:http', 'node:net', 'publishTo']) {
 }
 if(!/Nothing in this file publishes anything/.test(witnessSource)) throw new Error('apps/api/src/protection/witness.ts has lost the sentence saying it publishes nothing. The whole risk with this file is that it reads like the control it is only half of.');
 
+/* ============================================================================================== */
+/* ---- THE CARE AND DISPATCH SIMULATORS ---------------------------------------------------------
+ *
+ * Four simulated suppliers stand behind four of the eleven locked doors: a roster (booking),
+ * positions (dispatch), answers from the thirteen authorities (credential-verification) and a
+ * session broker (teleconsultation). They are the reason a person can walk the whole product before
+ * anybody has signed anything, and they are therefore the reason somebody could come to believe it
+ * is signed. What follows is what holds those two apart.
+ *
+ * Everything in this block is about apps/api/src/simulation and packages/catalog/roster.json. It is
+ * one block on purpose: two other seams are growing checks in this file at the same time, and a
+ * merge between three of them should be a choice about order rather than an argument about lines.
+ * ============================================================================================== */
+
+const careSimulationDir = 'apps/api/src/simulation';
+const careSimulationFiles = files(careSimulationDir).filter(f => f.endsWith('.ts'));
+/* The code of a file without the prose around it. Three of the checks below search for the name of a
+   thing that must not appear, and every one of those names is written out in a header comment
+   explaining why it must not — apps/api/src/simulation/index.ts says "Not Math.random" in the
+   paragraph that says why, and sessions.ts says there is no getUserMedia in here. A check that could
+   not tell an argument from an act would make the argument unwriteable, which is the wrong way round:
+   the comment is the reason the rule exists. */
+const careCode = file => read(file).split('\n').filter(line => !/^\s*(\*|\/\/|\/\*)/.test(line)).join('\n');
+
+/* The wall, widened.
+ *
+ * The check above under "The wall between the simulators and the network" asks three files —
+ * server.ts and the two feed modules — whether they reach this directory, and it is right about why:
+ * a route that could accept under some condition is a route somebody finds the condition for, late
+ * at night, with a vendor on the phone.
+ *
+ * This asks the same question of every file in the service, because the import that breaks the wall
+ * is never added to server.ts. It is added to something server.ts already imports — a store, a
+ * config reader, an incident module — and the three-file version would not see it. Both are kept: a
+ * named list says which files matter most, and this says that the answer is the same everywhere. */
+for(const file of files('apps/api/src').filter(f => f.endsWith('.ts') && !f.startsWith(`${careSimulationDir}/`))) {
+ const reaching = read(file).match(/from\s+'[^']*\/simulation\/[^']*'/);
+ if(reaching) throw new Error(`${file} imports ${reaching[0]}, so a simulated supplier is reachable from the request path. Nothing behind the eleven feed routes may answer with a fixture: the routes accept nothing, and a simulated event enters in process through emit(), which is a different function with a different signature reviewed as the change it is. If a route needs one, that is the review — not this import.`);
+}
+/* And a simulator may not invent randomness of its own. A nurse who stands somewhere different on
+   every run makes a test that cannot fail twice the same way and a demonstration nobody can repeat
+   in front of an investor. seeded() is the only source there is. */
+for(const file of careSimulationFiles) {
+ if(/\bMath\.random\b/.test(careCode(file))) throw new Error(`${file} calls Math.random. Every simulator takes its seed from the thing it is simulating — a visit reference, a party id — so the same visit produces the same journey on every machine, for ever. seeded() in ${careSimulationDir}/index.ts is the only randomness in here.`);
+}
+
+/* Every refusal a simulated capability declares is enforced, by a simulator, in the contract's own
+ * words — and none of those words is typed into the code.
+ *
+ * A refusal reaches a simulator as the *slug of the sentence's own words*, resolved at load through
+ * refusalSaying(). That is what makes rewording a refusal in packages/catalog/capabilities.json a thing
+ * somebody has to finish: the slug stops resolving, the module throws, and this check names the
+ * sentence that moved. The alternative — a simulator going on refusing something in words nobody
+ * says any more — is invisible from every screen in the product. */
+const careSimulators = [
+ ['booking', `${careSimulationDir}/roster.ts`],
+ ['dispatch', `${careSimulationDir}/positions.ts`],
+ ['credential-verification', `${careSimulationDir}/credentials.ts`],
+ ['teleconsultation', `${careSimulationDir}/sessions.ts`]
+];
+for(const [id, file] of careSimulators) {
+ if(!existsSync(file)) throw new Error(`${file} is gone, and packages/catalog/capabilities.json still says "${id}" is simulated. A capability whose state claims something answers while nothing does renders a simulation notice over a screen with no simulation under it, which is a worse sentence than the absent one it replaced.`);
+ const capability = capabilities.capabilities.find(c => c.id === id);
+ if(!capability) throw new Error(`packages/catalog/capabilities.json has no capability "${id}", and ${file} stands behind it.`);
+ if(capability.state !== 'simulated') throw new Error(`Capability "${id}" is "${capability.state}" and ${file} is still standing behind it. A simulator behind a capability nobody has declared simulated renders no notice on any screen, and silence is the disclosure failure the third state was added to prevent.`);
+ /* That every sentence this capability refuses is enforced by this file is no longer checked here.
+    It is checked for all thirteen simulators at once, further up, off the `refusalSaying` call sites
+    — and that check now reads `capability: CAPABILITY` and a regex flag, which it did not when this
+    loop was written. Two checks over the same ground is two things to correct on the day the first
+    one moves, and this was the weaker of them: it matched a slug literal, so converting these four
+    files to the shared lookup would have made it pass by measuring nothing at all. */
+
+}
+/* And nowhere in the directory is one of those sentences a string. */
+const careRefusalSentences = capabilities.capabilities.flatMap(c => c.simulation?.refuses ?? []);
+for(const file of careSimulationFiles) {
+ const source = careCode(file);
+ for(const sentence of careRefusalSentences) {
+  if(source.includes(sentence)) throw new Error(`${file} types out a refusal that lives in packages/catalog/capabilities.json: "${sentence}". Look it up with refusalSaying() — a typed copy goes on being refused in the old words after every screen has started saying the new ones.`);
+ }
+}
+
+/* The session broker is a session object and never media.
+ *
+ * Neither native app declares a camera or a microphone permission, deliberately, and more than one
+ * notice a person reads is a special case of that being true. The permissions whitelist above already
+ * refuses an undeclared one on either platform; this is the other half, which is that the thing most
+ * likely to want one is the simulator that makes a call appear to connect. A simulated session is a
+ * session object — who joined, when, on which rung of the ladder — and there is no arrangement of
+ * that which needs a device. */
+const careMediaApis = /\b(getUserMedia|mediaDevices|MediaStream|MediaRecorder|RTCPeerConnection|AudioContext|AVCaptureDevice|AVAudioSession|SFSpeechRecognizer)\b/;
+for(const file of careSimulationFiles) {
+ const reaching = careCode(file).match(careMediaApis);
+ if(reaching) throw new Error(`${file} reaches for ${reaching[0]}. ${capabilities.capabilities.find(c => c.id === 'teleconsultation').simulation.refuses[0]} A simulated session is a session object, and this build tells a patient it has never asked this device for the camera or the microphone.`);
+}
+const careTeleconsult = capabilities.capabilities.find(c => c.id === 'teleconsultation');
+if(careTeleconsult.requiresPermissions?.length) throw new Error(`The teleconsultation capability names ${careTeleconsult.requiresPermissions.join(', ')} under requiresPermissions while it is simulated, which is what would let the manifest and the target declare it. ${careTeleconsult.simulation.refuses[1]} Declaring one is not a build step; it is a decision about pointing a camera at somebody in their own home, and what needs it is a media stack rather than a fixture.`);
+
+/* ---- The simulated roster, held to the contracts it is derived from ---------------------------
+ *
+ * packages/catalog/roster.json is nine fictional people, and every interesting thing about them is a
+ * refusal somewhere else: a zone geography.json does not have, a clearance that ran out, an
+ * application half finished, a phone telling nobody anything, a fix wider than the suburb it would be
+ * drawn in. Each of those has to stay reachable, because a refusal nothing can reach is a fixture
+ * with a label on it — which is precisely what the simulated state exists to not be. */
+const careRoster = JSON.parse(read('packages/catalog/roster.json'));
+const careGeography = JSON.parse(read('packages/catalog/geography.json'));
+const careScheduling = JSON.parse(read('packages/catalog/scheduling.json'));
+const careServices = JSON.parse(read('packages/catalog/services.json'));
+const careNurseRole = vetting.roles.find(r => r.id === 'nurse');
+const careCheckIds = new Set(careNurseRole.checks.map(c => c.id));
+const careScopes = new Set(careNurseRole.scope.options);
+const careZoneNames = new Map(careGeography.zones.map(z => [z.name.toLowerCase(), z]));
+const careSeenIds = new Set();
+for(const nurse of careRoster.nurses) {
+ if(careSeenIds.has(nurse.id)) throw new Error(`packages/catalog/roster.json holds ${nurse.id} twice.`);
+ careSeenIds.add(nurse.id);
+ for(const checkId of Object.keys(nurse.checks ?? {})) {
+  if(!careCheckIds.has(checkId)) throw new Error(`${nurse.id} in packages/catalog/roster.json carries an exception for "${checkId}", which is not a check the nurse role has in packages/catalog/vetting.json. An exception nobody's role holds is a fixture the gate will never look at.`);
+ }
+ for(const scope of nurse.scope) {
+  if(!careScopes.has(scope)) throw new Error(`${nurse.id} in packages/catalog/roster.json is scoped to "${scope}", which is not in the nurse role's scope of practice. A nurse is only ever dispatched inside it and the Control Tower cannot override that, so a scope the register does not have is a nurse cleared for nothing.`);
+ }
+}
+/* Both sides of the coverage refusal, and both sides of the vetting one. */
+if(!careRoster.nurses.some(n => careZoneNames.has(n.zone.toLowerCase()))) throw new Error('No nurse in packages/catalog/roster.json works in a zone packages/catalog/geography.json declares, so nobody can ever be offered and the roster is a list of refusals.');
+if(!careRoster.nurses.some(n => !careZoneNames.has(n.zone.toLowerCase()))) throw new Error('Every nurse in packages/catalog/roster.json works inside phase one, so "Book outside a zone dispatch can reach" is a sentence nothing can reach. Coverage is one city and five zones, said out loud on the SOS screen, and the refusal is the half worth having.');
+if(!careRoster.nurses.some(n => Object.values(n.checks ?? {}).some(c => (c.expiresInDays ?? 0) < 0))) throw new Error('No nurse in packages/catalog/roster.json has a check that has already run out, so the arithmetic that withdraws dispatch without anybody noticing first is never exercised. A lapsed clearance is the whole of what makes scheduled re-vetting real rather than a paragraph of copy.');
+if(!careRoster.nurses.some(n => n.sharesPosition === false)) throw new Error('Every nurse in packages/catalog/roster.json is sharing a position, so the board can never say the difference between nobody-there and nobody-reporting — and a dispatcher who cannot see that difference reads the map as the first one.');
+/* A fix wider than the suburb it would be drawn in is the position feed's sharpest switch-on
+   condition, and it exists only if some declared poor fix actually exceeds some zone a nurse works
+   in. */
+const carePoorFix = careRoster.nurses.filter(n => n.fix === 'poor').map(n => careZoneNames.get(n.zone.toLowerCase())).filter(Boolean);
+if(!carePoorFix.some(zone => careRoster.positions.poorFixMetres > zone.radiusKm * 1000)) throw new Error(`No nurse in packages/catalog/roster.json has a ${careRoster.positions.poorFixMetres}-metre fix in a suburb smaller than that, so a position is never refused for being wider than the zone it would be drawn in. That condition is the difference between a measurement and a decoration, and it has to be something somebody can open the app and see.`);
+/* The shift is arithmetic over the hours the product offers rather than two times somebody typed, so
+   what is checked is that the arithmetic still covers them. A nurse rostered off in the middle of a
+   visit somebody was allowed to book is the failure a pair of typed times produces on the day a slot
+   or a duration changes. */
+const careMinutes = hhmm => Number(hhmm.split(':')[0]) * 60 + Number(hhmm.split(':')[1]);
+const careSlots = careScheduling.offer.slots;
+const careLongest = Math.max(...careServices.map(s => s.duration));
+if(careRoster.shift.startsBeforeFirstSlotMinutes <= 0 || careRoster.shift.endsAfterLastVisitMinutes <= 0) throw new Error('packages/catalog/roster.json rosters a shift that starts on the first slot and ends on the last visit, so a nurse has no time to travel to either door.');
+if(careMinutes(careSlots[careSlots.length - 1]) + careLongest + careRoster.shift.endsAfterLastVisitMinutes > 24 * 60) throw new Error(`The last slot packages/catalog/scheduling.json offers is ${careSlots[careSlots.length - 1]}, the longest visit packages/catalog/services.json sells is ${careLongest} minutes, and the shift would run past midnight. A shift that wraps a day is one the roster's arithmetic reports wrongly rather than refuses.`);
+
 console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. That interpreter is now a vetted party with ${interpreterRole.checks.length} checks of their own and one capability, granted nothing that opens a record; ${interpreting.roster.length} of them carry hours rather than a conclusion, so all three platforms work out for themselves which hour answers a request and all three can still return nothing — a visit with no interpreter is held rather than dispatched and carries the contract's own word for it on all three, cancelling one costs ${interpreting.cancellation.fee} and is recorded against ${interpreting.cancellation.attributedTo} rather than the patient, and the ${interpreting.refusals.length} refusals — a family member, a child, English written at somebody — are on the screen rather than only in the file. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. The assistant draws a shape and never a microphone: no iOS source names a mic or a waveform symbol, reaches for an audio capture API or offers in words to listen, the screen renders the voice capability's notice from the contract rather than a sentence of its own, and none of the ${capabilities.capabilities.length} capabilities has its notice typed into a hand-written native file. The ingestion boundary is ${feedContract.feeds.length} doors and every one of them is locked: each names the capability whose sentence it answers with, points at the sample data that stands in for it, carries ${feedContract.feeds.reduce((t,f)=>t+f.beforeSwitchOn.length,0)} conditions that must be true before it may be switched on — every one of which a connected capability is now held to — and refuses ${feedContract.feeds.reduce((t,f)=>t+f.neverAccepts.length,0)} named fields it must never be sent, none of which any other feed accepts; every capability is either served by one or carries a written reason there is no seam, no route is typed into the server by hand, no refusal sentence is typed into the service, and nothing behind them answers in the two hundreds. The table that would settle whether the caller limit is the right number holds five integers per window and no column anybody could be identified by, and the health routes that read it answer the loopback by path rather than by method — which is now checked in both directions, because the first POST under that prefix would otherwise have been public. The chain witness renders a head to be carried off the machine and checks one back; it reaches no network and says on its own face that publishing is still absent. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}. Three bodies of prose that were written out once per platform are contracts now: the ${explanations.entries.length} reading explanations and their ${Object.keys(explanations.provenance).length} provenance sentences in records.json, where every urgent condition is a red flag sos.json actually has, no paragraph names a number, the ordinary cause is said before the frightening one and the oximeter still admits it reads high on darker skin; the ${arrivalProse.length} arrival refusals in geography.json, with the day of the visit enforced by arithmetic on all three platforms rather than by the sentence that describes it; and what the offline queue survives in capture.json, where ${fileStores.length} file-backed stores are held to one promise and the web's is held to keeping less. What a store says when the disk refuses it is a contract now too: ${writeFailures.failures.length} failures over ${outcomeNames.size} outcomes, no two of them leaving the same set true, every one of them leaving nothing deleted, none of them offered by a store with no disk to be refused by — and the ${SILENT_ABOUT_WRITE_FAILURE.length} file stores that have no sentence for a full phone and the one screen that quarantines a file without saying so are written down as gaps rather than left to be found again. Not one of those ${prosePlaces.reduce((total, place) => total + place.sentences.length, 0)} sentences is typed into a hand-written file outside the ${PROSE_QUARANTINE.length} quarantined copies waiting to adopt them, and each of those quarantines fails the build on the day it is no longer needed. And a workspace may not type the figure at the top of it: all ${METRIC_STRIPS.length} metric strips are read for a digit inside a literal, ${TYPED_FIGURES.length} figures are excused because no list on their screen could count them, and the ${FIGURE_QUARANTINE.reduce((total, [, count]) => total + count, 0)} that are typed over a list that could are ratcheted so that neither a new one nor a half-finished fix goes unnoticed. What that cannot see — whether a counted figure counts the right rows — is what tests/workspace-counts.spec.ts opens a browser for.`);
 
 /* The money and identity seams report separately, as their own line, so that three agents adding
    simulators to three different seams are appending lines rather than editing one sentence. */
-console.log(`Three simulated suppliers stand behind ${[...standingIn].length} capabilities — ${[...standingIn].sort().join(', ')} — and each of them is held to what it will not do: every one of the ${[...standingIn].reduce((total, id) => total + refusesOf(id).length, 0)} refusals those capabilities write down is enforced in apps/api/src/simulation, in the contract's own words, chosen by a selector that matches exactly one sentence. None of them opens a socket or writes a file, none of them holds anything with the shape of a card number, the simulated one-time code is the length and the life apps/api/src/config.ts gives the real one, the browser reaches them through one module and the status page reads its notices through the accessor that knows about the third state.`);
+console.log(`${simulationFiles.filter(([f]) => !/\/(index|contract|suppliers|care)\.ts$/.test(f)).length} simulated suppliers stand behind ${[...standingIn].length} capabilities — ${[...standingIn].sort().join(', ')} — and each of them is held to what it will not do: every one of the ${[...standingIn].reduce((total, id) => total + refusesOf(id).length, 0)} refusals those capabilities write down is enforced in apps/api/src/simulation, in the contract's own words, chosen by a selector that matches exactly one sentence. None of them opens a socket or writes a file, none of them holds anything with the shape of a card number, the simulated one-time code is the length and the life apps/api/src/config.ts gives the real one, the browser reaches them through one module and the status page reads its notices through the accessor that knows about the third state.`);
+/* The care and dispatch seams, in numbers. Its own line rather than a clause in the summary above,
+   for the same reason its checks are their own block: three seams are being simulated at once and a
+   sentence three people are editing is a sentence three people conflict over. */
+console.log(`Four of them stand behind four of those doors and none of them is reachable from the request path: ${careRoster.nurses.length} fictional nurses over ${careZoneNames.size} suburbs, ${careSimulators.reduce((total, [id]) => total + capabilities.capabilities.find(c => c.id === id).simulation.refuses.length, 0)} refusals enforced in the contract's own words and typed into no simulator, a shift computed from the ${careSlots.length} hours the product offers and the ${careLongest}-minute longest visit it sells rather than from two times somebody wrote down, ${careRoster.nurses.filter(n => !careZoneNames.has(n.zone.toLowerCase())).length} nurses outside phase one and ${careRoster.nurses.filter(n => !n.sharesPosition).length} whose phone is telling nobody anything — so every one of those refusals is something a person can open the app and see. Nothing in the directory calls Math.random, nothing in it reaches for a camera or a microphone, and the teleconsultation capability still declares no permission for either app to ask for.`);
