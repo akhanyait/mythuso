@@ -132,7 +132,7 @@ struct ThusoKitView: View {
                 } else {
                     ForEach(unpaired) { sighting in
                         sightingRow(sighting)
-                        if sighting.id != unpaired.last?.id { Divider().overlay(ThusoTheme.line) }
+                        if sighting.id != unpaired.last?.id { Divider().overlay(ThusoTheme.stone) }
                     }
                 }
                 Button("Look again") { scan = .idle }.buttonStyle(QuietButton())

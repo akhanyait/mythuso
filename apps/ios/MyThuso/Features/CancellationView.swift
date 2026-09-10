@@ -57,7 +57,7 @@ struct CancelVisitView: View {
         .thusoGround()
         .navigationTitle(recorded == nil ? "Cancel or move" : "Cancelled")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.canvas, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.glassFloor, for: .navigationBar)
     }
 
     // MARK: - Deciding
@@ -97,7 +97,7 @@ struct CancelVisitView: View {
             ForEach(Array(Cancellation.reasons.enumerated()), id: \.element) { index, option in
                 Button { reason = option.id } label: { reasonRow(option) }.buttonStyle(.plain)
                     .accessibilityAddTraits(reason == option.id ? [.isSelected] : [])
-                if index < Cancellation.reasons.count - 1 { Divider().overlay(ThusoTheme.line) }
+                if index < Cancellation.reasons.count - 1 { Divider().overlay(ThusoTheme.stone) }
             }
         }
         /* From the contract, not typed. The sentence exists because a screen can behave permissively
@@ -179,9 +179,9 @@ struct CancelVisitView: View {
         }
         .padding(ThusoSpacing.space12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)
-            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.line))
+            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.controlEdge))
     }
 
     private func record() {
@@ -199,7 +199,7 @@ struct CancelVisitView: View {
         CareCard(weight: .lead) {
             Text(record.state.patientWords).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             LabeledContent("Visit", value: record.visit.service.name)
             LabeledContent("It was booked for", value: record.visit.whenText)
             LabeledContent("Reason recorded", value: record.reason.text)
@@ -267,7 +267,7 @@ struct RescheduleVisitView: View {
         .thusoGround()
         .navigationTitle(moved == nil ? "Move this visit" : "Moved")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.canvas, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.glassFloor, for: .navigationBar)
     }
 
     @ViewBuilder private var picker: some View {
@@ -289,7 +289,7 @@ struct RescheduleVisitView: View {
     @ViewBuilder private func confirmation(_ visit: BookedVisit) -> some View {
         CareCard(weight: .lead) {
             Text("This visit has moved.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             LabeledContent("Visit", value: visit.service.name)
             LabeledContent("Now", value: visit.whenText)
             LabeledContent("Where", value: visit.address)

@@ -289,8 +289,8 @@ struct ConsultationRecordView: View {
                                                  set: { draft[field.id] = String($0.prefix(1200)) }))
                             .frame(minHeight: 76).scrollContentBackground(.hidden)
                             .padding(ThusoSpacing.space8)
-                            .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
+                            .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.controlEdge, lineWidth: 1))
                             .disabled(signature != nil || !mayWrite.allowed)
                             .accessibilityLabel(field.label)
                             .accessibilityHint(field.prompt)
@@ -344,13 +344,13 @@ struct ConsultationRecordView: View {
                         Text(entry.whenItHappened).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         WrittenAgoNote(at: entry.writtenToPhoneAt, what: "This reading")
                     }
-                    if entry.id != visitReadings.last?.id { Divider().overlay(ThusoTheme.line) }
+                    if entry.id != visitReadings.last?.id { Divider().overlay(ThusoTheme.stone) }
                 }
                 Text("Read-only here. These are the readings as they were taken, with the origin, the instrument and the calibration each was taken under. The box below is for what they do not carry.")
                     .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             .padding(ThusoSpacing.space12)
-            .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+            .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         }
     }
 

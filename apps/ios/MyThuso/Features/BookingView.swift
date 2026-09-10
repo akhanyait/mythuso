@@ -16,7 +16,7 @@ struct ServicesView: View {
                     CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                         ForEach(Array(matches.enumerated()), id: \.element) { index, service in
                             NavigationLink { BookingView(service: service) } label: { serviceRow(service) }.buttonStyle(.plain)
-                            if index < matches.count - 1 { Divider().overlay(ThusoTheme.line) }
+                            if index < matches.count - 1 { Divider().overlay(ThusoTheme.stone) }
                         }
                     }
                 }
@@ -34,7 +34,7 @@ struct ServicesView: View {
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
         .thusoGround()
         .navigationTitle("Book care").navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.canvas, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.glassFloor, for: .navigationBar)
         .searchable(text: query, prompt: "Find a service")
     }
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -110,7 +110,7 @@ struct BookingView: View {
         .sensoryFeedback(.success, trigger: booked)
         .thusoGround()
         .navigationTitle(booked ? "All set" : "Your home visit").navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.canvas, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.glassFloor, for: .navigationBar)
     }
     private var summary: some View {
         CareCard(weight: .lead) {
@@ -129,7 +129,7 @@ struct BookingView: View {
         summary
         CareCard {
             Picker("Who is this visit for?", selection: $patient) { ForEach(["Lerato Molefe"] + store.family, id: \.self) { Text($0) } }
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             TextField("Visit location", text: $address)
         }
         Text("Sample availability and proposal pricing. Tests, medicines and prescriptions may require separate arrangements.")
@@ -198,7 +198,7 @@ struct BookingView: View {
             if scheduled { LabeledContent("Time", value: "\(slot) – \(endTime)") }
             LabeledContent("Location", value: address)
             LabeledContent("Patient", value: patient)
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             HStack(spacing: ThusoSpacing.space12) {
                 Monogram(text: Arrival.nurse.initials)
                 VStack(alignment: .leading, spacing: 2) {
@@ -209,7 +209,7 @@ struct BookingView: View {
                 Text("★ 4.9").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             .accessibilityElement(children: .combine)
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             HStack(spacing: ThusoSpacing.space12) {
                 Image(systemName: "creditcard").font(.body).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
                 Text(payment == "Card" ? "•••• 4242" : payment).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
@@ -285,7 +285,7 @@ struct VisitTimePicker: View {
                             .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8)
                             .frame(minWidth: 62, minHeight: 68)
                             .background(day == index ? ThusoTheme.charcoal : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(day == index ? ThusoTheme.charcoal : ThusoTheme.line, lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(day == index ? ThusoTheme.charcoal : ThusoTheme.controlEdge, lineWidth: 1))
                             .foregroundStyle(day == index ? .white : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         }
                         .accessibilityLabel(Scheduling.longDate(offered.date))
@@ -303,7 +303,7 @@ struct VisitTimePicker: View {
                         Text(time).font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity, minHeight: 48)
                             .background(slot == time ? ThusoTheme.charcoal : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(slot == time ? ThusoTheme.charcoal : ThusoTheme.line, lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(slot == time ? ThusoTheme.charcoal : ThusoTheme.controlEdge, lineWidth: 1))
                             .foregroundStyle(slot == time ? .white : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     }.accessibilityAddTraits(slot == time ? [.isSelected] : [])
                 }
@@ -384,8 +384,8 @@ struct VisitsView: View {
                                         Text(row.monthName).font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                                     }
                                     .padding(.vertical, ThusoSpacing.space8).frame(minWidth: 52, minHeight: 58)
-                                    .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                                    .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
+                                    .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                                    .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.stone, lineWidth: 1))
                                     /* One element saying the date once. `children: .combine` left the
                                        three parts in the tree beside the combined one, so VoiceOver
                                        read "FRI, 11, SEP" and then "FRI", "11", "SEP" again. */
@@ -416,13 +416,13 @@ struct VisitsView: View {
                                    and the row for it led nowhere: the same shape as an upcoming
                                    visit, three days after it happened. */
                                 if row.status == "Completed" {
-                                    Divider().overlay(ThusoTheme.line)
+                                    Divider().overlay(ThusoTheme.stone)
                                     NavigationLink { PastVisitView(service: CareService.all[1], address: row.place) } label: {
                                         Text("See what the nurse found").frame(maxWidth: .infinity)
                                     }.buttonStyle(CareButton())
                                 }
                                 if row.nurse, let visit = store.visits.first {
-                                    Divider().overlay(ThusoTheme.line)
+                                    Divider().overlay(ThusoTheme.stone)
                                     NavigationLink { ArrivalView(visit: visit) } label: {
                                         HStack(spacing: ThusoSpacing.space12) {
                                             Monogram(text: Arrival.nurse.initials)

@@ -216,7 +216,7 @@ struct SosView: View {
                 } label: {
                     HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                         Image(systemName: answers.flagged.contains(condition.id) ? "checkmark.square.fill" : "square")
-                            .font(.body).foregroundStyle(answers.flagged.contains(condition.id) ? ThusoTheme.danger : ThusoTheme.line)
+                            .font(.body).foregroundStyle(answers.flagged.contains(condition.id) ? ThusoTheme.danger : ThusoTheme.controlEdge)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(condition.name).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.charcoal)
                             Text(condition.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
@@ -233,7 +233,7 @@ struct SosView: View {
             } label: {
                 HStack(spacing: ThusoSpacing.space12) {
                     Image(systemName: none ? "checkmark.square.fill" : "square")
-                        .font(.body).foregroundStyle(none ? ThusoTheme.charcoal : ThusoTheme.line)
+                        .font(.body).foregroundStyle(none ? ThusoTheme.charcoal : ThusoTheme.controlEdge)
                     Text(Sos.redFlags.noneLabel).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.charcoal)
                     Spacer(minLength: 0)
                 }

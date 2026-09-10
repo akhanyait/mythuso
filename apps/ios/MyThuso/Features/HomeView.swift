@@ -112,16 +112,28 @@ struct HomeView: View {
             .accessibilityLabel("Care is for Lerato Molefe. Open your circle of care")
     }
 
+    /* The two chips that say who the care is for and where.
+     *
+     * They were capsules with `lineLimit(2)` on them, and at the accessibility sizes that is two
+     * defects at once: "Rosebank, Johannesburg" came out as "Rosebank, Johanne…" — the suburb
+     * somebody had chosen, unreadable in the control that chose it — and a capsule's ends curve in
+     * by half its height, so on a two-line chip the first and last words sit inside the curve. It
+     * is the same pair of problems MetricChip and NavPillLabel already solved, solved the same way:
+     * the text wraps as far as it needs to, and past the accessibility sizes the shape stops being
+     * a capsule and becomes a rounded rectangle whose corners leave the words alone. */
     private func chipLabel(symbol: String, text: String) -> some View {
-        HStack(spacing: ThusoSpacing.space8) {
-            Image(systemName: symbol).font(.footnote)
-            Text(text).font(.footnote.weight(.semibold)).lineLimit(2)
-            Image(systemName: "chevron.down").font(.caption2.weight(.semibold))
+        let shape: AnyShape = typeSize.isAccessibilitySize
+            ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            : AnyShape(Capsule())
+        return HStack(spacing: ThusoSpacing.space8) {
+            Image(systemName: symbol).font(.footnote).accessibilityHidden(true)
+            Text(text).font(.footnote.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+            Image(systemName: "chevron.down").font(.caption2.weight(.semibold)).accessibilityHidden(true)
         }
         .foregroundStyle(ThusoTheme.charcoal)
         .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8).frame(minHeight: 44)
-        .background(ThusoTheme.surface, in: Capsule())
-        .overlay(Capsule().stroke(ThusoTheme.line, lineWidth: 1))
+        .background(ThusoTheme.surface, in: shape)
+        .overlay(shape.stroke(ThusoTheme.controlEdge, lineWidth: 1))
     }
 
     // MARK: - What is already arranged
@@ -176,7 +188,7 @@ struct HomeView: View {
                 Text(visit.address).font(.footnote)
             }
             .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             HStack(spacing: ThusoSpacing.space12) {
                 Monogram(text: Arrival.nurse.initials)
                 VStack(alignment: .leading, spacing: 3) {
@@ -208,15 +220,23 @@ struct HomeView: View {
     /* The words typed here live on the store, so the catalogue in the next tab opens already
        filtered. The search used to call book() and throw the query away. */
     private var searchField: some View {
-        HStack(spacing: ThusoSpacing.space12) {
+        /* Round while the prompt fits on one line, and a rounded rectangle once it does not. A
+           search prompt at three times the type wraps, and a capsule wrapping is a capsule cutting
+           the first and last word of the line it curves past. */
+        let shape: AnyShape = typeSize.isAccessibilitySize
+            ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            : AnyShape(Capsule())
+        return HStack(spacing: ThusoSpacing.space12) {
             Image(systemName: "magnifyingglass").foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).accessibilityHidden(true)
+            /* One line, deliberately. A vertical axis would let the prompt wrap, and it would also
+               turn Return into a newline — which is the one key this field has a job for. */
             TextField("What care do you need today?", text: $store.careQuery).submitLabel(.search).onSubmit(book)
                 .accessibilityLabel("Search for care")
         }
         .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12).frame(minHeight: 48)
         .contentShape(Rectangle())
-        .background(ThusoTheme.surface, in: Capsule())
-        .overlay(Capsule().stroke(ThusoTheme.line, lineWidth: 1))
+        .background(ThusoTheme.surface, in: shape)
+        .overlay(shape.stroke(ThusoTheme.controlEdge, lineWidth: 1))
     }
 
     // MARK: - Care you can book today
@@ -232,7 +252,7 @@ struct HomeView: View {
             CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                 ForEach(Array(CareService.all.prefix(4).enumerated()), id: \.element) { index, service in
                     NavigationLink { BookingView(service: service) } label: { shortcutRow(service, index: index) }.buttonStyle(.plain)
-                    if index < 3 { Divider().overlay(ThusoTheme.line) }
+                    if index < 3 { Divider().overlay(ThusoTheme.stone) }
                 }
             }
         }
@@ -292,7 +312,7 @@ struct HomeView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    if index < sampleResults.count - 1 { Divider().overlay(ThusoTheme.line) }
+                    if index < sampleResults.count - 1 { Divider().overlay(ThusoTheme.stone) }
                 }
             }
         }
@@ -329,7 +349,7 @@ struct HomeView: View {
                     NavigationLink { FamilyView() } label: {
                         MenuRow(title: member, subtitle: relationship(index), symbol: "person.crop.circle")
                     }.buttonStyle(.plain)
-                    Divider().overlay(ThusoTheme.line)
+                    Divider().overlay(ThusoTheme.stone)
                 }
                 NavigationLink { FamilyView() } label: {
                     Label("Add a family member", systemImage: "plus").font(.subheadline.weight(.semibold))

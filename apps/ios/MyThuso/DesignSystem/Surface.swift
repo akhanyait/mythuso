@@ -323,7 +323,7 @@ struct OpenCircle: View {
             .foregroundStyle(ThusoTheme.charcoal)
             .frame(width: 44, height: 44)
             .background(ThusoTheme.surface, in: Circle())
-            .overlay(Circle().stroke(ThusoTheme.stone, lineWidth: 1))
+            .overlay(Circle().stroke(ThusoTheme.controlEdge, lineWidth: 1))
             .accessibilityLabel(label)
     }
 }
@@ -364,14 +364,24 @@ struct NavPillLabel: View {
                 Text(title).thusoFont(ThusoType.body, weight: .medium).foregroundStyle(ink)
                     .fixedSize(horizontal: false, vertical: true)
                 if !subtitle.isEmpty {
+                    /* SAGE IS A FILL AND NEVER A LABEL, AND THIS ROW WAS THE EXCEPTION NOBODY HAD
+                       MEASURED. The line under every destination in this app — the sentence that
+                       says what is behind the door — was sageSlate on the pill's cloud ground:
+                       2.30:1, which clears nothing, on the one string that tells a reader whether
+                       the row is the one they want. It is the muted charcoal every other secondary
+                       label is, which reads 6.01 on that ground and darkens with it. */
                     Text(subtitle).font(.footnote)
-                        .foregroundStyle(current ? ThusoTheme.surface.opacity(0.8) : ThusoTheme.sageSlate)
+                        .foregroundStyle(current ? ThusoTheme.surface.opacity(0.8)
+                                                 : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            /* The same arithmetic for the arrow. It is hidden from VoiceOver, so it is decoration —
+               but it is the decoration that says this row goes somewhere, and at 2.30 it did not
+               say it to anybody. */
             Image(systemName: "arrow.right").font(.subheadline.weight(.semibold))
-                .foregroundStyle(current ? ThusoTheme.charcoal : ThusoTheme.sageSlate)
+                .foregroundStyle(current ? ThusoTheme.charcoal : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 .frame(width: 36, height: 36)
                 .background(current ? ThusoTheme.surface : .clear, in: Circle())
                 .accessibilityHidden(true)

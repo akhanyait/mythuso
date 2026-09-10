@@ -13,6 +13,31 @@ import SwiftUI
 extension ThusoTheme {
     /// Elevation, expressed once. A card that leads a screen may lift; nothing else may.
     static let lift = ink.opacity(0.06)
+
+    /* THE EDGE OF A CONTROL IS NOT A HAIRLINE, AND MEASURING IS WHAT SAID SO.
+     *
+     * A one-time-code box, a search field, a note editor, an unselected time slot: each of these is
+     * a white shape on a near-white ground, and its border is the only thing on the screen saying
+     * where it is. WCAG 2.2 SC 1.4.11 holds that border to 3:1, and every one of them was drawn in
+     * `line` — #E2E8F0, which measures 1.23:1 on white. `stone` is 1.36. Both are invisible; a
+     * reader with ordinary eyesight finds those fields by guessing, and a reader without does not
+     * find them at all.
+     *
+     * Nothing in the sage ramp can carry it either: sageSlate, the darkest the ramp goes, is 2.90
+     * on white and fails by a tenth. Charcoal at half alpha reaches 3.28 on white but 2.96 on the
+     * palest sage, so it would pass on the screens it was measured on and fail on a lead panel.
+     *
+     * So it is the muted charcoal the labels already use — 6.69 on white, 6.01 on cloud, 5.37 on
+     * paleSage, 4.74 on the deepest sage fill. Past 3:1 on every ground in the palette with room to
+     * spare, and, being an alpha rather than a flattened grey, it darkens with whatever it sits on
+     * for the same reason ThusoOpacity.charcoalMuted exists at all. It also makes the resting and
+     * the active state one progression rather than two ideas: an idle field is charcoal at 72% and
+     * one point, the field you are in is charcoal at full weight and one and a half.
+     *
+     * A DIVIDER IS STILL `stone`. This is not a licence to darken every line in the app. A rule
+     * between two rows, the edge of a card, the ring round a monogram — none of those is a control
+     * and none of them has to be found, so they stay the hairline the design language asks for. */
+    static let controlEdge = charcoal.opacity(ThusoOpacity.charcoalMuted)
 }
 
 /* How much a card is meant to matter.
@@ -144,7 +169,7 @@ struct QuietButton: ButtonStyle {
             .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
             .frame(maxWidth: .infinity, minHeight: 48)
             .background(configuration.isPressed ? ThusoTheme.cloud : ThusoTheme.surface, in: shape)
-            .overlay(shape.stroke(ThusoTheme.stone, lineWidth: 1))
+            .overlay(shape.stroke(ThusoTheme.controlEdge, lineWidth: 1))
             .foregroundStyle(ThusoTheme.charcoal)
             .contentShape(Rectangle())
     }
@@ -269,7 +294,7 @@ struct CodeBoxes: View {
                         .frame(maxWidth: .infinity, minHeight: boxHeight)
                         .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(
-                            invalid ? ThusoTheme.danger : (active ? ThusoTheme.charcoal : ThusoTheme.line),
+                            invalid ? ThusoTheme.danger : (active ? ThusoTheme.charcoal : ThusoTheme.controlEdge),
                             lineWidth: active || invalid ? 1.5 : 1))
                 }
             }

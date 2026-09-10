@@ -175,7 +175,7 @@ struct HealthSummaryView: View {
                         .font(.subheadline.weight(.semibold))
                         .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, minHeight: 50)
                         .background(.white, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.controlEdge, lineWidth: 1))
                         .foregroundStyle(ThusoTheme.charcoal)
                 }
                 .accessibilityLabel("Export this summary through the share sheet")

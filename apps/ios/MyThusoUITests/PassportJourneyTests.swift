@@ -109,6 +109,39 @@ final class PassportJourneyTests: XCTestCase {
         }
     }
 
+    /* The two workspaces a clinician actually lives in.
+     *
+     * They were the last system `Form`s in the app — grouped rows, system chevrons and a metric
+     * drawn upside down — for a fortnight after every other screen had moved to the dashboard
+     * language, because nothing walked them and so nobody looked at them. That is the whole reason
+     * they are here: they carry a strip of large light numerals, a queue of three-column rows and a
+     * timetable whose times are a column of their own, and each of those is a shape that fails
+     * differently at three times the type than it does at one. */
+    /* The bar is the workspace and the heading is the section, which is the breadcrumb the web
+       shell draws as `Control Tower / Dispatch`. Both are asserted, because a workspace that opens
+       on the wrong section is a workspace that opened. */
+    private func openWorkspace(_ app: XCUIApplication, _ name: String, bar: String, landing: String) {
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        /* Twice the usual scroll budget. The workspaces are the second-to-last group on a More
+           screen that lists better than thirty destinations, and at AccessibilityXXXL every one of
+           them is three lines tall — thirty swipes reaches the Nurse row and runs out somewhere
+           above the Control Tower, which reads in a log as the screen not existing. */
+        tapAfterScrolling(app, app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch, steps: 60)
+        XCTAssertTrue(app.navigationBars[bar].waitForExistence(timeout: 30), "the \(name) did not open")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", landing)).firstMatch.waitForExistence(timeout: 30),
+                      "the \(name) did not land on \(landing)")
+    }
+    func testTheNurseWorkspaceIsUsable() {
+        bothSizes("The nurse workspace") { app in
+            self.openWorkspace(app, "Nurse workspace", bar: "Nurse", landing: "Schedule")
+        }
+    }
+    func testTheControlTowerIsUsable() {
+        bothSizes("The Control Tower") { app in
+            self.openWorkspace(app, "Control Tower", bar: "Control Tower", landing: "Dispatch")
+        }
+    }
+
     // MARK: - The refusals these screens exist to make
 
     /* No Connect button, enabled or disabled. The screen says the kit is not connected and why; a

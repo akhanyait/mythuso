@@ -46,7 +46,7 @@ extension Provenance {
         case .device: return ThusoTheme.indigoSoft
         case .manual: return ThusoTheme.infoSoft
         case .patientReported: return ThusoTheme.accentSoft
-        case .derived: return ThusoTheme.canvas
+        case .derived: return ThusoTheme.cloud
         }
     }
 }
@@ -94,7 +94,7 @@ struct ProvenanceKey: View {
                 }
                 .padding(.vertical, 4)
                 .accessibilityElement(children: .combine)
-                if provenance != Provenance.allCases.last { Divider().overlay(ThusoTheme.line) }
+                if provenance != Provenance.allCases.last { Divider().overlay(ThusoTheme.stone) }
             }
             Text(CaptureRules.provenanceIsRequired).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }

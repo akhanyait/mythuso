@@ -63,33 +63,43 @@ struct ClinicalChart: View {
              * widens a rectangle nothing is listening to. The table underneath is every value on
              * the chart in words, so the control that opens it is the whole of this chart's
              * accessibility story, and it has to be a target rather than nearly one. */
-            Button { withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) { showTable.toggle() } } label: {
-                HStack(spacing: ThusoSpacing.space8) {
+            Button { withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) { showTable.toggle() } } label: {                HStack(spacing: ThusoSpacing.space8) {
                     Text(showTable ? "Hide readings" : "Show readings as a table")
                         .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                     Image(systemName: showTable ? "chevron.up" : "chevron.down")
+<<<<<<< HEAD
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).accessibilityHidden(true)
                 }
                 .frame(maxWidth: .infinity, minHeight: 44)
+=======
+                        .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        .accessibilityHidden(true)
+                }
+                .frame(minHeight: 44)
+>>>>>>> 213a4cf (Retire the slate ramp, and stop the workspaces contradicting the boards under them)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityAddTraits(.isButton)
+<<<<<<< HEAD
             .accessibilityHint(showTable ? "Hides the table of readings" : "Shows every reading on this chart as a table")
+=======
+>>>>>>> 213a4cf (Retire the slate ramp, and stop the workspaces contradicting the boards under them)
             if showTable {
                 VStack(spacing: 0) {
                     ForEach(readings) { reading in
                         HStack {
                             Text(reading.label).frame(maxWidth: .infinity, alignment: .leading)
                             Text("\(format(reading.value)) \(unit)").frame(maxWidth: .infinity, alignment: .leading)
-                            Text(reading.note).frame(maxWidth: .infinity, alignment: .leading).foregroundStyle(.secondary)
+                            Text(reading.note).frame(maxWidth: .infinity, alignment: .leading)
+                                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         }
                         .font(.caption).padding(.vertical, ThusoSpacing.space8)
                         .accessibilityElement(children: .combine)
-                        Divider()
+                        Divider().overlay(ThusoTheme.stone)
                     }
                     Text("Fictional data, not a medical record.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
                 }

@@ -137,7 +137,7 @@ struct PatientFileView: View {
                         .padding(.horizontal, 13).padding(.vertical, 9)
                         .background(item.name == tabName ? ThusoTheme.charcoal : .white, in: Capsule())
                         .foregroundStyle(item.name == tabName ? .white : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
-                        .overlay(Capsule().stroke(ThusoTheme.line, lineWidth: item.name == tabName ? 0 : 1))
+                        .overlay(Capsule().stroke(ThusoTheme.controlEdge, lineWidth: item.name == tabName ? 0 : 1))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(open ? item.name : "\(item.name), refused to this viewer")
@@ -502,20 +502,20 @@ struct PatientFileOverview: View {
         CareCard {
             VitalStat(symbol: "heart", name: "Blood pressure", value: "\(Int(latest.systolic))/\(Int(latest.diastolic))",
                       unit: "mmHg", provenance: originOf(latest, "systolic"))
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             VitalStat(symbol: "waveform.path.ecg", name: "Pulse", value: "\(Int(latest.pulse))", unit: "bpm",
                       provenance: originOf(latest, "pulse"))
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             VitalStat(symbol: "thermometer", name: "Temperature", value: String(format: "%.1f", latest.temperature),
                       unit: "°C", provenance: originOf(latest, "temperature"))
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             VitalStat(symbol: "scalemass", name: "Weight", value: String(format: "%.1f", latest.weight), unit: "kg",
                       provenance: originOf(latest, "weight"))
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             VitalStat(symbol: "lungs", name: "Oxygen saturation", value: "\(Int(latest.oxygen))", unit: "%",
                       provenance: originOf(latest, "oxygen"))
             if let instrument = latest.instrument {
-                Divider().overlay(ThusoTheme.line)
+                Divider().overlay(ThusoTheme.stone)
                 FieldRow(label: "Instrument", value: instrument)
             }
             if let note = latest.calibrationNote {
@@ -553,7 +553,7 @@ struct PatientFileOverview: View {
                     MenuRow(title: action.label, subtitle: allowed.reason ?? "", symbol: "lock", danger: true)
                         .accessibilityLabel("\(action.label), refused. \(allowed.reason ?? "")")
                 }
-                if action.id != Records.fileActions.last?.id { Divider().overlay(ThusoTheme.line) }
+                if action.id != Records.fileActions.last?.id { Divider().overlay(ThusoTheme.stone) }
             }
         }
     }
@@ -989,7 +989,7 @@ struct PatientFileBilling: View {
                         }
                         .padding(.vertical, 4)
                         .accessibilityElement(children: .combine)
-                        Divider().overlay(ThusoTheme.line)
+                        Divider().overlay(ThusoTheme.stone)
                     }
                     HStack {
                         Text("Visible to this viewer").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))

@@ -53,7 +53,7 @@ struct HeroCarousel: View {
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) { index = position }
                     playing = false
                 } label: {
-                    Capsule().fill(position == index ? ThusoTheme.charcoal : ThusoTheme.line)
+                    Capsule().fill(position == index ? ThusoTheme.charcoal : ThusoTheme.controlEdge)
                         .frame(width: position == index ? 22 : 6, height: 6)
                         .frame(width: 30, height: 44)
                         .contentShape(Rectangle())
@@ -69,7 +69,7 @@ struct HeroCarousel: View {
                     Image(systemName: playing ? "pause.fill" : "play.fill").font(.caption.weight(.semibold))
                         .foregroundStyle(ThusoTheme.charcoal).frame(width: 32, height: 32)
                         .background(ThusoTheme.surface, in: Circle())
-                        .overlay(Circle().stroke(ThusoTheme.line, lineWidth: 1))
+                        .overlay(Circle().stroke(ThusoTheme.controlEdge, lineWidth: 1))
                         .frame(width: 44, height: 44).contentShape(Rectangle())
                 }
                 .accessibilityLabel(playing ? "Pause the highlights" : "Play the highlights")
@@ -119,7 +119,7 @@ struct HeroCarousel: View {
             Spacer(minLength: 0)
         }
         .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.stone, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .shadow(color: ThusoTheme.lift, radius: 10, y: 3)
         .padding(.horizontal, 2)

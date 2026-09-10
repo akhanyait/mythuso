@@ -188,7 +188,7 @@ struct DispensingView: View {
                     Text(reason).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+                .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
             }
 
             Button(isTold ? "Hide what was said to the patient" : "Read this to the patient") {
@@ -342,7 +342,7 @@ struct DispensingView: View {
             Text(note).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
         .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
 
     private func bullet(_ what: String, _ why: String) -> some View {

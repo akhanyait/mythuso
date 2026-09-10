@@ -130,7 +130,7 @@ struct EmptyStateCard: View {
         }
         .padding(.vertical, ThusoSpacing.space8)
         .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.stone, lineWidth: 1))
     }
 }
 

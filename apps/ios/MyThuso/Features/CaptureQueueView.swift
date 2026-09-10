@@ -113,7 +113,7 @@ struct CaptureQueueView: View {
                      "A sign-out. This preview’s sign-out returns to the first-run flow and never touches the file — the entries belong to the work, not to the session."], id: \.self) { line in
                 Label(line, systemImage: "checkmark").font(.caption).foregroundStyle(ThusoTheme.charcoal)
             }
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             ForEach(["Deleting the app. iOS removes the file with it, and nothing here can prevent that.",
                      "Losing the phone. The file is deliberately kept out of device backups, because a queue of readings is special personal information and syncing it into somebody’s laptop backup is a disclosure nobody consented to. The answer to a lost phone is to send, not to back up.",
                      "A second device. Nothing is shared between phones; there is no server in this build to share it through."], id: \.self) { line in
@@ -207,7 +207,7 @@ struct CaptureQueueView: View {
             Text("Signing out of this preview returns to the first-run flow and goes nowhere near the file. This drops everything held in memory and reads the file again from nothing, which is what a cold launch does — the count above should not move.")
                 .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Button("Sign out and read the file again") { kit.reloadFromDisk() }.buttonStyle(QuietButton())
-            Divider().overlay(ThusoTheme.line)
+            Divider().overlay(ThusoTheme.stone)
             Text("The only thing in this app that removes an entry, and it is a person’s deliberate act on fictional data. No sync, no sign-out and no failure ever does it.")
                 .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Button("Clear this phone’s store and start again") { kit.resetToFixtures() }
@@ -346,8 +346,8 @@ struct ConflictResolutionView: View {
                     .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             TextEditor(text: $note).frame(minHeight: 76).scrollContentBackground(.hidden)
-                .padding(ThusoSpacing.space8).background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.line, lineWidth: 1))
+                .padding(ThusoSpacing.space8).background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.controlEdge, lineWidth: 1))
                 .accessibilityLabel("Why")
             Text("Why. The reason goes into the record beside the decision — the next clinician reads the reason, not the button that was pressed.")
                 .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))

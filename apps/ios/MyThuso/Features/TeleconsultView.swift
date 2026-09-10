@@ -257,7 +257,7 @@ struct TeleconsultView: View {
         if let withdrawnNote {
             Text(withdrawnNote).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+                .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         }
 
         Text("The line").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
@@ -395,7 +395,7 @@ struct TeleconsultView: View {
                 HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                     TileIcon(symbol: out ? "figure.walk.departure" : "person.fill",
                              tint: out ? ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted) : ThusoTheme.charcoal,
-                             background: out ? ThusoTheme.canvas : ThusoTheme.paleSage, size: 38)
+                             background: out ? ThusoTheme.cloud : ThusoTheme.paleSage, size: 38)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(displayName(person)).font(.subheadline.weight(.semibold))
                             .foregroundStyle(out ? ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted) : ThusoTheme.charcoal)
@@ -440,7 +440,7 @@ struct TeleconsultView: View {
             Text(item.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal)
         }
         .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.canvas, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
 
     private func row(_ label: String, _ value: String) -> some View {

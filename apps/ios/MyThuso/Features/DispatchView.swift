@@ -95,7 +95,7 @@ struct DispatchMap: View {
         GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height)
             ZStack {
-                RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).fill(ThusoTheme.canvas)
+                RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).fill(ThusoTheme.cloud)
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
                         Circle().fill(ThusoTheme.paleSage)

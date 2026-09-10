@@ -65,6 +65,16 @@ enum Audit {
          is 354 points wide and tapping the sentence toggles it, so what is short is one dimension \
          of a target that is otherwise the width of the screen. Replacing the control with one that \
          measures 44 would be a design change on all three platforms rather than an iOS fix.
+         """),
+        ("button “Leave this workspace”", 36,
+         """
+         The same navigation-bar fact as the bell above, on the four clinical workspaces: a bar \
+         item is the height of the bar's content and .frame(minWidth: 44, minHeight: 44) on it came \
+         back 69x36 exactly as before. What makes it an exemption rather than a defect is that it \
+         is no longer the only way out — the foot of every workspace section carries a full-size \
+         pill that does the same thing, added when this audit first walked those screens and found \
+         a thirty-six point control standing between a nurse and the way back. The label is role \
+         independent so that this is one row rather than four saying the same sentence.
          """)
     ]
 
