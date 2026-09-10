@@ -33,10 +33,11 @@ import java.time.temporal.ChronoUnit
  * provider is connected; a straight line through Johannesburg is optimistic by roughly a third and
  * knows nothing about the M1, a school run or the visit she is finishing first.
  *
- * WHAT BELONGS IN A CONTRACT AND IS NOT THERE YET. The refusal sentences below, and the fact that a
- * nurse is Sister Naledi Mokoena working out of Rosebank — that fixture is typed into
- * ui/DispatchScreens.kt as well, where she is nurse N-205, the id the vetting register holds, and into apps/web/src/lib/arrival.ts a
- * third time. Three copies of a person is exactly the drift packages/catalog exists to stop. It is
+ * WHAT BELONGS IN A CONTRACT AND IS NOT THERE YET. The refusal sentences are in one — geography.json
+ * holds all seven and this file reads them. What is still not is the fact that a nurse is Sister
+ * Naledi Mokoena working out of Rosebank: that fixture is typed into ui/DispatchScreens.kt as well,
+ * where she is nurse N-205, the id the vetting register holds, and into apps/web/src/lib/arrival.ts
+ * a third time. Three copies of a person is exactly the drift packages/catalog exists to stop. It is
  * reported rather than invented a fourth time.
  *
  * Nothing here reads a device. dispatch is not connected, the positions are the contract's own zone
@@ -53,18 +54,31 @@ object AssignedNurse {
     const val area = "Rosebank"
 }
 
-/* The sentences a patient is owed when there is nothing to show. Each says what is refused and
-   leaves the reader somewhere to stand, which is the difference between a state and a blank. */
+/*
+ * The sentences a patient is owed when there is nothing to show. Each says what is refused and
+ * leaves the reader somewhere to stand, which is the difference between a state and a blank.
+ *
+ * All seven are read out of packages/catalog/geography.json — four from its refusals and three from
+ * its privacy rules — and reach this app as GeographyData.refusals and GeographyData.privacyRules.
+ * They were typed out here, in apps/ios/MyThuso/Models/Arrival.swift and in
+ * apps/web/src/lib/arrival.ts, three copies with nothing comparing them; the names below stay
+ * because the screen reads better for them, but not one of the sentences is written here.
+ *
+ * Which is not the same as saying the rules are prose. only-on-the-day is enforced by the day
+ * arithmetic in [arrivalFor], not by the sentence that describes it, and a boundary check reads the
+ * branch rather than the wording: a rule written only as a sentence is one somebody will one day
+ * render around.
+ */
 object ArrivalRefusals {
-    const val anotherDay = "Nobody is on the way yet, so there is nothing to follow. You will see where she is on the day of your visit."
+    val anotherDay: String get() = Geography.refusal("nobody-on-the-way-yet").sentence
     /* The rule behind that, said once, in the list of what this screen is not — rather than repeated
        verbatim under the figure it has already explained. */
-    const val onlyOnTheDay = "MyThuso shows you where a nurse is on the day of your visit and not before. A nurse’s whereabouts between visits is her own, in the same way your address is yours."
-    const val noWindow = "This visit has no time yet, so there is nobody assigned to be on the way. When a nurse accepts it you will be told who is coming and when."
-    const val finished = "This visit is not ahead of you, so there is nothing to follow. What happened at it is in the visit itself."
-    const val notAnArrivalTime = "This is not an arrival time. It is the distance between two suburbs, divided by a speed — it does not know the traffic, the road, or the visit she is finishing first."
-    const val noDoorstep = "A nurse is drawn in the suburb she is working in, and your visit is drawn in the centre of yours — at both ends, at every zoom."
-    const val nothingMeasured = "Nothing on this screen is being measured. No nurse’s device is read, no arrival is timed against your window, and nobody has been told you are watching."
+    val onlyOnTheDay: String get() = Geography.rule("only-on-the-day").statement
+    val noWindow: String get() = Geography.refusal("no-window-no-nurse").sentence
+    val finished: String get() = Geography.refusal("visit-behind-you").sentence
+    val notAnArrivalTime: String get() = Geography.refusal("not-an-arrival-time").sentence
+    val noDoorstep: String get() = Geography.rule("no-doorstep-at-either-end").statement
+    val nothingMeasured: String get() = Geography.rule("nothing-is-measured").statement
 }
 
 /** Whole days between today in Johannesburg and a date. Negative is behind us. Scheduling.today()

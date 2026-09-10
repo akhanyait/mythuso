@@ -2574,8 +2574,6 @@ const storeProse = (...ids) => ids.flatMap(id => [theStore(id).where, ...storeSa
    too, so the day a file switches to the generated data the build fails until its line is deleted
    from below. An exemption nobody can lose is how a rule stops being one. */
 const PROSE_QUARANTINE = [
- { file: 'apps/android/app/src/main/java/za/co/mythuso/model/Explain.kt', held: explanationProse, todo: 'read recordExplanations and recordExplanationProvenance out of RecordsData' },
- { file: 'apps/android/app/src/main/java/za/co/mythuso/model/Arrival.kt', held: arrivalProse, todo: 'read the seven sentences out of Geography.privacyRules and Geography.refusals' },
  { file: 'apps/android/app/src/main/java/za/co/mythuso/model/CaptureQueue.kt', held: [...storeProse('android-private-file', 'android-in-memory'), ...storeRefusals('android-private-file')], todo: 'let FileBook and MemoryBook read CaptureData.store("android-private-file") and ("android-in-memory"), and let refusalFor return CaptureData.writeFailure("disk-full") and ("write-refused")' },
  { file: 'apps/web/src/features/VisitQueue.tsx', held: storeSays('web-in-memory'), todo: 'render the web store out of lib/visit-queue.ts rather than as a list item' },
  /* Found by the check below rather than by anybody reading the file: the patient's arrival screen
