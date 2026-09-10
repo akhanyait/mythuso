@@ -39,7 +39,7 @@ val capabilities = listOf(
         "apps/api/src/identity",
         listOf(
             "An SMS provider for one-time codes.",
-            "DNS and TLS on mythuso.co.za, because a one-time-code endpoint over plain http hands out accounts."
+            "An answer to what a one-time code costs somebody who has none. DNS and TLS were the second blocker here until 10 September and are done — mythuso.co.za serves https on both names, and the identity service is still switched off, because a certificate makes the endpoint safe to reach and does not make it safe to run."
         ),
         "Sign-in is not switched on yet. This account is local to your browser and disappears when you close it.",
         listOf("sign-in", "profile", "sign-out"),
