@@ -49,6 +49,7 @@ extension Capabilities {
                                               refuses: [
                                                   "Commit a real person to a time.",
                                                   "Offer a nurse whose simulated vetting has lapsed.",
+                                                  "Offer a nurse whose vetting has not finished.",
                                                   "Book outside a zone dispatch can reach."
                                               ]),
                    surfaces: ["booking", "visits", "visit-detail"],

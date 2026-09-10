@@ -73,6 +73,7 @@ val capabilities = listOf(
         Simulation("A simulated nurse roster, in process.", "The roster is simulated. These nurses are fictional and none of them has agreed to attend.", listOf(
             "Commit a real person to a time.",
             "Offer a nurse whose simulated vetting has lapsed.",
+            "Offer a nurse whose vetting has not finished.",
             "Book outside a zone dispatch can reach."
         )),
         listOf("booking", "visits", "visit-detail"),

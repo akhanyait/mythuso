@@ -1,0 +1,143 @@
+{
+ "_note": "The simulated nurse roster: who a visit can be booked against while no workforce roster exists. It is the fixture behind the `booking` and `dispatch` simulations and behind every credential answer, and it is a contract rather than a fixture file because the same nine people were being typed in four places — apps/web/src/lib/vetting-fixtures.ts held their names, zones and checks, features/Dispatch.tsx held a second copy with coordinates beside it, lib/arrival.ts held a third and said in its own header that it should not, and apps/api could read none of them. Nobody here is real, no credential here is valid anywhere, and nobody here has agreed to attend anything. There is no emitter beside this file on purpose: neither native app books against a roster, and generating a fictional workforce into Swift and Kotlin would put a list of people who do not exist into two shipped binaries for no reader.",
+
+ "_zoneNote": "A zone is a name in packages/catalog/geography.json or it is deliberately not one. Three of these nurses work in Tembisa, Alexandra and places phase one does not reach, and that is the point: the roster refuses them rather than quietly extending a coverage claim the product makes in words on the SOS screen. Do not 'fix' them by moving them into coverage — the refusal is the half worth having.",
+
+ "shift": {
+  "startsBeforeFirstSlotMinutes": 30,
+  "endsAfterLastVisitMinutes": 30,
+  "why": "Not a pair of times. A shift is arithmetic over the hours the product actually offers: it opens half an hour before the first slot in packages/catalog/scheduling.json and closes half an hour after the last slot plus the longest visit packages/catalog/services.json sells, so that a nurse is never rostered off in the middle of a visit somebody was allowed to book. Typing 07:30 and 18:30 here would have been two more numbers to forget on the day a slot or a duration changes.",
+  "whyThirtyMinutes": "Travel to the first door and away from the last one. It is a guess with a name in one place rather than a guess in nine."
+ },
+
+ "positions": {
+  "poorFixShare": 0.25,
+  "poorFixMetres": 2400,
+  "goodFixMetres": { "from": 8, "to": 65 },
+  "speedVariation": 0.35,
+  "why": "What a phone in a moving car actually reports. A good fix is metres; a fix taken indoors, in a lift or off a cell tower alone is kilometres — and a kilometres-wide fix drawn at the same size as a metres-wide one is the false precision packages/catalog/feeds.json calls the sharpest thing in its file. Roughly one device in four is having that kind of day, and one of the nine is declared to be having it permanently so that the refusal which depends on it is reachable rather than a lottery. Which one is not random: it is seeded off the party id, so the nurse with the bad phone has the bad phone on every machine, for ever.",
+  "whySpeedVaries": "packages/geo holds one urban speed for Johannesburg and this varies it by a third either way per nurse, so two people leaving the same suburb do not arrive in lockstep. The speed is still the one in packages/geo — this is a fraction of it, not a second number."
+ },
+
+ "authorities": {
+  "unavailableShare": 0.12,
+  "whyUnavailable": "A register that is down on the morning somebody is being dispatched is the case this whole layer exists for, so the simulation has to produce it rather than only describe it. apps/api/src/vetting/authority.ts states the rule it is testing: an adapter that cannot reach its authority returns unavailable, never confirmed, never silence and never the previous answer dressed up as a fresh one. Roughly one enquiry in eight, seeded off the party and the check so the same enquiry answers the same way twice.",
+  "says": {
+   "confirmed": "{check}: confirmed by {body} against its register.",
+   "not-found": "{check}: {body} has no record of this party.",
+   "mismatch": "{check}: what {body} holds does not match what was submitted.",
+   "expired": "{check}: {body} holds a registration that has passed its renewal date.",
+   "unavailable": "{check}: {body} could not be reached. Unreachable is not agreement and is never read as one.",
+   "not-integrated": "{check}: {body} is not integrated, so nothing was asked."
+  },
+  "whySays": "The words a person reads, one per outcome, held here rather than in the simulator so that the six sentences are a thing somebody can argue with. None of them ever carries a credential value and none of them ever carries a provider's error — the adapter interface refuses both already, and a simulator is the place that rule is broken by accident because a stack trace is so much easier to pass through than a sentence."
+ },
+
+ "nurses": [
+  {
+   "id": "N-201",
+   "name": "Sister Thandeka Zulu",
+   "reference": "SANC 20014477",
+   "zone": "Soweto",
+   "scope": ["Chronic care", "Wound care"],
+   "sharesPosition": true,
+   "note": "Renewal due and still dispatchable. Expiring is not lapsed, and a nurse three weeks off a police clearance works today and is told about it.",
+   "checks": { "police-clearance": { "state": "verified", "expiresInDays": 21 } }
+  },
+  {
+   "id": "N-202",
+   "name": "Sister Boitumelo Nkosi",
+   "reference": "SANC 20019902",
+   "zone": "Randburg",
+   "scope": ["Maternal & child"],
+   "sharesPosition": true,
+   "note": "Half way through her application. Four checks outstanding, so the roster will not offer her an hour.",
+   "checks": {
+    "police-clearance": { "state": "in-review" },
+    "references": { "state": "submitted" },
+    "kit-training": { "state": "outstanding" },
+    "popia-training": { "state": "outstanding" }
+   }
+  },
+  {
+   "id": "N-203",
+   "name": "Brother Lwazi Mahlangu",
+   "reference": "SANC 20007731",
+   "zone": "Tembisa",
+   "scope": ["Post-operative", "Phlebotomy"],
+   "sharesPosition": true,
+   "note": "Outside phase one, and waiting on a second reviewer as well. Two refusals on one person, which is the ordinary case rather than the interesting one.",
+   "checks": {
+    "sanc-registration": { "secondedBy": null },
+    "kit-training": { "state": "in-review" }
+   }
+  },
+  {
+   "id": "N-204",
+   "name": "Sister Ayanda Dube",
+   "reference": "SANC 20022145",
+   "zone": "Soweto",
+   "scope": ["Elderly care"],
+   "sharesPosition": true,
+   "note": "A police clearance that ran out nine days ago. Nobody suspended her; the arithmetic did, on every read, which is the whole of what makes scheduled re-vetting real.",
+   "checks": { "police-clearance": { "state": "verified", "expiresInDays": -9 } }
+  },
+  {
+   "id": "N-205",
+   "name": "Sister Naledi Mokoena",
+   "reference": "SANC 20016688",
+   "zone": "Rosebank",
+   "scope": ["Wound care", "Chronic care"],
+   "sharesPosition": true,
+   "note": "Cleared, in coverage, sharing a position. The one the patient journey is walked against."
+  },
+  {
+   "id": "N-206",
+   "name": "Sister Palesa Khumalo",
+   "reference": "SANC 20011203",
+   "zone": "Soweto",
+   "scope": ["Wound care", "Maternal & child"],
+   "sharesPosition": true
+  },
+  {
+   "id": "N-207",
+   "name": "Sister Refilwe Sithole",
+   "reference": "SANC 20018844",
+   "zone": "Randburg",
+   "scope": ["Chronic care", "Paediatric"],
+   "sharesPosition": false,
+   "note": "Cleared and dispatchable, and her phone is telling nobody anything. A board that cannot show the difference between nobody-there and nobody-reporting reads the map as the first one, so she is on the roster with no position rather than off it.",
+   "whyNoPosition": "A phone in a bag between visits. It is a real state and it is the one geography.json refuses to draw a plausible pin for."
+  },
+  {
+   "id": "N-208",
+   "name": "Brother Sipho Ndlovu",
+   "reference": "SANC 20013390",
+   "zone": "Melville",
+   "scope": ["Post-operative", "Chronic care"],
+   "sharesPosition": true,
+   "onAVisit": true,
+   "fix": "poor",
+   "whyPoorFix": "He is inside somebody's house, which is where a nurse doing home visits spends most of her day and where a handset falls back to the cell tower. The fix is kilometres wide and Melville is 2.2 km across, so the position is wider than the suburb it would be drawn in — and a coordinate like that arrives on a patient's screen looking exactly as certain as a good one. It is declared here rather than left to the seed so that the refusal which depends on it is a thing somebody can open the app and see.",
+   "note": "Mid-visit. He has a position, so a straight line would happily produce a number — and the number would be a lie, because what decides his arrival is when this visit ends and nothing here knows that.",
+   "checks": { "indemnity": { "state": "verified", "expiresInDays": 33 } }
+  },
+  {
+   "id": "N-209",
+   "name": "Sister Zanele Mkhize",
+   "reference": "SANC 20024401",
+   "zone": "Alexandra",
+   "scope": ["Chronic care"],
+   "sharesPosition": false,
+   "declined": true,
+   "declinedReason": "Two clinical references could not be confirmed with the institutions named.",
+   "appealed": true,
+   "note": "Declined and appealing. She stays on the register while the appeal runs, because a person removed from a list has no way to find out what happened to them.",
+   "checks": {
+    "references": { "state": "declined", "note": "Referee could not confirm the applicant worked in the unit stated." }
+   }
+  }
+ ],
+
+ "_checksNote": "Only the exceptions are written down. Every check a nurse's role carries in packages/catalog/vetting.json and is not named here is verified and in date, with its decision date held against its own renewal cadence — apps/web/src/lib/vetting-fixtures.ts does that arithmetic and apps/api/src/simulation/roster.ts does it again on its own side of the boundary, from this one list of exceptions. `expiresInDays` is relative to today so that 'this clearance lapsed nine days ago' stays true whenever the preview is opened. `secondedBy: null` means the high-risk check has one reviewer and needs two."
+}

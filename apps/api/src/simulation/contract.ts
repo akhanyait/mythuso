@@ -90,6 +90,12 @@ export function refusalSaying(capabilityId: string, matching: RegExp): string {
  return found[0]!;
 }
 
+
+/** Every refusal a capability's simulation declares. Read by the tests that prove each one fires,
+    so a sentence added to the contract and enforced nowhere is a test that fails rather than a
+    promise nobody kept. */
+export const refusalsOf = (capabilityId: string): readonly string[] => simulationOf(capabilityId).refuses;
+
 /**
  * The payload, through the real door.
  *
