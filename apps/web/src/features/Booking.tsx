@@ -11,6 +11,12 @@ import {
  resolve, statusFor, useSaslRequirement, waitSentence
 } from '../lib/interpreting';
 import { mayCancel, reasons, refusalById, reschedule, stateById, stateOf, windowSentence, wordsFor } from '../lib/cancelling';
+/* No payment provider is contracted, so the money on this screen goes through the simulated one.
+   It holds no card — it refuses to be handed one, even a fictional one — it prices the visit from
+   the catalogue rather than from whatever the screen thought it was, and roughly one attempt in
+   five is declined, because a booking flow that has only ever seen an authorisation has no screen
+   for the other answer. */
+import { payForVisit, visitReference, type PaymentResult } from '../lib/simulation';
 /* Booking, and the four things it used to lose.
  *
  * The date strip was five hand-typed labels starting "Fri 12 Sep" — a weekday that had not matched
@@ -59,6 +65,11 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
     Deaf patient does not re-declare themselves at every booking. */
  const [saslRequired] = useSaslRequirement();
  const [mode, setMode] = useState(interpreterModes[0].id);
+ /* What the simulated provider said about this visit, and how many times it has been asked. A
+    decline is a real answer rather than an error, so it lives beside the booking rather than in a
+    catch: nothing is booked until money is authorised, and the screen has to be able to say that. */
+ const [paid, setPaid] = useState<PaymentResult | null>(null);
+ const [payAttempt, setPayAttempt] = useState(0);
  const ends = endTime(slot, service.duration);
  const scheduled = kind === 'scheduled';
  /* An "as soon as somebody is free" visit has no hour to resolve against, so it is resolved against
@@ -76,6 +87,22 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
   interpreter: outcome
    ? { mode, name: outcome.found?.interpreter.name, iso: outcome.found?.iso, slot: outcome.found?.slot }
    : undefined
+ };
+
+ /* Cash is not a payment result. Nobody's card is presented, no provider is asked and the money
+    changes hands at the door — so the visit is booked without one, and saying so is more honest
+    than manufacturing an authorisation for a transaction that has not happened. */
+ const throughAProvider = payment !== 'Cash';
+ const reference = visitReference(visit);
+ const confirm = () => {
+  if (!throughAProvider) return setDone(visit);
+  const attempt = payAttempt + 1;
+  setPayAttempt(attempt);
+  const result = payForVisit(reference, service.id, attempt);
+  setPaid(result);
+  /* Booked only on an authorisation. A visit confirmed over a declined payment is the one outcome
+     a booking screen must not produce: it is a nurse dispatched to a house against nothing. */
+  if (result.refused === undefined && result.outcome === 'authorised') setDone(visit);
  };
 
  /* A held visit does not get the confirmation screen. It says it is waiting, says what for, and
@@ -103,6 +130,18 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
   <p className="success-when">{done.kind === 'scheduled' ? <>{longDateOf(done.date!)}<br/>{done.start} – {endTime(done.start!, service.duration)}</> : labels.asapPending}</p>
   {done.interpreter?.name && <p className="helper">Interpreting: {done.interpreter.name}. {cost.sentence}</p>}
   <p className="helper">{kinds.find(k => k.id === done.kind)!.confirmation}</p>
+  {/* What the provider answered, as a receipt rather than as a tick. The reference begins SIM-
+      because the simulator refuses to produce one that does not say it is simulated — a receipt is
+      read away from this screen, in a screenshot or a support conversation, where the notice below
+      is not there to explain it. */}
+  {paid && paid.refused === undefined && paid.outcome === 'authorised' ? <>
+   <SectionTitle title="What was paid"/>
+   <div className="review-line"><span>Authorised</span><strong>{money(paid.amount)}</strong></div>
+   <div className="review-line"><span>Paid by</span><strong>{done.payment}</strong></div>
+   <div className="review-line"><span>Receipt</span><strong>{paid.receipt}</strong></div>
+   <div className="review-line"><span>Visit reference</span><strong>{reference}</strong></div>
+  </> : throughAProvider ? null : <p className="helper">Nothing has been charged. You pay the nurse at the door.</p>}
+  <NotConnected of="payments"/>
   <NotConnected of="booking"/>
   <button className="primary full space-top" onClick={() => onComplete(done)}>View my visits<ArrowRight size={17}/></button>
  </div>;
@@ -164,7 +203,12 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
     <input type="radio" name="payment" checked={payment === name} onChange={() => setPayment(name)}/>
     <span className="service-icon"><Icon size={20}/></span><span><strong>{name}</strong><small>{detail}</small></span>
    </label>)}</div>
-   <div className="privacy-note"><ShieldCheck size={19}/>No card is stored and no payment is taken. Production payments run through a regulated provider, never through MyThuso directly.</div>
+   {/* The sentence about what happens to money comes from the payments capability rather than from
+       this screen. It used to be typed here — "no payment is taken" — and it went on being typed
+       here after a simulated provider started answering, which is the failure the third state was
+       introduced to prevent: a screen that stops being accurate without stopping speaking. */}
+   <NotConnected of="payments"/>
+   <div className="privacy-note"><ShieldCheck size={19}/>No card is stored, here or anywhere else in MyThuso. Production payments run through a regulated provider, never through MyThuso directly.</div>
    <div className="button-row"><button className="secondary" onClick={() => setStep(1)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStep(3)}>Continue<ArrowRight size={16}/></button></div>
   </div> : <div className="form-stack">
    <div className="booking-summary"><span className="service-icon"><ServiceIcon name={service.icon}/></span><div><h3>{service.name}</h3><p>{service.duration} min</p></div><strong>{money(service.price)}</strong></div>
@@ -184,8 +228,15 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
        neither is worth getting wrong. It is not where this screen says what is connected — that
        sentence comes from the contract, above. */}
    <label className="checkbox"><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}/><span>The address and the person above are correct, and I agree to the visit terms.</span></label>
+   {/* A declined payment, in the words a person reads. It is a state of this screen rather than a
+       dialog, because the thing they now have to decide — pay another way, or try the same one
+       again — is on this screen and nowhere else. */}
+   {paid?.refused !== undefined ? <div className="privacy-note pay-refused"><CircleAlert size={19}/>{paid.refused}</div>
+    : paid && paid.outcome === 'declined' ? <div className="privacy-note pay-declined" role="status">
+      <CircleAlert size={19}/><span>{paid.declineReason} Nothing is booked. You can try again, or choose another way to pay.</span></div>
+    : null}
    <NotConnected of="booking"/>
-   <button className="primary full" disabled={!consent} onClick={() => setDone(visit)}>Confirm &amp; book<ArrowRight size={16}/></button>
+   <button className="primary full" disabled={!consent} onClick={confirm}>{paid && paid.refused === undefined && paid.outcome === 'declined' ? <>Try the payment again<ArrowRight size={16}/></> : <>Confirm &amp; book<ArrowRight size={16}/></>}</button>
    <p className="helper">{ruleById('everything-survives-the-booking').sentence}</p>
    <button className="text-button" onClick={() => setStep(2)}><ArrowLeft size={15}/>Back</button>
   </div>}

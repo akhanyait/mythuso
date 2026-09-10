@@ -1052,3 +1052,12 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
    reference on the left and a waiting time on the right were half a metre apart and the eye had to
    travel the whole way to pair them. Capped at the measure the rest of the app already uses. */
 .shift-head,.next-visit,.day-list,.review-list,.day-total,.dispatch-grid{max-width:1080px}
+
+/* ---- A payment that was not authorised --------------------------------------------------------
+ *
+ * A decline is an answer rather than an error, so it is drawn as one: the same note the rest of
+ * this flow uses, tinted only enough to be found again after a person has scrolled. The refusal
+ * variant is the simulator saying no to itself — it is rarer and it is about the product rather
+ * than about the person's bank, so it is quieter still. */
+.pay-declined { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+.pay-refused { border-style: dashed; }
