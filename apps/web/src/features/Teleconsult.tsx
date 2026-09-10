@@ -198,6 +198,11 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
       onChange={e => { setChosen({ ...chosen, [p.id]: e.target.checked }); setConsented({ ...consented, [p.id]: false }); }}/>{p.name}
     </label>)}
    </fieldset>
+   {/* `teleconsult` is one of the interpreting capability's own surfaces, and this is the part of it
+       the interpreter is on. The screen's notice above is about the call, not about who is
+       interpreting it, so the interpreting one is rendered here, inline, where the interpreter is
+       being put on the roster. */}
+   {saslRequired && <NotConnected of="interpreting" tone="inline"/>}
    {saslRequired && <div className="privacy-note" role="status"><Users size={19}/>{interpreterWithdrawal.sentence} {interpreterWithdrawal.why}</div>}
    {/* The two refusals that belong exactly here, where a relative would otherwise be offered as the
        answer. Said rather than merely made impossible: the person who needs the reason is the

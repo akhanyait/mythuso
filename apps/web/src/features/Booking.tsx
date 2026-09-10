@@ -182,6 +182,12 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
        whether there is a visit at all and a person should not find that out after their card. */}
    {outcome && <div className="interp-booking">
     <h3 className="space-top">{interpreting.chooseMode}</h3>
+    {/* The interpreting capability names `booking` as one of its surfaces, and this block is where
+        it appears: a named person, on a mode, at an hour. The screen's own notice is about booking a
+        visit and says nothing about the interpreter, and a simulation that is quieter than an
+        absence is the disclosure failure the contract's `a-simulation-says-so` rule is written
+        against. Inline, inside this card, because one notice per screen means one per thing. */}
+    <NotConnected of="interpreting" tone="inline"/>
     <fieldset className="tc-switch"><legend className="visually-hidden">{interpreting.chooseMode}</legend>
      {interpreterModes.map(m => <label key={m.id} className={mode === m.id ? 'selected' : ''}>
       <input type="radio" name="booking-interpreter-mode" checked={mode === m.id} onChange={() => setMode(m.id)}/><span>{m.name}</span></label>)}
