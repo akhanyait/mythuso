@@ -148,7 +148,7 @@ Before backend integration: threat model, data-flow inventory, access policy tes
 Before any pilot: independent penetration test, information/clinical governance approval, device and clinician verification, tested incident response, encrypted backup restore test, retention enforcement, partner/operator agreements, production monitoring with PHI redaction and a documented release acceptance sign-off. CI should pin third-party actions to reviewed commit SHAs and use short-lived OIDC deployment credentials before deployment is introduced.
 
 
-## Running the tests here, and two ways a green run can be a lie
+## Running the tests here, and three ways a green run can be a lie
 
 Both of these cost real work before anybody noticed them, and neither is visible in a result.
 
@@ -158,6 +158,16 @@ them — a different set each time, every one a timeout waiting for a control th
 passes on its own. It is contention, not a defect, and the point is that it does not look like
 contention. It looks like twenty broken tests. Somebody assumed four workers would be enough and
 wrote a comment saying it passed twice *before running it*; it failed twenty.
+
+**A web run tested whatever was listening, not what you changed.** `playwright.config.ts` took the
+port from `MYTHUSO_PORT` so a worktree could serve its own tree, and left `reuseExistingServer` on —
+which meant a run that forgot the variable attached to whatever was on 5173 and tested that instead.
+An agent got "333 passed" and "346 passed" against a tree it had not written a line of, and only
+noticed because the numbers moved while its own changes could not have moved them. Nothing was wrong
+with the tests; they were run against somebody else's application and reported as this one's. Reuse
+is now off: every run starts a server it owns, and a busy port fails loudly rather than borrowing.
+This is the same shape as the iOS trap below and it went unnoticed for longer, because a web run
+prints no clue about whose files it served.
 
 **An iOS test result on this machine is worthless unless it was isolated, and the check comes
 first.** Agents share the simulator and the default DerivedData path, so a run can compile and

@@ -1,7 +1,19 @@
 import { defineConfig } from '@playwright/test';
 /* The port is configurable so that a second checkout — a git worktree, a parallel agent, a review
    of one branch while another is running — tests its own tree rather than silently reusing the dev
-   server somebody else already has on 5173. Default unchanged. */
+   server somebody else already has on 5173. Default unchanged.
+
+   That comment was true and it was not enough, which is the third way a green run here has turned
+   out to be a lie. Setting the variable was left to whoever remembered, and `reuseExistingServer`
+   was on, so a run that forgot it attached to whatever was listening on 5173 and tested that tree
+   instead. It happened: an agent working in its own worktree got "333 passed" and "346 passed"
+   against a tree it had not written a line of, and only noticed because the numbers moved while its
+   own changes could not have moved them. Nothing was wrong with the tests. They were run against
+   somebody else's application and reported as this one's.
+
+   So reuse is off. Every run now starts a server it owns, and if the port is busy it fails loudly
+   rather than borrowing. A parallel checkout sets MYTHUSO_PORT, as the paragraph above always
+   said — the difference is that forgetting is now a failure instead of a false pass. */
 const port = process.env.MYTHUSO_PORT ?? '5173';
 const baseURL = `http://127.0.0.1:${port}`;
 /* Fully parallel, and the flake it was serialised for is fixed rather than hidden.
@@ -33,4 +45,4 @@ const baseURL = `http://127.0.0.1:${port}`;
    suite has outgrown the parallelism its own comment was written for, and the number should be
    measured again when the box is quiet rather than inferred from the core count. What must not
    happen is leaving it to the default and calling the result flaky when it varies. */
-export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 2, use: { baseURL, trace: 'retain-on-failure' }, webServer: { command: `npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: !process.env.CI }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });
+export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 2, use: { baseURL, trace: 'retain-on-failure' }, webServer: { command: `npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: false }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });
