@@ -133,7 +133,7 @@ class LedgerWriteMeasurement {
             val directory = scratch("visit-$visits")
             val book = FileBook(directory, "visit-parts.json")
             lateinit var queue: VisitQueueStore
-            instrumentation.runOnMainSync { queue = VisitQueueStore(book) }
+            instrumentation.runOnMainSync { queue = VisitQueueStore(book, CaptureStore(MemoryBook())) }
             instrumentation.runOnMainSync { queue.forgetEverything() }
             (1 until visits).forEach { fillVisit(queue, "TH-30%02d".format(it)) }
             fillVisit(queue, "TH-2999")
@@ -192,7 +192,7 @@ class LedgerWriteMeasurement {
             val directory = scratch("split-$visits")
             val book = FileBook(directory, "visit-parts.json")
             lateinit var queue: VisitQueueStore
-            instrumentation.runOnMainSync { queue = VisitQueueStore(book) }
+            instrumentation.runOnMainSync { queue = VisitQueueStore(book, CaptureStore(MemoryBook())) }
             instrumentation.runOnMainSync { queue.forgetEverything() }
             repeat(visits) { fillVisit(queue, "TH-30%02d".format(it)) }
             waitUntilSettled({ queue.writeState }, System.nanoTime())

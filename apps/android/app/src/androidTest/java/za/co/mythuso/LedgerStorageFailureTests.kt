@@ -52,7 +52,7 @@ class LedgerStorageFailureTests {
         val directory = scratch("visit")
         val book = FileBook(directory, "visit-parts.json")
         lateinit var queue: VisitQueueStore
-        instrumentation.runOnMainSync { queue = VisitQueueStore(book) }
+        instrumentation.runOnMainSync { queue = VisitQueueStore(book, CaptureStore(MemoryBook())) }
         settle { queue.writeState }
         val landed = File(directory, "visit-parts.json").readText()
 
@@ -107,7 +107,7 @@ class LedgerStorageFailureTests {
         val directory = scratch("recover")
         val book = FileBook(directory, "visit-parts.json")
         lateinit var queue: VisitQueueStore
-        instrumentation.runOnMainSync { queue = VisitQueueStore(book) }
+        instrumentation.runOnMainSync { queue = VisitQueueStore(book, CaptureStore(MemoryBook())) }
         settle { queue.writeState }
 
         blockWrites(directory, "visit-parts.json")

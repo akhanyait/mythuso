@@ -174,6 +174,16 @@ class LedgerWriter(private val book: CaptureBook, name: String) {
     var settledMillis by mutableLongStateOf(System.currentTimeMillis())
         private set
 
+    /**
+     * What the disk said to the last payload that reached it, readable without waiting.
+     *
+     * `state` is what a screen reads and is posted to the main thread. Code that has just called
+     * [flush] from the main thread cannot read it — its own post is queued behind that code — and
+     * the one caller that must know synchronously is the visit ledger's migration, which will not
+     * rewrite a file in a shape that cannot hold readings until it knows the readings landed.
+     */
+    @Volatile private var lastRefusal: String? = null
+
     private val issued = java.util.concurrent.atomic.AtomicLong(0)
     private val pending = java.util.concurrent.atomic.AtomicReference<Pair<Long, () -> String>?>(null)
     private val main = android.os.Handler(android.os.Looper.getMainLooper())
@@ -209,6 +219,7 @@ class LedgerWriter(private val book: CaptureBook, name: String) {
             /* Null when a newer submit has already claimed this payload's turn. */
             val (mine, payload) = pending.getAndSet(null) ?: return@execute
             val refusal = book.write(payload())
+            lastRefusal = refusal
             main.post {
                 when {
                     refusal != null -> state = LedgerWrite.Refused(refusal)
@@ -220,9 +231,11 @@ class LedgerWriter(private val book: CaptureBook, name: String) {
         }
     }
 
-    /** Block until what has been submitted is on the disk. Called where blocking is the safe choice. */
-    fun flush() {
+    /** Block until what has been submitted is on the disk, and say what the disk said. Called where
+     *  blocking is the safe choice; the return value is null when it took the write. */
+    fun flush(): String? {
         runCatching { thread.submit { }.get(2, java.util.concurrent.TimeUnit.SECONDS) }
+        return lastRefusal
     }
 }
 
@@ -592,10 +605,76 @@ class CaptureStore(private val book: CaptureBook) {
 
     /* ---- Readings for a visit -------------------------------------------------------------------
        Everything the assessment and the consultation record read comes through here, so a reading
-       that was superseded is still visible and a reading nobody may see is not quietly included. */
+       that was superseded is still visible and a reading nobody may see is not quietly included.
+
+       This is now the *whole* answer to “what was measured at this visit”, which it was not before.
+       A reading a nurse typed used to be embedded in an observations VisitPart and never reach this
+       list, so forVisit() returned the instrument's readings and nothing else, and only a screen
+       that remembered to union the two got the truth. The consultation record did not remember.
+       A reading lives here whatever produced it; a visit part names ids. */
     fun forVisit(visit: String): List<CapturedReading> = readings.filter { it.visit == visit }
     fun standingFor(visit: String, observationId: String): CapturedReading? =
         readings.firstOrNull { it.visit == visit && it.observationId == observationId && !it.superseded && it.state != CaptureState.REFUSED }
+    /**
+     * The standing reading of an observation that is *not* the one named, which is the question the
+     * assessment actually asks: it holds a reading of its own for most observations now, so “is
+     * there a reading for this” would otherwise be answered by the screen's own typed number and the
+     * kit's reading would disappear behind it.
+     */
+    fun standingBesides(visit: String, observationId: String, exceptId: String): CapturedReading? =
+        readings.firstOrNull {
+            it.visit == visit && it.observationId == observationId && it.id != exceptId &&
+                !it.superseded && it.state != CaptureState.REFUSED
+        }
+    fun reading(id: String): CapturedReading? = readings.firstOrNull { it.id == id }
+    /** The readings a part names, in the order it named them. */
+    fun readingsNamed(ids: List<String>): List<CapturedReading> = ids.mapNotNull { id -> reading(id) }
+    /** And the ids it names that are not here. A dangling reference is said out loud on the screen
+     *  rather than shown as a shorter list — a part that quietly names six readings and renders five
+     *  is the same silence the embedded copies were. */
+    fun missingNamed(ids: List<String>): List<String> = ids.filter { reading(it) == null }
+
+    /* ---- Filing what a nurse typed at a visit ----------------------------------------------------
+       The assessment screen's readings arrive here rather than being embedded in the part that names
+       them. Their ids are derived from the visit and the observation, so a nurse who steps back and
+       corrects a number has corrected the reading rather than taken a second one — the same rule the
+       visit ledger applies to a held part, applied to the row underneath it.
+
+       What is *not* overwritten is anything past CAPTURED. Once she has sealed it, it is no longer
+       hers to change quietly, and a second value against a sealed one is the duplicate conflict —
+       arrived at rather than invented. */
+    fun fileTyped(readings: List<CapturedReading>): List<String> = asOneWrite {
+        readings.map { row ->
+            val index = this.readings.indexOfFirst { it.id == row.id }
+            when {
+                index < 0 -> { this.readings.add(0, row); save() }
+                this.readings[index].state == CaptureState.CAPTURED ->
+                    /* Keep the moment it was first taken. A correction at 11:04 to a reading taken at
+                       10:58 happened at 10:58; only the write is new. */
+                    replace(row.id) { row.copy(deviceMillis = it.deviceMillis, writtenMillis = System.currentTimeMillis()) }
+                else -> Unit
+            }
+            row.id
+        }
+    }
+    /** Sealing a visit seals the readings its parts name. They are the same work and a nurse who has
+     *  signed is finished with both; a ledger that still called them hers to correct would be the
+     *  split this change removed, moved from where a reading lives into what state it is in. */
+    fun sealNamed(ids: Collection<String>) = asOneWrite {
+        ids.forEach { id -> if (reading(id)?.state == CaptureState.CAPTURED) seal(id) }
+    }
+    /**
+     * Take in readings that were found embedded in an older visit ledger, and say how many were new.
+     *
+     * Idempotent by id, so a launch that migrates and is killed before the visit ledger is rewritten
+     * migrates the same rows again to no effect. Appended rather than prepended: they are older work
+     * than anything this session produced, and `readings` is newest-first.
+     */
+    fun adopt(rows: List<CapturedReading>): Int = asOneWrite {
+        val fresh = rows.filter { row -> readings.none { it.id == row.id } }
+        if (fresh.isNotEmpty()) { readings.addAll(fresh); save() }
+        fresh.size
+    }
     /** Ordering: the server's receipt time where there is one, the phone's own write order where there is not. */
     fun ordered(): List<CapturedReading> {
         val landed = readings.filter { it.serverMillis != null }.sortedByDescending { it.serverMillis }

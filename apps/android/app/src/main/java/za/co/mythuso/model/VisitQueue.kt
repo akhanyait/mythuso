@@ -24,7 +24,7 @@ import org.json.JSONObject
  *
  * So this is not a second queue. It is the same queue one level up: a part is a piece of a visit
  * that has been finished, it carries the contract's own six states and four conflicts, and an
- * observations part carries real CapturedReadings.
+ * observations part names real CapturedReadings by id.
  *
  * WHERE IT DIFFERS FROM THE WEB, AND WHY. apps/web/src/lib/visit-queue.ts is the same module and
  * holds its parts in a module-level array, because scripts/check-boundaries.mjs fails the build on
@@ -50,19 +50,31 @@ import org.json.JSONObject
  *      and stands on its own — the kit screen files readings belonging to no assessment yet. A
  *      VisitPart is a piece of work a nurse finished and exists only inside a visit. One table
  *      holding both would carry a nullable field saying which of the two each row really is.
- *   3. They are coupled at exactly one point and it is the right one: settle() asks CaptureStore
- *      what the record already holds, because a second module with its own idea of a duplicate is a
- *      second gate, and two gates is where holes live.
+ *   3. It is the capture ledger that answers for a reading, wherever the reading came from, and this
+ *      module holds ids into it. A second module with its own idea of what a reading is, or of what
+ *      a duplicate is, would be a second gate, and two gates is where holes live.
  *
- * WHAT IS ACTUALLY WRONG IS NOT THE FILE COUNT. It is that a reading now lives in one of two places
- * depending on how it was produced: typed readings are embedded in an observations VisitPart, and
- * instrument readings sit in the capture ledger and are deliberately not copied into the part. So
- * “what was measured at this visit” is a question no single object answers — VisitAssessmentScreen
- * unions typedReadings() with store.capture.forVisit(), and every future reader has to remember to.
- * Nothing is duplicated, which is the failure that was designed against, but the set is partitioned
- * by provenance, which nobody chose. The fix is not one file: it is for a reading to live in the
- * capture ledger always and for an observations part to carry ids rather than copies. That is a
- * bigger change than a write path and it is not made here.
+ * IDS, NOT COPIES — AND WHY THAT WAS THE BUG. A reading used to live in one of two places depending
+ * on how it was produced: a typed one was embedded in an observations VisitPart and never reached
+ * the capture ledger at all, while an instrument's sat in the ledger and was deliberately not copied
+ * into the part. Nothing was duplicated, which is the failure that shape was designed against, but
+ * the set was partitioned by provenance, which nobody chose. “What was measured at this visit” was
+ * then a question no single object answered: VisitAssessmentScreen unioned its own typed readings
+ * with store.capture.forVisit() and got it right, and ConsultationRecordScreen asked the ledger
+ * alone and silently wrote a note that was missing every number the nurse had typed. That is a
+ * clinical defect, not an untidiness.
+ *
+ * So a reading lives in the capture ledger, whatever produced it, and a part holds `readingIds`.
+ * Provenance still says whether a person or an instrument produced it — that distinction is the
+ * point of the capture contract and survives untouched. What is gone is the second axis nobody
+ * chose, which was *where the row is kept*.
+ *
+ * AN OLDER FILE ON A PHONE. A visit-parts.json written in the embedded shape is read, not refused:
+ * its readings are handed to the capture ledger, the parts come back naming them by id, and the
+ * store says on screen how many moved and that nothing was dropped. It is only rewritten in the new
+ * shape once the capture ledger has actually taken them — and if that ledger refuses the write, the
+ * old file is set aside under another name rather than overwritten, which is what FileBook does with
+ * a file it cannot parse and for the same reason.
  *
  * WHAT IT DOES NOT SURVIVE is said on the screen as plainly as what it does, and it is FileBook's
  * own sentence rather than a second wording: uninstalling the app, clearing its storage, a factory
@@ -105,8 +117,11 @@ data class VisitPart(
     /** One line, in the nurse's own terms, saying what this part holds. */
     val summary: String,
     val detail: List<VisitPartFact> = emptyList(),
-    /** Observations only. Real readings, carrying their own provenance and instrument. */
-    val readings: List<CapturedReading> = emptyList(),
+    /** Observations only. Ids into the capture ledger, which is where a reading lives whatever
+     *  produced it. Never the readings themselves: a copy here is a copy that can disagree with the
+     *  row it was copied from, and a record of a visit that disagrees with the reading it names is
+     *  worse than one that has to go and look. */
+    val readingIds: List<String> = emptyList(),
     val byId: String,
     val byName: String,
     val byReference: String,
@@ -126,17 +141,16 @@ data class VisitPart(
 }
 
 /* ---- Serialising ------------------------------------------------------------------------------
-   org.json, the same parser the reading ledger uses, so the build gains no dependency for it. The
-   readings inside an observations part go through Capture's own reader and writer rather than a
-   second pair here: two modules that disagree about what a reading is on disk is exactly the drift
-   the contract files exist to prevent. */
+   org.json, the same parser the reading ledger uses, so the build gains no dependency for it. A part
+   writes down the ids of the readings it names and no reading of its own: capture-queue.json is
+   where a reading is written, and one row written in two files is two rows that can disagree. */
 private fun factToJson(fact: VisitPartFact) = JSONObject().apply { put("label", fact.label); put("value", fact.value) }
 
 private fun partToJson(part: VisitPart): JSONObject = JSONObject().apply {
     put("id", part.id); put("kind", part.kind.id); put("visit", part.visit); put("patient", part.patient)
     put("summary", part.summary)
     put("detail", JSONArray().also { array -> part.detail.forEach { array.put(factToJson(it)) } })
-    put("readings", JSONArray().also { array -> part.readings.forEach { array.put(readingToJson(it)) } })
+    put("readingIds", JSONArray(part.readingIds))
     put("byId", part.byId); put("byName", part.byName); put("byReference", part.byReference)
     put("deviceMillis", part.deviceMillis); put("writtenMillis", part.writtenMillis)
     part.serverMillis?.let { put("serverMillis", it) }
@@ -145,21 +159,37 @@ private fun partToJson(part: VisitPart): JSONObject = JSONObject().apply {
     part.note?.let { put("note", it) }
 }
 
-private fun jsonToPart(json: JSONObject): VisitPart? {
+/**
+ * A part read back off the disk, and — where the file was written in the older shape — the readings
+ * that were embedded in it and now have to be given a home in the capture ledger.
+ *
+ * The second half is empty for every file written since. It exists because a nurse's phone holds the
+ * file it holds, and a shape change that reads the old one as nothing is a shape change that loses a
+ * morning's work on the way in.
+ */
+private class RestoredPart(val part: VisitPart, val embedded: List<CapturedReading>)
+
+private fun jsonToPart(json: JSONObject): RestoredPart? {
     /* A part that comes back off the disk without a kind is a part nobody can say what it is. It is
        dropped from the queue rather than defaulted into one, on the same reasoning that drops a
        reading with no origin: a row nobody can name is not filed. */
     val kind = visitPartKindById(json.optString("kind")) ?: return null
     val details = json.optJSONArray("detail") ?: JSONArray()
-    val rows = json.optJSONArray("readings") ?: JSONArray()
-    return VisitPart(
+    /* Ids where the file has them, and whole readings where it is the older shape. Never both: a
+       file that carried both would have to say which of the two disagreeing copies was the reading,
+       and nothing would be able to. */
+    val named = json.optJSONArray("readingIds")
+    val embeddedRows = if (named == null) json.optJSONArray("readings") ?: JSONArray() else JSONArray()
+    val embedded = (0 until embeddedRows.length()).mapNotNull { jsonToReading(embeddedRows.optJSONObject(it) ?: JSONObject()) }
+    val part = VisitPart(
         id = json.optString("id"), kind = kind, visit = json.optString("visit"),
         patient = json.optString("patient"), summary = json.optString("summary"),
         detail = (0 until details.length()).map { index ->
             val fact = details.optJSONObject(index) ?: JSONObject()
             VisitPartFact(fact.optString("label"), fact.optString("value"))
         },
-        readings = (0 until rows.length()).mapNotNull { jsonToReading(rows.optJSONObject(it) ?: JSONObject()) },
+        readingIds = if (named != null) (0 until named.length()).map { named.optString(it) }.filter { it.isNotEmpty() }
+        else embedded.map { it.id },
         byId = json.optString("byId"), byName = json.optString("byName"), byReference = json.optString("byReference"),
         deviceMillis = json.optLong("deviceMillis"),
         serverMillis = if (json.has("serverMillis") && !json.isNull("serverMillis")) json.optLong("serverMillis") else null,
@@ -168,6 +198,7 @@ private fun jsonToPart(json: JSONObject): VisitPart? {
         conflictId = json.optString("conflictId").ifEmpty { null },
         note = json.optString("note").ifEmpty { null }
     )
+    return RestoredPart(part, embedded)
 }
 
 /* ---- The questions asked on arrival ------------------------------------------------------------
@@ -186,8 +217,19 @@ data class VisitArrival(
     /** A doctor signed, or the visit was cancelled, while the part was waiting. */
     val recordMovedOn: Boolean = false,
     val movedOnNote: String? = null,
-    /** What the record already holds for a visit, asked of the capture ledger rather than kept here. */
-    val alreadyStored: (String) -> Set<String> = { emptySet() }
+    /** The readings a part names, resolved through the capture ledger — which is where a reading
+     *  lives. A part carries ids, so this is the only way to ask what it holds. */
+    val readingsOf: (VisitPart) -> List<CapturedReading> = { emptyList() },
+    /**
+     * What the record already holds for a visit *besides* the readings the arriving part names,
+     * asked of the capture ledger rather than kept here.
+     *
+     * The exclusion is load-bearing now that a part names rows in that ledger rather than carrying
+     * copies. Send the kit queue first and the nurse's own typed readings become stored; without it
+     * the visit part would then arrive and find itself already in the record, and every observations
+     * part would conflict with its own readings.
+     */
+    val alreadyStored: (String, Set<String>) -> Set<String> = { _, _ -> emptySet() }
 )
 
 fun receiveVisitPart(part: VisitPart, arrival: VisitArrival): VisitPart {
@@ -201,9 +243,10 @@ fun receiveVisitPart(part: VisitPart, arrival: VisitArrival): VisitPart {
         note = arrival.movedOnNote
             ?: "The record changed while this was waiting to send. It is never applied silently after the fact."
     )
-    if (part.readings.isNotEmpty()) {
-        val stored = arrival.alreadyStored(part.visit)
-        val clashing = part.readings.filter { it.observationId in stored }
+    val mine = arrival.readingsOf(part)
+    if (mine.isNotEmpty()) {
+        val stored = arrival.alreadyStored(part.visit, mine.map { it.id }.toSet())
+        val clashing = mine.filter { it.observationId in stored }
         if (clashing.isNotEmpty()) return received.copy(
             state = CaptureState.CONFLICTED, conflictId = "duplicate-observation",
             note = "The record already holds ${clashing.joinToString(" and ") { it.label }} for ${part.visit}. Both are kept; a clinician says which stands."
@@ -212,8 +255,12 @@ fun receiveVisitPart(part: VisitPart, arrival: VisitArrival): VisitPart {
     return received.copy(state = CaptureState.STORED, conflictId = null)
 }
 
-/* ---- One live store the visit screens share ---------------------------------------------------- */
-class VisitQueueStore(private val book: CaptureBook) {
+/* ---- One live store the visit screens share ----------------------------------------------------
+   It takes the reading ledger rather than being handed it a method at a time, because a part names
+   rows in that ledger now: resolving what a part holds, sealing what it names and asking what the
+   record already has are all the same one question, and a store that could be built without an
+   answer to it would be a store whose parts sometimes name nothing. */
+class VisitQueueStore(private val book: CaptureBook, private val capture: CaptureStore) {
     val parts = mutableStateListOf<VisitPart>()
     /** When this app last read the ledger off the disk. Shown on screen, in words, never hidden. */
     var readAtMillis by mutableLongStateOf(System.currentTimeMillis())
@@ -243,6 +290,15 @@ class VisitQueueStore(private val book: CaptureBook) {
     /** Block until what has been held is on the disk. Called when the app is going away. */
     fun flushToDisk() = writer.flush()
 
+    /* ---- What a part holds --------------------------------------------------------------------
+       Resolved rather than carried. Every screen that wants the numbers behind an observations part
+       asks here, and there is one answer — which is the whole change: “what was measured at this
+       visit” used to be answerable only by a screen that remembered to look in two places. */
+    fun readingsOf(part: VisitPart): List<CapturedReading> = capture.readingsNamed(part.readingIds)
+    /** Ids a part names that the ledger does not hold. Rendered, not swallowed: a part that names
+     *  six readings and shows five has told a nurse a smaller truth without saying it was smaller. */
+    fun missingFrom(part: VisitPart): List<String> = capture.missingNamed(part.readingIds)
+
     init { load() }
 
     private fun load() {
@@ -261,12 +317,39 @@ class VisitQueueStore(private val book: CaptureBook) {
         val rows = parsed.optJSONArray("parts") ?: JSONArray()
         val restored = (0 until rows.length()).mapNotNull { jsonToPart(rows.optJSONObject(it) ?: JSONObject()) }
         val dropped = rows.length() - restored.size
-        parts.clear(); parts.addAll(restored)
+        parts.clear(); parts.addAll(restored.map { it.part })
+        /* An older file, holding whole readings inside its observations parts. They are moved into
+           the reading ledger, which is where a reading lives, and the parts that came back are
+           already naming them by id. Nothing is dropped and nothing is renumbered.
+
+           Flushed rather than left to the writer's thread: the visit ledger is rewritten in the new
+           shape below and the new shape has no room for a reading, so the two writes have an order
+           and this is the one that has to land first. Blocking on the way in is the right choice in
+           exactly this place, for the same reason it is right in onStop — the alternative is losing
+           the readings, and this happens once in the life of a phone. */
+        val embedded = restored.flatMap { it.embedded }
+        val migrated = if (embedded.isEmpty()) 0 else capture.adopt(embedded)
+        /* flushToDisk's own return value rather than capture.writeState: the state a screen reads is
+           posted to the main thread, and this is running on it, so the post is queued behind us and
+           would still say Writing. What the disk said is asked of the writer directly. */
+        val refusedMigration = migrated > 0 && capture.flushToDisk() != null
+        if (refusedMigration) {
+            /* The readings could not be written to their new home, so the file that still holds them
+               is kept under another name rather than overwritten by a shape that cannot carry them.
+               FileBook's own answer to a file it cannot parse, for a file it can. */
+            book.quarantine("readings-not-adopted")
+        }
         storeNote = when {
             dropped > 0 -> "$dropped stored ${if (dropped == 1) "part" else "parts"} came back without a name for what ${if (dropped == 1) "it was" else "they were"} and ${if (dropped == 1) "was" else "were"} not restored. A row nobody can say what it is is not filed."
+            refusedMigration -> "This phone held an older visit ledger with the readings written inside it. They could not be moved into the readings ledger — the disk refused the write — so that file has been kept under another name rather than overwritten. Nothing was deleted."
+            migrated > 0 -> "This phone held an older visit ledger with the readings written inside it. $migrated ${if (migrated == 1) "reading" else "readings"} moved into the readings ledger, where a reading lives whatever took it, and the visit above names ${if (migrated == 1) "it" else "them"} rather than holding a second copy. Nothing was dropped."
             else -> "Read from the visit ledger on this phone."
         }
         if (parts.isEmpty()) seed()
+        /* Rewritten in the new shape now the readings are safe, so the next launch has nothing left
+           to migrate — and if it is killed before this lands, the migration is idempotent by id and
+           simply happens again. */
+        else if (migrated > 0 && !refusedMigration) save()
     }
 
     /* The payload is built on the writer's thread rather than this one, because building it is where
@@ -330,9 +413,13 @@ class VisitQueueStore(private val book: CaptureBook) {
     ): VisitPart {
         sequence += 1
         val now = System.currentTimeMillis()
+        /* The readings go to the ledger and the part keeps their ids. A caller hands whole readings
+           because that is what it has just built out of what a nurse typed; what it must not do is
+           keep them, and this is the one door through which they reach the disk. */
+        val ids = if (readings.isEmpty()) emptyList() else capture.fileTyped(readings)
         val part = VisitPart(
             id = "VQ-%03d".format(sequence), kind = kind, visit = visit, patient = patient,
-            summary = summary, detail = detail, readings = readings,
+            summary = summary, detail = detail, readingIds = ids,
             byId = by.id, byName = by.name, byReference = by.reference,
             deviceMillis = now, writtenMillis = now, state = CaptureState.CAPTURED
         )
@@ -347,13 +434,19 @@ class VisitQueueStore(private val book: CaptureBook) {
     fun seal(visit: String): Int {
         val now = System.currentTimeMillis()
         var count = 0
+        val named = ArrayList<String>()
         parts.indices.forEach { index ->
             val part = parts[index]
             if (part.visit == visit && part.state == CaptureState.CAPTURED) {
                 parts[index] = part.copy(state = CaptureState.QUEUED, writtenMillis = now); count += 1
+                named.addAll(part.readingIds)
             }
         }
-        if (count > 0) save()
+        /* And the readings those parts name, in one write of the reading ledger. They are the same
+           work: a nurse who has signed is finished with the numbers as well as with the parts, and a
+           ledger still calling them hers to correct would have moved the old split from where a
+           reading is kept into what state it is in. */
+        if (count > 0) { capture.sealNamed(named); save() }
         return count
     }
 
@@ -392,7 +485,7 @@ class VisitQueueStore(private val book: CaptureBook) {
         if (moved) { lastAttempt = "The send was interrupted. Everything went back to the queue rather than anywhere else."; save() }
     }
 
-    fun settle(vetting: VettingStore, capture: CaptureStore, signedVisits: Set<String>) {
+    fun settle(vetting: VettingStore, signedVisits: Set<String>) {
         val inFlight = parts.filter { it.state == CaptureState.SENDING }
         if (inFlight.isEmpty()) return
         var filed = 0
@@ -406,9 +499,10 @@ class VisitQueueStore(private val book: CaptureBook) {
                 capturerReason = decision?.reason,
                 recordMovedOn = pretendDoctorSigned || entry.visit in signedVisits,
                 movedOnNote = "A doctor signed this visit while the work was waiting to send. It is never applied silently after the fact, and a signed record is not edited behind the signature.",
-                alreadyStored = { visit ->
+                readingsOf = { capture.readingsNamed(it.readingIds) },
+                alreadyStored = { visit, its ->
                     capture.forVisit(visit)
-                        .filter { it.state == CaptureState.STORED && !it.superseded }
+                        .filter { it.state == CaptureState.STORED && !it.superseded && it.id !in its }
                         .map { it.observationId }.toSet()
                 }
             )
@@ -454,7 +548,7 @@ class VisitQueueStore(private val book: CaptureBook) {
                     VisitPartFact("Pulse", "78 bpm"),
                     VisitPartFact("Temperature", "36.9 °C")
                 ),
-                readings = listOf(reading("systolic", "138"), reading("pulse", "78"), reading("temperature", "36.9")),
+                readingIds = capture.fileTyped(listOf(reading("systolic", "138"), reading("pulse", "78"), reading("temperature", "36.9"))),
                 byId = naledi.first, byName = naledi.second, byReference = naledi.third,
                 deviceMillis = now - 20 * hour, writtenMillis = now - 20 * hour, state = CaptureState.QUEUED
             ),

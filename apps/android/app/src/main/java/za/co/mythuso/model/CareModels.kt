@@ -93,8 +93,11 @@ class PreviewStore(book: CaptureBook = MemoryBook(), visitBook: CaptureBook = Me
        signature. They lived in a screen's `remember {}` until now, which is to say they lived
        nowhere — see VisitQueue.kt. Held here rather than in the assessment so that walking away from
        the screen, or the process being reclaimed behind it, is not the same thing as losing an
-       assessment. */
-    val visitQueue = VisitQueueStore(visitBook)
+       assessment.
+       It is built after `capture` and holds it, because a visit part names readings in that ledger
+       rather than carrying copies of them, and because a visit ledger written in the older shape has
+       readings inside it that have to be moved there on the way in. */
+    val visitQueue = VisitQueueStore(visitBook, capture)
     /* Which visits a clinician has already signed. It is the thing stale-write is a disagreement
        with, so the queue has to be able to ask something rather than assume. */
     val signedVisits = mutableStateListOf("TH-2045")

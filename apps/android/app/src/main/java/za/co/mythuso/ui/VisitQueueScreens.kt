@@ -100,9 +100,13 @@ private fun toneOf(state: CaptureState): String = when (state) {
             Note(
                 when {
                     waiting == 0 -> "Nothing is waiting. Everything you have done has been answered for."
-                    readingsWaiting == 0 -> "All of them are pieces of a visit. Nothing is waiting on the Thuso Kit." +
+                    readingsWaiting == 0 -> "All of them are pieces of a visit. No reading is waiting." +
                         (oldest?.let { " The oldest was done ${ageText(it)}." } ?: "")
-                    else -> "$readingsWaiting of them ${if (readingsWaiting == 1) "is a reading" else "are readings"} taken on the Thuso Kit, counted here so that “what is waiting” is one number wherever you read it." +
+                    /* “Taken on the Thuso Kit” used to be true of every reading this counted, because
+                       a reading a nurse typed never reached the ledger at all — it was written into
+                       the visit part and nowhere else. It reaches it now, so the sentence had to stop
+                       saying where they came from and start saying what they are. */
+                    else -> "$readingsWaiting of them ${if (readingsWaiting == 1) "is a reading" else "are readings"} — typed at a visit or taken on the Thuso Kit, both counted here, because a reading lives in one place whatever took it." +
                         (oldest?.let { " The oldest was done ${ageText(it)}." } ?: "")
                 }
             )
@@ -137,7 +141,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
 
         if (held.isNotEmpty()) Section("Held on this phone") {
             Note("Not sealed yet, because the visit is not finished. Signing the assessment seals everything it holds at once.")
-            held.forEach { VisitPartCard(it) }
+            held.forEach { VisitPartCard(it, missingReadings = queue.missingFrom(it)) }
         }
 
         Section("Sealed, waiting for a connection") {
@@ -145,7 +149,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
                 "Nothing is sealed",
                 "An empty queue means every piece of every visit on this phone has been answered for."
             ) else {
-                sealed.forEach { VisitPartCard(it) }
+                sealed.forEach { VisitPartCard(it, missingReadings = queue.missingFrom(it)) }
                 val sending = parts.any { it.state == CaptureState.SENDING }
                 Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
                     if (sending) OutlinedButton(
@@ -160,7 +164,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
                         onClick = {
                             if (queue.beginSending() > 0) scope.launch {
                                 delay(700)
-                                queue.settle(store.vetting, store.capture, store.signedVisits.toSet())
+                                queue.settle(store.vetting, store.signedVisits.toSet())
                             }
                         },
                         Modifier.weight(1f).heightIn(min = TouchTarget),
@@ -179,7 +183,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
         if (conflicted.isNotEmpty()) Section("Needs a decision") {
             TonedCard { Text(captureRules.first { it.second == "conflictsAreNotMerged" }.first,
                 style = MaterialTheme.typography.bodyMedium, color = Charcoal) }
-            conflicted.forEach { VisitPartCard(it) }
+            conflicted.forEach { VisitPartCard(it, missingReadings = queue.missingFrom(it)) }
             Note("Nothing here is filed and nothing is thrown away. A reading that two clinicians disagree about is settled on the Thuso Kit surface, where both versions can be put side by side; a whole assessment that arrives against a signed record goes to the Control Tower.")
         }
 
@@ -207,7 +211,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
         }
 
         if (stored.isNotEmpty()) Section("This phone’s copy of the record") {
-            stored.forEach { VisitPartCard(it) }
+            stored.forEach { VisitPartCard(it, missingReadings = queue.missingFrom(it)) }
         }
 
         Section("Design-review controls") {
@@ -260,7 +264,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
  * Two clocks, always both. The phone's is labelled as what the phone believed; the receipt is what
  * everything is ordered by, and where there is none the row says nothing has ordered it yet rather
  * than showing the first time as though it were the second. */
-@Composable fun VisitPartCard(part: VisitPart, current: String? = null) {
+@Composable fun VisitPartCard(part: VisitPart, current: String? = null, missingReadings: List<String> = emptyList()) {
     val conflict = captureConflictById(part.conflictId)
     CareCard {
         StatusHeader(part.state.label, toneOf(part.state)) {
@@ -278,6 +282,15 @@ private fun toneOf(state: CaptureState): String = when (state) {
             }
         )
         part.detail.forEach { ReviewLine(it.label, it.value) }
+        /* A part names its readings rather than carrying them, so a reading the ledger no longer
+           holds is a thing this card has to say out loud. Rendering the shorter list instead would
+           be the same silence the embedded copies were, one level along: a nurse would read a
+           complete-looking card and never learn that a number had gone. */
+        if (missingReadings.isNotEmpty()) Text(
+            "${missingReadings.size} of the readings this names ${if (missingReadings.size == 1) "is" else "are"} no longer in the readings ledger on this phone — ${missingReadings.joinToString(", ")}. What is above is what that ledger still holds. Nothing here deleted them, and the ledger is where to look.",
+            style = MaterialTheme.typography.bodyMedium, color = MangoInk,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+        )
         Note("On this phone, ${ageText(part.deviceMillis)}.")
         if (part.isPending) Text(
             part.kind.whileHeld, style = MaterialTheme.typography.bodyMedium, color = BodyText

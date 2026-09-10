@@ -89,6 +89,14 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
     val observationsPart = partOf(VisitPartKind.OBSERVATIONS)
     val findingsPart = partOf(VisitPartKind.FINDINGS)
     val signOffPart = partOf(VisitPartKind.SIGN_OFF)
+    /* The readings the held observations part names, resolved through the capture ledger — which is
+       where a reading lives, whether a nurse typed it or an instrument reported it. This screen used
+       to read them off the part itself and union them with the ledger's, which is how the same visit
+       had two answers to what was measured at it. */
+    val heldReadings = observationsPart?.let { queue.readingsOf(it) }.orEmpty()
+    /* This screen's own readings carry an id derived from the visit and the observation, so it can
+       tell its own work from the kit's without keeping a second list to get wrong. */
+    fun typedId(observationId: String) = "VQ-$reference-$observationId"
     val stages = listOf("Identity", "Consent", "Observations", "Findings", "Sign-off")
     /* Where she got to, worked out from what is held rather than written down separately. The first
        stage with nothing behind it is the one she is standing on. */
@@ -104,7 +112,7 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
        strings this screen would have had to guess the provenance of a second time. */
     val values = remember(reference) {
         mutableStateMapOf<String, String>().apply {
-            observationsPart?.readings?.forEach { put(it.observationId, it.value) }
+            heldReadings.forEach { put(it.observationId, it.value) }
         }
     }
     /* Origin is its own map rather than a field on the value with a default, because the moment it
@@ -114,7 +122,7 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
        came from. */
     val origins = remember(reference) {
         mutableStateMapOf<String, Provenance>().apply {
-            observationsPart?.readings?.forEach { put(it.observationId, it.provenance) }
+            heldReadings.forEach { put(it.observationId, it.provenance) }
         }
     }
     /* A nurse may want to take by hand what the kit already gave her — a cuff reading she does not
@@ -126,8 +134,10 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
        nothing a stored flag could say that those two facts do not already. */
     val overridden = remember(reference) {
         mutableStateMapOf<String, Boolean>().apply {
-            observationsPart?.readings?.forEach { reading ->
-                if (store.capture.standingFor(reference, reading.observationId) != null) put(reading.observationId, true)
+            heldReadings.forEach { reading ->
+                /* Besides this one. The typed reading is in the ledger now, so "is there a reading
+                   for this observation" would otherwise be answered by her own number. */
+                if (store.capture.standingBesides(reference, reading.observationId, reading.id) != null) put(reading.observationId, true)
             }
         }
     }
@@ -148,7 +158,8 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
     var signed by rememberSaveable(reference) { mutableStateOf(signOffPart != null) }
 
     fun kitFor(observation: Observation): CapturedReading? =
-        if (overridden[observation.id] == true) null else store.capture.standingFor(reference, observation.id)
+        if (overridden[observation.id] == true) null
+        else store.capture.standingBesides(reference, observation.id, typedId(observation.id))
     fun rawOf(observation: Observation): String = kitFor(observation)?.value ?: values[observation.id].orEmpty()
     fun originOf(observation: Observation): Provenance? = kitFor(observation)?.provenance ?: origins[observation.id]
     fun flag(observation: Observation): String? {
@@ -183,17 +194,20 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
     fun holdPart(kind: VisitPartKind, summary: String, detail: List<VisitPartFact>, readings: List<CapturedReading> = emptyList()) {
         nurse?.let { queue.hold(kind, reference, patient, summary, detail, readings, it) }
     }
-    /* The typed readings, as readings. Each one carries the origin somebody chose for it, so what is
-       held on the phone is what would be filed rather than a screen's copy of it. The kit's own
-       readings are not copied in here: they are already in the capture ledger with their instrument,
-       serial and calibration attached, and a second copy of a reading is a second thing to disagree
-       with. */
+    /* The typed readings, as readings. Each one carries the origin somebody chose for it. They are
+       handed to the queue, which files them in the capture ledger and keeps their ids on the part —
+       so this screen no longer holds the only copy of a number a nurse typed, and the consultation
+       record, which asks that ledger alone, now sees them.
+
+       The kit's readings are not among them: they are already in the same ledger with their
+       instrument, serial and calibration attached, and they are the visit's whether this screen
+       names them or not. */
     fun typedReadings(): List<CapturedReading> = captured.mapNotNull { observation ->
         val origin = origins[observation.id] ?: return@mapNotNull null
         val value = values[observation.id] ?: return@mapNotNull null
         val now = System.currentTimeMillis()
         CapturedReading(
-            id = "VQ-$reference-${observation.id}", visit = reference, patient = patient,
+            id = typedId(observation.id), visit = reference, patient = patient,
             observationId = observation.id, label = observation.label, unit = observation.unit,
             value = value, provenance = origin,
             caveats = if (origin == Provenance.PATIENT_REPORTED)
