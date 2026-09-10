@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { noticeFor } from './notices';
 /* The ingestion boundary as a supplier would meet it: over the network, through the app's own /api
    proxy, with no test harness holding it up. Runs only when an identity service is answering —
    start one with `npm run api` — because the design preview is deliberately able to run with no
@@ -38,7 +37,7 @@ test('a well-formed position refuses anyway, in the capability’s own words', a
   expect(body.error).toBe('not-connected');
   expect(body.capability).toBe('dispatch');
   // the sentence is the one the screens render, out of packages/catalog/capabilities.json
-  expect(body.notice).toContain(noticeFor('dispatch'));
+  expect(body.notice).toContain('Dispatch is not connected');
 });
 
 test('a patient id in a position feed is refused at the door, whatever it is called', async ({ page }) => {

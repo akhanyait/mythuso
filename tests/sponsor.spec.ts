@@ -1,5 +1,4 @@
 import { expect, test, type Page } from '@playwright/test';
-import { noticeFor } from './notices';
 import { readFileSync } from 'node:fs';
 
 /* Somebody paying for somebody else's care, from the payer's side.
@@ -44,7 +43,7 @@ const openSponsorship = async (page: Page) => {
 test('a sponsor can see what was set aside, what has been used and what is left', async ({ page }) => {
   await page.goto('/');
   await openSponsorship(page);
-  await expect(page.getByText(noticeFor('payments'), { exact: false })).toBeVisible();
+  await expect(page.getByText(/No payment is taken/)).toBeVisible();
 
   const lead = page.locator('.sponsor-lead');
   await expect(lead.locator('.s-metric').filter({ hasText: 'You set aside' })).toContainText(rand(statement.setAside));

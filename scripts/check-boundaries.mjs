@@ -3137,12 +3137,12 @@ for (const noSeam of seamContract.noSeam) {
  }
 }
 
-/* ---- No journey types a sentence the capability contract owns ---------------------------------
+/* ---- No journey types a sentence one of these five capabilities owns --------------------------
 
    This one is here because it was already broken and nobody could see it. When `capabilities.json`
    grew a third state, every simulated capability's screens started rendering the simulation sentence
-   instead of the absent one — and thirteen assertions across eight journeys had the absent sentence
-   written out by hand. The suite was red on the base commit.
+   instead of the absent one — and the journeys had the absent sentence written out by hand. The
+   suite was red on the base commit.
 
    It read green, which is the part worth writing down. `playwright.config.ts` reuses an existing
    server on 5173 rather than starting its own, and its own comment says why that switch exists: a
@@ -3150,25 +3150,18 @@ for (const noSeam of seamContract.noSeam) {
    happily test whatever tree started the server first, and a green suite that tested somebody else's
    code is worse than a red one. Set MYTHUSO_PORT when more than one checkout is live.
 
-   So: a journey asks the contract, through `tests/notices.ts`, exactly as the screens do. What is
-   forbidden here is any clause of any capability's notice — absent or simulated — typed into a spec.
-   Clause rather than sentence, because the assertion that broke was `/Nothing is sent/` against a
-   notice that goes on for another eight words. */
+   So a journey asks the contract, through `tests/notices.ts`, exactly as the screens do. What is
+   forbidden here is any clause of these five capabilities' notices — absent or simulated — typed
+   into a spec. Clause rather than sentence, because the assertion that survived the first sweep was
+   `/Nothing is sent/` against a notice that runs on for another eight words.
+
+   Scoped to these five for the same reason the table above is: the other seams are landing in
+   parallel, each fixing the journeys that assert its own capabilities, and a check covering all
+   fifteen would fail on work that has not merged yet. */
 const noticeReader = 'tests/notices.ts';
 if (!existsSync(noticeReader)) throw new Error(`${noticeReader} is missing. It is how a journey asks what sentence a screen renders, instead of typing one that is right until a capability changes state.`);
-/* One phrase in one journey that is not the contract's, and is not a mistake. The passport's export
-   row carries its own "Nothing is sent anywhere" — about a file that stays on the device — and it
-   happens to open with the same three words as the messaging notice. The exemption is held to that
-   copy still existing, so the day the row is reworded this line fails rather than shielding a real
-   one. */
-const NOT_THE_CONTRACTS = [
- ['tests/patient-surfaces.spec.ts', 'Nothing is sent anywhere', 'apps/web/src/features/Pages.tsx']
-];
-for (const [, phrase, source] of NOT_THE_CONTRACTS) {
- if (!read(source).includes(phrase)) throw new Error(`"${phrase}" is exempted from the notice check because ${source} writes it as its own copy, and ${source} no longer does. An exemption whose reason has gone is a hole in the check.`);
-}
-const exempt = (file, clause) => NOT_THE_CONTRACTS.some(([f, phrase]) => f === file && phrase.includes(clause));
-for (const capability of capabilities.capabilities) {
+for (const capabilityId of Object.keys(FULFILMENT_AND_SAFETY)) {
+ const capability = capabilities.capabilities.find(c => c.id === capabilityId);
  const clauses = new Set(
   [capability.notice, capability.simulation?.notice].filter(Boolean)
    .flatMap(notice => notice.split(/[.,;:—]/).map(clause => clause.trim()).filter(clause => clause.length >= 15))
@@ -3176,8 +3169,8 @@ for (const capability of capabilities.capabilities) {
  for (const file of readdirSync('tests').filter(name => name.endsWith('.ts') && name !== 'notices.ts')) {
   const source = read(`tests/${file}`);
   for (const clause of clauses) {
-   if (!source.includes(clause) || exempt(`tests/${file}`, clause)) continue;
-   throw new Error(`tests/${file} types "${clause}", which is part of the "${capability.id}" capability's notice. A journey that writes that sentence out is a journey that goes red the day the capability changes state and green the day somebody edits the spec instead of the screen — ask tests/notices.ts for it, the way the screens ask lib/capabilities.ts.`);
+   if (!source.includes(clause)) continue;
+   throw new Error(`tests/${file} types "${clause}", which is part of the "${capabilityId}" capability's notice. A journey that writes that sentence out is a journey that goes red the day the capability changes state and green the day somebody edits the spec instead of the screen — ask tests/notices.ts for it, the way the screens ask lib/capabilities.ts.`);
   }
  }
 }
