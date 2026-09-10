@@ -746,6 +746,7 @@ const PASSPORT_SOURCES = new Set([
     So the register may hold it, and `the passport's reviewer is a party the register knows` below
     fails the build if the two ever disagree. A checked copy beats a copy nobody may look at. */
  'apps/web/src/lib/vetting-fixtures.ts',
+ 'packages/catalog/roster.json',
  'apps/ios/MyThuso/Models/Vetting.swift',
  'apps/android/app/src/main/java/za/co/mythuso/model/Vetting.kt'
 ]);
@@ -1260,11 +1261,17 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
    Matched loosely on purpose — spacing and the HPCSA prefix vary between the register and the
    screens, and a check that insisted on one spelling would have missed all three of these. */
 {
- const fixtures = read('apps/web/src/lib/vetting-fixtures.ts');
+ /* Two files hold the register now: the nurses moved into packages/catalog/roster.json so the
+    service could read them, and the doctors, locums and partners are still fixtures. Both are read
+    here — a check that knew about only one of them reported every nurse on every screen as
+    unregistered the moment the other appeared, which is a false alarm whose obvious fix is to
+    delete the check. */
+ const registers = ['apps/web/src/lib/vetting-fixtures.ts', 'packages/catalog/roster.json']
+  .filter(f => existsSync(f)).map(f => read(f)).join('\n');
  const registrationLike = /(?:HPCSA\s+)?\b(?:MP|SANC|SAPC)\s?\d{4,}/g;
  const plain = text => text.toUpperCase().replace(/HPCSA/g, '').replace(/[^A-Z0-9]/g, '');
- const issued = new Set([...fixtures.matchAll(registrationLike)].map(m => plain(m[0])));
- if(issued.size < 5) throw new Error('scripts/check-boundaries.mjs can no longer read professional registrations out of apps/web/src/lib/vetting-fixtures.ts, so the check that every clinician named on a screen is one the register issued is reading nothing at all.');
+ const issued = new Set([...registers.matchAll(registrationLike)].map(m => plain(m[0])));
+ if(issued.size < 10) throw new Error('scripts/check-boundaries.mjs can no longer read professional registrations out of the vetting register, so the check that every clinician named on a screen is one the register issued is reading nothing at all.');
  const named = files('apps/web/src').concat(files('packages/catalog'))
   .concat(files('apps/ios/MyThuso')).concat(files('apps/android/app/src/main'))
   .filter(f => /\.(tsx?|json|swift|kt)$/.test(f) && !f.endsWith('vetting-fixtures.ts'));
@@ -1288,7 +1295,12 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  const reviewer = JSON.parse(read('packages/catalog/passport.json')).reviewer;
  const fixtures = read('apps/web/src/lib/vetting-fixtures.ts');
  const parties = [...fixtures.matchAll(/name:\s*'([^']+)',\s*roleId:\s*'([a-z-]+)',\s*reference:\s*'([^']+)'/g)]
-  .map(m => ({ name: m[1], role: m[2], reference: m[3] }));
+  .map(m => ({ name: m[1], role: m[2], reference: m[3] }))
+  /* The nurses live in the roster contract now. They are not candidates to review a passport — a
+     nurse records and a doctor reviews — but they are read anyway, so the role check below refuses
+     one by name rather than failing to find her at all and blaming the register. */
+  .concat((JSON.parse(read('packages/catalog/roster.json')).nurses ?? [])
+   .map(n => ({ name: n.name, role: 'nurse', reference: n.reference })));
  if(parties.length < 5) throw new Error('scripts/check-boundaries.mjs can no longer read the vetted parties out of apps/web/src/lib/vetting-fixtures.ts, so the check that the passport names a real doctor is reading nothing at all.');
  const match = parties.find(p => p.name === reviewer.name && p.reference === reviewer.registration);
  if(!match) throw new Error(`packages/catalog/passport.json says the Health Passport was reviewed by "${reviewer.name} · ${reviewer.registration}", and the vetting register holds no party under that name and that registration. A patient is being told who read their record; the answer has to be somebody the register issued a number to.`);
