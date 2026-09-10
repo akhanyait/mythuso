@@ -296,35 +296,51 @@ nothing a stranger typed is written down: an undeclared field is recorded as a c
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only
 today — and which now has a server behind it, so the console is a surface rather than a design.
 
-**Nine quarantined copies, and what retires each one.** Moving the three bodies of prose into the
-catalogue could not finish, because adopting a contract means editing the file that holds the old
-copy and two other people have those trees open. So each copy is held to every sentence of the
-contract, word for word, and its quarantine line is written to expire: an entry whose file has
-*stopped* carrying the prose is an error too, so the day a file reads the generated data the build
-fails until somebody deletes the line. Waiting are `Explain.swift` and `Explain.kt` (read
-`Records.explanations` and `recordExplanations`), `Arrival.swift` and `Arrival.kt` (read the seven
-sentences out of `Geography.privacyRules` and `Geography.refusals`), `CaptureQueue.kt`,
-`CaptureQueueView.swift` and `VisitQueueView.swift` (read `CaptureData`), and two web files that
-each type one sentence a lib module now exports — `Arrival.tsx` and `VisitQueue.tsx`. `CaptureQueue.kt`
-now owes two sentences more than it did: `refusalFor` types the full-disk and unexplained-refusal
-copy that `durability.writeFailures` holds, and it retires by reading
-`CaptureData.writeFailure("disk-full")` and `("write-refused")`.
+**Two quarantined copies are left of nine, and both retire themselves.** Moving three bodies of
+prose into the catalogue could not finish in one pass, because adopting a contract means editing the
+file that holds the old copy and other people had those trees open. So each copy is held to every
+sentence of the contract, word for word, and its quarantine line is written to expire: an entry
+whose file has *stopped* carrying the prose is an error too, so the day a file reads the generated
+data the build fails until somebody deletes the line. Seven have now done exactly that. Four iOS
+copies adopted their contracts on 10 September — `Explain.swift`, `Arrival.swift`,
+`CaptureQueueView.swift` and `VisitQueueView.swift` — and two Android ones followed the same day,
+`Explain.kt` and `Arrival.kt`. Waiting are `CaptureQueue.kt` and the web's `VisitQueue.tsx`.
+
+`CaptureQueue.kt` owes two sentences more than it did: `refusalFor` types the full-disk and
+unexplained-refusal copy that `durability.writeFailures` holds, and it retires by reading
+`CaptureData.writeFailure("disk-full")` and `("write-refused")`. Those two sentences are not in the
+contract yet, which is the one piece of this that is a task rather than a deletion.
 
 **Three lists of what is still missing, and each fails the build when it stops being missing.**
-Beside the quarantines above, `scripts/check-boundaries.mjs` now carries `FIGURE_QUARANTINE` (the
-workspace figures still typed over a list that could count them — three on the web, one on iOS,
-twenty on Android, ratcheted so neither a new one nor a half-finished fix goes unnoticed),
-`SILENT_ABOUT_WRITE_FAILURE` (the two iOS file queues with no sentence for a phone with no room left)
-and `SILENT_ABOUT_QUARANTINE` (Android's reading ledger, which sets an unreadable file aside without
-telling the nurse where it went). None of the three is a licence: each names what would retire it,
-and each is an error the day it is no longer true.
+Beside the quarantines above, `scripts/check-boundaries.mjs` carries `FIGURE_QUARANTINE` (the
+workspace figures still typed over a list that could count them), `SILENT_ABOUT_WRITE_FAILURE` (the
+two iOS file queues with no sentence for a phone with no room left) and `SILENT_ABOUT_QUARANTINE`
+(Android's reading ledger, which sets an unreadable file aside without telling the nurse where it
+went). None of the three is a licence: each names what would retire it, and each is an error the day
+it is no longer true.
 
-**One generated file is not yet in the iOS target.** `CaptureData.swift` is emitted beside its Kotlin
-twin, and Gradle compiles the Kotlin one because it globs the source tree. Xcode does not:
-`project.pbxproj` needs a `PBXFileReference`, a `PBXBuildFile`, a group `children` entry and a
-`PBXSourcesBuildPhase` entry, and that file is hand-maintained by somebody else this week. Until
-those four lines exist the iOS queue screens cannot read the contract even after their quarantine is
-lifted.
+`FIGURE_QUARANTINE` is down from twenty-four typed figures to four — three on the web and one on
+iOS. All twenty on Android are gone, counted from the rows underneath them, and three of the four
+lies that check was written for lived in that one function: "Active visits 24" over a board of
+three, "Available nurses 18" over seven, "Awaiting review 12" over three. Retiring it exposed a
+defect in the check itself: a Kotlin string template puts an expression inside a literal, so a regex
+matching quote-to-quote read `"Read ${if (flagged == 1) "` as typed prose and found a 1 in it. The
+extractor is a scanner now, and it recurses into interpolations rather than skipping them, so
+`"${if (late) "24" else "3"}"` is still caught.
+
+**The generated file is in the iOS target.** `CaptureData.swift` is emitted beside its Kotlin twin,
+and Gradle compiled the Kotlin one because it globs the source tree while Xcode does not. All four
+`project.pbxproj` entries now exist — a `PBXFileReference`, a `PBXBuildFile`, a group `children`
+entry and a `PBXSourcesBuildPhase` entry — which is what had been blocking two of the four iOS
+quarantines from retiring at all.
+
+**Six clinical iOS screens came off `Form` and `List`, and were looked at.** The assessment, the
+Thuso Kit, the laboratory order, the dispatch board, the language screen and the first-run flow,
+each captured at the top and the foot, at the default content size and at AccessibilityXXXL, from
+the test run's own attachments rather than from a claim that they were fine. `ClinicalFormTests`
+holds them there. Two accessibility fixes that had been committed unmeasured are visibly right: the
+Kit's "Working as" picker is a full-width control rather than a 34-point tap target, and the
+identity switch renders as a switch at its proper size.
 
 **The glass redesign, 8–9 September 2026.** The founder chose a reference and then said of the first
 attempt *"this is not the design I sent you"* — the palette had been taken and the shapes had not.
