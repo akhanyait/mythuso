@@ -31,7 +31,13 @@ import za.co.mythuso.model.thuso
 import za.co.mythuso.ui.*
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); enableEdgeToEdge(); setContent { ThusoTheme { MyThusoApp() } } }
+    /* The store is held by the activity as well as by the composition, because onStop needs
+       something to flush. Both ledgers write on a thread of their own now — see LedgerWriter — so
+       the newest change can be a few milliseconds behind the disk, and backgrounding is the moment
+       before a process is most likely to be killed. It is closed here rather than left open. */
+    private val store by lazy { PreviewStore(FileBook(filesDir), FileBook(filesDir, "visit-parts.json")) }
+    override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); enableEdgeToEdge(); setContent { ThusoTheme { MyThusoApp(store) } } }
+    override fun onStop() { super.onStop(); store.flushLedgersToDisk() }
 }
 
 /* One destination, described once, so the bottom bar and the rail cannot disagree about what the
@@ -39,17 +45,20 @@ class MainActivity : ComponentActivity() {
    stretched across 900dp. */
 private data class Destination(val key: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val phrase: Phrase?)
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable fun MyThusoApp() {
-    /* The two queues are the only things this preview writes to the phone, so they are the only
-       things that need somewhere to write. Both are read once, here, on the way in: a queue loaded a
-       frame later is a queue that shows empty first, and an empty queue is the exact lie the rule
-       about not losing a nurse's work exists to prevent. Two files rather than one, so a ledger that
-       will not parse cannot take the other one with it. */
+/* The two queues are the only things this preview writes to the phone, so they are the only things
+   that need somewhere to write. Both are read once, on the way in: a queue loaded a frame later is a
+   queue that shows empty first, and an empty queue is the exact lie the rule about not losing a
+   nurse's work exists to prevent. Two files rather than one, so a ledger that will not parse cannot
+   take the other one with it.
+   The activity passes its own store in. This default is for the test harness and the previews, which
+   call MyThusoApp() with nothing and have no activity to flush from. */
+@Composable private fun rememberPreviewStore(): PreviewStore {
     val context = LocalContext.current
-    val store = remember(context) {
-        PreviewStore(FileBook(context.filesDir), FileBook(context.filesDir, "visit-parts.json"))
-    }
+    return remember(context) { PreviewStore(FileBook(context.filesDir), FileBook(context.filesDir, "visit-parts.json")) }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable fun MyThusoApp(store: PreviewStore = rememberPreviewStore()) {
     var page by remember { mutableStateOf("Home") }
     /* The service a home shortcut chose, handed to the catalogue once and then cleared, so going
        back to Book care later does not reopen a booking nobody asked for. */

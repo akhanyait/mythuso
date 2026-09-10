@@ -123,6 +123,15 @@ private fun toneOf(state: CaptureState): String = when (state) {
                     (if (queue.writtenMillis > 0) ", and last written ${ageText(queue.writtenMillis)}." else ", and not written since."))
                 queue.storeNote.takeIf { it.isNotEmpty() }?.let { Note(it) }
                 queue.setAside?.let { Note("The ledger that would not parse is still on this phone, under the name $it. Nothing was deleted.") }
+                /* This is the screen a nurse opens to ask whether her work is safe, so a disk that
+                   would not take it is said here in full and in the book's own words. Warm ink: it
+                   is the one thing under this heading that is a problem rather than a limit. */
+                (queue.writeState as? LedgerWrite.Refused)?.let {
+                    Text(it.reason, style = MaterialTheme.typography.bodyMedium, color = MangoInk)
+                }
+                (store.capture.writeState as? LedgerWrite.Refused)?.let {
+                    Text("The readings ledger as well. ${it.reason}", style = MaterialTheme.typography.bodyMedium, color = MangoInk)
+                }
             }
         }
 
@@ -297,24 +306,52 @@ private fun toneOf(state: CaptureState): String = when (state) {
         it.state == CaptureState.CAPTURED || it.state == CaptureState.QUEUED || it.state == CaptureState.SENDING
     }
     val connected = queue.pretendConnected
-    val detail = if (waiting == 0) "Nothing is waiting. Everything you have done has reached the record."
-    else "$waiting ${if (waiting == 1) "piece" else "pieces"} of work held on this phone, and kept there if it closes."
-    /* Cloud either way, and the difference is the icon and the word. A warm tint here would say “no
-       signal” is a problem, and the whole argument of this feature is that it is not one: the nurse
-       is not stuck, her work is kept, and what she has lost is only other people's sight of it. */
+    /* "Held on this phone, and kept there if it closes" is a promise about the disk, so it is only
+       said once the disk has taken it. Both ledgers write on a thread of their own, so for a few
+       milliseconds after a tap the work is in memory and not yet written — and a strip that says
+       "kept if it closes" during that window is saying the one thing that is not yet true. A refused
+       write is not a quieter version of the same sentence either: it is the opposite, and it is the
+       sentence a nurse most needs, so it replaces the line rather than sitting under it. */
+    val writing = listOf(queue.writeState, store.capture.writeState)
+    val refused = writing.filterIsInstance<LedgerWrite.Refused>().firstOrNull()
+    val settling = writing.any { it is LedgerWrite.Writing }
+    val detail = when {
+        refused != null -> refused.reason
+        waiting == 0 -> "Nothing is waiting. Everything you have done has reached the record."
+        settling -> "$waiting ${if (waiting == 1) "piece" else "pieces"} of work, being written to this phone now."
+        else -> "$waiting ${if (waiting == 1) "piece" else "pieces"} of work held on this phone, and kept there if it closes."
+    }
+    /* Cloud either way, and the difference between connected and not is the icon and the word. A
+       warm tint for those two would say “no signal” is a problem, and the whole argument of this
+       feature is that it is not one: the nurse is not stuck, her work is kept, and what she has lost
+       is only other people's sight of it.
+       A disk that would not take the write is the one state on this strip that *is* a problem — her
+       work is not kept — so it is the one that takes the warm ink. It changes the icon and the words
+       as well, because a person who cannot tell these two apart by colour has to be able to. */
+    val heading = when {
+        refused != null -> "Not written down"
+        connected -> "Connected"
+        else -> "No signal"
+    }
+    val mark = when {
+        refused != null -> Icons.Outlined.WarningAmber
+        connected -> Icons.Outlined.CloudDone
+        else -> Icons.Outlined.CloudOff
+    }
+    val ink = if (refused != null) MangoInk else Charcoal
     TonedCard(background = Cloud) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = TouchTarget)
                 .semantics(mergeDescendants = true) {
-                    contentDescription = "${if (connected) "Connected" else "No signal"}. $detail Opens the visit queue."
+                    contentDescription = "$heading. $detail Opens the visit queue."
                 },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
         ) {
-            Icon(if (connected) Icons.Outlined.CloudDone else Icons.Outlined.CloudOff, null, tint = Charcoal, modifier = Modifier.size(20.dp))
+            Icon(mark, null, tint = ink, modifier = Modifier.size(20.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                Text(if (connected) "Connected" else "No signal", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                Text(detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                Text(heading, style = MaterialTheme.typography.titleSmall, color = ink)
+                Text(detail, style = MaterialTheme.typography.bodySmall, color = if (refused != null) MangoInk else BodyText)
             }
             TextButton(onClick = { open("Visit queue") }, Modifier.heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("Open") }
         }

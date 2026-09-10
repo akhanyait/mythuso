@@ -385,6 +385,11 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             ReviewLine("Does not survive", capture.doesNotSurvive)
             Note("It is not encrypted. A file in this app’s private storage is private to this app and no more than that, which is enough for fictional readings and is not enough for real ones — the controls that would be needed first are in docs/PRIVACY-AND-SECURITY.md.")
             if (capture.storeNote.isNotEmpty()) Text(capture.storeNote, style = MaterialTheme.typography.bodyMedium, color = MangoInk)
+            /* A disk that would not take the write is said on the screen that claims what this phone
+               keeps, because the claim above is not true while it is refusing. */
+            (capture.writeState as? LedgerWrite.Refused)?.let {
+                Text(it.reason, style = MaterialTheme.typography.bodyMedium, color = MangoInk)
+            }
             OutlinedButton(onClick = { capture.reload() }, shape = ThusoButtonShape) { Text("Re-read the store") }
             Note("Re-reading loads the file again and updates the line above. It is the same read the app does on the way in, which is how you can tell the queue is on the disk and not in memory: close the app entirely, open it again, and the entries are still here.")
         }

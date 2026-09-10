@@ -40,6 +40,30 @@ import org.json.JSONObject
  * renamed rather than deleted, because “never dropped to make a sync succeed” has a sibling: never
  * dropped to make a parse succeed either.
  *
+ * TWO LEDGERS OR ONE, AND WHY IT IS TWO. This has been two modules since the visit queue was added
+ * and nobody had written down why, which is how a thing stays two by accident. It should stay two:
+ *
+ *   1. Failure isolation is the whole argument, and it is a durability argument rather than a
+ *      modelling one. A ledger that will not parse is quarantined whole. Sharing a file would mean
+ *      one bad byte in a reading takes the identity check, the consent and the signature with it.
+ *   2. They have different lifetimes. A CapturedReading is produced by an instrument or a keystroke
+ *      and stands on its own — the kit screen files readings belonging to no assessment yet. A
+ *      VisitPart is a piece of work a nurse finished and exists only inside a visit. One table
+ *      holding both would carry a nullable field saying which of the two each row really is.
+ *   3. They are coupled at exactly one point and it is the right one: settle() asks CaptureStore
+ *      what the record already holds, because a second module with its own idea of a duplicate is a
+ *      second gate, and two gates is where holes live.
+ *
+ * WHAT IS ACTUALLY WRONG IS NOT THE FILE COUNT. It is that a reading now lives in one of two places
+ * depending on how it was produced: typed readings are embedded in an observations VisitPart, and
+ * instrument readings sit in the capture ledger and are deliberately not copied into the part. So
+ * “what was measured at this visit” is a question no single object answers — VisitAssessmentScreen
+ * unions typedReadings() with store.capture.forVisit(), and every future reader has to remember to.
+ * Nothing is duplicated, which is the failure that was designed against, but the set is partitioned
+ * by provenance, which nobody chose. The fix is not one file: it is for a reading to live in the
+ * capture ledger always and for an observations part to carry ids rather than copies. That is a
+ * bigger change than a write path and it is not made here.
+ *
  * WHAT IT DOES NOT SURVIVE is said on the screen as plainly as what it does, and it is FileBook's
  * own sentence rather than a second wording: uninstalling the app, clearing its storage, a factory
  * reset. It is never copied off this phone — the manifest sets allowBackup to false.
@@ -207,11 +231,17 @@ class VisitQueueStore(private val book: CaptureBook) {
     var lastAttempt by mutableStateOf<String?>(null)
         private set
     private var sequence = 0
+    private val writer = LedgerWriter(book, "visit")
 
     val where: String get() = book.where
     val survives: String get() = book.survives
     val doesNotSurvive: String get() = book.doesNotSurvive
     val setAside: String? get() = book.setAside
+    /** What the disk has actually taken. The strip above the assessment reads this rather than
+     *  inferring from the fact that a tap happened that the work is on the phone. */
+    val writeState: LedgerWrite get() = writer.state
+    /** Block until what has been held is on the disk. Called when the app is going away. */
+    fun flushToDisk() = writer.flush()
 
     init { load() }
 
@@ -239,19 +269,29 @@ class VisitQueueStore(private val book: CaptureBook) {
         if (parts.isEmpty()) seed()
     }
 
+    /* The payload is built on the writer's thread rather than this one, because building it is where
+       the time goes — a shift's ledger is 38 KB and org.json spends p50 3.6 ms of a measured 5.3 ms
+       turning it into a string. What is snapshotted here is a pointer copy of a list of immutable
+       parts, so the writer can never see the list mid-edit. */
     private fun save() {
+        val rows = parts.toList()
+        val at = sequence
         val now = System.currentTimeMillis()
         writtenMillis = now
-        book.write(JSONObject().apply {
-            put("version", 1)
-            put("writtenMillis", now)
-            put("sequence", sequence)
-            put("parts", JSONArray().also { array -> parts.forEach { array.put(partToJson(it)) } })
-        }.toString())
+        writer.submit {
+            JSONObject().apply {
+                put("version", 1)
+                put("writtenMillis", now)
+                put("sequence", at)
+                put("parts", JSONArray().also { array -> rows.forEach { array.put(partToJson(it)) } })
+            }.toString()
+        }
     }
 
-    /** Reload from disk. A cold launch without the launch — used to prove the queue survived. */
-    fun reload() { parts.clear(); load() }
+    /** Reload from disk. A cold launch without the launch — used to prove the queue survived.
+     *  It waits for anything in flight first, or it would read the version before the last write and
+     *  present that as what survived, which is the opposite of what the button is for. */
+    fun reload() { writer.flush(); parts.clear(); load() }
 
     /** The only thing here that removes anything, and it is a person's deliberate act on fictional
      *  parts — never something a sync, a sign-out or a failure does. */

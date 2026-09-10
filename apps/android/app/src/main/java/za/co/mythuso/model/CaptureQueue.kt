@@ -42,7 +42,17 @@ import kotlin.random.Random
 /** Where the queue actually lives. An interface so a preview can hold one in memory and say so. */
 interface CaptureBook {
     fun read(): String?
-    fun write(text: String)
+    /**
+     * Null when the bytes are on the disk, and the reason they are not when they are not.
+     *
+     * It used to return nothing and swallow the failure. A phone that is out of space — a mid-range
+     * handset with a camera roll on it, which is the likeliest way this app ever loses an assessment
+     * — refused the write, the reading stayed in memory looking filed, and the screen went on saying
+     * the work was held on this phone. It was not: the next launch read the last file that landed.
+     * `queuedIsNotLost` cannot be kept by a write nobody checked, so the outcome is a return value
+     * and every caller has to do something with it.
+     */
+    fun write(text: String): String?
     /** A file that will not parse is kept, not deleted. Losing work to a bad parse is still losing work. */
     fun quarantine(reason: String)
     /** What the kept-aside file is now called, once one exists. A screen that says work was kept
@@ -57,7 +67,8 @@ interface CaptureBook {
 class MemoryBook : CaptureBook {
     private var held: String? = null
     override fun read(): String? = held
-    override fun write(text: String) { held = text }
+    /** Memory does not run out the way a disk does, so this is the one book that cannot refuse. */
+    override fun write(text: String): String? { held = text; return null }
     override fun quarantine(reason: String) { held = null }
     override val where = "Held in memory only, because this screen was opened without a file store."
     override val survives = "Nothing. Every entry here is lost when this screen closes."
@@ -78,13 +89,26 @@ class FileBook(private val directory: File, private val name: String = "capture-
     private val pending = File(directory, "$name.writing")
     private val stem = name.removeSuffix(".json")
     override fun read(): String? = if (file.exists()) runCatching { file.readText() }.getOrNull() else null
-    override fun write(text: String) {
-        runCatching {
-            directory.mkdirs()
-            pending.writeText(text)
-            /* Rename, not overwrite. The old file is whole until the instant the new one is. */
-            if (!pending.renameTo(file)) { file.writeText(text); pending.delete() }
-        }
+    override fun write(text: String): String? = runCatching {
+        directory.mkdirs()
+        pending.writeText(text)
+        /* Rename, not overwrite. The old file is whole until the instant the new one is — and a
+           write that threw above never reaches this line, so a disk that filled halfway through
+           leaves the previous ledger in place rather than half of two. */
+        if (!pending.renameTo(file)) { file.writeText(text); pending.delete() }
+        null
+    }.getOrElse { failure -> refusalFor(failure) }
+    /* Two sentences rather than one, because they ask for different things from the person holding
+       the phone. Out of space is hers to fix and worth telling her how; anything else is not, and
+       saying "free some space" to a nurse whose phone has plenty would send her looking for a
+       problem she does not have. Neither pretends the work is safe. */
+    private fun refusalFor(failure: Throwable): String {
+        val outOfSpace = generateSequence(failure) { it.cause }
+            .any { it.message?.contains("No space left on device", ignoreCase = true) == true || it is java.io.IOException && it.message?.contains("ENOSPC") == true }
+        return if (outOfSpace)
+            "This phone has no room left, so what you have just done could not be written down. It is still on the screen and it is still yours, but it is not on the disk: if the app closes now, it is gone. Free some space on the phone and it will be written again."
+        else
+            "This phone would not take the write, and it did not say why. What you have just done is still on the screen and still yours, but it is not on the disk: if the app closes now, it is gone. Nothing that was already written down has been touched."
     }
     override var setAside: String? = null
         private set
@@ -95,6 +119,111 @@ class FileBook(private val directory: File, private val name: String = "capture-
     override val where = "A file in this app’s own private storage on this phone. Nothing is sent anywhere: the app declares no permissions at all, internet included."
     override val survives = "Closing the app, the process being killed, a crash, restarting the phone, and signing out."
     override val doesNotSurvive = "Uninstalling MyThuso, clearing the app’s storage in Android settings, or a factory reset. It is never backed up off this phone — the manifest sets allowBackup to false."
+}
+
+/* ---- Getting it onto the disk without stopping the screen ---------------------------------------
+ * Both ledgers used to serialise themselves and write the whole file synchronously, on the main
+ * thread, from a Compose onClick. That was measured on a Pixel 3a emulator before it was changed,
+ * because a refactor justified by a guess is worse than the thing it replaces:
+ *
+ *   VisitQueueStore.hold(identity), a shift's ledger (35 parts, 38 KB): p50 5.31 ms, p95 34.28 ms
+ *   CaptureStore.record(), a shift's ledger (118 readings, 46 KB):      p50 3.44 ms, p95 45.98 ms
+ *   Of which FileBook.write() itself is p50 0.25 ms. The cost is org.json building the string.
+ *
+ * Single taps, then, are a dropped frame rather than a freeze — and the emulator's CPU is the host's,
+ * so a mid-range handset is several times worse. What was a freeze is further down: CaptureStore ran
+ * every state change through replace(), and replace() ended in save(), so one tap on "seal
+ * everything" wrote the whole ledger once per reading — 445 ms for 57 readings, and 316 ms to begin
+ * sending 59. That is fixed by writing once per tap rather than once per row, which is worth more
+ * than any amount of threading; a redundant write moved to a background thread is still redundant.
+ *
+ * What is left after that is worth moving anyway, and this is what moves it. The rules it is built
+ * under, in the order they matter:
+ *
+ * A WRITE THAT IS QUEUED AND LOST IS WORSE THAN A WRITE THAT BLOCKS. So the screen never describes
+ * work as held while it is still on its way. `state` is what the disk has actually taken, the strip
+ * above the assessment reads it, and it says "being written" for the milliseconds it is true rather
+ * than saying "held on this phone" and hoping. That is the whole reason this is safe to do at all:
+ * the window a force-quit could land in is a window in which nothing claimed the work was safe.
+ *
+ * ONE THREAD, SO WRITES CANNOT OVERTAKE EACH OTHER. Two threads writing a whole ledger through one
+ * temp name and one rename is a ledger that ends up at whichever finished last, which is not
+ * necessarily the newest.
+ *
+ * A NEWER PAYLOAD REPLACES AN OLDER ONE RATHER THAN QUEUEING BEHIND IT. Every payload is the entire
+ * ledger, so an older one holds nothing the newer one lacks. A nurse tapping through five stages
+ * faster than the disk writes gets one write of the final state, not five of the intermediate ones.
+ *
+ * IT IS FLUSHED WHEN THE APP STOPS. Backgrounding is the moment before a process is most likely to
+ * be killed, so MainActivity blocks there until the writer is idle. Blocking is right in exactly that
+ * one place: the alternative is losing the write, and nobody is looking at the screen.
+ */
+sealed interface LedgerWrite {
+    /** Everything in memory is on the disk. The only state in which work may be called held. */
+    data object Settled : LedgerWrite
+    /** On its way. True for milliseconds, and said out loud rather than assumed away. */
+    data object Writing : LedgerWrite
+    /** The disk would not take it, in the book's own words. Never a silent failure. */
+    data class Refused(val reason: String) : LedgerWrite
+}
+
+class LedgerWriter(private val book: CaptureBook, name: String) {
+    var state by mutableStateOf<LedgerWrite>(LedgerWrite.Settled)
+        private set
+    /** When the disk last actually took a write — not when one was last asked for. */
+    var settledMillis by mutableLongStateOf(System.currentTimeMillis())
+        private set
+
+    private val issued = java.util.concurrent.atomic.AtomicLong(0)
+    private val pending = java.util.concurrent.atomic.AtomicReference<Pair<Long, () -> String>?>(null)
+    private val main = android.os.Handler(android.os.Looper.getMainLooper())
+    /*
+     * One thread at most, and none at all when there is nothing to write.
+     *
+     * Below the UI thread's priority, because this must never win a scheduling contest against
+     * drawing. A daemon, because a ledger writer is not a reason to keep a process alive. And
+     * allowCoreThreadTimeOut, because a store is built per activity and the font-scale suite
+     * relaunches the activity sixteen times: a pool that holds its core thread for ever would leave
+     * thirty-two threads and thirty-two dead stores behind it on a single-core handset. Core and
+     * maximum are both one, so writes still run in the order they were submitted.
+     */
+    private val thread = java.util.concurrent.ThreadPoolExecutor(
+        1, 1, 30L, java.util.concurrent.TimeUnit.SECONDS, java.util.concurrent.LinkedBlockingQueue()
+    ) { runnable ->
+        Thread(runnable, "mythuso-ledger-$name").apply { isDaemon = true; priority = Thread.NORM_PRIORITY - 1 }
+    }.apply { allowCoreThreadTimeOut(true) }
+
+    /**
+     * Hand over a payload to be built and written off this thread.
+     *
+     * The builder runs on the writer, not here, because building the string is where the time goes.
+     * It must therefore close over an immutable snapshot rather than over the live state list — a
+     * caller that hands this a reference to a list the UI is still editing has moved a race onto a
+     * background thread rather than moved work onto one.
+     */
+    fun submit(build: () -> String) {
+        val ticket = issued.incrementAndGet()
+        pending.set(ticket to build)
+        state = LedgerWrite.Writing
+        thread.execute {
+            /* Null when a newer submit has already claimed this payload's turn. */
+            val (mine, payload) = pending.getAndSet(null) ?: return@execute
+            val refusal = book.write(payload())
+            main.post {
+                when {
+                    refusal != null -> state = LedgerWrite.Refused(refusal)
+                    /* Only the newest write settles the ledger. An older one landing while a newer
+                       one is still in flight has not made the screen's account of the disk true. */
+                    mine == issued.get() -> { state = LedgerWrite.Settled; settledMillis = System.currentTimeMillis() }
+                }
+            }
+        }
+    }
+
+    /** Block until what has been submitted is on the disk. Called where blocking is the safe choice. */
+    fun flush() {
+        runCatching { thread.submit { }.get(2, java.util.concurrent.TimeUnit.SECONDS) }
+    }
 }
 
 /* ---- Serialising ------------------------------------------------------------------------------
@@ -183,10 +312,15 @@ class CaptureStore(private val book: CaptureBook) {
         private set
     private var sequence = 0
     private val dice = Random(4482)
+    private val writer = LedgerWriter(book, "capture")
 
     val where: String get() = book.where
     val survives: String get() = book.survives
     val doesNotSurvive: String get() = book.doesNotSurvive
+    /** What the disk has actually taken. Read by any screen that calls this work held. */
+    val writeState: LedgerWrite get() = writer.state
+    /** Block until what has been recorded is on the disk. Called when the app is going away. */
+    fun flushToDisk() = writer.flush()
 
     init { load() }
 
@@ -218,18 +352,50 @@ class CaptureStore(private val book: CaptureBook) {
         if (readings.isEmpty() && paired.isEmpty()) seed()
     }
 
-    private fun save() {
-        val payload = JSONObject().apply {
-            put("version", 1)
-            put("writtenMillis", System.currentTimeMillis())
-            put("sequence", sequence)
-            put("readings", JSONArray().also { array -> readings.forEach { array.put(readingToJson(it)) } })
-            put("paired", JSONArray().also { array -> paired.forEach { array.put(pairedToJson(it)) } })
+    /* One tap, one write.
+       Every state change here goes through replace(), and replace() ends in save(). That is right
+       for a single reading and wrong for a loop: sealAllCaptured, beginSending and settle each walk
+       the queue calling it, so one tap serialised and wrote the whole ledger once per row — 445 ms
+       to seal 57 readings on a Pixel 3a emulator, and 316 ms to begin sending 59. Nothing about the
+       result differed from writing once at the end, because each payload is the entire ledger.
+       LedgerWriter drops a payload a newer one supersedes, so it would absorb most of that on its
+       own. This is still worth doing above it, for two reasons: it saves N snapshot copies of the
+       whole list on the main thread rather than one, and it says in the code that these loops are a
+       single decision — which is the thing a reader needs to know before adding another one. */
+    private var deferred = 0
+    private var deferredDirty = false
+    private fun <T> asOneWrite(work: () -> T): T {
+        deferred += 1
+        return try { work() } finally {
+            deferred -= 1
+            /* finally, so a throw halfway through a loop still writes what did happen. Losing the
+               rows that succeeded because a later one failed is the shape of loss this file exists
+               to prevent. */
+            if (deferred == 0 && deferredDirty) { deferredDirty = false; save() }
         }
-        book.write(payload.toString())
     }
-    /** Reload from disk. Used to prove the queue survived, and to show its age honestly. */
-    fun reload() { load() }
+
+    private fun save() {
+        if (deferred > 0) { deferredDirty = true; return }
+        /* Snapshots, because the payload is built on the writer's thread and these lists belong to
+           the UI. The rows themselves are immutable, so this is a pointer copy rather than a cost. */
+        val rows = readings.toList()
+        val kit = paired.toList()
+        val at = sequence
+        writer.submit {
+            JSONObject().apply {
+                put("version", 1)
+                put("writtenMillis", System.currentTimeMillis())
+                put("sequence", at)
+                put("readings", JSONArray().also { array -> rows.forEach { array.put(readingToJson(it)) } })
+                put("paired", JSONArray().also { array -> kit.forEach { array.put(pairedToJson(it)) } })
+            }.toString()
+        }
+    }
+    /** Reload from disk. Used to prove the queue survived, and to show its age honestly.
+     *  It waits for anything in flight first: reading the file while a write is on its way would
+     *  read the version before it and then present that as what the phone is holding. */
+    fun reload() { writer.flush(); load() }
     fun forgetEverything() {
         readings.clear(); paired.clear(); sequence = 0
         storeNote = "The demonstration queue was cleared from this phone by the design-review control below. In the product there is no such button: an entry is superseded or withdrawn with a reason, never erased."
@@ -316,7 +482,7 @@ class CaptureStore(private val book: CaptureBook) {
     fun seal(id: String) {
         replace(id) { it.copy(state = CaptureState.QUEUED, writtenMillis = System.currentTimeMillis()) }
     }
-    fun sealAllCaptured() {
+    fun sealAllCaptured() = asOneWrite {
         readings.filter { it.state == CaptureState.CAPTURED }.forEach { seal(it.id) }
     }
 
@@ -331,24 +497,24 @@ class CaptureStore(private val book: CaptureBook) {
        than a request. It is written the way a real sync has to behave: an entry that does not land
        goes back to waiting rather than disappearing, and nothing is decided about a conflict here —
        the queue only notices it. */
-    fun beginSending(): Int {
+    fun beginSending(): Int = asOneWrite {
         val waiting = readings.filter { it.state == CaptureState.QUEUED }
         waiting.forEach { entry -> replace(entry.id) { it.copy(state = CaptureState.SENDING) } }
         lastAttempt = if (pretendConnected)
             "Sending ${waiting.size} entr${if (waiting.size == 1) "y" else "ies"} against the design-review connection. Nothing left this phone."
         else "No connection. ${waiting.size} entr${if (waiting.size == 1) "y" else "ies"} stayed on this phone; nothing was dropped to make the attempt succeed."
-        return waiting.size
+        waiting.size
     }
     /**
      * What the server would have said. A party whose clearance has lapsed since the capture is the
      * conflict that matters — the reading is not discarded, because it was taken while she was
      * cleared, and it is not filed either, because it cannot be filed on her authority alone.
      */
-    fun settle(vetting: VettingStore, signedVisits: Set<String>) {
+    fun settle(vetting: VettingStore, signedVisits: Set<String>) = asOneWrite {
         val inFlight = readings.filter { it.state == CaptureState.SENDING }
         if (!pretendConnected) {
             inFlight.forEach { entry -> replace(entry.id) { it.copy(state = CaptureState.QUEUED) } }
-            return
+            return@asOneWrite
         }
         inFlight.forEach { entry ->
             val capturer = vetting.subject(entry.byId)
@@ -372,7 +538,9 @@ class CaptureStore(private val book: CaptureBook) {
     /* ---- Resolving -----------------------------------------------------------------------------
        Nothing here merges two readings and nothing deletes one. The losing reading keeps its row,
        its number and its origin, and gains a pointer to the one that stands. */
-    fun chooseBetween(standsId: String, supersededId: String, by: VettingSubject, note: String) {
+    fun chooseBetween(standsId: String, supersededId: String, by: VettingSubject, note: String) = asOneWrite {
+        /* Both halves of one decision, so both reach the disk together or the ledger holds a reading
+           that was superseded by one that does not know it superseded anything. */
         val received = System.currentTimeMillis()
         replace(standsId) {
             it.copy(state = CaptureState.STORED, conflictId = null, supersedes = supersededId,

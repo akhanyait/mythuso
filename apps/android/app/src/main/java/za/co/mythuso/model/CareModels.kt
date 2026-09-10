@@ -98,4 +98,12 @@ class PreviewStore(book: CaptureBook = MemoryBook(), visitBook: CaptureBook = Me
     /* Which visits a clinician has already signed. It is the thing stale-write is a disagreement
        with, so the queue has to be able to ask something rather than assume. */
     val signedVisits = mutableStateListOf("TH-2045")
+
+    /* Both ledgers write on a thread of their own, so there is a window of a few milliseconds in
+       which the newest change is in memory and not yet on the disk. Backgrounding is the moment
+       before a process is most likely to be killed, so the window is closed there rather than left
+       open: MainActivity calls this from onStop and it blocks until both writers are idle. Blocking
+       is the right choice in exactly this one place — the alternative is losing the write, and by
+       then nobody is looking at the screen for it to stutter. */
+    fun flushLedgersToDisk() { capture.flushToDisk(); visitQueue.flushToDisk() }
 }
