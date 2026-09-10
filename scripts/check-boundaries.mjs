@@ -3020,6 +3020,196 @@ if (/\bc\.notice\b/.test(read('apps/web/src/status.ts'))) {
  throw new Error('apps/web/src/status.ts renders capability.notice directly. A simulated capability has its own sentence and noticeFor() is what chooses between them — rendering the absent one would tell a reader nothing is connected while a stand-in answers, on the page that exists to be trusted about exactly that.');
 }
 
+/* ==== The fulfilment and safety seams, simulated ================================================
+   ==== One block, so a merge with the money/identity and care/dispatch seams is one hunk. ========
+
+   Five simulated suppliers: a pharmacy network, an interpreter roster, an acknowledgement channel,
+   a screening model and an instrument. What is checked here is not that they work — a fixture that
+   works is the easy half and it is also the hazard. What is checked is that each one refuses, in
+   the contract's own words, everything its contract says it refuses.
+
+   The strongest check in here is the last one of the first group: **every sentence in a
+   capability's `simulation.refuses` must be looked up by its own simulator.** A refusal that is
+   written down and not enforced is the shape of every readiness claim capabilities.json exists to
+   refuse — it reads like a control and it is a paragraph. So the sentences and the code that
+   enforces them are held together in both directions: no simulator may refuse in words the contract
+   has stopped using, and no contract sentence may sit there unenforced. */
+const SIMULATION_DIR = 'apps/api/src/simulation';
+/* The five this block owns. Named rather than derived from "every simulated capability", because
+   the other seams are landing in parallel and a check that fails on somebody else's unfinished work
+   is a check that gets deleted. */
+const FULFILMENT_AND_SAFETY = {
+ dispensing: 'pharmacy.ts',
+ interpreting: 'interpreters.ts',
+ emergency: 'emergency.ts',
+ screening: 'screening.ts',
+ devices: 'instrument.ts'
+};
+const seamContract = JSON.parse(read('packages/catalog/feeds.json'));
+/* One refusal in these five is not its simulator's to enforce and could not be: a TypeScript module
+   cannot declare an Android permission or an iOS usage description, and a module that tried would be
+   working around the whitelist rather than honouring it. The build holds that one, and the exemption
+   is written down here — with the check that actually holds it named, and asserted to still exist —
+   rather than left as a silent hole in the loop below. There is exactly one, and adding a second is
+   meant to feel like the decision it is. */
+const HELD_BY_THE_BUILD = {
+ 'Declare a device permission on either native app.': 'and its own simulation refuses to declare one'
+};
+const thisFile = read('scripts/check-boundaries.mjs');
+for (const [sentence, evidence] of Object.entries(HELD_BY_THE_BUILD)) {
+ /* Counted rather than found, because the map above is in this file too and `includes` would be
+    satisfied by the exemption citing itself. Two occurrences: the citation, and the check it cites. */
+ const occurrences = thisFile.split(evidence).length - 1;
+ if (occurrences < 2) throw new Error(`"${sentence}" is exempted from its simulator on the grounds that this file enforces it, and the check that did has gone. An exemption whose evidence has been deleted is the refusal deleted with an extra step.`);
+}
+for (const [capabilityId, file] of Object.entries(FULFILMENT_AND_SAFETY)) {
+ const path = `${SIMULATION_DIR}/${file}`;
+ if (!existsSync(path)) throw new Error(`${path} is missing, and packages/catalog/capabilities.json marks "${capabilityId}" simulated. A capability in the simulated state with nothing behind it is the third state used as a label, which is the one thing it was added not to be.`);
+ const source = read(path);
+ const capability = capabilities.capabilities.find(c => c.id === capabilityId);
+ if (!capability) throw new Error(`packages/catalog/capabilities.json has no "${capabilityId}" capability, and ${path} stands behind it.`);
+ /* That it is in the simulated state, carries a simulation block with a supplier and a notice, and
+    refuses at least one thing, is already held further up this file for every capability at once.
+    Not repeated here: a second copy of a check is a second thing to correct on the day the first is. */
+ const refuses = capability.simulation?.refuses ?? [];
+ /* The file has to say which capability it is, in a form this can read. */
+ const declared = /const CAPABILITY = '([a-z-]+)'/.exec(source);
+ if (!declared || declared[1] !== capabilityId) throw new Error(`${path} does not declare \`const CAPABILITY = '${capabilityId}'\`, so nothing can check its refusals against the contract's.`);
+
+ /* Every sentence looked up, and every lookup finding exactly one sentence. Both directions. */
+ const lookups = [...source.matchAll(/refusalSaying\(CAPABILITY,\s*\/(.+?)\/([a-z]*)\)/g)].map(m => new RegExp(m[1], m[2]));
+ if (!lookups.length) throw new Error(`${path} never looks a refusal up out of packages/catalog/capabilities.json. A sentence typed into a TypeScript file is word for word only until somebody edits the contract.`);
+ for (const pattern of lookups) {
+  const matched = refuses.filter(sentence => pattern.test(sentence));
+  if (matched.length !== 1) throw new Error(`${path} refuses on ${pattern}, which matches ${matched.length} of the "${capabilityId}" capability's refusal sentences. A refusal that matches none is one no screen renders; one that matches two is a simulator choosing between them.`);
+ }
+ for (const sentence of refuses) {
+  if (HELD_BY_THE_BUILD[sentence]) continue;
+  if (!lookups.some(pattern => pattern.test(sentence))) throw new Error(`The "${capabilityId}" simulation says it refuses to "${sentence}" and ${path} never enforces it. A refusal written down and not enforced reads like a control and is a paragraph — which is the shape of every readiness claim packages/catalog/capabilities.json exists to refuse.`);
+ }
+
+ /* A simulator that answers a feed must put its payload through the door it stands in front of.
+    Eyeballing a JSON literal against a schema is how a simulator ends up teaching the product a
+    shape no supplier will ever send. `devices` answers no feed — see the noSeam check below. */
+ const feed = seamContract.feeds.find(f => f.capabilities.includes(capabilityId));
+ if (feed) {
+  if (!source.includes('mustPassTheSeam')) throw new Error(`${path} answers the ${feed.id} feed and never puts its payload through it. The check is not ceremony: the day the door's idea of a forbidden field and the simulator's idea of one drift apart, the simulator goes on producing a payload the real seam would turn away and the product gets built against it.`);
+  if (!source.includes(`'${feed.id}'`)) throw new Error(`${path} does not name the "${feed.id}" feed it stands in front of.`);
+ }
+}
+
+/* No radio, anywhere under here. The devices simulation refuses to open a Bluetooth or eSIM session
+   and the honest form of that refusal is that there is nothing in this directory that could — the
+   service has no dependencies, so the only way one arrives is a platform API named by hand. Matched
+   on identifiers rather than on the word, because both file headers have to be able to say what
+   they will not do. */
+const RADIO_APIS = /\b(navigator\.bluetooth|requestDevice|BluetoothDevice|BluetoothAdapter|BluetoothGatt|CBCentralManager|CBPeripheral|EuiccManager|CTCellularPlanProvisioning|noble|bleno)\b/;
+if (existsSync(SIMULATION_DIR)) {
+ for (const entry of readdirSync(SIMULATION_DIR)) {
+  if (!entry.endsWith('.ts')) continue;
+  const found = RADIO_APIS.exec(read(`${SIMULATION_DIR}/${entry}`));
+  if (found) throw new Error(`${SIMULATION_DIR}/${entry} names ${found[1]}. A simulated instrument that opens a radio session is not a simulated instrument, and the capability tells a nurse in its own words that no Bluetooth session is opened and no device is contacted.`);
+ }
+}
+
+/* A capability whose simulation refuses to declare a permission may not name one. The whitelist
+   above already refuses a permission no capability claims; this is the other end of it — the
+   capability that promised not to ask cannot be the one that quietly starts. */
+for (const capability of capabilities.capabilities) {
+ const refusesPermissions = (capability.simulation?.refuses ?? []).some(sentence => /permission/i.test(sentence));
+ if (refusesPermissions && (capability.requiresPermissions ?? []).length) {
+  throw new Error(`Capability "${capability.id}" names ${capability.requiresPermissions.join(', ')} under requiresPermissions and its own simulation refuses to declare one. Both apps tell a person nothing here asks the device for anything, and that sentence is a special case of a silence that is currently total.`);
+ }
+}
+
+/* `devices` has no feed route and this is where that stays true. feeds.json argues it out under
+   noSeam: the seam is apps/api/src/capture/**, device binding is what is missing rather than a
+   schema, and a second ingestion boundary beside the first would be two places to get the same
+   thing wrong. So no feed may claim the capability and no simulator may name one for it. */
+for (const noSeam of seamContract.noSeam) {
+ const claimed = seamContract.feeds.find(feed => feed.capabilities.includes(noSeam.capability));
+ if (claimed) throw new Error(`Feed "${claimed.id}" answers for "${noSeam.capability}", which packages/catalog/feeds.json says has no seam: ${noSeam.decision} Overruling that is a decision, not a schema change.`);
+ if (!existsSync(SIMULATION_DIR)) continue;
+ for (const entry of readdirSync(SIMULATION_DIR)) {
+  if (!entry.endsWith('.ts')) continue;
+  const source = read(`${SIMULATION_DIR}/${entry}`);
+  if (new RegExp(`feed:\\s*['"]${noSeam.capability}['"]`).test(source)) throw new Error(`${SIMULATION_DIR}/${entry} registers a feed for "${noSeam.capability}", which has none. ${noSeam.why}`);
+ }
+}
+
+/* ---- The emergency seam, checked harder than the other four -----------------------------------
+
+   This is the one capability where a convincing simulation is dangerous rather than merely
+   misleading. 10177, 112 and 10111 reach real people. A person reading that screen may be about to
+   need an ambulance, and a simulated acknowledgement — a partner id, a timestamp, the word
+   "accepted" — is exactly the thing that would keep them looking at a phone instead of dialling. */
+const emergencySimulator = read(`${SIMULATION_DIR}/emergency.ts`);
+/* It refuses about the numbers before it works anything else out. If the state were read first, a
+   caller who had shown nobody a number would get an argument about a state instead of a refusal —
+   and a simulator that works out what it would have said before deciding whether to say it is one
+   refactor away from saying it. */
+const produceBody = emergencySimulator.slice(emergencySimulator.indexOf('function produce(request'));
+const numbersFirst = produceBody.indexOf('until the real numbers have been shown');
+const decidesAnything = Math.min(
+ ...['const state =', 'const at =', 'const rand =', 'produced('].map(marker => {
+  const at = produceBody.indexOf(marker);
+  return at < 0 ? Number.MAX_SAFE_INTEGER : at;
+ })
+);
+if (numbersFirst < 0) throw new Error(`${SIMULATION_DIR}/emergency.ts no longer refuses to answer until the real numbers have been shown. That refusal is the reason the file exists.`);
+if (numbersFirst > decidesAnything) throw new Error(`${SIMULATION_DIR}/emergency.ts decides something before it asks whether the emergency numbers have been shown. The order is the refusal: nothing is worked out before they are on the screen, because a simulator that has already worked out its answer is one refactor away from returning it.`);
+/* The two states it may never produce. Both are assertions about a vehicle in the world, neither is
+   true, and neither can be made true by a fixture. The seam declares five and this takes two off. */
+const acknowledgementFeed = seamContract.feeds.find(feed => feed.id === 'emergency-acknowledgement');
+if (!acknowledgementFeed) throw new Error('packages/catalog/feeds.json no longer declares the emergency-acknowledgement seam.');
+const stateField = acknowledgementFeed.accepts.find(accepted => accepted.field === 'state');
+const producible = /PRODUCIBLE_STATES: readonly string\[\] = \[([^\]]*)\]/.exec(emergencySimulator)?.[1] ?? '';
+const claims = /CLAIMS_AN_AMBULANCE: readonly string\[\] = \[([^\]]*)\]/.exec(emergencySimulator)?.[1] ?? '';
+for (const claim of ['en-route', 'arrived']) {
+ if (!stateField?.why.includes(claim)) throw new Error(`The emergency-acknowledgement seam no longer names "${claim}" among its states, and the simulator is written to refuse it by name.`);
+ if (!claims.includes(`'${claim}'`)) throw new Error(`${SIMULATION_DIR}/emergency.ts no longer refuses to produce "${claim}". It is an assertion that a vehicle is moving toward a house, nothing is, and a screen showing that word next to an address is the failure this pathway is arranged against.`);
+ if (producible.includes(`'${claim}'`)) throw new Error(`${SIMULATION_DIR}/emergency.ts can produce "${claim}". Nothing is coming, and a simulated acknowledgement saying it is, is the one defect on this pathway that costs somebody more than time.`);
+}
+/* And the screens. The ambulance block is rendered before the capability's own notice on all three,
+   because on this one pathway the number outranks anything MyThuso has to say about itself —
+   including the sentence saying the acknowledgement is simulated. The existing check above holds
+   the block above anything MyThuso *sells*; this holds it above what MyThuso *says*. */
+const emergencyNotices = {
+ web: ['apps/web/src/features/Sos.tsx', '<EmergencyFirst/>', '<NotConnected of="emergency"/>'],
+ ios: ['apps/ios/MyThuso/Features/SosView.swift', 'emergencyFirst', 'CapabilityNotice(of: "emergency")'],
+ android: ['apps/android/app/src/main/java/za/co/mythuso/ui/SosScreens.kt', 'EmergencyFirst()', 'NotConnected("emergency")']
+};
+for (const [platform, [file, first, notice]] of Object.entries(emergencyNotices)) {
+ const source = read(file);
+ const noticeAt = source.indexOf(notice);
+ if (noticeAt < 0) throw new Error(`The ${platform} emergency screen renders no capability notice (${file}). The acknowledgement behind it is simulated, and a screen that is quieter for being simulated than it was for being absent is the disclosure failure — silence, not a lie.`);
+ if (source.indexOf(first) > noticeAt) throw new Error(`The ${platform} emergency screen puts the simulation notice above the ambulance number (${file}). Nothing MyThuso says about itself goes above 10177, and that includes saying it is not real.`);
+}
+/* Nothing composed reaches the one free-text field the seam has. `reason` is where a claim about an
+   ambulance would arrive, so a stand-down carries the stand-down's own label out of sos.json and
+   everything else carries nothing. */
+if (!/reason = state === 'stood-down'/.test(emergencySimulator)) throw new Error(`${SIMULATION_DIR}/emergency.ts composes the free-text field on an emergency acknowledgement. That field is where "help is on the way" arrives; the only words allowed in it are ones packages/catalog/sos.json already wrote.`);
+
+/* ---- The screening seam ------------------------------------------------------------------------
+
+   An urgent screening result is a claim that somebody should stop and act, and the only list this
+   product has of things worth stopping for is the eight conditions that end the questions on the
+   emergency pathway. A simulator that could invent a ninth would be a screening layer deciding for
+   itself what is worth an ambulance, which is the triage this product refuses to do. */
+const screeningSimulator = read(`${SIMULATION_DIR}/screening.ts`);
+if (!/sos\.redFlags\.conditions/.test(screeningSimulator)) throw new Error(`${SIMULATION_DIR}/screening.ts no longer reads its red flags out of packages/catalog/sos.json. An urgency naming something outside those eight is an urgency this product invented for itself.`);
+if (!/records\.observations\.measures/.test(screeningSimulator)) throw new Error(`${SIMULATION_DIR}/screening.ts no longer reads the reference ranges out of packages/catalog/records.json. A range typed into a simulator is the eighth copy of a number that decides whether a reading reaches a doctor.`);
+
+/* ---- The dispensing seam -----------------------------------------------------------------------
+
+   Section 22F's four exceptions are exceptions to the duty to substitute. A simulator that let one
+   of them through would have turned an exception into a permission, which is the sentence the
+   substitution register itself is already held to. */
+const pharmacySimulator = read(`${SIMULATION_DIR}/pharmacy.ts`);
+if (!/ground\.class !== 'must-not'/.test(pharmacySimulator)) throw new Error(`${SIMULATION_DIR}/pharmacy.ts no longer decides what may be substituted from the class packages/catalog/dispensing.json puts the ground in. A second table of what may be swapped is a second thing to get wrong about the Act.`);
+if (!/item\.molecule/.test(pharmacySimulator) || !/item\.strength/.test(pharmacySimulator)) throw new Error(`${SIMULATION_DIR}/pharmacy.ts no longer checks the dispensed item against the prescribed molecule and strength. Changing one of those is prescribing, done by somebody who is not a prescriber.`);
+
+
 /* ---- The eleven doors that are all locked ------------------------------------------------------
 
    packages/catalog/feeds.json describes, for each capability blocked on a supplier nobody has
