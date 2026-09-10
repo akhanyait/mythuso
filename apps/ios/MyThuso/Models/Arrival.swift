@@ -30,10 +30,12 @@ import Foundation
  * is connected; a straight line through Johannesburg is optimistic by roughly a third and knows
  * nothing about the M1, a school run or the visit she is finishing first.
  *
- * WHAT BELONGS IN A CONTRACT AND IS NOT THERE YET. The refusal sentences below, and the fact that a
- * nurse is Sister Naledi Mokoena working out of Rosebank — that fixture is typed into DispatchView
- * as well, where she is nurse N-205, the id the vetting register holds, and two copies of a person is exactly the drift
- * packages/catalog exists to stop. Both are reported rather than invented a third time.
+ * WHAT BELONGS IN A CONTRACT AND IS NOT THERE YET. The seven sentences below have gone: they are
+ * packages/catalog/geography.json's, read through GeographyData. What is left is the fixture — a
+ * nurse is Sister Naledi Mokoena working out of Rosebank — which is typed into DispatchView as
+ * well, where she is nurse N-205, the id the vetting register holds, and two copies of a person is
+ * exactly the drift packages/catalog exists to stop. It is reported rather than invented a third
+ * time.
  *
  * Nothing here reads a device. dispatch is not connected, the positions are the contract's own zone
  * centres, and no location permission is declared by this target — a boundary check fails the build
@@ -54,17 +56,23 @@ enum Arrival {
                                      initials: "SN", area: "Rosebank")
 
     /* The sentences a patient is owed when there is nothing to show. Each says what is refused and
-       leaves the reader somewhere to stand, which is the difference between a state and a blank. */
+       leaves the reader somewhere to stand, which is the difference between a state and a blank.
+
+       They were typed here, and again in the Kotlin, and again in apps/web/src/lib/arrival.ts. They
+       are the geography contract's now and reach this app through the generated GeographyData —
+       four of them refusals and three of them privacy rules, which is the split the contract
+       already makes rather than one invented here: a refusal is what one particular state says, a
+       rule is what this screen is not, wherever the reader happens to be standing. */
     enum Refusal {
-        static let anotherDay = "Nobody is on the way yet, so there is nothing to follow. You will see where she is on the day of your visit."
+        static var anotherDay: String { Geography.refusal("nobody-on-the-way-yet").sentence }
         /* The rule behind that, said once, in the list of what this screen is not — rather than
            repeated verbatim under the figure it has already explained. */
-        static let onlyOnTheDay = "MyThuso shows you where a nurse is on the day of your visit and not before. A nurse’s whereabouts between visits is her own, in the same way your address is yours."
-        static let noWindow = "This visit has no time yet, so there is nobody assigned to be on the way. When a nurse accepts it you will be told who is coming and when."
-        static let finished = "This visit is not ahead of you, so there is nothing to follow. What happened at it is in the visit itself."
-        static let notAnArrivalTime = "This is not an arrival time. It is the distance between two suburbs, divided by a speed — it does not know the traffic, the road, or the visit she is finishing first."
-        static let noDoorstep = "A nurse is drawn in the suburb she is working in, and your visit is drawn in the centre of yours — at both ends, at every zoom."
-        static let nothingIsMeasured = "Nothing on this screen is being measured. No nurse’s device is read, no arrival is timed against your window, and nobody has been told you are watching."
+        static var onlyOnTheDay: String { Geography.rule("only-on-the-day").statement }
+        static var noWindow: String { Geography.refusal("no-window-no-nurse").sentence }
+        static var finished: String { Geography.refusal("visit-behind-you").sentence }
+        static var notAnArrivalTime: String { Geography.refusal("not-an-arrival-time").sentence }
+        static var noDoorstep: String { Geography.rule("no-doorstep-at-either-end").statement }
+        static var nothingIsMeasured: String { Geography.rule("nothing-is-measured").statement }
     }
 
     /// Which list a visit is in. The screen behaves differently for a visit behind you, and it
@@ -198,6 +206,6 @@ enum Arrival {
     /// enough to find a door.
     static var precisionSentence: String { Geography.precisionSentence }
     static var coverageSentence: String { Geography.coverageSentence }
-    static var addressRule: Geography.GeographyRule { Geography.privacyRules.first { $0.id == "address-is-not-a-pin" }! }
-    static var historyRule: Geography.GeographyRule { Geography.privacyRules.first { $0.id == "no-history-drawn" }! }
+    static var addressRule: Geography.GeographyRule { Geography.rule("address-is-not-a-pin") }
+    static var historyRule: Geography.GeographyRule { Geography.rule("no-history-drawn") }
 }

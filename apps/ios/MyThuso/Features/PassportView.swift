@@ -133,7 +133,7 @@ struct PassportView: View {
     }
     private var hero: some View {
         ZStack(alignment: .leading) {
-            LinearGradient(colors: [ThusoTheme.ink, ThusoTheme.charcoal], startPoint: .topLeading, endPoint: .bottomTrailing)
+            NightPanel()
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
                     StatusPill(text: "Thuso Pass", tone: "light")

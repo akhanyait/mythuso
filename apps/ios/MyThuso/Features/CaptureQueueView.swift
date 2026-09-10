@@ -103,21 +103,23 @@ struct CaptureQueueView: View {
     }
 
     /* Accurate, itemised, and it names what it does not do. A promise a screen cannot keep is
-       worse than no promise, and “your data is safe” is the emptiest sentence in software. */
+       worse than no promise, and “your data is safe” is the emptiest sentence in software.
+
+       The six sentences were typed here. They are packages/catalog/capture.json's now, read through
+       the generated CaptureData by the store's own id — so the promise a nurse reads on this screen
+       and the promise the Android queue makes about the same behaviour are one promise, compared by
+       a check rather than by whoever happens to read both files. */
     @ViewBuilder private var whatItSurvives: some View {
+        let ledger = CaptureData.store("ios-capture-ledger")
         CareCard {
             Label("What this store survives", systemImage: "externaldrive")
                 .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            ForEach(["A crash or a force-quit. Every entry is written at the moment it is taken, not when the app closes.",
-                     "A restart of the phone.",
-                     "A sign-out. This preview’s sign-out returns to the first-run flow and never touches the file — the entries belong to the work, not to the session."], id: \.self) { line in
-                Label(line, systemImage: "checkmark").font(.caption).foregroundStyle(ThusoTheme.charcoal)
+            ForEach(ledger?.saysSurvives ?? [], id: \.self) { line in
+                Label(line, systemImage: "checkmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
             }
             Divider().overlay(ThusoTheme.stone)
-            ForEach(["Deleting the app. iOS removes the file with it, and nothing here can prevent that.",
-                     "Losing the phone. The file is deliberately kept out of device backups, because a queue of readings is special personal information and syncing it into somebody’s laptop backup is a disclosure nobody consented to. The answer to a lost phone is to send, not to back up.",
-                     "A second device. Nothing is shared between phones; there is no server in this build to share it through."], id: \.self) { line in
-                Label(line, systemImage: "xmark").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            ForEach(ledger?.saysLostTo ?? [], id: \.self) { line in
+                Label(line, systemImage: "xmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
         }
     }

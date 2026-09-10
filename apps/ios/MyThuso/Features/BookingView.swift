@@ -468,7 +468,7 @@ struct VisitsView: View {
     }
     private var promo: some View {
         ZStack(alignment: .bottomTrailing) {
-            LinearGradient(colors: [ThusoTheme.ink, ThusoTheme.charcoal], startPoint: .topLeading, endPoint: .bottomTrailing)
+            NightPanel()
             Image("Family").resizable().scaledToFit().frame(height: 150).accessibilityHidden(true)
                 .frame(maxWidth: .infinity, alignment: .trailing)
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {

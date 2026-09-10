@@ -1,5 +1,19 @@
 import SwiftUI
 
+/* First run, and the screen somebody uses when they have lost the phone it ran on.
+ *
+ * Both were system `Form`s, which on a six-step wizard has a specific cost: a `Form` gives the
+ * grouped-row treatment to the step somebody is on, the standing disclosure, and the button they
+ * are aiming for, all at the same weight — so on the step that asks for a phone number the sentence
+ * saying no account is created was one grey row among four. The step is a lead panel now, the
+ * disclosure is quiet, and the button is the only full-width charcoal thing on the screen.
+ *
+ * The recovery routes were the other defect worth naming. Three ways back into an account, each
+ * with a wait attached, were three rows behind a twenty-point radio button — and the difference
+ * between "about 2 minutes" and "same day, during opening hours" is the whole of the decision
+ * somebody locked out of their own health record is making. They are ChoiceCards, the wait is the
+ * footnote line, and the card is the target. */
+
 struct OnboardingView: View {
     @EnvironmentObject private var store: PreviewStore
     @Environment(\.dismiss) private var dismiss
@@ -16,112 +30,146 @@ struct OnboardingView: View {
     private let steps = ["Welcome", "Your number", "Verify", "Identity", "Recovery", "Consent"]
     private var phoneOk: Bool { phone.filter(\.isNumber).count == 10 && phone.hasPrefix("0") }
     private var idCheck: (ok: Bool, message: String) { validateSaId(idNumber) }
+
     var body: some View {
         NavigationStack {
-            Form {
-                /* The sentence saying no account is created was at the foot of a six-step form, so
-                   on the step that asks for a phone number it was below the fold. It is still there;
-                   the standing disclosure is now also at the top, where it is read first. */
-                Section { DemoBadge().listRowBackground(Color.clear) }
-                Section { StepDots(step: step + 1, total: steps.count, label: steps[step]) }
-                switch step {
-                case 0: welcome
-                case 1: number
-                case 2: verify
-                case 3: identity
-                case 4: recovery
-                default: consent
+            ScrollView {
+                VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
+                    /* The sentence saying no account is created was at the foot of a six-step form,
+                       so on the step that asks for a phone number it was below the fold. It is
+                       still at the foot; the standing disclosure is also at the top, read first. */
+                    DemoBadge()
+                    SurfaceHeading(eyebrow: "Set up MyThuso", title: steps[step])
+                    SurfacePanel(tone: .quiet, padding: ThusoSpacing.space16) {
+                        StepDots(step: step + 1, total: steps.count, label: steps[step])
+                    }
+                    switch step {
+                    case 0: welcome
+                    case 1: number
+                    case 2: verify
+                    case 3: identity
+                    case 4: recovery
+                    default: consent
+                    }
+                    Text("Nothing you type here leaves your device. This preview creates no account.")
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Section { Text("Nothing you type here leaves your device. This preview creates no account.").font(.caption).foregroundStyle(.secondary) }
+                .padding(.vertical, ThusoSpacing.space16)
             }
+            .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
+            .thusoGround()
             .navigationTitle("Set up MyThuso")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Skip") { dismiss() } } }
         }
     }
+
     @ViewBuilder private var welcome: some View {
-        Section("Choose your language") {
-            Picker("Language", selection: $store.locale) {
-                ForEach(ThusoLocale.allCases) { option in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(option.native)
-                        Text(option.reviewLabel).font(.caption2).foregroundStyle(.secondary)
-                    }.tag(option)
-                }
-            }.pickerStyle(.inline).labelsHidden()
+        SurfacePanel(tone: .lead) {
+            PanelHead("Choose your language")
+            PickRow(label: "Language", selection: $store.locale,
+                    options: ThusoLocale.allCases.map { ($0, "\($0.native) · \($0.reviewLabel)") })
             if let notice = store.locale.reviewNotice {
-                Label(notice, systemImage: "exclamationmark.triangle").font(.caption)
+                Label(notice, systemImage: "exclamationmark.triangle")
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Text(ThusoLanguageNotes.clinicalRule).font(.caption).foregroundStyle(.secondary)
+            Text(ThusoLanguageNotes.clinicalRule).font(.footnote)
+                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
         }
-        Section {
-            Button("Create my account") { step = 1 }
-            NavigationLink("I’ve lost access to my account") { RecoverAccessView() }
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            Button("Create my account") { step = 1 }.buttonStyle(CareButton())
+            NavigationLink { RecoverAccessView() } label: {
+                NavPillLabel(title: "I’ve lost access to my account", symbol: "key")
+            }.buttonStyle(.plain)
         }
     }
+
     @ViewBuilder private var number: some View {
-        Section("What’s your number?") {
-            TextField("082 000 0000", text: $phone).keyboardType(.numberPad).textContentType(.telephoneNumber)
-            Text(phone.isEmpty || phoneOk ? "We’ll send a one-time code. Standard network rates apply." : "Enter a 10-digit South African mobile number, starting with 0.")
-                .font(.caption).foregroundStyle(phone.isEmpty || phoneOk ? Color.secondary : Color.red)
+        SurfacePanel(tone: .lead) {
+            PanelHead("What’s your number?")
+            WriteField(label: "Mobile number", text: $phone, hint: "082 000 0000",
+                       note: phone.isEmpty || phoneOk ? "We’ll send a one-time code. Standard network rates apply."
+                                                      : "Enter a 10-digit South African mobile number, starting with 0.",
+                       wrong: !phone.isEmpty && !phoneOk,
+                       keyboard: .numberPad, contentType: .telephoneNumber)
         }
-        Section {
-            Button("Send my code") { code = ""; codeError = ""; step = 2 }.disabled(!phoneOk)
-            Button("Back") { step = 0 }
-        }
+        stepButtons(forward: "Send my code", enabled: phoneOk, action: { code = ""; codeError = ""; step = 2 },
+                    backTitle: "Back", back: 0)
     }
+
     @ViewBuilder private var verify: some View {
-        Section("Check your messages") {
-            Text("In this preview the code is 240924.").font(.caption).foregroundStyle(.secondary)
-            CodeBoxes(code: $code, invalid: !codeError.isEmpty, label: "Verification code").listRowInsets(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
-            if !codeError.isEmpty { Text(codeError).font(.caption).foregroundStyle(.red) }
-        }
-        Section {
-            Button("Verify") { code == "240924" ? step = 3 : (codeError = "That code doesn’t match. Check the message and try again.") }.disabled(code.count < 6)
-            Button("Use a different number") { step = 1 }
-        }
-    }
-    @ViewBuilder private var identity: some View {
-        Section("Let’s confirm it’s you") {
-            TextField("13-digit SA ID number", text: $idNumber).keyboardType(.numberPad)
-            Text(idNumber.isEmpty ? "Use a fictional number for this preview — for example 8001015009087." : idCheck.message)
-                .font(.caption).foregroundStyle(idNumber.isEmpty || idCheck.ok ? Color.secondary : Color.red)
-            Text("Production verification runs against the Department of Home Affairs through an accredited provider, with a documented lawful basis. Nothing is verified here.").font(.caption).foregroundStyle(.secondary)
-        }
-        Section {
-            Button("Continue") { step = 4 }.disabled(!idCheck.ok)
-            Button("I don’t have an SA ID number") { step = 4 }
-            Button("Back") { step = 2 }
-        }
-    }
-    @ViewBuilder private var recovery: some View {
-        Section("If you ever lose your phone") {
-            Picker("Trusted contact", selection: $trusted) {
-                Text("Nomsa Molefe · Mother").tag("Nomsa Molefe · Mother")
-                Text("Thabo Molefe · Son").tag("Thabo Molefe · Son")
-                Text("I’ll add someone later").tag("I’ll add someone later")
+        SurfacePanel(tone: .lead) {
+            PanelHead("Check your messages", note: "In this preview the code is 240924.")
+            CodeBoxes(code: $code, invalid: !codeError.isEmpty, label: "Verification code")
+            if !codeError.isEmpty {
+                Text(codeError).font(.footnote).foregroundStyle(ThusoTheme.danger)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            TextField("Recovery word", text: $recoveryWord)
-            Text("Choose something memorable that isn’t your name, birthday or a family name. A trusted contact can start recovery for you — they never see your records, and you are told every time recovery is attempted.").font(.caption).foregroundStyle(.secondary)
         }
-        Section {
-            Button("Continue") { step = 5 }.disabled(recoveryWord.trimmingCharacters(in: .whitespaces).count < 3)
-            Button("Back") { step = 3 }
+        stepButtons(forward: "Verify", enabled: code.count >= 6,
+                    action: { code == "240924" ? step = 3 : (codeError = "That code doesn’t match. Check the message and try again.") },
+                    backTitle: "Use a different number", back: 1)
+    }
+
+    @ViewBuilder private var identity: some View {
+        SurfacePanel(tone: .lead) {
+            PanelHead("Let’s confirm it’s you")
+            WriteField(label: "SA ID number", text: $idNumber, hint: "13 digits",
+                       note: idNumber.isEmpty ? "Use a fictional number for this preview — for example 8001015009087." : idCheck.message,
+                       wrong: !idNumber.isEmpty && !idCheck.ok, keyboard: .numberPad)
+            Text("Production verification runs against the Department of Home Affairs through an accredited provider, with a documented lawful basis. Nothing is verified here.")
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            Button("Continue") { step = 4 }.buttonStyle(CareButton()).disabled(!idCheck.ok)
+            /* Not a lesser route. Roughly one adult in ten in this country cannot produce an ID
+               number on demand, and a sign-up that stops there is a sign-up that has excluded them. */
+            Button("I don’t have an SA ID number") { step = 4 }.buttonStyle(QuietButton())
+            Button("Back") { step = 2 }.buttonStyle(QuietButton())
         }
     }
-    @ViewBuilder private var consent: some View {
-        Section("Your choices, before we start") {
-            Toggle("I agree to MyThuso arranging home visits and holding the health information from them. (Required)", isOn: $consentCare)
-            Toggle("I have read how my information is used, stored and deleted under POPIA. (Required)", isOn: $consentPopia)
-            Toggle("Send me optional health tips and product news.", isOn: $consentUpdates)
-            Text("Consent is recorded with its version, wording and timestamp so you can see exactly what you agreed to, and withdraw it later.").font(.caption).foregroundStyle(.secondary)
+
+    @ViewBuilder private var recovery: some View {
+        SurfacePanel(tone: .lead) {
+            PanelHead("If you ever lose your phone")
+            PickRow(label: "Trusted contact", selection: $trusted,
+                    options: ["Nomsa Molefe · Mother", "Thabo Molefe · Son", "I’ll add someone later"].map { ($0, $0) })
+            WriteField(label: "Recovery word", text: $recoveryWord, hint: "Something only you would choose",
+                       note: "Choose something memorable that isn’t your name, birthday or a family name. A trusted contact can start recovery for you — they never see your records, and you are told every time recovery is attempted.")
         }
-        Section {
-            Button("Enter MyThuso") { dismiss() }.disabled(!consentCare || !consentPopia)
-            Button("Back") { step = 4 }
+        stepButtons(forward: "Continue", enabled: recoveryWord.trimmingCharacters(in: .whitespaces).count >= 3,
+                    action: { step = 5 }, backTitle: "Back", back: 3)
+    }
+
+    @ViewBuilder private var consent: some View {
+        SurfacePanel(tone: .lead) {
+            PanelHead("Your choices, before we start")
+            AgreeRow(text: "I agree to MyThuso arranging home visits and holding the health information from them. (Required)", on: $consentCare)
+            Hairline()
+            AgreeRow(text: "I have read how my information is used, stored and deleted under POPIA. (Required)", on: $consentPopia)
+            Hairline()
+            AgreeRow(text: "Send me optional health tips and product news.", on: $consentUpdates)
+            Text("Consent is recorded with its version, wording and timestamp so you can see exactly what you agreed to, and withdraw it later.")
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        stepButtons(forward: "Enter MyThuso", enabled: consentCare && consentPopia,
+                    action: { dismiss() }, backTitle: "Back", back: 4)
+    }
+
+    @ViewBuilder private func stepButtons(forward: String, enabled: Bool, action: @escaping () -> Void,
+                                          backTitle: String, back: Int) -> some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            Button(forward, action: action).buttonStyle(CareButton()).disabled(!enabled)
+            Button(backTitle) { step = back }.buttonStyle(QuietButton())
         }
     }
 }
+
 struct RecoverAccessView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var route = ""
@@ -132,37 +180,43 @@ struct RecoverAccessView: View {
         ("In person at a Thuso Corner", "Bring your ID to a community site. Used when a number and a trusted contact are both gone.", "Same day, during opening hours")
     ]
     var body: some View {
-        Form {
-            if submitted {
-                Section {
-                    Label("We’ve started your recovery", systemImage: "checkmark.seal.fill").foregroundStyle(ThusoTheme.charcoal)
-                    LabeledContent("Reference", value: "REC-0042 · Demo")
-                    LabeledContent("Indicative wait", value: routes.first { $0.0 == route }?.2 ?? "")
-                    Text("Nothing was submitted. Production recovery is rate-limited, audited and reversible for a cooling-off period.").font(.caption).foregroundStyle(.secondary)
-                }
-                Section { Button("Done") { dismiss() } }
-            } else {
-                Section("How can we reach you?") {
-                    ForEach(routes, id: \.0) { option in
-                        Button { route = option.0 } label: {
-                            HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                                Image(systemName: route == option.0 ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.charcoal)
-                                VStack(alignment: .leading, spacing: 5) {
-                                    Text(option.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                                    Text(option.1).font(.caption).foregroundStyle(.secondary)
-                                    Text(option.2).font(.caption2).foregroundStyle(ThusoTheme.charcoal)
-                                }
-                            }
-                        }
-                        .accessibilityAddTraits(route == option.0 ? [.isSelected] : [])
-                    }
-                }
-                Section {
-                    Button("Start recovery") { submitted = true }.disabled(route.isEmpty)
-                    Text("Recovery never reveals your records to the person helping you.").font(.caption).foregroundStyle(.secondary)
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
+                if submitted { started } else { choose }
             }
+            .padding(.vertical, ThusoSpacing.space16)
         }
+        .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
+        .thusoGround()
         .navigationTitle("Account recovery").navigationBarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder private var started: some View {
+        SurfaceHeading(eyebrow: "Account recovery", title: "We’ve started your recovery")
+        SurfacePanel(tone: .lead) {
+            FactRow(label: "Reference", value: "REC-0042 · Demo")
+            FactRow(label: "Indicative wait", value: routes.first { $0.0 == route }?.2 ?? "")
+            Text("Nothing was submitted. Production recovery is rate-limited, audited and reversible for a cooling-off period.")
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        Button("Done") { dismiss() }.buttonStyle(CareButton())
+    }
+
+    @ViewBuilder private var choose: some View {
+        SurfaceHeading(eyebrow: "Account recovery", title: "How can we reach you?")
+        /* The wait is the footnote on each card rather than the smallest line in a grouped row.
+           Somebody locked out of their own health record is choosing between two minutes and a
+           trip across town, and that is the whole of the decision. */
+        ForEach(routes, id: \.0) { option in
+            ChoiceCard(title: option.0, detail: option.1, footnote: option.2,
+                       chosen: route == option.0) { route = option.0 }
+        }
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            Button("Start recovery") { submitted = true }.buttonStyle(CareButton()).disabled(route.isEmpty)
+            Text("Recovery never reveals your records to the person helping you.")
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }

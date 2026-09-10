@@ -105,10 +105,17 @@ struct StatePicker: View {
                     .pickerStyle(.segmented).labelsHidden()
             }.padding(.top, ThusoSpacing.space8)
         } label: {
+            /* A DisclosureGroup publishes its label's height as the control's, and two words at
+               .caption came back twenty-two points — half a target, and the only way into the
+               state a reviewer opened the screen to see. The frame is on the label rather than on
+               the group, because the group's frame is the whole expanded panel. */
             HStack(spacing: ThusoSpacing.space8) {
-                Text("Preview states").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text("Preview states").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 if state != .ready { StatusPill(text: state.rawValue, tone: "amber") }
+                Spacer(minLength: 0)
             }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .padding(ThusoSpacing.space12)
         .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))

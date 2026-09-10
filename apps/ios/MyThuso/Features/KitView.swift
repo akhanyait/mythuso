@@ -54,13 +54,13 @@ struct ThusoKitView: View {
                     CareCard {
                         RefusalCard(title: "This kit will not pair for this nurse", decision: mayWrite)
                         Text("Pairing is refused rather than merely un-signable. An instrument in the hands of somebody who may not write is an instrument producing numbers with nowhere to go, and a nurse who has taken twenty readings before being told is a nurse the platform has wasted.")
-                            .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                            .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     }
                 }
                 ProvenanceKey()
                 whereItGoes
                 if !notice.isEmpty {
-                    Text(notice).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(notice).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         .accessibilityAddTraits(.updatesFrequently)
                 }
             }
@@ -85,26 +85,37 @@ struct ThusoKitView: View {
             Label("Nothing here connects", systemImage: "antenna.radiowaves.left.and.right.slash")
                 .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             Text("This build opens no Bluetooth session. There is no CoreBluetooth call in it, no scan is run, and no instrument is contacted. The six below are the six instruments in the capture contract, drawn on this phone from that list; their serial numbers are invented.")
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Text("The app also declares no Bluetooth usage description, so iOS would refuse it a scan even if it asked — and it must not ask. A permission prompt an app cannot honestly finish the sentence for is a prompt nobody should be shown. This is not a refused permission. Nothing has asked for one.")
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
     }
 
     @ViewBuilder private var whoIsWorking: some View {
         CareCard {
-            Text("Working as").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
-            Picker("Working as", selection: $who) {
-                ForEach(operators) { Text("\($0.name) · \($0.reference)").tag($0.id) }
-            }.labelsHidden()
+            /* PickRow rather than a bare Picker with its label hidden. A menu picker publishes the
+               height of its own content, and this one came back thirty-four points — in front of
+               the choice of which nurse is holding the instrument, which is the choice the whole
+               screen's vetting gate hangs on. */
+            PickRow(label: "Working as", selection: $who,
+                    options: operators.map { ($0.id, "\($0.name) · \($0.reference)") })
             HStack(spacing: ThusoSpacing.space8) {
                 SubjectStatusPill(status: summarise(subject).status)
-                Text(subject.role?.name ?? subject.roleId).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(subject.role?.name ?? subject.roleId).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 Spacer(minLength: 0)
             }
             VettingRefusalNote(decision: mayWrite)
-            NavigationLink("Open this nurse’s vetting") { VettingStatusView(subjectId: subject.id) }
-                .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            /* The height goes on the label, not on the link: a NavigationLink reports the frame of
+               what it is given, and two words at .caption came back fourteen points tall — a third
+               of a target, in front of the vetting record that explains why this kit will or will
+               not pair. Found by the audit, not by reading. */
+            NavigationLink { VettingStatusView(subjectId: subject.id) } label: {
+                Text("Open this nurse’s vetting")
+                    .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(minHeight: 44).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -115,7 +126,7 @@ struct ThusoKitView: View {
             switch scan {
             case .idle:
                 Text("Nothing is being listened for. Pressing the button below draws the contract’s six instruments after a pause — it does not search.")
-                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 Button("Look for instruments") {
                     scan = .searching
                     Task {
@@ -125,10 +136,10 @@ struct ThusoKitView: View {
                 }.buttonStyle(CareButton())
             case .searching:
                 SkeletonRows(rows: 2)
-                Text("Drawing the list. No radio is on.").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text("Drawing the list. No radio is on.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             case .done:
                 if unpaired.isEmpty {
-                    Text("Every instrument in the contract is paired to this phone.").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text("Every instrument in the contract is paired to this phone.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 } else {
                     ForEach(unpaired) { sighting in
                         sightingRow(sighting)
@@ -147,13 +158,13 @@ struct ThusoKitView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(sighting.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     Text("\(sighting.serial) · \(sighting.device?.transport ?? "") · \(sighting.proximity)")
-                        .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 }
                 Spacer(minLength: 6)
             }
             HStack(spacing: ThusoSpacing.space8) {
                 CalibrationPill(calibration: sighting.calibration)
-                Text(sighting.calibration.phrase).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(sighting.calibration.phrase).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 Spacer(minLength: 0)
             }
             Button("Pair") { kit.pair(sighting); notice = "\(sighting.name) \(sighting.serial) is paired to this phone. Nothing was contacted." }
@@ -181,13 +192,13 @@ struct ThusoKitView: View {
             TileIcon(symbol: instrument.device?.symbol ?? "sensor")
             VStack(alignment: .leading, spacing: 3) {
                 Text(instrument.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text("\(instrument.serial) · \(instrument.device?.transport ?? "")").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text("\(instrument.serial) · \(instrument.device?.transport ?? "")").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             Spacer(minLength: 6)
         }
         HStack(spacing: ThusoSpacing.space8) {
             CalibrationPill(calibration: calibration)
-            Text(instrument.device?.cadence ?? "").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(instrument.device?.cadence ?? "").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Spacer(minLength: 0)
         }
         FieldRow(label: "Last calibrated", value: vettingDate(calibration.lastCalibrated))
@@ -197,7 +208,7 @@ struct ThusoKitView: View {
            read “cuff size is a clinical decision the device cannot make” is the person holding the
            cuff, and she is holding it now. */
         if let note = instrument.device?.note {
-            Label(note, systemImage: "info.circle").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Label(note, systemImage: "info.circle").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }
         if calibration.standing == .outOfDate {
             CaveatNote(caveats: [calibration.caveat ?? "", CaptureRules.calibrationNeverRefuses].filter { !$0.isEmpty })
@@ -214,11 +225,16 @@ struct ThusoKitView: View {
             Label("Where a reading goes", systemImage: "arrow.down.doc")
                 .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             Text("Into the visit assessment, with its origin, its instrument and the calibration it was taken under; then onto this phone’s store as captured; then sealed and queued when the nurse signs off. It is in the record only once a server has accepted it, and this build has no server.")
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
-            NavigationLink("Open the visit assessment") { VisitAssessmentView(reference: visitReference, patient: patient) }
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            NavigationLink("Open what is waiting on this phone") { CaptureQueueView() }
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            /* Both of these were eighteen points tall. They are the two doors off this screen, so
+               they are pill rows now — the shape the rest of the product uses for a destination,
+               and one that cannot be under 44 by construction. */
+            NavigationLink { VisitAssessmentView(reference: visitReference, patient: patient) } label: {
+                NavPillLabel(title: "Open the visit assessment", symbol: "list.clipboard")
+            }.buttonStyle(.plain)
+            NavigationLink { CaptureQueueView() } label: {
+                NavPillLabel(title: "Open what is waiting on this phone", symbol: "waveform.path.ecg")
+            }.buttonStyle(.plain)
         }
     }
 }
@@ -246,62 +262,77 @@ struct KitReadingSheet: View {
     private var ready: Bool { instrument != nil && !qualifier.isEmpty }
 
     var body: some View {
-        Form {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
                 DemoBadge()
-                Text(device.name).font(.headline)
-                Text("\(visitReference) · \(patient)").font(.caption).foregroundStyle(.secondary)
+                SurfaceHeading(eyebrow: "Take a reading", title: device.name,
+                               subtitle: "\(visitReference) · \(patient)")
                 if let instrument {
-                    HStack {
-                        CalibrationPill(calibration: instrument.calibration)
-                        Spacer()
-                        Text(instrument.serial).font(.caption2).foregroundStyle(.secondary)
+                    SurfacePanel(tone: .quiet, padding: ThusoSpacing.space16) {
+                        HStack(spacing: ThusoSpacing.space8) {
+                            CalibrationPill(calibration: instrument.calibration)
+                            Spacer(minLength: ThusoSpacing.space8)
+                            Text(instrument.serial).font(.footnote)
+                                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        }
                     }
                 }
-            }
-            /* The limitation, at the moment of the reading. Not a tooltip, not a settings page —
-               the person who needs it is holding the instrument. */
-            Section("What this instrument cannot answer for itself") {
-                Text(device.note).font(.caption).foregroundStyle(.secondary)
-            }
-            if device.measures.count > 1 {
-                Section("Which reading") {
-                    Picker("Reading", selection: $measureId) {
-                        ForEach(device.measures, id: \.self) { Text(KitMeasures.label($0)).tag($0) }
-                    }.pickerStyle(.inline).labelsHidden()
+                /* The limitation, at the moment of the reading. Not a tooltip, not a settings page —
+                   the person who needs it is holding the instrument. */
+                SurfacePanel {
+                    PanelHead("What this instrument cannot answer for itself")
+                    Text(device.note).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if device.measures.count > 1 {
+                    SurfacePanel {
+                        ChoiceRow(label: "Which reading", selection: $measureId,
+                                  options: device.measures.map { ($0, KitMeasures.label($0)) })
+                    }
+                }
+                /* The qualifier leads, because it is what the sheet is refusing on. Palest sage
+                   while it is unanswered — the one panel that has to be dealt with before the
+                   button below it does anything — and plain once it has been. */
+                SurfacePanel(tone: qualifier.isEmpty ? .lead : .plain) {
+                    PanelHead(device.qualifier.label, note: device.qualifier.why)
+                    ChoiceRow(label: device.qualifier.label, selection: $qualifier,
+                              options: [("", "Not stated")] + device.qualifier.options.map { ($0, $0) })
+                    if qualifier.isEmpty {
+                        Text("Nothing is read until this is answered. It is not a field the form can guess for you, and a reading the record cannot say the \(device.qualifier.label.lowercased()) for is a reading nobody can correct for afterwards.")
+                            .font(.footnote).foregroundStyle(ThusoTheme.mangoInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                if let instrument, instrument.calibration.standing == .outOfDate {
+                    SurfacePanel {
+                        CaveatNote(caveats: [instrument.calibration.caveat ?? ""])
+                        Text(CaptureRules.calibrationNeverRefuses).font(.footnote)
+                            .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+                    Button("Read from the instrument", action: take).buttonStyle(CareButton()).disabled(!ready)
+                    Text("The number is invented on this phone from a fixed table. No instrument produced it, and the screen says so on every reading it makes.")
+                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if !taken.isEmpty {
+                    SurfacePanel {
+                        PanelHead("Taken, and written to this phone",
+                                  note: "Held on this phone as captured. It exists nowhere else yet, and it survives this app being killed.")
+                        ForEach(taken) { reading in
+                            ReadingRow(reading: reading)
+                            if reading.id != taken.last?.id { Hairline() }
+                        }
+                    }
+                    Button("Done") { dismiss() }.buttonStyle(QuietButton())
                 }
             }
-            Section(device.qualifier.label) {
-                Picker(device.qualifier.label, selection: $qualifier) {
-                    Text("Not stated").tag("")
-                    ForEach(device.qualifier.options, id: \.self) { Text($0).tag($0) }
-                }.pickerStyle(.inline).labelsHidden()
-                Text(device.qualifier.why).font(.caption).foregroundStyle(.secondary)
-                if qualifier.isEmpty {
-                    Text("Nothing is read until this is answered. It is not a field the form can guess for you, and a reading the record cannot say the \(device.qualifier.label.lowercased()) for is a reading nobody can correct for afterwards.")
-                        .font(.caption).foregroundStyle(ThusoTheme.mangoInk)
-                }
-            }
-            if let instrument, instrument.calibration.standing == .outOfDate {
-                Section {
-                    CaveatNote(caveats: [instrument.calibration.caveat ?? ""])
-                    Text(CaptureRules.calibrationNeverRefuses).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            Section {
-                Button("Read from the instrument", action: take).disabled(!ready)
-                Text("The number is invented on this phone from a fixed table. No instrument produced it, and the screen says so on every reading it makes.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            if !taken.isEmpty {
-                Section("Taken, and written to this phone") {
-                    ForEach(taken) { ReadingRow(reading: $0) }
-                    Text("Held on this phone as captured. It exists nowhere else yet, and it survives this app being killed.")
-                        .font(.caption).foregroundStyle(.secondary)
-                    Button("Done") { dismiss() }
-                }
-            }
+            .padding(.vertical, ThusoSpacing.space16)
         }
+        .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
+        .thusoGround()
         .navigationTitle("Take a reading").navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
         .onAppear { if measureId.isEmpty { measureId = device.measures.first ?? "" } }

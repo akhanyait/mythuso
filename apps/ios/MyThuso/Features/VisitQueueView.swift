@@ -161,22 +161,23 @@ struct VisitQueueView: View {
 
     /* Accurate, itemised, and it names what it does not do. A promise a screen cannot keep is worse
        than no promise, and "your data is safe" is the emptiest sentence in software. This is the
-       paragraph the web cannot write, and it is written from what the file actually does. */
+       paragraph the web cannot write, and it is written from what the file actually does.
+
+       "What the file actually does" is packages/catalog/capture.json's answer rather than this
+       screen's: the store's `where`, what it says it survives and what it says loses it, read by id
+       through the generated CaptureData. The seven sentences were typed here and the same behaviour
+       was described again in Kotlin, and nothing compared them. */
     private var whatItSurvives: some View {
-        SurfacePanel {
-            PanelHead("What this store survives",
-                      note: "The whole visit, in a file on this phone — not only the readings.")
-            ForEach(["A crash or a force-quit. Each piece is written the moment it is finished, not when the app closes.",
-                     "A restart of the phone.",
-                     "A sign-out. This preview’s sign-out returns to the first-run flow and never touches the file — the work belongs to the visit, not to the session."], id: \.self) { line in
+        let store = CaptureData.store("ios-visit-queue")
+        return SurfacePanel {
+            PanelHead("What this store survives", note: store?.heldIn)
+            ForEach(store?.saysSurvives ?? [], id: \.self) { line in
                 Label(line, systemImage: "checkmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Hairline()
-            ForEach(["Deleting the app. iOS removes the file with it, and nothing here can prevent that.",
-                     "Losing the phone. The file is deliberately kept out of device backups: a consent, seven readings and a signature are special personal information, and syncing them into somebody’s laptop backup is a disclosure nobody consented to. The answer to a lost phone is to send, not to back up.",
-                     "A second device. Nothing is shared between phones; there is no server in this build to share it through."], id: \.self) { line in
-                Label(line, systemImage: "xmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.8))
+            ForEach(store?.saysLostTo ?? [], id: \.self) { line in
+                Label(line, systemImage: "xmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

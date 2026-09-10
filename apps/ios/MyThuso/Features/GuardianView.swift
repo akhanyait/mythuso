@@ -1,5 +1,19 @@
 import SwiftUI
 
+/* Three screens about what somebody else is allowed to see, and one about the states a screen has
+ * to have. All four were system `Form`s and `List`s.
+ *
+ * The one that mattered most is the scope step. Three grants, narrowest first, were three grouped
+ * rows with a small circle at the leading edge — so the difference between "they can pay for your
+ * visits" and "they can read everything" was a twenty-point radio button. It is ChoiceCard now:
+ * the whole card is the target, the chosen one takes the palest sage and a charcoal hairline as
+ * well as the mark, and the sentence explaining each grant is the same size on all three so the
+ * widest one does not read as the recommended one.
+ *
+ * Nothing about what is refused moved. The protected categories stay hidden under every scope, an
+ * unverified invitation still grants nothing, and the sentence about a child under 18 being
+ * guardianship rather than sharing is still on the step where the relationship is chosen. */
+
 /* The three scopes somebody can be given, widest last.
  *
  * They were a private array of tuples inside the invitation flow, which was fine until a second
@@ -34,153 +48,244 @@ struct InviteGuardianView: View {
     @State private var understood = false
     private var minor: Bool { relationship == "Child under 18" }
     private let scopes = GuardianScope.all
+    private let steps = ["Who", "What they see", "For how long", "Review"]
+    private let relationships = ["Parent", "Child under 18", "Adult child", "Partner", "Sibling", "Carer", "Other family member"]
+    private let durations = ["Until I revoke it", "Until the end of this visit", "For 7 days", "For 30 days", "31 December 2026"]
+
     var body: some View {
-        Form {
-            Section { Text("Step \(step + 1) of 4 · \(["Who", "What they see", "For how long", "Review"][step])").font(.caption).foregroundStyle(ThusoTheme.charcoal) }
-            switch step {
-            case 0:
-                Section("Who are you inviting?") {
-                    TextField("Their name", text: $name)
-                    Picker("Relationship", selection: $relationship) {
-                        ForEach(["Parent", "Child under 18", "Adult child", "Partner", "Sibling", "Carer", "Other family member"], id: \.self) { Text($0) }
-                    }
-                    if minor {
-                        Text("For a child under 18 you are asking for guardianship, not sharing. Production requires proof of parental responsibility and a record of the child’s own views as they grow older.").font(.caption).foregroundStyle(.secondary)
-                    }
-                    Text("They receive an invitation on their own phone and choose whether to accept. You can withdraw it at any time.").font(.caption).foregroundStyle(.secondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
+                SurfaceHeading(eyebrow: "Invite someone", title: steps[step])
+                SurfacePanel(tone: .quiet, padding: ThusoSpacing.space16) {
+                    StepDots(step: step + 1, total: steps.count, label: steps[step])
                 }
-                Section { Button("Continue") { step = 1 }.disabled(name.trimmingCharacters(in: .whitespaces).isEmpty) }
-            case 1:
-                Section("What should they be able to see?") {
-                    ForEach(scopes) { option in
-                        Button { scope = option.title } label: {
-                            HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                                Image(systemName: scope == option.title ? "largecircle.fill.circle" : "circle").foregroundStyle(ThusoTheme.charcoal)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(option.title).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                                    Text(option.body).font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        .accessibilityAddTraits(scope == option.title ? [.isSelected] : [])
-                    }
-                    Text("Sexual and reproductive health, mental health and HIV-related entries stay hidden under every scope unless you release them one by one.").font(.caption).foregroundStyle(.secondary)
-                }
-                Section { Button("Continue") { step = 2 }; Button("Back") { step = 0 } }
-            case 2:
-                Section("For how long?") {
-                    Picker("Access expires", selection: $expires) {
-                        ForEach(["Until I revoke it", "Until the end of this visit", "For 7 days", "For 30 days", "31 December 2026"], id: \.self) { Text($0) }
-                    }
-                    Text("Time-limited access is the safer default. An open-ended grant is reviewed with you every six months. They must verify their identity before the invitation becomes active — an unverified invitation grants nothing.").font(.caption).foregroundStyle(.secondary)
-                }
-                Section { Button("Review") { step = 3 }; Button("Back") { step = 1 } }
-            default:
-                Section("Check this before you send it") {
-                    LabeledContent("Person", value: name)
-                    LabeledContent("Relationship", value: relationship)
-                    LabeledContent("They will see", value: scope)
-                    LabeledContent("Access ends", value: expires)
-                    LabeledContent("Before it starts", value: "Identity verification\(minor ? " and proof of guardianship" : "")")
-                    Toggle("I understand this is a design preview. No invitation is sent and no access is granted.", isOn: $understood)
-                }
-                Section {
-                    Button("Send demo invitation") {
-                        store.invitations.append(.init(id: "INV-00\(40 + Int.random(in: 0..<50))", name: name.trimmingCharacters(in: .whitespaces), relationship: relationship, scope: scope, expires: expires, status: "Verification pending"))
-                        dismiss()
-                    }.disabled(!understood)
-                    Button("Back") { step = 2 }
+                switch step {
+                case 0: who
+                case 1: whatTheySee
+                case 2: forHowLong
+                default: review
                 }
             }
+            .padding(.vertical, ThusoSpacing.space16)
         }
+        .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
+        .thusoGround()
         .navigationTitle("Invite someone").navigationBarTitleDisplayMode(.inline)
     }
+
+    @ViewBuilder private var who: some View {
+        SurfacePanel(tone: .lead) {
+            PanelHead("Who are you inviting?")
+            WriteField(label: "Their name", text: $name, hint: "Their full name")
+            PickRow(label: "Relationship", selection: $relationship, options: relationships.map { ($0, $0) })
+            if minor {
+                Text("For a child under 18 you are asking for guardianship, not sharing. Production requires proof of parental responsibility and a record of the child’s own views as they grow older.")
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text("They receive an invitation on their own phone and choose whether to accept. You can withdraw it at any time.")
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        Button("Continue") { step = 1 }.buttonStyle(CareButton())
+            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+    }
+
+    @ViewBuilder private var whatTheySee: some View {
+        Text("What should they be able to see?")
+            .thusoFont(ThusoType.sectionTitle, weight: .medium).foregroundStyle(ThusoTheme.charcoal)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityAddTraits(.isHeader)
+        /* Cards rather than rows, and the widest grant is last for the same reason the contract
+           writes it last: a person scanning downwards meets the smallest thing they can give before
+           the largest, rather than the other way round. */
+        ForEach(scopes) { option in
+            ChoiceCard(title: option.title, detail: option.body, chosen: scope == option.title) {
+                scope = option.title
+            }
+        }
+        Text("Sexual and reproductive health, mental health and HIV-related entries stay hidden under every scope unless you release them one by one.")
+            .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+            .fixedSize(horizontal: false, vertical: true)
+        stepButtons(forward: "Continue", to: 2, back: 0)
+    }
+
+    @ViewBuilder private var forHowLong: some View {
+        SurfacePanel(tone: .lead) {
+            PanelHead("For how long?")
+            PickRow(label: "Access expires", selection: $expires, options: durations.map { ($0, $0) })
+            Text("Time-limited access is the safer default. An open-ended grant is reviewed with you every six months. They must verify their identity before the invitation becomes active — an unverified invitation grants nothing.")
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        stepButtons(forward: "Review", to: 3, back: 1)
+    }
+
+    @ViewBuilder private var review: some View {
+        SurfacePanel {
+            PanelHead("Check this before you send it")
+            FactRow(label: "Person", value: name)
+            FactRow(label: "Relationship", value: relationship)
+            FactRow(label: "They will see", value: scope)
+            FactRow(label: "Access ends", value: expires)
+            FactRow(label: "Before it starts", value: "Identity verification\(minor ? " and proof of guardianship" : "")")
+            Hairline()
+            AgreeRow(text: "I understand this is a design preview. No invitation is sent and no access is granted.", on: $understood)
+        }
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            Button("Send demo invitation") {
+                store.invitations.append(.init(id: "INV-00\(40 + Int.random(in: 0..<50))", name: name.trimmingCharacters(in: .whitespaces), relationship: relationship, scope: scope, expires: expires, status: "Verification pending"))
+                dismiss()
+            }
+            .buttonStyle(CareButton()).disabled(!understood)
+            Button("Back") { step = 2 }.buttonStyle(QuietButton())
+        }
+    }
+
+    @ViewBuilder private func stepButtons(forward: String, to: Int, back: Int) -> some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            Button(forward) { step = to }.buttonStyle(CareButton())
+            Button("Back") { step = back }.buttonStyle(QuietButton())
+        }
+    }
 }
+
 struct SystemStatesView: View {
     @State private var state: LoadState = .loading
     var body: some View {
-        List {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
                 DemoBadge()
-                Text("Every screen that will talk to a clinical, payment, partner or device integration needs these designed up front.").font(.subheadline).foregroundStyle(.secondary)
-                StatePicker(title: "Choose a state", state: $state)
-            }
-            Section("The chosen state") {
-                if state == .ready {
-                    Label("The real content, with nothing standing in for it.", systemImage: "checkmark.circle").foregroundStyle(ThusoTheme.charcoal)
-                } else {
-                    StateBlock(state: state, subject: "Your laboratory results", permission: "Apple Health access", retry: { state = .ready }) { EmptyView() }
-                        .listRowInsets(EdgeInsets())
+                SurfaceHeading(eyebrow: "Design", title: "System states",
+                               subtitle: "Every screen that will talk to a clinical, payment, partner or device integration needs these designed up front.")
+                SurfacePanel(tone: .quiet, padding: ThusoSpacing.space16) {
+                    StatePicker(title: "Choose a state", state: $state)
                 }
+                SurfacePanel {
+                    PanelHead("The chosen state")
+                    if state == .ready {
+                        Label("The real content, with nothing standing in for it.", systemImage: "checkmark.circle")
+                            .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        StateBlock(state: state, subject: "Your laboratory results",
+                                   permission: "Apple Health access", retry: { state = .ready }) { EmptyView() }
+                    }
+                }
+                SurfacePanel {
+                    PanelHead("Skeleton while care information loads")
+                    SkeletonRows()
+                }
+                EmptyStateCard(title: "No visits yet", message: "When you book your first visit it appears here, with the nurse’s name and what to have ready.")
+                Text("An error state never blames the patient, never loses what they typed, and always says what happens next.")
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Section("Skeleton while care information loads") { SkeletonRows() }
-            Section("Nothing here yet") { EmptyStateCard(title: "No visits yet", message: "When you book your first visit it appears here, with the nurse’s name and what to have ready.").listRowInsets(EdgeInsets()) }
-            Section { Text("An error state never blames the patient, never loses what they typed, and always says what happens next.").font(.caption).foregroundStyle(.secondary) }
+            .padding(.vertical, ThusoSpacing.space16)
         }
+        .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
+        .thusoGround()
         .navigationTitle("System states").navigationBarTitleDisplayMode(.inline)
     }
 }
+
 struct LanguageView: View {
     @EnvironmentObject private var store: PreviewStore
     @State private var signs = false
+    /* Counted rather than claimed, and it is the one figure on this screen that would be worth
+       lying about: ten of the eleven written languages have been read by nobody who speaks them.
+       It comes off the same list the picker below is built from. */
+    private var unreviewed: Int { ThusoLocale.allCases.filter { $0.reviewNotice != nil }.count }
     var body: some View {
-        Form {
-            /* Every option says whether a person who speaks it has read it, on the row itself
-               rather than in a footnote. Ten of the eleven have not, and a draft that does not
-               announce itself is worse than no translation at all in a health app. The state comes
-               from packages/catalog/locales.json, so a language cannot be presented as reviewed here
-               while the contract says it is not. */
-            Section("Choose your language") {
-                Picker("Language", selection: $store.locale) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
+                SurfaceHeading(eyebrow: "Language", title: "Choose your language")
+                SurfacePanel(tone: .lead, spacing: ThusoSpacing.space16) {
+                    ThusoMetrics {
+                        ThusoMetric(value: "\(unreviewed)", unit: "of \(ThusoLocale.allCases.count)",
+                                    label: "Written languages nobody who speaks them has read",
+                                    chip: "Unreviewed", flagged: unreviewed > 0)
+                    }
+                }
+                /* Every option says whether a person who speaks it has read it, on the row itself
+                   rather than in a footnote. Ten of the eleven have not, and a draft that does not
+                   announce itself is worse than no translation at all in a health app. The state
+                   comes from packages/catalog/locales.json, so a language cannot be presented as
+                   reviewed here while the contract says it is not. */
+                SurfacePanel {
+                    PanelHead("Choose your language")
                     ForEach(ThusoLocale.allCases) { option in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(option.native)
-                            Text(option.reviewLabel).font(.caption2).foregroundStyle(.secondary)
-                        }.tag(option)
-                    }
-                }.pickerStyle(.inline).labelsHidden()
-            }
-            if let notice = store.locale.reviewNotice {
-                Section { Label(notice, systemImage: "exclamationmark.triangle").font(.caption) }
-            }
-            Section {
-                Text(ThusoLanguageNotes.clinicalRule).font(.caption).foregroundStyle(.secondary)
-                Text(ThusoLanguageNotes.fallback).font(.caption).foregroundStyle(.secondary)
-            }
-            /* South African Sign Language is an official language and is not in the picker above,
-               because there is no written form for a picker to switch the interface into. It is a
-               communication requirement on the account instead, and the written language stays a
-               separate choice. */
-            Section(ThusoLanguageNotes.signLanguageName) {
-                Toggle(ThusoLanguageNotes.signLanguageRequirement, isOn: $signs)
-                Text(ThusoLanguageNotes.signLanguageRequirementDetail).font(.caption).foregroundStyle(.secondary)
-                Text(ThusoLanguageNotes.signLanguageStatus).font(.caption).foregroundStyle(.secondary)
-                Text(ThusoLanguageNotes.signLanguageWhyNotListed).font(.caption).foregroundStyle(.secondary)
-            }
-            Section("What a visit and a call must do") {
-                ForEach(ThusoLanguageNotes.signLanguageMustHappen, id: \.0) { rule in
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(rule.0).font(.subheadline.weight(.semibold))
-                        Text(rule.1).font(.caption).foregroundStyle(.secondary)
+                        ChoiceCard(title: option.native, detail: option.reviewLabel,
+                                   chosen: store.locale == option) { store.locale = option }
                     }
                 }
-            }
-            Section("What must never happen") {
-                ForEach(ThusoLanguageNotes.signLanguageNeverHappens, id: \.self) { sentence in
-                    Label(sentence, systemImage: "xmark.circle").font(.caption)
+                if let notice = store.locale.reviewNotice {
+                    SurfacePanel(tone: .quiet) {
+                        Label(notice, systemImage: "exclamationmark.triangle")
+                            .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-                Text(ThusoLanguageNotes.signLanguageNotBuilt).font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+                    Text(ThusoLanguageNotes.clinicalRule).font(.footnote)
+                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(ThusoLanguageNotes.fallback).font(.footnote)
+                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                signLanguage
+                /* The arrangements themselves, one screen along: the roster, the hold, the wait that
+                   says when it does not know, and the refusals. They are not on this screen because
+                   this screen is where a language is chosen, and an interpreter is not a language
+                   setting — it is who else is in the room. */
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+                    NavigationLink { InterpretingView() } label: {
+                        NavPillLabel(title: Interpreting.labels.heading, symbol: "person.2.wave.2")
+                    }.buttonStyle(.plain)
+                    Text(Interpreting.rule("one-roster").sentence).font(.footnote)
+                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            /* The arrangements themselves, one screen along: the roster, the hold, the wait that
-               says when it does not know, and the refusals. They are not on this screen because
-               this screen is where a language is chosen, and an interpreter is not a language
-               setting — it is who else is in the room. */
-            Section {
-                NavigationLink(Interpreting.labels.heading) { InterpretingView() }
-            } footer: {
-                Text(Interpreting.rule("one-roster").sentence).font(.caption)
+            .padding(.vertical, ThusoSpacing.space16)
+        }
+        .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
+        .thusoGround()
+        .navigationTitle("Language").navigationBarTitleDisplayMode(.inline)
+    }
+
+    /* South African Sign Language is an official language and is not in the picker above, because
+       there is no written form for a picker to switch the interface into. It is a communication
+       requirement on the account instead, and the written language stays a separate choice. */
+    @ViewBuilder private var signLanguage: some View {
+        SurfacePanel {
+            PanelHead(ThusoLanguageNotes.signLanguageName)
+            AgreeRow(text: ThusoLanguageNotes.signLanguageRequirement, on: $signs)
+            ForEach([ThusoLanguageNotes.signLanguageRequirementDetail,
+                     ThusoLanguageNotes.signLanguageStatus,
+                     ThusoLanguageNotes.signLanguageWhyNotListed], id: \.self) { sentence in
+                Text(sentence).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .navigationTitle("Language").navigationBarTitleDisplayMode(.inline)
+        SurfacePanel {
+            PanelHead("What a visit and a call must do")
+            ForEach(ThusoLanguageNotes.signLanguageMustHappen, id: \.0) { rule in
+                StatedFact(term: rule.0, statement: rule.1)
+                if rule.0 != ThusoLanguageNotes.signLanguageMustHappen.last?.0 { Hairline() }
+            }
+        }
+        SurfacePanel {
+            PanelHead("What must never happen")
+            ForEach(ThusoLanguageNotes.signLanguageNeverHappens, id: \.self) { sentence in
+                Label(sentence, systemImage: "xmark.circle")
+                    .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(ThusoLanguageNotes.signLanguageNotBuilt).font(.footnote)
+                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }

@@ -8,7 +8,26 @@ import SwiftUI
    fictional window over Johannesburg, and goes through the guard in Models/Geo.swift before it
    reaches either the map or an arrival time. The map is a projection of those positions rather than
    a second set of numbers, so a coordinate the guard refuses has nowhere to be drawn and nothing to
-   be estimated from — which is the honest outcome, and the one the screen shows. */
+   be estimated from — which is the honest outcome, and the one the screen shows.
+
+   WHAT CHANGED WHEN THE BOARD CAME OFF `List`.
+
+   1. The visit selector was a `UISegmentedControl`. It paints iOS's own greys rather than the
+      palette, and it cannot wrap: at the accessibility sizes three visit references in one bar
+      become three ellipses, so a controller chose between jobs by tapping a row of dots. It is
+      ChoiceRow now — full labels, 48 points each, a fill and a weight for the selected one rather
+      than a tint.
+   2. The map sat in a grouped list row with its own inset and iOS's corner radius on top of the
+      one it draws itself. It is the lead panel of the board now, which is also the honest
+      hierarchy: it is the thing an operator opens this screen to look at.
+   3. The board had no figures at all, and everything worth counting was already computed for the
+      map's spoken summary — visits awaiting assignment, nurses cleared, nurses refused, nurses
+      with no usable position. Those four sentences and the strip are now one arithmetic, so the
+      number a sighted operator reads and the number VoiceOver speaks cannot disagree.
+
+   Every refusal is where it was. Availability is still not permission, a nurse the board cannot
+   estimate for still sorts last, and the operator's own vetting is still asked before anybody
+   else's. */
 struct DispatchJob: Identifiable, Hashable {
     let id: String, service: String, area: String, window: String, priority: String
     /// Normalised once, where the fixture is written, so the raw pair is unreachable from here on
@@ -120,7 +139,7 @@ struct DispatchMap: View {
                 }
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
-                        Text(zone.name).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        Text(zone.name).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                             .position(x: point.x * size, y: (point.y - zone.radius) * size + 8)
                     }
                 }
@@ -171,67 +190,149 @@ struct DispatchBoardView: View {
         return vetting.subject(named: nurse.name).map { can($0, "take-visit") }
             ?? VettingDecision(allowed: false, reason: "This nurse has no vetting record, so no visit can be offered to them.", blockedBy: [])
     }
+
+    /* The four things this board can honestly count, worked out once and read by both the strip a
+       sighted operator sees and the sentence VoiceOver speaks over the map. They were only ever
+       computed for the summary; a strip that counted them a second time is exactly how a figure
+       comes to disagree with the board underneath it. */
+    private var cleared: Int { Dispatch.nurses.filter { $0.status == "Available" && gate($0).allowed }.count }
+    private var refusedCount: Int { Dispatch.nurses.filter { !gate($0).allowed }.count }
+    private var unplotted: Int { Dispatch.nurses.filter { Dispatch.plot($0.position) == nil }.count }
+    private var unassigned: Int { Dispatch.jobs.filter { assigned[$0.id] == nil }.count }
+
     /* What the map says out loud. It claims what it can count — how many visits, how many nurses
        cleared, how many refused, how many have no position worth drawing — and nothing about
        proximity, because a straight line over a fictional window is not a measurement of who is
        closest. */
     private var mapSummary: String {
-        let cleared = Dispatch.nurses.filter { $0.status == "Available" && gate($0).allowed }.count
-        let refused = Dispatch.nurses.filter { !gate($0).allowed }.count
-        let unplotted = Dispatch.nurses.filter { Dispatch.plot($0.position) == nil }.count
         let missing = unplotted == 0 ? ""
             : "\(unplotted) nurse\(unplotted == 1 ? " has" : "s have") no position this map can use, and \(unplotted == 1 ? "is" : "are") not drawn. "
         return "Demonstration dispatch map of northern Johannesburg. \(Dispatch.jobs.count) visits awaiting assignment. "
-            + "\(cleared) nurses available and cleared by vetting, \(refused) refused. "
+            + "\(cleared) nurses available and cleared by vetting, \(refusedCount) refused. "
             + missing
             + "Every position is fictional, and arrival times are straight-line estimates rather than routed journeys, so this is a picture of who is roughly where — not a measurement of who is closest."
     }
+
     var body: some View {
-        List {
-            Section { DemoBadge(); StatePicker(title: "Preview the dispatch feed state", state: $state) }
-            if state == .ready {
-                Section("Live dispatch · Demo") {
-                    DispatchMap(selected: selected, assigned: assigned, summary: mapSummary)
-                        .listRowInsets(EdgeInsets(top: 10, leading: 10, bottom: 10, trailing: 10))
-                    HStack(spacing: ThusoSpacing.space16) {
-                        Label("Available", systemImage: "circle.fill").foregroundStyle(ThusoTheme.tealInk)
-                        Label("On a visit", systemImage: "circle.fill").foregroundStyle(Color(white: 0.66))
-                        Label("Visit", systemImage: "square.fill").foregroundStyle(ThusoTheme.mangoInk)
-                    }.font(.caption2)
+        ScrollView {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
+                DemoBadge()
+                SurfaceHeading(eyebrow: "Control Tower", title: "Dispatch",
+                               subtitle: "Where every visit is, which nurses are free, and what is running late.")
+                SurfacePanel(tone: .quiet, padding: ThusoSpacing.space16) {
+                    StatePicker(title: "Preview the dispatch feed state", state: $state)
                 }
-                Section("Awaiting assignment") {
-                    Picker("Visit", selection: $selected) { ForEach(Dispatch.jobs) { Text($0.id).tag($0.id) } }.pickerStyle(.segmented)
-                    LabeledContent("Service", value: job.service)
-                    LabeledContent("Area", value: job.area)
-                    LabeledContent("Window", value: job.window)
-                    LabeledContent("Priority", value: job.priority)
-                    LabeledContent("Status", value: assigned[job.id].map { "Assigned to \($0)" } ?? "Unassigned")
+                if state == .ready {
+                    standing
+                    liveBoard
+                    awaitingAssignment
+                    operatorOnDutyPanel
+                    nearestNurses
+                } else {
+                    StateBlock(state: state, subject: "The live dispatch feed",
+                               permission: "location sharing from nurse devices", retry: { state = .ready }) { EmptyView() }
                 }
-                Section("Operator on duty") {
-                    Picker("Operator", selection: $onDuty) {
-                        ForEach(vetting.subjects(role: "operator")) { Text($0.name).tag($0.id) }
-                    }
-                    VettingRefusalNote(decision: operatorDecision)
-                    if let operatorOnDuty {
-                        NavigationLink("Open this operator’s vetting") { VettingStatusView(subjectId: operatorOnDuty.id) }
-                    }
-                    Text("Suspend this operator in the vetting queue and the board stops assigning, on this screen, immediately.").font(.caption).foregroundStyle(.secondary)
-                }
-                Section("Nearest available nurses") {
-                    ForEach(candidates) { candidate in
-                        DispatchNurseRow(nurse: candidate.nurse, estimate: candidate.estimate, jobId: job.id,
-                                         assigned: $assigned, operatorDecision: operatorDecision)
-                    }
-                    Text("Estimated arrival is a straight-line guess in this preview. Real dispatch weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse.").font(.caption).foregroundStyle(.secondary)
-                    /* The sentence above is a promise; this one is the arithmetic that keeps it. If
-                       the two ever stop agreeing, it is this screen that is lying. */
-                    Text("Each estimate is the distance from the nurse’s last reported position to the address, in a straight line, at an assumed \(Int(urbanSpeedKmh)) km/h in traffic. No road factor is applied — a multiplier chosen to make the number feel right would make the label a lie. Where a position cannot be used, the row says “Estimating” and gives the reason rather than a number nothing produced.").font(.caption).foregroundStyle(.secondary)
-                }
-            } else {
-                Section { StateBlock(state: state, subject: "The live dispatch feed", permission: "location sharing from nurse devices", retry: { state = .ready }) { EmptyView() }.listRowInsets(EdgeInsets()) }
+            }
+            .padding(.vertical, ThusoSpacing.space16)
+        }
+        .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
+        .thusoGround()
+        .navigationTitle("Dispatch").navigationBarTitleDisplayMode(.inline)
+    }
+
+    /* Three figures, every one of them counted from the arrays drawn underneath it: the jobs list,
+       the candidate list and the same vetting gate the rows ask. Nothing here is a fixture.
+
+       Refused takes the mark rather than unassigned. Visits waiting is the ordinary state of a
+       dispatch board at any hour of the day; a nurse who is on the board, near the job and not
+       permitted to take it is the one thing an operator has to notice without reading. */
+    @ViewBuilder private var standing: some View {
+        SurfacePanel(tone: .lead, spacing: ThusoSpacing.space16) {
+            ThusoMetrics {
+                ThusoMetric(value: "\(unassigned)", unit: "of \(Dispatch.jobs.count)", label: "Visits still awaiting a nurse",
+                            chip: unassigned == 0 ? "All assigned" : "Waiting")
+                ThusoMetric(value: "\(cleared)", unit: "of \(Dispatch.nurses.count)", label: "Available and cleared by vetting",
+                            chip: cleared == 0 ? "None" : "Dispatchable")
+                ThusoMetric(value: "\(refusedCount)", label: "On the board and refused by vetting",
+                            chip: refusedCount == 0 ? "None" : "Cannot be sent", flagged: refusedCount > 0)
+            }
+            if unplotted > 0 {
+                Text("\(unplotted) nurse\(unplotted == 1 ? " has" : "s have") no position this map can use, and \(unplotted == 1 ? "is" : "are") not drawn. \(Geography.refusal("no-position-shared").sentence)")
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .navigationTitle("Dispatch").navigationBarTitleDisplayMode(.inline)
+    }
+
+    /* The map is the lead of the board and gets a panel of its own. It was a row in a grouped list,
+       which put iOS's corner radius around the one the map already draws for itself. */
+    @ViewBuilder private var liveBoard: some View {
+        SurfacePanel {
+            PanelHead("Live dispatch · Demo")
+            DispatchMap(selected: selected, assigned: assigned, summary: mapSummary)
+            Hairline()
+            /* The key wraps rather than truncating. Three labels and three swatches on one line is
+               about two hundred points at the default size and six hundred at AccessibilityXXXL. */
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: ThusoSpacing.space16) { mapKey }
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) { mapKey }
+            }
+        }
+    }
+    @ViewBuilder private var mapKey: some View {
+        Label("Available", systemImage: "circle.fill").foregroundStyle(ThusoTheme.tealInk).font(.footnote)
+        Label("On a visit", systemImage: "circle.fill").foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).font(.footnote)
+        Label("Visit", systemImage: "square.fill").foregroundStyle(ThusoTheme.mangoInk).font(.footnote)
+    }
+
+    @ViewBuilder private var awaitingAssignment: some View {
+        SurfacePanel {
+            PanelHead("Awaiting assignment")
+            ChoiceRow(label: "Visit", selection: $selected, options: Dispatch.jobs.map { ($0.id, $0.id) })
+            Hairline()
+            FactRow(label: "Service", value: job.service)
+            FactRow(label: "Area", value: job.area)
+            FactRow(label: "Window", value: job.window)
+            FactRow(label: "Priority", value: job.priority)
+            FactRow(label: "Status", value: assigned[job.id].map { "Assigned to \($0)" } ?? "Unassigned")
+        }
+    }
+
+    @ViewBuilder private var operatorOnDutyPanel: some View {
+        SurfacePanel(tone: .quiet) {
+            PanelHead("Operator on duty",
+                      note: "Suspend this operator in the vetting queue and the board stops assigning, on this screen, immediately.")
+            PickRow(label: "Operator", selection: $onDuty,
+                    options: vetting.subjects(role: "operator").map { ($0.id, $0.name) })
+            VettingRefusalNote(decision: operatorDecision)
+            if let operatorOnDuty {
+                NavigationLink { VettingStatusView(subjectId: operatorOnDuty.id) } label: {
+                    NavPillLabel(title: "Open this operator’s vetting", symbol: "checkmark.shield")
+                }.buttonStyle(.plain)
+            }
+        }
+    }
+
+    @ViewBuilder private var nearestNurses: some View {
+        SurfacePanel {
+            PanelHead("Nearest available nurses",
+                      note: "Ordered by the estimate rather than by a typed number. A nurse the board cannot measure sorts last.")
+            ForEach(candidates) { candidate in
+                DispatchNurseRow(nurse: candidate.nurse, estimate: candidate.estimate, jobId: job.id,
+                                 assigned: $assigned, operatorDecision: operatorDecision)
+                if candidate.id != candidates.last?.id { Hairline() }
+            }
+        }
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            Text("Estimated arrival is a straight-line guess in this preview. Real dispatch weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse.")
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+            /* The sentence above is a promise; this one is the arithmetic that keeps it. If the two
+               ever stop agreeing, it is this screen that is lying. */
+            Text("Each estimate is the distance from the nurse’s last reported position to the address, in a straight line, at an assumed \(Int(urbanSpeedKmh)) km/h in traffic. No road factor is applied — a multiplier chosen to make the number feel right would make the label a lie. Where a position cannot be used, the row says “Estimating” and gives the reason rather than a number nothing produced.")
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 /// A nurse who is not cleared still appears on the board — the refusal is shown against them rather
@@ -251,43 +352,71 @@ struct DispatchNurseRow: View {
             ?? VettingDecision(allowed: false, reason: "This nurse has no vetting record, so no visit can be offered to them.", blockedBy: [])
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: ThusoSpacing.space8) {
-                        Text(nurse.name).font(.subheadline.weight(.semibold))
-                        if let subject { SubjectStatusPill(status: summarise(subject).status) }
-                    }
-                    /* “ETA 9 min” is read out as three letters and a number, and an estimate that is
-                       missing must not arrive as silence. The row shows the short form and speaks the
-                       long one, including what the estimate was derived from. */
-                    Text("\(nurse.area) · \(nurse.status) · \(estimate.label)")
-                        .font(.caption).foregroundStyle(.secondary)
-                        .accessibilityLabel("\(nurse.area). \(nurse.status). \(estimate.spoken)")
-                    Text(nurse.skills).font(.caption2).foregroundStyle(.secondary)
-                    if case let .unavailable(reason, _) = estimate {
-                        /* Amber, not red: nothing is being refused here. The nurse can still be
-                           assigned — the board just will not pretend to know when she will arrive. */
-                        Label(reason, systemImage: "location.slash")
-                            .font(.caption2).foregroundStyle(ThusoTheme.mangoInk)
-                            .accessibilityHidden(true)
-                    }
-                }
-                Spacer()
-                Button(assigned[jobId] == nurse.name ? "Assigned" : "Assign", action: assign)
-                    .buttonStyle(.bordered)
-                    .disabled(nurse.status != "Available")
-                    .accessibilityHint(decision.allowed ? "Assigns this visit" : (decision.reason ?? "Assignment is refused"))
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+            /* Name, standing and the button on one line while they fit, stacked when they do not.
+               The button was pinned to a trailing Spacer, so at the accessibility sizes a two-word
+               nurse's name and "Assigned" shared one line and both truncated. */
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: ThusoSpacing.space12) { identity; Spacer(minLength: 0); assignButton }
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) { identity; assignButton }
             }
             VettingRefusalNote(decision: decision)
-            if !refused.isEmpty { Text(refused).font(.caption2).foregroundStyle(ThusoTheme.danger) }
+            if !refused.isEmpty {
+                Text(refused).font(.footnote).foregroundStyle(ThusoTheme.danger)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let subject {
-                NavigationLink("Why") { VettingStatusView(subjectId: subject.id) }
-                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal)
+                /* The height goes on the label, not on the link. A NavigationLink reports the frame
+                   of what it is given, so a modifier chained after it grows the row and leaves a
+                   sixteen-point target in it — which is what the audit measured. */
+                NavigationLink { VettingStatusView(subjectId: subject.id) } label: {
+                    Text("Why is this nurse refused or cleared?")
+                        .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(.vertical, 3)
     }
+
+    @ViewBuilder private var identity: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
+            HStack(spacing: ThusoSpacing.space8) {
+                Text(nurse.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let subject { SubjectStatusPill(status: summarise(subject).status) }
+            }
+            /* “ETA 9 min” is read out as three letters and a number, and an estimate that is
+               missing must not arrive as silence. The row shows the short form and speaks the
+               long one, including what the estimate was derived from. */
+            Text("\(nurse.area) · \(nurse.status) · \(estimate.label)")
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel("\(nurse.area). \(nurse.status). \(estimate.spoken)")
+            Text(nurse.skills).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+            if case let .unavailable(reason, _) = estimate {
+                /* Amber, not red: nothing is being refused here. The nurse can still be assigned —
+                   the board just will not pretend to know when she will arrive. */
+                Label(reason, systemImage: "location.slash")
+                    .font(.footnote).foregroundStyle(ThusoTheme.mangoInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+
+    @ViewBuilder private var assignButton: some View {
+        Button(assigned[jobId] == nurse.name ? "Assigned" : "Assign", action: assign)
+            .buttonStyle(QuietButton())
+            .fixedSize(horizontal: true, vertical: false)
+            .disabled(nurse.status != "Available")
+            .accessibilityHint(decision.allowed ? "Assigns this visit" : (decision.reason ?? "Assignment is refused"))
+    }
+
     private func assign() {
         guard decision.allowed else {
             refused = "Assignment refused. \(decision.reason ?? "") Nothing was sent."
@@ -314,32 +443,53 @@ struct IncidentDetailView: View {
     @State private var notes = ""
     @State private var log: [String] = []
     init(incident: IncidentSummary) { self.incident = incident; _severity = State(initialValue: incident.severity) }
+    private let severities = ["Low", "Medium", "High", "Critical"]
     var body: some View {
-        Form {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
                 DemoBadge()
-                Text(incident.title).font(.headline)
-                LabeledContent("Opened", value: "\(incident.opened) · \(incident.area)")
-                LabeledContent("Reported by", value: "Sister Palesa Khumalo · N-206")
-            }
-            Section("Triage") {
-                Picker("Severity", selection: $severity) { ForEach(["Low", "Medium", "High", "Critical"], id: \.self) { Text($0) } }
-                if severity == "Critical" {
-                    Text("A critical incident pages the on-call clinical lead immediately. The form is never a prerequisite for calling emergency services.").font(.caption).foregroundStyle(.red)
+                SurfaceHeading(eyebrow: incident.id, title: incident.title)
+                SurfacePanel(tone: .quiet) {
+                    FactRow(label: "Opened", value: "\(incident.opened) · \(incident.area)")
+                    FactRow(label: "Reported by", value: "Sister Palesa Khumalo · N-206")
                 }
-                Picker("Immediate action", selection: $action) {
-                    Text("Choose an action…").tag("")
-                    ForEach(["Call the nurse now", "Advise nurse to call emergency services", "Escalate to the on-call clinical lead", "Notify the patient’s emergency contact", "Reassign the visit", "Stand down — no further action"], id: \.self) { Text($0).tag($0) }
+                SurfacePanel(tone: severity == "Critical" ? .lead : .plain) {
+                    PanelHead("Triage")
+                    ChoiceRow(label: "Severity", selection: $severity, options: severities.map { ($0, $0) })
+                    if severity == "Critical" {
+                        Text("A critical incident pages the on-call clinical lead immediately. The form is never a prerequisite for calling emergency services.")
+                            .font(.footnote).foregroundStyle(ThusoTheme.danger)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Hairline()
+                    PickRow(label: "Immediate action", selection: $action,
+                            options: [("", "Choose an action…")]
+                                + ["Call the nurse now", "Advise nurse to call emergency services",
+                                   "Escalate to the on-call clinical lead", "Notify the patient’s emergency contact",
+                                   "Reassign the visit", "Stand down — no further action"].map { ($0, $0) })
+                    WriteNote(label: "Handover note", text: $notes,
+                              prompt: "What happened, what you did, what the next shift must know.")
+                    Button("Add demo action to the log") { log.append(action); action = "" }
+                        .buttonStyle(QuietButton()).disabled(action.isEmpty)
                 }
-                TextEditor(text: $notes).frame(minHeight: 80)
-                Text("Handover note — what happened, what you did, what the next shift must know.").font(.caption).foregroundStyle(.secondary)
-                Button("Add demo action to the log") { log.append(action); action = "" }.disabled(action.isEmpty)
+                if !log.isEmpty {
+                    SurfacePanel {
+                        PanelHead("Demo incident log")
+                        ForEach(log, id: \.self) { entry in
+                            Label(entry, systemImage: "checkmark.circle.fill")
+                                .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                Text("Incident logs are append-only and reviewed weekly. Nothing here is recorded, paged or sent.")
+                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            if !log.isEmpty {
-                Section("Demo incident log") { ForEach(log, id: \.self) { Label($0, systemImage: "checkmark.circle.fill").foregroundStyle(ThusoTheme.charcoal) } }
-            }
-            Section { Text("Incident logs are append-only and reviewed weekly. Nothing here is recorded, paged or sent.").font(.caption).foregroundStyle(.secondary) }
+            .padding(.vertical, ThusoSpacing.space16)
         }
+        .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
+        .thusoGround()
         .navigationTitle(incident.id).navigationBarTitleDisplayMode(.inline)
     }
 }

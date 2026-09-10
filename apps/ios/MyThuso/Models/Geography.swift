@@ -55,6 +55,10 @@ enum Geography {
         zones.first { $0.name.caseInsensitiveCompare(name) == .orderedSame }
     }
     static func refusal(_ id: String) -> GeographyRefusal { refusals.first { $0.id == id }! }
+    /// A privacy rule by id. Force-unwrapped for the same reason `refusal` is: an id that is not in
+    /// the generated contract is a typo in a screen, and a screen quietly rendering nothing where a
+    /// privacy rule was meant to be is worse than a crash the first run finds.
+    static func rule(_ id: String) -> GeographyRule { privacyRules.first { $0.id == id }! }
 
     /// Rounded to the precision the contract declares, on the way *in*. Doing it at the point of
     /// drawing would leave the sharper number sitting in memory for the next screen to render, and

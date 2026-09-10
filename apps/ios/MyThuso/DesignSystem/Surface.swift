@@ -67,6 +67,49 @@ extension View {
     func thusoGround() -> some View { background(AuroraGround()) }
 }
 
+/* THE DARK HERO, AND WHY IT STOPPED BEING A GRADIENT.
+ *
+ * Three panels carry white text on a dark ground — the Thuso Pass promo on Home, the passport
+ * header, and the booking summary. All three were `LinearGradient(colors: [ink, charcoal])`, and
+ * `ink` is the last survivor of the retired slate ramp.
+ *
+ * The obvious fix is a second dark value, and the palette has none: the sage ramp's darkest,
+ * `sageSlate`, measures 5.89 as text on white, which is nowhere near dark enough to be the far end
+ * of a dark gradient. So the question was whether these heroes need one, and measuring the old one
+ * answered it. `ink` #0F172A has a relative luminance of 0.0088 and `charcoal` #1C1C1C has 0.0116.
+ * That is a difference of under three thousandths — invisible as depth. What the eye was actually
+ * reading across that ramp was not light, it was *hue*: a blue-black resolving into a neutral one.
+ * A blue cast is the indigo design's signature, and this palette deliberately has no blue in it.
+ * The gradient was not carrying depth; it was carrying the old brand, faintly.
+ *
+ * So the second dark value is not needed and is not requested. What replaces it is the ground's own
+ * construction, inverted: AuroraGround is a flat tint with soft radial highlights over it, and this
+ * is a flat charcoal with one soft radial highlight over it. Same grammar, opposite polarity, one
+ * token. It keeps the sense of light the founder liked in the reference without a second hue, and a
+ * flat black rectangle 150 points tall — which is the other obvious answer — would have been the
+ * same flatness this product already rejected in its corner radii.
+ *
+ * MEASURED, NOT EYEBALLED, AND THIS IS WHY IT IS A HIGHLIGHT RATHER THAN AN ALPHA ON THE PANEL.
+ * A panel that is charcoal-at-an-alpha lets the pale ground through, so the colour under the text
+ * is wherever the panel happens to be sitting — which is precisely the guess `glassFloor` exists to
+ * stop, and it is worse here because the ground is light and the text is white. This panel is fully
+ * opaque at every point. The highlight is `surface` at 10%, so the palest point on it composites to
+ * #333333, and white reads 12.69:1 there against 17.04:1 at the darkest — both clear AA and AAA,
+ * and there is no point on the panel where the arithmetic depends on what is behind it. */
+struct NightPanel: View {
+    var body: some View {
+        GeometryReader { geo in
+            let span = max(geo.size.width, geo.size.height)
+            ZStack {
+                ThusoTheme.charcoal
+                RadialGradient(colors: [ThusoTheme.surface.opacity(0.10), ThusoTheme.surface.opacity(0)],
+                               center: UnitPoint(x: 0.12, y: 0.02), startRadius: 0, endRadius: span * 0.9)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Glass
 
 /* The material, with its floor. `raised` is the top edge highlight — one hairline of white is most

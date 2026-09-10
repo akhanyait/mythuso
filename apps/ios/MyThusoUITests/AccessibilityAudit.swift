@@ -66,6 +66,15 @@ enum Audit {
          of a target that is otherwise the width of the screen. Replacing the control with one that \
          measures 44 would be a design change on all three platforms rather than an iOS fix.
          """),
+        ("button “Skip”", 36,
+         """
+         The same navigation-bar fact again, on the first-run flow. It was never measured before, \
+         because that screen was a system `Form` until the pass that moved it onto the design \
+         language and no audit walked it. What makes it an exemption rather than a defect is that \
+         it is not the only way out and never was: the flow is presented as a sheet, so the \
+         system's own downward drag dismisses it at any step, and the last step's own button does \
+         the same thing at full size. Making the bar taller is not something SwiftUI can do.
+         """),
         ("button “Leave this workspace”", 36,
          """
          The same navigation-bar fact as the bell above, on the four clinical workspaces: a bar \
