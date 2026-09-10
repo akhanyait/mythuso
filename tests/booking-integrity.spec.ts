@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openWorkspace } from './nav';
+import { confirmBooking, openWorkspace } from './nav';
 /* The booking journey, and the six defects it used to carry.
  *
  * These are written against behaviour a person can observe — a weekday that matches its date, a
@@ -73,7 +73,7 @@ test('the date chosen survives the confirmation and reaches the visit list', asy
   // the review states the full date, not just a time
   await expect(d.getByText(new RegExp(`${third.day} September 2026`))).toBeVisible();
   await d.getByRole('checkbox').check();
-  await d.getByRole('button', { name: 'Confirm & book' }).click();
+  await confirmBooking(d);
   await expect(d.getByText(new RegExp(`${third.day} September 2026`))).toBeVisible();
   await expect(d.getByText('14:00 – 14:45')).toBeVisible();
   await d.getByRole('button', { name: 'View my visits' }).click();
@@ -97,7 +97,7 @@ test('the home visit card is the visit you booked, not a fixture', async ({ page
   await d.getByRole('button', { name: 'Continue' }).click();
   await d.getByRole('button', { name: 'Continue' }).click();
   await d.getByRole('checkbox').check();
-  await d.getByRole('button', { name: 'Confirm & book' }).click();
+  await confirmBooking(d);
   await d.getByRole('button', { name: 'View my visits' }).click();
   await go(page, 'Overview');
   const card = page.locator('.visit-card');
@@ -119,7 +119,7 @@ test('an arrival estimate belongs to care asked for now, not to an appointment',
   await d.getByRole('button', { name: 'Continue' }).click();
   await expect(d.getByText('As soon as someone is free')).toBeVisible();
   await d.getByRole('checkbox').check();
-  await d.getByRole('button', { name: 'Confirm & book' }).click();
+  await confirmBooking(d);
   await expect(d.locator('.success-when')).toHaveText('Looking for a nurse');
 });
 

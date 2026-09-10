@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { goSection, openWorkspace } from './nav';
+import { confirmBooking, goSection, openWorkspace } from './nav';
 /* The South African Sign Language accommodation.
  *
  * The guidance for this was already rendered on all three platforms and none of it worked. These
@@ -130,7 +130,7 @@ test('a booking that needs an interpreter is held rather than confirmed, and say
   await expect(booking.locator('.review-line').filter({ hasText: 'Status when booked' })).toContainText('Held for an interpreter');
   await expect(booking).toContainText('A nurse who arrives without the interpreter');
   await booking.locator('label.checkbox input').check();
-  await booking.getByRole('button', { name: /Confirm & book/ }).click();
+  await confirmBooking(booking);
 
   // and it is not a confirmation screen
   await expect(booking.locator('.interp-held')).toBeVisible();

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 /* Read rather than imported: a JSON import needs an attribute under Node's ESM loader, and every
    other spec in this suite reads its contract the same way. */
 const passport = JSON.parse(readFileSync(new URL('../packages/catalog/passport.json', import.meta.url), 'utf8'));
-import { goSection, openWorkspace } from './nav';
+import { goSection, noticeFor, openWorkspace } from './nav';
 
 /* The rows docs/FLOW-COMPLETENESS.md listed as open, held so they cannot re-open.
  *
@@ -48,7 +48,7 @@ test('the care-team row says what help exists rather than opening an unrelated b
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Not sure what you need?' })).toBeVisible();
   /* The contract's own sentence about why nobody can be written to, word for word. */
-  await expect(page.getByText('Nothing is sent. No message, invitation or reminder reaches anybody.')).toBeVisible();
+  await expect(page.getByText(noticeFor('messaging')!)).toBeVisible();
   await expect(page.getByText('Nothing on this screen opens a conversation, joins a queue or tells anybody you were here.')).toBeVisible();
 
   /* And the three things that do exist. The emergency route leads, because somebody who cannot

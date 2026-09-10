@@ -43,10 +43,11 @@
 .status-count { display: flex; align-items: baseline; gap: var(--space-16); flex-wrap: wrap; margin-top: var(--space-32); }
 .status-count strong { font-size: 64px; font-weight: 300; line-height: 1; letter-spacing: -3px; color: var(--surface); font-variant-numeric: tabular-nums; }
 .status-count span { font-size: 16px; color: var(--stone); }
+/* Set exactly like the sentence above it. The count of simulated capabilities is the one figure on
+   this page a reader could take for progress, so it is not given a lighter treatment than the count
+   of connected ones. */
+.status-simulated { font-size: 15px; line-height: 1.65; color: var(--surface); margin-top: var(--space-12); max-width: 58ch; }
 .status-none { font-size: 15px; line-height: 1.65; color: var(--surface); margin-top: var(--space-20); padding-top: var(--space-20); border-top: 1px solid color-mix(in srgb, var(--stone) 30%, transparent); max-width: 58ch; }
-/* Same weight as the sentence above it: the simulation is not a footnote to "nothing is
-   connected", it is the other half of the same disclosure. */
-.status-simulated { font-size: 15px; line-height: 1.65; color: var(--surface); margin-top: var(--space-20); padding-top: var(--space-20); border-top: 1px solid color-mix(in srgb, var(--stone) 30%, transparent); max-width: 58ch; }
 
 /* ---- The fifteen ---- */
 /* core.css gives every <main> the application shell's padding, maximum width and its own scroll
@@ -72,17 +73,17 @@
    is in words, which is also what a screen reader gets. */
 .status-state { flex-shrink: 0; font-size: 13px; font-weight: 600; border-radius: var(--r-pill); padding: 5px 11px; background: var(--cloud); border: 1px solid var(--stone); color: var(--charcoal); white-space: nowrap; }
 .status-state.on { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
-/* Simulated is a sage fill at full strength, and deliberately not a lighter charcoal. A chip that
-   reads as a paler "Connected" reads as nearly connected, which is the one misreading this page
-   cannot afford: a different hue says "a different kind of thing" where a tint would have said "less
-   of the same thing".
+/* Simulated sits between the two, and is drawn between them: outlined rather than filled, so it
+   reads as a state of its own without competing with the one chip on this page that means a thing
+   is real. The word is what tells a reader which it is; the border is only the difference.
 
-   No visible border. The fill carries it, and a sageSlate edge on softSage measures 1.52 — an edge
-   nobody can see, doing the job the comment above it claims. This chip is a label rather than a
-   control, so SC 1.4.11's 3:1 boundary is not owed here; an invisible one written down as a design
-   decision would be owed an explanation nobody could give. Charcoal on softSage is 8.94:1, computed
-   on every build from the pair tokens.json already declares. */
-.status-state.sim { background: var(--soft-sage); border-color: var(--soft-sage); color: var(--charcoal); }
+   Three states as a progression of strength in one hue, rather than three hues: not connected is a
+   stone edge on cloud, simulated is a charcoal edge on the page, connected is charcoal filled. The
+   alternative considered was a sage fill, and it was dropped — introducing the brand colour as a
+   state meaning, on the page a funder reads, spends the one hue this product uses for emphasis on a
+   distinction that the words already carry. The charcoal edge measures 16.1:1 against the row, so
+   unlike a sage edge on sage it is a border somebody can actually see. */
+.status-state.sim { border-color: var(--charcoal); background: transparent; }
 
 /* Thirty of these on the page — two per capability — so they are set as quietly as a label can be
    and still be a label. In caps at 700 they read at almost the weight of the capability's own name,
@@ -94,6 +95,11 @@
 .status-notice { font-size: 15px; line-height: 1.6; color: var(--charcoal); margin-top: var(--space-8); padding-left: var(--space-12); border-left: 2px solid var(--soft-sage); }
 .status-blockers { margin: var(--space-8) 0 0; padding-left: var(--space-20); display: grid; gap: var(--space-8); }
 .status-blockers li { font-size: 14px; line-height: 1.6; color: var(--body); padding-left: var(--space-4); }
+/* What a stand-in will not do, set exactly like what a capability is waiting on. They are the same
+   kind of list — a short sentence per line, read down rather than across — and giving the more
+   uncomfortable one a quieter style is how a page starts editing itself. */
+.status-refuses { margin: var(--space-8) 0 0; padding-left: var(--space-20); display: grid; gap: var(--space-8); }
+.status-refuses li { font-size: 14px; line-height: 1.6; color: var(--body); padding-left: var(--space-4); }
 
 /* ---- The foot ---- */
 .status-foot { border-top: 1px solid var(--stone); }

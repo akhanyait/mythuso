@@ -23,12 +23,13 @@ const contract = JSON.parse(readFileSync(new URL('../packages/catalog/capabiliti
 const { capabilities } = contract;
 const connected = capabilities.filter(c => c.connected);
 const notConnected = capabilities.filter(c => !c.connected);
+/* Three states, and the page has to tell the middle one apart. A simulated capability is not
+   connected — the boolean stays false and the contract's own rule refuses to let the two disagree —
+   but it is also not a screen with nothing behind it, and a reader deciding whether to trust this
+   needs the difference. The sentence it shows is its simulation's, not its absent one. */
 const simulated = capabilities.filter(c => c.state === 'simulated');
-const absent = capabilities.filter(c => c.state === 'absent');
-/* What a row actually shows a reader, worked out the way the page works it out. A simulated
-   capability is never quieter than an absent one — it says a different thing, not nothing — so the
-   sentence to assert is the simulation's where there is one. */
-const shownNotice = (c: typeof capabilities[number]) => c.simulation ? c.simulation.notice : c.notice;
+const absent = notConnected.filter(c => c.state !== 'simulated');
+const noticeFor = (c: typeof capabilities[number]) => c.connected ? null : c.simulation ? c.simulation.notice : c.notice;
 
 test.beforeEach(async ({ page }) => { await page.goto('/status.html'); });
 
@@ -46,8 +47,11 @@ test('says how many are connected, and the figure is the contract’s arithmetic
   await expect(page.locator('.status-count strong')).toHaveText(String(connected.length));
   await expect(page.locator('.status-count')).toContainText(`of ${capabilities.length} capabilities are connected`);
   await expect(page.locator('.status-state').filter({ hasText: /^Not connected$/ })).toHaveCount(absent.length);
-  await expect(page.locator('.status-state.sim')).toHaveCount(simulated.length);
+  await expect(page.locator('.status-state').filter({ hasText: /^Simulated$/ })).toHaveCount(simulated.length);
   await expect(page.locator('.status-state.on')).toHaveCount(connected.length);
+  /* Simulated is stated as its own count too, and the sentence is derived rather than typed — a
+     figure a reader could mistake for progress is not left to be totalled off fifteen chips. */
+  if (simulated.length) await expect(page.locator('.status-simulated')).toContainText(`${simulated.length} of them are simulated`);
 });
 
 /* The assertion this page exists for, now that there are simulators behind it.
@@ -60,8 +64,12 @@ test('says how many are connected, and the figure is the contract’s arithmetic
 test('counts a simulation as a simulation and never as a connection', async ({ page }) => {
   await expect(page.locator('.status-count strong')).toHaveText('0');
   const simulatedLine = page.locator('.status-simulated');
-  await expect(simulatedLine).toContainText(`${simulated.length} of ${capabilities.length}`);
-  await expect(simulatedLine).toContainText('A simulation is not a connection');
+  await expect(simulatedLine).toContainText(`${simulated.length} of them are simulated`);
+  /* The two sentences that stop the line above being a boast. Asserted here rather than left to a
+     reviewer, because a simulation count on a funder's page reads as progress unless something on
+     the same line says what it costs and what it does not buy. */
+  await expect(simulatedLine).toContainText('No supplier is contracted');
+  await expect(simulatedLine).toContainText('nothing below is less blocked for having one');
   for (const c of simulated) {
     const row = page.locator(`#${c.id}`);
     await expect(row.locator('.status-state'), `${c.id} must not read Connected`).toHaveText('Simulated');
@@ -75,22 +83,51 @@ test('counts a simulation as a simulation and never as a connection', async ({ p
        honest work rather than a demonstration in a product's clothes, and a reader deciding whether
        to believe any of this should not have to open a file to find them. */
     for (const refusal of c.simulation!.refuses) {
-      await expect(row.locator('.status-blockers li').filter({ hasText: refusal }),
+      await expect(row.locator('.status-refuses li').filter({ hasText: refusal }),
         `${c.id} does not show that it refuses to ${refusal}`).toHaveCount(1);
     }
+    /* And they are their own list. A refusal folded in among the blockers would read as one more
+       thing waiting on a supplier, when it is the opposite: a thing that stays true after one signs. */
+    await expect(row.locator('.status-refuses li')).toHaveCount(c.simulation!.refuses.length);
   }
 });
 
 test('renders each notice and each blocker word for word', async ({ page }) => {
   for (const c of notConnected) {
     const row = page.locator(`#${c.id}`);
-    await expect(row.locator('.status-notice').first(), `${c.id} does not show its notice`).toHaveText(shownNotice(c));
+    await expect(row.locator('.status-notice').first(), `${c.id} does not show its notice`).toHaveText(noticeFor(c)!);
     for (const blocker of c.blockedBy) await expect(row.locator('.status-blockers li').filter({ hasText: blocker })).toHaveCount(1);
   }
   /* A capability that is connected shows no notice at all — the sentence exists to be shown while
      something is not real, and a leftover one on a working feature is the mirror of the defect this
      contract was written to stop. */
   for (const c of connected) await expect(page.locator(`#${c.id} .status-notice`)).toHaveText(/^Connected\./);
+});
+
+test('a simulated capability says what its stand-in refuses to do, word for word', async ({ page }) => {
+  /* The half that matters. A simulator's hazard is that it works, and the only thing standing
+     between "something answered" and "a supplier exists" is the list of what it will not do. */
+  for (const c of simulated) {
+    const row = page.locator(`#${c.id}`);
+    await expect(row.locator('.status-refuses li'), `${c.id} lists none of what its stand-in refuses`).toHaveCount(c.simulation!.refuses.length);
+    for (const refusal of c.simulation!.refuses) {
+      await expect(row.locator('.status-refuses li').filter({ hasText: refusal })).toHaveCount(1);
+    }
+  }
+  /* And a capability with nothing behind it has no such list, because there is no stand-in to
+     describe — an empty heading would read as one that had refused nothing. */
+  for (const c of absent) await expect(page.locator(`#${c.id} .status-refuses`)).toHaveCount(0);
+});
+
+test('a simulated capability still lists everything blocking it', async ({ page }) => {
+  /* The contract's own simulated-is-not-connected rule: a simulator does not unblock anything, and
+     the SMS provider is still unsigned on the day the simulated one works perfectly. */
+  for (const c of simulated) {
+    if (!c.blockedBy.length) continue;
+    for (const blocker of c.blockedBy) {
+      await expect(page.locator(`#${c.id} .status-blockers li`).filter({ hasText: blocker })).toHaveCount(1);
+    }
+  }
 });
 
 test('carries the rule that says when a row may read Connected', async ({ page }) => {

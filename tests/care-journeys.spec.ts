@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openWorkspace } from './nav';
+import { confirmBooking, openWorkspace } from './nav';
 /* The shell is a bottom tab bar on phones and a sidebar from 1000px up, so navigation in the
    tests goes through whichever one this project actually renders. */
 /* Tab-bar labels are translated, so the phone path addresses tabs by position, not by text. */
@@ -27,7 +27,7 @@ test('booking requires acknowledgement and creates a demo visit', async ({page})
   await expect(dialog.getByRole('button',{name:'Confirm & book'})).toBeDisabled();
   await expect(dialog.locator('.review-line').first()).toContainText('2026');
   await dialog.getByRole('checkbox').check();
-  await dialog.getByRole('button',{name:'Confirm & book'}).click();
+  await confirmBooking(dialog);
   await expect(dialog.getByText('Your visit is booked.')).toBeVisible();
   await dialog.getByRole('button',{name:'View my visits'}).click();
   // 14:30, not 15:00: a vitals check is thirty minutes in the catalogue, and the visit now ends

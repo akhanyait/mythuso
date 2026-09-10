@@ -1,4 +1,5 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 /* The shell is a sidebar from 1000px and a tab bar below it, and since the workspaces got their own
    navigation both carry role sections rather than the patient's tabs. Journeys go through whichever
    one the viewport actually renders.
@@ -63,4 +64,49 @@ export async function openFirstRun(page: Page) {
 export async function openModule(page: Page, name: string) {
   await goExplore(page);
   await page.locator('.module-card').filter({ has: page.getByRole('heading', { name, exact: true }) }).click();
+}
+
+/* The sentence a screen shows for a capability, chosen the way the app chooses it.
+ *
+ * Read from packages/catalog/capabilities.json rather than typed into a spec, because that is
+ * exactly the drift these tests were caught by: five of them asserted "No payment is taken" — the
+ * sentence for a capability with nothing behind it — and went on asserting it after the contract
+ * grew a third state and a simulator started answering. A test carrying its own copy of a notice is
+ * one more place for the notice to be wrong, and the least likely one to be noticed.
+ *
+ * Null when the capability is connected, because then no notice renders at all. */
+const capabilityContract = JSON.parse(readFileSync(new URL('../packages/catalog/capabilities.json', import.meta.url), 'utf8')) as {
+  capabilities: { id: string; connected: boolean; state: string; notice: string; simulation?: { notice: string; refuses: string[] } }[];
+};
+export const capabilityOf = (id: string) => {
+  const found = capabilityContract.capabilities.find(c => c.id === id);
+  if (!found) throw new Error(`No capability "${id}" in packages/catalog/capabilities.json`);
+  return found;
+};
+export const noticeFor = (id: string): string | null => {
+  const found = capabilityOf(id);
+  return found.connected ? null : found.simulation ? found.simulation.notice : found.notice;
+};
+
+/* Confirming a booking, now that there is a payment behind the button.
+ *
+ * The simulated provider declines roughly one attempt in five, deterministically per visit, and a
+ * declined payment does not book a visit — dispatching a nurse to a house against money that was
+ * refused is the one outcome this screen must not produce. So a journey that means to end up with a
+ * booking has to do what a person does: try again. The retry is a new attempt at the provider
+ * rather than the same one replayed, which is why the answer can change.
+ *
+ * Written here rather than in each spec so that the six journeys that book a visit say what they
+ * mean — "book this" — instead of each carrying its own loop. */
+export async function confirmBooking(scope: Locator) {
+  const retry = scope.getByRole('button', { name: 'Try the payment again' });
+  const onwards = scope.getByRole('button', { name: 'View my visits' });
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await scope.getByRole('button', { name: attempt === 0 ? 'Confirm & book' : 'Try the payment again' }).click();
+    /* Settled one way or the other before the next look: either the flow has moved on and offers
+       the visit list, or the decline is on the screen with the button that tries again. */
+    await expect(retry.or(onwards).first()).toBeVisible();
+    if (!(await retry.isVisible())) return;
+  }
+  throw new Error('Eight simulated payment attempts on one visit and every one of them was declined. The provider declines about one in five, so this is a seed that has stopped varying rather than a run of bad luck.');
 }

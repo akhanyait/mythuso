@@ -46,7 +46,9 @@ test('a week that did not go through says so, and a deduction says why', async (
   const d = await openEarnings(page);
   const failed = d.locator('.earn-week.failed');
   await expect(failed.getByText('Did not go through')).toBeVisible();
-  await failed.getByRole('button').click();
+  /* The week's own header, not whatever button comes first: a week now also carries the button that
+     runs its payment against the simulated bank. */
+  await failed.getByRole('button').first().click();
   await expect(failed.locator('.earn-failure')).toContainText('the account name did not match');
   await expect(failed.locator('.earn-failure')).toContainText('still owed to you');
   // the paid week carries the reversal, negative and explained

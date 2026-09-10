@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { noticeFor } from './nav';
 
 /* Five screens the walked-journey audit found no door to.
  *
@@ -82,7 +83,7 @@ test('a cancelled visit shows the reason, the window it fell on and what cancell
   /* The refund sentence is the payments contract's and disappears the moment payments are connected,
      which is the only way it stays true. */
   await expect(visit.getByText('Nothing has been charged for this visit, so there is nothing to refund.')).toBeVisible();
-  await expect(visit.getByText(/No payment is taken/)).toBeVisible();
+  await expect(visit.getByText(noticeFor('payments')!)).toBeVisible();
   await expect(visit.getByText('A cancelled visit is not deleted. It stays under Cancelled with the reason given.')).toBeVisible();
   await expect(visit.getByText(/Cancelling a visit withdraws nothing you have consented to/)).toBeVisible();
   expect(await noSidewaysScroll(page)).toEqual([]);
@@ -162,7 +163,7 @@ test('a family member’s profile shows their visits, both directions of sharing
   await navigate(page, 'My family');
   await page.locator('.family-member').filter({ hasText: 'Nomsa Molefe' }).click();
   const profile = page.getByRole('dialog');
-  await expect(profile.getByText(/Nothing is sent/)).toBeVisible();
+  await expect(profile.getByText(noticeFor('messaging')!)).toBeVisible();
   await expect(profile.getByRole('heading', { name: 'Visits you arranged for Nomsa' })).toBeVisible();
   await expect(profile.locator('.record-row').filter({ hasText: 'Blood tests' })).toBeVisible();
 
