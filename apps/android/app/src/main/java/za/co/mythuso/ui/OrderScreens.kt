@@ -50,6 +50,7 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
     )
     ScreenColumn {
         DemoBadge()
+        NotConnected("dispensing")
         Heading("Fictional prescription", reference, "Issued 4 September · Valid for 6 months · Awaiting pharmacist")
         CareCard {
             ReviewLine("Patient", "Lerato Molefe · 01/01/1980")

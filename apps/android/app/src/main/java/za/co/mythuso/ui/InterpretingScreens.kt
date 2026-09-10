@@ -81,6 +81,7 @@ import za.co.mythuso.model.*
 
     ScreenColumn {
         DemoBadge()
+        NotConnected("interpreting")
         Heading("Language and access", interpretingLabels.heading, Interpreting.rule("one-roster").sentence)
 
         CareCard {

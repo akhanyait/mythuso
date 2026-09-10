@@ -54,6 +54,9 @@ struct DispensingView: View {
                 DemoBadge()
                 CareHeading(eyebrow: "Partner workspace", title: "Substitution & repeats",
                             subtitle: "A fictional prescription. Nothing is dispensed and no pharmacy is contacted.")
+                /* `dispensing` names this screen as one of its surfaces and it said nothing about
+                   what stands behind it. A simulated capability is never quieter than an absent one. */
+                CapabilityNotice(of: "dispensing")
                 header
                 parties
                 boundary

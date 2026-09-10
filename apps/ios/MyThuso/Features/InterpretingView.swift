@@ -45,6 +45,9 @@ struct InterpretingView: View {
                 DemoBadge()
                 CareHeading(eyebrow: "Language and access", title: Interpreting.labels.heading,
                             subtitle: Interpreting.rule("one-roster").sentence)
+                /* The roster below names four people. Whose sentence says they are not real belongs
+                   in the contract, not in this file. */
+                CapabilityNotice(of: "interpreting")
                 requirementCard
                 modeCard
                 rosterCard

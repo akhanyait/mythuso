@@ -3190,6 +3190,37 @@ for (const [platform, [file, first, notice]] of Object.entries(emergencyNotices)
    everything else carries nothing. */
 if (!/reason = state === 'stood-down'/.test(emergencySimulator)) throw new Error(`${SIMULATION_DIR}/emergency.ts composes the free-text field on an emergency acknowledgement. That field is where "help is on the way" arrives; the only words allowed in it are ones packages/catalog/sos.json already wrote.`);
 
+/* ---- The surfaces of these five, on all three platforms ---------------------------------------
+
+   `a-simulation-says-so`: a simulated capability renders its notice wherever the absent one would
+   have, and no screen may be quieter for being simulated than it was for being absent. The failure
+   mode is not a screen that lies — it is a screen that stops speaking, because something answers now
+   and nobody notices that what answers is a fixture.
+
+   Four of these screens said nothing at all before this work: the Android prescription, dispensing,
+   interpreting and kit surfaces, and both native emergency screens above. Each carried a generic
+   design-preview badge, which is a different sentence about a different question — whether the data
+   is real, not whether anything is behind it. */
+const SIMULATED_SURFACES = [
+ ['apps/web/src/features/Dispensing.tsx', '<NotConnected of="dispensing"'],
+ ['apps/web/src/features/Orders.tsx', '<NotConnected of="dispensing"'],
+ ['apps/web/src/features/Interpreting.tsx', '<NotConnected of="interpreting"'],
+ ['apps/web/src/features/Booking.tsx', '<NotConnected of="interpreting"'],
+ ['apps/web/src/features/Teleconsult.tsx', '<NotConnected of="interpreting"'],
+ ['apps/web/src/features/Kit.tsx', '<NotConnected of="devices"'],
+ ['apps/ios/MyThuso/Features/DispensingView.swift', 'CapabilityNotice(of: "dispensing")'],
+ ['apps/ios/MyThuso/Features/OrdersView.swift', 'CapabilityNotice(of: "dispensing")'],
+ ['apps/ios/MyThuso/Features/InterpretingView.swift', 'CapabilityNotice(of: "interpreting")'],
+ ['apps/ios/MyThuso/Features/KitView.swift', 'CapabilityNotice(of: "devices")'],
+ ['apps/android/app/src/main/java/za/co/mythuso/ui/DispensingScreens.kt', 'NotConnected("dispensing")'],
+ ['apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt', 'NotConnected("dispensing")'],
+ ['apps/android/app/src/main/java/za/co/mythuso/ui/InterpretingScreens.kt', 'NotConnected("interpreting")'],
+ ['apps/android/app/src/main/java/za/co/mythuso/ui/CaptureScreens.kt', 'NotConnected("devices")']
+];
+for (const [file, renders] of SIMULATED_SURFACES) {
+ if (!read(file).includes(renders)) throw new Error(`${file} no longer renders ${renders}. A simulator stands behind that screen, and a screen that says nothing about it is the disclosure failure — silence rather than a lie, and the one nobody notices.`);
+}
+
 /* ---- The screening seam ------------------------------------------------------------------------
 
    An urgent screening result is a claim that somebody should stop and act, and the only list this

@@ -177,6 +177,7 @@ private fun stateTone(state: CaptureState) = when (state) {
 
     ScreenColumn {
         DemoBadge()
+        NotConnected("devices")
         Heading("Thuso Kit", "Connected diagnostic capture.", "$visit · $patient. Six instruments, each with what it measures, how it would connect and when it was last calibrated.")
         CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

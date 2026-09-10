@@ -69,6 +69,7 @@ struct PrescriptionView: View {
                 DemoBadge()
                 SurfaceHeading(eyebrow: "Prescription", title: reference,
                                subtitle: "Issued 4 September · Valid for 6 months · Awaiting pharmacist")
+                CapabilityNotice(of: "dispensing")
                 /* The lead panel is the pharmacist's own count, and it is the array underneath it
                    rather than a fixture: a preview that said "2 checked" over an unchecked list
                    would be teaching a pharmacist that the tally is decoration. */

@@ -85,6 +85,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 
     ScreenColumn {
         DemoBadge()
+        NotConnected("dispensing")
         Heading("Partner workspace", "Substitution & repeats",
             "A fictional prescription. Nothing is dispensed and no pharmacy is contacted.")
 

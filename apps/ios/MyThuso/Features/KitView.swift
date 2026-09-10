@@ -45,6 +45,7 @@ struct ThusoKitView: View {
                 DemoBadge()
                 CareHeading(eyebrow: "Thuso Kit", title: "Connected diagnostic capture.",
                             subtitle: "An instrument, a reading, and everything the record needs to know about where the number came from.")
+                CapabilityNotice(of: "devices")
                 nothingConnects
                 whoIsWorking
                 if mayWrite.allowed {
