@@ -28,6 +28,7 @@ import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.RouteResult
 import za.co.mythuso.model.URBAN_SPEED_KMH
 import za.co.mythuso.model.VettingDecision
+import za.co.mythuso.model.VettingStore
 import za.co.mythuso.model.asLatLng
 import za.co.mythuso.model.can
 import za.co.mythuso.model.etaFromRoute
@@ -83,6 +84,33 @@ private val nurses = listOf(
        passed its renewal date nine days ago and nobody decided anything. */
     DispatchNurse("N-204", "Sister Ayanda Dube", "Soweto", "Available", "Elderly care", LatLng(-26.240, 27.916))
 )
+
+/*
+ * What the board holds, for the strip that sits above it.
+ *
+ * The Control Tower's urgency strip carried four figures typed as literals — twenty-four active
+ * visits over a board of three, eighteen available nurses over a roster of five, four off duty when
+ * none is, and a worst incident of "high" when one of them is critical. A metric that disagrees with
+ * the list underneath it is worse than no metric: an operator who notices once that the strip says
+ * twenty-four over three rows has learnt not to believe the number, and the number they will not
+ * believe next is the one that matters. On a dispatch board the strip is what you glance at when you
+ * have no time to read the rows.
+ *
+ * So the strip counts these rather than restating them, and `available` asks the vetting register
+ * the same question the board asks before it offers anybody a visit — a nurse the board will refuse
+ * is not one an operator may be told is available.
+ */
+object DispatchBoard {
+    val awaitingAssignment: List<DispatchJob> get() = jobs
+    val roster: List<DispatchNurse> get() = nurses
+    fun available(vetting: VettingStore): Int = nurses.count { nurse ->
+        nurse.status == "Available" && (vetting.byName(nurse.name)?.let { can(it, "take-visit").allowed } ?: false)
+    }
+    fun refusedByVetting(vetting: VettingStore): Int = nurses.count { nurse ->
+        !(vetting.byName(nurse.name)?.let { can(it, "take-visit").allowed } ?: false)
+    }
+    val onAVisit: Int get() = nurses.count { it.status != "Available" }
+}
 
 /* Plotted once rather than inside the draw pass, so the guard runs — and warns — when the board is
    built rather than on every frame. A position that fails it is not drawn at all: a dot an operator

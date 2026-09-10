@@ -101,6 +101,15 @@ class FontScaleTests {
         auditBothScales("The Health Passport") { openTab("Passport") }
     }
 
+    /* A workspace, for the strip at the top of it. Three figures over three sub-lines in two
+       half-width cards is the densest row in the app, and it is the one a controller glances at
+       instead of reading the board — so a sub-line squeezed out of its card at the largest scale
+       takes the reason the figure is what it is with it. The Control Tower's is the worst case: its
+       sub-lines are the longest ("1 refused by vetting") and its cards are half-width. */
+    @Test fun theControlTowerWorkspaceIsUsableAtBothFontScales() {
+        auditBothScales("The Control Tower workspace") { openWorkspace("Control Tower workspace") }
+    }
+
     /* The cancel dialog, at both ends of the scale. It is here rather than only in
        CancellationJourneyTests because three of the four defects this suite found were invisible at
        the default scale — a blood-pressure unit and a review's field name were each measured 0dp
@@ -115,6 +124,17 @@ class FontScaleTests {
 
     private fun openTab(label: String) {
         rule.onAllNodes(isTab() and hasText(label)).onFirst().performClick()
+        rule.waitForIdle()
+    }
+
+    /** Scrolled to: the workspaces sit at the bottom of More, and at the largest scale a long way
+     *  below the fold — and a click on an un-scrolled node lands nowhere silently.
+     *  Matched on text rather than on a description: a MenuRow publishes its title and subtitle as
+     *  two Text nodes and carries no contentDescription of its own. */
+    private fun openWorkspace(name: String) {
+        openTab("More")
+        rule.onAllNodes(hasText(name) and hasClickAction())
+            .onFirst().performScrollTo().performClick()
         rule.waitForIdle()
     }
 

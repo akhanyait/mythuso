@@ -60,7 +60,10 @@ import androidx.compose.ui.semantics.Role
 
 private val payPreviewNurses = listOf("N-205", "N-204")
 
-private fun rand(amount: Int): String {
+/* Internal rather than private since the workspace strip started deriving “this week so far” from
+   Earnings.currentWeek rather than typing a figure: a second money formatter beside this one would
+   be two ways of writing the same rands, and they would disagree on the day somebody changed one. */
+internal fun rand(amount: Int): String {
     val digits = abs(amount).toString().reversed().chunked(3).joinToString(" ").reversed()
     return "R $digits"
 }

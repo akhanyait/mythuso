@@ -32,6 +32,7 @@ import za.co.mythuso.model.CaptureState
 import za.co.mythuso.model.Passport
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.Scheduling
+import za.co.mythuso.model.Earnings
 import za.co.mythuso.model.readingSets
 import za.co.mythuso.model.householdMemberById
 import za.co.mythuso.model.mokoenaHousehold
@@ -470,29 +471,117 @@ fun workspaceSections(role: String): List<WorkspaceSection> = when (role) {
     )
 }
 
-/* What is waiting, and how long it has waited. A workspace that opens with anything else is asking
-   the person to go and find the urgent thing themselves. */
-fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when (role) {
-    "Doctor" -> listOf(
-        Triple("Awaiting review", "12", "Longest waiting 3 h 20 m"),
-        Triple("Priority reviews", "2", "Flagged out of range"),
-        Triple("Reviewed today", "18", "Median 4 m 10 s")
-    )
-    "Partner" -> listOf(
-        Triple("Open orders", "8", "2 past their collection window"),
-        Triple("Scheduled collections", "4", "Next 11:15"),
-        Triple("Ready for release", "3", "Awaiting a clinician")
-    )
-    "Control Tower" -> listOf(
-        Triple("Active visits", "24", "3 running late"),
-        Triple("Available nurses", "18", "4 off duty"),
-        Triple("Open incidents", "3", "1 severity high")
-    )
-    else -> listOf(
-        Triple("Next visit", "09:00", "Rosebank · in 40 minutes"),
-        Triple("Today’s visits", "3", "One awaiting sign-off"),
-        Triple("This week so far", "R 598", "Pays Wednesday")
-    )
+/* ---- The three boards a workspace strip is allowed to speak for ---------------------------------
+ *
+ * Each of these was a list of strings written inside the card that rendered it, which meant the
+ * figures above them had nothing to be counted from and were typed instead. They are data now, and
+ * the strip counts them. Nothing here is a real queue: the references, the names and the waiting
+ * times are fictional, and the screens that render them say so.
+ */
+
+/** One case waiting on a doctor. The waiting time is a field rather than a sentence in the strip,
+ *  because the strip's "longest waiting" has to come off the same row the queue shows. */
+data class ReviewWaiting(val reference: String, val what: String, val waitingMinutes: Int, val flagged: Boolean)
+val doctorReviewQueue = listOf(
+    ReviewWaiting("TH-2048", "Vitals assessment", 200, flagged = true),
+    ReviewWaiting("TH-2045", "Wound follow-up", 74, flagged = false),
+    ReviewWaiting("TH-2041", "Prescription request", 26, flagged = true)
+)
+
+/** One prescription on a partner's counter, and what it is waiting for. */
+data class PartnerOrder(val reference: String, val items: Int, val waitingFor: String)
+val partnerOrders = listOf(
+    PartnerOrder("RX-0081", 2, "Awaiting pharmacist"),
+    PartnerOrder("RX-0079", 1, "Dispensed, awaiting courier")
+)
+
+/** One visit on a nurse's day. The reference is null where the preview has no assessment behind it,
+ *  which is what stops the strip claiming a visit is open on this phone when it is not. */
+data class NurseVisit(val at: String, val service: String, val area: String, val reference: String? = null)
+val nurseToday = listOf(
+    NurseVisit("09:00", "Vitals assessment", "Rosebank", "TH-2048"),
+    NurseVisit("11:30", "Wound care", "Parktown"),
+    NurseVisit("14:00", "Mother & baby", "Melville")
+)
+
+/** “3 h 20 m”, from minutes, so a waiting time is written once and read everywhere. */
+private fun waitedText(minutes: Int): String =
+    if (minutes >= 60) "${minutes / 60} h ${minutes % 60} m" else "$minutes m"
+
+/*
+ * What is waiting, and how long it has waited. A workspace that opens with anything else is asking
+ * the person to go and find the urgent thing themselves.
+ *
+ * EVERY FIGURE IS COUNTED, and that is the whole of this function's job. All twelve used to be
+ * literals, and four of them contradicted the board directly underneath: twenty-four active visits
+ * over three rows, eighteen available nurses over a roster of five, four off duty when not one nurse
+ * is, and "1 severity high" when the worst open incident is critical. The doctor's strip claimed
+ * twelve cases over a queue of three. A person who catches a strip lying once stops believing the
+ * strip, and what they stop believing next is the number that mattered.
+ *
+ * The vetting store is asked for rather than assumed because the dispatch board refuses a nurse
+ * whose clearance has lapsed, and a strip that counts her as available has offered an operator
+ * somebody the next screen will not let them send.
+ */
+fun workspaceUrgency(role: String, store: PreviewStore): List<Triple<String, String, String>> = when (role) {
+    "Doctor" -> {
+        val flagged = doctorReviewQueue.count { it.flagged }
+        val overAnHour = doctorReviewQueue.filter { it.waitingMinutes >= 60 }
+        listOf(
+            Triple("Awaiting review", "${doctorReviewQueue.size}",
+                "Longest waiting ${waitedText(doctorReviewQueue.maxOf { it.waitingMinutes })}"),
+            Triple("Flagged out of range", "$flagged",
+                if (flagged == 0) "Nothing in the queue is flagged" else "Read ${if (flagged == 1) "it" else "those"} first"),
+            Triple("Waiting over an hour", "${overAnHour.size}",
+                overAnHour.maxByOrNull { it.waitingMinutes }?.let { "Oldest is ${it.reference}" } ?: "Nothing has waited that long")
+        )
+    }
+    "Partner" -> {
+        val pharmacist = partnerOrders.count { it.waitingFor.contains("pharmacist", ignoreCase = true) }
+        val courier = partnerOrders.count { it.waitingFor.contains("courier", ignoreCase = true) }
+        val items = partnerOrders.sumOf { it.items }
+        listOf(
+            Triple("Open orders", "${partnerOrders.size}", "$items item${if (items == 1) "" else "s"} between them"),
+            Triple("Awaiting a pharmacist", "$pharmacist", "Nothing is dispensed until one signs"),
+            Triple("Awaiting a courier", "$courier", "Dispensed, not yet collected")
+        )
+    }
+    "Control Tower" -> {
+        val urgent = DispatchBoard.awaitingAssignment.count { it.priority == "Urgent" }
+        val available = DispatchBoard.available(store.vetting)
+        val refused = DispatchBoard.refusedByVetting(store.vetting)
+        val open = incidents.filter { it.status != "Closed" }
+        /* Counted by severity, in the web's own shape, because the strip used to say "1 severity
+           high" over a list whose worst entry is critical — and a reader who sees "high" reaches for
+           it after the two things they think are more urgent. */
+        val critical = open.count { it.severity == "Critical" }
+        val high = open.count { it.severity == "High" }
+        listOf(
+            Triple("Awaiting assignment", "${DispatchBoard.awaitingAssignment.size}",
+                if (urgent == 0) "None is marked urgent" else "$urgent marked urgent"),
+            Triple("Nurses available", "$available",
+                if (refused > 0) "$refused refused by vetting" else "${DispatchBoard.onAVisit} on a visit"),
+            Triple("Open incidents", "${open.size}",
+                when {
+                    critical > 0 -> "$critical critical"
+                    high > 0 -> "$high high"
+                    else -> "None is critical or high"
+                })
+        )
+    }
+    else -> {
+        val next = nurseToday.first()
+        /* Real state rather than a sentence: an assessment is open on this phone only if the visit
+           queue is holding a piece of one for it. */
+        val started = nurseToday.count { visit -> visit.reference?.let { store.visitQueue.forVisit(it).isNotEmpty() } == true }
+        val week = Earnings.currentWeek
+        listOf(
+            Triple("Next visit", next.at, "${next.service} · ${next.area}"),
+            Triple("Visits today", "${nurseToday.size}",
+                if (started == 0) "None started yet" else "$started open on this phone"),
+            Triple("This week so far", rand(week.total), "Pays ${week.pays.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.UK)}")
+        )
+    }
 }
 
 /* What is waiting, at the top of a workspace, before anything else.
@@ -501,8 +590,9 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
  * and how long has it waited — and the first of the three is the answer. So the first is the wide
  * one with the count at the metric size, and the two behind it are context at half the width. The
  * strip still wraps rather than clipping as the font scale grows. */
-@Composable fun WorkspaceUrgency(role: String) {
-    val entries = workspaceUrgency(role)
+@Composable fun WorkspaceUrgency(role: String, store: PreviewStore) {
+    val entries = workspaceUrgency(role, store)
+    BoxWithConstraints { val room = maxWidth
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
         entries.firstOrNull()?.let { (label, value, note) ->
             LeadCard(Modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" }) {
@@ -511,19 +601,33 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
                 Text(note, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-            entries.drop(1).forEach { (label, value, note) ->
-                CareCard(
-                    Modifier.weight(1f).semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" },
-                    padding = ThusoSpacing.space12
-                ) {
-                    Text(label, style = MaterialTheme.typography.bodySmall, color = Faint)
-                    Text(value, style = MaterialTheme.typography.titleLarge, color = Charcoal)
-                    Text(note, style = MaterialTheme.typography.bodySmall, color = BodyText)
-                }
+        /* Two half-width cards, until half is not a width any more.
+           At the largest font scale on a tablet-shaped window the rail takes 110dp off the row, and
+           half of what is left held about six characters: “Nurses available” came back as
+           “Nurse / s / availa / ble” and “1 refused by vetting” as four more lines of the same. The
+           font-scale suite passes that — nothing is truncated and nothing is squeezed to nought —
+           and it is still not a thing anybody can read at a glance, which is the only thing this
+           strip is for.
+           The threshold is the narrowest screen this app supports rather than a number chosen for
+           this row: docs/ACCESSIBILITY.md holds every layout to 320dp without horizontal overflow,
+           so a pair of cards that cannot have that much between them is a pair that should be one
+           column. Above it they sit side by side exactly as before. */
+        val stacked = room < 320.dp
+        @Composable fun figure(label: String, value: String, note: String, modifier: Modifier) {
+            CareCard(
+                modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" },
+                padding = ThusoSpacing.space12
+            ) {
+                Text(label, style = MaterialTheme.typography.bodySmall, color = Faint)
+                Text(value, style = MaterialTheme.typography.titleLarge, color = Charcoal)
+                Text(note, style = MaterialTheme.typography.bodySmall, color = BodyText)
             }
         }
-    }
+        if (stacked) entries.drop(1).forEach { (label, value, note) -> figure(label, value, note, Modifier.fillMaxWidth()) }
+        else Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+            entries.drop(1).forEach { (label, value, note) -> figure(label, value, note, Modifier.weight(1f)) }
+        }
+    } }
 }
 
 @Composable fun WorkspaceScreen(role: String, section: String, store: PreviewStore, open: (String) -> Unit) {
@@ -546,7 +650,7 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
                 Heading("", section, "Role preview for design review, not authentication.")
                 DemoBadge()
             }
-            WorkspaceUrgency(role)
+            WorkspaceUrgency(role, store)
         } else {
             Heading("", section, "")
         }
@@ -567,10 +671,15 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
                     Note("$partsHeld ${if (partsHeld == 1) "piece" else "pieces"} of a visit and $readingsHeld reading${if (readingsHeld == 1) "" else "s"} held here · $needing needing a decision")
                     Note("Held on the disk, not in memory. It comes back from a crash, a force-quit and a restart.")
                 }
+                /* The same three rows the strip above counts. They were written here as strings and
+                   counted nowhere, which is how “Today’s visits · 3” came to be a literal beside a
+                   list that could have said it. */
                 CareCard {
                     Text("Today’s work", style = MaterialTheme.typography.titleMedium)
-                    ToolRow("TH-2048 · Vitals assessment · Rosebank") { open("Visit assessment") }
-                    listOf("11:30 · Wound care · Parktown", "14:00 · Mother & baby · Melville").forEach { item -> ToolRow(item) { open(item) } }
+                    nurseToday.forEach { visit ->
+                        val label = "${visit.reference ?: visit.at} · ${visit.service} · ${visit.area}"
+                        ToolRow(label) { open(if (visit.reference != null) "Visit assessment" else label) }
+                    }
                 }
                 CareCard {
                     Text("More tools", style = MaterialTheme.typography.titleMedium)
@@ -594,10 +703,15 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
                 listOf("Vetting: N-205", "Nurse onboarding & vetting", "Apply for vetting: locum").forEach { item -> ToolRow(label(item)) { open(item) } }
             }
             role == "Doctor" && section == "Review queue" -> {
+                /* The queue the strip above counts, and the waiting time is on the row as well as in
+                   the figure over it: a “longest waiting” a reader cannot find in the list is a
+                   number they have to take on trust, which is how the strip came to say twelve. */
                 CareCard {
                     Text("Clinical review queue", style = MaterialTheme.typography.titleMedium)
-                    listOf("TH-2048 · Vitals assessment", "TH-2045 · Wound follow-up", "TH-2041 · Prescription request").forEach { item ->
-                        ToolRow(item) { open("Doctor review ${item.take(7)}") }
+                    doctorReviewQueue.forEach { waiting ->
+                        ToolRow("${waiting.reference} · ${waiting.what} · waiting ${waitedText(waiting.waitingMinutes)}") {
+                            open("Doctor review ${waiting.reference}")
+                        }
                     }
                 }
                 CareCard {
@@ -617,8 +731,11 @@ fun workspaceUrgency(role: String): List<Triple<String, String, String>> = when 
             role == "Partner" && section == "Orders" -> {
                 CareCard {
                     Text("Prescriptions", style = MaterialTheme.typography.titleMedium)
-                    ToolRow("RX-0081 · 2 items · Awaiting pharmacist") { open("Prescription RX-0081") }
-                    ToolRow("RX-0079 · 1 item · Dispensed, awaiting courier") { open("Prescription RX-0079") }
+                    partnerOrders.forEach { order ->
+                        ToolRow("${order.reference} · ${order.items} item${if (order.items == 1) "" else "s"} · ${order.waitingFor}") {
+                            open("Prescription ${order.reference}")
+                        }
+                    }
                 }
                 /* A partner is vetted as an organisation, and the courier who carries the sample is
                    vetted in his own right. Both refusals reach this queue, so both are reachable. */
