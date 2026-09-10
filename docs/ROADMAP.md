@@ -86,7 +86,35 @@ member's profile shows their visits and books for them.
 ### 2. Structural, and invisible until it bites
 
 - **The native apps have not had the glass pass.** iOS and Android build green and carry the new
-  palette, but not the shapes. Three apps that look like relatives rather than one product.
+  palette, but not the shapes. Three apps that look like relatives rather than one product. Six iOS
+  clinical screens came off `Form` and `List` on 10 September and were looked at, at both the default
+  content size and AccessibilityXXXL, from the test run's own attachments — so those six are the
+  shapes, not the palette. The rest of both apps is not.
+- **The quarantines are down to two, and both of them retire themselves.** Four iOS copies and two
+  Android ones adopted their contracts on 10 September; what is left is `CaptureQueue.kt` and the
+  web's `VisitQueue.tsx`. The figure ratchet is down from twenty-four typed figures to four, all of
+  them blessed with a reason, because the Android workspace strip now counts every one of its twenty
+  from the rows underneath it. Three of the four lies that check was written for lived in that one
+  function.
+- **`FileBook.refusalFor()` in `CaptureQueue.kt` still hand-writes two disk-full sentences.** They
+  belong in `capture.json` under `durability`, beside `stores`, as a `refusals` list: one for a phone
+  with no room, which is the nurse's to fix and worth telling her how, and one for a disk that
+  refused and did not say why, which is not hers and must not send her looking for space she has.
+  Both must keep the clause saying the work is *not* on the disk — `LedgerStorageFailureTests`
+  asserts on those words and that assertion is the point. The quarantine sentence has three callers
+  and three wordings on one platform already, and iOS has the same seam with no sentences at all,
+  which is the second reason it wants a contract rather than a third copy.
+- **A cleared typed reading leaves an orphan on Android.** Type a value, record the findings, go back
+  and clear the field: the reading stays `CAPTURED`, is no longer named by the part, and still counts
+  in "readings waiting". It is visible on the kit queue and can be withdrawn there. Inventing a
+  delete in a module whose whole ethic is that nothing deletes a reading was the wrong reflex, but a
+  nurse would notice the count.
+- **Three money formatters in `apps/android`, one currency.** `EarningsScreens.rand`,
+  `ProgrammeScreens.randAmount` and `Records.rands` disagree about spacing. `ThusoSpacing` also has
+  no width scale, so a metric card's minimum width is currently a viewport floor doing a component's
+  job.
+- **The web's doctor strip is still literal** — `apps/web/src/shells/StaffShell.tsx` types three
+  figures and the nurse row's earnings. Android derives all four now and the web does not.
 - **The controls in `docs/PRIVACY-AND-SECURITY.md` are more of them than they were.** The document
   audits its own twenty-six rows: eleven are now implemented, five partial and six absent, up from
   six, four and twelve. The gate and the vetting vault are no longer libraries with test suites —
@@ -112,7 +140,17 @@ These are in `docs/` already and are listed here so they are not lost:
 - Substitution classes need a pharmacist to sign them off.
 - The employer suppression floor needs an Information Officer.
 - **The late-cancellation charge is undecided** and `cancellation.json` refuses to state one.
-- No VoiceOver or real-hardware testing has been done on either native app.
+- No VoiceOver or real-hardware testing has been done on either native app. XCUITest's snapshot
+  reports five loose SF Symbols on the iOS screens swept on 10 September; folding a symbol into the
+  label beside it does not remove it from that tree, so only VoiceOver can settle whether they are
+  read out. `ThusoSwitchStyle` may also have moved the identity switch's trait from switch to button,
+  which is the same question and the same answer.
+- **HSTS is live at `max-age=300`, and raising it is a decision nobody has taken.** The header was
+  verified on 10 September arriving on both `mythuso.co.za` and `www.`, in the block certbot writes,
+  with plain http still redirecting. Five minutes is HSTS with the irreversibility removed, which is
+  what made it safe to switch on unattended; it is not yet HSTS doing anything. Raising it to two
+  years is one line in `deploy/nginx/mythuso.conf` and a redeploy, and it cannot be taken back from a
+  browser that heard it, which is why it is on this list rather than done.
 
 ---
 
