@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { noticeFor } from './nav';
+import { noticeFor } from './notices';
 /* The five patient screens that were left behind when the home was rebuilt.
  *
  * The home got the row, the card padding, the icon size and the status badge; Health Passport, My
@@ -108,7 +108,7 @@ test('no care plan offers a call to action it cannot honour', async ({ page }) =
   await navigate(page, 'Care plans');
   await expect(page.locator('.plan-card')).toHaveCount(5);
   await expect(page.locator('.plan-card button.primary')).toHaveCount(0);
-  await expect(page.locator('.not-connected')).toContainText(noticeFor('payments')!);
+  await expect(page.locator('.not-connected')).toContainText(noticeFor('payments'));
 });
 
 /* A payment provider being unavailable is an ordinary Tuesday. The wallet list goes through the
@@ -116,7 +116,7 @@ test('no care plan offers a call to action it cannot honour', async ({ page }) =
 test('the wallet activity list carries the shared error state, and says no money moves', async ({ page }) => {
   await page.goto('/');
   await navigate(page, 'Thuso Wallet');
-  await expect(page.locator('.not-connected')).toContainText(noticeFor('payments')!);
+  await expect(page.locator('.not-connected')).toContainText(noticeFor('payments'));
   await expect(page.getByText('Family care credit')).toBeVisible();
 });
 

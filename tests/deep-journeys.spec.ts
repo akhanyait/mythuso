@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { noticeFor } from './notices';
 import { goSection, openAdminConsole, openFirstRun, openWorkspace } from './nav';
 /* Tab-bar labels are translated, so the phone path addresses tabs by position, not by text. */
 const tabOrder = ['Overview', 'Book a nurse', 'My visits', 'Health Passport', 'More'];
@@ -156,7 +157,7 @@ test('partner orders show chain of custody and every integration state', async (
   /* The state picker that used to force this dialog offline is gone — it was a design-review
      control shipped inside the product, and nothing behind this screen could fail anyway. What the
      screen owes the reader instead is the contract's own sentence about what it is not wired to. */
-  await expect(dialog.locator('.not-connected')).toContainText('No prescription reaches a pharmacy');
+  await expect(dialog.locator('.not-connected')).toContainText(noticeFor('dispensing'));
   await dialog.getByRole('button', { name: 'Close dialog' }).click();
   await page.getByRole('button', { name: /^LAB-0023/ }).click();
   await expect(dialog.getByText('SEAL-77341 · Intact on receipt')).toBeVisible();

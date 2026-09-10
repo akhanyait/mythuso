@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { noticeFor } from './nav';
+import { noticeFor } from './notices';
 
 /* Five screens the walked-journey audit found no door to.
  *
@@ -40,7 +40,7 @@ test('a completed visit says what was measured, what was in range and what the d
   await page.goto('/');
   const visit = await openVisit(page, 'Past');
   await expect(visit.getByRole('heading', { name: 'What the nurse found' })).toBeVisible();
-  await expect(visit.getByText(/This record is sample data/)).toBeVisible();
+  await expect(visit.getByText(noticeFor('clinical-records'), { exact: false })).toBeVisible();
 
   /* The figures, in the shape every figure in this product takes: a status word above a large thin
      numeral with its name below. The word matters more than the chip — colour is never the only
@@ -83,7 +83,7 @@ test('a cancelled visit shows the reason, the window it fell on and what cancell
   /* The refund sentence is the payments contract's and disappears the moment payments are connected,
      which is the only way it stays true. */
   await expect(visit.getByText('Nothing has been charged for this visit, so there is nothing to refund.')).toBeVisible();
-  await expect(visit.getByText(noticeFor('payments')!)).toBeVisible();
+  await expect(visit.getByText(noticeFor('payments'), { exact: false })).toBeVisible();
   await expect(visit.getByText('A cancelled visit is not deleted. It stays under Cancelled with the reason given.')).toBeVisible();
   await expect(visit.getByText(/Cancelling a visit withdraws nothing you have consented to/)).toBeVisible();
   expect(await noSidewaysScroll(page)).toEqual([]);
@@ -111,7 +111,7 @@ test('the trends screen draws every reading against the range the contract holds
      one it means rather than relying on there being only one. */
   await page.locator('.section-title').filter({ hasText: 'Health trends' }).getByRole('button', { name: /See all/ }).click();
   await expect(page.getByRole('heading', { name: 'How your readings have changed.' })).toBeVisible();
-  await expect(page.getByText(/This record is sample data/)).toBeVisible();
+  await expect(page.getByText(noticeFor('clinical-records'), { exact: false })).toBeVisible();
 
   /* Four charts to begin with, and the other three a press away. Seven on one phone screen is a
      wall; these four are what somebody with a blood-pressure diagnosis actually watches. */
@@ -144,7 +144,7 @@ for (const integration of integrations) {
 
     /* The contract's own sentence, above everything, because the decision this screen is asking
        about has not got a subject yet. */
-    await expect(sheet.getByText('No device is connected. These readings are sample data and no instrument has been paired.')).toBeVisible();
+    await expect(sheet.getByText(noticeFor('devices'), { exact: false })).toBeVisible();
     await expect(sheet.getByRole('row', { name: /Blood pressure — systolic/ })).toContainText('90–140 mmHg');
     /* The half of a permission screen that is usually missing, and the reason this screen exists. */
     await expect(sheet.getByText('Anything in a protected category')).toBeVisible();
@@ -163,7 +163,7 @@ test('a family member’s profile shows their visits, both directions of sharing
   await navigate(page, 'My family');
   await page.locator('.family-member').filter({ hasText: 'Nomsa Molefe' }).click();
   const profile = page.getByRole('dialog');
-  await expect(profile.getByText(noticeFor('messaging')!)).toBeVisible();
+  await expect(profile.getByText(noticeFor('messaging'), { exact: false })).toBeVisible();
   await expect(profile.getByRole('heading', { name: 'Visits you arranged for Nomsa' })).toBeVisible();
   await expect(profile.locator('.record-row').filter({ hasText: 'Blood tests' })).toBeVisible();
 
@@ -214,7 +214,7 @@ test('the passport explains a measurement, refuses to diagnose, and says who dec
   await expect(page.getByRole('heading', { name: 'What your readings mean.' })).toBeVisible();
   /* The screening capability's own notice, above everything, because this is where screening will
      eventually live and a written explanation is not a screening result. */
-  await expect(page.getByText(/Nothing here is screened by software/)).toBeVisible();
+  await expect(page.getByText(noticeFor('screening'), { exact: false })).toBeVisible();
 
   /* One row per observation, and the row carries where the last reading fell as a word rather than
      only as a tint. */

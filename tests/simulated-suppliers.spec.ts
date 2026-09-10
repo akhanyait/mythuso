@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
-import { capabilityOf, confirmBooking, goSection, noticeFor, openWorkspace } from './nav';
+import { capabilityOf, confirmBooking, goSection, openWorkspace } from './nav';
+import { noticeFor } from './notices';
 /* The money and the identity seams, walked end to end against a stand-in.
  *
  * Nothing here asserts that a simulator works. It asserts the two things a simulator is worth

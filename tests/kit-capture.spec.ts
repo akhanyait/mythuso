@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { noticeFor } from './notices';
 import { goSection, openModule, openWorkspace } from './nav';
 /* Thuso Kit: pairing, capture, the offline queue and the four conflicts a queue actually produces.
    The point of these three journeys is not that the screens render. It is that a reading carries
@@ -10,7 +11,7 @@ test('kit surface: pair, capture, queue, all four conflicts', async ({ page }) =
   await page.goto('/');
   await openModule(page, 'Thuso Kit');
   const d = page.getByRole('dialog');
-  await expect(d.locator('.not-connected')).toContainText('No device is connected');
+  await expect(d.locator('.not-connected')).toContainText(noticeFor('devices'));
   await expect(d.getByText(/This queue is held in memory/)).toBeVisible();
   // pairing
   await d.getByRole('button', { name: 'Look for instruments' }).click();

@@ -83,10 +83,11 @@ export const capabilityOf = (id: string) => {
   if (!found) throw new Error(`No capability "${id}" in packages/catalog/capabilities.json`);
   return found;
 };
-export const noticeFor = (id: string): string | null => {
-  const found = capabilityOf(id);
-  return found.connected ? null : found.simulation ? found.simulation.notice : found.notice;
-};
+/* `noticeFor` used to live here too. It is in tests/notices.ts and only there: two modules
+   answering "what does this screen say" is the second copy this repository fails the build over
+   everywhere it can reach, and the other one is better — it throws for a connected capability
+   instead of returning null, so a spec asserting a notice that no longer exists fails loudly
+   rather than comparing two nothings. nav.ts keeps `capabilityOf`, which is the record itself. */
 
 /* Confirming a booking, now that there is a payment behind the button.
  *

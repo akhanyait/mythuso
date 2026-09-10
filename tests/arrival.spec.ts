@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { noticeFor } from './notices';
 import { readFileSync } from 'node:fs';
 
 /* Where is she now — the journey, and everything the answer refuses to claim.
@@ -53,7 +54,7 @@ test('the visit that is today says how far away she is, and what the figure is n
 
   /* dispatch is not connected, so the contract's sentence is above everything. It is the first
      thing asserted because it is the first thing that would be tidied away. */
-  await expect(page.getByText(/Dispatch is not connected/)).toBeVisible();
+  await expect(page.getByText(noticeFor('dispatch'), { exact: false })).toBeVisible();
 
   /* The figure, with the chip saying what it is *above* it rather than a caveat underneath. A
      number that has to be qualified below is a number that gets quoted without the qualification. */
