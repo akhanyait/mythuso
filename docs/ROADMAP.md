@@ -125,8 +125,10 @@ Closed, and named here so they are not built twice:
 - **The web's doctor strip is still literal** — `apps/web/src/shells/StaffShell.tsx` types three
   figures and the nurse row's earnings. Android derives all four now and the web does not.
 - **The controls in `docs/PRIVACY-AND-SECURITY.md` are more of them than they were.** The document
-  audits its own twenty-six rows: eleven are now implemented, five partial and six absent, up from
-  six, four and twelve. The gate and the vetting vault are no longer libraries with test suites —
+  audits its own twenty-seven rows: twelve are now implemented, five partial and six absent, up from
+  six, four and twelve — and the remaining four are none of the three and say so in their own rows.
+  This paragraph said twenty-six and eleven until 10 September, one revision behind the document it
+  is summarising, which is the reason a summary should name its source and be checked against it. The gate and the vetting vault are no longer libraries with test suites —
   nine routes reach them, and the actor comes off the session rather than off the request, which was
   the reason they had none. Export, correction, the section 24 queue and a security compromise
   register landed with them, and the unlimited write routes now carry a caller limit whose number is
