@@ -69,19 +69,28 @@ is recorded against each of the eleven as undetermined and which no code can ans
 
 ### 1. Blocking, and visible in the first five minutes
 
-Four of the five that were here are closed, and `docs/FLOW-COMPLETENESS.md` names the commit for
-each: a past visit opens and rebooks, a cancelled one shows its reason and which side of the window
-it fell on, the trends screen draws every reading against the contract's ranges, and a family
-member's profile shows their visits and books for them.
+**One is left of the seven.** The other six are closed and held by tests, and this section said
+otherwise until 10 September, which is the drift it exists to prevent: a past visit opens and
+rebooks, a cancelled one shows its reason and which side of the window it fell on, the trends screen
+draws every reading against the contract's ranges, a family member's profile shows their visits and
+books for them, and the two rows below had been fixed and left written down as open.
 
-- **The Health Passport still has no device permission screen.** Three device integrations are
-  offered and the More tab now says plainly that none is connected — but *Review permission* does
-  not open anything.
 - **`emergency` has no partner and the SOS screen says so** — but the escalation path from a nurse
-  in a house to an ambulance is the single most consequential unfinished journey in the product.
-- **"Chat to our care team", at the foot of the booking catalogue, opens a booking.** There is no
-  care team chat. It is the one journey still marked *blocking* in the flow audit, and the fix is
-  either a screen or removing the control.
+  in a house to an ambulance is the single most consequential unfinished journey in the product, and
+  it is the only one of the seven still open.
+
+Closed, and named here so they are not built twice:
+
+- ~~The Health Passport has no device permission screen.~~ *Review permission* is **gone**, not
+  wired: it sat on the denied block, opened nothing, and flipped the screen's own state to ready. A
+  control that appears to grant a permission and grants none is worse than no control. The three
+  cards saying what each device would read sit under the notice instead of behind it, so reviewing
+  one is a single press. Held by `tests/patient-screens.spec.ts`, which asserts the button is
+  absent.
+- ~~"Chat to our care team" opens a booking.~~ Closed 9 September, and it was the file's only
+  *blocking* row. It is not a chat — `messaging` is not connected and a window with a fictional
+  agent in it is the same defect in better clothes. It is a screen that says what a care team would
+  do and hands over to the three things that exist. Held by `tests/flow-closures.spec.ts`.
 
 ### 2. Structural, and invisible until it bites
 
