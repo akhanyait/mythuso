@@ -135,7 +135,7 @@ export function Arrival({ row, navigate, view }: {
       <small>{historyRule.why}</small></div>
      <div><dt>You see this on the day and not before</dt><dd>{arrivalRefusals.onlyOnTheDay}</dd></div>
     </dl></div>
-    <div className="privacy-note"><Radio size={19}/>Nothing on this screen is being measured. No nurse’s device is read, no arrival is timed against your window, and nobody has been told you are watching.</div>
+    <div className="privacy-note"><Radio size={19}/>{arrivalRefusals.nothingIsMeasured}</div>
     <p className="helper"><ShieldCheck size={14}/>{coverage.sentence}</p>
    </div>
   </div>

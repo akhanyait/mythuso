@@ -2485,8 +2485,7 @@ const PROSE_QUARANTINE = [
     was typing nothing-is-measured itself, so that sentence existed four times and not three. The
     fix is one word — arrivalRefusals.nothingIsMeasured is exported from lib/arrival.ts for it — and
     it is left undone here because somebody else has this tree open. */
- { file: 'apps/web/src/features/Arrival.tsx', held: [geographyRule('nothing-is-measured')], todo: 'render arrivalRefusals.nothingIsMeasured rather than typing the sentence into the privacy note' }
-];
+ ];
 const quarantinedProse = new Map(PROSE_QUARANTINE.map(entry => [entry.file, entry]));
 for (const { file, held, todo } of PROSE_QUARANTINE) {
  if (!existsSync(file)) throw new Error(`PROSE_QUARANTINE names ${file}, which does not exist (${todo}). A quarantine list that outlives its files is a list nobody reads.`);
