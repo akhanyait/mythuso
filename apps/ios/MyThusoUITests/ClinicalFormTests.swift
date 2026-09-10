@@ -137,16 +137,23 @@ final class ClinicalFormTests: XCTestCase {
     func testTheVisitAssessmentIsUsable() {
         let largest = auditBothSizes("The visit assessment", journey: openAssessment)
         XCTAssertTrue(largest.sawHittable("Confirm identity"),
-                      "the button that starts the visit was never reachable at the largest content size")
+                      "the button that starts the visit was never reachable at the largest content size — \(largest.whyNotHittable("Confirm identity"))")
     }
 
     /* The board carries a map, a strip of figures, a choice of three visits and seven nurse rows.
        The visit selector is what this is really asking about: it was a segmented control, which at
-       these sizes rendered three references as three ellipses. */
+       these sizes rendered three references as three ellipses.
+
+       This one is load-sensitive and the message below says so. It failed once on a machine at load
+       150 and passed on the same commit on a quiet one, because hittability is asked only where the
+       control is clear of both bars at a *resting* position — and a machine that cannot settle a
+       scroll between swipes never gives it one. A failure here is worth reading twice before it is
+       believed, which is why whyNotHittable() exists: it separates "never in the tree" from "never
+       clear of the bars", and only the first is a defect in the screen. */
     func testTheDispatchBoardIsUsable() {
         let largest = auditBothSizes("The dispatch board", journey: openDispatch)
         XCTAssertTrue(largest.sawHittable("TH-2052"),
-                      "the third visit on the board was never reachable or readable at the largest content size — a controller choosing between jobs must be able to read which job")
+                      "the third visit on the board was never reachable or readable at the largest content size — a controller choosing between jobs must be able to read which job. \(largest.whyNotHittable("TH-2052"))")
     }
 
     func testTheLaboratoryOrderIsUsable() {

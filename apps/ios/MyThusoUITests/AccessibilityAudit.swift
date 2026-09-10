@@ -300,6 +300,32 @@ final class ScreenAudit {
         controls.values.contains { $0.label == label && $0.hittable == true }
     }
 
+    /* Why sawHittable said no. It says no for three different reasons and they need three different
+       fixes: the control was never in the tree at all (it is not on this screen, or its label is not
+       the words it renders), it was in the tree but never entirely on the screen (it is taller than
+       the screen at this content size), or it was on the screen but never clear of both bars at any
+       resting position, which is the one case that is a scrolling artefact rather than a defect. A
+       failure that cannot tell those apart sends somebody to look at the wrong thing, which is what
+       happened the first time this assertion fired. */
+    func whyNotHittable(_ label: String) -> String {
+        let matching = controls.values.filter { $0.label == label }
+        guard let sighting = matching.first else {
+            let near = controls.values.map(\.label)
+                .filter { $0.contains(label) || label.contains($0) }.sorted()
+            return near.isEmpty
+                ? "no control with that label was in the tree at any scroll position"
+                : "no control carried exactly that label; the nearest were \(near.joined(separator: ", "))"
+        }
+        let box = "\(Int(sighting.size.width.rounded()))x\(Int(sighting.size.height.rounded()))"
+        if !sighting.seenWhole {
+            return "it was in the tree at \(box) points but never entirely on the screen, so nothing could be asked of it"
+        }
+        if sighting.hittable == nil {
+            return "it was seen whole at \(box) points but never clear of the navigation and tab bars at a resting position, so hittability was never asked"
+        }
+        return "it was seen whole at \(box) points, clear of the bars, and reported not hittable"
+    }
+
     /// Text that came out shorter than a floor, for a sweep run at an accessibility content size.
     func textShorterThan(_ floor: CGFloat) -> [String] {
         textHeights.filter { $0.value < floor }.keys.sorted()
