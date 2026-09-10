@@ -119,6 +119,21 @@
     "why": "A track is a record of a person's movements. Nothing in this product needs one, so nothing in this product keeps one, and there is no screen that could be persuaded to show one."
    },
    {
+    "id": "only-on-the-day",
+    "statement": "MyThuso shows you where a nurse is on the day of your visit and not before. A nurse’s whereabouts between visits is her own, in the same way your address is yours.",
+    "why": "The sharpest rule on the patient's half of this map, and it is arithmetic rather than copy: no state that draws a nurse is reachable unless the visit is today, so there is no path through arrival that puts her on a map a fortnight early. A patient who can open a screen a fortnight before her appointment and watch a nurse move around Johannesburg has been handed a tracking device, and no part of arranging a home visit needs one. Before the day there is nothing to watch, and the screen says so rather than drawing an empty map."
+   },
+   {
+    "id": "no-doorstep-at-either-end",
+    "statement": "A nurse is drawn in the suburb she is working in, and your visit is drawn in the centre of yours — at both ends, at every zoom.",
+    "why": "address-is-not-a-pin read the other way round. That rule protects the patient's door from the board; this one protects the nurse's position from the patient, and says so in the same breath so neither reads as the exception. A nurse's working day is her private life as much as an address is somebody's."
+   },
+   {
+    "id": "nothing-is-measured",
+    "statement": "Nothing on this screen is being measured. No nurse’s device is read, no arrival is timed against your window, and nobody has been told you are watching.",
+    "why": "A patient looking at a moving estimate assumes somebody is watching back. Nobody is: the positions are this file's own zone centres, no geolocation permission is requested by any platform, and opening the screen is not an event anybody is sent. Said out loud on the screen, because the assumption is the thing that needs correcting."
+   },
+   {
     "id": "nothing-leaves-for-a-tile",
     "statement": "The tile server is asked for streets. It is never told what is on top of them — no visit, no patient, no nurse position is sent to any mapping provider.",
     "why": "A map vendor that can see your pins can see your caseload. The zones, the visits and the nurses are drawn by this application on top of tiles that know nothing about them."
@@ -132,6 +147,10 @@
  },
 
  "refusals": [
+  { "id": "nobody-on-the-way-yet", "sentence": "Nobody is on the way yet, so there is nothing to follow. You will see where she is on the day of your visit.", "why": "What a patient reads ahead of the day. It says what is refused and leaves her somewhere to stand, which is the difference between a state and a blank — and it does not repeat the rule underneath it, because only-on-the-day is said once in the list of what this screen is not." },
+  { "id": "no-window-no-nurse", "sentence": "This visit has no time yet, so there is nobody assigned to be on the way. When a nurse accepts it you will be told who is coming and when.", "why": "An as-soon-as-possible visit has no window, and a visit with no window has not been accepted by anybody. Drawing a nurse for it would invent an assignment that has not happened." },
+  { "id": "visit-behind-you", "sentence": "This visit is not ahead of you, so there is nothing to follow. What happened at it is in the visit itself.", "why": "A past or cancelled visit has no arrival. The screen sends the reader to the record rather than to an empty map, because the question behind opening it is usually about what was found." },
+  { "id": "not-an-arrival-time", "sentence": "This is not an arrival time. It is the distance between two suburbs, divided by a speed — it does not know the traffic, the road, or the visit she is finishing first.", "why": "No routing provider is connected, and a straight line through Johannesburg is optimistic by roughly a third. The figure is shown because a patient waiting at home is owed something; the sentence carrying it refuses the promise the figure looks like, in the same breath, rather than in a footnote." },
   { "id": "outside-south-africa", "sentence": "That position is not in South Africa. It has not been drawn.", "why": "packages/geo refuses the coordinate before a map sees it. A pin in the Atlantic is a data fault, and the map's job is to be the place it becomes visible rather than the place it is smoothed over." },
   { "id": "outside-coverage", "sentence": "MyThuso is not working in that area yet. You can be told when it is.", "why": "Refusing a booking outside phase one is the whole point of naming a phase. An app that takes the booking anyway has moved the disappointment to the patient's front door." },
   { "id": "no-position-shared", "sentence": "This nurse is not sharing a position right now, so they are not on the map.", "why": "Said out loud, on the board, next to the count. A dispatcher who cannot see the difference between nobody-there and nobody-reporting will read the map as the first one." }

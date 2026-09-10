@@ -16,6 +16,7 @@ import { emitGeography } from './emit-geography.mjs';
 import { emitCapabilities } from './emit-capabilities.mjs';
 import { emitCancellation } from './emit-cancellation.mjs';
 import { emitPassport } from './emit-passport.mjs';
+import { emitCapture } from './emit-capture.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -661,7 +662,8 @@ const generated = [
  { source: 'packages/catalog/geography.json', command: 'npm run geography', files: emitGeography() },
  { source: 'packages/catalog/capabilities.json', command: 'npm run capabilities', files: emitCapabilities() },
  { source: 'packages/catalog/cancellation.json', command: 'npm run cancellation', files: emitCancellation() },
- { source: 'packages/catalog/passport.json', command: 'npm run passport', files: emitPassport() }
+ { source: 'packages/catalog/passport.json', command: 'npm run passport', files: emitPassport() },
+ { source: 'packages/catalog/capture.json', command: 'npm run capture', files: emitCapture() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -2282,4 +2284,254 @@ const accreditationConfirmed = accreditation.confirmedBy && accreditation.confir
 if(!accreditationConfirmed && !accreditation.uncertainty) throw new Error(`The ${accreditation.short} accreditation route is not confirmed and does not say so. A drafted route that does not announce itself is exactly the claim the locale table is not allowed to make.`);
 if(accreditationConfirmed && !accreditation.route) throw new Error(`The ${accreditation.short} accreditation route claims a confirmation without saying what was confirmed`);
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. That interpreter is now a vetted party with ${interpreterRole.checks.length} checks of their own and one capability, granted nothing that opens a record; ${interpreting.roster.length} of them carry hours rather than a conclusion, so all three platforms work out for themselves which hour answers a request and all three can still return nothing — a visit with no interpreter is held rather than dispatched and carries the contract's own word for it on all three, cancelling one costs ${interpreting.cancellation.fee} and is recorded against ${interpreting.cancellation.attributedTo} rather than the patient, and the ${interpreting.refusals.length} refusals — a family member, a child, English written at somebody — are on the screen rather than only in the file. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. The assistant draws a shape and never a microphone: no iOS source names a mic or a waveform symbol, reaches for an audio capture API or offers in words to listen, the screen renders the voice capability's notice from the contract rather than a sentence of its own, and none of the ${capabilities.capabilities.length} capabilities has its notice typed into a hand-written native file. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}.`);
+/* ---- Three bodies of prose that were written more than once ------------------------------------
+
+   Each of these was rendered to a person on three platforms and typed separately on each, and
+   nothing compared the copies. That is the exact failure packages/catalog exists to prevent, and
+   each was reported — in a comment, by the agent who had to type the second one — rather than
+   fixed, because fixing it meant editing a file somebody else had open.
+
+     1. The seven reading explanations, about 2,500 words, in apps/web/src/lib/explain.ts,
+        Models/Explain.swift and model/Explain.kt. They are records.json's `explanations` now.
+     2. Six arrival refusal sentences, in apps/web/src/lib/arrival.ts, Models/Arrival.swift and
+        model/Arrival.kt — plus a seventh both native files had and the web did not. They are
+        geography.json's, three as privacy rules and four as refusals.
+     3. What the offline queue survives, written twice in different words about the same disk:
+        Android's FileBook and the two iOS queue screens. That is capture.json's `durability`.
+
+   What is checked here is in three layers, and they are different questions.
+
+     · The contract holds together on its own terms: an explanation explains a reading that exists,
+       points only at red flags the emergency contract has, and names no number.
+     · The hand-written copies that have not been able to adopt it yet are held to every word of it
+       while they wait, and their quarantine retires itself the day they stop needing it.
+     · And nothing else on any platform types one of these sentences. That last one is the check
+       this whole exercise was for: without it a fourth copy costs nothing to write. */
+
+const explanations = records.explanations;
+const explainedObservationIds = measures.map(m => m.id);
+const explanationIds = explanations.entries.map(e => e.id);
+/* Same seven, in the same order. The passport charts them in the observation order and the
+   explanation screen lists them in this one; two orders that are allowed to differ will. */
+if (explanationIds.join(',') !== explainedObservationIds.join(',')) throw new Error(`The reading explanations in packages/catalog/records.json are [${explanationIds.join(', ')}] against observations [${explainedObservationIds.join(', ')}]. Every reading a nurse takes is explained, in the order the charts read them, or a patient opens a chart with nothing under it.`);
+const redFlagIds = new Set(sos.redFlags.conditions.map(c => c.id));
+for (const entry of explanations.entries) {
+ if (!entry.urgent.length) throw new Error(`The explanation for "${entry.id}" points at no urgent condition. Every reading has a version of itself that is an emergency, and a screen that lists none for one of the seven has quietly said there is none.`);
+ for (const id of entry.urgent) {
+  if (!redFlagIds.has(id)) throw new Error(`The explanation for "${entry.id}" sends a reader to the red flag "${id}", which packages/catalog/sos.json does not have. The urgent conditions are ids into that contract precisely so a screen can neither invent a red flag nor soften one; an id that resolves to nothing does both at once.`);
+ }
+ /* No number, anywhere in the prose. A reference range decides whether a reading is put in front of
+    a doctor and it lives in the observations section one level up; a digit in a paragraph explaining
+    a reading is how a range comes to have a second author who is a paragraph. */
+ for (const field of ['measures', 'above', 'below', 'whatToDo']) {
+  if (/\d/.test(entry[field])) throw new Error(`The "${field}" explanation for "${entry.id}" contains a digit. Every number a reading is judged against is in observations, in this same file, and the prose says "five minutes" and "a hundred" in words for exactly this reason.`);
+ }
+}
+/* Ordinary causes first, and it is checkable rather than a matter of taste: the boring reason has to
+   appear in the paragraph before the frightening one does. A rushed walk to the door before the
+   first sign of high blood pressure; a fingertip before a diagnosis; when you last ate before the
+   word diabetes. Reverse any of these three and the paragraph has become the thing it was written
+   not to be. */
+const ORDINARY_FIRST = [
+ ['systolic', 'above', 'Walking to the door', 'the first sign of high blood pressure'],
+ ['oxygen', 'below', 'nail varnish', 'less accurate on darker skin'],
+ ['glucose', 'above', 'When you last ate', 'how diabetes is found']
+];
+for (const [id, field, ordinary, alarming] of ORDINARY_FIRST) {
+ const text = explanations.entries.find(e => e.id === id)?.[field];
+ if (!text) throw new Error(`packages/catalog/records.json has lost the "${field}" explanation for "${id}"`);
+ const first = text.indexOf(ordinary);
+ const second = text.indexOf(alarming);
+ if (first < 0 || second < 0) throw new Error(`The "${field}" explanation for "${id}" no longer says both "${ordinary}" and "${alarming}". The ordinary cause is the one that is usually right, and it is the half that gets edited out.`);
+ if (!(first < second)) throw new Error(`The "${field}" explanation for "${id}" puts "${alarming}" before "${ordinary}". Ordinary causes first: a person reading about their own blood pressure meets the frightening possibility after the boring one, or the boring one is never read at all.`);
+}
+/* The oximeter paragraph, which is the one entry in this contract with a published bias in it.
+   Pulse oximeters have been found to read high on darker skin, and a South African health product
+   that leaves that out has not made a small omission. */
+const oxygenBelow = explanations.entries.find(e => e.id === 'oxygen').below;
+for (const clause of ['darker skin', 'read higher than the truth']) {
+ if (!oxygenBelow.includes(clause)) throw new Error(`The oxygen explanation no longer says "${clause}". A pulse oximeter reads less accurately on darker skin and has been found to read high; a reading contract for South Africa that drops that clause is a contract that will be believed on the wrong person.`);
+}
+/* Never a change to a medicine. The prose talks about a dose in exactly one place and refuses it
+   there, and the provenance says so a second time in the reader's own words. Both are checked,
+   because the sentence that goes missing is always the refusal rather than the advice. */
+const doseMentions = explanations.entries.filter(e => /change the dose/i.test(e.whatToDo));
+if (doseMentions.length !== 1) throw new Error(`${doseMentions.length} of the reading explanations talk about changing a dose. Exactly one does — the glucose entry, to refuse it — and every other one that starts is a screen giving advice about a medicine.`);
+if (!/\bNever change the dose\b/.test(doseMentions[0].whatToDo)) throw new Error(`The "${doseMentions[0].id}" explanation mentions changing a dose without refusing it. Nothing on this screen is a reason to start, stop or change a medicine; that decision belongs to whoever prescribed it.`);
+for (const [key, must] of [['neverChange', 'start, stop or change a medicine'], ['unreviewed', 'No clinician has reviewed this wording'], ['written', 'written text held inside the app']]) {
+ if (!explanations.provenance[key]?.includes(must)) throw new Error(`The explanations' "${key}" provenance sentence no longer says "${must}". Generating this prose into Swift and Kotlin has not made it reviewed and has not made it software's opinion; the day either changes, somebody edits that sentence rather than letting a build edit it for them.`);
+}
+
+/* And the provenance is on the screen, on all three, rather than in the contract only. A refusal
+   nobody reads has been made on nobody's behalf, and these two are the ones this move could most
+   easily have retired by accident: generating prose into Swift and Kotlin makes it look official,
+   and the sentences saying it is written by a person and read by no clinician are the correction.
+   A platform that has adopted the contract says so by naming the generated data, and that counts —
+   what is refused is a platform that quietly says neither. */
+const explainReaders = ['apps/web/src/lib/explain.ts', 'apps/ios/MyThuso/Models/RecordsData.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/RecordsData.kt'];
+const readsTheExplanations = /Records\.explanations|Records\.explanationProvenance|recordExplanations|recordExplanationProvenance|\bprovenance\./;
+const explainScreens = {
+ web: files('apps/web/src').filter(f => /\.tsx?$/.test(f) && !explainReaders.includes(f)).map(read).join('\n'),
+ ios: files('apps/ios/MyThuso').filter(f => /\.swift$/.test(f) && !explainReaders.includes(f)).map(read).join('\n'),
+ android: files('apps/android/app/src/main').filter(f => /\.kt$/.test(f) && !explainReaders.includes(f)).map(read).join('\n')
+};
+for (const key of ['written', 'unreviewed']) {
+ const sentence = explanations.provenance[key];
+ for (const [platform, source] of Object.entries(explainScreens)) {
+  if (!source.includes(sentence) && !readsTheExplanations.test(source)) throw new Error(`${platform} no longer says "${sentence.slice(0, 60)}…" anywhere a person would read it. ${explanations.provenanceWhy}`);
+ }
+}
+
+/* ---- What the offline queue survives -----------------------------------------------------------
+
+   Two fields per store, and the difference between them is the whole design. `survives`/`lostTo`
+   are what is true of the store. `says` is what a screen renders. A durabilityPromise made in one place and
+   not the other is either a screen with a gap in it or a store with a claim it cannot keep, and
+   only holding both separately makes either visible. */
+const durability = capture.durability;
+const durabilityEventIds = new Set(durability.events.map(e => e.id));
+if (durabilityEventIds.size !== durability.events.length) throw new Error('packages/catalog/capture.json names the same durability event twice');
+const durabilityClaimed = new Set(durability.stores.flatMap(s => [...s.survives, ...s.lostTo]));
+for (const id of durabilityEventIds) if (!durabilityClaimed.has(id)) throw new Error(`No store says anything about the durability event "${id}". An event nothing is measured against is vocabulary, not a contract.`);
+const fileStores = durability.stores.filter(s => s.kind === 'file');
+if (fileStores.length < 2) throw new Error('packages/catalog/capture.json describes fewer than two file-backed queues, so the check that made this contract worth writing — that two platforms writing to the same kind of disk make the same durabilityPromise — has nothing to compare');
+/* The durabilityPromise, and it is one durabilityPromise. A nurse deciding whether to trust a phone with a morning's
+   work is owed the same answer on both of them; the iOS list and the Android sentence say it in
+   their own words and are held to saying the same thing. What loses it is allowed to differ, because
+   Android gives a person a Clear storage button and iOS does not. */
+const durabilityPromise = [...fileStores[0].survives].sort().join(', ');
+for (const store of fileStores) {
+ if ([...store.survives].sort().join(', ') !== durabilityPromise) throw new Error(`The file-backed store "${store.id}" survives ${[...store.survives].sort().join(', ')} and "${fileStores[0].id}" survives ${durabilityPromise}. Both are a JSON file in an app's own private storage on a phone. Two platforms that keep the same thing must durabilityPromise the same thing, or a nurse reading the two screens is reading two products.`);
+ if (!store.lostTo.includes('delete')) throw new Error(`The file-backed store "${store.id}" does not say that deleting the app loses it. The operating system removes the file and nothing in either app can prevent that; a durability panel that leaves it out is the one that gets believed.`);
+ if (!store.says.survives.length || !store.says.lostTo.length) throw new Error(`The store "${store.id}" says nothing on one side of the ledger. What it does not survive is said on the screen as plainly as what it does, or "your data is safe" is what a reader hears.`);
+}
+for (const store of durability.stores.filter(s => s.kind === 'memory')) {
+ if (store.survives.some(id => id !== 'navigation')) throw new Error(`The in-memory store "${store.id}" claims to survive ${store.survives.join(', ')}. A module-level array and a Compose preview survive moving between screens and nothing else, and a memory store that claims more is the durabilityPromise this section exists to stop.`);
+}
+/* The web keeps less on purpose, and the reason is a check in this file rather than a preference.
+   If the storage ban ever went, this would still be true and would then be a choice nobody made. */
+const webStore = durability.stores.find(s => s.platform === 'web');
+if (!webStore || webStore.kind !== 'memory') throw new Error("packages/catalog/capture.json describes a web queue that is not held in memory. Nothing in apps/web/src may write to the browser's local storage, session storage or IndexedDB — a preview must not leave a patient's readings on a borrowed machine — and this contract is not the place that exception gets written down.");
+
+/* ---- The sentences, and who is allowed to type them ---------------------------------------------
+
+   `prosePlaces` is what no file outside the sources may carry. Everything in it is rendered to a
+   person by at least one screen today, so a second copy is a second author. The contract's own
+   reasoning — the notes, the whys, the two sentences no screen renders yet — is deliberately not in
+   this list: forbidding prose nobody displays would fire on a comment quoting the rule it was
+   written to obey, and that is a check somebody deletes rather than obeys. */
+const arrivalRuleIds = ['only-on-the-day', 'no-doorstep-at-either-end', 'nothing-is-measured'];
+const arrivalRefusalIds = ['nobody-on-the-way-yet', 'no-window-no-nurse', 'visit-behind-you', 'not-an-arrival-time'];
+const geographyRule = id => {
+ const rule = geography.privacy.rules.find(r => r.id === id);
+ if (!rule) throw new Error(`packages/catalog/geography.json has lost the privacy rule "${id}", which the patient's arrival screen renders on three platforms`);
+ return rule.statement;
+};
+const geographyRefusal = id => {
+ const refusal = geography.refusals.find(r => r.id === id);
+ if (!refusal) throw new Error(`packages/catalog/geography.json has lost the refusal "${id}", which the patient's arrival screen renders on three platforms`);
+ return refusal.sentence;
+};
+const explanationProse = [
+ ...explanations.entries.flatMap(e => [e.measures, e.above, e.below, e.whatToDo]),
+ ...Object.values(explanations.provenance)
+];
+const arrivalProse = [...arrivalRuleIds.map(geographyRule), ...arrivalRefusalIds.map(geographyRefusal)];
+const durabilityProse = durability.stores.flatMap(s => [s.where, ...s.says.survives, ...s.says.lostTo]);
+const prosePlaces = [
+ { body: 'the seven reading explanations', home: 'packages/catalog/records.json, under explanations', reader: 'Records.explanations on iOS, recordExplanations on Android, lib/explain.ts on the web', sentences: explanationProse },
+ { body: "the patient's arrival refusals", home: 'packages/catalog/geography.json, under privacy.rules and refusals', reader: 'Geography.privacyRules and Geography.refusals on both native apps, lib/arrival.ts on the web', sentences: arrivalProse },
+ { body: 'what the offline queue survives', home: 'packages/catalog/capture.json, under durability', reader: 'CaptureData.stores(on:) on iOS, CaptureData.stores(platform) on Android', sentences: durabilityProse }
+];
+const PROSE_SOURCES = new Set([
+ 'packages/catalog/records.json', 'packages/catalog/geography.json', 'packages/catalog/capture.json',
+ 'scripts/check-boundaries.mjs', 'scripts/emit-records.mjs', 'scripts/emit-geography.mjs', 'scripts/emit-capture.mjs',
+ 'apps/ios/MyThuso/Models/RecordsData.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/RecordsData.kt',
+ 'apps/ios/MyThuso/Models/GeographyData.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/GeographyData.kt',
+ 'apps/ios/MyThuso/Models/CaptureData.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/CaptureData.kt'
+]);
+
+/* Two helpers, because `where` is not rendered by every screen that renders the rest. Android's
+   FileBook puts it under "Where it is" and the iOS visit queue puts it under its panel head; the
+   iOS reading ledger and the web queue say nothing of the kind, and holding a file to a sentence it
+   was never asked to display would be a quarantine that can only be satisfied by typing one in. */
+function theStore(id) {
+ const store = durability.stores.find(s => s.id === id);
+ if (!store) throw new Error(`PROSE_QUARANTINE holds a file to the store "${id}", which packages/catalog/capture.json does not have`);
+ return store;
+}
+const storeSays = (...ids) => ids.flatMap(id => [...theStore(id).says.survives, ...theStore(id).says.lostTo]);
+const storeProse = (...ids) => ids.flatMap(id => [theStore(id).where, ...storeSays(id)]);
+
+/* Quarantine, on the same terms packages/catalog/passport.json and the reference ranges use, and for
+   the same reason: the hand-written files below cannot adopt the contract without being edited, and
+   other people have those trees open. So each is held to every sentence it is responsible for, word
+   for word, while it waits — a quarantined copy that is allowed to drift is worse than no contract
+   at all, because it looks settled.
+
+   And it retires itself. An entry whose file has *stopped* carrying any of its sentences is an error
+   too, so the day a file switches to the generated data the build fails until its line is deleted
+   from below. An exemption nobody can lose is how a rule stops being one. */
+const PROSE_QUARANTINE = [
+ { file: 'apps/ios/MyThuso/Models/Explain.swift', held: explanationProse, todo: 'read Records.explanations and Records.explanationProvenance out of RecordsData' },
+ { file: 'apps/android/app/src/main/java/za/co/mythuso/model/Explain.kt', held: explanationProse, todo: 'read recordExplanations and recordExplanationProvenance out of RecordsData' },
+ { file: 'apps/ios/MyThuso/Models/Arrival.swift', held: arrivalProse, todo: 'read the seven sentences out of Geography.privacyRules and Geography.refusals' },
+ { file: 'apps/android/app/src/main/java/za/co/mythuso/model/Arrival.kt', held: arrivalProse, todo: 'read the seven sentences out of Geography.privacyRules and Geography.refusals' },
+ { file: 'apps/android/app/src/main/java/za/co/mythuso/model/CaptureQueue.kt', held: storeProse('android-private-file', 'android-in-memory'), todo: 'let FileBook and MemoryBook read CaptureData.store("android-private-file") and ("android-in-memory")' },
+ { file: 'apps/ios/MyThuso/Features/CaptureQueueView.swift', held: storeSays('ios-capture-ledger'), todo: 'render CaptureData.store("ios-capture-ledger") rather than six typed sentences' },
+ { file: 'apps/ios/MyThuso/Features/VisitQueueView.swift', held: storeProse('ios-visit-queue'), todo: 'render CaptureData.store("ios-visit-queue") rather than six typed sentences' },
+ { file: 'apps/web/src/features/VisitQueue.tsx', held: storeSays('web-in-memory'), todo: 'render the web store out of lib/visit-queue.ts rather than as a list item' },
+ /* Found by the check below rather than by anybody reading the file: the patient's arrival screen
+    was typing nothing-is-measured itself, so that sentence existed four times and not three. The
+    fix is one word — arrivalRefusals.nothingIsMeasured is exported from lib/arrival.ts for it — and
+    it is left undone here because somebody else has this tree open. */
+ { file: 'apps/web/src/features/Arrival.tsx', held: [geographyRule('nothing-is-measured')], todo: 'render arrivalRefusals.nothingIsMeasured rather than typing the sentence into the privacy note' }
+];
+const quarantinedProse = new Map(PROSE_QUARANTINE.map(entry => [entry.file, entry]));
+for (const { file, held, todo } of PROSE_QUARANTINE) {
+ if (!existsSync(file)) throw new Error(`PROSE_QUARANTINE names ${file}, which does not exist (${todo}). A quarantine list that outlives its files is a list nobody reads.`);
+ const source = read(file);
+ const carried = held.filter(sentence => source.includes(sentence));
+ if (!carried.length) throw new Error(`${file} no longer types any of the sentences it is quarantined for, so its entry in PROSE_QUARANTINE is spent: ${todo}. Delete the line — an exemption nobody can lose is how a rule stops being one.`);
+ for (const sentence of held) {
+  if (!source.includes(sentence)) throw new Error(`${file} is quarantined and has drifted from the contract: it no longer carries "${sentence.slice(0, 72)}…" word for word. Either ${todo} and delete its quarantine line, or keep the copy identical. A quarantine is a delay, not a licence to disagree.`);
+ }
+}
+
+/* And the check the whole exercise was for. Native string nativeLiterals are read one at a time, so a
+   comment quoting the rule it was written to obey is not a copy of it — the capability notices are
+   held the same way, for the same reason. On the web a sentence is as often JSX text as a literal,
+   so the whole file is searched; a web file that quotes one of these in a comment is carrying it
+   too, and there is no reason for one to. */
+for (const file of handWrittenNative) {
+ if (quarantinedProse.has(file)) continue;
+ const nativeLiterals = swiftLiterals(read(file)).map(flatten).filter(text => text.length >= 40);
+ for (const { body, home, reader, sentences } of prosePlaces) {
+  const typed = sentences.map(flatten).find(sentence => nativeLiterals.some(literal => literal.includes(sentence) || sentence.includes(literal)));
+  if (typed) throw new Error(`${file} types out a sentence from ${body}: "${typed.slice(0, 72)}…". It lives in ${home} and reaches this app as ${reader}. This prose was written three times before it was a contract and nothing compared the copies; a fourth is how that starts again.`);
+ }
+}
+for (const file of [...files('apps/web/src').filter(f => /\.tsx?$/.test(f)), ...files('tests').filter(f => /\.ts$/.test(f)), ...files('scripts').filter(f => /\.mjs$/.test(f)), ...files('packages/catalog')]) {
+ if (PROSE_SOURCES.has(file) || quarantinedProse.has(file)) continue;
+ const source = read(file);
+ for (const { body, home, reader, sentences } of prosePlaces) {
+  const typed = sentences.find(sentence => source.includes(sentence));
+  if (typed) throw new Error(`${file} carries a sentence from ${body}: "${typed.slice(0, 72)}…". It lives in ${home} and is read from there — ${reader}. A screen, a test or a second contract holding its own copy is the drift packages/catalog exists to stop.`);
+ }
+}
+
+/* A rule enforced by arithmetic rather than by copy, on all three platforms. A patient who can open
+   an arrival screen a fortnight before her appointment and watch a nurse move around Johannesburg
+   has been handed a tracking device, and no part of arranging a home visit needs one. The sentence
+   only-on-the-day says so; what makes it true is that no path through any of these three modules
+   reaches the on-the-day state unless the day difference is nought. */
+const DAY_GUARDS = [
+ ['apps/web/src/lib/arrival.ts', /if \(days !== 0\) return \{ state: 'another-day'/],
+ ['apps/ios/MyThuso/Models/Arrival.swift', /guard days == 0 else \{ return \.anotherDay/],
+ ['apps/android/app/src/main/java/za/co/mythuso/model/Arrival.kt', /if \(days != 0L\) return Arrival\.AnotherDay/]
+];
+for (const [file, guard] of DAY_GUARDS) {
+ if (!guard.test(read(file))) throw new Error(`${file} no longer refuses to draw a nurse on any day but the day of the visit, or refuses it in a shape this check cannot see. That refusal is arithmetic and not a sentence: the state that draws her must be unreachable unless daysUntil returns nought, because a patient who can watch a nurse move around Johannesburg a fortnight early has been handed a tracking device.`);
+}
+
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. That interpreter is now a vetted party with ${interpreterRole.checks.length} checks of their own and one capability, granted nothing that opens a record; ${interpreting.roster.length} of them carry hours rather than a conclusion, so all three platforms work out for themselves which hour answers a request and all three can still return nothing — a visit with no interpreter is held rather than dispatched and carries the contract's own word for it on all three, cancelling one costs ${interpreting.cancellation.fee} and is recorded against ${interpreting.cancellation.attributedTo} rather than the patient, and the ${interpreting.refusals.length} refusals — a family member, a child, English written at somebody — are on the screen rather than only in the file. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. The assistant draws a shape and never a microphone: no iOS source names a mic or a waveform symbol, reaches for an audio capture API or offers in words to listen, the screen renders the voice capability's notice from the contract rather than a sentence of its own, and none of the ${capabilities.capabilities.length} capabilities has its notice typed into a hand-written native file. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}. Three bodies of prose that were written out once per platform are contracts now: the ${explanations.entries.length} reading explanations and their ${Object.keys(explanations.provenance).length} provenance sentences in records.json, where every urgent condition is a red flag sos.json actually has, no paragraph names a number, the ordinary cause is said before the frightening one and the oximeter still admits it reads high on darker skin; the ${arrivalProse.length} arrival refusals in geography.json, with the day of the visit enforced by arithmetic on all three platforms rather than by the sentence that describes it; and what the offline queue survives in capture.json, where ${fileStores.length} file-backed stores are held to one promise and the web's is held to keeping less. Not one of those ${prosePlaces.reduce((total, place) => total + place.sentences.length, 0)} sentences is typed into a hand-written file outside the ${PROSE_QUARANTINE.length} quarantined copies waiting to adopt them, and each of those quarantines fails the build on the day it is no longer needed.`);

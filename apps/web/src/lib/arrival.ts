@@ -29,10 +29,13 @@ import { isoIn } from './scheduling';
  * provider is connected; a straight line through Johannesburg is optimistic by roughly a third and
  * knows nothing about the M1, a school run or the visit she is finishing first.
  *
- * WHAT BELONGS IN A CONTRACT AND IS NOT THERE YET. The refusal sentences below, and the fact that a
- * nurse is Sister Naledi Mokoena working out of Rosebank — that fixture is typed into
- * features/Dispatch.tsx as well, where she is nurse N-205, the id the vetting register holds, and two copies of a person is exactly the
- * drift packages/catalog exists to stop. Both are reported rather than invented a third time.
+ * WHAT IS IN THE CONTRACT NOW, AND WHAT IS STILL NOT. The refusal sentences are in
+ * packages/catalog/geography.json and read from it below; three of them as privacy rules, four as
+ * refusals, none of them edited on the way. What is still not there is the fact that a nurse is
+ * Sister Naledi Mokoena working out of Rosebank — that fixture is typed into features/Dispatch.tsx
+ * as well, where she is nurse N-205, the id the vetting register holds, and two copies of a person
+ * is exactly the drift packages/catalog exists to stop. It is reported rather than invented a third
+ * time.
  *
  * Nothing here reads a device. dispatch is not connected, the positions are the contract's own zone
  * centres, and no geolocation permission is requested by this file or by anything it calls. */
@@ -48,16 +51,30 @@ export const assignedNurse = {
 } as const;
 
 /* The sentences a patient is owed when there is nothing to show. Each says what is refused and
-   leaves the reader somewhere to stand, which is the difference between a state and a blank. */
+   leaves the reader somewhere to stand, which is the difference between a state and a blank.
+
+   They are read out of packages/catalog/geography.json rather than typed here, and that is the
+   whole point of this block existing at all. All six were written out a second time in
+   Models/Arrival.swift and a third time in model/Arrival.kt, word for word, with nothing comparing
+   the copies — the drift the catalogue exists to stop, sitting in the file that says so in its own
+   header. The three that are rules about what a map may show are privacy rules beside
+   address-is-not-a-pin; the four that are states a patient reads are refusals beside
+   outside-coverage, which this file already reads two of. A boundary check now refuses any of them
+   as a literal in hand-written source on any platform. */
+const rule = (id: string) => privacyRuleById(id).statement;
 export const arrivalRefusals = {
- anotherDay: 'Nobody is on the way yet, so there is nothing to follow. You will see where she is on the day of your visit.',
+ anotherDay: refusalById('nobody-on-the-way-yet').sentence,
  /* The rule behind that, said once, in the list of what this screen is not — rather than repeated
-    verbatim under the figure it has already explained. */
- onlyOnTheDay: 'MyThuso shows you where a nurse is on the day of your visit and not before. A nurse’s whereabouts between visits is her own, in the same way your address is yours.',
- noWindow: 'This visit has no time yet, so there is nobody assigned to be on the way. When a nurse accepts it you will be told who is coming and when.',
- finished: 'This visit is not ahead of you, so there is nothing to follow. What happened at it is in the visit itself.',
- notAnArrivalTime: 'This is not an arrival time. It is the distance between two suburbs, divided by a speed — it does not know the traffic, the road, or the visit she is finishing first.',
- noDoorstep: 'A nurse is drawn in the suburb she is working in, and your visit is drawn in the centre of yours — at both ends, at every zoom.'
+    verbatim under the figure it has already explained. It is enforced by arithmetic and not by this
+    sentence: arrivalFor cannot reach 'on-the-day' unless daysUntil returns nought. */
+ onlyOnTheDay: rule('only-on-the-day'),
+ noWindow: refusalById('no-window-no-nurse').sentence,
+ finished: refusalById('visit-behind-you').sentence,
+ notAnArrivalTime: refusalById('not-an-arrival-time').sentence,
+ noDoorstep: rule('no-doorstep-at-either-end'),
+ /* Not rendered by this app yet — both native apps say it and the web does not. It is exported so
+    that when the screen does say it, it says the same words rather than a seventh set. */
+ nothingIsMeasured: rule('nothing-is-measured')
 } as const;
 
 /** Whole days between today in Johannesburg and an ISO date. Negative is behind us. */

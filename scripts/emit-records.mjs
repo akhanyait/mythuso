@@ -67,14 +67,18 @@ const banner = () => [
  'disagree, so an edit here is lost rather than merely wrong.',
  '',
  'The areas, classes, record types, FHIR mappings, gating capabilities, consultation sections,',
- 'reference ranges and summary card are the contract itself. The reasoning about them, and the',
- 'fictional patients they are demonstrated on, are hand-written in Records.swift and Records.kt',
- 'beside this file.'
+ 'reference ranges, reading explanations and summary card are the contract itself. The reasoning',
+ 'about them, and the fictional patients they are demonstrated on, are hand-written in',
+ 'Records.swift and Records.kt beside this file.',
+ '',
+ 'The explanations carry no reference range and no label of their own. A reading is judged against',
+ 'the observations above, in this same file, so the prose explaining a number and the number that',
+ 'flags it cannot become two answers.',
 ].map(line => (line ? `// ${line}` : '//')).join('\n');
 
 export function emitRecords(root = '') {
  const contract = JSON.parse(readFileSync(root + SOURCE, 'utf8'));
- const { areas, sensitivity, navigation, records, consultation, observations, summaryCard } = contract;
+ const { areas, sensitivity, navigation, records, consultation, observations, explanations, summaryCard } = contract;
  /* The qualification is not a field of its own anywhere. It is the note on the observations
     section of the standard consultation, and both apps render that one sentence rather than a
     second one written beside the numbers. Read here so a missing note fails generation rather
@@ -184,6 +188,35 @@ struct SoapHeading: Identifiable, Hashable {
     let name: String
     let detail: String
 }
+/// What one of the seven readings measures, and what a number outside its range may follow from.
+/// Prose, written by a person, reviewed by nobody yet — \`RecordExplanationProvenance.unreviewed\`
+/// is on the screen saying so. It carries no label, no unit and no range: those are the
+/// \`ObservationRange\` of the same id, so the paragraph and the number that flags it cannot
+/// disagree. \`urgent\` holds ids into the emergency contract, resolved through SosData, so a screen
+/// can neither invent a red flag nor soften one.
+struct RecordExplanation: Identifiable, Hashable {
+    let id: String
+    /// What the instrument is actually measuring, in one sentence.
+    let measures: String
+    /// What a reading above the range may follow from. Never what it is.
+    let above: String
+    /// And below. For several of these the honest answer is "often nothing at all".
+    let below: String
+    /// What a person can do about it today. Never a change to a medicine.
+    let whatToDo: String
+    /// Ids in packages/catalog/sos.json's red flags. Resolved through the contract, never retyped.
+    let urgent: [String]
+}
+/// Where the explanations come from and what they are not. Five sentences that belong on the screen
+/// rather than in a policy: a reader deciding how much weight to give a paragraph about their own
+/// blood pressure is owed the provenance of it before the paragraph, not after.
+struct RecordExplanationProvenance {
+    let written: String
+    let unreviewed: String
+    let ranges: String
+    let whoDecides: String
+    let neverChange: String
+}
 struct RecordSummaryCard {
     let why: String
     let fields: [String]
@@ -242,6 +275,26 @@ ${consultation.soap.map(h => `        .init(id: ${swift(h.id)}, name: ${swift(h.
     static let observations: [ObservationRange] = [
 ${observations.measures.map(m => `        .init(id: ${swift(m.id)}, label: ${swift(m.label)}, unit: ${swift(m.unit)}, low: ${m.low}, high: ${m.high}, step: ${m.step}, placeholder: ${swift(m.placeholder)})`).join(',\n')}
     ]
+
+    static let explanationsWhy = ${swift(explanations.why)}
+    /// ${explanations.theLineItMustNotCross}
+    static let explanations: [RecordExplanation] = [
+${explanations.entries.map(e => `        .init(id: ${swift(e.id)},
+              measures: ${swift(e.measures)},
+              above: ${swift(e.above)},
+              below: ${swift(e.below)},
+              whatToDo: ${swift(e.whatToDo)},
+              urgent: ${swiftList(e.urgent)})`).join(',\n')}
+    ]
+    static func explanation(_ id: String) -> RecordExplanation? { explanations.first { $0.id == id } }
+
+    /// ${explanations.provenanceWhy}
+    static let explanationProvenance = RecordExplanationProvenance(
+        written: ${swift(explanations.provenance.written)},
+        unreviewed: ${swift(explanations.provenance.unreviewed)},
+        ranges: ${swift(explanations.provenance.ranges)},
+        whoDecides: ${swift(explanations.provenance.whoDecides)},
+        neverChange: ${swift(explanations.provenance.neverChange)})
 
     static let summaryCard = RecordSummaryCard(
         why: ${swift(summaryCard.why)},
@@ -322,6 +375,36 @@ data class ConsultationSection(
 data class SoapHeading(val id: String, val name: String, val detail: String)
 data class RecordSummaryCard(val why: String, val fields: List<String>, val withheld: String)
 /**
+ * What one of the seven readings measures, and what a number outside its range may follow from.
+ * Prose, written by a person, reviewed by nobody yet — recordExplanationProvenance.unreviewed is on
+ * the screen saying so. It carries no label, no unit and no range: those are the ObservationRange of
+ * the same id, so the paragraph and the number that flags it cannot disagree. urgent holds ids into
+ * the emergency contract, resolved through SosData, so a screen can neither invent a red flag nor
+ * soften one.
+ */
+data class RecordExplanation(
+    val id: String,
+    /** What the instrument is actually measuring, in one sentence. */
+    val measures: String,
+    /** What a reading above the range may follow from. Never what it is. */
+    val above: String,
+    /** And below. For several of these the honest answer is "often nothing at all". */
+    val below: String,
+    /** What a person can do about it today. Never a change to a medicine. */
+    val whatToDo: String,
+    /** Ids in packages/catalog/sos.json's red flags. Resolved through the contract, never retyped. */
+    val urgent: List<String>
+)
+/**
+ * Where the explanations come from and what they are not. Five sentences that belong on the screen
+ * rather than in a policy: a reader deciding how much weight to give a paragraph about their own
+ * blood pressure is owed the provenance of it before the paragraph, not after.
+ */
+data class RecordExplanationProvenance(
+    val written: String, val unreviewed: String, val ranges: String,
+    val whoDecides: String, val neverChange: String
+)
+/**
  * One of the seven readings a nurse takes, and the indicative adult range it is flagged against.
  * Deliberately not named Observation: the assessment screen still declares its own, and this is the
  * contract's copy that replaces it. Both ends of the range are inclusive.
@@ -367,6 +450,30 @@ const val observationsNote =
 /* ${observationsNote} */
 val observationRanges = listOf(
 ${observations.measures.map(m => `    ObservationRange(${kotlin(m.id)}, ${kotlin(m.label)}, ${kotlin(m.unit)}, ${m.low.toFixed(1)}, ${m.high.toFixed(1)}, ${m.step.toFixed(1)}, ${kotlin(m.placeholder)}),`).join('\n')}
+)
+
+const val recordExplanationsWhy =
+    ${kotlin(explanations.why)}
+
+/* ${explanations.theLineItMustNotCross} */
+val recordExplanations = listOf(
+${explanations.entries.map(e => `    RecordExplanation(
+        ${kotlin(e.id)},
+        ${kotlin(e.measures)},
+        ${kotlin(e.above)},
+        ${kotlin(e.below)},
+        ${kotlin(e.whatToDo)},
+        ${kotlinList(e.urgent)}
+    ),`).join('\n')}
+)
+
+/* ${explanations.provenanceWhy} */
+val recordExplanationProvenance = RecordExplanationProvenance(
+    ${kotlin(explanations.provenance.written)},
+    ${kotlin(explanations.provenance.unreviewed)},
+    ${kotlin(explanations.provenance.ranges)},
+    ${kotlin(explanations.provenance.whoDecides)},
+    ${kotlin(explanations.provenance.neverChange)}
 )
 
 val recordSummaryCard = RecordSummaryCard(

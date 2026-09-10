@@ -153,6 +153,122 @@
    "detail": "A nurse whose clearance lapsed between capture and sync. The reading was taken while she was cleared, so it is not discarded — but it is not filed on her authority alone either."
   }
  ],
+ "durability": {
+  "_note": "What the offline queue survives, and what loses it — as data, per platform, because it was prose twice about the same disk. Android's FileBook carried three sentences about a JSON file in the app's private storage; iOS's CaptureQueueView and VisitQueueView carried six about a JSON file in Application Support; the web's queue screen carried one about a module-level array. A nurse reading the Android sentence and the iOS list would not have known they describe one behaviour, and nothing in this repository compared them. This section is that comparison. It does not flatten three platforms into one sentence: the web genuinely keeps less, because scripts/check-boundaries.mjs forbids the browser's local storage, session storage and IndexedDB across apps/web/src and a preview must not leave a patient's readings on a borrowed machine. What it does is make the promise one promise and the differences visible.",
+
+  "_promiseItServes": "The rule this whole section exists under is rules.queuedIsNotLost above. It is not repeated here, and no store below may quietly mean something weaker by it.",
+
+  "_shape": "Every store declares two things separately, and the difference between them is the point. `survives` and `lostTo` are what is true of the store — behaviour, in event ids, checkable across platforms. `says` is what a screen actually renders today, word for word. A store whose behaviour is wider than what it says is a screen with a gap in it, and holding both here is what makes the gap visible instead of invisible.",
+
+  "events": [
+   { "id": "navigation", "name": "Moving between screens" },
+   { "id": "reload", "name": "Reloading the page or closing the tab" },
+   { "id": "close-app", "name": "Closing the app" },
+   { "id": "crash", "name": "A crash, a force-quit, or the process being killed" },
+   { "id": "restart", "name": "Restarting the phone" },
+   { "id": "sign-out", "name": "Signing out" },
+   { "id": "delete", "name": "Deleting the app" },
+   { "id": "clear-storage", "name": "Clearing the app's storage from the operating system's settings" },
+   { "id": "factory-reset", "name": "A factory reset" },
+   { "id": "lost-phone", "name": "Losing the phone" },
+   { "id": "second-device", "name": "Picking up a second device" }
+  ],
+
+  "stores": [
+   {
+    "id": "web-in-memory",
+    "platform": "web",
+    "kind": "memory",
+    "where": "A module-level array in the tab that is open. Nothing is written to the browser's storage, because nothing in apps/web/src may write to it.",
+    "survives": ["navigation"],
+    "lostTo": ["reload", "crash", "restart", "sign-out", "delete", "clear-storage", "factory-reset", "lost-phone", "second-device"],
+    "says": {
+     "survives": [],
+     "lostTo": ["Closing this tab loses it. Nothing in this app may leave a patient’s readings on the machine it was opened on."]
+    },
+    "why": "The one platform that keeps less on purpose. A design preview opened on a borrowed laptop must not leave a patient's readings behind on it, so the store is deliberately the weakest of the three and the screen says so rather than implying a durability it has not got. What the contract asks for is owed here, not met."
+   },
+   {
+    "id": "ios-capture-ledger",
+    "platform": "ios",
+    "kind": "file",
+    "where": "A JSON file in Application Support, written through FileManager with iOS data protection on it, and kept out of device backups.",
+    "survives": ["close-app", "crash", "restart", "sign-out"],
+    "lostTo": ["delete", "lost-phone", "second-device"],
+    "says": {
+     "survives": [
+      "A crash or a force-quit. Every entry is written at the moment it is taken, not when the app closes.",
+      "A restart of the phone.",
+      "A sign-out. This preview’s sign-out returns to the first-run flow and never touches the file — the entries belong to the work, not to the session."
+     ],
+     "lostTo": [
+      "Deleting the app. iOS removes the file with it, and nothing here can prevent that.",
+      "Losing the phone. The file is deliberately kept out of device backups, because a queue of readings is special personal information and syncing it into somebody’s laptop backup is a disclosure nobody consented to. The answer to a lost phone is to send, not to back up.",
+      "A second device. Nothing is shared between phones; there is no server in this build to share it through."
+     ]
+    },
+    "why": "The readings a nurse has taken and not yet handed over. Excluded from device backups deliberately: readings are special personal information under POPIA and a phone syncing them into whatever backup it happens to be attached to is a disclosure nobody consented to. The cost is real — a lost phone loses the queue — and it is written down rather than assumed."
+   },
+   {
+    "id": "ios-visit-queue",
+    "platform": "ios",
+    "kind": "file",
+    "where": "The whole visit, in a file on this phone — not only the readings.",
+    "survives": ["close-app", "crash", "restart", "sign-out"],
+    "lostTo": ["delete", "lost-phone", "second-device"],
+    "says": {
+     "survives": [
+      "A crash or a force-quit. Each piece is written the moment it is finished, not when the app closes.",
+      "A restart of the phone.",
+      "A sign-out. This preview’s sign-out returns to the first-run flow and never touches the file — the work belongs to the visit, not to the session."
+     ],
+     "lostTo": [
+      "Deleting the app. iOS removes the file with it, and nothing here can prevent that.",
+      "Losing the phone. The file is deliberately kept out of device backups: a consent, seven readings and a signature are special personal information, and syncing them into somebody’s laptop backup is a disclosure nobody consented to. The answer to a lost phone is to send, not to back up.",
+      "A second device. Nothing is shared between phones; there is no server in this build to share it through."
+     ]
+    },
+    "why": "The whole visit rather than only the readings: an identity check, a consent, the observations, what the nurse found and her sign-off. A record rewritten in the car from memory an hour later is a different record, which is a clinical safety problem before it is an inconvenience. Two files rather than one, because a parse failure in the readings must not take the assessment down with it."
+   },
+   {
+    "id": "android-private-file",
+    "platform": "android",
+    "kind": "file",
+    "where": "A file in this app’s own private storage on this phone. Nothing is sent anywhere: the app declares no permissions at all, internet included.",
+    "survives": ["close-app", "crash", "restart", "sign-out"],
+    "lostTo": ["delete", "clear-storage", "factory-reset", "lost-phone", "second-device"],
+    "says": {
+     "survives": ["Closing the app, the process being killed, a crash, restarting the phone, and signing out."],
+     "lostTo": ["Uninstalling MyThuso, clearing the app’s storage in Android settings, or a factory reset. It is never backed up off this phone — the manifest sets allowBackup to false."]
+    },
+    "why": "One FileBook serves both the reading ledger and the visit queue, one file per thing, so the machinery — the temporary file, the rename, the quarantine of anything that will not parse — is written once. Two events are on this list and not on the iOS ones because Android gives a person a button for them: storage can be cleared from settings without uninstalling. Two more are true here and are not in the sentence above — a lost phone and a second device lose this queue exactly as they lose the iOS one — and that gap between what is true and what the screen says is left visible here rather than papered over."
+   },
+   {
+    "id": "android-in-memory",
+    "platform": "android",
+    "kind": "memory",
+    "where": "Held in memory only, because this screen was opened without a file store.",
+    "survives": [],
+    "lostTo": ["navigation", "reload", "close-app", "crash", "restart", "sign-out", "delete", "clear-storage", "factory-reset", "lost-phone", "second-device"],
+    "says": {
+     "survives": ["Nothing. Every entry here is lost when this screen closes."],
+     "lostTo": ["A crash, a restart, a sign-out, or leaving this screen."]
+    },
+    "why": "It says out loud that it keeps nothing. A preview store that stayed quiet about being a preview store is how a nurse comes to believe a promise the running app never made."
+   }
+  ],
+
+  "quarantinedFile": {
+   "sentence": "A file that will not parse is kept, not deleted. Losing work to a bad parse is still losing work.",
+   "why": "The sibling of queuedIsNotLost: never dropped to make a sync succeed has to mean never dropped to make a parse succeed either. The unreadable file is renamed aside and the screen says what it is now called, because a screen that says work was kept and cannot say where it was kept has asked to be believed rather than checked."
+  },
+
+  "notEncrypted": {
+   "sentence": "None of this is encrypted by MyThuso. It is a design preview holding fictional readings in a file the operating system keeps private to the app, and no more than that.",
+   "why": "Real readings would need the controls in docs/PRIVACY-AND-SECURITY.md first. Said on the screen rather than implied by silence, because a queue that looks durable looks secure, and those are not the same claim."
+  }
+ },
+
  "rules": {
   "provenanceIsRequired": "Every reading carries exactly one provenance. There is no default and no unknown: a value nobody can say the origin of is not filed.",
   "calibrationNeverRefuses": "An out-of-date calibration marks a reading, it does not block it. A nurse in a home with one instrument still needs the number; what she must not have is the number without the caveat.",
