@@ -1,4 +1,4 @@
-import { capabilities, connectedCount, rule } from './lib/capabilities';
+import { capabilities, connectedCount, simulatedCount, rule } from './lib/capabilities';
 import './surface/core.css';
 import './surface/status.css';
 /* The fifth entry, and the smallest one on purpose — with no React in it.
@@ -31,6 +31,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(
 
 const total = capabilities.length;
 const evidenceRule = rule('connected-needs-evidence');
+const simulationRule = rule('simulated-is-not-connected');
 const root = document.getElementById('root')!;
 const page = el('div', 'status-page');
 
@@ -56,6 +57,20 @@ if (connectedCount === 0) {
   'Not one of them has been connected to a real service. No visit is booked, no payment is taken, '
   + 'no clinical decision is issued and no device is contacted.'));
 }
+/* The sentence this page exists to get right.
+ *
+ * Fourteen simulated suppliers now stand behind the product so the whole journey can be walked, and
+ * a page that mentioned the walking without the standing-in would be the readiness claim this page
+ * was built to prevent — worse than the version with nothing behind it at all, because a
+ * demonstration is more convincing than a screenshot. So the count above stays the connected count,
+ * it stays zero, and the simulation is reported underneath it as what it is. Both numbers are
+ * derived, so neither can go on being printed after it stops being true. */
+if (simulatedCount > 0) {
+ bannerInner.append(el('p', 'status-simulated',
+  `${simulatedCount} of ${total} have a simulated supplier standing in, so the product can be walked from `
+  + 'end to end before anything is signed. A simulation is not a connection. Every screen it stands '
+  + 'behind says so, and each one below lists what its simulation refuses to do.'));
+}
 banner.append(bannerInner);
 
 const main = el('main', 'status-main');
@@ -68,16 +83,32 @@ capabilities.forEach((c, i) => {
  index.setAttribute('aria-hidden', 'true');
  const detail = el('div', 'status-detail');
  const head = el('div', 'status-row-head');
- head.append(
-  el('h2', undefined, c.name),
-  el('span', c.connected ? 'status-state on' : 'status-state', c.connected ? 'Connected' : 'Not connected')
- );
+ /* Three states and three chips, and the middle one is deliberately not a shade of the first.
+    "Simulated" reading as a nearly-connected thing is the whole failure mode of this page. */
+ const stateClass = c.connected ? 'status-state on' : c.state === 'simulated' ? 'status-state sim' : 'status-state';
+ const stateWord = c.connected ? 'Connected' : c.state === 'simulated' ? 'Simulated' : 'Not connected';
+ head.append(el('h2', undefined, c.name), el('span', stateClass, stateWord));
  detail.append(head);
  if (c.connected) {
   detail.append(el('p', 'status-notice', 'Connected. Nothing is added to the screens that use it.'));
  } else {
   detail.append(el('p', 'status-label', 'What a person is told on the screen'));
-  detail.append(el('p', 'status-notice', c.notice));
+  /* The sentence a person actually reads, which for a simulated capability is the simulation's and
+     not the absent one. Rendering `c.notice` here was wrong the moment the third state existed: this
+     page would have quoted a screen as saying "not switched on yet" while that screen said
+     "simulated", and a status page that misquotes the product is worse than one that says less. */
+  detail.append(el('p', 'status-notice', c.simulation ? c.simulation.notice : c.notice));
+ }
+ if (c.simulation) {
+  detail.append(el('p', 'status-label', 'What is standing in for it'));
+  detail.append(el('p', 'status-notice', c.simulation.supplier));
+  /* The refusals, on the funder-facing page rather than only in the source. They are the reason a
+     simulation is honest work rather than a demonstration wearing a product's clothes, and a reader
+     deciding whether to believe this page should be able to read them without opening a file. */
+  detail.append(el('p', 'status-label', 'What the simulation will not do'));
+  const refuses = el('ul', 'status-blockers');
+  c.simulation.refuses.forEach(r => refuses.append(el('li', undefined, r)));
+  detail.append(refuses);
  }
  if (c.blockedBy.length > 0) {
   detail.append(el('p', 'status-label', 'What is standing in the way'));
@@ -95,7 +126,10 @@ const footInner = el('div', 'status-foot-inner');
 footInner.append(
  el('h2', undefined, 'How a row here becomes “Connected”'),
  el('p', undefined, evidenceRule.statement),
- el('p', undefined, evidenceRule.why)
+ el('p', undefined, evidenceRule.why),
+ el('h2', undefined, 'Why “Simulated” is not most of the way there'),
+ el('p', undefined, simulationRule.statement),
+ el('p', undefined, simulationRule.why)
 );
 const source = el('p', 'status-source');
 source.append(

@@ -44,6 +44,9 @@
 .status-count strong { font-size: 64px; font-weight: 300; line-height: 1; letter-spacing: -3px; color: var(--surface); font-variant-numeric: tabular-nums; }
 .status-count span { font-size: 16px; color: var(--stone); }
 .status-none { font-size: 15px; line-height: 1.65; color: var(--surface); margin-top: var(--space-20); padding-top: var(--space-20); border-top: 1px solid color-mix(in srgb, var(--stone) 30%, transparent); max-width: 58ch; }
+/* Same weight as the sentence above it: the simulation is not a footnote to "nothing is
+   connected", it is the other half of the same disclosure. */
+.status-simulated { font-size: 15px; line-height: 1.65; color: var(--surface); margin-top: var(--space-20); padding-top: var(--space-20); border-top: 1px solid color-mix(in srgb, var(--stone) 30%, transparent); max-width: 58ch; }
 
 /* ---- The fifteen ---- */
 /* core.css gives every <main> the application shell's padding, maximum width and its own scroll
@@ -69,6 +72,17 @@
    is in words, which is also what a screen reader gets. */
 .status-state { flex-shrink: 0; font-size: 13px; font-weight: 600; border-radius: var(--r-pill); padding: 5px 11px; background: var(--cloud); border: 1px solid var(--stone); color: var(--charcoal); white-space: nowrap; }
 .status-state.on { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+/* Simulated is a sage fill at full strength, and deliberately not a lighter charcoal. A chip that
+   reads as a paler "Connected" reads as nearly connected, which is the one misreading this page
+   cannot afford: a different hue says "a different kind of thing" where a tint would have said "less
+   of the same thing".
+
+   No visible border. The fill carries it, and a sageSlate edge on softSage measures 1.52 — an edge
+   nobody can see, doing the job the comment above it claims. This chip is a label rather than a
+   control, so SC 1.4.11's 3:1 boundary is not owed here; an invisible one written down as a design
+   decision would be owed an explanation nobody could give. Charcoal on softSage is 8.94:1, computed
+   on every build from the pair tokens.json already declares. */
+.status-state.sim { background: var(--soft-sage); border-color: var(--soft-sage); color: var(--charcoal); }
 
 /* Thirty of these on the page — two per capability — so they are set as quietly as a label can be
    and still be a label. In caps at 700 they read at almost the weight of the capability's own name,

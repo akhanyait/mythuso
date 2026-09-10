@@ -13,12 +13,22 @@ import { readFileSync } from 'node:fs';
  * partners — and a health service that overstates its readiness is not a marketing problem. */
 
 const contract = JSON.parse(readFileSync(new URL('../packages/catalog/capabilities.json', import.meta.url), 'utf8')) as {
-  capabilities: { id: string; name: string; connected: boolean; notice: string; blockedBy: string[] }[];
+  capabilities: {
+    id: string; name: string; connected: boolean; notice: string; blockedBy: string[];
+    state: 'absent' | 'simulated' | 'connected';
+    simulation?: { supplier: string; notice: string; refuses: string[] };
+  }[];
   rules: { id: string; statement: string; why: string }[];
 };
 const { capabilities } = contract;
 const connected = capabilities.filter(c => c.connected);
 const notConnected = capabilities.filter(c => !c.connected);
+const simulated = capabilities.filter(c => c.state === 'simulated');
+const absent = capabilities.filter(c => c.state === 'absent');
+/* What a row actually shows a reader, worked out the way the page works it out. A simulated
+   capability is never quieter than an absent one — it says a different thing, not nothing — so the
+   sentence to assert is the simulation's where there is one. */
+const shownNotice = (c: typeof capabilities[number]) => c.simulation ? c.simulation.notice : c.notice;
 
 test.beforeEach(async ({ page }) => { await page.goto('/status.html'); });
 
@@ -35,14 +45,46 @@ test('lists every capability in the contract, once each', async ({ page }) => {
 test('says how many are connected, and the figure is the contract’s arithmetic', async ({ page }) => {
   await expect(page.locator('.status-count strong')).toHaveText(String(connected.length));
   await expect(page.locator('.status-count')).toContainText(`of ${capabilities.length} capabilities are connected`);
-  await expect(page.locator('.status-state').filter({ hasText: /^Not connected$/ })).toHaveCount(notConnected.length);
+  await expect(page.locator('.status-state').filter({ hasText: /^Not connected$/ })).toHaveCount(absent.length);
+  await expect(page.locator('.status-state.sim')).toHaveCount(simulated.length);
   await expect(page.locator('.status-state.on')).toHaveCount(connected.length);
+});
+
+/* The assertion this page exists for, now that there are simulators behind it.
+ *
+ * A demonstration is more convincing than a screenshot, so the moment fourteen suppliers could be
+ * walked end to end was the moment this page became easiest to get wrong: the headline count is the
+ * one number a funder reads, and rolling the simulated ones into it would have been a single
+ * plausible edit. The count stays the connected count. The simulation is reported underneath it, as
+ * what it is, and it never borrows the word. */
+test('counts a simulation as a simulation and never as a connection', async ({ page }) => {
+  await expect(page.locator('.status-count strong')).toHaveText('0');
+  const simulatedLine = page.locator('.status-simulated');
+  await expect(simulatedLine).toContainText(`${simulated.length} of ${capabilities.length}`);
+  await expect(simulatedLine).toContainText('A simulation is not a connection');
+  for (const c of simulated) {
+    const row = page.locator(`#${c.id}`);
+    await expect(row.locator('.status-state'), `${c.id} must not read Connected`).toHaveText('Simulated');
+    /* A simulator unblocks nothing. The SMS provider is unsigned on the day the simulated one works
+       perfectly, so the blockers stay on the row and this is where somebody would quietly drop them. */
+    expect(c.blockedBy.length, `${c.id} is simulated and lists nothing blocking it`).toBeGreaterThan(0);
+    for (const blocker of c.blockedBy) {
+      await expect(row.locator('.status-blockers li').filter({ hasText: blocker })).toHaveCount(1);
+    }
+    /* And the refusals reach the page, not just the source. They are the reason a simulation is
+       honest work rather than a demonstration in a product's clothes, and a reader deciding whether
+       to believe any of this should not have to open a file to find them. */
+    for (const refusal of c.simulation!.refuses) {
+      await expect(row.locator('.status-blockers li').filter({ hasText: refusal }),
+        `${c.id} does not show that it refuses to ${refusal}`).toHaveCount(1);
+    }
+  }
 });
 
 test('renders each notice and each blocker word for word', async ({ page }) => {
   for (const c of notConnected) {
     const row = page.locator(`#${c.id}`);
-    await expect(row.locator('.status-notice'), `${c.id} does not show its notice`).toHaveText(c.notice);
+    await expect(row.locator('.status-notice').first(), `${c.id} does not show its notice`).toHaveText(shownNotice(c));
     for (const blocker of c.blockedBy) await expect(row.locator('.status-blockers li').filter({ hasText: blocker })).toHaveCount(1);
   }
   /* A capability that is connected shows no notice at all — the sentence exists to be shown while
