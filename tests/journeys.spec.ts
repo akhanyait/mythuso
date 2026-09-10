@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openAdminConsole, openWorkspace } from './nav';
+import { openAdminConsole, openWorkspace, PATIENT_TAB_LABEL } from './nav';
 
 /* Every navigation destination in every application, walked, and asked one question.
  *
@@ -46,9 +46,8 @@ type Application = { app: string; enter: (page: Page) => Promise<void>; destinat
    thirty seconds for a row that is on the screen. Matched by contained text instead. */
 /* Four of the ten are tabs on a phone, under a shorter label than their section name — a tab strip
    at 390px cannot carry "Health Passport". The other six are rows in the More hub. */
-const patientTabLabel: Record<string, string> = {
-  'Overview': 'Home', 'Book a nurse': 'Book care', 'My visits': 'Visits', 'Health Passport': 'Passport'
-};
+/* One map, in tests/nav.ts, where navigating lives. */
+const patientTabLabel = PATIENT_TAB_LABEL;
 async function goPatient(page: Page, name: string) {
   const sidebar = page.locator('.sidebar');
   if (await sidebar.isVisible()) {

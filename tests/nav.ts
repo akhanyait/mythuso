@@ -7,11 +7,23 @@ import { readFileSync } from 'node:fs';
    Both are matched by accessible name rather than by visible text: a clinical tab shows a short
    label — "Earnings", "Repeats", "Consult" — under an accessible name that is the whole section, so
    a journey can name the section once and reach it on either viewport. */
+/* Four of the patient's ten sections are tabs on a phone, under a shorter label than their section
+   name. The other six are rows in the More hub, which is what the fallback below opens. */
+export const PATIENT_TAB_LABEL: Record<string, string> = {
+  'Overview': 'Home', 'Book a nurse': 'Book care', 'My visits': 'Visits', 'Health Passport': 'Passport'
+};
+
 export async function goSection(page: Page, name: string) {
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (await sidebar.isVisible()) {
     const entry = sidebar.getByRole('button', { name, exact: true });
     if (await entry.count()) { await entry.click(); return; }
+    /* Then by contained text. A sidebar row carries a count inside the button — "My visits 3" — so
+       its accessible name is not its section name and the exact match above finds nothing. It then
+       fell through to the settings links, which is a different part of the sidebar entirely, and
+       waited thirty seconds for a row that was on the screen the whole time. */
+    const counted = sidebar.getByRole('button').filter({ hasText: name });
+    if (await counted.count()) { await counted.first().click(); return; }
     /* Not every destination is a nav row. Privacy & settings and Language & access sit in the
        sidebar's foot as settings links, and a helper that only knew about the navigation landmark
        sent every caller into a thirty-second wait for a button that was never going to be there. */
@@ -22,6 +34,19 @@ export async function goSection(page: Page, name: string) {
      whole section name for a screen reader, so "Earnings & payouts" is never what is drawn. */
   const tab = page.locator('.tabbar').getByRole('button', { name, exact: true });
   if (await tab.count()) { await tab.first().click(); return; }
+  /* The patient's tab bar is the exception, and it is the one this helper could not reach. A strip
+     at 390px cannot carry "Health Passport", so four sections are drawn *and named* short — and
+     unlike the clinical tabs they do not carry the long name for a screen reader either. Every spec
+     that needed them had written its own map; this is that map, in the one place navigating lives,
+     because a private copy of navigation is a private copy of every fix made to it since. */
+  const short = PATIENT_TAB_LABEL[name];
+  if (short) {
+    /* Contained text, not an exact accessible name. "Visits" carries a count inside the button, so
+       its name is "Visits 3" and an exact match waits thirty seconds for a tab that is on the
+       screen. That is the same trap the clinical branch above avoids for the opposite reason. */
+    const patientTab = page.locator('.tabbar button').filter({ hasText: short });
+    if (await patientTab.count()) { await patientTab.first().click(); return; }
+  }
   /* And on a phone the rest of the patient's sections live behind More. */
   await page.locator('.tabbar button').last().click();
   const row = page.locator('.menu-row').filter({ hasText: name });

@@ -38,19 +38,12 @@ const lapsed = nurses.find(n => Object.values(n.checks ?? {}).some(c => (c.expir
 const outsideCoverage = nurses.find(n => !zoneNames.has(n.zone))!;
 const silentPhone = nurses.find(n => !n.sharesPosition && zoneNames.has(n.zone))!;
 
-const tabOrder = ['Overview', 'Book a nurse', 'My visits', 'Health Passport', 'More'];
-async function go(page: Page, name: string) {
-  /* The shell mounts, then re-renders once with the sections it actually has, so a click raced
-     against the first paint hits a button that is about to be replaced. Waiting for the content
-     region is waiting for the second render — and it is the one landmark both viewports draw, since
-     the sidebar is in the document on a phone and hidden. */
-  await expect(page.locator('main').first()).toBeVisible();
-  const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
-  /* By prefix rather than exactly: a sidebar row carries a count after its name, so "My visits"
-     is drawn as "My visits 3" and an exact match waits thirty seconds for a button nobody renders. */
-  if (await sidebar.isVisible()) { await sidebar.getByRole('button', { name: new RegExp(`^${name}`) }).first().click(); return; }
-  await page.locator('.tabbar button').nth(tabOrder.indexOf(name)).click();
-}
+/* Navigating is tests/nav.ts's `goSection` and not a second one written here. This spec grew its
+   own, which found the mobile tab bar by position in a hard-coded list rather than by accessible
+   name, and waited thirty seconds for an index that is not where it thought — the shared helper had
+   already been taught that a clinical tab draws a short label and carries the whole section name for
+   a screen reader. A private copy of navigation is a private copy of every fix made to it since. */
+const go = goSection;
 
 /* Pinned only where it is needed. The sample visit is the next slot the offer still has room for,
    which rolls to tomorrow once the day's last slot has gone, so the journey that reaches the arrival

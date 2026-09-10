@@ -1,3 +1,4 @@
+import { noticeFor } from './notices';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 /* Read rather than imported: a JSON import needs an attribute under Node's ESM loader, and every
@@ -47,8 +48,9 @@ test('the care-team row says what help exists rather than opening an unrelated b
   /* Not a dialog, and specifically not the booking one. */
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Not sure what you need?' })).toBeVisible();
-  /* The contract's own sentence about why nobody can be written to, word for word. */
-  await expect(page.getByText('Nothing is sent. No message, invitation or reminder reaches anybody.')).toBeVisible();
+  /* The contract's own sentence about why nobody can be written to, word for word — read from the
+     contract rather than copied into it, because it was copied and then the contract moved. */
+  await expect(page.getByText(noticeFor('messaging'))).toBeVisible();
   await expect(page.getByText('Nothing on this screen opens a conversation, joins a queue or tells anybody you were here.')).toBeVisible();
 
   /* And the three things that do exist. The emergency route leads, because somebody who cannot
