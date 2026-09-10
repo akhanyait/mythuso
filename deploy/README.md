@@ -127,10 +127,12 @@ served with no `X-Frame-Options` at all, with the pages rendering exactly as bef
 lifetimes are now decided by one `map` at the top of the file and added once at the server level, so
 no location declares an `add_header` and none of them can drop part of the set.
 
-HSTS is not in the site file. It belongs in the `https` block certbot writes, and adding it to a
-port-80 block on a host with no certificate teaches every browser that visits to refuse the site for
-two years, with no way to take it back. `RUNBOOK.md` turns it on as its own step, after https has
-been seen working.
+HSTS is in the site file now, and it is in it at `max-age=300`. It was held out until a certificate
+existed, because a browser told to refuse plain http by a host that cannot serve https is a browser
+that cannot reach the site and cannot be told otherwise. The certificate exists, so the header is on
+— but at five minutes rather than two years, because that is the version of this header that can be
+withdrawn. Raising it is a second decision, taken in `RUNBOOK.md` once the header has been seen
+arriving on https and every subdomain `includeSubDomains` binds has been checked.
 
 **A path is not access control, and neither is a subdomain.** `/staff/` and `/admin/` are `noindex`
 and are not linked from the landing page, which keeps them out of a search result and out of

@@ -210,19 +210,35 @@ grown an `add_header` of its own, which in nginx silently discards the whole inh
 ## 6. HSTS — a separate step, on purpose
 
 Not before now. `Strict-Transport-Security` tells every browser that visits to refuse plain http for
-this host for two years, and there is no way to take it back from the browsers that already heard
-it. Turning it on before https is confirmed working is a way to make a site unreachable that you
-cannot undo by editing anything.
+this host for as long as the header says, and there is no way to take it back from the browsers that
+already heard it. Turning it on before https is confirmed working is a way to make a site unreachable
+that you cannot undo by editing anything — and turning it on at two years is a way to make any
+mistake in it last two years.
 
-Now that step 5 passed, uncomment the line in `deploy/nginx/mythuso.conf`:
+Step 5 passed, so the line in `deploy/nginx/mythuso.conf` is now uncommented — at **five minutes**,
+not at two years:
 
 ```nginx
-add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+add_header Strict-Transport-Security "max-age=300; includeSubDomains" always;
 ```
 
-and redeploy (`./deploy/deploy.sh`), which is safe to run as often as you like — it rewrites the
-site file from that template and then has certbot re-apply the TLS lines on top, so the header lands
-in the block that serves https. Then check both halves:
+Two years was the wrong first value and the reason is the same one this whole step exists for: the
+header cannot be taken back from a browser that already heard it. A five-minute max-age is the same
+header with the irreversibility removed — if it lands in the wrong block, or a subdomain turns out
+not to serve https, the damage expires while you are still looking at it.
+
+`includeSubDomains` binds every subdomain, so both were checked before the line was written:
+
+| Name | https | http |
+|---|---|---|
+| `mail.mythuso.co.za` | 404, valid certificate | 404 |
+| `webmail.mythuso.co.za` | 200, valid certificate | 301 to https |
+
+Neither is broken by it, and SMTP and IMAP never see an http header at all — mail is unaffected.
+
+Redeploy (`./deploy/deploy.sh`), which is safe to run as often as you like: it rewrites the site file
+from that template and then has certbot re-apply the TLS lines on top, so the header lands in the
+block that serves https. Then check both halves:
 
 ```sh
 curl -sI https://mythuso.co.za/ | grep -i strict-transport   # the header is there
@@ -232,9 +248,13 @@ curl -sI http://mythuso.co.za/  | head -1                    # plain http still 
 If the header does not appear, look at where certbot put the `listen 443` line — the header has to
 be inside the same `server` block. Comment it out again rather than leaving it half-applied.
 
-No `preload`. A preload entry is a submission to a list this project cannot withdraw itself from.
+**Then, and only then, raise it.** Once the header has been seen on https and every subdomain above
+still answers, change `max-age=300` to `max-age=63072000` and redeploy again. That second edit is the
+one that cannot be undone, and it is deliberately a separate decision taken with evidence in hand
+rather than a value typed in hope.
 
-This step is optional tonight. Nothing breaks if you leave it for another day.
+No `preload`. A preload entry is a submission to a list this project cannot withdraw itself from,
+which is the same mistake as a two-year max-age with the ink still wet.
 
 ---
 
