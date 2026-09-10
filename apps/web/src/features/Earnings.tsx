@@ -11,6 +11,10 @@ import {
 } from '../lib/earnings';
 import { days, forecast, hoursOffered, typicalOver, typicalShare } from '../lib/forecast';
 import { can, type VettingSubject } from '../lib/vetting';
+/* No payment provider is contracted, so the payment run on this screen is a simulated bank. It
+   pays nobody, verifies no account and reverses nothing — and within that, it answers a week's run
+   with the same three states earnings.json already draws, in the same sentences. */
+import { askToVerifyAccount, runPayout, type PayoutAdvice } from '../lib/simulation';
 import { subjectById } from '../lib/vetting-fixtures';
 
 /* What a nurse is paid.
@@ -165,9 +169,15 @@ function Shift() {
  </div>;
 }
 
-function Week({ week, open, toggle }: { week: EarningWeek; open: boolean; toggle: () => void }) {
+const toneFor = (state: string) => state === 'paid' ? 'teal' : state === 'failed' ? 'danger' : state === 'in-transit' ? 'sky' : 'amber';
+
+function Week({ week, nurseId, open, toggle }: { week: EarningWeek; nurseId: string; open: boolean; toggle: () => void }) {
  const state = stateById(week.state);
- const tone = week.state === 'paid' ? 'teal' : week.state === 'failed' ? 'danger' : week.state === 'in-transit' ? 'sky' : 'amber';
+ const tone = toneFor(week.state);
+ /* What the simulated bank said when this week's run went out. Held per week rather than per
+    screen, because it is a fact about one payment run and a nurse looking at four of them should be
+    able to see that they did not all do the same thing. */
+ const [advice, setAdvice] = useState<PayoutAdvice | null>(null);
  return <div className={`earn-week${open ? ' is-open' : ''}${week.state === 'failed' ? ' failed' : ''}`}>
   <button aria-expanded={open} onClick={toggle}>
    <span className="earn-week-head">
@@ -181,6 +191,20 @@ function Week({ week, open, toggle }: { week: EarningWeek; open: boolean; toggle
    {week.state === 'paid' && week.paidOn ? <p className="helper"><Landmark size={14}/>Paid into {account.maskedNumber} on {fully(week.paidOn)}.</p> : null}
    {week.state === 'in-transit' ? <p className="helper"><CalendarClock size={14}/>Sent on {fully(week.pays)}. Banks take {cycle.clearsInDays[0]}–{cycle.clearsInDays[1]} business days.</p> : null}
    {week.failure ? <div className="earn-failure"><CircleAlert size={19}/><p>{week.failure}</p></div> : null}
+   {/* The one thing this screen had no way to show: a payout that moved. Every state above was
+       drawn from the contract and nothing had ever answered for one. A simulated bank does now —
+       it will not pay anybody, it will not verify an account and it will not reverse a payout that
+       never left, and within those three refusals it says what happened to a week's run. */}
+   {week.state === 'accruing' ? null : <div className="earn-run">
+    {!advice ? <button className="secondary" onClick={() => setAdvice(runPayout(week.id, nurseId, week.total, week.state))}>
+     <Landmark size={16}/>Run the {cycle.paysOn} payment run</button> : null}
+    {advice?.refused !== undefined ? <div className="earn-refusal"><Ban size={19}/><p>{advice.refused}</p></div> : null}
+    {advice && advice.refused === undefined ? <div className="earn-advice" role="status">
+     <div className="review-line"><span>The bank came back</span><Pill tone={toneFor(advice.outcome)}>{stateById(advice.outcome).name}</Pill></div>
+     <div className="review-line"><span>Amount in the run</span><strong>{money(advice.amount)}</strong></div>
+     <p className="helper">{advice.failureReason ?? stateById(advice.outcome).detail}</p>
+    </div> : null}
+   </div>}
    <table className="admin-table earn-lines">
     <caption className="visually-hidden">Every line in the week to {on(week.ends)}</caption>
     <thead><tr><th scope="col">Visit</th><th scope="col">What</th><th scope="col">When</th><th scope="col">Amount</th></tr></thead>
@@ -201,9 +225,13 @@ function Week({ week, open, toggle }: { week: EarningWeek; open: boolean; toggle
 
 /* Changing the account is the one destructive action on this screen, so it is the one that waits.
    Three states: as it is, being re-verified, and pending until the cooling-off period is up. */
-function PayoutAccount() {
+function PayoutAccount({ nurseId }: { nurseId: string }) {
  const [stage, setStage] = useState<'settled' | 'verifying' | 'pending'>('settled');
  const [code, setCode] = useState('');
+ /* The wait is real and the check is not. Asking the simulated channel to confirm an account gets a
+    refusal in the capability's own words, and it is shown beside the cooling-off note rather than
+    swallowed — a screen that moved quietly to "pending" would read as though a bank had said yes. */
+ const [checked, setChecked] = useState('');
  const rule = ruleById('account-change-waits');
  return <div className="panel earn-account">
   <div className="record-row plain">
@@ -211,7 +239,7 @@ function PayoutAccount() {
    <span><strong>{account.bank} · {account.maskedNumber}</strong><small>{account.holder} · {account.note}</small></span>
    {stage === 'settled' ? <button className="secondary" onClick={() => setStage('verifying')}>Change account</button> : null}
   </div>
-  {stage === 'verifying' ? <form className="form-stack space-top" onSubmit={e => { e.preventDefault(); setStage('pending'); }}>
+  {stage === 'verifying' ? <form className="form-stack space-top" onSubmit={e => { e.preventDefault(); setChecked(askToVerifyAccount(nurseId)); setStage('pending'); }}>
    <p className="muted">Before anything changes, we check it is you. Nothing here is sent.</p>
    <ul className="landing-list">{account.reverify.map(step => <li key={step}><Lock size={16}/>{step}</li>)}</ul>
    <label>One-time code<input inputMode="numeric" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} placeholder="240924"/></label>
@@ -226,6 +254,7 @@ function PayoutAccount() {
     <p>{rule.sentence}</p>
     <button className="text-button" onClick={() => { setStage('settled'); setCode(''); }}><Undo2 size={15}/>Cancel the change</button></div>
   </div> : null}
+  {stage === 'pending' && checked ? <div className="earn-refusal"><Ban size={19}/><p>{checked}</p></div> : null}
   {stage !== 'pending' ? <p className="earn-rule"><Info size={15}/>{rule.sentence}</p> : null}
  </div>;
 }
@@ -270,7 +299,7 @@ export function Earnings() {
   <SectionTitle title="Your weeks"/>
   <p className="muted">{cycle.note}</p>
   <div className="earn-weeks space-top">
-   {weeks.map(week => <Week key={week.id} week={week} open={openWeek === week.id} toggle={() => setOpenWeek(openWeek === week.id ? null : week.id)}/>)}
+   {weeks.map(week => <Week key={week.id} week={week} nurseId={nurseId} open={openWeek === week.id} toggle={() => setOpenWeek(openWeek === week.id ? null : week.id)}/>)}
   </div>
 
   <SectionTitle title="Tax"/>
@@ -283,7 +312,7 @@ export function Earnings() {
   </div>
 
   <SectionTitle title="Where you are paid"/>
-  <PayoutAccount/>
+  <PayoutAccount nurseId={nurseId}/>
 
   <SectionTitle title="What this screen will not do"/>
   <div className="earn-refusals">{refusals.filter(r => r.id !== 'advise-on-tax').map(r =>

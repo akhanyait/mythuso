@@ -396,3 +396,14 @@
 .clinical .stated dt { font-size: 13px; color: var(--faint); letter-spacing: .4px; text-transform: uppercase; }
 .clinical .stated dd { font-size: 15px; line-height: 1.55; color: var(--charcoal); margin: 0; }
 .clinical .stated small { display: block; font-size: 13px; line-height: 1.55; color: var(--faint); }
+
+/* ---- The simulated payment run ----------------------------------------------------------------
+ *
+ * A week's payout used to be a state drawn from the contract with nothing behind it. A simulated
+ * bank answers one now, and its answer sits inside the week it is about rather than in a banner at
+ * the top of the screen: four weeks can come back four different ways, and a nurse reading them
+ * should be able to see which week did what. Set as an ordinary block on the surface — a payout
+ * that moved is not an alarm, and a payout that did not already has .earn-failure. */
+.earn-run { margin: 12px 0; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.earn-advice { align-self: stretch; background: var(--canvas); border-radius: var(--r-tile); padding: 4px 16px 14px; }
+.earn-advice .review-line strong { font-variant-numeric: tabular-nums; }
