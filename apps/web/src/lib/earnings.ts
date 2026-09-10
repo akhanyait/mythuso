@@ -1,4 +1,4 @@
-import contract from '../../../../packages/catalog/earnings.json';
+import contract from '../../../../packages/catalog/earnings.json' with { type: 'json' };
 import { businessModel, services, type Service } from './catalog';
 import { inDays, isoDate } from './vetting';
 /* What a nurse is owed, worked out rather than written down.

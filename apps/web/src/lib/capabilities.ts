@@ -1,4 +1,4 @@
-import contract from '../../../../packages/catalog/capabilities.json';
+import contract from '../../../../packages/catalog/capabilities.json' with { type: 'json' };
 /* What MyThuso can actually do, and what it only draws.
  *
  * Every screen used to carry its own hand-typed "Design preview", "Demonstration record" or

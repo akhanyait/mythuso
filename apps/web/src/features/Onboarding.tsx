@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, BadgeCheck, Check, Fingerprint, KeyRound, LifeBuoy, MapPin, MessageSquare, Phone, ShieldCheck, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeCheck, Ban, Check, CircleAlert, Fingerprint, KeyRound, LifeBuoy, MapPin, MessageSquare, Phone, ShieldCheck, Users } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { locales, type LocaleCode } from '../lib/i18n';
 import { LogIn, UserPlus } from 'lucide-react';
 import { startSignIn, verifyCode } from '../lib/auth';
+/* With no identity service running, the code comes from the simulated one-time-code office rather
+   than from a sentence typed into this screen. What it refuses is the interesting half: it will not
+   be told a mobile number, it will not accept a code it did not produce, and it does not survive a
+   restart — which is why signing in again after a reload starts from the beginning. */
+import { askForCode, checkCode, type CodeAsk } from '../lib/simulation';
 import { CodeInput } from '../components/Steps';
 /* Sign-up and vetting must agree about what a valid identity number is, so the Luhn check digit
    validation lives in lib/identity.ts and is re-exported here for the screens that already use it. */
@@ -148,7 +153,20 @@ export function SignIn({ live, probed = true, onSignIn, onCreate, onRecover }:
  const [code, setCode] = useState('');
  const [busy, setBusy] = useState(false);
  const [error, setError] = useState('');
+ /* The simulated channel's side of this screen. `attempt` is what the office is seeded on and it is
+    the only thing that crosses: a new attempt is a new message, which is also how a failed delivery
+    is answered — the channel refuses to retry one, because a simulated failure is a chosen failure
+    and sending the same message again until it works would unchoose it. */
+ const [attempt, setAttempt] = useState(0);
+ const [ask, setAsk] = useState<CodeAsk | null>(null);
  const phoneOk = /^0\d{9}$/.test(phone.replace(/\s/g, ''));
+ const askAgain = () => { const next = attempt + 1; setAttempt(next); setCode(''); setError(''); setAsk(askForCode(next)); };
+ const submitSimulatedCode = () => {
+  if (!ask || ask.refused !== undefined) return;
+  const checked = checkCode(ask.challenge, code);
+  if (checked.refused !== undefined) return setError(checked.refused);
+  onSignIn({ phone });
+ };
  const requestCode = async () => {
   setBusy(true); setError('');
   const started = await startSignIn(phone);
@@ -179,8 +197,36 @@ export function SignIn({ live, probed = true, onSignIn, onCreate, onRecover }:
    {!probed ? null : live ? <Pill>Identity service connected</Pill> : <NotConnected of="accounts"/>}
    <h1>Sign in to MyThuso</h1>
    {!live ? <>
-    <p className="muted">Sign-in needs the identity service, which is not switched on yet. Carry on as Lerato Molefe to see what an account holds.</p>
-    <button className="primary full" onClick={() => onSignIn()}><LogIn size={17}/>Continue as Lerato Molefe</button>
+    <p className="muted">The identity service is not switched on. A simulated channel produces the code here instead, so the whole of signing in can be walked — including the part where the message does not arrive.</p>
+    <label>Mobile number<div className="phone-field"><span>+27</span>
+     <input inputMode="numeric" value={phone} aria-describedby="sim-help" placeholder="082 000 0000"
+      onChange={e => { setPhone(e.target.value.replace(/[^\d\s]/g, '').slice(0, 12)); setError(''); }}/>
+    </div></label>
+    {/* The number is never handed to the simulator. It refuses to be told where to send — see the
+        accounts capability's own first refusal — so what crosses is the ordinal of the attempt, and
+        the number stays in this tab for the sole purpose of being shown back to the person who
+        typed it. Nothing can leave the machine because nothing here knows anywhere to leave for. */}
+    <p className="helper" id="sim-help" role="status">{error || 'Your number stays in this tab. The simulator is never told where to send, and refuses to be.'}</p>
+    {!ask ? <button className="primary full" disabled={!phoneOk} onClick={askAgain}>Send my code<ArrowRight size={17}/></button> : null}
+    {ask?.refused !== undefined ? <div className="privacy-note"><Ban size={19}/>{ask.refused}</div> : null}
+    {ask && ask.refused === undefined && ask.status === 'failed' ? <>
+     {/* The state the seam exists for. feeds.json says a provider reporting only success turns every
+         silence into a success by default, and the silences are everybody who cannot sign in — so
+         the failure is shown as what it is, with the code withheld, because a person whose message
+         never arrived does not have one. */}
+     <div className="privacy-note"><CircleAlert size={19}/>Your code did not arrive. {ask.failureReason} Nothing else has happened, and no code has been used up.</div>
+     <button className="primary full" onClick={askAgain}><MessageSquare size={16}/>Ask for a new code</button>
+    </> : null}
+    {ask && ask.refused === undefined && ask.code ? <>
+     <div className="privacy-note"><KeyRound size={19}/>Your code is <strong>{ask.code}</strong>. It was made on this machine and no message left it.</div>
+     <label>Verification code</label>
+     <CodeInput value={code} onChange={v => { setCode(v); setError(''); }} label="Verification code" describedBy="sim-help" invalid={!!error} autoFocus/>
+     <div className="button-row">
+      <button className="secondary" onClick={askAgain}><MessageSquare size={16}/>Ask for a new code</button>
+      <button className="primary" disabled={code.length < 6} onClick={submitSimulatedCode}>Verify</button>
+     </div>
+    </> : null}
+    <button className="secondary full" onClick={() => onSignIn()}><LogIn size={17}/>Continue as Lerato Molefe</button>
     <button className="secondary full" onClick={onCreate}><UserPlus size={16}/>Create an account</button>
     <button className="text-button" onClick={onRecover}>I’ve lost access to my account</button>
    </> : !challenge ? <>

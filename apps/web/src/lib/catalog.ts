@@ -1,4 +1,4 @@
-import catalog from '../../../../packages/catalog/services.json';
+import catalog from '../../../../packages/catalog/services.json' with { type: 'json' };
 import model from '../../../../packages/catalog/business-model.json';
 export type Service = typeof catalog[number];
 export const services: Service[] = catalog;
