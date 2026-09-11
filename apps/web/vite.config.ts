@@ -52,12 +52,13 @@ export default defineConfig({
          closing it is a change to the test suite rather than to this file. Written down in
          docs/ARCHITECTURE.md rather than left for somebody to rediscover, because it means no test
          in this repository has ever opened the patient app at the path production serves it from. */
-      const served = { '/app': '/index.html', '/staff': '/staff.html',
-                       '/admin': '/admin.html', '/status': '/status.html' };
+      const served: Record<string, string> = { '/app': '/index.html', '/staff': '/staff.html',
+                                               '/admin': '/admin.html', '/status': '/status.html' };
       server.middlewares.use((req, _res, next) => {
-        const path = (req.url ?? '/').split('?')[0].replace(/\/$/, '') || '/';
-        const entry = served[path];
-        if (entry) req.url = entry + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '');
+        const url = req.url ?? '/';
+        const [path, query] = url.split('?');
+        const entry = served[path.replace(/\/$/, '') || '/'];
+        if (entry) req.url = query === undefined ? entry : `${entry}?${query}`;
         next();
       });
     }
