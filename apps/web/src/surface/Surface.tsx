@@ -26,9 +26,16 @@ export function Metric({ value, unit, prefix, label, chip, flagged = false }: {
  /** Fills the chip charcoal. For the one value on a screen that is out of range. */
  flagged?: boolean;
 }) {
+ /* The chip sits on a line of its own whether or not this metric has one. A strip where some
+    figures carry a chip and some do not was drawing them at two different heights — the back
+    office's own overview had 12 and 3 side by side, twenty-nine pixels apart, which is the one
+    thing a row of numerals must never do. The line only reserves height when a sibling in the same
+    strip actually has a chip, so a strip with none pays nothing for the rule. */
  return (
   <div className="s-metric">
-   {chip && <span className={`s-metric-chip${flagged ? ' flagged' : ''}`}>{chip}</span>}
+   <span className="s-metric-chip-line">
+    {chip && <span className={`s-metric-chip${flagged ? ' flagged' : ''}`}>{chip}</span>}
+   </span>
    <span className="s-metric-value">{prefix && <small>{prefix}</small>}{value}{unit && <small>{unit}</small>}</span>
    <span className="s-metric-label">{label}</span>
   </div>

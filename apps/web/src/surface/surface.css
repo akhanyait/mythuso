@@ -33,6 +33,12 @@
 
 .s-metric { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); min-width: 0; }
 
+/* The chip's line, always drawn, reserving height only when something in this strip fills one.
+   Without it a figure with no chip floats up by the chip's whole height and the strip stops being
+   a row of numerals — which is what the back office's overview was doing to four of its six. */
+.s-metric-chip-line { display: flex; align-items: flex-end; min-width: 0; max-width: 100%; }
+.s-metrics:has(.s-metric-chip) .s-metric-chip-line { min-height: 26px; }
+
 .s-metric-chip {
  align-self: flex-start;
  background: var(--surface);

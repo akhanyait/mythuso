@@ -407,3 +407,307 @@
 .earn-run { margin: 12px 0; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .earn-advice { align-self: stretch; background: var(--canvas); border-radius: var(--r-tile); padding: 4px 16px 14px; }
 .earn-advice .review-line strong { font-variant-numeric: tabular-nums; }
+
+/* ---- The metric strip, as an operational band --------------------------------------------------
+ *
+ * The strip is the same component the reference is built out of, and on a desk-width workspace it
+ * was drawing three figures across eleven hundred pixels. `repeat(auto-fit, minmax(…, 1fr))` spreads
+ * whatever it is given over whatever it is in, so "Visits on the board 3" and "Nurses on duty 7" sat
+ * three hundred and fifty pixels apart and stopped reading as one summary of one board — a
+ * controller's eye had to travel the width of the screen to compare two numbers that belong to each
+ * other. Grouped left with a hairline between them, they are a band: three columns a reader can
+ * scan across in one movement, ending where the information ends rather than where the window does.
+ *
+ * Only the strips a clinical screen draws on the ground. The console's figures carry a sentence
+ * underneath and need a measure to wrap in, so those keep their grid, below. */
+@media (min-width: 900px) {
+ .clinical .s-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-24) 0;
+ }
+ .clinical .s-metric { flex: 0 1 auto; max-width: 100%; }
+ .clinical .s-metric + .s-metric {
+  margin-left: var(--space-32);
+  padding-left: var(--space-32);
+  border-left: 1px solid var(--pane-line);
+ }
+ /* The console keeps the grid it was given: a figure there is a numeral with the plan it is
+    measured against written under it, and a sentence has to have a column to wrap inside. */
+ .clinical .c-figures .s-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+  gap: var(--space-24) var(--space-32);
+ }
+ .clinical .c-figures .s-metric + .s-metric { margin-left: 0; padding-left: 0; border-left: 0; }
+}
+
+/* ---- The same strip on a phone -----------------------------------------------------------------
+ *
+ * A nurse opens the schedule at 07:00 to find out where she is going first. On a 390px handset the
+ * next visit began at 665 pixels, under a title, a subtitle, a duty toggle, three figures stacked
+ * two-up across two rows, and a disclosure that has to stay. The one object the screen exists for
+ * was below the fold.
+ *
+ * So the three become one row rather than two, and the chip moves from above the numeral to a line
+ * under the label. That is the one place this surface departs from the reference on purpose: a chip
+ * is a pill that will not wrap, and three pills will not share a ninety-pixel column at 320px. What
+ * makes the shape recognisable — a large thin figure with a small dense label — is untouched; what
+ * moves is where the status sits, and under the label it can wrap. It costs about a hundred pixels,
+ * which is the difference between seeing the next visit and scrolling for it. */
+@media (max-width: 560px) {
+ .clinical .s-metrics {
+  /* Three across where three fit, and two where they do not. A hard `repeat(3, 1fr)` gave a 320px
+     phone an 88-pixel track, and "R 2 841" at 28 is ninety-two — the earnings strip pushed six
+     pixels out of its own column. The floor is what the widest figure in the product actually
+     measures, so the fallback happens by arithmetic rather than by a breakpoint somebody guessed. */
+  grid-template-columns: repeat(auto-fit, minmax(min(104px, 100%), 1fr));
+  gap: var(--space-16) var(--space-12);
+  padding: var(--space-4) 0 var(--space-20);
+ }
+ .clinical .s-metric { gap: 2px; }
+ .clinical .s-metric-value { font-size: 28px; letter-spacing: -1px; }
+ .clinical .s-metric-value small { font-size: 14px; }
+ /* Order, not position: the chip is still the first thing in the markup and the first thing a
+    screen reader meets, because it is still the status of the figure it is about. */
+ .clinical .s-metric-chip-line { order: 3; min-height: 0; }
+ .clinical .s-metrics:has(.s-metric-chip) .s-metric-chip-line { min-height: 0; }
+ .clinical .s-metric-chip {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--faint);
+  white-space: normal;
+ }
+ /* Flagged still reads as flagged without the fill: the fill was the chip, and what is left is the
+    one label on the strip set in the colour everything else on this screen is read in. */
+ .clinical .s-metric-chip.flagged { background: none; color: var(--charcoal); font-weight: 600; }
+ /* The console's figures stay two-up: each carries a sentence, and three sentences across a phone
+    is three columns of two-word lines. */
+ .clinical .c-figures .s-metrics { grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); }
+ .clinical .c-figures .s-metric-chip-line { order: 0; }
+}
+
+/* ---- Two operational boards, in one shape ------------------------------------------------------
+ *
+ * The Control Tower's incidents and the partner's three queues were the same markup as everything
+ * else: a tinted circular tile, a bold line, a grey run-on sentence and a chevron. Four rows like
+ * that are four identical shapes, and the state — the only thing either reader is choosing by —
+ * was the last few words of the grey line, in the same grey, at the same size, at a different x on
+ * every row.
+ *
+ * So both become columns. A reference, what it is, what it is waiting on, and when — set down the
+ * list so the eye reads a column rather than four sentences. The tinted tile goes: twelve of them
+ * on one screen is a colour that has stopped carrying information, and what replaces it is a two
+ * pixel rule beside the one row that has actually gone wrong.
+ *
+ * Same grid, two boards, on purpose. A controller and a pharmacist are not the same person, but a
+ * queue is a queue and this product has enough shapes. */
+.clinical .incident-list, .clinical .fulfil-list { list-style: none; margin: 0; padding: 0; }
+.clinical .fulfil-list {
+ background: var(--pane);
+ backdrop-filter: var(--pane-blur);
+ -webkit-backdrop-filter: var(--pane-blur);
+ border: 1px solid var(--pane-line);
+ border-radius: var(--r-panel);
+ box-shadow: var(--pane-shadow);
+ padding: var(--space-8);
+ max-width: 1080px;
+}
+.clinical .incident-list > li + li > .incident-row,
+.clinical .fulfil-list > li + li > .fulfil-row { box-shadow: 0 -1px 0 var(--pane-line); }
+
+.clinical .incident-row, .clinical .fulfil-row {
+ display: grid;
+ align-items: center;
+ gap: var(--space-16);
+ width: 100%;
+ min-height: 64px;
+ padding: var(--space-12);
+ border: 0;
+ border-radius: var(--r-control);
+ background: none;
+ text-align: left;
+ color: var(--faint);
+ font-size: 14px;
+}
+.clinical .incident-row:hover, .clinical .fulfil-row:hover {
+ background: color-mix(in srgb, var(--surface) 90%, transparent);
+ box-shadow: none;
+}
+.clinical .incident-row:hover + .incident-row, .clinical .fulfil-row:hover + .fulfil-row { box-shadow: none; }
+.clinical .incident-row > svg:last-child, .clinical .fulfil-row > svg:last-child { color: var(--faint); justify-self: end; }
+
+/* The reference. Tabular and tracked out a little: it is an identifier being read down a column,
+   not a word being read along a line. */
+.clinical .incident-ref, .clinical .fulfil-ref {
+ font-size: 13px;
+ font-weight: 500;
+ letter-spacing: .4px;
+ font-variant-numeric: tabular-nums;
+ color: var(--charcoal);
+ white-space: nowrap;
+}
+.clinical .incident-what, .clinical .fulfil-what { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.clinical .incident-what strong, .clinical .fulfil-what strong {
+ font-size: 15px; font-weight: 500; color: var(--charcoal); line-height: 1.35;
+}
+.clinical .incident-what small, .clinical .fulfil-what small {
+ display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 1.45; color: var(--faint);
+}
+.clinical .incident-what small svg, .clinical .fulfil-what small svg { flex-shrink: 0; }
+/* The state column, and the one that made these boards worth rebuilding. Charcoal, because it is a
+   word and every word on this surface is charcoal; what varies between rows is which row has a rule
+   beside it, never which row has a colour in it. */
+.clinical .incident-opened, .clinical .fulfil-state, .clinical .fulfil-when {
+ font-size: 13px;
+ color: var(--faint);
+ white-space: nowrap;
+}
+.clinical .fulfil-state { color: var(--charcoal); white-space: normal; }
+.clinical .incident-opened, .clinical .fulfil-when {
+ display: flex; align-items: center; gap: 5px;
+ font-variant-numeric: tabular-nums;
+ justify-self: end;
+}
+
+/* Severity: a rule, a word, and the order of the list. Three ways of saying the same thing, so that
+   losing any one of them still leaves a controller able to pick the next incident. */
+.clinical .incident-sev {
+ display: flex; align-items: center; gap: var(--space-8);
+ font-size: 13px; font-weight: 500; color: var(--charcoal); white-space: nowrap;
+}
+.clinical .incident-sev > i { width: 3px; height: 28px; border-radius: 2px; background: var(--stone); flex-shrink: 0; }
+.clinical .incident-row.sev-critical .incident-sev > i { background: var(--danger); }
+.clinical .incident-row.sev-high .incident-sev > i { background: var(--mango-ink); }
+/* --faint, not a sage: a rule that means something is held to 3:1 like any other informative
+   graphic, and sageSlate measures 2.54 on this ground. */
+.clinical .incident-row.sev-medium .incident-sev > i { background: var(--faint); }
+/* One row on a partner's board has already gone wrong, and it gets the same two pixels. */
+/* Taken out of the row's own leading padding rather than added outside it, so the rule appears
+   without moving a single column of the four it is marking. A negative margin did move them, by
+   exactly three pixels, which is enough to see once four states are meant to read down. */
+.clinical .fulfil-row.is-late { border-left: 3px solid var(--danger); padding-left: 9px; }
+.clinical .fulfil-row.is-late .fulfil-state { color: var(--charcoal); font-weight: 600; }
+.clinical .fulfil-row.is-here .fulfil-when { color: var(--charcoal); font-weight: 600; }
+
+/* Fixed tracks, not `auto`. Every row is its own grid — a list of grids does not share column
+   widths the way a table does — so an `auto` column sized itself to its own row's content and the
+   state of the third order started fifty pixels left of the state of the first. Named widths are
+   what makes the four columns actually read down. */
+@media (min-width: 760px) {
+ .clinical .incident-row { grid-template-columns: 96px 84px minmax(0, 1fr) 52px 17px; }
+ .clinical .fulfil-row { grid-template-columns: 84px minmax(0, 1fr) 172px 104px 18px; }
+ .clinical .fulfil-row.is-wide { grid-template-columns: 84px minmax(0, 1fr) 112px 18px; }
+}
+/* Below that the columns become three rows, with the state still on a line of its own rather than
+   appended to the sentence — the point of the rebuild survives the phone. */
+@media (max-width: 759px) {
+ .clinical .incident-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "sev opened" "what what" "ref chev";
+  row-gap: var(--space-8);
+  align-items: start;
+ }
+ .clinical .incident-sev { grid-area: sev; }
+ .clinical .incident-ref { grid-area: ref; align-self: center; }
+ .clinical .incident-what { grid-area: what; }
+ .clinical .incident-opened { grid-area: opened; }
+ .clinical .incident-row > svg:last-child { grid-area: chev; align-self: center; }
+ .clinical .incident-sev > i { height: 16px; }
+
+ .clinical .fulfil-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "ref when" "what what" "state chev";
+  row-gap: var(--space-8);
+  align-items: start;
+ }
+ .clinical .fulfil-ref { grid-area: ref; }
+ .clinical .fulfil-what { grid-area: what; }
+ .clinical .fulfil-state { grid-area: state; align-self: center; white-space: normal; }
+ .clinical .fulfil-when { grid-area: when; }
+ .clinical .fulfil-row > svg:last-child { grid-area: chev; align-self: center; }
+}
+
+/* ---- A section title that carries a live count -------------------------------------------------
+   The dispatch board's subtitle is arithmetic over what is on the board, and it is worth as much
+   inside the back office as it is at the top of the Control Tower's own screen. The title stacks
+   rather than sitting beside it: .section-title is a row, and a row put a sentence and a heading on
+   one line and let the sentence decide the height. */
+.clinical .section-title.board-title { display: block; }
+.clinical .section-title.board-title > p { margin: var(--space-4) 0 0; font-size: 14px; color: var(--faint); max-width: 62ch; }
+
+/* ---- The next visit, at desk width -------------------------------------------------------------
+   At 1440 the card is 1080 wide and its content filled about half of it, so the one object on a
+   nurse's schedule that is meant to be the loudest thing on the screen was mostly empty sage. The
+   third column is what she does about it. Time, then what and who, then the two buttons — and the
+   buttons stop drifting to a different x on every state of the card. */
+@media (min-width: 1000px) {
+ .clinical .next-visit {
+  grid-template-columns: minmax(140px, auto) minmax(0, 1fr) minmax(200px, auto);
+  grid-template-areas: "when body actions";
+  align-items: center;
+  column-gap: var(--space-40);
+ }
+ .clinical .next-actions { flex-direction: column; align-items: stretch; align-self: center; }
+ .clinical .next-actions > button { flex: 0 0 auto; width: 100%; }
+}
+
+/* ---- The share column on the arrival table -----------------------------------------------------
+   A percentage and, under it, the same percentage as a rule. Four figures between 1 and 85 are a
+   distribution: the number is what a board minutes, the rule is what a reader sees. */
+.clinical .arrival-table .share-cell { width: 132px; }
+.clinical .arrival-table .share-cell > span { display: block; }
+.clinical .arrival-table .share-cell > i {
+ display: block;
+ height: 3px;
+ margin-top: 6px;
+ /* The figure is right-aligned because it is read against the figure above it; the rule is
+    left-aligned because four rules are read against each other, and four bars that grow leftwards
+    from a ragged right edge compare nothing. */
+ margin-right: auto;
+ border-radius: 2px;
+ background: var(--muted-sage);
+ min-width: 2px;
+}
+.clinical .arrival-table .flagged-row .share-cell > i { background: var(--danger); }
+
+
+/* ---- Two groups of orders, two sections ---------------------------------------------------------
+   The heading of the second group sat fourteen pixels under the list of the first and thirty above
+   its own, so it read as the end of the group above rather than the start of the one below. */
+.clinical main section + section > .section-title { margin-top: var(--space-32); }
+
+/* ---- An eyebrow belongs to the heading under it --------------------------------------------------
+   On a board that heads itself the page-intro carries nothing but the eyebrow, and it kept the
+   24-pixel skirt it has when it carries a heading and a sentence too. That put the role further
+   from the title it qualifies than the title is from its own subtitle. */
+.clinical main > .page-intro:has(> div > .eyebrow:only-child) { margin-bottom: var(--space-12); }
+
+/* ---- A partner's name is not an abbreviation ------------------------------------------------------
+   "Rosebank Community Pharmacy" ellipsised to "Rosebank Community Phar…" in a 296-pixel sidebar. A
+   party's own name is the one string in this block that must survive: two lines cost eighteen
+   pixels, and the register number below it is what may not wrap. */
+.clinical .staff-id strong { white-space: normal; overflow: visible; text-overflow: clip; }
+
+/* The consequence of a row that has already gone wrong. Charcoal, not the red of the rule beside it:
+   the rule says which row, and the sentence says what happens now — a sentence set in an alarm
+   colour is read as decoration before it is read as words. */
+.clinical .fulfil-refusal { color: var(--charcoal); }
+
+/* ---- A refusal is as wide as its own sentence ----------------------------------------------------
+   The three refusals on the teleconsultation room — a family member, a child, English written at
+   somebody — are the most important paragraphs on that screen, and each was drawn as a 1080-pixel
+   white panel around text already capped at 76 characters. Four hundred pixels of empty card beside
+   every one of them, three times down the page. The card takes the measure the text has. */
+.clinical .tc-refusal { max-width: 80ch; }
+
+/* ---- Six digits, six boxes --------------------------------------------------------------------
+   The visit code stretched its six inputs across the whole eleven-hundred-pixel column: a hundred
+   and seventy-five pixels of box for one digit, six times. A code field is read as one object and
+   should look like one, so the row takes the width the six boxes actually need. */
+.clinical .code-input { max-width: 380px; }
