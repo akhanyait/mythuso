@@ -236,7 +236,7 @@ test('an applicant can see where the application stands', async ({ page }) => {
 
 test('a prescription\'s state chip moves with the prescription', async ({ page }) => {
   await openWorkspace(page, 'Partner');
-  await page.locator('.record-row').filter({ hasText: 'RX-0081' }).first().click();
+  await page.locator('.fulfil-row').filter({ hasText: 'RX-0081' }).first().click();
   const sheet = page.getByRole('dialog');
   const chip = sheet.locator('.order-head .pill');
   await expect(chip).toHaveText('Awaiting pharmacist');

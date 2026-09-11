@@ -192,7 +192,10 @@ export function VettingConsole({ vetting, open }: { vetting: VettingState; open:
    <Figure label="Cleared" value={String((counts.cleared ?? 0) + (counts.expiring ?? 0))} note={`${counts.expiring ?? 0} of them with a renewal due`}/>
    <Figure label="In progress" value={String(counts['in-progress'] ?? 0)} note="Refused the work of the role until every check passes"/>
    <Figure label="Awaiting a second reviewer" value={String(counts.awaiting ?? 0)} note="One reviewer is never enough on a high-risk check" flagged={!!(counts.awaiting)}/>
-   <Figure label="Suspended or declined" value={String((counts.suspended ?? 0) + (counts.declined ?? 0))} note="Lapsed automatically, or declined with a reason" flagged={!!((counts.suspended ?? 0) + (counts.declined ?? 0))}/>
+   {/* Not flagged, and the one beside it is. A filled chip means "this one", so two of them on one
+       strip point at nothing: a party awaiting a second reviewer is work this console owes today,
+       and a suspension is a settled state that the register is already refusing on. */}
+   <Figure label="Suspended or declined" value={String((counts.suspended ?? 0) + (counts.declined ?? 0))} note="Lapsed automatically, or declined with a reason"/>
   </Metrics></div>
   <div className="vetting-bar">
    <div className="tabs" role="group" aria-label={t('vetting.views')}>

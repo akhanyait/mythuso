@@ -2,12 +2,24 @@ import { useMemo, useState } from 'react';
 import { BadgeCheck, Banknote, CalendarClock, CircleAlert, FileText, Gauge, Landmark, LockKeyhole, Radio, ScrollText, ShieldCheck, Stethoscope, Users } from 'lucide-react';
 import { Pill, SectionTitle } from '../components/UI';
 import { Metric, Metrics } from '../surface/Surface';
-import { DispatchBoard, IncidentBoard } from './Dispatch';
+import { DispatchBoard, IncidentBoard, controlTowerCounts } from './Dispatch';
 import { useVettingState, VettingConsole, type VettingState } from './Vetting';
 import { summarise, type VettingSubject } from '../lib/vetting';
 import { businessModel, money, bigMoney, platformMargin, services, type Service } from '../lib/catalog';
 export const adminTabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance'] as const;
 export type AdminTab = typeof adminTabs[number];
+/* What each tab is for, in one line, in the words somebody in this office would use. It replaces the
+   one sentence that listed all eight and therefore described none of them. */
+const tabBlurb: Record<AdminTab, string> = {
+ Overview: 'Today against the month-9 checkpoint in the funding proposal.',
+ Vetting: 'Who may work, who may not, and the written reason for each.',
+ Operations: 'The live board, who is kept off it, and what has gone wrong today.',
+ Clinical: 'What is waiting for a doctor, and how often decision support and the doctor disagreed.',
+ Catalogue: 'What a visit costs, what the nurse takes, and what is left to run the service on.',
+ Growth: 'Subscriptions, screening packages and the contracted lines in the proposal.',
+ Finance: 'The round, what each tranche is gated on, and what a visit actually leaves.',
+ Compliance: 'What has to exist before real patient information touches this platform, and what does not yet.'
+};
 /* One party can be blocking in more than one place, so the console counts parties rather than
    checks: an operator wants to know how many names cannot be used today. */
 const blocking = (subjects: VettingSubject[], roleId?: string) =>
@@ -23,10 +35,15 @@ export function AdminConsole({ open, tab, setTab }: { open: (s: string) => void;
     Operations board is opened, or the gate is a screenshot of a gate. */
  const vetting = useVettingState();
  return <>
+  {/* The name of the console is the eyebrow and the name of the section is the heading, which is
+      the way round it was not. Eight tabs each opened on "Operations console" set at the largest
+      size on the screen, above a sentence listing all eight, above the one word that said which of
+      them you were actually looking at — set smaller, and on the Operations tab set twice. The
+      constant is chrome; the variable is the page. */}
   <div className="page-intro">
-   <div className="eyebrow">Control Tower</div>
-   <h1>Operations console</h1>
-   <p>Dispatch, vetting, clinical review, catalogue, growth and the funding plan in one place.</p>
+   <div className="eyebrow">MyThuso back office</div>
+   <h1>{tab}</h1>
+   <p>{tabBlurb[tab]}</p>
   </div>
   <div className="underline-tabs console-tabs" role="group" aria-label="Console sections">
    {adminTabs.map(t => <button key={t} className={tab === t ? 'selected' : ''} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}
@@ -57,6 +74,9 @@ function Overview({ vetting }: { vetting: VettingState }) {
  const plan = businessModel.trajectory[1];               // Month 9 is the checkpoint we report against
  const nurses = vetting.subjects.filter(s => s.roleId === 'nurse');
  const actual = { visitsPerDay: 84, subscribers: 1620, revenue: 298000, costs: 271000 };
+ /* Counted off the board the Operations tab draws rather than typed here. The console said three
+    open incidents and one critical beside a board that could have been saying anything. */
+ const tower = controlTowerCounts();
  const pace = (a: number, p: number) => Math.round((a / p) * 100);
  return <>
   <div className="c-figures"><Metrics>
@@ -65,7 +85,7 @@ function Overview({ vetting }: { vetting: VettingState }) {
    <Kpi label="Revenue this month" value={bigMoney(actual.revenue)} note={`Plan ${bigMoney(plan.revenue)} · costs ${bigMoney(actual.costs)}`}/>
    <Kpi label="Nurses dispatchable" value={String(nurses.length - blocking(vetting.subjects, 'nurse'))} note={`Of ${nurses.length} in the vetting pipeline · read from the vetting module, not typed here`}/>
    <Kpi label="Reviews awaiting a doctor" value="12" note="2 flagged urgent · target 15 minutes"/>
-   <Kpi label="Open incidents" value="3" note="1 critical · SLA acknowledged within 5 minutes" flagged/>
+   <Kpi label="Open incidents" value={String(tower.incidents)} note={`${tower.critical} critical · SLA acknowledged within 5 minutes`} flagged={tower.critical > 0}/>
   </Metrics></div>
   <SectionTitle title="Against the funding plan"/>
   {/* Five columns of figures cannot be squeezed into 320 pixels, and they were not: the table sat
@@ -90,14 +110,17 @@ function Overview({ vetting }: { vetting: VettingState }) {
 }
 function Operations({ open, vetting }: { open: (s: string) => void; vetting: VettingState }) {
  const stopped = blocking(vetting.subjects);
+ const tower = controlTowerCounts();
  return <>
+  {/* One filled chip on a strip, not two. `flagged` means "this one" — a strip with two of them has
+      two things shouting and has stopped pointing at either. A party blocked by vetting is a
+      standing state the Vetting tab holds; a critical incident is happening now. */}
   <div className="c-figures"><Metrics>
-   <Kpi label="Parties blocking work" value={String(stopped)} note={`Of ${vetting.subjects.length} vetted parties · decided in the Vetting tab`} flagged={!!(stopped)}/>
+   <Kpi label="Parties blocking work" value={String(stopped)} note={`Of ${vetting.subjects.length} vetted parties · decided in the Vetting tab`}/>
    <Kpi label="Nurses blocked" value={String(blocking(vetting.subjects, 'nurse'))} note="Not offered on the board below, with the reason shown"/>
-   <Kpi label="Open incidents" value="3" note="1 critical · SLA acknowledged within 5 minutes" flagged/>
+   <Kpi label="Open incidents" value={String(tower.incidents)} note={`${tower.critical} critical · SLA acknowledged within 5 minutes`} flagged={tower.critical > 0}/>
   </Metrics></div>
-  <SectionTitle title="Live dispatch"/>
-  <DispatchBoard subjects={vetting.subjects}/>
+  <DispatchBoard subjects={vetting.subjects} heading={false}/>
   <SectionTitle title="Open incidents"/>
   <IncidentBoard open={open}/>
  </>;

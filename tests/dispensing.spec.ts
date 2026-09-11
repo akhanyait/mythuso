@@ -97,7 +97,7 @@ test('a lapsed pharmacist or a lapsed prescriber closes the screen, in the regis
 test('the prescription detail points at this screen rather than saying it does not exist', async ({ page }) => {
   await openWorkspace(page, 'Partner');
   await goSection(page, 'Orders');
-  await page.locator('.record-row').filter({ hasText: 'RX-0081' }).click();
+  await page.locator('.fulfil-row').filter({ hasText: 'RX-0081' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText(/Substitution and chronic authorisation are modelled on the Substitution & repeats screen/)).toBeVisible();
   await expect(dialog.getByText(/are not modelled here/)).toHaveCount(0);

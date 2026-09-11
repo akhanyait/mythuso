@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, BadgeCheck, Check, CircleAlert, Clock3, MapPin, Radio, Route, ShieldAlert, ShieldCheck, TriangleAlert, Undo2 } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Check, CircleAlert, Clock3, MapPin, Radio, Route, ShieldCheck, TriangleAlert, Undo2 } from 'lucide-react';
 import { SectionTitle } from '../components/UI';
 import { Metric, Metrics } from '../surface/Surface';
 import { NotConnected } from '../components/NotConnected';
@@ -101,7 +101,11 @@ const basisLine = (eta: Eta) =>
 /* The board asks the vetting module before it offers anybody. A nurse whose clearance lapsed still
    appears — hiding her would leave an operator wondering where she went — but she cannot be
    assigned, and the refusal is on the row rather than in a tooltip. */
-export function DispatchBoard({ subjects = seededSubjects }: { subjects?: VettingSubject[] } = {}) {
+/* `heading` because the board is rendered in two places: as a workspace section, where it is the
+   page and heads itself, and inside the back office's Operations tab, where the page is already
+   headed "Operations". Two h1 elements on one document is not a heading, it is a reader guessing
+   which one is the page — so the console asks for the live count line without the title over it. */
+export function DispatchBoard({ subjects = seededSubjects, heading = true }: { subjects?: VettingSubject[]; heading?: boolean } = {}) {
  const [selected, setSelected] = useState<string>(initialJobs[0].id);
  const [assigned, setAssigned] = useState<Record<string, string>>({});
  /* Assigning used to change a word on a row and nothing else: the visit stayed in "Awaiting
@@ -157,10 +161,11 @@ export function DispatchBoard({ subjects = seededSubjects }: { subjects?: Vettin
   }))
  ];
  const summary = `Dispatch map of ${coverage.city}, ${province}. ${waiting.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting${unlocated ? `, ${unlocated} not drawn — ${[...new Set(noPinBecause.values())].join(' ')}` : ''}.`;
+ const standing = `${waiting.length ? `${waiting.length} visits awaiting a nurse` : 'Every visit has a nurse'} · ${dispatchable} cleared for dispatch${refused ? ` · ${refused} refused by vetting` : ''}${dispatched.length ? ` · ${dispatched.length} sent` : ''}`;
  return <>
-  <div className="shift-head">
-   <div><h1>Dispatch</h1><p>{waiting.length ? `${waiting.length} visits awaiting a nurse` : 'Every visit has a nurse'} · {dispatchable} cleared for dispatch{refused ? ` · ${refused} refused by vetting` : ''}{dispatched.length ? ` · ${dispatched.length} sent` : ''}</p></div>
-  </div>
+  {heading
+   ? <div className="shift-head"><div><h1>Dispatch</h1><p>{standing}</p></div></div>
+   : <div className="section-title board-title"><h2>Live dispatch</h2><p>{standing}</p></div>}
   <NotConnected of="dispatch"/>
   <div className="dispatch-grid">
     <div className="panel map-panel">
@@ -252,12 +257,28 @@ export const controlTowerCounts = () => ({
  critical: incidents.filter(i => i.severity === 'Critical').length,
  high: incidents.filter(i => i.severity === 'High').length
 });
+/* Severity is what a controller picks the next incident by, so it decides the order of the board and
+   it is a column rather than the first word of a sentence. Written down here because a board that
+   sorts by reference sorts by the order somebody happened to open things in: INC-015 is the chest
+   pain, and it was sitting under a nurse who could not get through a gate. */
+const SEVERITY_ORDER = ['Critical', 'High', 'Medium', 'Low'];
+const bySeverity = (a: { severity: string; opened: string }, b: { severity: string; opened: string }) =>
+ SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity) || a.opened.localeCompare(b.opened);
 export function IncidentBoard({ open }: { open: (s: string) => void }) {
- return <div className="panel">{incidents.map(i => <button className="record-row" key={i.id} onClick={() => open(`Incident ${i.id}`)}>
-  <span className={`service-icon severity-${i.severity.toLowerCase()}`}>{i.severity === 'Critical' ? <ShieldAlert size={21}/> : <TriangleAlert size={21}/>}</span>
-  <span><strong>{i.id} · {i.title}</strong><small>{i.severity} · {i.area} · Opened {i.opened} · {i.status}</small></span>
-  <ArrowRight size={17}/>
- </button>)}<NotConnected of="dispatch" tone="inline"/></div>;
+ return <div className="panel incident-panel">
+  {/* The severity word stays on the row beside the rule that marks it. The rule is faster to read
+      down a list and the word is what a reader who cannot see it gets — colour is never the only
+      thing separating a critical incident from a medium one. */}
+  <ol className="incident-list">{[...incidents].sort(bySeverity).map(i =>
+   <li key={i.id}><button className={`incident-row sev-${i.severity.toLowerCase()}`} onClick={() => open(`Incident ${i.id}`)}>
+    <span className="incident-sev"><i aria-hidden="true"/>{i.severity}</span>
+    <span className="incident-ref">{i.id}</span>
+    <span className="incident-what"><strong>{i.title}</strong><small>{i.area} · {i.status}</small></span>
+    <span className="incident-opened">{i.opened}</span>
+    <ArrowRight size={17}/>
+   </button></li>)}</ol>
+  <NotConnected of="dispatch" tone="inline"/>
+ </div>;
 }
 export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?: string; onClose: () => void }) {
  const incident = incidents.find(i => i.id === reference) ?? incidents[1];
@@ -333,12 +354,18 @@ export function QualityBoard({ open }: { open: (s: string) => void }) {
   <NotConnected of="dispatch"/>
   <SectionTitle title="Arrival against the booked window"/>
   <div className="panel table-scroll">
-   <table className="result-table">
+   {/* `figures`, so the two numeric columns are read down rather than along: 71, 9, 3 and 1 all
+       began at the same pixel and ended three apart. The share carries a sage rule under it as well
+       as a percentage — four numbers between 1 and 85 are a distribution, and a distribution is the
+       one thing a bar says faster than a figure. Sage fills it and charcoal writes it, which is the
+       palette's own rule pointed at a table. */}
+   <table className="result-table figures arrival-table">
     <caption>Sample data. Nothing in this build measures an arrival, because no visit is dispatched and no nurse’s position is being read.</caption>
     <thead><tr><th scope="col">Arrival</th><th scope="col">Visits</th><th scope="col">Share</th></tr></thead>
-    <tbody>{arrivals.map(a => <tr key={a.window} className={a.window === 'Did not arrive' ? 'flagged-row' : ''}>
-     <th scope="row">{a.window}</th><td>{a.visits}</td><td>{Math.round(a.visits / a.of * 100)}%</td>
-    </tr>)}</tbody>
+    <tbody>{arrivals.map(a => { const share = Math.round(a.visits / a.of * 100); return <tr key={a.window} className={a.window === 'Did not arrive' ? 'flagged-row' : ''}>
+     <th scope="row">{a.window}</th><td>{a.visits}</td>
+     <td className="share-cell"><span>{share}%</span><i aria-hidden="true" style={{ width: `${share}%` }}/></td>
+    </tr>; })}</tbody>
    </table>
   </div>
   <div className="privacy-note"><Clock3 size={19}/>A window is what the patient was told, so it is what lateness is measured against — never the time the visit was assigned, which is a number the Control Tower controls and could improve by moving.</div>

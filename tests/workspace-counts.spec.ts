@@ -75,7 +75,7 @@ test.describe('a workspace figure agrees with the rows beneath it', () => {
     await openWorkspace(page, 'Control Tower');
     await goSection(page, 'Incidents');
 
-    const incidents = page.locator('.record-row').filter({ hasText: /INC-\d+/ });
+    const incidents = page.locator('.incident-row').filter({ hasText: /INC-\d+/ });
     await expect(incidents.first()).toBeVisible();
     const open = await incidents.count();
     expect(open).toBeGreaterThan(1);
@@ -86,10 +86,11 @@ test.describe('a workspace figure agrees with the rows beneath it', () => {
        rows carry the severity the chip names. */
     const chip = (await strip(page, 'Open incidents').locator('.s-metric-chip').textContent()) ?? '';
     const severity = chip.replace(/[\d\s]/g, '');
-    /* The severity as the row writes it — leading the "Critical · Parktown · Opened 10:31" line —
-       rather than as a bare word. A row's strong and its small are concatenated with no space
-       between them in the accessible text, so a word boundary in front of it never matches. */
-    const matching = incidents.filter({ hasText: new RegExp(`${severity}\\s*·`, 'i') });
+    /* The severity is a column of its own on the row now, rather than the first word of a run-on
+       sentence, so it is read out of that column. Matching it inside the row's whole accessible text
+       was always fragile — a board that happened to mention "critical" in a title would have counted
+       itself — and it stopped matching at all when the row stopped writing "Critical ·". */
+    const matching = incidents.filter({ has: page.locator('.incident-sev', { hasText: new RegExp(`^${severity}$`, 'i') }) });
     expect(await chipFigure(page, 'Open incidents'), `the chip says "${chip}" over a board with a different number of ${severity} incidents`)
       .toBe(await matching.count());
   });
@@ -99,14 +100,14 @@ test.describe('a workspace figure agrees with the rows beneath it', () => {
     /* Orders lands first, and the strip above it said eight over a queue of four before the boards
        started counting. The chip beside it counts something the reader cannot see from here — the
        collections past their window, which are on the next section — so only the figure is held. */
-    const orders = page.locator('.record-row').filter({ hasText: /^(RX|LAB)-\d+/ });
+    const orders = page.locator('.fulfil-row').filter({ hasText: /^(RX|LAB)-\d+/ });
     await expect(orders.first()).toBeVisible();
     const open = await orders.count();
     expect(open).toBeGreaterThan(1);
     expect(await figure(page, 'Open orders')).toBe(open);
 
     await goSection(page, 'Collections');
-    const collections = page.locator('.record-row').filter({ hasText: /COL-\d+/ });
+    const collections = page.locator('.fulfil-row').filter({ hasText: /COL-\d+/ });
     await expect(collections.first()).toBeVisible();
     const booked = await collections.count();
     expect(booked).toBeGreaterThan(1);
@@ -115,7 +116,7 @@ test.describe('a workspace figure agrees with the rows beneath it', () => {
     /* What is ready to go to a patient, which is the figure on this board somebody acts on. A result
        still on the bench is on the same list and must not be in the count. */
     await goSection(page, 'Results');
-    const results = page.locator('.record-row').filter({ hasText: /LAB-\d+/ });
+    const results = page.locator('.fulfil-row').filter({ hasText: /LAB-\d+/ });
     await expect(results.first()).toBeVisible();
     expect(await results.count()).toBeGreaterThan(1);
     expect(await figure(page, 'Ready for release')).toBe(

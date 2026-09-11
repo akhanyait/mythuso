@@ -64,10 +64,15 @@ export async function openWorkspace(page: Page, role: string) {
   await page.locator('.staff-signin-roles .record-row').filter({ has: page.getByText(role, { exact: true }) }).click();
   await expect(page.getByRole('navigation', { name: 'Primary' }).or(page.getByRole('navigation', { name: 'Main navigation' })).first()).toBeVisible();
 }
+/* The console lands on Overview, and Overview is what its heading now says. It used to say
+   "Operations console" on all eight tabs — the name of the console, at the largest size on the
+   screen, above the one word that told you which of the eight you were looking at. The name is the
+   eyebrow now, so this waits for the tab rather than for the product. */
 export async function openAdminConsole(page: Page) {
   await page.goto('/admin.html');
   await page.locator('.staff-signin-roles .record-row').click();
-  await expect(page.getByRole('heading', { name: 'Operations console' })).toBeVisible();
+  await expect(page.getByText('MyThuso back office', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
 }
 
 /* Explore MyThuso is the patient's roadmap page and the door to the first-run flow, the state
