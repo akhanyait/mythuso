@@ -702,3 +702,100 @@
 .patient-surface .tabs + .section-title,
 .patient-surface .s-metrics + .section-title { margin-top: 0; }
 
+/* ---- Actions stop stretching on a wide screen -------------------------------------------------
+   app.css has said since it was written that a visit's buttons size to their content from 1000px
+   up. The first pass of this sweep overrode it — `flex: 1 1 120px`, so that three controls were not
+   squeezed under the 44px floor at 320px — and wrote that fix at every width rather than at the one
+   width that needed it. On a desktop the result was four pills three hundred and sixty pixels wide
+   each, with "Cancel" drawn at exactly the size of "View details": four equal slabs in which
+   nothing says which one you came for.
+
+   The floor is what the rule was for, so the rule keeps the floor and gives the width back. */
+@media (min-width: 1000px) {
+ .patient-surface .visit-actions { justify-content: flex-end; }
+ .patient-surface .visit-actions > * { flex: 0 1 auto; min-width: 148px; }
+}
+
+/* ---- The dark panels use the width they take --------------------------------------------------
+   The wallet's balance and the passport's identity are each drawn on a charcoal panel that runs the
+   whole content column. At 390px that is a card. At 1440 it is eleven hundred pixels of black with
+   everything crowded into the left third and nothing whatsoever in the other two — the emptiest
+   object in the product, and the first thing a person looking at their own money sees.
+
+   Nothing moves on a phone. From 900px each panel becomes two columns: what you read on the left,
+   what you press or check on the right.
+
+   Both grids declare their rows, and that is load-bearing rather than tidiness. `grid-row: 1 / -1`
+   resolves -1 against the *explicit* grid; with rows left implicit there is no explicit grid to
+   count back from, so the span silently collapses to row one and the thing meant to stand beside
+   the balance is drawn level with the wallet mark instead. It did, and it looked deliberate enough
+   in a screenshot to have been kept. */
+@media (min-width: 900px) {
+ .patient-surface .wallet-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
+  column-gap: var(--space-32);
+  padding: var(--space-32);
+ }
+ .patient-surface .wallet-hero > svg { grid-area: 1 / 1; }
+ .patient-surface .wallet-hero > span { grid-area: 2 / 1; }
+ .patient-surface .wallet-hero .wallet-figure { grid-area: 3 / 1; margin-top: 0; }
+ /* On the money line rather than floating in the middle of the panel, and not wrapping: "Sponsor
+    care" broke across two lines inside its own pill the moment its column became an `auto` track.
+    A control whose label wraps has been given the wrong amount of room, not too long a name. */
+ .patient-surface .wallet-hero .button-row {
+  grid-area: 1 / 2 / 4 / 3;
+  align-self: end;
+  margin-top: 0;
+  max-width: none;
+ }
+ .patient-surface .wallet-hero .button-row > * { flex: 0 0 auto; white-space: nowrap; }
+ /* The passport's two facts — the number, and who issued it — move to the trailing edge, so the
+    panel reads as a card with a person on one side and their provenance on the other rather than as
+    a banner with a hole in it. */
+ .patient-surface .passport-identity {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: var(--space-32);
+ }
+ .patient-surface .passport-identity > .pill { grid-area: 1 / 1; }
+ .patient-surface .passport-identity > h2 { grid-area: 2 / 1; margin-bottom: 0; }
+ .patient-surface .passport-identity > dl {
+  grid-area: 1 / 2 / 3 / 3;
+  align-self: center;
+  gap: var(--space-4) var(--space-32);
+ }
+}
+
+/* ---- The home's figures stand in the home's columns -------------------------------------------
+   From 1000px the home is a 1.55 / 1 pair of columns, and the strip of three figures above it was
+   an `auto-fit` grid of equal thirds — so "Until your next check-in" began sixty-eight pixels to
+   the right of "Your next visit", which is the heading directly beneath it. Near-alignment is worse
+   than none: the eye reads it as a mistake rather than as a second arrangement.
+
+   Two readings share the wide tract and the plan's countdown stands over the care column. The
+   ratios are what make the third figure's leading edge land on the column boundary: with one 24px
+   gutter in the layout below and two here, .75 / .75 / 1 puts it within about three pixels of the
+   boundary anywhere between 1000px and a very wide monitor, which is inside a hairline. */
+@media (min-width: 1000px) {
+ .patient-surface .home .s-metrics {
+  grid-template-columns: minmax(0, .75fr) minmax(0, .75fr) minmax(0, 1fr);
+  column-gap: var(--space-24);
+ }
+}
+
+/* The monogram is a circle, and at 320px it was an egg. It is a flex item in the passport panel
+   with a width and a height and no instruction not to shrink, so the moment the name beside it
+   needed more room than there was, the circle gave it up — and a person's face, even a drawn one,
+   is the last thing on a card that should be squeezed. */
+.patient-surface .passport-portrait { flex: 0 0 auto; }
+
+/* A price is not the name of the care. At 650 beside a title at 500 it was the heaviest thing in
+   the card, which puts what it costs above what it is on a screen somebody opened to choose
+   treatment. Same size, one step down in weight. */
+.patient-surface .service-card > div > strong { font-weight: 500; }
+
