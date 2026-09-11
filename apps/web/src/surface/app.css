@@ -40,7 +40,10 @@
 /* ---- App shell: bottom tab bar on phones, sidebar from tablet up ---- */
 .app-shell{display:flex;height:100dvh;overflow:hidden;background:var(--canvas)}
 .topbar .brand{display:flex;align-items:center;height:36px;margin-right:auto;flex-shrink:0}
-/* A square mark, sized to the bar rather than stretched from a wordmark's aspect ratio. */
+/* A square mark, sized to the bar rather than stretched from a wordmark's aspect ratio — and the
+   link around it kept at the 44px floor, which is what a 34px image had just taken it under. The
+   mark is what you see; the target is what a thumb gets. */
+.topbar .brand{min-width:44px;min-height:44px;justify-content:center}
 .topbar .brand img{width:34px;height:34px;object-fit:contain}
 .breadcrumb{display:none}
 .topbar-actions{display:flex;align-items:center;gap:9px;margin-left:auto;flex-shrink:0}
