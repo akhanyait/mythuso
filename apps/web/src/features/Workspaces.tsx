@@ -73,6 +73,17 @@ const reviewQueue: Review[] = [
  { ref: 'TH-2041', what: 'Prescription request · Thabo Molefe', from: 'Sister Palesa Khumalo · repeat, last issued 28 August', waited: '1 h 05 m', minutes: 65, flag: 'Out of range' },
  { ref: 'TH-2045', what: 'Wound follow-up · Nomsa Molefe', from: 'Sister Naledi Mokoena · day 6, photograph attached', waited: '22 m', minutes: 22, flag: '' }
 ];
+/* The counts the shell's strip shows above the doctor's queue. They were typed, and the quarantine
+   in scripts/check-boundaries.mjs said why: this file did not export its rows, so a strip above the
+   queue had nothing to count. It does now. The longest wait is taken by comparing minutes rather
+   than by trusting the order the list happens to be written in — a queue that is re-sorted one day
+   should not quietly start reporting the wrong wait. */
+export const reviewQueueCounts = () => ({
+ waiting: reviewQueue.length,
+ flagged: reviewQueue.filter(review => review.flag).length,
+ longest: [...reviewQueue].sort((a, b) => b.minutes - a.minutes)[0].waited
+});
+
 /* The reference each row on the day opens its assessment under. The first is the workspace's own
    worked example; the rest carry their time, because StaffShell reads the time back out of the
    modal name to decide whose visit it is. One rule, in one place, so the schedule and the queue
@@ -110,7 +121,7 @@ export function NurseSchedule({ open }: { open: (s: string) => void }) {
       taking visits at all is a fact about the whole day, and it is the one control on this screen
       that changes what the rest of it means. */}
   <div className="shift-head">
-   <div><h1>{longDateOf(isoIn(new Date()))}</h1><p>{available ? `${nurseDay.length} visits · ${next.start} to ${dayEnds}${signedCount ? ` · ${signedCount} signed` : ''}` : 'You are off duty. Nothing new will be sent to you.'}</p></div>
+   <div><h1>{longDateOf(isoIn(new Date()))}</h1><p>{available ? `${next.start} to ${dayEnds}${signedCount ? ` · ${signedCount} signed` : ''}` : 'You are off duty. Nothing new will be sent to you.'}</p></div>
    <button className="secondary duty-toggle" aria-pressed={available} onClick={() => setAvailable(!available)}><span className={`status-dot ${available ? '' : 'offline'}`}/>{available ? 'Available for visits' : 'Off duty'}</button>
   </div>
   <NotConnected of="dispatch"/>
@@ -151,11 +162,13 @@ export function NurseSchedule({ open }: { open: (s: string) => void }) {
 export function ReviewQueue({ open }: { open: (s: string) => void }) {
  const [flaggedOnly, setFlaggedOnly] = useState(false);
  const rows = flaggedOnly ? reviewQueue.filter(r => r.flag) : reviewQueue;
- const flagged = reviewQueue.filter(r => r.flag).length;
- const [longest] = reviewQueue;
  return <>
   <div className="shift-head">
-   <div><h1>Review queue</h1><p>{reviewQueue.length} waiting · {flagged} outside a reference range · longest {longest.waited}</p></div>
+   {/* Not the three figures again. The strip above this says how many are waiting, how many are
+       outside a range and how long the longest has waited — all three counted from these rows — so a
+       subtitle repeating them is a line of screen spent saying nothing twice. What it says instead
+       is the two things the figures cannot: which order the list is in, and who may sign. */}
+   <div><h1>Review queue</h1><p>Longest first. Decision support may draft; only a registered doctor signs.</p></div>
    <div className="tabs queue-filter" role="group" aria-label="Filter the queue">
     <button className={flaggedOnly ? '' : 'selected'} aria-pressed={!flaggedOnly} onClick={() => setFlaggedOnly(false)}>Everything</button>
     <button className={flaggedOnly ? 'selected' : ''} aria-pressed={flaggedOnly} onClick={() => setFlaggedOnly(true)}>Flagged</button>

@@ -4,7 +4,7 @@ import { Modal, SectionTitle } from '../components/UI';
 import { Metric, Metrics, NavRow } from '../surface/Surface';
 import '../surface/clinical.css';
 import { NotConnected } from '../components/NotConnected';
-import { NurseSchedule, ReviewQueue, nurseDayCounts, roleExtras, sectionDoor, sectionWorkflow } from '../features/Workspaces';
+import { NurseSchedule, ReviewQueue, nurseDayCounts, reviewQueueCounts, roleExtras, sectionDoor, sectionWorkflow } from '../features/Workspaces';
 import { useVisitQueue } from '../features/VisitQueue';
 import type { Part } from '../lib/visit-queue';
 import { DispatchBoard, IncidentBoard, QualityBoard, controlTowerCounts } from '../features/Dispatch';
@@ -12,7 +12,7 @@ import { FulfilmentQueue, partnerCounts } from '../features/Fulfilment';
 import { ClinicalProtocols, ReferralLetter, ReferralPathway, VisitAssessment, DoctorReview } from '../features/Clinical';
 import { Academy, LocumShifts } from '../features/NurseTools';
 import { ThusoKit } from '../features/Kit';
-import { Earnings } from '../features/Earnings';
+import { Earnings, earningsSummary, rand } from '../features/Earnings';
 import { Dispensing } from '../features/Dispensing';
 import { Programmes } from '../features/Programmes';
 import { Teleconsult } from '../features/Teleconsult';
@@ -26,6 +26,7 @@ import { probe, startSignIn, verifyCode, endSession } from '../lib/auth';
 import { EXPIRY_WARNING_DAYS, roleById, subjectStatusLabels, summarise } from '../lib/vetting';
 import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
 import { scrollToTop } from '../lib/scroll';
+import { cycle } from '../lib/earnings';
 
 /* MyThuso for clinicians — its own application, not the patient app with different navigation.
  *
@@ -265,20 +266,31 @@ function StaffWorkspace({ role, onSignOut }: { role: StaffRole; onSignOut: () =>
  </div>;
 }
 
+/* A heading, for the sections that are a whole feature rather than a board the shell composes.
+   Six of them had none at all — the nurse's assessment, her earnings, her vetting, the doctor's
+   consultation room and his record, and the partner's substitution register. A reader landed on a
+   status chip or a form label with nothing anywhere on the page saying which screen it was, and a
+   screen reader's heading list opened at h2. The eyebrow says which workspace, the heading says
+   which section; the sentence explaining the screen is left to the screen, because all six already
+   carry one and a second would be the shell talking over them. */
+const SectionHead = ({ role, section }: { role: StaffRole; section: string }) =>
+ <div className="page-intro"><div><div className="eyebrow">{role.toUpperCase()}</div><h1>{section}</h1></div></div>;
+
 function renderSection(role: StaffRole, section: string, open: (m: string) => void, home: () => void) {
+ const head = <SectionHead role={role} section={section}/>;
  if (role === 'Nurse') {
-  if (section === 'Assessments') return <VisitAssessment onClose={home}/>;
+  if (section === 'Assessments') return <>{head}<VisitAssessment onClose={home}/></>;
   if (section === 'Thuso Kit') return <ThusoKit/>;
-  if (section === 'Earnings & payouts') return <Earnings/>;
-  if (section === 'Vetting') return <VettingApplication roleId="nurse" onClose={home}/>;
+  if (section === 'Earnings & payouts') return <>{head}<Earnings/></>;
+  if (section === 'Vetting') return <>{head}<VettingApplication roleId="nurse" onClose={home}/></>;
  }
  if (role === 'Doctor') {
   if (section === 'Protocols') return <ClinicalProtocols/>;
-  if (section === 'Teleconsultation') return <Teleconsult/>;
+  if (section === 'Teleconsultation') return <>{head}<Teleconsult/></>;
   if (section === 'Patient context') return <PatientFile open={open}/>;
-  if (section === 'Consultation records') return <ConsultationRecord/>;
+  if (section === 'Consultation records') return <>{head}<ConsultationRecord/></>;
  }
- if (role === 'Partner' && section === 'Substitution & repeats') return <Dispensing/>;
+ if (role === 'Partner' && section === 'Substitution & repeats') return <>{head}<Dispensing/></>;
  if (role === 'Control Tower') {
   if (section === 'Vetting queue') return <VettingQueue open={open}/>;
   if (section === 'Quality') return <QualityBoard open={open}/>;
@@ -338,12 +350,18 @@ const metricsOf = (role: StaffRole, queue: Part[]): readonly Metric[] => {
   return [['Visits on the board', String(c.waiting), '', 'Awaiting a nurse', false],
           ['Nurses on duty', String(c.nurses), '', `${c.offDuty} off duty`, false],
           ['Open incidents', String(c.incidents), '', c.critical ? `${c.critical} critical` : `${c.high} high`, c.critical > 0]]; }
- if (role === 'Doctor')
-  return [['Awaiting review', '3', '', 'Longest 3 h 20 m', false], ['Priority reviews', '2', '', 'Out of range', true], ['Reviewed today', '18', '', 'Median 4 m 10 s', false]];
+ if (role === 'Doctor') { const q = reviewQueueCounts();
+  return [['Awaiting review', String(q.waiting), '', `Longest ${q.longest}`, false],
+          ['Priority reviews', String(q.flagged), '', 'Out of range', true],
+          ['Reviewed today', '18', '', 'Median 4 m 10 s', false]]; }
  const day = nurseDayCounts(queue);
+ /* The week's earnings are the earnings screen's arithmetic and not the schedule's, which is why
+    this was typed rather than recomputed here. It does not have to be either: that screen already
+    exports its own summary, so the strip reads the one figure instead of keeping a second. */
+ const week = earningsSummary();
  return [['Next visit', day.nextStart, '', day.nextWhere, false],
          ['Today’s visits', String(day.visits), '', day.signed ? `${day.signed} signed, ${day.left} to go` : `${day.left} to sign off`, false],
-         ['This week', '598', '', 'Pays Wednesday', false, 'R ']];
+         ['This week', rand(week.thisWeek).value, '', `Pays ${cycle.paysOn}`, false, rand(week.thisWeek).prefix]];
 };
 /* Three columns rather than one bold string with two middle dots in it. A reference, what the case
    is, and what state it is in are three different questions, and a reader scanning a queue answers
@@ -351,8 +369,11 @@ const metricsOf = (role: StaffRole, queue: Part[]): readonly Metric[] => {
    list, instead of the last few words of a sentence. */
 const BOARDS = ['Schedule', 'Review queue', 'Dispatch', 'Incidents', 'Orders', 'Collections', 'Results'];
 /* The sections that draw their own <h1>. Two h1 elements on one page is not a heading, it is a
-   reader having to guess which one is the page. */
-const HEADS_ITSELF = [...BOARDS, 'Protocols', 'Quality', 'Vetting queue'];
+   reader having to guess which one is the page.
+   Incidents is not one of them and was listed as one, so the Control Tower's incident board opened
+   on an eyebrow, three figures and a list, with no heading anywhere on it saying what the screen
+   was. A board that heads itself has to actually head itself. */
+const HEADS_ITSELF = BOARDS.filter(section => section !== 'Incidents').concat(['Protocols', 'Quality', 'Vetting queue']);
 
 function StaffSection({ role, section, open }: { role: StaffRole; section: string; open: (m: string) => void }) {
  /* Subscribed here as well as inside the schedule, so the strip above the day and the list below it
@@ -377,7 +398,7 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
   {section === 'Schedule' ? <NurseSchedule open={open}/>
    : section === 'Review queue' ? <ReviewQueue open={open}/>
 : section === 'Dispatch' ? <DispatchBoard/>
-   : section === 'Incidents' ? <><SectionTitle title="Open incidents"/><IncidentBoard open={open}/></>
+   : section === 'Incidents' ? <IncidentBoard open={open}/>
     : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
      /* The last fallback. Protocols and Quality used to land here — a card whose only control
         opened a dialog saying nothing happens — and both are screens of their own now. What is left

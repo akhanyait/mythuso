@@ -2822,7 +2822,6 @@ const METRIC_STRIPS = [
 const TYPED_FIGURES = [
  ['apps/web/src/shells/StaffShell.tsx', '18', "How many reviews this doctor finished today. The queue lists what is waiting, not what is done, so there is no row on the screen to count — the honest alternatives are this or no figure."],
  ['apps/web/src/shells/StaffShell.tsx', 'Median 4 m 10 s', 'Its chip, and the same fact: a median over reviews that are no longer on the screen.'],
- ['apps/web/src/shells/StaffShell.tsx', '598', "A week's earnings. It is the earnings screen's arithmetic and not the schedule's, and a schedule that recomputed it would be the second place that number lives."],
  ['apps/ios/MyThuso/Features/WorkspaceView.swift', '18', 'The same finished-review count, on the same reasoning.'],
  ['apps/ios/MyThuso/Features/WorkspaceView.swift', 'Median 4 m 10 s', 'The same chip.'],
  ['apps/ios/MyThuso/Features/WorkspaceView.swift', '598', "The same week's earnings, and the comment above it in that file says so."]
@@ -2831,8 +2830,9 @@ const TYPED_FIGURES = [
    purpose: a new one fails the build, and so does fixing one without bringing the number down, which
    is the only arrangement in which a list like this ever reaches nought. */
 const FIGURE_QUARANTINE = [
- ['apps/web/src/shells/StaffShell.tsx', 3,
-  "the doctor's three: cases waiting, priority reviews, and the longest wait. They agree with the screen today and are still typed, because the review queue is drawn from features/Pages.tsx and that file does not export its rows. Export them and count, as the Control Tower and the partner already do"],
+ /* The web shell's three came off this list: features/Workspaces.tsx exports reviewQueueCounts()
+    now and the doctor's strip counts its own queue, the way the Control Tower's and the partner's
+    already did. What is left is the one figure on a platform whose day has no list to count from. */
  ['apps/ios/MyThuso/Features/WorkspaceView.swift', 1,
   'the partner\'s "Next collection 11:15", which the web counts out of partnerCounts(). WorkspaceDay has no collections list for it to be counted from yet'],
 ];

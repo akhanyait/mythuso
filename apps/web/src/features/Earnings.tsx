@@ -49,7 +49,10 @@ const percent = (n: number) => `${Math.round(n * 100)}%`;
 /* An amount, split so the rand sign can be set small beside a large thin figure. Intl gives one
    string; the design needs the symbol and the digits apart, and finding the first digit is the only
    way to do that which survives a locale putting the symbol on the other side. */
-const rand = (n: number) => { const s = money(n); const i = s.search(/\d/); return { prefix: s.slice(0, i), value: s.slice(i) }; };
+/* A rand amount split where the numeral starts, so a Metric can set the sign small and the figure
+   large. Exported because the clinical shell's strip shows this screen's week above the nurse's
+   schedule, and a second formatter for the same amount is a second place it can be wrong. */
+export const rand = (n: number) => { const s = money(n); const i = s.search(/\d/); return { prefix: s.slice(0, i), value: s.slice(i) }; };
 
 /* Two nurses, one cleared and one whose police clearance lapsed nine days ago. Switching between
    them changes the standing banner and nothing else on the screen, which is the rule made visible:
