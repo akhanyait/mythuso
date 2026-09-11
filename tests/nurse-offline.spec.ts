@@ -120,9 +120,23 @@ test('a shift is shown as a difference and a range, never as one confident numbe
   await expect(shift.getByText('R 0', { exact: true })).toBeVisible();
   await expect(shift.getByText('R 897', { exact: true })).toBeVisible();
   await expect(shift.getByText(/If nothing is booked into them/)).toBeVisible();
-  // and it is a difference from a week that already has a figure in it
+  /* And it is a difference from a week that already has a figure in it — or it is honestly not one.
+   *
+   * Which of those depends on the day this runs. A shift after the Sunday the cycle ends on is next
+   * week's money, so the screen says so and changes this week's figure by nothing at all. That is
+   * the product being right, and this assertion used to know only the first branch: it passed
+   * Monday to Thursday and failed at the weekend, which is the worst kind of test — one that is red
+   * for a reason nobody can find in the diff. Both branches are asserted, and the one that is not
+   * showing is asserted absent, so a screen that quietly rendered neither would still fail. */
   await expect(shift.getByText('This week so far')).toBeVisible();
-  await expect(shift.getByText('With that shift, on your own mix')).toBeVisible();
+  const thisWeek = shift.getByText('With that shift, on your own mix');
+  if (await thisWeek.count()) {
+    await expect(thisWeek).toBeVisible();
+    await expect(shift.getByText(/It would reach your account on/)).toBeVisible();
+  } else {
+    await expect(shift.getByText('Next week', { exact: true })).toBeVisible();
+    await expect(shift.getByText(/falls after this week ends on/)).toBeVisible();
+  }
   // the two refusals a forecast most needs
   await expect(shift.getByText(/does not advance money against work you have not done/)).toBeVisible();
   await expect(shift.getByText(/Offering an hour does not book a visit into it/)).toBeVisible();
