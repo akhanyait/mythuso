@@ -234,8 +234,6 @@
 .onboard-panel{padding:20px 18px 0;display:flex;flex-direction:column;gap:12px}
 .onboard-brand{width:158px;height:44px;object-fit:contain;margin:0 0 4px}
 .onboard-panel h2{display:none}
-.onboard-steps li{flex:1;font-size:0;height:4px;border-radius:3px;background:var(--line)}
-.onboard-steps li.current,.onboard-steps li.done{background:var(--indigo)}
 .onboard-note{display:flex;gap:11px;align-items:flex-start;font-size:13px;color:var(--body);line-height:1.6;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-control);padding:14px;margin:4px 0 0}
 .onboard-form{padding:18px;flex:1}
 .onboard-body{display:flex;flex-direction:column;gap:14px;max-width:520px;margin:0 auto}
@@ -244,7 +242,11 @@
 .phone-field{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:var(--r-control);padding-left:14px;background:var(--surface)}
 .phone-field input{border:0;background:none;padding-left:0}
 .phone-field input:focus-visible{outline:0}
-.phone-field:focus-within{outline:3px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 7px var(--focus-edge)}
+/* :has(:focus-visible), not :focus-within. The field is drawn with the two-ring focus indicator
+   around it rather than around the bare input, and :focus-within fires for any focus at all — so an
+   autofocused number field arrived wearing a double ring nobody had asked for, which is how a
+   screen teaches a reader that the ring means nothing. */
+.phone-field:has(:focus-visible){outline:3px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 7px var(--focus-edge)}
 .choice-list{display:flex;flex-direction:column;gap:10px}
 .choice-row{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-card);padding:15px;cursor:pointer}
 .choice-row.selected{border-color:var(--indigo);background:var(--indigo-soft)}
@@ -369,8 +371,6 @@
  .onboarding{display:grid;grid-template-columns:340px minmax(0,1fr)}
  .onboard-panel{background:var(--indigo-soft);padding:36px 30px;gap:16px}
  .onboard-panel h2{display:block;font-size:22px;color:var(--slate)}
- .onboard-steps li{height:auto;font-size:13px;background:none;display:flex;align-items:center;gap:11px;color:var(--teal-ink)}
- .onboard-steps li.current{color:var(--slate);font-weight:650}
  .onboard-note{margin-top:auto;background:#ffffffa6}
  .onboard-form{display:grid;place-items:center;padding:40px 24px}
 }
