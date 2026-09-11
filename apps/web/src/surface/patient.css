@@ -819,3 +819,38 @@
 /* And the button loses its coloured drop shadow. It sits on a card that is already lifted, which
    made two stacked shadows on the one control this screen is about — and the language allows one. */
 .patient-surface .hero-slide-copy .primary { box-shadow: none; }
+
+/* ---- Figures inside a card, on a phone --------------------------------------------------------
+   `Metrics` tracks at 152px on this surface, which is the width "118/78" needs on the page ground.
+   Inside a card it is the wrong floor: a panel at 390px has about 310 pixels in it, so two tracks
+   and a gutter do not fit and three figures become three rows — five hundred pixels of card for
+   three short numbers, which is the opposite of what a figure strip is for.
+
+   Two rules already said this, one for the trends panel and one for a family profile, each naming
+   its own class. This is the same rule stated once about the shape it is actually about — a figure
+   strip inside a card, wherever it appears — which is why the Help screen's three never got it.
+   min() rather than a bare 124, so a 320px screen cannot be pushed sideways by the track itself. */
+.patient-surface .panel .s-metrics,
+.patient-surface .s-panel .s-metrics {
+ grid-template-columns: repeat(auto-fit, minmax(min(124px, 100%), 1fr));
+ gap: var(--space-20) var(--space-16);
+}
+
+/* ---- The emergency numbers, at the width a phone has ------------------------------------------
+   Each number is a two-column row: the number, then what it is and when to dial it. On a wide
+   screen that is right. At 390px "10177" takes half the row and the sentence beside it is squeezed
+   into a hundred and forty pixels — "The national / emergency / ambulance number" down a ribbon,
+   nine lines for what is three on the next card and eleven on the one after.
+
+   Below 560px the number takes its own line and the sentence takes the width. Which also puts the
+   number first and alone, and this is the one screen in the product where that is the point. */
+@media (max-width: 560px) {
+ .patient-surface .sos-numbers li { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
+}
+
+/* Two titles the weight sweep had not been pointed at: a preference switch's label and a consent
+   card's heading. Both sat at 600 and 650 beside rows that had moved to 15/500, which on the
+   privacy screen put the two cards a step apart from each other. */
+.patient-surface .setting-row strong { font-size: 15px; font-weight: 500; }
+.patient-surface .setting-row small { color: var(--faint); }
+.patient-surface .consent-card h4 { font-size: 15px; font-weight: 500; }
