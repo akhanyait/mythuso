@@ -79,7 +79,10 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
  const [invitations, setInvitations] = useState<Invitation[]>(sampleInvitations);
  const [query, setQuery] = useState('');
  const [location, setLocation] = useState('Rosebank, Johannesburg');
- const [onboarding, setOnboarding] = useState(false);
+ /* Two doors behind one flag: 'first-run' is signing up, 'recovery' is the route back in when the
+    phone is gone. They were one — "I've lost access to my account" on the sign-in screen opened
+    sign-up, which is the screen a person in that position has already failed at. */
+ const [onboarding, setOnboarding] = useState<'' | 'first-run' | 'recovery'>('');
  const [signedIn, setSignedIn] = useState(true);
  const [live, setLive] = useState(false);
  const navigate = (p: string) => { if (p !== 'Book a nurse') setForPerson(null); setPage(p); scrollToTop(); };
@@ -98,7 +101,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
    const person = await currentPerson(); if (cancelled) return;
    setLive(true); setSignedIn(person !== null); })();
   return () => { cancelled = true; }; }, []);
- const signOut = () => { if (live) void endSession(); setSignedIn(false); setOnboarding(false); setModal(null); navigate('Overview'); };
+ const signOut = () => { if (live) void endSession(); setSignedIn(false); setOnboarding(''); setModal(null); navigate('Overview'); };
  /* What the person actually booked, in the order they booked it, and only that: the home's "next
     visit" card answers "what have I arranged", which the three sample visits in the list are not an
     answer to. */
@@ -117,8 +120,8 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
    ? { ...row, group: 'cancelled', status: 'Cancelled', tone: 'amber', reason,
        cancelledState: stateOf(row.visit.date, row.visit.start), cancelledOn: dateOf(0) }
    : row));
- if (onboarding) return <Onboarding locale={locale} setLocale={setLocale} onDone={() => { setOnboarding(false); setSignedIn(true); navigate('Overview'); }} onSkip={() => { setOnboarding(false); setSignedIn(true); navigate('Overview'); }}/>;
- if (!signedIn) return <SignIn live={live} onSignIn={() => setSignedIn(true)} onCreate={() => setOnboarding(true)} onRecover={() => setOnboarding(true)}/>;
+ if (onboarding) return <Onboarding locale={locale} setLocale={setLocale} recover={onboarding === 'recovery'} onDone={() => { setOnboarding(''); setSignedIn(true); navigate('Overview'); }} onSkip={() => { setOnboarding(''); setSignedIn(true); navigate('Overview'); }}/>;
+ if (!signedIn) return <SignIn live={live} onSignIn={() => setSignedIn(true)} onCreate={() => setOnboarding('first-run')} onRecover={() => setOnboarding('recovery')}/>;
  return <>
   <PatientShell page={page} navigate={navigate} open={setModal} locale={locale} location={location} visitCount={rows.filter(row => row.group === 'upcoming').length}>
    {page === 'Overview' ? <Dashboard navigate={navigate} book={setBooking} open={setModal} query={query} setQuery={setQuery} visits={booked.map(row => row.visit)} location={location} viewVisit={() => setViewing(booked[0]?.id ?? null)}/>
@@ -138,7 +141,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
          : page === 'Thuso Wallet' ? <WalletPage open={setModal}/>
           : page === 'Privacy & settings' ? <Privacy open={setModal}/>
            : page === 'Language & access' ? <Access/>
-            : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding(true)} navigate={navigate}/>
+            : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding('first-run')} navigate={navigate}/>
              : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
   </PatientShell>
   {booking && <Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Booking service={booking} person={forPerson ?? undefined} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Modal>}
@@ -155,7 +158,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     ? <Reschedule visit={rowById(managing.id)!.visit} onMove={(date, start) => { moveVisit(managing.id, date, start); setManaging(null); navigate('My visits'); }}/>
     : <CancelVisit visit={rowById(managing.id)!.visit} onCancel={reason => { standDown(managing.id, reason); setManaging(null); navigate('My visits'); }}/>}
   </Modal>}
-  {modal && <Modal surface={SURFACE} title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding(true); }, reopen: (m: string) => setModal(m), locale, setLocale, query, setQuery, location, setLocation, people, addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut, rows, invitations, bookFor, viewVisit: (id: string) => { setModal(null); setViewing(id); }, revoke: (id: string) => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i)) })}</Modal>}
+  {modal && <Modal surface={SURFACE} title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding('first-run'); }, reopen: (m: string) => setModal(m), locale, setLocale, query, setQuery, location, setLocation, people, addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut, rows, invitations, bookFor, viewVisit: (id: string) => { setModal(null); setViewing(id); }, revoke: (id: string) => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i)) })}</Modal>}
  </>;
 }
 /* A dialog is rendered into the browser's top layer rather than inside the shell that opened it, so

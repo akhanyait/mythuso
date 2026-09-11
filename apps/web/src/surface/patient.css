@@ -446,21 +446,10 @@
  .modal.patient-surface { border-radius: var(--r-panel, 18px); margin: auto; }
 }
 
-/* ---- Onboarding, on the same ground ---- */
-.onboarding.patient-surface { background: transparent; position: relative; }
-.patient-surface > .onboard-panel,
-.patient-surface > .onboard-form { position: relative; z-index: 1; }
-.patient-surface .onboard-panel { background: color-mix(in srgb, var(--surface) 55%, transparent); }
-.patient-surface .onboard-panel h2 { color: var(--charcoal); }
-.patient-surface .onboard-note { background: var(--glass-floor); border-radius: var(--r-panel, 18px); }
-/* The progress rail is already charcoal: `--indigo` is remapped at the top of this file, so the bar
-   on a phone and the numbered circle on a desktop both move with it. Only the completed step needs a
-   colour of its own — it was teal, which is an accent this surface does not use. Nothing else here
-   touches `li`, because at desktop that same element stops being a 4px bar and becomes a row of
-   text, and a background set for the bar swallows the label. */
-.patient-surface .onboard-steps li.done b { background: var(--sage-slate); color: var(--charcoal); }
-.patient-surface .onboard-steps li { color: var(--faint); }
-.patient-surface .onboard-steps li.current { color: var(--charcoal); }
+/* ---- The way in ----
+   The door itself is surface/door.css: it stopped being a full-bleed page with a tinted rail and
+   became one card on this ground, so the rules that dressed `.onboard-panel` for the patient went
+   with it. What is left here is what the door borrows from the rest of the surface. */
 .patient-surface .locale-choice label.selected { border-color: var(--charcoal); background: var(--pale-sage); color: var(--charcoal);}
 .patient-surface .success-icon { background: var(--pale-sage); color: var(--charcoal); }
 

@@ -1,0 +1,233 @@
+/* The way in.
+ *
+ * Sign-in, the one-time code, account recovery and first run — the four screens somebody meets
+ * before anything else, and the ones the web had drifted furthest from the phone on. What is drawn
+ * here is the language docs/DESIGN-LANGUAGE.md describes and apps/ios already speaks: a luminous
+ * ground, one frosted card, a sage aside that carries the brand and what is true about this screen,
+ * charcoal for every word, sage as a fill and never as a label, separation by hairline.
+ *
+ * A CARD, NOT A PAGE. The door used to be a full-bleed two-column grid: a 340px tinted rail with the
+ * note pinned to the very bottom of the viewport, and the form stranded in the top third of the
+ * other column. At 1440x1100 that left more than half the screen saying nothing, and at 390 the rail
+ * collapsed into an opaque band that cut off mid-screen above a heading the phone rules had hidden.
+ * A card has a size of its own; a page has whatever the viewport gives it. One object, centred,
+ * reading identically at 390 and at 1440 — which is what the founder liked about the phone.
+ *
+ * Scoped to `.door` and loaded only from the patient entry, so nothing here can reach the clinical
+ * or back-office sign-in screens, which still stand on `.onboarding` in app.css. Imported last from
+ * main.tsx for the same reason patient.css is: several rules below answer one of equal specificity
+ * in core.css, and only an entry point decides the cascade. */
+
+.door {
+ position: relative;
+ min-height: 100dvh;
+ display: flex;
+ flex-direction: column;
+ justify-content: center;
+ align-items: center;
+ /* min-height rather than height, so a tall step — eleven languages, six consent lines — grows the
+    page instead of centring itself off the top of it. */
+ padding: var(--space-24) var(--space-16);
+ background: transparent;
+ color: var(--charcoal);
+}
+@media (min-width: 700px) { .door { padding: var(--space-40) var(--space-24); } }
+
+.door-card {
+ position: relative;
+ z-index: 1;
+ width: 100%;
+ max-width: 460px;
+ display: grid;
+ grid-template-columns: minmax(0, 1fr);
+ /* The sage aside runs to the card's own corners rather than stopping short of them. */
+ overflow: hidden;
+}
+/* A card you are about to type into does not lift when the pointer crosses it. */
+.door-card:hover { transform: none; }
+
+/* ---- The aside: the brand, the promise, and what is true about this screen ---- */
+/* Sage with light in it rather than a flat rectangle. The column is as tall as the form beside it
+   and the form is the taller of the two, so on a wide screen there is green below the last word
+   whatever is done — a gradient makes that a surface instead of a hole. Both stops are palette
+   colours and every pair drawn on top of it is declared against *both* of them: charcoal clears
+   11.11 on paleSage and 8.94 on softSage, and the muted text below uses the softSage variant, which
+   is the darker of the two and therefore clears on the paler stop as well. Nothing is measured
+   against a colour that only exists halfway down. */
+.door-aside {
+ background: linear-gradient(180deg, var(--pale-sage) 0%, var(--soft-sage) 100%);
+ color: var(--charcoal);
+ padding: var(--space-20);
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-16);
+}
+/* The mark at a size it can be read at. It is a 512-square icon, so it is given a square. */
+.door-mark { width: 44px; height: 44px; display: block; }
+.door-promise {
+ font-size: 18px;
+ line-height: 1.4;
+ letter-spacing: -.3px;
+ color: var(--charcoal);
+ max-width: 26ch;
+}
+/* The disclosure that belongs to the screen rather than to the form: signed out, nothing typed here
+   has left the browser, recovery never shows your records. A hairline and a step down in weight,
+   which is how everything else in this language separates. charcoalMutedOnPaleSage is a declared
+   pair; faint is not declared on sage and is not used here. */
+/* Stacked under the promise rather than pinned to the foot of the column. Pinned, it reproduced in
+   miniature the defect this whole screen had: a line at the top, a line at the bottom and four
+   hundred pixels of nothing between them. A panel of colour with its content at the top is a panel;
+   the same panel with a hole in the middle is a mistake. */
+.door-note {
+ display: flex;
+ gap: var(--space-8);
+ align-items: flex-start;
+ padding-top: var(--space-12);
+ border-top: 1px solid color-mix(in srgb, var(--charcoal) 14%, transparent);
+ font-size: 13px;
+ line-height: 1.55;
+ color: var(--charcoal-muted-on-soft-sage);
+}
+.door-note > svg { color: var(--charcoal); margin-top: 1px; }
+
+/* ---- The sign-up rail ----
+   Pill rows: a numbered circle, a label, and the current row filled charcoal — the same shape the
+   navigation takes everywhere else in this product, which is what makes six steps read as a place
+   you are rather than as six things you have not done. On a phone the rows wrap into a strip and
+   only the current label is drawn; the rest stay in the accessibility tree rather than being
+   removed from it, because a step list a screen reader cannot read is not a shorter step list. */
+.door-steps {
+ list-style: none;
+ margin: 0;
+ padding: 0;
+ display: flex;
+ flex-wrap: wrap;
+ gap: var(--space-4);
+}
+.door-steps li {
+ display: flex;
+ align-items: center;
+ gap: var(--space-8);
+ min-height: 32px;
+ padding: 0 10px 0 4px;
+ border-radius: var(--r-pill);
+ font-size: 14px;
+ color: var(--charcoal-muted-on-soft-sage);
+}
+.door-steps b {
+ display: grid;
+ place-items: center;
+ width: 24px;
+ height: 24px;
+ flex-shrink: 0;
+ border-radius: var(--r-pill);
+ background: var(--surface);
+ color: var(--charcoal);
+ font-size: 13px;
+ font-weight: 600;
+}
+.door-steps li.done b { background: var(--sage-slate); color: var(--charcoal); }
+.door-steps li.current { background: var(--charcoal); color: var(--surface); }
+.door-steps li.current b { background: var(--surface); color: var(--charcoal); }
+@media (max-width: 899px) {
+ .door-steps li { padding-right: 4px; }
+ .door-steps li.current { padding-right: 12px; }
+ /* Clipped rather than display:none — the label is still announced, it is just not drawn. */
+ .door-steps li:not(.current) > span {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+ }
+}
+
+/* ---- The form column ---- */
+.door-main {
+ padding: var(--space-20);
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-16);
+ min-width: 0;
+}
+.door-main h1 { font-size: 24px; font-weight: 600; letter-spacing: -.6px; }
+.door-main > p.muted { color: var(--faint); }
+/* The status chip, above the line it belongs to. The reference's signature is a chip floating over
+   the thing it describes, and this is the one screen that has a chip to float. */
+.door-main > .pill { background: var(--pale-sage); color: var(--charcoal); }
+/* The contract's notice, under the sentence that introduces the screen and above everything it is
+   about to ask for. It is never removed, never shortened and never quieter for being simulated —
+   see capabilities.json's own `a-simulation-says-so`. Only its position moved: first thing on the
+   screen, ahead of the heading, is where a reader learns to skip it. */
+.door-main .not-connected { margin: 0; }
+.door-main .privacy-note > span { flex: 1; min-width: 0; }
+/* A refusal, a failed delivery and a code that was made here are all privacy-notes today. The one
+   that matters most is the code, and it was unreadable: .privacy-note is a flex row, so the three
+   text runs around its <strong> each became a flex item and the sentence was drawn as a three
+   column table. The span the markup now wraps it in is the fix; this is the belt. */
+.door-main .privacy-note strong { font-variant-numeric: tabular-nums; letter-spacing: .5px; }
+/* Six boxes sized to a digit rather than to the column. core.css grows each one to fill the row,
+   which inside a 640px card drew six 120px squares for six single characters. They keep the 44px
+   floor and shrink to it at 320. */
+.door-main .code-input { justify-content: flex-start; }
+.door-main .code-input input { flex: 0 1 58px; }
+
+/* ---- The one action, and the other ways in ----
+   Three full-width buttons of equal weight is not a choice, it is a list. One charcoal action, one
+   outlined alternative under a hairline, and the two remaining routes as text. */
+.door-actions { display: flex; flex-direction: column; gap: var(--space-8); }
+.door-alts {
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-12);
+ margin-top: var(--space-4);
+ padding-top: var(--space-16);
+ border-top: 1px solid var(--stone);
+}
+.door-links { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-24); }
+/* Underlined, because two 13px charcoal phrases side by side under a hairline read as a pair of
+   headings rather than as the two other ways into the product. */
+.door-links .text-button { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+/* 44 rather than the 26 the token file exempts .text-button at. That exemption is written for an
+   inline action inside a dense row that has a full-size equivalent elsewhere on the screen; here
+   these are the only way to reach sign-up and recovery, so they are targets. */
+.door-links .text-button { min-height: 44px; }
+
+/* A disabled primary was a flat grey slab — charcoal at 45% opacity — which says "broken" rather
+   than "not yet". A quiet fill and a readable label say the second thing, and the helper under the
+   field already says what is missing. charcoalMutedOnCloud on cloud is a declared pair. */
+/* Back sizes to its word and the forward action takes the rest, so the row says which way it
+   goes — and "Ask for a new code" stops wrapping to two lines inside half a 390px card. */
+.door-main .button-row > .secondary { flex: 0 1 auto; }
+/* The wait on a recovery route is the quietest thing in the row, not a second title. It was drawn in
+   --indigo, which this surface remaps to charcoal, so it arrived at the weight of the heading. */
+.door-main .choice-row em { color: var(--faint); font-weight: 500; }
+
+.door-main .primary:disabled {
+ opacity: 1;
+ background: var(--cloud);
+ color: var(--charcoal-muted-on-cloud);
+}
+
+/* ---- Two columns, from 900px ----
+   One object rather than two panels: the aside keeps its sage, the form keeps the glass, and the
+   hairline between them is the card's own. */
+@media (min-width: 900px) {
+ .door-card { max-width: 920px; grid-template-columns: 320px minmax(0, 1fr); }
+ .door-aside { padding: var(--space-32); gap: var(--space-20); }
+ .door-mark { width: 52px; height: 52px; }
+ .door-promise { font-size: 20px; }
+ .door-steps { flex-direction: column; flex-wrap: nowrap; gap: var(--space-4); }
+ .door-steps li { width: 100%; }
+ .door-main {
+  padding: var(--space-32);
+  gap: var(--space-16);
+  border-left: 1px solid color-mix(in srgb, var(--charcoal) 10%, transparent);
+ }
+ .door-main h1 { font-size: 28px; }
+}
+
+/* The eleven languages, inside a card rather than across a page. Two columns from the point the
+   card is wide enough for two language names to survive being truncated, which is the card's own
+   width and no longer the viewport's. */
+@media (min-width: 560px) {
+ .door-main .locale-choice { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

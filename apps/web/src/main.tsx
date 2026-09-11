@@ -16,6 +16,12 @@ import './shells/shells.css';
    cascade decides, and the cascade is decided here — importing it from a component would let the
    bundler inject it wherever that component happens to sit in the graph. */
 import './surface/patient.css';
+/* And after it, the way in. Sign-in, the one-time code, recovery and first run stand on their own
+   card rather than on the shell, and several of their rules answer one of equal specificity in
+   core.css — so like patient.css this sheet is placed by the entry rather than by whichever
+   component the bundler happened to reach first. Only this entry loads it: the clinical and back
+   office doors still stand on `.onboarding` in app.css. */
+import './surface/door.css';
 /* The patient entry. One of four — the clinical workspaces are at /staff and the back office at
    /admin, each its own bundle, so nobody opening their own visits downloads either. */
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
