@@ -40,6 +40,8 @@
 /* ---- App shell: bottom tab bar on phones, sidebar from tablet up ---- */
 .app-shell{display:flex;height:100dvh;overflow:hidden;background:var(--canvas)}
 .topbar .brand{display:flex;align-items:center;height:36px;margin-right:auto;flex-shrink:0}
+/* A square mark, sized to the bar rather than stretched from a wordmark's aspect ratio. */
+.topbar .brand img{width:34px;height:34px;object-fit:contain}
 .breadcrumb{display:none}
 .topbar-actions{display:flex;align-items:center;gap:9px;margin-left:auto;flex-shrink:0}
 .topbar .avatar.small{box-shadow:var(--shadow)}

@@ -82,7 +82,11 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
   </aside>
   <div className={`workspace ${page === 'Overview' ? 'is-home' : ''}`}>
    <header className="topbar glass">
-    <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/logo.svg" alt="MyThuso — Help. Health. Home."/></a>
+    {/* The mark, not the lockup. The sidebar gives logo.svg 168 points of width and the wordmark
+        reads there; this bar gives it about a hundred, and on a phone the tagline under it lands
+        below two points — the same defect the iOS toolbar had and the sign-in door had, in its third
+        place. icon.svg is the icon out of that same artwork. */}
+    <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/icon.svg" alt="MyThuso"/></a>
     <div className="breadcrumb">{t('shell.breadcrumb')}<span>/</span><strong>{t(`nav.${page}`)}</strong></div>
     <div className="topbar-actions">
      <button className="location-button" onClick={() => open('Your location')}><MapPin size={16}/><span>{location}</span><ChevronDown size={13}/></button>
