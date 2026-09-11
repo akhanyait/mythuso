@@ -194,7 +194,18 @@ export function SignIn({ live, probed = true, onSignIn, onCreate, onRecover }:
    <div className="onboard-note"><ShieldCheck size={17}/>You are signed out. Nothing about the account is reachable until you sign in again.</div>
   </div>
   <div className="onboard-form"><div className="onboard-body">
-   {!probed ? null : live ? <Pill>Identity service connected</Pill> : <NotConnected of="accounts"/>}
+   {/* The service answering and the capability being connected are two different facts, and this
+       line used to conflate them: when apps/api was reachable it showed a green "Identity service
+       connected" and *dropped* the notice, so the screen went quiet at exactly the moment it had
+       more to say. The contract's `a-simulation-says-so` forbids that in as many words — no screen
+       may be quieter for being simulated than it was for being absent — and this is the first screen
+       a person sees. The service running on this machine cannot send a message to a handset; that
+       needs the SMS provider `accounts` is still blocked on. So the pill says what is true, and the
+       notice stays either way. */}
+   {!probed ? null : <>
+    {live ? <Pill>Identity service is answering on this machine</Pill> : null}
+    <NotConnected of="accounts"/>
+   </>}
    <h1>Sign in to MyThuso</h1>
    {!live ? <>
     <p className="muted">The identity service is not switched on. A simulated channel produces the code here instead, so the whole of signing in can be walked — including the part where the message does not arrive.</p>
