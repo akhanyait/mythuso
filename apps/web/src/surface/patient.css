@@ -568,3 +568,137 @@
 }
 .patient-surface .booking-for > svg { color: var(--charcoal); flex: 0 0 auto; }
 .patient-surface .booking-for .text-button { margin-left: auto; }
+
+/* ================================================================================================
+   THE SECOND PASS: the half of the sweep that never arrived.
+
+   Everything above this line moved the patient's *colour* — indigo became charcoal, cards became
+   the frosted floor, the ground became the aurora. The founder put the iOS build beside this one
+   and said the phone was the one he liked, and the difference is not colour. It is weight.
+
+   `surface/clinical.css` swept both halves. The patient surface took the palette and kept the old
+   typography underneath it, so a screen here is drawn from the same tokens as a workspace and reads
+   a decade older: `h1` at 700, every `h2` at the browser's bold, every row's `strong` at 600, every
+   price at 700, every trend figure at 700, and a pale-sage tile beside every row on every list.
+   Four statements of the design language are broken by that, in its own words — "nothing is bold
+   for emphasis; emphasis comes from size and from space", "a metric is a large light figure", "if
+   every row has a coloured tile, the colour has stopped carrying information", and "space is the
+   main tool".
+
+   So this section is the clinical sweep's own rules, pointed at the patient. It changes no ground,
+   invents no colour and moves no screen's structure, which is what makes it safe to apply to twenty
+   screens at once. Every pair it puts together is already declared in tokens.json and computed on
+   every build: charcoal on glassFloor, charcoal on cloud, faint on glassFloor, mangoInk on
+   mangoSoft, danger on dangerSoft. */
+
+/* ---- Emphasis is size and space, never weight -------------------------------------------------
+   The reference sets headings at regular or medium. This product set them at 700 and then had
+   nowhere left to go when something genuinely needed to stand out, which is most of why a screen of
+   eleven cards here reads as eleven shouts. Sizes are untouched — every one is already a step on
+   the scale — and only the weight and the tracking move. */
+.patient-surface h1,
+.patient-surface .page-intro h1,
+.patient-surface .home-head h1 { font-weight: 500; letter-spacing: -1px; }
+.patient-surface h2,
+.patient-surface h3 { font-weight: 500; letter-spacing: -.3px; }
+.patient-surface .section-title h2 { font-size: 18px; font-weight: 500; letter-spacing: -.3px; }
+/* The eyebrow was 700, indigo, at 13px under 1.5px of tracking: four kinds of emphasis on the
+   quietest line of the screen. It is a label, so it is the size, colour and tracking of a label. */
+.patient-surface .eyebrow { font-weight: 600; letter-spacing: 1.2px; color: var(--faint); }
+
+/* A row's title, and the line under it. 15/500 rather than 14/600 — a step up in size and a step
+   down in weight is the same amount of emphasis and half the noise, and it is exactly what
+   `.stated` further up this file already does for the three screens that are mostly sentences. */
+.patient-surface .record-row strong,
+.patient-surface .menu-row strong,
+.patient-surface .shortcut-row strong,
+.patient-surface .family-row strong,
+.patient-surface .result-row strong,
+.patient-surface .visit-body h3,
+.patient-surface .nurse-row strong { font-size: 15px; font-weight: 500; }
+.patient-surface .record-row small,
+.patient-surface .menu-row small,
+.patient-surface .shortcut-row small,
+.patient-surface .family-row small,
+.patient-surface .result-row small { color: var(--faint); }
+/* A status word is a word, not a klaxon. It keeps its colour, which is the part of it a reader
+   sorts by, and gives up the weight it never needed. */
+.patient-surface .pill { font-weight: 500; }
+.patient-surface .pill.plain { font-weight: 600; letter-spacing: .8px; }
+.patient-surface .primary,
+.patient-surface .secondary,
+.patient-surface .ghost,
+.patient-surface a.primary { font-weight: 500; }
+
+/* ---- Figures a screen draws itself ------------------------------------------------------------
+   `Metric` carries the shape wherever it is used, and three places on this surface draw a figure
+   without it: a trend card's current reading, a plan's monthly price and a date block's day. All
+   three were bold. A large thin numeral over a small dense label is the reference's signature and
+   the single move that makes the top of a screen read as calm — clinical.css already does precisely
+   this to the same `.chart-value`, so this is that rule reaching the other half of the product. */
+.patient-surface .chart-value strong { font-size: 32px; font-weight: 300; letter-spacing: -1.2px; color: var(--charcoal); }
+.patient-surface .chart-value small,
+.patient-surface .chart-trend { color: var(--faint); }
+.patient-surface .plan-price { font-weight: 300; letter-spacing: -1.2px; }
+/* The tracking is for the numeral. Left to cascade it also pulled "/ month" in against the figure,
+   which is the one place on this screen where two things must not be allowed to touch. */
+.patient-surface .plan-price small { color: var(--faint); letter-spacing: 0; margin-left: 3px; }
+/* A price in a row or a card is money rather than a measurement, so it stays at reading size — it
+   only stops being the heaviest thing in its row, which at 700 beside a 600 title it was. */
+.patient-surface .shortcut-meta strong,
+.patient-surface .ledger,
+.patient-surface .booking-summary > strong { font-weight: 500; }
+.patient-surface .date-block strong { font-weight: 500; letter-spacing: -.5px; }
+.patient-surface .date-block span { font-weight: 600; letter-spacing: .5px; }
+
+/* ---- Rows: the tile is a quiet circle ---------------------------------------------------------
+   Nine identical sage squares down the catalogue, seven down the privacy screen, two identical
+   wallet marks on two ledger lines whose only real difference is a sign. A tile that is the same on
+   every row has stopped carrying information and is only weight — the design language names this
+   defect, and `.stated` above was written specifically to dodge it on three screens while thirty
+   others went on doing it.
+
+   So the default tile is a circle of six-percent charcoal, which is a recess rather than a colour,
+   and sage is spent where it says something: the one object a screen is actually about. The recipe
+   is clinical.css's, unchanged, because two surfaces inventing two answers to one question is how
+   this codebase would end up with a third. */
+.patient-surface .service-icon,
+.patient-surface .tile-icon {
+ background: color-mix(in srgb, var(--charcoal) 6%, transparent);
+ color: var(--charcoal);
+ border-radius: var(--r-pill);
+}
+/* And where sage is still earning its keep: the object a lead panel is about, the highlighted plan,
+   the featured module. Each of those is one per screen, which is the point. */
+.patient-surface .glow > .service-icon,
+.patient-surface .glow > .tile-icon,
+.patient-surface .glass.lead .visit-top .service-icon,
+.patient-surface .plan-card.featured .service-icon,
+.patient-surface .plan-card.featured .tile-icon,
+.patient-surface .module-card.highlight .service-icon,
+.patient-surface .module-card.highlight .tile-icon { background: var(--pale-sage); color: var(--charcoal); }
+/* The semantic tiles keep their colour and are restated here for the same reason the block further
+   up this file restates the pills: the rule above is two classes deep and would otherwise quietly
+   have taken the mango off the only row on the home that says something is due, and the red off
+   the only row in the More hub that signs you out. */
+.patient-surface .tile-icon.amber,
+.patient-surface .service-icon.amber { background: var(--mango-soft); color: var(--mango-ink); }
+.patient-surface .menu-list.danger .tile-icon { background: var(--danger-soft); color: var(--danger); }
+
+/* ---- Air --------------------------------------------------------------------------------------
+   One rhythm, held: 32 before a new section, 16 under its heading. The patient surface was still on
+   core.css's 26 and 13, which is close enough to the scale to look like the scale and far enough
+   off it that two screens disagree about the same gap. */
+.patient-surface .section-title { margin: var(--space-32) 0 var(--space-16); }
+.patient-surface .state-block + .section-title,
+.patient-surface .chart-grid + .section-title,
+.patient-surface .shortcut-list + .section-title,
+.patient-surface .panel + .section-title,
+.patient-surface .catalog-grid + .section-title,
+.patient-surface .helper + .section-title { margin-top: var(--space-32); }
+.patient-surface .section-title:first-child,
+.patient-surface .page-intro + .section-title,
+.patient-surface .underline-tabs + .section-title,
+.patient-surface .tabs + .section-title,
+.patient-surface .s-metrics + .section-title { margin-top: 0; }
+
