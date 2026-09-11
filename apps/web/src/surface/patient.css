@@ -854,3 +854,12 @@
 .patient-surface .setting-row strong { font-size: 15px; font-weight: 500; }
 .patient-surface .setting-row small { color: var(--faint); }
 .patient-surface .consent-card h4 { font-size: 15px; font-weight: 500; }
+
+/* Two headings written before the weight pass and more specific than it, so they kept 600 while
+   every other heading on the surface moved to 500 — which left the trends panel and a family
+   profile a step heavier than the screens either side of them. Stated here rather than edited in
+   place, so the rule and the reason for it stay together. */
+.patient-surface .trend-lead .lead-head h2 { font-weight: 500; }
+.patient-surface .profile-who strong { font-weight: 500; }
+.patient-surface .s-panel-head h2,
+.patient-surface .s-panel-head h3 { font-weight: 500; }
