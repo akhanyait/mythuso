@@ -799,3 +799,23 @@
    treatment. Same size, one step down in weight. */
 .patient-surface .service-card > div > strong { font-weight: 500; }
 
+/* ---- The one screen the sweep had not reached at all ------------------------------------------
+   Explore MyThuso opens on the carousel the public page uses, and the carousel is still teal: three
+   mint discs, a mint rule between them and mint dots under the card. Teal is not a colour this
+   surface has — the onboarding block further up this file already says so about the progress rail —
+   and three identical discs beside three labels is the same defect as the sage tile down a list,
+   in a colour that was never part of this palette to begin with.
+
+   Scoped under `.patient-surface`, so the public page keeps the treatment it was designed with.
+   That page is somebody else's work this week, and a shared sheet is not the place to decide for
+   them. */
+.patient-surface .hero-trust li span {
+ background: color-mix(in srgb, var(--charcoal) 6%, transparent);
+ color: var(--charcoal);
+}
+.patient-surface .hero-trust li + li { border-left-color: var(--stone); }
+.patient-surface .hero-dots button::after { background: var(--stone); }
+.patient-surface .hero-dots button.on::after { background: var(--charcoal); }
+/* And the button loses its coloured drop shadow. It sits on a card that is already lifted, which
+   made two stacked shadows on the one control this screen is about — and the language allows one. */
+.patient-surface .hero-slide-copy .primary { box-shadow: none; }
