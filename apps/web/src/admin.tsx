@@ -5,6 +5,9 @@ import './surface/core.css';
 import './surface/app.css';
 import './surface/clinical-screens.css';
 import './shells/shells.css';
+// Web-specific theme follows each entry's existing component styles.
+import './surface/web-refresh.css';
+import './surface/creative.css';
 /* The back-office entry. Separate from the clinical one because they are separate audiences with
    separate accounts, and a console of readiness, catalogue and finance has no business being
    downloaded by a nurse standing at somebody's front door. */

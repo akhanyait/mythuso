@@ -34,3 +34,6 @@ test-results/
 
 # Agent worktrees live here.
 .claude/worktrees/
+
+# Kotlin compiler session state
+.kotlin/

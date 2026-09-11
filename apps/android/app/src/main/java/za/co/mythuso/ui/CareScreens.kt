@@ -82,6 +82,7 @@ import androidx.compose.foundation.text.KeyboardActions
 @Composable fun HomeScreen(store: PreviewStore, book: (CareService?) -> Unit, open: (String) -> Unit, firstRun: () -> Unit) {
     ScreenColumn {
         HomeGreeting(store, open)
+        CareStudio(book = { book(null) }, open = open)
         HomeNextVisit(store, book, open)
         HomeBooking(store, book)
         HomeShortcuts(store, book)

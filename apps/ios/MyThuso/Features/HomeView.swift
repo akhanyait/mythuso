@@ -53,6 +53,7 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
                 greeting
+                CareStudioView(book: book)
                 arranged
                 bookingActions
                 shortcuts
@@ -406,5 +407,119 @@ struct HomeView: View {
         .frame(minHeight: 150)
         .clipShape(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
+    }
+}
+
+// An interactive editorial card, shared in concept with the web and Android home.
+private struct CareStudioView: View {
+    let book: () -> Void
+    @State private var chapter = 0
+    @State private var motion = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @Namespace private var selection
+    private let night = Color(red: 0.09, green: 0.17, blue: 0.17)
+    private let labels = ["For me", "For family", "My records"]
+    private let titles = ["Feel good.", "Close to heart.", "Every chapter."]
+    private let accents = ["Live fully.", "Closer to care.", "Connected."]
+    private let details = [
+        "Your next chapter of feeling better starts at home. Find a little help that fits your everyday.",
+        "Bring your people into your circle. Arrange care for someone you love, while keeping their records private.",
+        "Readings, results and visits, all in your Health Passport. A clearer picture, with you in control."
+    ]
+    private var tint: Color {
+        chapter == 0 ? Color(red: 0.87, green: 1, blue: 0.57) : chapter == 1 ? Color(red: 1, green: 0.81, blue: 0.68) : Color(red: 0.87, green: 0.83, blue: 1)
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack {
+                Label("THE CARE STUDIO", systemImage: "sparkles").thusoFont(ThusoType.caption, weight: .bold).tracking(1).foregroundStyle(tint)
+                Spacer(minLength: 4)
+                Button { motion.toggle() } label: {
+                    Image(systemName: motion && !reduceMotion ? "pause.fill" : "play.fill")
+                        .frame(width: 44, height: 44).background(.white.opacity(0.1), in: Circle())
+                }
+                .foregroundStyle(.white)
+                .accessibilityLabel(motion && !reduceMotion ? "Pause decorative motion" : "Enable decorative motion")
+                .disabled(reduceMotion)
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 3) { focusButtons }
+                VStack(alignment: .leading, spacing: 3) { focusButtons }
+            }
+            .padding(5).background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(titles[chapter]).font(.system(.largeTitle, design: .rounded, weight: .semibold))
+                    Text(accents[chapter]).font(.system(.largeTitle, design: .serif)).italic().foregroundStyle(tint)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                Text(details[chapter]).font(.subheadline).foregroundStyle(Color.white.opacity(0.85)).fixedSize(horizontal: false, vertical: true)
+                Group {
+                    if chapter == 0 { Button(action: book) { actionLabel("Explore care") } }
+                    else if chapter == 1 { NavigationLink { FamilyView() } label: { actionLabel("Meet your circle") } }
+                    else { NavigationLink { PassportView() } label: { actionLabel("Open my passport") } }
+                }.buttonStyle(StudioPressStyle())
+            }
+            .id(chapter)
+            .transition(.opacity.combined(with: .offset(y: reduceMotion ? 0 : 8)))
+            if !typeSize.isAccessibilitySize {
+                TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !motion || reduceMotion)) { context in
+                    let time = motion && !reduceMotion ? context.date.timeIntervalSinceReferenceDate : 0
+                    ZStack {
+                        Ellipse().stroke(tint.opacity(0.35), lineWidth: 1).rotationEffect(.degrees(-20)).padding(8)
+                        Ellipse().fill(tint).padding(.horizontal, 25)
+                        Image(["Nurse", "Family", "Elder"][chapter]).resizable().scaledToFit().padding(.top, 12)
+                        Image(systemName: "sparkle").font(.system(size: 45)).foregroundStyle(tint)
+                            .rotationEffect(.degrees(time.truncatingRemainder(dividingBy: 24) * 15))
+                            .offset(x: -115, y: -75)
+                        Text("HELP. HEALTH. HOME.").thusoFont(ThusoType.caption, weight: .bold).tracking(1)
+                            .padding(14).background(Color(red: 1, green: 0.97, blue: 0.91), in: RoundedRectangle(cornerRadius: 12))
+                            .foregroundStyle(night).rotationEffect(.degrees(-5))
+                            .offset(y: 75 + sin(time) * 4)
+                    }
+                }
+                .frame(height: 225).accessibilityHidden(true)
+            }
+            HStack {
+                Text("A more human kind of healthcare").thusoFont(ThusoType.caption)
+                Spacer()
+                Text("0\(chapter + 1) / 03").thusoFont(ThusoType.caption).monospacedDigit()
+            }.foregroundStyle(Color.white.opacity(0.85))
+        }
+        .padding(22).foregroundStyle(.white)
+        .background(night, in: RoundedRectangle(cornerRadius: 28))
+        .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.85), value: chapter)
+    }
+    private var focusButtons: some View {
+        ForEach(0..<3) { index in
+            Button { chapter = index } label: {
+                Text(labels[index]).thusoFont(ThusoType.caption, weight: .semibold)
+                    .padding(.horizontal, 10).frame(minHeight: 44).frame(maxWidth: .infinity)
+                    .foregroundStyle(chapter == index ? night : .white)
+                    .background {
+                        if chapter == index {
+                            RoundedRectangle(cornerRadius: 13).fill(tint).matchedGeometryEffect(id: "focus", in: selection)
+                        }
+                    }
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(chapter == index ? .isSelected : [])
+        }
+    }
+    private func actionLabel(_ title: String) -> some View {
+        HStack(spacing: 18) {
+            Text(title).font(.subheadline.weight(.semibold))
+            Image(systemName: "arrow.up.right").font(.headline)
+        }
+        .padding(.horizontal, 20).frame(minHeight: 52).foregroundStyle(night).background(tint, in: Capsule())
+    }
+}
+
+private struct StudioPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
+            .animation(reduceMotion ? nil : .spring(response: 0.25), value: configuration.isPressed)
     }
 }

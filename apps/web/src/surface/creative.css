@@ -1,0 +1,124 @@
+/* Expressive interaction layer. Motion is decorative; navigation never waits for it. */
+:root {--studio-night:#172b2b;--studio-lime:#dfff92;--studio-lilac:#ded3ff;--studio-paper:#faf8f2}
+.app-shell.patient-surface {--canvas:var(--studio-paper);--charcoal:#243630;--indigo:#243630;--indigo-deep:#13251e;--line:#e2e4d9;background:var(--studio-paper)}
+.patient-surface>.patient-ground {background:var(--studio-paper)}
+.patient-surface .home-head h1 {font-size:34px;letter-spacing:-1.5px}
+.patient-surface .home-head .dashboard-eyebrow {letter-spacing:2px;color:#596646}
+.care-studio {--chapter-color:var(--studio-lime);isolation:isolate;position:relative;background:var(--studio-night);color:#fff;border-radius:28px;padding:24px 30px 20px;margin:0 0 30px;overflow:hidden;border:1px solid #314641}
+.care-studio.chapter-1 {--chapter-color:#ffcead}
+.care-studio.chapter-2 {--chapter-color:var(--studio-lilac)}
+.care-studio::before {content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at var(--pointer-x,75%) var(--pointer-y,40%),#52745c55,transparent 55%);pointer-events:none}
+.studio-top,.studio-bottom {display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:13px}
+.studio-top>span {display:flex;align-items:center;gap:9px;font-weight:650;letter-spacing:2px;color:var(--chapter-color)}
+.studio-motion {display:flex;align-items:center;gap:7px;min-height:44px;border:1px solid #65776f;border-radius:99px;padding:8px 12px;color:#e5ece3;font-size:13px}
+.studio-motion:disabled {opacity:1;color:#c4cec7}
+.studio-tabs {display:flex;gap:5px;margin-top:20px;padding:5px;background:#ffffff0b;width:fit-content;border:1px solid #ffffff24;border-radius:99px}
+.studio-tabs button {display:flex;align-items:center;gap:8px;border-radius:99px;min-height:44px;padding:10px 20px;font-size:13px;color:#d4dfd6;transition:background .25s,color .25s}
+.studio-tabs button[aria-selected=true] {background:var(--chapter-color);color:#233a2b;box-shadow:0 3px 15px #0002}
+.studio-tabs button:hover:not([aria-selected=true]) {background:#ffffff14;color:white}
+.studio-chapter {display:grid;grid-template-columns:1.15fr 1fr;gap:16px;align-items:center;min-height:345px}
+.studio-copy {padding:25px 0;position:relative;z-index:2}
+.studio-kicker {font-size:13px;font-weight:550;letter-spacing:1.7px;color:#bfcec1;margin-bottom:15px}
+.studio-copy h2 {font-size:clamp(40px,4.5vw,68px);font-weight:550;line-height:1.01;letter-spacing:-3px;color:#fff}
+.studio-copy h2 em {font-family:Georgia,serif;font-weight:400;color:var(--chapter-color);letter-spacing:-2.5px}
+.studio-description {color:#d1ddd4;font-size:14px;line-height:1.7;max-width:365px;margin-top:20px;min-height:72px}
+.studio-cta {display:inline-flex;align-items:center;gap:30px;margin-top:22px;border-radius:99px;padding:6px 6px 6px 22px;min-height:52px;background:var(--chapter-color);color:#233a2b;font-size:14px;font-weight:650}
+.studio-cta>span {display:grid;place-items:center;width:40px;height:40px;background:#243630;color:var(--chapter-color);border-radius:50%;transition:transform .25s}
+.studio-cta:hover>span {transform:rotate(45deg)}
+.studio-art {position:relative;height:345px;display:grid;place-items:center;min-width:0}
+.studio-disc {position:absolute;inset:20px 25px 25px;border-radius:48% 48% 42% 42%;background:var(--chapter-color);transform:rotate(-6deg);overflow:hidden;transition:background .4s}
+.studio-disc img {width:100%;height:115%;object-fit:contain;object-position:center bottom;position:absolute;bottom:-10px;left:0;transform:rotate(6deg) scale(1.06)}
+.studio-orbit {position:absolute;inset:22px 0;border:1px solid #d9e8ba66;border-radius:50%;transform:rotate(-30deg);pointer-events:none}
+.orbit-two {inset:0 20px;transform:rotate(26deg);border-color:#d9e8ba33}
+.studio-star {position:absolute;color:var(--chapter-color);font-family:Georgia,serif;line-height:1}
+.star-one {left:0;top:8px;font-size:70px}
+.star-two {right:0;bottom:15px;font-size:90px}
+.studio-sticker {position:absolute;bottom:38px;left:-12px;display:flex;align-items:center;gap:9px;padding:15px 18px;background:#fff8e9;color:#243630;border-radius:12px;transform:rotate(-6deg);font-size:13px;font-weight:600;box-shadow:0 10px 25px #0002}
+.studio-art-label {position:absolute;right:-12px;top:48%;writing-mode:vertical-rl;font-size:13px;letter-spacing:2px;color:#bfcfc0}
+.studio-bottom {border-top:1px solid #ffffff26;padding-top:18px;color:#d1ddd4}
+.studio-bottom>span:first-child {display:flex;gap:9px;align-items:center}
+.studio-bottom i {width:7px;height:7px;background:var(--chapter-color);border-radius:50%}
+.studio-bottom b {font-weight:400;color:#adbfaf;margin-left:5px}
+.is-moving .studio-copy {animation:studio-arrive .5s cubic-bezier(.2,.8,.2,1) both}
+.is-moving .studio-disc img {animation:studio-photo .7s cubic-bezier(.2,.8,.2,1) both}
+.is-moving .studio-star {animation:studio-turn 22s linear infinite}
+.is-moving .studio-sticker {animation:studio-float 6s ease-in-out infinite}
+@keyframes studio-arrive {from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes studio-photo {from{opacity:0;transform:rotate(10deg) translateY(20px) scale(1.1)}to{opacity:1;transform:rotate(6deg) translateY(0) scale(1.06)}}
+@keyframes studio-turn {to{rotate:360deg}}
+@keyframes studio-float {0%,100%{translate:0 0}50%{translate:0 -9px}}
+.patient-surface .health-overview-heading {margin-top:34px}
+.patient-surface .health-overview-heading h2 {font-size:22px;letter-spacing:-.8px}
+.patient-surface .s-metric:nth-child(1) {background:#eef1df}
+.patient-surface .s-metric:nth-child(2) {background:#eeeafa}
+.patient-surface .s-metric:nth-child(3) {background:#faecde}
+.patient-surface .s-metric::after {display:none}
+.patient-surface .s-metric {border:0;border-radius:20px;padding:24px;transition:transform .2s,box-shadow .2s}
+.patient-surface .s-metric-value {font-size:42px;font-weight:500}
+.patient-surface .s-metric-chip {background:#ffffffa8;color:#344c3b}
+.patient-surface .shortcut-row {border-radius:22px;padding:22px;transition:transform .25s,box-shadow .25s,border-color .25s}
+.patient-surface .shortcut-row:nth-child(2) .service-icon {background:#f7e5d8;color:#82543a}
+.patient-surface .shortcut-row:nth-child(3) .service-icon {background:#eee7ff;color:#6b528a}
+.patient-surface .shortcut-row:nth-child(4) .service-icon {background:#e2edfb;color:#42628c}
+.patient-surface .shortcut-row:hover {transform:translateY(-5px);box-shadow:0 14px 25px #233b3010;border-color:#99ac8c}
+.patient-surface .shortcut-row:hover>svg {transform:translateX(3px)}
+.patient-surface .shortcut-row .service-icon {width:50px;height:50px;border-radius:16px;transition:transform .25s}
+.patient-surface .shortcut-row:hover .service-icon {transform:rotate(-8deg)}
+.patient-surface .promo-card {background:#e8e1f5;border:0;border-radius:22px}
+.patient-surface .promo-card h2 {font-family:Georgia,serif;font-size:29px;font-weight:400}
+.patient-surface .search-field:focus-within {border-color:#56734d;box-shadow:0 0 0 4px #9db78925}
+.patient-surface .tabbar button.active .tab-icon {background:#dfff92;color:#243630}
+.patient-surface .panel,.patient-surface .visit-card {border-radius:20px}
+.app-shell .modal {animation:studio-arrive .25s ease-out}
+.app-shell button:active:not(:disabled) {scale:.98}
+.landing .landing-hero {background:#172b2b;color:white;border-radius:0 0 44px 44px;padding-left:max(24px,calc((100vw - 1200px)/2));padding-right:max(24px,calc((100vw - 1200px)/2));max-width:none}
+.landing .landing-hero h1 {color:#f7f8ee;font-family:Georgia,serif;font-weight:400;font-size:clamp(42px,5vw,76px)}
+.landing .landing-kicker,.landing .landing-hero-lede,.landing .landing-facts,.landing .landing-quiet,.landing .landing-portrait figcaption {color:#d6e2d8}
+.landing .landing-hero .primary {background:#dfff92;color:#243630;border-radius:99px}
+.landing .landing-portrait-frame {border-radius:48% 48% 40% 40%;background:#ded3ff;transform:rotate(4deg)}
+.landing .landing-portrait-frame img {transform:rotate(-4deg)}
+.landing .landing-figures {margin-top:32px}
+.landing .landing-head h2 {font-family:Georgia,serif;font-weight:400;letter-spacing:-1px}
+.onboarding.patient-surface .onboard-panel {background:#172b2b;color:#fff}
+.onboarding.patient-surface .onboard-panel h2 {color:#dfff92;font-family:Georgia,serif;font-size:48px;font-weight:400}
+.onboarding.patient-surface .onboard-panel>p {color:#d4e1d7}
+.onboarding.patient-surface .onboard-panel::after {border-color:#dfff92;opacity:.1}
+@media(min-width:1000px) {
+ .patient-surface .sidebar.glass {background:#faf8f2}
+ .patient-surface .sidebar nav button.active {background:#243630;color:#e9f5db;box-shadow:none;border-radius:13px}
+ .patient-surface .sidebar nav button {min-height:48px;transition:background .2s,translate .2s}
+ .patient-surface .sidebar nav button:hover {translate:3px 0}
+ .patient-surface .help-card {background:#e8e1f5;border:0;border-radius:20px}
+ .patient-surface main {padding-top:22px}
+}
+@media(max-width:1100px) and (min-width:1000px) {.studio-copy h2 {font-size:44px}.studio-tabs button {padding:10px 15px}.studio-sticker {left:0;padding:12px;font-size:13px}}
+@media(max-width:699px) {
+ .care-studio {padding:20px;border-radius:24px}
+ .studio-top>span {letter-spacing:1px;font-size:13px}
+ .studio-motion {padding:8px;min-width:44px;justify-content:center}
+ .studio-motion>span {display:none}
+ .studio-tabs {width:100%;border-radius:15px;gap:2px}
+ .studio-tabs button {flex:1;padding:10px 6px;gap:5px;font-size:13px;border-radius:11px}
+ .studio-tabs button svg {display:none}
+ .studio-chapter {grid-template-columns:1fr;gap:0;min-height:0}
+ .studio-copy {padding:25px 0 5px}
+ .studio-copy h2 {font-size:48px;letter-spacing:-2px}
+ .studio-copy h2 em {letter-spacing:-1.8px}
+ .studio-kicker {font-size:13px;letter-spacing:1px;line-height:1.5}
+ .studio-description {min-height:0;font-size:14px;margin-top:18px}
+ .studio-art {height:240px;margin:15px 20px 5px}
+ .studio-disc {inset:10px 22px 15px}
+ .studio-star.star-one {font-size:52px}.studio-star.star-two {font-size:66px}
+ .studio-sticker {bottom:23px;left:-20px;padding:12px;font-size:13px}
+ .studio-bottom {font-size:13px;align-items:flex-start}
+ .studio-bottom>span:first-child {max-width:220px;line-height:1.5}
+ .studio-bottom i {flex-shrink:0;margin-top:6px}
+ .studio-bottom>span:last-child {white-space:nowrap}
+ .patient-surface .s-metric {padding:18px}
+ .patient-surface .s-metric-value {font-size:30px}
+ .landing .landing-hero {border-radius:0 0 28px 28px}
+}
+@media(prefers-reduced-motion:reduce) {
+ .care-studio *, .care-studio *::before {animation:none!important;transition:none!important}
+ .app-shell button:active:not(:disabled) {scale:1}
+}

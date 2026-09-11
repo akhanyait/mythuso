@@ -7,6 +7,9 @@ import './surface/core.css';
 import './surface/app.css';
 import './surface/clinical-screens.css';
 import './shells/shells.css';
+// Web-specific theme follows each entry's existing component styles.
+import './surface/web-refresh.css';
+import './surface/creative.css';
 /* The clinical entry. It shares the design system with the patient app and nothing else: no patient
    shell, no booking flow, no wallet, no catalogue, and no route back into any of them. */
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><StaffApp /></React.StrictMode>);

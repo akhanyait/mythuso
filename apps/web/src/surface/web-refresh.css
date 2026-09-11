@@ -1,0 +1,175 @@
+/* Web-only design layer. Native clients retain their existing tokens. */
+:root {
+ --ink:#183c38; --slate:#244b46; --body:#536762; --faint:#60716d;
+ --canvas:#f5f7f6; --surface:#fff; --line:#dce5e1; --stone:#dce5e1;
+ --charcoal:#183c38; --indigo:#176858; --indigo-deep:#105344;
+ --indigo-soft:#eaf4ef; --accent-soft:#bddace; --pale-sage:#e8f3ec;
+ --r-control:12px; --r-card:18px; --r-panel:18px;
+ --shadow:0 2px 5px #183c3804; --shadow-raised:0 18px 60px #183c381a;
+}
+.app-shell.patient-surface,.app-shell.clinical {
+ --ink:#183c38; --slate:#244b46; --body:#536762; --faint:#60716d;
+ --canvas:#f5f7f6; --charcoal:#183c38; --indigo:#176858; --indigo-deep:#105344;
+ --indigo-soft:#eaf4ef; --accent-soft:#bddace; --glass-floor:#fff;
+ --line:#dce5e1; --stone:#dce5e1; background:#f5f7f6; color:var(--ink);
+}
+.patient-surface > .patient-ground {background:#f5f7f6}
+.patient-surface > .patient-ground::after {display:none}
+.app-shell .workspace,.app-shell .workspace.surface {background:transparent}
+h1,h2,h3 {font-family:Inter,sans-serif}
+h1 {font-weight:650;letter-spacing:-1.1px}
+.primary {background:var(--indigo);box-shadow:0 3px 7px #17685815;border-radius:12px}
+.primary:hover:not(:disabled) {background:var(--indigo-deep);box-shadow:0 5px 12px #17685825}
+.secondary,.ghost {border-radius:12px}
+.app-shell .panel,.app-shell .s-panel,.app-shell .service-card,.app-shell .visit-card,.app-shell .chart-card {border-radius:18px;border-color:var(--line);box-shadow:0 2px 5px #183c3804}
+.app-shell .section-title h2 {font-size:16px;font-weight:650;letter-spacing:-.4px}
+.app-shell .section-title .text-button {font-size:13px}
+.app-shell .service-icon,.app-shell .tile-icon {border-radius:13px;background:#eaf4ef;color:#236b56}
+.app-shell .s-metrics {gap:16px;padding:0;margin:20px 0 26px}
+.app-shell .s-metric {position:relative;padding:20px 22px;border:1px solid var(--line);border-radius:16px;background:#fff;gap:9px;overflow:hidden}
+.app-shell .s-metric::after {content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:#a9cbb8}
+.app-shell .s-metric-value {font-size:36px;font-weight:550;letter-spacing:-1.6px;line-height:1.2}
+.app-shell .s-metric-value small {font-size:13px;font-weight:450;letter-spacing:0;color:var(--body)}
+.app-shell .s-metric-chip {font-size:13px;background:#edf6ef;color:#376449;border:0;padding:4px 8px}
+.app-shell .s-metric-chip.flagged {background:var(--charcoal);color:#fff}
+.app-shell .s-metric-label {font-size:13px;font-weight:550;color:var(--body)}
+.app-shell .topbar.glass {background:#ffffffed;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:none}
+.app-shell .breadcrumb {font-size:13px}
+.app-shell .demo-pill {background:#eef3f0;border:0;border-radius:6px;color:#536762;font-size:13px;padding:6px 12px}
+.patient-surface .context-chip {background:#fff;border-radius:10px;font-size:13px;box-shadow:none}
+.patient-surface .home-head {align-items:center;margin-bottom:22px}
+.patient-surface .home-head h1 {font-size:30px;font-weight:650;letter-spacing:-1.2px}
+.patient-surface .home-head p {font-size:13px;margin-top:7px;color:var(--body)}
+.patient-surface .home-head .dashboard-eyebrow {font-size:13px;font-weight:700;letter-spacing:1.7px;color:#51756b;margin:0 0 9px}
+.care-welcome {position:relative;display:grid;grid-template-columns:1.2fr 1fr;min-height:285px;background:#e4eee6;border:1px solid #d4e2d8;border-radius:22px;overflow:hidden;margin-bottom:28px}
+.care-welcome-copy {padding:30px 34px;position:relative;z-index:2}
+.welcome-tag {display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#365d4d}
+.care-welcome h2 {font-size:36px;line-height:1.14;letter-spacing:-1.5px;font-weight:600;margin:14px 0 12px;color:#193e32}
+.care-welcome p {font-size:13px;line-height:1.7;max-width:340px;color:#496458}
+.care-welcome .primary {margin-top:20px;min-height:44px;font-size:13px;padding:10px 17px}
+.welcome-footnote {display:block;font-size:13px;color:#496458;margin-top:12px}
+.care-welcome-art {position:relative;min-width:0;background:radial-gradient(ellipse at 50% 85%,#bfd5bc 0 45%,transparent 46%)}
+.care-welcome-art img {position:absolute;height:105%;width:110%;max-width:none;object-fit:contain;object-position:center bottom;bottom:0;right:0}
+.care-art-caption {position:absolute;bottom:22px;right:22px;display:flex;align-items:center;gap:10px;background:#fffffff0;border:1px solid #fff;border-radius:13px;padding:12px 18px;box-shadow:0 8px 30px #183c3812;font-size:13px;font-weight:650}
+.care-art-caption small {display:block;font-size:13px;font-weight:400;margin-top:3px;color:var(--body)}
+.health-overview-heading {display:flex;justify-content:space-between;align-items:center;gap:16px}
+.health-overview-heading h2 {font-size:16px}
+.health-overview-heading p {font-size:13px;color:var(--body);margin-top:5px}
+.health-overview-heading .text-button {font-size:13px}
+.patient-surface .home-columns {gap:24px}
+.patient-surface .search-field {border-radius:12px;background:#fff;margin-bottom:24px;box-shadow:none}
+.patient-surface .search-field input {font-size:13px}
+.patient-surface .search-field .search-go {border-radius:9px}
+.patient-surface .shortcut-list {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.patient-surface .shortcut-row {display:grid;grid-template-columns:1fr auto;gap:12px;padding:19px;background:#fff;border:1px solid var(--line);border-radius:16px;align-items:start;position:relative}
+.patient-surface .shortcut-row>.service-icon {grid-column:1;grid-row:1;width:42px;height:42px}
+.patient-surface .shortcut-row>svg {grid-column:2;grid-row:1;color:#668277;margin-top:12px}
+.patient-surface .shortcut-text {grid-column:1/-1;min-width:0}
+.patient-surface .shortcut-text strong {font-size:13px;line-height:1.4}
+.patient-surface .shortcut-text small {font-size:13px;line-height:1.6;margin-top:6px;display:block;min-height:35px}
+.patient-surface .shortcut-meta {grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #edf1ee;padding-top:12px;width:100%}
+.patient-surface .shortcut-meta strong {font-size:15px;color:#236b56}
+.patient-surface .shortcut-meta small {font-size:13px}
+.patient-surface .visit-card.glass.lead {background:#fff;backdrop-filter:none;border:1px solid var(--line);border-top:3px solid #6d9d83;padding:22px;box-shadow:0 3px 12px #183c3805}
+.patient-surface .visit-top {flex-wrap:wrap;gap:12px}
+.patient-surface .visit-top strong {font-size:14px}
+.patient-surface .visit-top small {font-size:13px}
+.patient-surface .visit-top .pill {font-size:13px}
+.patient-surface .nurse-row {background:#f4f7f5;border-radius:11px;padding:12px;margin-top:18px}
+.patient-surface .nurse-row strong {font-size:13px}
+.patient-surface .nurse-row span {font-size:13px}
+.patient-surface .reminder-row {padding:17px}
+.patient-surface .family-row strong,.patient-surface .reminder-row strong {font-size:13px}
+.patient-surface .family-row small,.patient-surface .reminder-row small {font-size:13px;line-height:1.6}
+.patient-surface .home-side .helper {font-size:13px;line-height:1.6}
+.patient-surface .promo-card {background:#eaf1eb;border:1px solid #d6e4d9;padding:25px;border-radius:17px}
+.patient-surface .promo-card h2 {font-size:21px;font-weight:600}
+.patient-surface .promo-card p {font-size:13px;margin:9px 0 16px;max-width:360px}
+.patient-surface .promo-card .secondary {border-radius:10px;background:#fff;font-size:13px}
+.app-shell .app-footer {font-size:13px;color:var(--body)}
+.landing {--mist:#f0f0f0;--charcoal:#183c38;--body:#536762;--pale-sage:#e4eee6;background:var(--mist)}
+.landing .landing-nav {background:#ffffffed;border-bottom:1px solid #dce5e1}
+.landing .landing-hero {gap:48px;padding-top:65px;padding-bottom:65px}
+.landing .landing-hero h1 {font-weight:600;letter-spacing:-2.5px;line-height:1.08}
+.landing .landing-portrait-frame {border-radius:28px;background:#dceadd}
+.landing .landing-steps>li,.landing .landing-service {border-radius:18px;background:#fff;border:1px solid #dce5e1;padding:26px}
+.landing .landing-figures {background:#e7f0e9;border-radius:20px;padding:30px}
+@media(min-width:1000px) {
+ .app-shell {padding-left:248px}
+ .app-shell .sidebar,.patient-surface .sidebar.glass {width:248px;background:#fff;border-right:1px solid #dce5e1;padding:26px 16px 16px;backdrop-filter:none}
+ .app-shell .sidebar .brand {margin-bottom:30px}
+ .app-shell .sidebar .brand img {width:160px}
+ .app-shell .nav-label {font-size:13px;letter-spacing:1.7px;color:#698078;padding-left:14px;margin-bottom:15px}
+ .app-shell .sidebar nav {gap:5px}
+ .app-shell .sidebar nav button,.app-shell .sidebar .s-nav-row {border-radius:10px;background:transparent;color:#586e66;min-height:45px;font-size:13px;font-weight:500;padding:0 12px;gap:11px}
+ .app-shell .sidebar nav button.active,.app-shell .sidebar .s-nav-row[aria-current=page] {background:#e8f2ec;color:#1d624b;font-weight:650;box-shadow:inset 3px 0 #377c60}
+ .app-shell .sidebar nav button:hover {background:#f0f5f2}
+ .patient-surface .sidebar nav button>i,.app-shell .sidebar .s-nav-row>i {display:none}
+ .patient-surface .sidebar nav button .nav-count {margin-left:auto;background:#d6e9dc;color:#315a40;font-size:13px}
+ .patient-surface .help-card {background:#f0f5f0;border:1px solid #e0e9e0;border-radius:14px;padding:17px}
+ .patient-surface .help-card h3 {font-size:13px}
+ .patient-surface .help-card p {font-size:13px;line-height:1.6}
+ .patient-surface .help-card button {font-size:13px}
+ .patient-surface .settings-link,.patient-surface .sos-link {font-size:13px;border-radius:9px;padding-left:12px}
+ .app-shell main {max-width:1420px;padding:26px 34px 40px;margin:0 auto}
+ .app-shell .topbar {padding-left:34px;padding-right:34px;height:72px}
+ .app-shell .demo-pill {margin:12px 34px 0}
+ .patient-surface .home-columns {grid-template-columns:minmax(0,1.4fr) minmax(300px,1fr)}
+ .patient-surface .home-context .context-chip:first-child {display:none}
+}
+@media(min-width:1500px) {
+ .app-shell main {padding-left:48px;padding-right:48px}
+ .care-welcome {min-height:315px}
+ .care-welcome h2 {font-size:42px}
+ .care-welcome-copy {padding:36px 40px}
+}
+@media(max-width:999px) {
+ .care-welcome {min-height:250px}
+ .care-welcome-copy {padding:25px}
+ .care-welcome h2 {font-size:30px}
+ .app-shell .s-metric {padding:16px}
+ .app-shell .s-metric-value {font-size:29px;flex-wrap:wrap}
+ .patient-surface .home-head h1 {font-size:27px}
+}
+@media(max-width:599px) {
+ .care-welcome {grid-template-columns:1fr;min-height:0;border-radius:18px}
+ .care-welcome-copy {padding:24px}
+ .care-welcome h2 {font-size:32px}
+ .care-welcome-art {display:none}
+ .app-shell .s-metrics {gap:8px;grid-template-columns:repeat(3,minmax(0,1fr))}
+ .app-shell .s-metric {padding:12px 9px;gap:8px;border-radius:12px}
+ .app-shell .s-metric-value {font-size:23px;letter-spacing:-1px;gap:3px}
+ .app-shell .s-metric-value small {font-size:13px;letter-spacing:0}
+ .app-shell .s-metric-chip {font-size:13px;white-space:normal;padding:3px 5px}
+ .app-shell .s-metric-label {font-size:13px}
+ .health-overview-heading .text-button {max-width:95px;font-size:13px}
+ .patient-surface .shortcut-row {padding:14px;gap:10px}
+ .patient-surface .shortcut-text small {min-height:52px}
+ .patient-surface .shortcut-text strong {font-size:13px}
+ .patient-surface .home-context {width:100%}
+ .patient-surface .home-context .context-chip {flex:1;min-width:0;padding:7px 9px;font-size:13px}
+ .landing .landing-hero {gap:24px;padding-top:32px;padding-bottom:32px}
+ .landing .landing-hero h1 {letter-spacing:-1.5px}
+ .landing .landing-figures {border-radius:0;padding:24px}
+}
+@media(prefers-reduced-motion:reduce) {
+ .app-shell *, .landing * {scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
+
+/* Authentication uses the same welcoming material and a focused form card. */
+.onboarding.patient-surface {--indigo:#176858;--indigo-deep:#105344;--charcoal:#183c38;--faint:#536762;--glass-floor:#fff;background:#f5f7f6}
+.onboarding .onboard-body {background:#fff;border:1px solid #dce5e1;border-radius:22px;padding:30px;box-shadow:0 12px 40px #183c3808}
+.onboarding .onboard-panel {background:#e4eee6}
+.onboarding .onboard-panel h2 {font-size:32px;letter-spacing:-1px}
+.onboarding .onboard-note {background:#ffffffa8;border-color:#d6e4da;border-radius:14px}
+.onboarding .onboard-form .primary {border-radius:12px}
+@media(min-width:1000px) {
+ .onboarding {grid-template-columns:minmax(340px,.8fr) minmax(0,1.5fr)}
+ .onboarding .onboard-panel {padding:48px;position:relative;overflow:hidden}
+ .onboarding .onboard-panel::after {content:'';width:360px;height:360px;border:60px solid #cbdccf;border-radius:50%;position:absolute;top:32%;left:-100px;opacity:.55;pointer-events:none}
+ .onboarding .onboard-panel>* {position:relative;z-index:1}
+ .onboarding .onboard-form {padding:80px 40px}
+}
+@media(max-width:599px) {.onboarding .onboard-body {padding:22px 18px}}
+
+@media(max-width:599px) {.app-shell .s-metrics {grid-template-columns:1fr}.app-shell .s-metric {padding:16px;display:grid;grid-template-columns:1fr auto}.app-shell .s-metric-value {grid-column:2;grid-row:1/3;font-size:27px;align-self:center}.app-shell .s-metric-chip {justify-self:start}.patient-surface .shortcut-list {grid-template-columns:1fr}.patient-surface .shortcut-text small {min-height:0}}

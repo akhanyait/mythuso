@@ -61,8 +61,8 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
          is nobody to talk to — `messaging` is not connected — so the card offers what the screen
          behind it actually is: an account of what MyThuso can answer without anybody being
          reachable. */}
-     <h3>A helping hand?</h3><p>What we can answer without anybody to write to.</p>
-     <button onClick={() => navigate('Help & support')}>See what is here<ArrowRight size={15}/></button>
+     <h3>A helping hand?</h3><p>Find guidance on booking, your account and caring for family.</p>
+     <button onClick={() => navigate('Help & support')}>Explore help<ArrowRight size={15}/></button>
     </div>
     {/* The emergency pathway, in the chrome rather than fourteen cards deep inside a roadmap page.
         It is a quiet row and not a red button on purpose: the screen it opens leads with 10177 and

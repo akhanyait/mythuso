@@ -1,4 +1,5 @@
-import { Ambulance, ArrowRight, ArrowUpRight, CalendarPlus, ChevronDown, ChevronRight, Clock3, MapPin, Plus, Search, ShieldCheck, Stethoscope, Zap } from 'lucide-react';
+import { CareStudio } from '../components/CareStudio';
+import { Ambulance, ArrowRight, ArrowUpRight, CalendarPlus, ChevronDown, ChevronRight, Clock3, MapPin, Plus, Search, ShieldCheck, Zap } from 'lucide-react';
 import { SectionTitle, Pill, ServiceIcon } from '../components/UI';
 import { Metric, Metrics } from '../surface/Surface';
 import { liveServices, money, type Service } from '../lib/catalog';
@@ -53,6 +54,7 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
  return <div className="home">
   <header className="home-head rise">
    <div>
+    <p className="dashboard-eyebrow">YOUR PERSONAL CARE SPACE</p>
     <h1>{t('shell.greeting')}</h1>
     <p>{t('shell.greetingSub')}</p>
    </div>
@@ -77,6 +79,8 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
   {/* The figures, directly on the ground rather than inside a card. A metric that sits in a box is a
       card of numbers; a metric on the ground with a chip floating above it is the thing the founder
       pointed at, and it is what makes the top of this screen read as calm rather than as busy. */}
+  <CareStudio navigate={navigate}/>
+  <div className="health-overview-heading"><div><h2>Your health at a glance</h2><p>Sample readings from your Health Passport</p></div><button className="text-button" onClick={() => navigate('Health Passport')}>View passport<ArrowUpRight size={16}/></button></div>
   <Metrics>
    {leadReadings.map(r => <Metric key={r.label} value={r.value} unit={r.unit} label={r.label} chip={r.chip}/>)}
    <Metric value={String(planDueInDays)} unit="days" label="Until your next check-in" chip="Chronic Routine"/>
@@ -118,15 +122,13 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
      <input aria-label="Search for care" placeholder="What care do you need today?" value={query} onChange={e => setQuery(e.target.value)}/>
      <button className="primary search-go" type="submit" aria-label="Search"><Search size={17}/><span aria-hidden="true">Search</span></button>
     </form>
-    <button className="primary full book-cta" onClick={() => navigate('Book a nurse')}>
-     <Stethoscope size={19}/>{t('nav.Book a nurse')}<ArrowRight size={17}/>
-    </button>
+
 
     {/* No action on this heading. It carried a "Book a nurse" link directly beneath a full-width
         "Book a nurse" button, going to the same screen — three ways to say the same thing inside
         one hundred and twenty pixels, which is how a screen ends up feeling busy without carrying
         anything more. Every row underneath opens booking anyway. */}
-    <SectionTitle title="Care you can book today"/>
+    <SectionTitle title="Care you can book today" action="All services" onClick={() => navigate('Book a nurse')}/>
     {/* One row per service: one icon, the name, what it is, the price and how long it takes.
         A grid of two made the names wrap to three lines on a narrow phone. */}
     <div className="shortcut-list">
