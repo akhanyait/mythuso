@@ -10,7 +10,11 @@ test('a real one-time code signs you in, and signing out ends the session', asyn
   await page.goto('/');
   // with a service answering, the preview stops pretending: you have to sign in
   await expect(page.getByRole('heading', { name: 'Sign in to MyThuso' })).toBeVisible();
-  await expect(page.getByText('Identity service connected')).toBeVisible();
+  /* The chip says what is true rather than what would be convenient: a service answering on this
+     machine is not the accounts capability being connected, and the sentence changed when that
+     distinction was drawn. This assertion did not, and it only skips rather than fails because the
+     spec needs `npm run api` to run at all. */
+  await expect(page.getByText('Identity service is answering on this machine')).toBeVisible();
   await page.getByLabel('Mobile number').fill('082');
   await expect(page.getByRole('button', { name: 'Send my code' })).toBeDisabled();
   await page.getByLabel('Mobile number').fill('0824445555');

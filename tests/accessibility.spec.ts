@@ -147,6 +147,34 @@ const openLanguageAndAccess = async (page: Page) => {
   await expect(page.getByRole('heading', { name: /Twelve official languages/ })).toBeVisible();
 };
 
+/* The way in, on both sides of the door. The patient sign-in, the one-time code, sign-up and
+   recovery are the four screens somebody meets before the shell exists, and until this they were
+   audited on neither viewport — the only sign-in this file measured was the clinical one. They live
+   outside `main`, so the overflow sweep sees them through the document's own scroll width rather
+   than through a widest-child, which is the number that matters at 320 and at 200% anyway. */
+const openTheDoor = async (page: Page) => {
+  const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
+  if (await sidebar.isVisible()) await page.getByRole('button', { name: 'Your profile', exact: true }).click();
+  else await page.locator('.tabbar button').nth(4).click();
+  await page.getByRole('button', { name: /^Log out/ }).click();
+  await expect(page.getByRole('heading', { name: 'Sign in to MyThuso' })).toBeVisible();
+};
+
+const auditTheDoor = async (page: Page, where: string) => {
+  await openTheDoor(page);
+  await audit(page, `Sign in ${where}`);
+  await page.locator('.phone-field input').fill('0820000000');
+  await page.getByRole('button', { name: /Send my code/ }).click();
+  await expect(page.getByRole('button', { name: 'Ask for a new code' }).first()).toBeVisible();
+  await audit(page, `The one-time code ${where}`);
+  await page.getByRole('button', { name: 'Create an account' }).click();
+  await expect(page.getByRole('heading', { name: 'Care that comes to you.' })).toBeVisible();
+  await audit(page, `Sign-up ${where}`);
+  await page.getByRole('button', { name: 'I’ve lost access to my account' }).click();
+  await expect(page.getByRole('heading', { name: 'How can we reach you?' })).toBeVisible();
+  await audit(page, `Account recovery ${where}`);
+};
+
 test.describe('at a 320px viewport', () => {
   test.use({ viewport: { width: 320, height: 640 } });
 
@@ -159,6 +187,11 @@ test.describe('at a 320px viewport', () => {
     await audit(page, 'Book a nurse at 320px');
     await page.locator('.tabbar button').nth(3).click();
     await audit(page, 'Health Passport at 320px');
+  });
+
+  test('the way in holds together', async ({ page }) => {
+    await page.goto('/');
+    await auditTheDoor(page, 'at 320px');
   });
 
   /* One load, then the shell's own navigation — five reloads of a single-page app to reach five of
@@ -246,6 +279,12 @@ test.describe('at 200% zoom', () => {
     await audit(page, 'Patient overview at 200%');
     await openLanguageAndAccess(page);
     await audit(page, 'Language & access at 200%');
+  });
+
+  test('the way in holds together', async ({ page }) => {
+    await page.goto('/');
+    await zoomedTo200(page);
+    await auditTheDoor(page, 'at 200%');
   });
 
   test('the emergency pathway keeps the ambulance number readable and reachable', async ({ page }) => {
