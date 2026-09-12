@@ -83,6 +83,46 @@ Type scale is unchanged: 13, 14, 15, 16, 18, 20, 22, 24, 28, 32, 36, 40, 42, 64,
   floating chip marking a value on the curve. No gridlines shouting, no axis furniture.
 - **Progress** is a row of rounded segments rather than a continuous bar.
 
+## Motion
+
+One curve and three durations, in `motion` in `packages/design-tokens/tokens.json`, generated into
+all three platforms. They were written into `apps/web/src/surface/glass.css` and stopped there, so
+the web had a motion system and the native apps had a guess at it.
+
+| | Web | iOS | Android |
+|---|---|---|---|
+| The curve, `(.22, 1, .36, 1)` | `var(--ease-soft)` | `ThusoMotion.soft(_:)` | `ThusoMotion.EaseSoft` |
+| Quick — a press, a colour change | `var(--t-quick)` | `ThusoMotion.quick` | `ThusoMotion.quickMs` |
+| Settle — a control coming to rest | `var(--t-settle)` | `ThusoMotion.settle` | `ThusoMotion.settleMs` |
+| Enter — something arriving | `var(--t-enter)` | `ThusoMotion.enter` | `ThusoMotion.enterMs` |
+
+Reach for a spring only where a gesture is genuinely being tracked. Everything else uses the curve,
+and `check-boundaries.mjs` fails a `cubic-bezier(…)` typed into any stylesheet.
+
+**Four pieces, in `apps/web/src/surface/motion.css`.** An entrance (`rise`, `rise-2`, `rise-3`), a
+settle, a chapter entrance — the same `rise` replayed by keying the element from `useChapter()` —
+and a pointer-following light (`m-light`), which paints white so it can only lift the ground and
+never lower it, and lives on `.patient-ground`, a fixed, empty, `aria-hidden` pane behind every
+panel. That is its whole safety argument: a light that can move because nothing is read off it.
+
+**Decorative motion is gated on `[data-decor='on']`** on the document element, set by `useDecor()`
+and cleared by `<MotionPause/>`. A page whose script never runs gets none of it, rather than motion
+nobody can stop; one pause control anywhere on a page stops everything on it, which is what WCAG
+2.2.2 asks for. A control that has no auto-starting motion of its own — the pointer light only
+moves while a cursor does — needs no pause control, and the patient surface has none for that
+reason. The landing page's two ambient drifts do start on their own, and it has one.
+
+**Reduced motion removes rather than shortens.** A 420ms entrance run at 80ms is still a thing that
+moved. Web answers `prefers-reduced-motion`, iOS `accessibilityReduceMotion`, Android the system
+animator duration scale, which reports 0 and so is genuinely none. The web's removal is
+`!important` on purpose: `motion.css` is imported first from `core.css`, so a later sheet setting a
+transition on the same selector would otherwise win on order alone.
+
+**What nothing may do**: move under a word being read, move a control a thumb is travelling towards,
+or make navigation wait. Every endless animation is on a pseudo-element with `pointer-events:none`
+and nothing inside it, moving by transform, so no control's box ever changes — which is what made
+the old hero bubbles a test hazard, rather than the fact that they moved.
+
 ## What does not change
 
 Everything in `.claude/agents/ui-ux.md` still binds: the type floor, 44×44 targets, the two-ring

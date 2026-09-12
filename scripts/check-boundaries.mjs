@@ -1500,6 +1500,54 @@ if(existsSync('apps/web/src/surface/glass.css')) {
  if(!glass.includes('prefers-reduced-motion')) throw new Error('glass.css animates and does not answer prefers-reduced-motion.');
 }
 
+/* The motion system, and the four things that make it one rather than several.
+ *
+ * The curve and the durations were declared inside glass.css, which meant the web had a motion
+ * system and the two native apps had whatever each had guessed. They are in tokens.json now and
+ * generated into all three, so the first check is simply that nobody writes a second copy: an
+ * easing curve or a duration typed into a stylesheet is the beginning of the drift this project
+ * spends most of its boundary checks preventing.
+ *
+ * The rest is what a reader is owed. Reduced motion REMOVES rather than shortens — a 420ms entrance
+ * run at 80ms is still a thing that moved — and the removal has to be !important because the sheet
+ * is imported first and anything loaded after it would otherwise win on order alone. */
+if(existsSync('apps/web/src/surface/motion.css')) {
+ const motion = read('apps/web/src/surface/motion.css');
+ const code = motion.replace(/\/\*[\s\S]*?\*\//g, '');
+ if(!/@media\s*\(prefers-reduced-motion:\s*reduce\)/.test(code)) throw new Error('apps/web/src/surface/motion.css is the motion system and does not answer prefers-reduced-motion. Everything it declares has to be removable.');
+ const removal = code.slice(code.indexOf('prefers-reduced-motion'));
+ for(const name of ['rise', 'm-press', 'm-light']) {
+  if(!removal.includes(name)) throw new Error(`motion.css declares ".${name}" and its reduced-motion block never mentions it. A reader who asked for stillness would keep that one, which is how a removal becomes a partial removal nobody notices.`);
+ }
+ if(!/animation:\s*none\s*!important/.test(removal)||!/transition:\s*none\s*!important/.test(removal)) throw new Error('motion.css removes motion without !important. This sheet is imported first from core.css, so any later sheet setting a transition on the same selector beats it — a reduced-motion block a stylesheet loaded afterwards can overrule is a suggestion, not a removal.');
+ /* The pointer light may only lift the ground. Every contrast figure measured against a frosted
+    panel assumes the ground never goes darker than --glass-floor-ground; a light that could darken
+    would quietly falsify all of them at whichever position the pointer happened to be. */
+ const light = code.slice(code.indexOf('.m-light'), code.indexOf('.m-pause'));
+ for(const colour of [...light.matchAll(/var\(--([a-z-]+)\)/g)].map(m=>m[1])) {
+  if(colour.startsWith('t-')||colour==='ease-soft'||colour.startsWith('m-')) continue;
+  if(colour!=='surface') throw new Error(`The pointer light paints --${colour}. It may paint --surface and nothing else: it is white so that it can only lift the ground and never lower it, which is the only reason --glass-floor stays true wherever the pointer goes.`);
+ }
+ /* A decorative animation that no control can reach is the defect the pause control exists to
+    prevent, and it is invisible in a diff — the rule reads perfectly well on its own. */
+ for(const rule of code.matchAll(/([^{}]*)\{[^{}]*animation:[^;}]*infinite[^;}]*/g)) {
+  if(!rule[1].includes('[data-decor')) throw new Error(`motion.css runs an endless animation on "${rule[1].trim()}" without gating it on [data-decor='on']. Decorative motion that the pause control cannot reach is decorative motion nobody can stop.`);
+ }
+}
+/* One curve, one set of durations, and nowhere else to type them. tokens.generated.css is the only
+   file allowed to hold the literals; every stylesheet spends --ease-soft and --t-*. A cubic-bezier
+   written into a component sheet is not a style choice, it is a second motion system starting — and
+   the first one started exactly that way, three durations at a time, in a file two of the three
+   platforms could not read. */
+for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/surface/motion.css','apps/web/src/surface/glass.css','apps/web/src/surface/patient.css','apps/web/src/surface/clinical.css','apps/web/src/surface/surface.css','apps/web/src/surface/door.css']) {
+ if(!existsSync(sheet)) continue;
+ const code = read(sheet).replace(/\/\*[\s\S]*?\*\//g, '');
+ const curve = code.match(/cubic-bezier\([^)]*\)/);
+ if(curve) throw new Error(`${sheet} writes ${curve[0]}. The curve is motion.easeSoft in packages/design-tokens/tokens.json and arrives as --ease-soft; a second one typed into a stylesheet is how the web and the two native apps came to accelerate differently.`);
+ const redeclared = code.match(/--(?:ease-soft|t-quick|t-settle|t-enter)\s*:/);
+ if(redeclared) throw new Error(`${sheet} redeclares ${redeclared[0].trim()}. It is generated into tokens.generated.css from tokens.json, where iOS and Android read it too.`);
+}
+
 /* What may be written on sage.
    The sage ramp is a fill and charcoal is the only foreground measured against it — 11.11:1 on the
    lightest, 5.89 on the darkest. `faint` on paleSage computes 3.70 and fails, and the patient sweep
@@ -1805,7 +1853,7 @@ void inventedNotices;
    So an animation that runs forever may only touch the compositor. A finite one may do as it likes:
    it stops, and the wait ends with it. */
 const composited = /^(transform|opacity|filter|background-position|background-size|box-shadow|color|background-color|border-color|stroke|fill|stroke-dashoffset)$/;
-for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/surface/studio.css','apps/web/src/map/map.css']) {
+for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/surface/studio.css','apps/web/src/map/map.css','apps/web/src/surface/motion.css']) {
  const css=read(sheet);
  const frames=new Map();
  for(const match of css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g)) frames.set(match[1], match[2]);
