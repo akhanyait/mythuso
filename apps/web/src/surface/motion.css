@@ -66,7 +66,12 @@
 
 /* A press. The one piece of feedback that has to be faster than a settle, because it answers a
    finger that is still on the glass. Scale only — a control that moves under a thumb mid-press is
-   a control that gets released somewhere else. */
+   a control that gets released somewhere else.
+
+   Opt-in rather than a blanket rule on every button, which is how the earlier cut of this did it.
+   A press response belongs on a control a person deliberately taps and expects to feel — not on a
+   disclosure's chevron, not on a row in a list they are scanning, and not on the twelve controls a
+   clinical board happens to render at once. The pause control carries it; anything else asks. */
 .m-press:active:not(:disabled) { transform: scale(.98); }
 .m-press { transition: transform var(--t-quick) var(--ease-soft); }
 

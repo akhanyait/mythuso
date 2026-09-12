@@ -22,7 +22,7 @@ export function MotionPause({ className }: { className?: string }) {
  const { playing, reduced, toggle } = useDecor();
  if (reduced) return null;
  return (
-  <button type="button" className={`m-pause${className ? ` ${className}` : ''}`} onClick={toggle}>
+  <button type="button" className={`m-pause m-press${className ? ` ${className}` : ''}`} onClick={toggle}>
    {playing ? <Pause size={15}/> : <Play size={15}/>}
    <span>{playing ? 'Pause motion' : 'Play motion'}</span>
   </button>
