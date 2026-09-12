@@ -106,18 +106,25 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    studioNight rather than the ink, because the page now has three dark moments — this banner, the
    bar of sections in the hero and the closing panel — and three near-blacks a few points apart read
    as a mistake rather than as a system. Paper on night measures 13.96. */
-.landing-notice{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--studio-night);color:var(--studio-paper);font-size:13px;line-height:1.55;padding:13px var(--pad)}
+.landing-notice{display:flex;align-items:center;gap:4px 18px;flex-wrap:wrap;background:var(--studio-night);color:var(--studio-paper);font-size:13px;line-height:1.55;padding:6px var(--pad)}
+/* The dot marks the first line of the sentence rather than the middle of the block. On a phone the
+   sentence is four lines and a bullet floating beside line three reads as a stray mark. */
+.landing-notice .status-dot{align-self:flex-start;margin-top:7px}
+.landing-notice p{margin:0;flex:1 1 26ch;min-width:0}
 .landing-notice strong{color:var(--surface);font-weight:500}
+/* The door out of the disclosure, and the reason the strip's block padding came down from 13 to 6.
+   The link is a control and takes the 44px floor, which is taller than the sentence beside it — so
+   the padding that used to make the bar slim is now made by the target itself, and the bar is 56px
+   on a wide screen rather than 46. Its outline is paper at 38% over night, which measures 3.28:1
+   against the bar (SC 1.4.11 asks 3:1 of a control's visual boundary); the label itself is paper
+   at 13.96. Not a filled pill: the one filled control above the fold is "See the app". */
+.landing-notice a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 15px;border-radius:var(--r-pill);border:1px solid color-mix(in srgb,var(--studio-paper) 38%,var(--studio-night));color:var(--studio-paper);font-weight:500;white-space:nowrap;transition:background-color .18s var(--ease),border-color .18s var(--ease)}
+.landing-notice a:hover{background:color-mix(in srgb,var(--studio-paper) 12%,transparent);border-color:var(--studio-paper)}
 /* Mango, not the teal the shared dot ships with. A teal dot is the app's "live" indicator, and this
    is the one statement on the page that says the opposite. Mango is the attention colour, it is the
    only place mango appears here outside the focus ring, and on --charcoal it measures 9.57:1. */
 .landing-notice .status-dot{background:var(--mango);width:8px;height:8px}
-.landing-portrait figcaption{margin-top:14px;font-size:13px;line-height:1.5;color:var(--body)}
-/* The caption and the pause control share a line. The caption takes the width it needs and the
-   control keeps its own size, because a 44px target that shrinks to fit a sentence is not one. */
-.landing-portrait-foot{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.landing-portrait-foot figcaption{flex:1 1 200px;min-width:0}
-.landing-portrait-foot .m-pause{margin-top:14px;flex-shrink:0}
+.landing-portrait figcaption{font-size:13px;line-height:1.5;color:var(--body)}
 .landing-footer-note strong{color:var(--charcoal);font-weight:500}
 
 /* ---- Navigation ----
@@ -181,16 +188,81 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    the sage lives: a pale-sage panel with the drift on it, the portrait on top, and the caption
    underneath saying what it is. No text is ever inside this box, which is what makes the wash safe
    to animate at all — nothing a reader has to read sits on a ground that is changing. */
-.landing-portrait{position:relative;margin:0;min-width:0}
-.landing-portrait-frame{position:relative;overflow:hidden;border-radius:var(--r-panel);background:var(--pale-sage);border:1px solid var(--stone);aspect-ratio:4 / 5;display:grid;align-items:end;justify-items:center;color:var(--charcoal)}
+/* A grid of one column rather than a stack of absolutely positioned boxes, and the reason is a bug
+   this shape fixes rather than a preference. A <figcaption> is only valid as the figure's first or
+   last child, so the caption cannot be moved inside the frame it has to sit on — it was positioned
+   against the *figure* instead, with bottom:14px. That is the bottom of the photograph in the two
+   splits, and in the hero, where the figure also carries a row of controls, it was the bottom of
+   the controls: the caption card sat on top of the pause button and covered half its target.
+   One grid cell shared by the frame and the caption puts the caption back on the picture wherever
+   it appears, and gives the carousel's controls a row of their own beneath. */
+.landing-portrait{position:relative;display:grid;grid-template-columns:minmax(0,1fr);margin:0;min-width:0}
+.landing-portrait-frame{grid-area:1 / 1;position:relative;overflow:hidden;border-radius:var(--r-panel);background:var(--pale-sage);border:1px solid var(--stone);aspect-ratio:4 / 5;color:var(--charcoal)}
 /* The white card floating over the photograph, which is the reference's other signature. It carries
    the caption that was under the frame: a sentence saying this is not a MyThuso nurse and not a
    patient belongs on the photograph it is about, where somebody looking at the face reads it,
    rather than in a line beneath that the eye skips. It is opaque, not frosted — a disclosure is the
    last thing in this product that should be translucent. */
-.landing-portrait figcaption{position:absolute;z-index:2;left:14px;right:14px;bottom:14px;margin:0;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-card);padding:12px 14px;box-shadow:var(--shadow);color:var(--body)}
+.landing-portrait figcaption{grid-area:1 / 1;align-self:end;z-index:3;margin:14px;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-card);padding:12px 14px;box-shadow:var(--shadow);color:var(--body)}
 .landing-portrait-frame img{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:contain;object-position:bottom center}
 .landing-portrait-frame.soft{background:var(--cloud)}
+
+/* ---- The hero's three pictures ----
+   Stacked in one cell and cross-faded, so the figure is the same size in every frame of the change
+   and between them. Nothing here moves a box, which is the whole of what made the last carousel on
+   this page four flaky specs — see the note above HeroSlides in features/Landing.tsx.
+
+   The slide that is not showing is visibility:hidden as well as transparent. That takes it out of
+   the tab order and the accessibility tree, and it takes it out of the text walkers in
+   tests/landing.spec.ts too: a hidden slide's sentence is not a sentence anybody is reading, so it
+   should not be measured as one. The delay on visibility is what lets the fade finish first. */
+.landing-slide{position:absolute;inset:0;z-index:1;opacity:0;visibility:hidden;transition:opacity .55s var(--ease),visibility 0s .55s}
+.landing-slide.is-on{opacity:1;visibility:visible;transition:opacity .55s var(--ease)}
+/* An eyebrow and a sentence, both out of packages/catalog/locales.json. Set like a point in the
+   Thuso Pass list rather than as another eyebrow in capitals: the strong line here is the banner's
+   own headline, and a headline shouted in 13px capitals beside an h1 reads as a second headline
+   arguing with the first. Ink measures 12.76 on this card and --body 6.92.
+
+   Top left, and never wider than three quarters of the frame: the caption card is at the foot of
+   the same picture and the two may not meet. */
+.landing-slide-card{position:absolute;z-index:2;top:14px;left:14px;max-width:min(300px,76%);margin:0;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-card);padding:13px 15px;box-shadow:var(--shadow);font-size:14px;line-height:1.55;color:var(--body)}
+.landing-slide-card i{display:block;font-style:normal;margin-bottom:6px;font-size:15px;font-weight:500;letter-spacing:-.01em;color:var(--charcoal)}
+
+/* The controls. One row under the picture: which of three, how long the current one has left, the
+   page's pause control, and the two arrows. */
+/* Two rows by default and one from 1080px, which is the width at which the figure's own column is
+   finally wider than the four controls laid end to end. Wrapping was tried first and it put the
+   forward arrow alone on a line under a 390px phone; a grid says where each piece goes instead of
+   leaving it to whatever happens to fit. */
+.landing-portrait-foot{grid-area:2 / 1;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px 12px;margin-top:18px}
+.landing-slide-index{grid-area:1 / 1}
+.landing-slide-rule{grid-area:1 / 2}
+.landing-portrait-foot .m-pause{grid-area:2 / 1}
+.landing-slide-steps{grid-area:2 / 2;justify-self:end;display:flex;gap:10px}
+.landing-slide-index{margin:0;font-size:13px;font-weight:500;letter-spacing:.08em;color:var(--charcoal);font-variant-numeric:tabular-nums}
+.landing-slide-index i{font-style:normal;color:var(--body);margin:0 5px}
+/* Progress as a row of rounded segments, which is how this page draws it under the navigation and
+   how docs/DESIGN-LANGUAGE.md draws it everywhere. The current segment fills across the seven
+   seconds, so the next picture is something a reader can see coming rather than something that
+   happens to them — and the duration is not typed here: HeroSlides writes SLIDE_MS onto the row as
+   --slide-ms, so the clock and the timer cannot drift apart.
+
+   It is finite, it is on an empty <b> with nothing to click, and it only exists while the page's
+   decorative-motion flag is up — so the pause control stops it, and a reader who has asked for
+   less motion never has it applied at all and sees the current segment simply full. */
+.landing-slide-rule{flex:1 1 56px;min-width:44px;display:flex;align-items:center;gap:4px}
+.landing-slide-rule i{flex:1;height:3px;border-radius:var(--r-pill);background:var(--stone);overflow:hidden}
+.landing-slide-rule b{display:block;height:100%;border-radius:inherit;background:var(--charcoal);transform:scaleX(0);transform-origin:left}
+.landing-slide-rule i.is-on b{transform:scaleX(1)}
+[data-decor=on] .landing-slide-rule i.is-on b{animation:slide-clock var(--slide-ms) linear both}
+.landing-slide-rule.is-still i.is-on b{animation-play-state:paused}
+/* 44 square, and an outline that can be seen. These two are the only icon-only controls in the
+   hero, so the boundary is the whole of what says they are controls — SC 1.4.11 asks 3:1 of it,
+   and the page's --stone hairline measures 1.58 on white, which is a line for separating cards and
+   not for drawing a button. Ink at half strength over the line colour measures 3.23 on the page
+   ground and 3.43 on a card. */
+.landing-slide-step{width:44px;height:44px;flex-shrink:0;display:grid;place-items:center;border-radius:var(--r-pill);background:var(--surface);border:1px solid color-mix(in srgb,var(--studio-ink) 50%,var(--studio-line));color:var(--charcoal);transition:background-color .18s var(--ease),border-color .18s var(--ease)}
+.landing-slide-step:hover{background:var(--cloud);border-color:var(--charcoal)}
 
 /* ---- The figures ----
    The page's signature, and the reference's: a chip above, a large light numeral, a small label
@@ -372,6 +444,9 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
  .landing-section.tinted,.landing-final{margin-inline:var(--gutter);border-radius:var(--r-panel);padding-inline:max(var(--gutter),calc(var(--pad) - var(--gutter)))}
 }
 @media(min-width:1080px){
+ .landing-portrait-foot{grid-template-columns:auto minmax(44px,1fr) auto auto}
+ .landing-portrait-foot .m-pause{grid-area:1 / 3}
+ .landing-slide-steps{grid-area:1 / 4}
  .landing-services{grid-template-columns:repeat(3,minmax(0,1fr))}
  .landing-plans{grid-template-columns:repeat(4,minmax(0,1fr))}
  .landing-checks{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -448,6 +523,14 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
   radial-gradient(36% 40% at 76% 72%, var(--muted-sage), transparent 70%);
  animation: portrait-drift 30s ease-in-out infinite alternate;
  will-change: transform;
+}
+
+/* The carousel's clock. Finite by construction — it runs once per picture and stops — and it moves
+   a transform on an empty element inside an aria-hidden row, so no box anything is measured
+   against, or clicked, ever changes size. */
+@keyframes slide-clock {
+ from { transform: scaleX(0); }
+ to   { transform: scaleX(1); }
 }
 
 @keyframes hero-lines {

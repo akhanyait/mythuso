@@ -271,3 +271,81 @@ test.describe('when the reader has asked for less motion', () => {
     expect(moving).toEqual([]);
   });
 });
+
+/* ---- The hero's three pictures ----
+
+   This is the second carousel this page has had, and the first one cost an afternoon: nine SVG
+   bubbles on an infinite loop behind a screen that had stopped rendering them, and four specs that
+   failed on whichever click happened to land while something was in flight. So what is asserted
+   here is not that it looks right — it is the three properties that make a thing which moves by
+   itself safe to put in front of somebody, each of them driven rather than read out of the source.
+
+   The words come out of packages/catalog/locales.json, like every other figure in this file. The
+   slides are the founder's own banner copy and they are already translated into every locale that
+   claims the hero set; a test that typed "Care that comes to you." would pass while the page had
+   started showing something else entirely. */
+const locales: { keys: { id: string }[]; strings: Record<string, Record<string, string>> } = contract('locales');
+const heroSlides = locales.keys.filter(k => /^slide\d+\.title$/.test(k.id));
+const slideTitle = (n: number) => locales.strings['en-ZA'][`slide${n}.title`].replace('|', ' ');
+const showing = (page: import('@playwright/test').Page) => page.locator('.landing-slide.is-on .landing-slide-card i').innerText();
+/* The rotation the page is written to. Nothing waits for exactly this — the two assertions below
+   poll, so a shorter one passes sooner and a longer one is given twenty seconds — but the two
+   pauses that have to prove nothing happened need a length to be longer than. */
+const SLIDE_MS = 7000;
+
+test('the hero shows three pictures, and only the one showing is on the page', async ({ page }) => {
+  await expect(page.locator('.landing-slide')).toHaveCount(heroSlides.length);
+  await expect(page.locator('.landing-slide.is-on')).toHaveCount(1);
+  await expect(page.getByText(slideTitle(1))).toBeVisible();
+  // the other two are inert and hidden, so neither a keyboard nor a screen reader reaches them
+  await expect(page.getByText(slideTitle(2))).toBeHidden();
+  // the disclosure belongs to the figure rather than to a slide, so it is on all three at once
+  await expect(page.locator('.landing-portrait figcaption').first()).toContainText('Not a MyThuso nurse');
+  await page.getByRole('button', { name: `Show the next picture: ${slideTitle(2)}` }).click();
+  await expect(page.getByText(slideTitle(2))).toBeVisible();
+  await expect(page.locator('.landing-portrait figcaption').first()).toContainText('Not a MyThuso nurse');
+  // and the arrows wrap in both directions rather than dead-ending on the third picture
+  await page.getByRole('button', { name: `Show the previous picture: ${slideTitle(1)}` }).click();
+  await expect(page.getByText(slideTitle(1))).toBeVisible();
+});
+
+/* WCAG 2.2.2, which is the defect this page has already fixed once. Anything that moves by itself
+   for more than five seconds needs a mechanism to pause it, and the mechanism here is the page's
+   one pause control rather than a second one belonging to the carousel — so pressing it has to
+   stop the pictures as well as the two drifts. Both halves are asserted, because a pause control
+   on something that never moved would prove nothing. */
+test('the hero rotates on its own, and the page’s pause control stops it', async ({ page }) => {
+  test.setTimeout(90_000);
+  const first = await showing(page);
+  await expect.poll(() => showing(page), { timeout: 20_000 }).not.toBe(first);
+  await page.getByRole('button', { name: 'Pause motion' }).click();
+  const held = await showing(page);
+  /* The flag every decorative animation on this page is gated on is down, and none of them is
+     running. Keyframe animations only: a transition still settling is a state change the reader
+     just caused with that very press, and stopping the page's motion does not mean the button they
+     pressed may not finish colouring. What must be gone is the endless kind. */
+  expect(await page.evaluate(() => document.documentElement.dataset.decor)).toBeUndefined();
+  expect(await page.evaluate(() => document.getAnimations()
+    .filter(a => a.playState === 'running' && (a as CSSAnimation).animationName)
+    .map(a => (a as CSSAnimation).animationName))).toEqual([]);
+  await page.waitForTimeout(SLIDE_MS * 1.6);
+  expect(await showing(page), 'the hero moved on after the reader had stopped the motion').toBe(held);
+  await page.getByRole('button', { name: 'Play motion' }).click();
+  await expect.poll(() => showing(page), { timeout: 20_000 }).not.toBe(held);
+});
+
+test.describe('when the reader has asked for less motion, the hero', () => {
+  test.use({ reducedMotion: 'reduce' });
+  test('does not rotate, offers no pause control, and can still be walked by hand', async ({ page }) => {
+    test.setTimeout(60_000);
+    const first = await showing(page);
+    // nothing to pause, so nothing offering to. A disabled button explaining an absence is worse
+    await expect(page.locator('.m-pause')).toHaveCount(0);
+    await page.waitForTimeout(SLIDE_MS * 1.6);
+    expect(await showing(page), 'the hero rotated for a reader who had asked for stillness').toBe(first);
+    expect(await page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running').length)).toBe(0);
+    // removing the motion may not remove the pictures: the arrows are how they are reached
+    await page.getByRole('button', { name: /Show the next picture/ }).click();
+    expect(await showing(page)).not.toBe(first);
+  });
+});

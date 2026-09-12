@@ -468,6 +468,19 @@ for (let slide = 1; slide <= heroCutouts.length; slide += 1) {
 if (localeContract.keys.filter(k => /^slide\d+\.title$/.test(k.id)).length !== heroCutouts.length) {
  throw new Error(`The locale contract has a different number of hero slides than there are cut-outs (${heroCutouts.length})`);
 }
+/* Which photograph belongs to which slide. The landing page's hero is the same three slides, and
+   it pairs slide 1's words with a picture by ordering the three file names — the one thing about a
+   slide that packages/catalog cannot hold, because a contract of sentences knows nothing about a
+   crop. That ordering is therefore a second copy of the list above, and a page that showed the
+   elder beside "Care that comes to you." would be wrong in a way no test of either half can see. */
+{
+ const landing = read('apps/web/src/features/Landing.tsx');
+ const order = landing.match(/const slidePhotos\s*=\s*\[([^\]]*)\]/)?.[1];
+ if (!order) throw new Error('apps/web/src/features/Landing.tsx no longer declares slidePhotos, so nothing checks that the hero\'s pictures are still in the order their words are written for.');
+ const paths = order.split(',').map(name => landing.match(new RegExp(`const ${name.trim()}\\s*=\\s*'([^']+)'`))?.[1]);
+ const stems = paths.map(p => p?.match(/\/banners\/(.+)-cutout\.webp$/)?.[1]);
+ if (stems.join() !== heroCutouts.join()) throw new Error(`The landing hero shows its pictures in the order ${stems.join(', ')} and the slide copy is written for ${heroCutouts.join(', ')}. Slide 1's sentence would be read beside slide ${heroCutouts.indexOf(stems[0]) + 1}'s photograph.`);
+}
 /* The identity service holds a name and a mobile number. That is personal information, not the
    special personal information that health data is, which is the only reason it can exist ahead of
    the controls in docs/PRIVACY-AND-SECURITY.md. If a clinical table appears here, that reasoning

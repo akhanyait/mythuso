@@ -354,6 +354,21 @@ a patient id, a settlement file may not name the service, a media session may no
 URL. `apps/api` serves a route per feed that refuses every payload including a well-formed one, and
 nothing a stranger typed is written down: an undeclared field is recorded as a count, never a name.
 
+**The landing page is the front door, and the hero is three.** The founder's own banner artwork has
+carried three slides on both phones and in the patient app's Explore for weeks, from one contract —
+`slide1`–`slide3` in `packages/catalog/locales.json`, in every locale that claims the hero set — and
+the public page, which is the first thing a stranger reads, showed one of the three photographs and
+none of the words. It shows all three now: one frame, a white card over each picture carrying that
+slide's headline and sentence, and a row under it with the index, a segmented clock, the page's
+pause control and two arrows.
+
+| What changed | The refusals it keeps, and the ones it adds | Where |
+|---|---|---|
+| **The hero photograph became a carousel, on the page's own motion system rather than a second one.** Rotation is `useDecor()` — the same flag the hero's drifting lines answer to and the same one `<MotionPause/>` clears — so one control stops the pictures, the lines and the wash behind them together. The slides cross-fade on opacity in one fixed frame: no box changes size, which is what made the last carousel on this page four flaky specs rather than the fact that it moved | It never rotates for a reader who has asked for less motion — the flag is never set, so there is nothing to stop and no pause control is drawn, and the arrows still work. The disclosure is not part of a slide: it sits in the figure's own caption over every picture at once, because a sentence saying this is not a MyThuso nurse is not something a rotation may carry off the screen. Only the current slide is in the tab order and the accessibility tree | `apps/web/src/features/Landing.tsx`, `apps/web/src/landing.css`, `tests/landing.spec.ts` |
+| **The caption card was sitting on the pause button.** A `<figcaption>` is only valid as a figure's first or last child, so it could not be moved inside the frame it has to sit on and was positioned against the *figure* instead — which in the hero includes the row of controls. One grid cell shared by the frame and the caption puts it back on the photograph and gives the controls a row of their own | — | `apps/web/src/landing.css` |
+| **The in-development strip ends in a door.** A reader told "nothing here books a visit" had nowhere to go; the strip now carries a link to the status page with the count read out of `packages/catalog/capabilities.json`, so it says how many of the fifteen capabilities are connected rather than asserting a number | One link and not two. The second would have been "open the app", which the navigation directly under the strip already offers | `apps/web/src/features/Landing.tsx` |
+| **Which photograph belongs to which slide is now checked.** The words live in the locale contract and the pictures in `packages/banners`; the pairing is an ordering, and nothing but a person looking at the page could see slide 1's sentence read beside slide 2's photograph | `scripts/check-boundaries.mjs` resolves the landing hero's file names and fails the build if that order parts from `heroCutouts` | `scripts/check-boundaries.mjs` |
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only
