@@ -4,6 +4,7 @@
 
 package za.co.mythuso.ui
 
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -101,7 +102,17 @@ object ThusoType {
     /** Nothing in any of the three apps renders text below this. */
     val minimumRendered = 13.sp
 }
+/** One curve and three durations, shared with the web and with iOS. `EaseSoft` is the only easing
+    this product uses.
+
+    Reduced motion REMOVES an animation rather than shortening it. On Android that is the system
+    animator duration scale, which reports 0f when a reader has turned animations off — so a
+    duration multiplied by `animatorScale()` is genuinely none rather than merely brief. */
 object ThusoMotion {
     const val durationMs = 180
     const val respectsReducedMotion = true
+    const val quickMs = 160
+    const val settleMs = 280
+    const val enterMs = 420
+    val EaseSoft = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
 }

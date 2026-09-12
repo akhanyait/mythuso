@@ -100,7 +100,19 @@ enum ThusoType {
     /// Nothing in any of the three apps renders text below this.
     static let minimumRendered: CGFloat = 13
 }
+/// One curve and three durations, shared with the web and with Android. `soft` is the only easing
+/// this product uses; reach for a spring only where a gesture is genuinely being tracked.
+///
+/// Reduced motion REMOVES an animation rather than shortening it, so the call site is
+/// `ThusoMotion.soft(...)` wrapped in a check of `accessibilityReduceMotion`, never a shorter
+/// duration — a 420ms entrance run at 80ms is still a thing that moved.
 enum ThusoMotion {
     static let duration: TimeInterval = 0.18
     static let respectsReducedMotion = true
+    static let quick: TimeInterval = 0.16
+    static let settle: TimeInterval = 0.28
+    static let enter: TimeInterval = 0.42
+    static func soft(_ duration: TimeInterval = settle) -> Animation {
+        .timingCurve(0.22, 1, 0.36, 1, duration: duration)
+    }
 }

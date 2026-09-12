@@ -59,6 +59,10 @@ export function emitTokens(root = '') {
     number the other two will invent. */
  const type = Object.entries(tokens.typography.scale);
  const spacing = tokens.spacing;
+ /* The curve and the three durations. They lived in apps/web/src/surface/glass.css, where only the
+    web could reach them, so both native apps were guessing at what "the same easing" meant. A curve
+    is a number like any other and belongs where the other numbers are. */
+ const [ex1, ey1, ex2, ey2] = tokens.motion.easeSoft;
 
  /* ---- Web ------------------------------------------------------------------------------------
     A separate file rather than a block inside styles.css, because a generated file has to be a
@@ -70,6 +74,10 @@ export function emitTokens(root = '') {
   + Object.entries(tokens.elevation).map(([name, value]) => ` ${cssShadowNames[name] ?? `--shadow-${kebab(name)}`}:${value};`).join('\n') + '\n'
   + Object.entries(tokens.typography.stacks).map(([name, stack]) => ` --font-${name}:${stack};`).join('\n') + '\n'
   + ` --motion-duration:${tokens.motion.durationMs}ms;\n`
+  + ` --ease-soft:cubic-bezier(${ex1},${ey1},${ex2},${ey2});\n`
+  + ` --t-quick:${tokens.motion.quickMs}ms;\n`
+  + ` --t-settle:${tokens.motion.settleMs}ms;\n`
+  + ` --t-enter:${tokens.motion.enterMs}ms;\n`
   + '}\n';
 
  /* ---- iOS ------------------------------------------------------------------------------------
@@ -104,9 +112,21 @@ ${type.map(([name, value]) => `    static let ${name}: CGFloat = ${value}`).join
     /// Nothing in any of the three apps renders text below this.
     static let minimumRendered: CGFloat = ${tokens.typography.minimumRendered}
 }
+/// One curve and three durations, shared with the web and with Android. \`soft\` is the only easing
+/// this product uses; reach for a spring only where a gesture is genuinely being tracked.
+///
+/// Reduced motion REMOVES an animation rather than shortening it, so the call site is
+/// \`ThusoMotion.soft(...)\` wrapped in a check of \`accessibilityReduceMotion\`, never a shorter
+/// duration — a 420ms entrance run at 80ms is still a thing that moved.
 enum ThusoMotion {
     static let duration: TimeInterval = ${tokens.motion.durationMs / 1000}
     static let respectsReducedMotion = ${tokens.motion.respectReducedMotion}
+    static let quick: TimeInterval = ${tokens.motion.quickMs / 1000}
+    static let settle: TimeInterval = ${tokens.motion.settleMs / 1000}
+    static let enter: TimeInterval = ${tokens.motion.enterMs / 1000}
+    static func soft(_ duration: TimeInterval = settle) -> Animation {
+        .timingCurve(${ex1}, ${ey1}, ${ex2}, ${ey2}, duration: duration)
+    }
 }
 `;
 
@@ -115,6 +135,7 @@ enum ThusoMotion {
  const kotlin = banner('kotlin') + `
 package za.co.mythuso.ui
 
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -139,9 +160,19 @@ ${type.map(([name, value]) => `    val ${name} = ${value}.sp`).join('\n')}
     /** Nothing in any of the three apps renders text below this. */
     val minimumRendered = ${tokens.typography.minimumRendered}.sp
 }
+/** One curve and three durations, shared with the web and with iOS. \`EaseSoft\` is the only easing
+    this product uses.
+
+    Reduced motion REMOVES an animation rather than shortening it. On Android that is the system
+    animator duration scale, which reports 0f when a reader has turned animations off — so a
+    duration multiplied by \`animatorScale()\` is genuinely none rather than merely brief. */
 object ThusoMotion {
     const val durationMs = ${tokens.motion.durationMs}
     const val respectsReducedMotion = ${tokens.motion.respectReducedMotion}
+    const val quickMs = ${tokens.motion.quickMs}
+    const val settleMs = ${tokens.motion.settleMs}
+    const val enterMs = ${tokens.motion.enterMs}
+    val EaseSoft = CubicBezierEasing(${ex1}f, ${ey1}f, ${ex2}f, ${ey2}f)
 }
 `;
 
