@@ -225,7 +225,7 @@ private fun stateTone(state: CaptureState) = when (state) {
                 "In production this is a Bluetooth Low Energy scan, and it needs a permission this app does not have and has not asked for. Here it is a 1.6-second timer followed by a list that was compiled into the app.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            Button(onClick = { scanning = true }, enabled = !scanning, shape = ThusoButtonShape) {
+            StudioButton(onClick = { scanning = true }, enabled = !scanning, shape = ThusoButtonShape) {
                 Text(if (scanning) "Pretending to look…" else "Pretend to discover")
             }
             if (scanning) SkeletonRows(2)
@@ -298,12 +298,12 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             style = MaterialTheme.typography.bodyMedium, color = MangoInk
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = toggle, shape = ThusoButtonShape) { Text(if (expanded) "Close" else "Take a reading") }
+            StudioButton(onClick = toggle, shape = ThusoButtonShape) { Text(if (expanded) "Close" else "Take a reading") }
             TextButton(onClick = unpair, shape = ThusoButtonShape) { Text("Unpair") }
         }
         if (!expanded) return@CareCard
 
-        HorizontalDivider(color = Stone)
+        HorizontalDivider(color = StudioLine)
         if (paired.instrument.measures.size > 1) {
             Text("What are you measuring?", style = MaterialTheme.typography.labelLarge, color = Charcoal)
             FlowRowChips(paired.instrument.measures.map { measureLabels[it] ?: it }, setOf(measureLabels[measure] ?: measure)) { chosen ->
@@ -322,14 +322,14 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         Note(paired.instrument.records.why)
         FlowRowChips(paired.instrument.records.options, setOfNotNull(detail.ifEmpty { null })) { option -> detail = option }
         if (detail.isEmpty()) Note("The reading is not taken until this is answered. It is recorded with the number, because it cannot be recovered from the number afterwards.")
-        Button(
+        StudioButton(
             onClick = { takenId = capture(measure, detail).id },
             enabled = mayCapture && detail.isNotEmpty()
         , shape = ThusoButtonShape) { Text("Take the reading") }
         if (!mayCapture) Text(refusal.orEmpty(), style = MaterialTheme.typography.bodySmall, color = Danger)
 
         if (taken != null) {
-            HorizontalDivider(color = Stone)
+            HorizontalDivider(color = StudioLine)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("${taken.value} ${taken.unit}", style = MaterialTheme.typography.titleLarge, color = Charcoal)
                 ProvenanceMark(taken.provenance)
@@ -339,7 +339,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             ProvenanceBlock(taken)
             if (taken.state == CaptureState.CAPTURED) {
                 Note(CaptureState.CAPTURED.detail)
-                Button(onClick = { seal(taken.id) }, shape = ThusoButtonShape) { Text("Seal it — waiting to send") }
+                StudioButton(onClick = { seal(taken.id) }, shape = ThusoButtonShape) { Text("Seal it — waiting to send") }
             } else Note(taken.state.detail)
         }
     }
@@ -424,7 +424,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
            permission cannot otherwise be shown sending anything. */
         Column(
             Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(ThusoRadius.control))
-                .border(1.dp, Stone, RoundedCornerShape(ThusoRadius.control))
+                .border(1.dp, StudioLine, RoundedCornerShape(ThusoRadius.control))
                 /* Announced as a button that expands, rather than as an unnamed tap target. */
                 .clickable(
                     onClickLabel = if (controls) "Hide the design-review controls" else "Show the design-review controls",
@@ -457,7 +457,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
 
         CareCard {
             Text("Send what is waiting", style = MaterialTheme.typography.titleMedium)
-            Button(onClick = { capture.beginSending(); sending = true }, enabled = !sending && counts[CaptureState.QUEUED]?.let { it > 0 } == true, shape = ThusoButtonShape) {
+            StudioButton(onClick = { capture.beginSending(); sending = true }, enabled = !sending && counts[CaptureState.QUEUED]?.let { it > 0 } == true, shape = ThusoButtonShape) {
                 Text(if (sending) "Sending…" else "Try to send")
             }
             capture.lastAttempt?.let {
@@ -508,7 +508,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         TextButton(onClick = { open = !open }, shape = ThusoButtonShape) { Text(if (open) "Less" else "What travels with this reading") }
         if (open) {
             ProvenanceBlock(reading)
-            HorizontalDivider(color = Stone)
+            HorizontalDivider(color = StudioLine)
             TimesBlock(reading)
         }
         reading.refusal?.let {
@@ -529,7 +529,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
 @Composable private fun ConflictBlock(store: PreviewStore, reading: CapturedReading, resolver: VettingSubject?) {
     val conflict = captureConflictById(reading.conflictId) ?: return
     val capture = store.capture
-    HorizontalDivider(color = Stone)
+    HorizontalDivider(color = StudioLine)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Outlined.Balance, null, tint = MangoInk)
         Text(conflict.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
@@ -559,7 +559,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                     }
                     Note("${candidate.id} · this phone believed ${clockText(candidate.deviceMillis)}${candidate.serverMillis?.let { " · server received ${clockText(it)}" } ?: " · not yet received"}")
                     ProvenanceBlock(candidate)
-                    Button(onClick = {
+                    StudioButton(onClick = {
                         val loser = if (candidate.id == reading.id) other.id else reading.id
                         capture.chooseBetween(candidate.id, loser, resolver,
                             "The other reading is kept in full and marked superseded, because a record that deletes the first reading cannot show why the second was taken.")
@@ -584,7 +584,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                 "The reading is not discarded: it was taken by a cleared nurse, on a patient who was in front of her, and throwing it away would lose a fact about that patient to punish a lapsed certificate. It is also not filed on her authority alone, because that authority is no longer current. A clinician who is cleared today accepts it, and both names stand on the record afterwards — hers, because she is the one who was in the room, and theirs, because the filing is on their registration.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            Button(onClick = { capture.countersign(reading.id, resolver) }, shape = ThusoButtonShape) {
+            StudioButton(onClick = { capture.countersign(reading.id, resolver) }, shape = ThusoButtonShape) {
                 Text("Countersign as ${resolver.name}")
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -605,7 +605,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                 "It is never applied silently after the fact. Either it goes in as an addendum, openly, with the clinician who signed told that something arrived after their signature — or it is held, or it is withdrawn with a reason. What it does not do is slide into a signed record and change what somebody has already put their name to.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            Button(onClick = { capture.fileAsAddendum(reading.id, resolver) }, shape = ThusoButtonShape) { Text("File as an addendum") }
+            StudioButton(onClick = { capture.fileAsAddendum(reading.id, resolver) }, shape = ThusoButtonShape) { Text("File as an addendum") }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = {
                     capture.hold(reading.id, "Held by ${resolver.name} · ${resolver.reference} pending a word with the clinician who signed the visit.")

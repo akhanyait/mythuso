@@ -66,9 +66,18 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
  * one accent among the semantic colours rather than the thing that carries the interface. Sage is a
  * fill and never a label, so it appears here only as a container, never as an `on-` colour.
  *
- * `mist` is the ground and white is the card, which is the inversion of what a light theme usually
- * does and is most of why the reference reads as calm: the page is the darker surface and the thing
- * you are meant to read is the lighter one.
+ * `studioPaper` is the ground and white is the card, which is the inversion of what a light theme
+ * usually does and is most of why this reads as calm: the page is the darker surface and the thing
+ * you are meant to read is the lighter one. Paper is lighter than the `mist` every charcoal pair was
+ * measured against, so every one of those ratios gained headroom when the ground changed.
+ *
+ * PRIMARY STAYS CHARCOAL, AND THE ACCENT IS ASKED FOR BY NAME. The prototype's call to action is a
+ * lime pill, and the obvious way to get one is to make `primary` lime. Material reads `primary` for a
+ * text field's cursor and focused border, a switch's track, a checkbox's box and a progress
+ * indicator; lime measures 1.05:1 against white, so that one line would have made forty-five thin
+ * affordances invisible in order to make fifty buttons right. StudioButton in CareStudio.kt is the
+ * filled button instead — the same arrangement, and for the same Material limitation, as
+ * ThusoButtonShape above.
  *
  * Every pair below is one packages/design-tokens/tokens.json declares and the build computes:
  * charcoal on mist 14.95, on surface 17.04, on cloud 13.53, on paleSage 11.11; surface on charcoal;
@@ -77,13 +86,13 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
     MaterialTheme(
         colorScheme = lightColorScheme(
             primary = Charcoal, onPrimary = SurfaceWhite,
-            primaryContainer = PaleSage, onPrimaryContainer = Charcoal,
+            primaryContainer = StudioLilac, onPrimaryContainer = Charcoal,
             secondary = Charcoal, onSecondary = SurfaceWhite,
             secondaryContainer = Cloud, onSecondaryContainer = Charcoal,
-            tertiary = Charcoal, tertiaryContainer = PaleSage, onTertiaryContainer = Charcoal,
-            background = Mist, surface = SurfaceWhite, onBackground = Charcoal, onSurface = Charcoal,
+            tertiary = Charcoal, tertiaryContainer = StudioLilac, onTertiaryContainer = Charcoal,
+            background = StudioPaper, surface = SurfaceWhite, onBackground = Charcoal, onSurface = Charcoal,
             surfaceVariant = Cloud, onSurfaceVariant = Faint,
-            outline = Faint, outlineVariant = Stone, error = Danger
+            outline = Faint, outlineVariant = StudioLine, error = Danger
         ),
         typography = ThusoTypography,
         /* Generous, as the reference is: a card takes the panel radius rather than the card one, and
@@ -117,19 +126,25 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
     Card(
         modifier.fillMaxWidth(), shape = RoundedCornerShape(ThusoRadius.panel),
         colors = CardDefaults.cardColors(containerColor = SurfaceWhite),
-        border = BorderStroke(1.dp, Stone),
+        border = BorderStroke(1.dp, StudioLine),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) { Column(Modifier.padding(padding), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), content = content) }
 }
 
 /* The lead card no longer lifts. It used to be separated from the ground by a 3dp shadow, which is
-   the one thing this language does not do — and on a mist ground a shadow under a white card reads
-   as a smudge rather than as height. It is separated by being the sage panel instead: charcoal on
-   paleSage is 11.11:1, so the emphasis is a fill nobody pays for in legibility. */
+   the one thing this language does not do — and on a pale ground a shadow under a white card reads
+   as a smudge rather than as height. It is separated by being a tinted panel instead: charcoal on
+   studioLilac is 11.93:1, so the emphasis is a fill nobody pays for in legibility.
+
+   Lilac rather than paleSage, because paleSage was the palest step of a ramp measured against a grey
+   ground this app no longer has — on cream it is the previous generation's accent showing through
+   the new one. studioLime is the palette's loud fill and it is deliberately not this: a lead card is
+   on nearly every screen, and an accent that is everywhere has stopped saying anything. Lime is
+   spent on a forty-dp tile plate, a flagged chip and the one button a screen is for. */
 @Composable fun LeadCard(modifier: Modifier = Modifier, padding: Dp = ThusoSpacing.space20, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier.fillMaxWidth(), shape = RoundedCornerShape(ThusoRadius.panel),
-        colors = CardDefaults.cardColors(containerColor = PaleSage),
+        colors = CardDefaults.cardColors(containerColor = StudioLilac),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         androidx.compose.runtime.CompositionLocalProvider(LocalSecondaryText provides Charcoal) {
@@ -212,10 +227,13 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
     }
 }
 
-/* A soft tinted square holding a symbol. Cloud and charcoal by default, and an accent only when it
-   means one — every row in the app used to carry an indigo tile on an indigo wash, which is colour
-   spent on the fact that a row exists rather than on anything about it. */
-@Composable fun TileIcon(icon: ImageVector, tint: Color = Charcoal, background: Color = Cloud, size: Dp = 40.dp) {
+/* A soft tinted square holding a symbol, and the lime accent block at the one size it is affordable.
+   A plate is forty dp and marks what leads a section rather than every row in it, so the accent stays
+   countable: a screen has one or two of these, not eleven. Charcoal reads 15.3:1 on it. Every row in
+   the app used to carry an indigo tile on an indigo wash, which is colour spent on the fact that a
+   row exists rather than on anything about it — the rule that replaced it is unchanged and this is
+   only a different fill inside it. */
+@Composable fun TileIcon(icon: ImageVector, tint: Color = Charcoal, background: Color = StudioLime, size: Dp = 40.dp) {
     Box(Modifier.size(size).background(background, RoundedCornerShape(ThusoRadius.tile)), Alignment.Center) {
         Icon(icon, null, tint = tint, modifier = Modifier.size(size * 0.5f))
     }
@@ -243,7 +261,7 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
         text, style = MaterialTheme.typography.labelSmall, color = fg, maxLines = 1, softWrap = false,
         modifier = Modifier
             .background(bg, CircleShape)
-            .then(if (tone == "teal" || tone == "amber" || tone == "sky" || tone == "danger" || tone == "light" || tone == "quiet") Modifier else Modifier.border(1.dp, Stone, CircleShape))
+            .then(if (tone == "teal" || tone == "amber" || tone == "sky" || tone == "danger" || tone == "light" || tone == "quiet") Modifier else Modifier.border(1.dp, StudioLine, CircleShape))
             .padding(horizontal = ThusoSpacing.space12, vertical = 4.dp)
     )
 }
@@ -289,7 +307,7 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
             (1..total).forEach { index ->
                 Box(
                     Modifier.width(if (index == step) 20.dp else 8.dp).height(8.dp)
-                        .background(if (index <= step) Indigo else Stone, CircleShape)
+                        .background(if (index <= step) Indigo else StudioLine, CircleShape)
                 )
             }
         }
@@ -384,9 +402,11 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
     }
 }
 
-/** The full-width primary action. One per screen, and it is the thing the screen is for. */
+/** The full-width primary action, and the prototype's most recognisable object: a lime pill with an
+    ink label. One per screen, and it is the thing the screen is for. See StudioButton in
+    CareStudio.kt for why the accent is asked for by name rather than set as the scheme's primary. */
 @Composable fun PrimaryAction(label: String, modifier: Modifier = Modifier, icon: ImageVector? = null, click: () -> Unit) {
-    Button(
+    StudioButton(
         onClick = click,
         modifier = modifier.fillMaxWidth().heightIn(min = 56.dp),
         shape = RoundedCornerShape(ThusoRadius.control),
@@ -427,7 +447,7 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
                 Box(
                     Modifier.weight(1f).heightIn(min = 56.dp)
                         .background(Color.White, RoundedCornerShape(ThusoRadius.control))
-                        .border(if (active || invalid) 2.dp else 1.dp, if (invalid) Danger else if (active) Indigo else Stone, RoundedCornerShape(ThusoRadius.control))
+                        .border(if (active || invalid) 2.dp else 1.dp, if (invalid) Danger else if (active) Indigo else StudioLine, RoundedCornerShape(ThusoRadius.control))
                         .padding(vertical = ThusoSpacing.space16),
                     Alignment.Center
                 ) {

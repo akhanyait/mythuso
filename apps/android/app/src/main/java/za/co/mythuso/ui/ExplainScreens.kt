@@ -129,7 +129,7 @@ import za.co.mythuso.model.*
                         )
                     }
                     if (isOpen) {
-                        HorizontalDivider(color = Stone)
+                        HorizontalDivider(color = StudioLine)
                         StatedBlock("What it measures", explanation.measures)
                         StatedBlock("A reading above the range", explanation.above)
                         StatedBlock("A reading below the range", explanation.below)
@@ -155,11 +155,11 @@ import za.co.mythuso.model.*
         Section("Where these words come from") {
             CareCard {
                 StatedBlock("Written down, not generated", ExplainProvenance.written)
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 StatedBlock("No clinician has reviewed this wording", ExplainProvenance.unreviewed)
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 StatedBlock("The ranges are the nurse’s own", ExplainProvenance.ranges)
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 StatedBlock("Nothing here changes a medicine", ExplainProvenance.neverChange)
             }
             TonedCard { Text(Capabilities.blocking("screening").joinToString(" "), style = MaterialTheme.typography.bodyMedium, color = Charcoal) }

@@ -116,9 +116,9 @@ private fun toneOf(state: CaptureState): String = when (state) {
         Section("What this phone keeps") {
             CareCard {
                 QueueFact(Icons.Outlined.Save, "It comes back from", queue.survives)
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 QueueFact(Icons.Outlined.DeleteForever, "It does not come back from", queue.doesNotSurvive)
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 QueueFact(Icons.Outlined.Folder, "Where it is", queue.where)
                 Note("It is not encrypted. This is a design preview holding fictional readings, and a file in the app’s own storage is private to the app and no more than that. Real readings need the controls in docs/PRIVACY-AND-SECURITY.md first.")
                 /* In words rather than as a timestamp: “14:02” tells a nurse nothing about whether
@@ -160,7 +160,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
                        watch fail, and a queue whose in-flight state is invisible is a queue nobody
                        believes. Interrupting inside the pause puts the work back in the queue and
                        the settle that follows finds nothing in flight and does nothing. */
-                    else Button(
+                    else StudioButton(
                         onClick = {
                             if (queue.beginSending() > 0) scope.launch {
                                 delay(700)
@@ -219,7 +219,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
                 Note("None of these is a product feature. There is no radio in this build and no doctor to sign anything, so the two things that make a queue interesting have to be askable for.")
                 Setting("Pretend this phone has a connection", queue.pretendConnected) { queue.pretendConnected = it }
                 Setting("Pretend a doctor has signed this visit", queue.pretendDoctorSigned) { queue.pretendDoctorSigned = it }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 /* The control that proves the sentence above rather than asserting it: everything in
                    memory is dropped and the file is read again. */
                 OutlinedButton(

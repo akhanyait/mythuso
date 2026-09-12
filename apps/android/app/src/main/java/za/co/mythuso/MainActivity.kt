@@ -96,7 +96,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
         }
     }
     if (onboarding) {
-        Surface(color = Mist, modifier = Modifier.fillMaxSize()) {
+        Surface(color = StudioPaper, modifier = Modifier.fillMaxSize()) {
             Box(Modifier.systemBarsPadding()) { OnboardingScreen(store) { onboarding = false } }
         }
         return
@@ -104,9 +104,9 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
     val role = workspace
     /* The band of indigo bubbles that used to sit behind the greeting is gone. It was the right
        answer when the ground was a flat canvas and there was nothing else to look at; over the
-       luminous ground it was a second texture drawn on top of the first, in the one accent this
-       palette no longer leads with, and the two argued along a hard edge 210dp down. HeroTexture
-       still exists and is still what the onboarding illustrations sit on. */
+       studio ground it is a second texture drawn on top of the first, in the one accent this palette
+       no longer leads with, and the two argued along a hard edge 210dp down. HeroTexture still exists
+       and is still what the onboarding illustrations sit on. */
     val onHome = page == "Home" && detail == null && role == null
     /* A rail rather than a bottom bar in two cases.
        The first is width: 600dp is Material's own compact/medium boundary, and below it a thumb
@@ -136,7 +136,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
        three pale tints drawn once, none of them darker than the floor every contrast figure in
        tokens.json is measured against. Nothing about it moves — a ground that drifts is a box that
        keeps changing under a thumb, and this is a phone somebody is holding on a doorstep. */
-    Box(Modifier.fillMaxSize().background(auroraBrush())) {
+    Box(Modifier.fillMaxSize().background(studioGroundBrush())) {
         Row(Modifier.fillMaxSize()) {
             if (wide) NavigationRail(
                 containerColor = Color.Transparent,
@@ -155,8 +155,8 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                         icon = { Icon(destination.icon, null) },
                         label = { Text(label(destination), maxLines = 3, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall) },
                         colors = NavigationRailItemDefaults.colors(
-                            selectedIconColor = SurfaceWhite, selectedTextColor = Charcoal,
-                            indicatorColor = Charcoal, unselectedIconColor = Faint, unselectedTextColor = Faint
+                            selectedIconColor = StudioPaper, selectedTextColor = Charcoal,
+                            indicatorColor = StudioNight, unselectedIconColor = Faint, unselectedTextColor = Faint
                         )
                     )
                 }
@@ -191,10 +191,11 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                     )
                 },
                 bottomBar = {
-                    /* The selected destination is a filled charcoal pill, which is what an active row
-                       is everywhere else in this language. Material's default is a tinted lozenge in
-                       the primary container colour; a sage lozenge would have been the one place in
-                       the app where sage carried a label. */
+                    /* The selected destination is a filled studioNight pill, which is what an active
+                       row is everywhere else in this language and the same dark the one live card on
+                       a screen takes. Material's default is a tinted lozenge in the primary container
+                       colour; a lilac lozenge would have been the one place in the app where a tile
+                       fill carried a label, and a lime one would fail the arithmetic outright. */
                     if (!wide) NavigationBar(containerColor = SurfaceWhite) {
                         destinations.forEach { destination ->
                             NavigationBarItem(
@@ -213,8 +214,8 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = SurfaceWhite, selectedTextColor = Charcoal,
-                                    indicatorColor = Charcoal, unselectedIconColor = Faint, unselectedTextColor = Faint
+                                    selectedIconColor = StudioPaper, selectedTextColor = Charcoal,
+                                    indicatorColor = StudioNight, unselectedIconColor = Faint, unselectedTextColor = Faint
                                 )
                             )
                         }

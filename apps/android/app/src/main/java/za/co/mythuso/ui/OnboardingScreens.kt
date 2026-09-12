@@ -36,7 +36,7 @@ import za.co.mythuso.model.*
         OutlinedButton(onClick = back, modifier = Modifier.weight(1f).heightIn(min = 52.dp), shape = RoundedCornerShape(ThusoRadius.control)) {
             Text(backLabel, style = MaterialTheme.typography.labelLarge, maxLines = 1)
         }
-        Button(onClick = next, enabled = enabled, modifier = Modifier.weight(1.4f).heightIn(min = 52.dp), shape = RoundedCornerShape(ThusoRadius.control)) {
+        StudioButton(onClick = next, enabled = enabled, modifier = Modifier.weight(1.4f).heightIn(min = 52.dp), shape = RoundedCornerShape(ThusoRadius.control)) {
             Text(nextLabel, style = MaterialTheme.typography.labelLarge, maxLines = 1)
         }
     }
@@ -170,7 +170,7 @@ import za.co.mythuso.model.*
                 ReviewLine("Indicative wait", routes.first { it.first == route }.third)
                 Note("Nothing was submitted. Production recovery is rate-limited, audited and reversible for a cooling-off period.")
             }
-            Button(onClick = done, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Continue to the preview") }
+            StudioButton(onClick = done, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Continue to the preview") }
         } else {
             routes.forEach { (title, body, wait) ->
                 CareCard(Modifier.clickable { route = title }) {
@@ -187,7 +187,7 @@ import za.co.mythuso.model.*
             Note("Recovery never reveals your records to the person helping you.")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = back, shape = ThusoButtonShape) { Text("Back") }
-                Button(onClick = { submitted = true }, enabled = route.isNotEmpty(), shape = ThusoButtonShape) { Text("Start recovery") }
+                StudioButton(onClick = { submitted = true }, enabled = route.isNotEmpty(), shape = ThusoButtonShape) { Text("Start recovery") }
             }
         }
     }

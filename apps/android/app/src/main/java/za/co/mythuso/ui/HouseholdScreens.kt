@@ -419,7 +419,7 @@ private val householdRecordType = recordTypeById("household")
                 .ifEmpty { "Nothing further — this purpose carries the whole card" })
             ReviewLine("Valid for", "${purpose.hours} hours")
             Setting("I understand this is a design preview. Nothing is sent, no link works, and the data is fictional.", understood) { understood = it }
-            Button(
+            StudioButton(
                 onClick = {
                     val now = LocalDateTime.now()
                     shares.add(0, SummaryShare(

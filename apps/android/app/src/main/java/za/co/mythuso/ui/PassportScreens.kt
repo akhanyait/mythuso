@@ -49,7 +49,7 @@ import za.co.mythuso.model.*
             }
         }
         rows.forEachIndexed { index, row ->
-            if (index > 0) HorizontalDivider(color = Stone)
+            if (index > 0) HorizontalDivider(color = StudioLine)
             if (stacked) Column(
                 Modifier.fillMaxWidth().padding(vertical = ThusoSpacing.space12),
                 verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)
@@ -192,11 +192,11 @@ import za.co.mythuso.model.*
                      modifier = Modifier.semantics { heading() })
                 Text("${passportHolder.name} · Home visit · Sandton", style = MaterialTheme.typography.bodySmall, color = Faint)
             }
-            HorizontalDivider(color = Stone)
+            HorizontalDivider(color = StudioLine)
             ReviewLine("When", Scheduling.longDate(Passport.dateOf(dayOffset)))
             ReviewLine("Where", "Home visit · Sandton")
             ReviewLine("This visit", "R${service.price}")
-            HorizontalDivider(color = Stone)
+            HorizontalDivider(color = StudioLine)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
                 TileIcon(Icons.Outlined.MedicalServices)
                 Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
@@ -264,7 +264,7 @@ import za.co.mythuso.model.*
             CareCard(padding = ThusoSpacing.space20) {
                 ReviewLine("Reviewed by", reviewedBy)
                 ReviewLine("On", Scheduling.longDate(Passport.dateOf(lastReview.reviewedDayOffset)))
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 Stated("The assessment", lastReview.assessment)
                 Stated("What to do until the next visit", lastReview.plan)
                 Stated("What happens next", lastReview.next)

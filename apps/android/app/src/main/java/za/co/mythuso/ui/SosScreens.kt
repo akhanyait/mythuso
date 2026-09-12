@@ -372,7 +372,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
         CareCard {
             Text(sosRecord.statement, style = MaterialTheme.typography.bodyMedium, color = BodyText)
             sosRecord.kept.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = Charcoal) }
-            HorizontalDivider(color = Stone)
+            HorizontalDivider(color = StudioLine)
             sosRecord.notKept.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = BodyText) }
         }
 

@@ -215,9 +215,9 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 }
                 Refusal(Teleconsult.refusal("silent-observers"))
                 if (consult?.allowed == true) {
-                    Button(onClick = { stage = 1 }, Modifier.fillMaxWidth(), enabled = consented["doctor"] == true, shape = ThusoButtonShape) { Text("Check identity") }
+                    StudioButton(onClick = { stage = 1 }, Modifier.fillMaxWidth(), enabled = consented["doctor"] == true, shape = ThusoButtonShape) { Text("Check identity") }
                 } else {
-                    Button(onClick = { refusedClinician = true; stage = 4 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) {
+                    StudioButton(onClick = { refusedClinician = true; stage = 4 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) {
                         Text("Rebook with a doctor whose registration is current")
                     }
                 }
@@ -244,11 +244,11 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 }
                 Text(callIdentity.whyOneMechanism, style = MaterialTheme.typography.bodySmall, color = Faint)
                 if (codeError.isEmpty()) {
-                    Button(onClick = {
+                    StudioButton(onClick = {
                         if (code == "482190") { identityConfirmed = true; stage = 2 } else codeError = callIdentity.failure
                     }, Modifier.fillMaxWidth(), enabled = code.length >= 6, shape = ThusoButtonShape) { Text("Confirm and continue") }
                 } else {
-                    Button(onClick = { stage = 4 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Close the encounter") }
+                    StudioButton(onClick = { stage = 4 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Close the encounter") }
                 }
                 OutlinedButton(onClick = { stage = 0 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Back") }
             }
@@ -280,7 +280,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     Text(callRecording.whenItExists.afterwards, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
                 Refusal(Teleconsult.refusal("covert-recording"))
-                Button(onClick = { stage = 3 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Open the call") }
+                StudioButton(onClick = { stage = 3 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Open the call") }
                 OutlinedButton(onClick = { stage = 1 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Back") }
             }
 
@@ -321,7 +321,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 CareCard {
                     StatusPill("The patient sees", "quiet")
                     Text(Teleconsult.connectionState(connectionId).patientSees, style = MaterialTheme.typography.bodySmall, color = BodyText)
-                    HorizontalDivider(color = Stone)
+                    HorizontalDivider(color = StudioLine)
                     StatusPill("The doctor sees", "quiet")
                     Text(Teleconsult.connectionState(connectionId).doctorSees, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
@@ -382,7 +382,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
 
                 /* Nothing here can close an encounter as finished while the line is down. That is the
                    button this whole feature exists in order not to have. */
-                Button(onClick = { decisionReached = true; stage = 4 }, Modifier.fillMaxWidth(),
+                StudioButton(onClick = { decisionReached = true; stage = 4 }, Modifier.fillMaxWidth(),
                     enabled = Teleconsult.mayConclude(connectionId, nursePresent) && consented["doctor"] == true, shape = ThusoButtonShape) {
                     Text("Reach a decision and end the consultation")
                 }

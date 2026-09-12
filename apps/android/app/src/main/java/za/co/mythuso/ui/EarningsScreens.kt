@@ -183,7 +183,7 @@ internal fun rand(amount: Int): String {
                     }
                     OutlinedTextField(code, { code = it.filter(Char::isDigit).take(6) },
                         label = { Text("One-time code") }, modifier = Modifier.fillMaxWidth())
-                    Button({ accountStage = "pending" }, enabled = code.length == 6, shape = ThusoButtonShape) { Text("Verify and start the wait") }
+                    StudioButton({ accountStage = "pending" }, enabled = code.length == 6, shape = ThusoButtonShape) { Text("Verify and start the wait") }
                     OutlinedButton({ accountStage = "settled"; code = "" }, shape = ThusoButtonShape) { Text("Cancel") }
                 }
                 else -> {

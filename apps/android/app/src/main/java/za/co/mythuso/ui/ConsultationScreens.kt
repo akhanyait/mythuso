@@ -227,7 +227,7 @@ private data class ConsultationSignature(
                 if (outstanding.isNotEmpty()) "Outstanding before this can be signed: ${outstanding.joinToString(", ") { it.name.lowercase() }}."
                 else "Every required section is written. Signing attaches the name, the council registration and the moment of signing."
             )
-            Button(
+            StudioButton(
                 onClick = {
                     signature = ConsultationSignature(
                         writer.name, writer.reference, role?.name ?: "—", LocalDateTime.now(),
@@ -272,7 +272,7 @@ private data class ConsultationSignature(
                     if (reading.state != CaptureState.STORED) StatusPill(reading.state.label, "sky")
                     if (reading.superseded) StatusPill("Superseded · kept", "quiet")
                     ProvenanceBlock(reading, patient)
-                    HorizontalDivider(color = Stone)
+                    HorizontalDivider(color = StudioLine)
                 }
             }
             Note("Carried from the capture queue rather than retyped. A number copied into a text box arrives in the record as something a clinician wrote, and the whole point of recording an origin is that the record can still tell the difference in a year’s time.")

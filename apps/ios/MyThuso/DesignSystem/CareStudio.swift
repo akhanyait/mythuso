@@ -85,11 +85,12 @@ struct StudioHeadline: View {
                     .padding(.vertical, ThusoSpacing.space4)
                     .background(ThusoTheme.studioLime,
                                 in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
-                    /* The block hugs the words rather than the column. A lime bar the width of the
-                       screen is a banner; a lime bar the width of the line is a highlighter, which
-                       is what the prototype draws and what makes the second line read as the same
-                       sentence emphasised rather than as a separate object. The negative leading
-                       padding puts the words back on the column the line above them starts at. */
+                    /* A highlighter rather than a banner: the block is as wide as the line it is
+                       behind, so on a phone where "Help. Health. Home." fits on one line it stops
+                       after the full stop. It takes the column when the words need two lines, which
+                       is what a highlighter does as well. The negative leading padding puts the
+                       words back on the column the line above them starts at; without it the block's
+                       own padding indents the second line by eight points. */
                     .padding(.leading, -ThusoSpacing.space8)
             }
             if !detail.isEmpty {

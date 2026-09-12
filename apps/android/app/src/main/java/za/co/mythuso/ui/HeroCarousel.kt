@@ -96,7 +96,7 @@ import za.co.mythuso.model.heroSlides
                 ) {
                     Box(
                         Modifier.width(if (position == pager.currentPage) 24.dp else 8.dp).height(8.dp)
-                            .background(if (position == pager.currentPage) Indigo else Stone, CircleShape)
+                            .background(if (position == pager.currentPage) Indigo else StudioLine, CircleShape)
                     )
                 }
             }
@@ -106,7 +106,7 @@ import za.co.mythuso.model.heroSlides
                     onClick = { playing = !playing },
                     modifier = Modifier.size(44.dp).semantics { contentDescription = if (playing) "Pause the highlights" else "Play the highlights" }
                 ) {
-                    Box(Modifier.size(32.dp).background(Color.White, CircleShape).border(1.dp, Stone, CircleShape), Alignment.Center) {
+                    Box(Modifier.size(32.dp).background(Color.White, CircleShape).border(1.dp, StudioLine, CircleShape), Alignment.Center) {
                         Icon(if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow, null, tint = Charcoal, modifier = Modifier.size(18.dp))
                     }
                 }
@@ -143,7 +143,7 @@ import za.co.mythuso.model.heroSlides
         ) {
             Text(slide.title, style = MaterialTheme.typography.titleLarge, color = Charcoal, modifier = Modifier.fillMaxWidth(0.5f))
             Text(slide.body, style = MaterialTheme.typography.bodySmall, color = BodyText, modifier = Modifier.fillMaxWidth(0.5f).padding(top = 8.dp))
-            Button(onClick = onAction, shape = CircleShape, modifier = Modifier.padding(top = 12.dp)) {
+            StudioButton(onClick = onAction, shape = CircleShape, modifier = Modifier.padding(top = 12.dp)) {
                 Text(slide.cta, style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.width(8.dp))
                 Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(16.dp))

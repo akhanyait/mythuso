@@ -206,13 +206,13 @@ import za.co.mythuso.model.*
             CareCard {
                 StatedRefusal("It is not an arrival time", ArrivalRefusals.notAnArrivalTime,
                     Capabilities.blocking("dispatch").joinToString(" "))
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 StatedRefusal("Neither pin is a house", ArrivalRefusals.noDoorstep,
                     Geography.rule("address-is-not-a-pin").why)
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 StatedRefusal("Nowhere she has been", Geography.rule("no-history-drawn").statement,
                     Geography.rule("no-history-drawn").why)
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 StatedRefusal("You see this on the day and not before", ArrivalRefusals.onlyOnTheDay)
             }
             TonedCard { Text(ArrivalRefusals.nothingMeasured, style = MaterialTheme.typography.bodyMedium, color = Charcoal) }

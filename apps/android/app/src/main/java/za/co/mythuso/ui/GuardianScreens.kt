@@ -55,7 +55,7 @@ val guardianScopes = listOf(
                 if (minor) Note("For a child under 18 you are asking for guardianship, not sharing. Production requires proof of parental responsibility and a record of the child’s own views as they grow older.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = close, shape = ThusoButtonShape) { Text("Cancel") }
-                    Button(onClick = { step = 1 }, enabled = name.isNotBlank(), shape = ThusoButtonShape) { Text("Continue") }
+                    StudioButton(onClick = { step = 1 }, enabled = name.isNotBlank(), shape = ThusoButtonShape) { Text("Continue") }
                 }
             }
             1 -> {
@@ -74,7 +74,7 @@ val guardianScopes = listOf(
                 Note("Sexual and reproductive health, mental health and HIV-related entries stay hidden under every scope unless you release them one by one.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 0 }, shape = ThusoButtonShape) { Text("Back") }
-                    Button(onClick = { step = 2 }, shape = ThusoButtonShape) { Text("Continue") }
+                    StudioButton(onClick = { step = 2 }, shape = ThusoButtonShape) { Text("Continue") }
                 }
             }
             2 -> {
@@ -90,7 +90,7 @@ val guardianScopes = listOf(
                 Note("${name.substringBefore(' ')} must verify their identity before the invitation becomes active. An unverified invitation grants nothing.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 1 }, shape = ThusoButtonShape) { Text("Back") }
-                    Button(onClick = { step = 3 }, shape = ThusoButtonShape) { Text("Review") }
+                    StudioButton(onClick = { step = 3 }, shape = ThusoButtonShape) { Text("Review") }
                 }
             }
             else -> {
@@ -105,7 +105,7 @@ val guardianScopes = listOf(
                 Setting("I understand this is a design preview.", understood) { understood = it }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { step = 2 }, shape = ThusoButtonShape) { Text("Back") }
-                    Button(onClick = {
+                    StudioButton(onClick = {
                         store.invitations.add(GuardianInvitation("INV-00${(40..89).random()}", name.trim(), relationship, scope, expires, "Verification pending"))
                         close()
                     }, enabled = understood, shape = ThusoButtonShape) { Text("Send demo invitation") }

@@ -316,7 +316,7 @@ val incidents = listOf(
         }
         OutlinedTextField(notes, { notes = it.take(600) }, label = { Text("Handover note") }, modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
             supportingText = { Text("What happened, what you did, what the next shift must know.") })
-        Button(onClick = { log.add(action); action = "" }, enabled = action.isNotEmpty(), shape = ThusoButtonShape) { Text("Add demo action to the log") }
+        StudioButton(onClick = { log.add(action); action = "" }, enabled = action.isNotEmpty(), shape = ThusoButtonShape) { Text("Add demo action to the log") }
         if (log.isNotEmpty()) CareCard {
             Text("Demo incident log", style = MaterialTheme.typography.titleMedium)
             log.forEach { entry ->

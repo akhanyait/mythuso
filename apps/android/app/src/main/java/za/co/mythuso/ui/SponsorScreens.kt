@@ -119,7 +119,7 @@ private val serviceIsNamed: Boolean = sponsorStatement.note.contains("switched t
                         }
                         Text(rands(line.amount), style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                     }
-                    HorizontalDivider(color = Stone)
+                    HorizontalDivider(color = StudioLine)
                 }
                 ReviewLine("Drawn from what you set aside", rands(statement.spent))
             }
@@ -163,7 +163,7 @@ private val serviceIsNamed: Boolean = sponsorStatement.note.contains("switched t
                 val rule = Programmes.rule("paying-is-not-permission")
                 Text(rule.title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                 Text(rule.sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 Text("The least anybody can be given is more than this", style = MaterialTheme.typography.titleSmall, color = Charcoal)
                 Text("${leastScope.first} — ${leastScope.second}", style = MaterialTheme.typography.bodyMedium, color = BodyText)
                 Note("And that is granted by $first, from her own account, with an end date on it. A sponsorship grants nothing at all, so there is nothing here to widen.")

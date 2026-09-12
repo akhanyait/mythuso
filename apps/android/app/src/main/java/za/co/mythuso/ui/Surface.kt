@@ -99,12 +99,23 @@ import androidx.compose.ui.unit.dp
     }
 }
 
-/** The luminous ground: three pale tints, none darker than the floor the maths is measured against.
+/** THE GROUND IS PAPER NOW.
  *
- * A gradient rather than a flat fill because a translucent panel over a flat colour reads as a grey
- * card. It does not move — a ground that drifts is a box that keeps changing under a thumb. */
-@Composable fun auroraBrush(): Brush = Brush.linearGradient(
-    0.0f to AuroraWarm, 0.42f to AuroraCool, 1.0f to AuroraSage
+ * It was three pale tints — auroraWarm, auroraCool, auroraSage — drawn so a translucent panel had
+ * something to refract, because glass over a flat colour reads as a grey card.
+ *
+ * The Care Studio generation the founder chose on 12 September has one ground and it is studioPaper,
+ * a cream. Three tints under it would be the previous palette showing through the new one. So: paper,
+ * with one soft white highlight rather than three of anything. Glass still has a gradient; the ground
+ * is one colour.
+ *
+ * The arithmetic gets easier rather than harder. Every point on this ground is at least as light as
+ * `mist`, which is what every charcoal pair in tokens.json was measured against, and GlassFloor is the
+ * tint over the darkest point the ground may reach — a lighter ground makes that floor conservative
+ * rather than optimistic. It still does not move: a ground that drifts is a box that keeps changing
+ * under a thumb, and this is a phone somebody is holding on a doorstep. */
+@Composable fun studioGroundBrush(): Brush = Brush.linearGradient(
+    0.0f to SurfaceWhite, 0.35f to StudioPaper, 1.0f to StudioPaper
 )
 
 /* Secondary text, and the ground it is allowed to sit on.
@@ -158,7 +169,7 @@ private val MetricNumeral = androidx.compose.ui.text.TextStyle(
             color = if (flagged) SurfaceWhite else Charcoal,
             modifier = Modifier
                 .background(if (flagged) Charcoal else SurfaceWhite, RoundedCornerShape(ThusoRadius.pill))
-                .then(if (flagged) Modifier else Modifier.border(1.dp, Stone, RoundedCornerShape(ThusoRadius.pill)))
+                .then(if (flagged) Modifier else Modifier.border(1.dp, StudioLine, RoundedCornerShape(ThusoRadius.pill)))
                 .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space4)
         )
         Row(verticalAlignment = Alignment.Bottom) {
@@ -203,9 +214,11 @@ data class MetricSpec(
 
 /* A panel: a hairline and a lighter fill, never a shadow.
  *
- * `lead` is the one panel a screen is about and it takes the sage ground — charcoal on paleSage is
- * 11.11:1, so the emphasis costs nothing a reader pays for. `quiet` recedes onto cloud. `glass` is
- * the translucent case, which resolves to the declared floor wherever translucency is refused. */
+ * `lead` is the one panel a screen is about and it takes studioLilac — charcoal reads 11.93:1 on it,
+ * so the emphasis costs nothing a reader pays for. paleSage was the palest step of a ramp measured
+ * against a grey ground this app no longer has, and on cream it is the previous generation's accent
+ * showing through the new one. `quiet` recedes onto cloud. `glass` is the translucent case, which
+ * resolves to the declared floor wherever translucency is refused. */
 enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
 
 @Composable fun SPanel(
@@ -219,11 +232,11 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
     val fill = when (tone) {
         PanelTone.PLAIN -> SurfaceWhite
         PanelTone.QUIET -> Cloud
-        PanelTone.LEAD -> PaleSage
+        PanelTone.LEAD -> StudioLilac
         PanelTone.GLASS -> if (opaque) GlassFloor else SurfaceWhite.copy(alpha = 0.72f)
     }
     val hairline = when (tone) {
-        PanelTone.PLAIN, PanelTone.GLASS -> Stone
+        PanelTone.PLAIN, PanelTone.GLASS -> StudioLine
         else -> Color.Transparent
     }
     /* Everything read on a sage panel is charcoal, and the panel says so rather than each caller
@@ -248,7 +261,7 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
         if (onOpen != null) Box(
             Modifier.size(TouchTarget).clip(RoundedCornerShape(ThusoRadius.pill))
                 .background(SurfaceWhite, RoundedCornerShape(ThusoRadius.pill))
-                .border(1.dp, Stone, RoundedCornerShape(ThusoRadius.pill))
+                .border(1.dp, StudioLine, RoundedCornerShape(ThusoRadius.pill))
                 .clickable(onClick = onOpen)
                 .semantics { role = Role.Button; contentDescription = openLabel.ifEmpty { "Open $title" } },
             Alignment.Center
@@ -264,26 +277,29 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
     val shape = RoundedCornerShape(ThusoRadius.pill)
     Row(
         Modifier.fillMaxWidth().heightIn(min = TouchTarget).clip(shape)
-            .background(if (current) Charcoal else Cloud, shape)
+            /* The row you are on takes studioNight and studioPaper, the same pair the one live card
+               on a screen uses. A neutral black pill on a cream ground reads as a hole rather than as
+               a place, and the two darks would have been the only two in the app that disagreed. */
+            .background(if (current) StudioNight else Cloud, shape)
             .clickable(onClick = onClick)
             .padding(start = ThusoSpacing.space16, end = ThusoSpacing.space4, top = ThusoSpacing.space4, bottom = ThusoSpacing.space4)
             .semantics(mergeDescendants = true) { role = Role.Tab; contentDescription = if (current) "$label, current" else label },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
     ) {
-        Icon(icon, null, tint = if (current) SurfaceWhite else Charcoal, modifier = Modifier.size(20.dp))
+        Icon(icon, null, tint = if (current) StudioPaper else Charcoal, modifier = Modifier.size(20.dp))
         Text(
             label, style = MaterialTheme.typography.titleSmall,
-            color = if (current) SurfaceWhite else Charcoal,
+            color = if (current) StudioPaper else Charcoal,
             maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
         )
         Box(
-            Modifier.size(36.dp).background(if (current) SurfaceWhite else Color.Transparent, RoundedCornerShape(ThusoRadius.pill)),
+            Modifier.size(36.dp).background(if (current) StudioPaper else Color.Transparent, RoundedCornerShape(ThusoRadius.pill)),
             Alignment.Center
         ) {
             Icon(
                 Icons.AutoMirrored.Outlined.ArrowForward, null,
-                tint = if (current) Charcoal else Faint, modifier = Modifier.size(17.dp)
+                tint = if (current) StudioNight else Faint, modifier = Modifier.size(17.dp)
             )
         }
     }
@@ -321,7 +337,7 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
         color = if (flagged) SurfaceWhite else Charcoal, maxLines = 1,
         modifier = Modifier
             .background(if (flagged) Charcoal else SurfaceWhite, shape)
-            .then(if (flagged) Modifier else Modifier.border(1.dp, Stone, shape))
+            .then(if (flagged) Modifier else Modifier.border(1.dp, StudioLine, shape))
             .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space4)
     )
 }

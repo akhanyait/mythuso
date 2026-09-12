@@ -196,7 +196,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
                 style = MaterialTheme.typography.bodyMedium, color = BodyText)
             ReviewLine("Last collected", "${-auth.lastCollectedDays} days ago")
             ReviewLine("Next collection due", "in ${Dispensing.nextCollectionInDays} days")
-            Button({ collectTried = true }, enabled = open, shape = ThusoButtonShape) { Text("Collect a repeat") }
+            StudioButton({ collectTried = true }, enabled = open, shape = ThusoButtonShape) { Text("Collect a repeat") }
             if (collectTried) {
                 val answer = Dispensing.collectionAnswer
                 if (answer.allowed) {

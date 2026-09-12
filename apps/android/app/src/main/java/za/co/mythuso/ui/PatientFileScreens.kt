@@ -447,7 +447,7 @@ private val withheldCategorySentence: String = run {
                     Note(allowed.reason.orEmpty())
                 }
             }
-            if (index < fileActions.lastIndex) HorizontalDivider(color = Stone)
+            if (index < fileActions.lastIndex) HorizontalDivider(color = StudioLine)
         }
     }
     if (notice.isNotEmpty()) Text(
@@ -491,7 +491,7 @@ private val withheldCategorySentence: String = run {
     ) else CareCard {
         rows.forEachIndexed { index, entry ->
             EntryRow(entry, canOpen(viewer, entry), full = true)
-            if (index < rows.lastIndex) HorizontalDivider(color = Stone)
+            if (index < rows.lastIndex) HorizontalDivider(color = StudioLine)
         }
     }
 }
@@ -597,7 +597,7 @@ private val withheldCategorySentence: String = run {
         current.forEachIndexed { index, medicine ->
             MedicineRow(medicine, "${medicine.frequency} · started ${medicine.started} · ${medicine.repeats}",
                 medicine.prescriber + (medicine.dispensedBy?.let { " · last dispensed $it" } ?: " · not yet dispensed"))
-            if (index < current.lastIndex) HorizontalDivider(color = Stone)
+            if (index < current.lastIndex) HorizontalDivider(color = StudioLine)
         }
     }
     if (past.isNotEmpty()) {
@@ -605,7 +605,7 @@ private val withheldCategorySentence: String = run {
         CareCard {
             past.forEachIndexed { index, medicine ->
                 MedicineRow(medicine, "Stopped ${medicine.stopped} · started ${medicine.started}", medicine.prescriber)
-                if (index < past.lastIndex) HorizontalDivider(color = Stone)
+                if (index < past.lastIndex) HorizontalDivider(color = StudioLine)
             }
         }
     }
@@ -691,7 +691,7 @@ private val withheldCategorySentence: String = run {
                     StatusPill(referral.status, if (referral.status.startsWith("Accepted")) "teal" else "sky")
                 }
             }
-            if (index < rows.lastIndex) HorizontalDivider(color = Stone)
+            if (index < rows.lastIndex) HorizontalDivider(color = StudioLine)
         }
     }
     ProtectedLine(viewer, "referral")
@@ -715,7 +715,7 @@ private val withheldCategorySentence: String = run {
                     Note("${shortDate(document.at)} · DocumentReference")
                 }
             }
-            if (index < rows.lastIndex) HorizontalDivider(color = Stone)
+            if (index < rows.lastIndex) HorizontalDivider(color = StudioLine)
         }
     }
     ProtectedLine(viewer, "document")
@@ -759,9 +759,9 @@ private val withheldCategorySentence: String = run {
                 StatusPill(line.status, if (line.status == "Rejected") "danger" else "quiet")
                 line.note?.let { Note(it) }
             }
-            if (index < rows.lastIndex) HorizontalDivider(color = Stone)
+            if (index < rows.lastIndex) HorizontalDivider(color = StudioLine)
         }
-        HorizontalDivider(color = Stone)
+        HorizontalDivider(color = StudioLine)
         ReviewLine("Visible to this viewer", "${rands(total)} · ${rows.size} of ${patient.billing.size} lines")
     }
     ProtectedLine(viewer, "claim line")

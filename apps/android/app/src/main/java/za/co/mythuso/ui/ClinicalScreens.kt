@@ -235,7 +235,7 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
                 Note("If the code fails, the visit does not start. The nurse contacts the Control Tower instead of proceeding.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = close, shape = ThusoButtonShape) { Text("Leave") }
-                    Button(onClick = {
+                    StudioButton(onClick = {
                         if (otp == "482190") {
                             holdPart(
                                 VisitPartKind.IDENTITY, "Visit code confirmed at the door, and identity seen",
@@ -259,7 +259,7 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
                 Note("Refusal is recorded as a valid outcome, not a failed visit. A guardian consents for a child or where authority is verified.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { stage = 0 }, shape = ThusoButtonShape) { Text("Back") }
-                    Button(onClick = {
+                    StudioButton(onClick = {
                         holdPart(
                             VisitPartKind.CONSENT,
                             if (consentRecord) "Agreed to today’s readings and to them going into her Health Passport"
@@ -356,7 +356,7 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { stage = 1 }, shape = ThusoButtonShape) { Text("Back") }
-                    Button(onClick = {
+                    StudioButton(onClick = {
                         holdPart(
                             VisitPartKind.OBSERVATIONS,
                             "${captured.size} ${if (captured.size == 1) "reading" else "readings"} taken at this visit",
@@ -386,7 +386,7 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
                 if (escalation.contains("Emergency")) Note("In production this opens the emergency pathway immediately and alerts the Control Tower before the form is finished.")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { stage = 2 }, shape = ThusoButtonShape) { Text("Back") }
-                    Button(onClick = {
+                    StudioButton(onClick = {
                         holdPart(
                             VisitPartKind.FINDINGS,
                             if (symptoms.isEmpty() && notes.isBlank()) "Nothing reported, and $escalation".lowercase().replaceFirstChar { it.uppercase() }
@@ -417,7 +417,7 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
                             Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape
                         ) { Text("See what is waiting on this phone") }
                     }
-                    Button(onClick = close, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Back to the workspace") }
+                    StudioButton(onClick = close, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Back to the workspace") }
                 } else {
                     CareCard {
                         Text("$patient · $reference", style = MaterialTheme.typography.titleMedium)
@@ -452,7 +452,7 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
                            visit holds at once — the contract's own word for the state she leaves it
                            in. After it there is nothing left for her to do, and the phone owes it a
                            connection. */
-                        Button(onClick = {
+                        StudioButton(onClick = {
                             holdPart(
                                 VisitPartKind.SIGN_OFF, "Signed on this phone, and not yet filed",
                                 listOf(
@@ -523,7 +523,7 @@ private fun VisitPart.fact(label: String): String? = detail.firstOrNull { it.lab
         OutlinedTextField(rationale, { rationale = it.take(800) }, label = { Text("Clinical rationale") }, modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
             supportingText = { Text("Why this decision, for the record and the next clinician.") })
         Note("Decision support may summarise or highlight. It never selects the outcome, and every entry is attributed to the signing doctor’s HPCSA registration.")
-        Button(onClick = { done = true }, enabled = !done && maySign?.allowed == true && decision.isNotEmpty() && rationale.trim().length >= 10, shape = ThusoButtonShape) {
+        StudioButton(onClick = { done = true }, enabled = !done && maySign?.allowed == true && decision.isNotEmpty() && rationale.trim().length >= 10, shape = ThusoButtonShape) {
             Text(if (done) "Demo decision held in this screen only" else "Sign demo decision")
         }
     }

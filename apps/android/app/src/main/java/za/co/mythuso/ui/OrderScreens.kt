@@ -137,6 +137,6 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
             }
         }
         Note("Abnormal results are never pushed to a patient without a clinician’s explanation. Release is a deliberate clinical act, not an automatic notification.")
-        Button(onClick = { released = !released }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text(if (released) "Withdraw demo release" else "Release with an explanation") }
+        StudioButton(onClick = { released = !released }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text(if (released) "Withdraw demo release" else "Release with an explanation") }
     }
 }
