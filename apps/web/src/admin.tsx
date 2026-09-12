@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import AdminApp from './shells/AdminShell';
 import './surface/core.css';
+import './surface/studio.css';
 import './surface/app.css';
 import './surface/clinical-screens.css';
 import './shells/shells.css';

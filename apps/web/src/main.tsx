@@ -7,6 +7,12 @@ import App from './App';
    page cannot be drawn without, app.css is what the three applications genuinely share, and
    patient-screens.css is reachable from this entry and nowhere else. */
 import './surface/core.css';
+/* And immediately after it, the Care Studio palette. It re-points the three neutral ramps this
+   application is written in onto the generation the founder chose on 12 September, so every
+   screen moves at once rather than twelve stylesheets being re-typed in a fourth ramp. It sits
+   here, second, because everything below is free to override its components and nothing below
+   redefines a token at :root. */
+import './surface/studio.css';
 import './surface/app.css';
 import './surface/patient-screens.css';
 import './shells/shells.css';

@@ -4,6 +4,7 @@ import StaffApp from './shells/StaffShell';
 /* No patient-screens.css here. A nurse standing at somebody's front door has no reason to download
    the emergency pathway, the consent centre or the family list in order to read her schedule. */
 import './surface/core.css';
+import './surface/studio.css';
 import './surface/app.css';
 import './surface/clinical-screens.css';
 import './shells/shells.css';

@@ -1,0 +1,243 @@
+/* The Care Studio generation, as the web's palette layer.
+ *
+ * Chosen by the founder on 12 September 2026 from a prototype he built and refined himself, with
+ * the instruction "We are finally aligned now on design please apply." A cream ground, a deep green
+ * ink, lime as the one bright accent, and peach and lilac beside it on the tiles. The palette
+ * landed in packages/design-tokens/tokens.json as studioPaper, studioNight, studioInk,
+ * studioInkDeep, studioLime, studioLilac, studioPeach and studioLine, with every pair measured.
+ *
+ * WHY THIS IS A RE-POINT RATHER THAN A REWRITE. Three generations of colour already reach this
+ * application through three neutral ramps: the proposal's indigo/teal/mango, the original
+ * ink/slate/body/faint/line/canvas ramp that core.css is written in, and the charcoal/mist/cloud/
+ * stone/sage ramp the 8 September surface sweep added. Every screen in the product is written in
+ * one of those three. Re-typing twelve stylesheets in a fourth would lose the structural work of
+ * the last week — the disclosures, the four operational boards that read down a column, the figures
+ * that are counted rather than typed — for a colour change. So the ramps are re-pointed here, once,
+ * at :root, and every screen follows. patient.css already does exactly this inside .patient-surface
+ * (indigo becomes charcoal, canvas becomes cloud); this is the same move one level up.
+ *
+ * WHAT A COLOUR IS ALLOWED TO BE. studioLime measures 1.05 against studioPaper. It is a fill, and
+ * on a light ground it never carries a word — the same rule sage and teal and mango are already
+ * held to, arrived at for the third time for the same reason. It may carry a word on studioNight,
+ * at 13.31, and that pair is declared. So --accent-soft and --pale-sage become washes of it and
+ * everything read on them stays ink; --indigo, which is a *foreground* in forty places, becomes
+ * studioInk rather than lime, and full-strength lime is spent on the one action a screen is for.
+ *
+ * THE MEASURED PAIRS. Everything below that is not already a pair in the token contract's own table
+ * is a color-mix() of two tokens, and every ratio is computed and written beside the rule. The
+ * mixes exist because a muted foreground on the studio ground has no token: the palette landed with
+ * eight colours and no studioInkMuted, and adding one would regenerate the iOS and Android token
+ * files, which another session is holding. It is the token this sheet most wishes existed.
+ *
+ *   studioInk on studioPaper      12.02    studioInk on white             12.76
+ *   studioInk on studioLime       11.46    studioInk on studioLilac        9.04
+ *   studioInk on studioPeach       8.92    studioInk on studioLine         9.93
+ *   studioInkDeep on studioPaper  15.08    studioPaper on studioInk       12.02
+ *   studioPaper on studioNight    13.96    studioLime on studioNight      13.31
+ *   ink at 80% over paper  (--body)   6.51 on paper, 6.92 on white, 6.21 on lime, 5.38 on the line
+ *   ink at 75% over paper  (--faint)  5.57 on paper, 5.92 on white, 5.32 on lime, 4.60 on the line
+ *   ink on lime at 62% over ink (--sage-slate)          5.47, which is where that ramp now stops
+ *   ink on lime at 34% over paper (--pale-sage)       11.75; --body on it 6.37, --faint 5.45
+ *   ink on peach at 55% over paper (--soft-sage)      10.22; --faint on it 4.74
+ *   ink on lilac at 60% over paper (--muted-sage)     10.16; --faint on it 4.71
+ *   ink on lime at 26% over paper (--indigo-soft)     11.84; --faint on it 5.49
+ *
+ * WHAT THIS SHEET DOES NOT DO. It does not build the motion system — #care-motion is a separate
+ * piece of work and the places it belongs are marked below. It does not touch iOS or Android. And
+ * it removes no disclosure: lib/capabilities.ts decides what a screen says about what is behind it,
+ * the contract's a-simulation-says-so rule forbids a screen being quieter for being simulated than
+ * for being absent, and a palette is not a reason to move a sentence. */
+
+:root {
+ /* ---- The ground ----
+    Cream, not grey and not white. The cards are the white, and a warm ground is most of what
+    separates this from the near-monochrome it replaces. */
+ --canvas: var(--studio-paper);
+ --mist: var(--studio-paper);
+ /* A recessed panel goes warmer and deeper rather than greyer: studioLine is the palette's own
+    greige, and ink on it measures 9.93. */
+ --cloud: var(--studio-line);
+ /* The hairline is a touch deeper than the recessed fill so the two are not the same colour doing
+    two jobs. 1.58 against white and 1.49 against paper — a hairline, which the token contract says
+    plainly is not a control and does not owe SC 1.4.11's 3:1. */
+ --stone: color-mix(in srgb, var(--studio-ink) 12%, var(--studio-line));
+ --line: color-mix(in srgb, var(--studio-ink) 12%, var(--studio-line));
+
+ /* ---- The ink ----
+    Everything a person reads. studioInkDeep is the heading weight, studioInk the body of it. */
+ --ink: var(--studio-ink-deep);
+ --slate: var(--studio-ink);
+ --charcoal: var(--studio-ink);
+ --body: color-mix(in srgb, var(--studio-ink) 80%, var(--studio-paper));
+ --faint: color-mix(in srgb, var(--studio-ink) 75%, var(--studio-paper));
+ /* The composited muted greys were computed against a grey ground and read cold on cream. Same
+    percentages, mixed into the ground each one actually sits on. 6.12 and 5.72. */
+ --charcoal-muted-on-cloud: color-mix(in srgb, var(--studio-ink) 82%, var(--studio-line));
+ --charcoal-muted-on-soft-sage: color-mix(in srgb, var(--studio-ink) 82%, var(--studio-peach));
+ --charcoal-muted-on-pale-sage: color-mix(in srgb, var(--studio-ink) 82%, var(--studio-lime));
+
+ /* ---- The three tints, where the sage ramp was ----
+    Not a ramp. Lime, peach and lilac are siblings rather than four steps of one colour, and ink is
+    the only foreground on any of them.
+
+    THEY ARRIVE HERE AS WASHES, AND THAT IS THE WHOLE DISCIPLINE. The sage ramp fills thirty-four
+    surfaces — an avatar, a help card, a highlighted plan, a photograph's frame, an empty state — and
+    pointing it at full-strength lime painted every one of them the same bright yellow-green. That is
+    the defect the founder's own reference does not have: his cards are white and only the small tile
+    on each is saturated. An accent that fills thirty-four surfaces has stopped pointing at anything.
+
+    So a *surface* takes the tint at a quarter to a half strength, and full lime is spent in exactly
+    three places — the primary action, a tile that names its tint, and the one figure a dashboard is
+    about. Lime at 34% over paper reads as warm rather than green and holds ink at 11.75. */
+ --pale-sage: color-mix(in srgb, var(--studio-lime) 34%, var(--studio-paper));
+ --soft-sage: color-mix(in srgb, var(--studio-peach) 55%, var(--studio-paper));
+ --muted-sage: color-mix(in srgb, var(--studio-lilac) 60%, var(--studio-paper));
+ --sage-slate: color-mix(in srgb, var(--studio-lime) 62%, var(--studio-ink));
+
+ /* ---- The proposal's indigo ----
+    It is a foreground far more often than a fill — a link, an eyebrow, an icon, a selected chip's
+    label — so it becomes the ink rather than the accent. The screens that use it as a dark gradient
+    (the wallet, the passport hero, the promotional band) become deep green with white on them at
+    12.76, which is what they were reaching for. */
+ --indigo: var(--studio-ink);
+ --indigo-deep: var(--studio-ink-deep);
+ --indigo-soft: color-mix(in srgb, var(--studio-lime) 26%, var(--studio-paper));
+ --accent-soft: color-mix(in srgb, var(--studio-lime) 34%, var(--studio-paper));
+ --indigo-wash: color-mix(in srgb, var(--studio-ink) 7%, transparent);
+ /* The two pale teals exist to be read on a dark indigo panel. On studio ink the colour that may
+    carry a word is lime, at 11.46 — which is the whole reason lime is in the palette. */
+ --teal-light: var(--studio-lime);
+ --teal-mid: var(--studio-lime);
+
+ /* ---- Glass, over cream ----
+    Every ratio measured against the glass floor stays true only while the floor is at least as
+    light as the one it was computed from. This one is between white and paper, so it is lighter
+    than studioPaper and ink on it clears more than the 12.02 it clears on the ground itself. The
+    three aurora stops are paper and two whispers of tint over paper, all lighter again. */
+ --aurora-cool: var(--studio-paper);
+ --aurora-warm: color-mix(in srgb, var(--studio-peach) 13%, var(--studio-paper));
+ --aurora-sage: color-mix(in srgb, var(--studio-lime) 16%, var(--studio-paper));
+ --glass-floor: color-mix(in srgb, var(--surface) 76%, var(--studio-paper));
+ --glow: color-mix(in srgb, var(--studio-lime) 40%, var(--studio-paper));
+
+ /* A shadow on cream is warm or it is a smudge. Same two elevations, same opacities, mixed from
+    the ink rather than from the navy the token file's rgba() was written in. */
+ --shadow: 0 1px 2px color-mix(in srgb, var(--studio-ink) 7%, transparent);
+ --shadow-raised: 0 4px 16px color-mix(in srgb, var(--studio-ink) 11%, transparent);
+}
+
+/* ---- The lime pill -----------------------------------------------------------------------------
+ *
+ * The founder's primary action: a lime pill with an ink label, 11.46:1. It is the one bright thing
+ * on a screen, which is what makes it findable, and it is the reason lime may not also be a tile on
+ * every row — an accent that appears eleven times has stopped pointing anywhere.
+ *
+ * The shape changes with the colour. Care Studio's controls are pills rather than 10px rectangles,
+ * and a pill is also how a person tells the one action apart from the six chips around it. */
+.primary {
+ background: var(--studio-lime);
+ color: var(--studio-ink-deep);
+ border-radius: var(--r-pill);
+ font-weight: 600;
+}
+/* The hover state names its own foreground rather than leaving it to the rule above. A ground set
+   in one rule and a colour in another is the exact shape of every contrast defect this project has
+   found, and scripts/check-boundaries.mjs now refuses it for the studio tints as it already did for
+   the sage ramp. Ink-deep on lime at 84% measures 14.3. */
+.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--studio-lime) 84%, var(--studio-ink)); color: var(--studio-ink-deep); }
+/* A lime pill on a lime ground is a pill nobody can find. Where the accent is already the surface —
+   a lead panel, a highlighted tile, the empty state inside one — the action inverts to the ink
+   instead, with paper on it at 12.02. */
+.s-panel.lead .primary,
+.empty-note .primary { background: var(--studio-ink); color: var(--studio-paper); }
+.s-panel.lead .primary:hover:not(:disabled),
+.empty-note .primary:hover:not(:disabled) { background: var(--studio-ink-deep); color: var(--studio-paper); }
+
+.secondary, .ghost { border-radius: var(--r-pill); }
+.secondary:hover:not(:disabled) { border-color: var(--studio-ink); background: var(--surface); }
+
+/* ---- A tinted tile -----------------------------------------------------------------------------
+ *
+ * The reference's cards each carry a tile in a different tint rather than one sage everywhere.
+ *
+ * The tint is an attribute a component sets from what the thing *is*, never from its index in an
+ * array. That distinction is the whole of it, and this product has made the mistake once already:
+ * core.css still carries the note explaining why the old tint-1/2/3 rotation was deleted — it
+ * coloured a service by its position, so two people comparing wound care and a blood test each saw
+ * a colour and neither colour said anything. A tint keyed to a named, ordered step — 01, 02, 03 —
+ * is a second way of saying what the number and the heading already say. A tint keyed to `i % 3`
+ * over nine services is decoration wearing the shape of meaning, and is not used.
+ *
+ * Colour is never the only difference: every tinted tile sits beside its own icon and its own
+ * heading, and nothing below carries state. */
+.service-icon, .tile-icon { background: var(--indigo-soft); color: var(--studio-ink); }
+[data-tint='lime']  { background: var(--studio-lime);  color: var(--studio-ink); }
+[data-tint='peach'] { background: var(--studio-peach); color: var(--studio-ink); }
+[data-tint='lilac'] { background: var(--studio-lilac); color: var(--studio-ink); }
+
+/* ---- The night bar -----------------------------------------------------------------------------
+ *
+ * A near-black strip of actions across the foot of a hero: icon, label, arrow, repeated. It is the
+ * darkest thing on the page and the only place lime is a word rather than a fill.
+ *
+ * It is a list of links and it stays one at every width — four across on a desk, one under the next
+ * on a phone — because a row of four 44px targets does not go into 320px and the alternative is a
+ * horizontal scroller nobody finds. #care-motion belongs on the arrow: it should travel on hover
+ * and on focus, and nowhere else. */
+.studio-bar {
+ list-style: none;
+ display: grid;
+ gap: 1px;
+ margin: 0;
+ padding: 0;
+ background: color-mix(in srgb, var(--studio-paper) 22%, var(--studio-night));
+ border-radius: var(--r-panel);
+ overflow: hidden;
+}
+.studio-bar > li { background: var(--studio-night); }
+.studio-bar a {
+ display: flex;
+ align-items: center;
+ gap: var(--space-12);
+ min-height: 64px;
+ padding: 16px 20px;
+ color: var(--studio-paper);
+ font-size: 15px;
+ font-weight: 500;
+ text-decoration: none;
+}
+.studio-bar a > svg:first-child { color: var(--studio-lime); }
+.studio-bar a > span { flex: 1; min-width: 0; }
+.studio-bar a > i { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; color: var(--studio-lime); font-style: normal; }
+.studio-bar a:hover { background: color-mix(in srgb, var(--studio-paper) 8%, var(--studio-night)); }
+@media (min-width: 900px) { .studio-bar { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* ---- A figure that leads -----------------------------------------------------------------------
+ *
+ * The strips of metrics in the workspaces and the back office are four to six identical figures in
+ * a row, which is a strip with no hierarchy at all: nothing on it says what the screen was opened
+ * for. Care Studio's dashboards keep the large figures and put one of them on a lime tile.
+ *
+ * `lead` is set by the screen, on the one figure that screen is about. Nothing is typed: the figure
+ * inside it is the same counted value it was, and the chip above it says the same word. The tile
+ * adds emphasis to a number that was already there — it does not add a number. */
+.s-metric.lead {
+ background: var(--studio-lime);
+ color: var(--studio-ink);
+ border-radius: var(--r-panel);
+ padding: var(--space-16) var(--space-20) var(--space-20);
+ /* No negative margin. The first version pulled the tile out of its grid cell to keep the figures
+    on one baseline, and on the patient home it landed on top of the heading in the column beneath
+    it. A tile that leaves its own cell is a tile that will eventually leave it onto something. */
+ align-self: start;
+}
+.s-metric.lead .s-metric-value,
+.s-metric.lead .s-metric-label { color: var(--studio-ink); }
+.s-metric.lead .s-metric-chip { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--studio-lime); }
+.s-metric.lead .s-metric-chip.flagged { background: var(--studio-ink-deep); border-color: var(--studio-ink-deep); color: var(--studio-lime); }
+
+/* The back office's figure is the numeral plus the line saying what it is against, so the tile is
+   the wrapper rather than the Metric inside it. */
+.c-figure.lead { background: var(--studio-lime); color: var(--studio-ink); border-radius: var(--r-panel); padding: var(--space-16) var(--space-20) var(--space-20); align-self: start; }
+.c-figure.lead .s-metric-value, .c-figure.lead .s-metric-label, .c-figure.lead > small { color: var(--studio-ink); }
+.c-figure.lead .s-metric-chip { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--studio-lime); }
