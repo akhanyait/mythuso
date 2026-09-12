@@ -25,28 +25,29 @@ struct HomeView: View {
     private var stacked: Bool { typeSize.isAccessibilitySize }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            /* A band of the brand behind the greeting, not a field the height of the screen. */
-            HeroTexture().frame(height: 210).ignoresSafeArea(edges: .top).allowsHitTesting(false)
-            content
-        }
-        .thusoGround()
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+        /* THE BAND BEHIND THE GREETING IS GONE.
+           It was 210 points of brand texture under the first thing on the first screen, and on the
+           Care Studio ground it is a second surface drawn on top of the one the whole app now stands
+           on — two grounds arguing along a hard edge, which is what the Android shell already removed
+           for the same reason. The headline is the hero. Paper, and a very large sentence on it. */
+        content
+            .thusoGround()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
                 /* The mark, not the lockup. "Brand" is the full horizontal lockup — icon, wordmark and
                    the tagline "Help. Health. Home." — and the web gives it 168 points of width to be
                    read in. This slot is a 34-point circle, so the same file arrived with its wordmark
                    about three points tall and its tagline under two: not a small logo, an illegible
                    one, and the first thing on the first screen. BrandMark is the icon out of that same
                    artwork, measured off its own alpha rather than cropped by eye. */
-                Image("BrandMark").resizable().scaledToFit().frame(height: 30).accessibilityLabel("MyThuso")
+                    Image("BrandMark").resizable().scaledToFit().frame(height: 30).accessibilityLabel("MyThuso")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink { NotificationsView() } label: { Image(systemName: "bell") }.accessibilityLabel("Notifications")
+                }
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink { NotificationsView() } label: { Image(systemName: "bell") }.accessibilityLabel("Notifications")
-            }
-        }
     }
 
     private var content: some View {
@@ -60,13 +61,13 @@ struct HomeView: View {
                 carePlan
                 family
                 NavigationLink { PassportView() } label: { passportPromo }.buttonStyle(.plain)
-                VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                    Button(action: firstRun) {
-                        Label("See the first-run and recovery flow", systemImage: "person.badge.plus").font(.footnote.weight(.semibold))
-                    }.frame(minHeight: 44).contentShape(Rectangle())
-                    .foregroundStyle(ThusoTheme.charcoal).frame(minHeight: 44)
-                    Text(thuso(.tagline, store.locale)).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                /* The tagline used to close this screen in thirteen-point grey. It opens it now, at
+                   forty points on a lime block, so it is not repeated down here. */
+                Button(action: firstRun) {
+                    Label("See the first-run and recovery flow", systemImage: "person.badge.plus").font(.footnote.weight(.semibold))
                 }
+                .frame(minHeight: 44).contentShape(Rectangle())
+                .foregroundStyle(ThusoTheme.charcoal)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, ThusoSpacing.space16)
             }
@@ -80,18 +81,23 @@ struct HomeView: View {
 
     /* The care area and the person a visit is for sit at the top, together, because they change
        what everything under them means. Choosing a family member here opens the family screen,
-       where the consent and record-access questions are actually answered — never their record. */
+       where the consent and record-access questions are actually answered — never their record.
+
+       THE HEADLINE IS THE CONTRACT'S OWN WORDS, IN ELEVEN LANGUAGES.
+       The prototype's patient frame is a greeting over a short line about what the product is for,
+       both set very large. The temptation was to type the second line in English and let ten locales
+       show a slogan nobody had translated — on the one screen a person opens first. There was no
+       need: `shell.greeting` and `shell.tagline` are both in locales.json, reviewed to the same
+       standard as everything else on the shell, and "Help. Health. Home." is three words in every
+       one of them. So the tagline is promoted from a grey caption at the very bottom of this screen
+       — where it had been since the first cut and where nobody would ever read it — to the second
+       line of the headline. Nothing new was written and nothing is only in English. */
     private var greeting: some View {
-        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             DemoBadge()
-            VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                Text(thuso(.greeting, store.locale)).font(.title.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(thuso(.greetingSub, store.locale)).font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
+            StudioHeadline(lead: thuso(.greeting, store.locale),
+                           accent: thuso(.tagline, store.locale),
+                           detail: thuso(.greetingSub, store.locale))
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: ThusoSpacing.space8) { areaChip; personChip }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) { areaChip; personChip }
@@ -167,42 +173,58 @@ struct HomeView: View {
         }
     }
 
+    /* THE ONE NEAR-BLACK CARD ON THIS SCREEN, AND IT CARRIES THE ONE THING THAT IS ALREADY TRUE.
+     *
+     * The prototype's phone frames spend exactly one dark card per screen, and they spend it on what
+     * is live right now. On a returning patient's home that is the visit somebody has already
+     * arranged — not the catalogue under it, not the promotion at the foot of it. It was a pale lead
+     * card among seven other cards, which is the defect the design language names first: a screen
+     * where every card is a rounded box with the same treatment has no subject.
+     *
+     * Everything on it is `studioPaper`, the declared ink for this ground at 13.95:1, with the
+     * supporting lines at the muted opacity — 9.04:1. The chip is `onDark`, which is the tone this
+     * app already had for exactly this case and which no longer needs the visit's own tone word: on
+     * a card that is one thing to VoiceOver and one object on the screen, a teal chip and an amber
+     * chip were two colours saying what the words beside them already say. The monogram takes the
+     * paper as its disc, so the initials stay dark on something light rather than vanishing. */
     private func visitCard(_ visit: BookedVisit) -> some View {
-        CareCard(weight: .lead) {
+        StudioNightCard(spacing: ThusoSpacing.space12) {
             let head = HStack(spacing: ThusoSpacing.space12) {
-                TileIcon(symbol: visit.service.symbol)
+                TileIcon(symbol: visit.service.symbol, tint: ThusoTheme.studioInkDeep)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(visit.service.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text(visit.shortWhenText).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(visit.service.name).font(.subheadline.weight(.semibold)).studioNightInk()
+                    Text(visit.shortWhenText).font(.footnote).studioNightInk(quiet: true)
                 }
-                if !stacked { Spacer(minLength: 6); StatusPill(text: visit.status, tone: visit.isScheduled ? "teal" : "amber") }
+                if !stacked { Spacer(minLength: 6); MetricChip(text: visit.status, tone: .onDark) }
             }
             if stacked {
-                VStack(alignment: .leading, spacing: ThusoSpacing.space8) { head; StatusPill(text: visit.status, tone: visit.isScheduled ? "teal" : "amber") }
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) { head; MetricChip(text: visit.status, tone: .onDark) }
             } else {
                 head
             }
             /* An arrival estimate belongs to "come now" and to nothing else; a visit booked for a
                named hour says how long it takes instead, from the catalogue. */
             HStack(spacing: ThusoSpacing.space4) {
-                Image(systemName: visit.isScheduled ? "clock" : "bolt.fill").font(.caption)
+                Image(systemName: visit.isScheduled ? "clock" : "bolt.fill").thusoFont(ThusoType.caption)
                 Text(visit.isScheduled ? "\(visit.service.duration) minutes" : "Looking for the nearest nurse").font(.footnote)
             }
-            .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            .studioNightInk(quiet: true)
             HStack(spacing: ThusoSpacing.space4) {
-                Image(systemName: "mappin.and.ellipse").font(.caption)
+                Image(systemName: "mappin.and.ellipse").thusoFont(ThusoType.caption)
                 Text(visit.address).font(.footnote)
             }
-            .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
-            Divider().overlay(ThusoTheme.stone)
+            .studioNightInk(quiet: true)
+            /* A rule on a card this dark has to be drawn in the card's own ink. `studioLine` is a
+               hairline for a light ground and there is nothing of it to see here. */
+            Rectangle().fill(ThusoTheme.studioPaper.opacity(0.18)).frame(height: 1).accessibilityHidden(true)
             HStack(spacing: ThusoSpacing.space12) {
-                Monogram(text: Arrival.nurse.initials)
+                Monogram(text: Arrival.nurse.initials, background: ThusoTheme.studioPaper)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Sister Naledi Mokoena").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text("Registered Nurse (SANC)").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text("Sister Naledi Mokoena").font(.subheadline.weight(.semibold)).studioNightInk()
+                    Text("Registered Nurse (SANC)").thusoFont(ThusoType.caption).studioNightInk(quiet: true)
                 }
                 Spacer(minLength: 4)
-                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).studioNightInk(quiet: true)
             }
         }
     }
@@ -258,7 +280,7 @@ struct HomeView: View {
             CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                 ForEach(Array(CareService.all.prefix(4).enumerated()), id: \.element) { index, service in
                     NavigationLink { BookingView(service: service) } label: { shortcutRow(service, index: index) }.buttonStyle(.plain)
-                    if index < 3 { Divider().overlay(ThusoTheme.stone) }
+                    if index < 3 { Divider().overlay(ThusoTheme.studioLine) }
                 }
             }
         }
@@ -318,7 +340,7 @@ struct HomeView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    if index < sampleResults.count - 1 { Divider().overlay(ThusoTheme.stone) }
+                    if index < sampleResults.count - 1 { Divider().overlay(ThusoTheme.studioLine) }
                 }
             }
         }
@@ -355,7 +377,7 @@ struct HomeView: View {
                     NavigationLink { FamilyView() } label: {
                         MenuRow(title: member, subtitle: relationship(index), symbol: "person.crop.circle")
                     }.buttonStyle(.plain)
-                    Divider().overlay(ThusoTheme.stone)
+                    Divider().overlay(ThusoTheme.studioLine)
                 }
                 NavigationLink { FamilyView() } label: {
                     Label("Add a family member", systemImage: "plus").font(.subheadline.weight(.semibold))
@@ -388,23 +410,31 @@ struct HomeView: View {
         }
     }
 
+    /* THE PROMOTION GAVE UP THE DARK CARD, BECAUSE THERE IS ONLY ONE OF THOSE.
+     *
+     * It was a NightPanel, and so is the visit at the top of this screen now — two near-black cards
+     * on one page, which is two subjects, which is none. The offer is the quieter of the two claims
+     * by a long way: one of them is a nurse coming to somebody's house on Thursday and the other is
+     * an invitation to look at a record.
+     *
+     * So it takes `studioPeach`, one of the three tiles the Care Studio palette declares, with
+     * charcoal on it. It is still the warmest object at the foot of the screen and it is no longer
+     * competing with the thing that is actually happening. */
     private var passportPromo: some View {
-        ZStack(alignment: .leading) {
-            NightPanel()
-            VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                StatusPill(text: "THUSO PASS", tone: "light")
-                Text("Your health.\nOne safe place.").font(.title3.weight(.bold)).foregroundStyle(.white)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Every visit, reading and result, in a record you own and control.")
-                    .font(.footnote).foregroundStyle(.white.opacity(0.78))
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("\(thuso(.openPassport, store.locale)) →").font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.78))
-            }
-            .padding(ThusoSpacing.space20)
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+            StatusPill(text: "THUSO PASS")
+            Text("Your health.\nOne safe place.").font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Every visit, reading and result, in a record you own and control.")
+                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .fixedSize(horizontal: false, vertical: true)
+            Text("\(thuso(.openPassport, store.locale)) →").font(.subheadline.weight(.semibold))
+                .foregroundStyle(ThusoTheme.charcoal)
         }
-        .frame(minHeight: 150)
-        .clipShape(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .padding(ThusoSpacing.space20)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+        .background(ThusoTheme.studioPeach,
+                    in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }

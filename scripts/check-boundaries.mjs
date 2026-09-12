@@ -1307,7 +1307,7 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  if(match.role !== 'doctor') throw new Error(`packages/catalog/passport.json's reviewer "${reviewer.name}" is on the register as a ${match.role}, not a doctor. A nurse records and a doctor reviews — that separation is the point of naming the reviewer at all.`);
 }
 
-/* Nothing renders below the smallest size the design declares, and iOS does — 426 times.
+/* Nothing renders below the smallest size the design declares, and iOS does — 422 times.
    `ThusoType.minimumRendered` is 13 and its comment says "Nothing in any of the three apps renders
    text below this." The web is held to it: tests/accessibility.spec.ts measures rendered text at a
    320px viewport and found twenty-odd rules that had drifted under, each one a number somebody
@@ -1326,7 +1326,7 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
    counted with the rest: a glyph has no legibility floor, but separating them by regex is a guess,
    and a ratchet that guesses is a ratchet nobody trusts. */
 {
- const SMALL_TYPE_ON_IOS = 426;
+ const SMALL_TYPE_ON_IOS = 422;
  let found = 0;
  const worst = [];
  for(const file of files('apps/ios/MyThuso').filter(f => f.endsWith('.swift'))) {

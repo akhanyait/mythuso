@@ -68,6 +68,31 @@ enum WorkspaceNavigation {
         }
     }
 
+    /* HOW A ROLE IS FRAMED WHEN IT ARRIVES.
+     *
+     * The prototype the founder settled on gives each audience a headline of its own, in two tones:
+     * the patient gets a greeting, and the clinical roles get a sentence about the judgement they
+     * are being asked for. "Your judgement. A clearer view." is his, word for word, for the doctor.
+     *
+     * These four pairs are typed here and mirrored in Android's `workspaceFraming`. That is a copy,
+     * and this codebase does not like copies — but the honest place for it is a contract in
+     * packages/catalog, and the web's own workspace headings are being rebuilt by somebody else this
+     * week. Writing the contract now would mean writing it against a shell that is moving. So it is
+     * two copies rather than three, alongside `blurb` below, which has been the same two copies since
+     * the workspaces were built; when the web lands, all three should read one file.
+     *
+     * The lead line is what the reader is there to do and the accent line is what the screen gives
+     * them for it. The second line carries the lime block, so it is short by construction: a
+     * highlighter across four words is an emphasis, and across two lines it is a banner. */
+    static func framing(_ role: String) -> (lead: String, accent: String) {
+        switch role {
+        case "Doctor": return ("Your judgement.", "A clearer view.")
+        case "Partner": return ("Every order.", "And what it waits on.")
+        case "Control Tower": return ("Every visit.", "One board.")
+        default: return ("Your round today.", "Make it count.")
+        }
+    }
+
     /* What a section is for, in the words somebody doing the job would use. The same sentences the
        web's sectionBlurb carries, so a nurse reading the two does not meet two descriptions of one
        screen. A section with nothing useful to say has no line rather than a filler one. */
@@ -204,11 +229,18 @@ struct WorkspaceShell: View {
 struct WorkspaceUrgency: View {
     let role: String
     var body: some View {
-        /* The lead panel, and the only one on the screen. A workspace landing has a toggle, a queue
-           and three lists on it, and if the strip that says what is waiting is another white card
-           with the same hairline then the screen has no subject — which is the defect the design
-           language names first. The palest sage carries charcoal at 11.11:1. */
-        SurfacePanel(tone: .lead, padding: ThusoSpacing.space20, spacing: ThusoSpacing.space16) {
+        /* The one near-black card on the screen, and it carries what is waiting right now.
+         *
+         * A workspace landing has a toggle, a queue and three lists on it, and if the strip that says
+         * what is waiting is another white card with the same hairline then the screen has no subject
+         * — the defect the design language names first. It was a pale sage panel, which was the right
+         * answer against a grey ground and is the previous generation's accent against a cream one.
+         *
+         * `studioNight` is what the prototype gives the thing that is live, and for somebody holding
+         * a phone on a doorstep the thing that is live is the count of what has not been done. The
+         * figures read `studioPaper` at 13.95:1 and their labels 9.04; the one flagged chip on the
+         * strip is the single lime object on the card, which is the whole reason it is findable. */
+        StudioNightCard(padding: ThusoSpacing.space20, spacing: ThusoSpacing.space16) {
             ThusoMetrics {
                 ForEach(WorkspaceDay.figures(role)) { figure in
                     ThusoMetric(value: figure.value, prefix: figure.prefix, label: figure.label,
@@ -231,12 +263,24 @@ struct WorkspaceSectionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
-                if landing { DemoBadge() }
                 /* No eyebrow. The navigation bar above says which workspace this is and the tab bar
                    below says which section — an eyebrow here would be the third copy of one of
-                   those two words on a screen that has one column to spend. */
-                SurfaceHeading(title: section, subtitle: WorkspaceNavigation.blurb(section))
-                if landing { WorkspaceUrgency(role: role) }
+                   those two words on a screen that has one column to spend.
+
+                   THE SECTION A ROLE LANDS ON IS FRAMED, AND THE OTHERS ARE LABELLED. The landing
+                   opens with the role's own two-tone headline and carries the section's own sentence
+                   under it; every other section keeps the plain heading it had. A display headline
+                   on all four of a role's tabs would be four claims of the same size, which is the
+                   inverse of what a display size is for. */
+                if landing {
+                    DemoBadge()
+                    let framing = WorkspaceNavigation.framing(role)
+                    StudioHeadline(lead: framing.lead, accent: framing.accent,
+                                   detail: WorkspaceNavigation.blurb(section))
+                    WorkspaceUrgency(role: role)
+                } else {
+                    SurfaceHeading(title: section, subtitle: WorkspaceNavigation.blurb(section))
+                }
                 content
                 /* The standing disclosure, at the foot of every section rather than at the foot of
                    one. Quiet, because it is true on every screen and a reader who has read it once
