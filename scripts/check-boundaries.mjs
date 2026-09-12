@@ -1367,6 +1367,36 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  if(found < SMALL_TYPE_ON_IOS) throw new Error(`iOS is down to ${found} places rendering text below ThusoType.minimumRendered, and this ratchet still says ${SMALL_TYPE_ON_IOS}. Lower it to ${found}${found ? '' : ' — or rather, delete this block, because it is spent'}. A ratchet nobody lowers is a ratchet that stops meaning anything.`);
 }
 
+/* Live well, and the seven things it may never draw.
+   packages/catalog/wellbeing.json is the only feature in this product that talks to somebody about
+   their own body with no clinician in the room, and its `neverSoften` names what that costs: no
+   score, no grade, no target, no streak, no rank, no percentage, no unit. Every one of those is a
+   normal, well-intentioned decision in any other product and a harmful one here — a streak that
+   breaks punishes somebody for being ill, and a target nobody chose is somebody else's expectation
+   wearing their name.
+   So it is checked rather than asked for. The feature's own screens are read for a digit followed by
+   a unit, for a percent sign, and for the words the contract forbids. */
+{
+ const wellbeing = JSON.parse(read('packages/catalog/wellbeing.json'));
+ if(!wellbeing.refusals?.length) throw new Error('packages/catalog/wellbeing.json declares no refusals, and the refusals are the feature.');
+ for(const habit of wellbeing.habits) {
+  if(habit.unitless !== true) throw new Error(`The "${habit.id}" habit in wellbeing.json is not marked unitless. There is no field in Live well that takes a number, and that single decision is what makes the rest of it safe.`);
+ }
+ const forbidden = [/\bstreak\b/i, /\bscore\b/i, /\bgrade\b/i, /\btarget\b/i, /\brank(ing|ed)?\b/i, /\bleaderboard\b/i, /\bgoal weight\b/i, /\bcalorie/i, /\bstep count\b/i];
+ const screens = files('apps/web/src').concat(files('apps/ios/MyThuso')).concat(files('apps/android/app/src/main'))
+  .filter(f => /(wellbeing|livewell|live-well)/i.test(f) && /\.(tsx?|swift|kt)$/.test(f));
+ for(const file of screens) {
+  /* The contract itself may name what it refuses; a screen may not. Comments come out first so a
+     comment explaining why there is no streak is not read as a streak. */
+  const code = read(file).replace(/\/\*[\s\S]*?\*\//g, ' ').split('\n').map(l => l.replace(/(^|\s)\/\/.*$/, '')).join('\n');
+  for(const pattern of forbidden) {
+   const hit = pattern.exec(code);
+   if(hit) throw new Error(`${file} says "${hit[0]}". wellbeing.json's neverSoften forbids a score, a grade, a target, a streak, a rank, a percentage or a unit anywhere in Live well: a streak that breaks punishes somebody for being ill, and a target nobody chose is somebody else's expectation wearing their name. If the contract has changed, change it there first.`);
+  }
+  if(/\d\s*(kg|km|steps|kcal|cal|%|bpm|hours|hrs|mins?)\b/i.test(code)) throw new Error(`${file} renders a number with a unit. No field in Live well takes one — the habits are unitless and in the person's own words.`);
+ }
+}
+
 /* Streets, and the three things that make drawing them defensible.
    A tile request tells whoever serves it which square of Johannesburg somebody is looking at — for
    a patient that is roughly which suburb she is in, and roughly when a nurse came to her house.

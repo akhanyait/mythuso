@@ -1,0 +1,55 @@
+{
+ "_note": "Live well — the healthy-living feature, added on 12 September because the founder's prototype carries it as a patient tab beside Care, Visit, Passport and Family. It is the only feature in this product that talks to somebody about their own body without a clinician in the room, which is why it is almost entirely refusals. Everything a person records here they typed themselves; nothing is measured, nothing is inferred, and nothing here is an opinion about their health.",
+
+ "_whyThisIsDangerousToBuildWell": "A lifestyle feature inside a health product is the easiest place in the whole build to do harm, and it will not look like harm while it is being written. A streak that punishes a missed day, a target somebody did not choose, a cheerful sentence about weight, a green tick that reads as a clinical all-clear — each is a normal product decision in any other domain and a bad one here. The refusals below are the feature. The habits are the easy part.",
+
+ "whatItIs": {
+  "statement": "A place to write down what you did, in your own words, and see it beside the visits and readings already on your record.",
+  "isNot": "It is not a diagnosis, a treatment, a plan, or an opinion about your health. Nothing here is reviewed by a clinician unless you take it to one.",
+  "why": "A patient who writes 'walked to the shops and back, easier than last week' has recorded something a doctor can use. A product that turned that into a score has replaced it with something nobody can use."
+ },
+
+ "habits": [
+  { "id": "moving", "name": "Moving", "prompt": "What did you do, and how did it feel?", "unitless": true,
+    "why": "Not steps. A step count needs a device this product does not have, and 'how did it feel' is the part a clinician asks about first." },
+  { "id": "eating", "name": "Eating", "prompt": "What did you eat today that you want to remember?", "unitless": true,
+    "why": "Not calories. Counting is a clinical intervention for some people and an eating disorder's favourite tool for others, and this product cannot tell which person is holding the phone." },
+  { "id": "sleeping", "name": "Sleeping", "prompt": "How did you sleep, and how do you feel this morning?", "unitless": true,
+    "why": "Two questions because the second one is the answer. Hours slept without how the day started is a number with nothing attached." },
+  { "id": "feeling", "name": "How you are", "prompt": "In a word or two, how are you today?", "unitless": true,
+    "why": "Deliberately not a mood scale from one to ten. A scale invites a trend line, a trend line invites an interpretation, and an interpretation of somebody's mood is a clinical act." },
+  { "id": "medicines", "name": "Taking your medicines", "prompt": "Did you take them today?", "unitless": true,
+    "why": "Recorded, never advised. This asks whether it happened. It does not say what to take, when, or whether to stop — see the refusals." }
+ ],
+ "habitsNote": "Five, all unitless, all in the person's own words. There is no field anywhere in this feature that takes a number, which is the single decision that makes the rest of it safe.",
+
+ "refusals": [
+  { "id": "no-diagnosis", "sentence": "Nothing here is a diagnosis or a clinical opinion. What you write down is yours, and a nurse or a doctor is the one who decides what it means.", "why": "It is the sentence the whole feature stands on. A wellbeing screen that reads as a verdict is a verdict, whatever the small print says." },
+  { "id": "no-target", "sentence": "MyThuso does not set you a target. If you want one, it is yours to choose and yours to change.", "why": "A target somebody did not choose is somebody else's expectation wearing their name. Weight targets especially: a number a product picked is a number it cannot know is safe for this person." },
+  { "id": "no-weight-score", "sentence": "There is no score, no grade and no weight goal in MyThuso.", "why": "Said out loud rather than merely not built, because the absence is the feature and a reader cannot see an absence." },
+  { "id": "no-medicine-advice", "sentence": "MyThuso never tells you to start, stop or change a medicine. Ask the doctor who prescribed it.", "why": "The medicines habit records whether it happened. The moment a lifestyle screen has an opinion about a prescription it is practising medicine." },
+  { "id": "no-reading-interpreted", "sentence": "A reading on your Health Passport is explained there, by the contract a clinician agreed. Nothing you write here changes what a reading means.", "why": "records.json owns the explanations. Two places explaining one number is how a patient gets two answers." },
+  { "id": "no-comparison", "sentence": "You are not compared with anybody else, and nobody else sees this unless you share it.", "why": "A ranking against strangers is a health product telling somebody they are behind at being alive." },
+  { "id": "no-punished-gap", "sentence": "A day you did not write anything is just a day. Nothing is lost and nothing resets.", "why": "A streak that breaks is a punishment for being ill, which is the population this product is for. The timeline shows what is there and says nothing about what is not." },
+  { "id": "no-device", "sentence": "Nothing here is measured. No watch, band or phone sensor is connected, and none is read.", "why": "devices is a simulated capability and a step count is the first thing a person assumes this has. The notice comes from the contract rather than from this screen." },
+  { "id": "no-sharing-by-default", "sentence": "What you write here is not added to your record and is not sent to your nurse or doctor. You can take it to them; MyThuso does not.", "why": "The difference between a diary and a clinical note is consent, and it is the person's to give. consent.json holds the purposes; this feature adds none." },
+  { "id": "no-cheerfulness-about-illness", "sentence": "MyThuso does not congratulate you and does not tell you how you are doing.", "why": "Encouragement aimed at somebody whose condition is getting worse reads as a product that has not noticed. Silence is the respectful default." }
+ ],
+
+ "timeline": {
+  "statement": "What you wrote, when you wrote it, newest first, beside the visits and readings already on your record.",
+  "showsNoGaps": true,
+  "why": "It is a record rather than a chart. A chart of a body's week invites a line of best fit through somebody's life."
+ },
+
+ "takingItToAClinician": {
+  "statement": "Bring this to your next visit.",
+  "howItWorks": "It opens the visit's own screen with what you wrote alongside it. Nothing is copied into the record until a clinician records it as part of the visit.",
+  "why": "The useful thing a diary does is get read out loud in a room with a nurse in it. That is the whole feature: not an integration, a prompt to bring it."
+ },
+
+ "capability": "clinical-records",
+ "capabilityNote": "It names clinical-records rather than a capability of its own, because the honest thing to disclose is that nothing here is held anywhere real. There is no wellbeing supplier to be blocked on and inventing one would be inventing a gap.",
+
+ "neverSoften": "No screen in this feature may show a score, a grade, a target, a streak, a rank, a percentage, a unit, or a sentence that praises or corrects the person reading it. scripts/check-boundaries.mjs fails the build on each of those, and the check exists because every one of them is a normal, well-intentioned product decision that would be wrong here."
+}
