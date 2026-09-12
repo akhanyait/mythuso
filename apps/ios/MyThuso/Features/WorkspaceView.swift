@@ -254,13 +254,22 @@ struct WorkspaceSectionView: View {
                    contract; this is that contract. A role the contract has not framed falls through
                    to the plain heading rather than borrowing the nurse's words, which is what the
                    switch statement's default branch used to do without saying so. */
+                /* Named with the section, on both branches, because the framing took the section's
+                   name off the screen. PassportJourneyTests asked "did this land on Schedule?" by
+                   looking for a static text beginning with that word, which was true while the
+                   landing was titled and stopped being true the day it was framed — the workspace
+                   was opening on exactly the right section and the test could no longer tell. The
+                   identifier answers the question the test is actually asking, and it does not
+                   depend on what the headline happens to say this week. */
                 if landing, let framing = FramingData.framing(role: role) {
                     DemoBadge()
                     StudioHeadline(lead: framing.lead, accent: framing.accent,
                                    detail: WorkspaceNavigation.blurb(section))
+                        .accessibilityIdentifier("workspace-section-\(section)")
                     WorkspaceUrgency(role: role)
                 } else {
                     SurfaceHeading(title: section, subtitle: WorkspaceNavigation.blurb(section))
+                        .accessibilityIdentifier("workspace-section-\(section)")
                 }
                 content
                 /* The standing disclosure, at the foot of every section rather than at the foot of

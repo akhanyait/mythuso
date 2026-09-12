@@ -128,7 +128,12 @@ final class PassportJourneyTests: XCTestCase {
            above the Control Tower, which reads in a log as the screen not existing. */
         tapAfterScrolling(app, app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch, steps: 60)
         XCTAssertTrue(app.navigationBars[bar].waitForExistence(timeout: 30), "the \(name) did not open")
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", landing)).firstMatch.waitForExistence(timeout: 30),
+        /* Asked by identifier, not by heading text. This looked for a static text beginning with
+           the section's name, which held while a landing section was titled and stopped holding the
+           day it was framed with the role's two-tone headline instead — the workspace was opening on
+           exactly the right section and the assertion could no longer see it. The question is
+           unchanged: a workspace that opens on the wrong section is a workspace that opened. */
+        XCTAssertTrue(app.descendants(matching: .any)["workspace-section-\(landing)"].firstMatch.waitForExistence(timeout: 30),
                       "the \(name) did not land on \(landing)")
     }
     func testTheNurseWorkspaceIsUsable() {
