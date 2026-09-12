@@ -1434,14 +1434,19 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
   if(!tiles[key]) throw new Error(`geography.json has no tiles.${key}. The switch that starts sending a viewport to a third party has to say so on the screen, beside itself, before it is pressed.`);
  }
 
- /* 3. The origin is allowed by exactly the two entries that draw a map, and by no other. A content
-    policy is the only thing standing between "we chose one tile host" and "a map can fetch from
-    anywhere", and it is a second copy of the contract's own hostname. */
- for(const entry of ['index.html','staff.html']) {
+ /* 3. The origin is allowed by the one entry that draws a map, and by no other. A content policy is
+    the only thing standing between "we chose one tile host" and "a map can fetch from anywhere", and
+    it is a second copy of the contract's own hostname.
+
+    It used to be two entries: the patient's arrival screen and the Control Tower's dispatch board
+    were separate builds. They are one now — the workspaces are lazily-imported chunks of the app
+    entry rather than entries of their own — so the list shrank to one rather than the permission
+    widening. What must not happen is a third name appearing here because a page wanted a map. */
+ for(const entry of ['index.html']) {
   if(!read(`apps/web/${entry}`).includes(source.host)) throw new Error(`apps/web/${entry} draws a map and its content policy does not allow ${source.host}. The tiles do not fail loudly — the map falls back to the schematic and nobody is told why.`);
  }
- for(const entry of ['landing.html','admin.html','status.html']) {
-  if(existsSync(`apps/web/${entry}`) && read(`apps/web/${entry}`).includes(source.host)) throw new Error(`apps/web/${entry} allows the tile host and draws no map. An entry that can reach a tile server is an entry that can leak a viewport; only the two that need it may.`);
+ for(const entry of ['landing.html','status.html']) {
+  if(existsSync(`apps/web/${entry}`) && read(`apps/web/${entry}`).includes(source.host)) throw new Error(`apps/web/${entry} allows the tile host and draws no map. An entry that can reach a tile server is an entry that can leak a viewport; only the one that needs it may.`);
  }
  /* And the attribution is a licence condition, not a courtesy. */
  for(const key of ['licence','attribution','attributionUrl']) {
@@ -1467,6 +1472,28 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  for(const entry of entries) {
   if(conf && !conf.includes(entry.file)) throw new Error(`apps/web/vite.config.ts builds "${entry.file}" and deploy/nginx/mythuso.conf never names it. It will not 404 — it will fall through the catch-all and serve the landing page under a 200, which is how status.html shipped unreachable and how the deploy's own checks passed anyway.`);
   if(script && !script.includes(entry.file) && !new RegExp(`verify_entry[^\\n]*${entry.name}`).test(script)) throw new Error(`The deploy does not verify "${entry.file}" after publishing it. Every unserved path answers 200 with the wrong page, so a check that does not name this entry cannot tell whether it arrived.`);
+ }
+
+ /* And the dev server answers the same paths as nginx, including `/`.
+
+    This is the third face of one defect. The first was an entry nginx had no location for; the
+    second was `page.goto('/')` walking every patient journey at a path that serves the marketing
+    page in production, which stood as a written-down debt for weeks because closing it meant editing
+    twenty specs. Both were invisible while everything rendered. What makes them invisible is that a
+    local environment answering differently from the deployed one does not fail — it misleads — so
+    the only thing that can catch it is a check that reads both maps and compares them.
+
+    Every entry must be reachable in the dev server's own path map, and every path that map claims
+    must be a path nginx has a location for. */
+ const devMap = vite.match(/const served: Record<string, string> = \{([^}]*)\}/);
+ if(!devMap) throw new Error('scripts/check-boundaries.mjs can no longer read the dev server\'s pretty-path map out of apps/web/vite.config.ts. Without it nothing holds `npm run dev` to what nginx serves, which is how every patient journey came to be walked at a path that serves the landing page in production.');
+ const devPaths = [...devMap[1].matchAll(/'([^']+)':\s*'([^']+)'/g)].map(m => ({ path: m[1], file: m[2].replace(/^\//, '') }));
+ for(const entry of entries) {
+  if(!devPaths.some(p => p.file === entry.file)) throw new Error(`apps/web/vite.config.ts builds "${entry.file}" and its own dev server serves it at no path. Locally that entry falls through to index.html, so a person reviewing it — or a test walking it — sees the patient application instead and is told nothing.`);
+ }
+ for(const { path, file } of devPaths) {
+  const location = path === '/' ? 'location = /' : `location ${path}/`;
+  if(conf && !new RegExp(`location\\s*=?\\s*${path}(/|\\s)`).test(conf)) throw new Error(`The dev server serves ${file} at "${path}" and deploy/nginx/mythuso.conf has no ${location}. One of the two is wrong and the local one is the one nobody checks against production.`);
  }
 }
 
@@ -3177,7 +3204,13 @@ for (const { file, id, pattern, flags } of enforcements) {
    rather than left as a silent hole in the loop below. There is exactly one, and adding a second is
    meant to feel like the decision it is. */
 const HELD_BY_THE_BUILD = {
- 'Declare a device permission on either native app.': 'and its own simulation refuses to declare one'
+ 'Declare a device permission on either native app.': 'and its own simulation refuses to declare one',
+ /* The second, and it was a decision. The demo login replaced four sign-in screens on the founder's
+    instruction, and what it refuses is that choosing a role is not being granted one — which no
+    simulator can enforce, because the switcher never reaches a simulator. It is a control in a
+    browser that renders a different component. So the build holds it: the door may not import the
+    identity client, and it must carry the capability's own notice. */
+ 'Grant a role. The demo login chooses which workspace to draw; it authenticates nobody, and no workspace it opens is reached by having permission to.': 'the demo login grants nothing'
 };
 
 /* And the question in the other direction, which nothing was asking.
@@ -3282,6 +3315,33 @@ for (const [sentence, evidence] of Object.entries(HELD_BY_THE_BUILD)) {
  const occurrences = thisFile.split(evidence).length - 1;
  if (occurrences < 2) throw new Error(`"${sentence}" is exempted from its simulator on the grounds that this file enforces it, and the check that did has gone. An exemption whose evidence has been deleted is the refusal deleted with an extra step.`);
 }
+/* That the demo login grants nothing, held here because there is nothing else that could hold it.
+ *
+ * The switcher is a control in a browser that renders a different component. It never reaches the
+ * identity service, never reaches a simulator, and has nothing to issue — which is exactly why its
+ * refusal cannot be enforced where the other refusals are, and exactly why it is worth enforcing.
+ * An auto login that quietly grew a session would look identical on the screen.
+ *
+ * Two things, both of them cheap and both of them the shape of the failure:
+ *
+ *   The door does not import the identity client. It cannot start a session it cannot reach, and a
+ *   day when it can is a day somebody wired a picker to an authenticator.
+ *
+ *   The door renders the accounts capability's notice. Four sign-in screens carried it and this
+ *   control replaced all four; a-demo-login-is-not-an-account says the notice moves with them, and
+ *   a-simulation-says-so says no screen may be quieter for being simulated than for being absent.
+ */
+{
+ const doorFiles = ['apps/web/src/features/DemoLogin.tsx', 'apps/web/src/lib/roles.ts'];
+ for (const file of doorFiles) {
+  if (!existsSync(file)) throw new Error(`${file} is gone, and the accounts capability is exempted from its simulator on the grounds that this file checks the demo login grants nothing. The door has to be somewhere this can read it.`);
+  if (/from '[^']*\/auth'/.test(read(file))) throw new Error(`${file} imports the identity client. The contract says the demo login grants no role and authenticates nobody, and the whole reason the build can promise that rather than a simulator is that the door cannot reach an authenticator. A door that can start a session is a picker somebody has wired to one.`);
+ }
+ const door = read(doorFiles[0]);
+ if (!/<NotConnected of="accounts"/.test(door)) throw new Error(`${doorFiles[0]} does not render the accounts capability's notice. It replaced four sign-in screens that each carried it, and a screen that stops speaking because something now answers is the disclosure failure capabilities.json exists to refuse — see a-demo-login-is-not-an-account.`);
+ if (!capabilities.rules.some(r => r.id === 'a-demo-login-is-not-an-account')) throw new Error('packages/catalog/capabilities.json has lost the a-demo-login-is-not-an-account rule. It is the reasoning behind a door with no lock on it, and the only written record that removing four sign-in screens was a change to what ships rather than to what is claimed.');
+}
+
 for (const [capabilityId, file] of Object.entries(FULFILMENT_AND_SAFETY)) {
  const path = `${SIMULATION_DIR}/${file}`;
  if (!existsSync(path)) throw new Error(`${path} is missing, and packages/catalog/capabilities.json marks "${capabilityId}" simulated. A capability in the simulated state with nothing behind it is the third state used as a label, which is the one thing it was added not to be.`);

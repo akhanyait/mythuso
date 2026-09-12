@@ -647,7 +647,7 @@ const menuGroups=[
  /* Emergency first in this group, and in the shell's sidebar as well. It was the fourteenth card
     inside a roadmap page — the most complete journey in the product behind the most clicks in it,
     on the one pathway where a person cannot afford to hunt. */
- [['Emergency & urgent care','The ambulance number first, then what MyThuso can do',Ambulance,'@Emergency & urgent care'],['Explore MyThuso','The full 21-module roadmap',LayoutGrid,'Explore MyThuso'],['Help & support','What MyThuso can answer today, and what it cannot',CircleHelp,'Help & support'],['Preview workspaces','Nurse, doctor, partner and Control Tower',Stethoscope,'@Switch workspace']]
+ [['Emergency & urgent care','The ambulance number first, then what MyThuso can do',Ambulance,'@Emergency & urgent care'],['Explore MyThuso','The full 21-module roadmap',LayoutGrid,'Explore MyThuso'],['Help & support','What MyThuso can answer today, and what it cannot',CircleHelp,'Help & support'],['Demo login','Open MyThuso as a nurse, a doctor, a partner or the back office',Stethoscope,'@Switch workspace']]
 ] as const;
 export function MoreHub({navigate,open,onSignOut}:{navigate:(s:string)=>void;open:(s:string)=>void;onSignOut:()=>void}){
  return <>

@@ -1,64 +1,37 @@
 import { useEffect, useState } from 'react';
 import { Activity, ArrowRight, BarChart3, BookOpen, Landmark, LayoutGrid, LogOut, Radar, ShieldAlert, ShieldCheck, TrendingUp } from 'lucide-react';
 import { Modal } from '../components/UI';
-import { NotConnected } from '../components/NotConnected';
 import { AdminConsole, adminTabs, type AdminTab } from '../features/Admin';
+import { DemoBar, useRole } from '../features/DemoLogin';
 import { DoctorReview } from '../features/Clinical';
 import { NurseVetting } from '../features/Dispatch';
 import { VettingApplication } from '../features/Vetting';
 import { t } from '../lib/i18n';
-import { probe, endSession } from '../lib/auth';
-import { roleById } from '../lib/vetting';
-import { subjectById } from '../lib/vetting-fixtures';
+import { endSession } from '../lib/auth';
+import { whoIs } from '../lib/roles';
 import { NavRow } from '../surface/Surface';
-import { initialsOf, whoIs } from './StaffShell';
 import '../surface/clinical.css';
+import '../surface/clinical-screens.css';
 
-/* The back office, as its own address and its own bundle.
+/* The back office, as its own bundle behind its own role.
  *
  * The admin console is eight tabs of readiness, finance, catalogue and compliance. It was reachable
  * from a patient's More menu through a workspace picker, which is two problems in one line: it is
- * not a patient's screen, and a picker is not authentication. It is its own entry now, and the
- * console keeps its own tab strip — so this shell deliberately has no second navigation beside it.
- * A sidebar listing eight sections it cannot drive is the defect the clinical shell was just cured
- * of, pointing the other way.
+ * not a patient's screen, and a picker is not authentication. It is its own lazily-loaded chunk now,
+ * reached by choosing Back office on the demo login, and the console keeps its own tab strip — so
+ * this shell deliberately has no second navigation beside it. A sidebar listing eight sections it
+ * cannot drive is the defect the clinical shell was just cured of, pointing the other way.
+ *
+ * The bundle argument survived the merge of the entries: nothing here is downloaded until somebody
+ * asks for the console, so a patient on a mid-range phone still pays nothing for it.
  */
 
 const ADMIN_SUBJECT = 'A-901';
 
-export default function AdminApp() {
- const [signedIn, setSignedIn] = useState(false);
- return signedIn ? <AdminWorkspace onSignOut={() => setSignedIn(false)}/> : <AdminSignIn onOpen={() => setSignedIn(true)}/>;
-}
-
-function AdminSignIn({ onOpen }: { onOpen: () => void }) {
- const [live, setLive] = useState(false);
- const subject = subjectById(ADMIN_SUBJECT)!;
- useEffect(() => { document.title = 'Sign in · MyThuso back office'; }, []);
- useEffect(() => { let cancelled = false; void probe().then(ok => { if (!cancelled) setLive(ok); }); return () => { cancelled = true; }; }, []);
- return <div className="onboarding clinical aurora">
-  <div className="onboard-panel">
-   <img src="/brand/mythuso-wordmark.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
-   <h2>MyThuso back office.</h2>
-   <p className="muted">Vetting decisions, the service catalogue, growth, finance and what is standing between each capability and being real.</p>
-   <div className="onboard-note"><ShieldCheck size={17}/>Health information is never held here. This console reads readiness, not records.</div>
-  </div>
-  <div className="onboard-form"><div className="onboard-body">
-   <h1>Sign in to the console</h1>
-   <NotConnected of="accounts"/>
-   <p className="muted">{live
-    ? 'An identity service is answering, but it holds identity only — it does not yet carry a back-office role, so nothing it can tell us would decide whether you may open this.'
-    : 'There is no identity service answering and no account to sign in to. The console opens against a fictional staff record from the vetting register.'}</p>
-   <div className="staff-signin-roles">
-    <button className="record-row" onClick={onOpen}>
-     <span className="avatar small">{initialsOf(subject.name)}</span>
-     <span><strong>Operations console</strong><small>{subject.name} · {roleById(subject.roleId)?.name} · {subject.reference}</small></span>
-     <ArrowRight size={17}/>
-    </button>
-   </div>
-  </div></div>
- </div>;
-}
+/* No door in front of this either. The console's sign-in screen said there was no account to sign in
+   to and then offered one row to press, which is a menu wearing a wall's clothes; features/DemoLogin
+   .tsx is that row now, beside the disclosure, on every surface. The capability's notice moved with
+   it — see a-demo-login-is-not-an-account in packages/catalog/capabilities.json. */
 
 /* One icon per console section, so a pill row is recognisable at a glance rather than eight
    identically-shaped words. Nothing here is decorative twice: the icon says what kind of thing the
@@ -68,12 +41,15 @@ const tabIcons: Record<AdminTab, typeof Radar> = {
  Catalogue: BookOpen, Growth: TrendingUp, Finance: Landmark, Compliance: BarChart3
 };
 
-function AdminWorkspace({ onSignOut }: { onSignOut: () => void }) {
+export default function AdminWorkspace() {
  const [modal, setModal] = useState<string | null>(null);
  const [tab, setTab] = useState<AdminTab>('Overview');
  const { subject, roleName, state, credential, initials, stopped } = whoIs(ADMIN_SUBJECT, 'Console access is withdrawn until this is put right.');
  useEffect(() => { document.title = 'Operations console · MyThuso'; }, []);
- const signOut = () => { void endSession(); onSignOut(); };
+ /* Same as the clinical shells: leaving lands on the patient application, which is what this
+    address means with no role on it. Nothing here was a session. */
+ const { setRole } = useRole();
+ const leave = () => { void endSession(); setRole('patient'); };
  const who = <>
   <span className="avatar small">{initials}</span>
   <span><strong>{subject.name}</strong><small>{roleName} · {subject.reference}</small></span>
@@ -96,7 +72,7 @@ function AdminWorkspace({ onSignOut }: { onSignOut: () => void }) {
     return <NavRow key={id} icon={<Icon size={19} strokeWidth={1.8}/>} label={id} current={tab === id} onClick={() => setTab(id)}/>;
    })}</nav>
    <div className="sidebar-bottom">
-    <button className="settings-link" onClick={signOut}><LogOut size={18}/>Sign out</button>
+    <button className="settings-link" onClick={leave}><LogOut size={18}/>Leave the console</button>
    </div>
   </aside>
   <div className="workspace surface">
@@ -104,10 +80,10 @@ function AdminWorkspace({ onSignOut }: { onSignOut: () => void }) {
     <div className="staff-who">{who}</div>
     <div className="breadcrumb">Back office<span>/</span><strong>{tab}</strong></div>
     <div className="topbar-actions">
-     <button className="icon-button" aria-label="Sign out of the console" onClick={signOut}><LogOut size={19}/></button>
+     <button className="icon-button" aria-label="Leave the console" onClick={leave}><LogOut size={19}/></button>
     </div>
    </header>
-   <p className="demo-pill" role="note"><span className="status-dot"/>{t('shell.previewBadge', 'en-ZA')}</p>
+   <DemoBar note={t('shell.previewBadge', 'en-ZA')}/>
    <main id="main" tabIndex={-1}><AdminConsole open={setModal} tab={tab} setTab={setTab}/></main>
    <footer className="app-footer"><span>© 2026 MyThuso · Back office</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
   </div>

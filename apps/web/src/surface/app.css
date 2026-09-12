@@ -1070,3 +1070,91 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
  * than about the person's bank, so it is quieter still. */
 .pay-declined { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
 .pay-refused { border-style: dashed; }
+
+/* ---- The demo login ----------------------------------------------------------------------------
+ *
+ * The band under the top bar used to hold one thing: the sentence saying none of this is real. It
+ * holds two now, and the pairing is the argument — the switcher is the one control in the product
+ * that exists *because* this is a preview, so it belongs beside the sentence that says so rather
+ * than in the chrome, where it would read as an account menu.
+ *
+ * The composition is the design language's own: a hairlined pill for a choice not taken, a filled
+ * charcoal pill with paper text for the one you are on, which is the same shape the navigation uses
+ * for where-you-are. Nothing here is coloured; colour in this product means a status, and which
+ * workspace somebody is looking at is not one.
+ *
+ * Contrast, all of it already declared in packages/design-tokens/tokens.json rather than new:
+ * charcoal on paper 12.02, paper on charcoal 12.02, faint on paper 5.57.
+ *
+ * Below 720px the three pills and the door to the rest do not fit across 320px at 44px each, and a
+ * bar that overflows is worse than one that asks for a second press — so the group collapses to one
+ * control naming the role you are in, and the panel behind it carries all six. */
+.demo-bar {
+ display: flex; align-items: center; flex-wrap: wrap;
+ gap: var(--space-8) var(--space-12);
+ margin: 0 var(--space-16) var(--space-16);
+}
+@media (min-width: 1000px) { .demo-bar { margin: 0 var(--space-32) var(--space-20); } }
+/* The disclosure hugs its own sentence and the switcher sits at the far end of the band, so the two
+   read as two things rather than as a label and its control. */
+.demo-bar > .demo-pill { margin: 0; }
+.demo-login { display: flex; align-items: center; gap: var(--space-8); margin-left: auto; min-width: 0; }
+/* It names the group for a screen reader as well as labelling it on the screen, so it is not
+   repeated into an aria-label that would then have to be translated twice. */
+.demo-login-label { font-size: 13px; color: var(--faint); white-space: nowrap; }
+.demo-login-roles { display: flex; gap: 6px; }
+.demo-login-roles > button, .demo-login-all {
+ display: inline-flex; align-items: center; gap: 6px;
+ min-height: 44px; padding: 0 15px;
+ border: 1px solid var(--stone); border-radius: var(--r-pill);
+ background: color-mix(in srgb, var(--surface) 70%, transparent);
+ color: var(--charcoal); font-size: 13px; font-weight: 600; white-space: nowrap;
+ transition: background var(--t-quick) var(--ease-soft), color var(--t-quick) var(--ease-soft);
+}
+.demo-login-roles > button:hover, .demo-login-all:hover { background: var(--surface); }
+.demo-login-roles > button.is-current, .demo-login-all.is-current {
+ background: var(--charcoal); border-color: var(--charcoal); color: var(--mist);
+}
+.demo-login-all.is-current:hover { background: var(--charcoal); }
+.demo-login-all-narrow { display: none; }
+@media (max-width: 719px) {
+ .demo-login { width: 100%; margin-left: 0; }
+ .demo-login-label, .demo-login-roles { display: none; }
+ /* Hugging rather than full width. A control stretched across a phone puts its own label and its
+    chevron three hundred pixels apart, which is the same defect as a figure strip spread over a
+    metre: two things that belong together, read as two. */
+ .demo-login-all { flex: 0 1 auto; }
+ .demo-login-all-wide { display: none; }
+ /* "Demo login" and the role, in the one control that is left. The label goes faint and the role
+    keeps the ink, so the pair reads as a value with its name rather than as two words. */
+ .demo-login-all-narrow { display: inline-flex; gap: 7px; color: var(--faint); min-width: 0; }
+ .demo-login-all-narrow > b { color: var(--charcoal); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* The panel behind "All roles". Each row is the shape the four sign-in screens used, because it is
+   the same question — choose a party from the register — and a second shape for it would be a second
+   thing to keep in step. Three lines rather than one: who, what they open the app to do, and what
+   the vetting register says about them today. */
+.role-panel .role-refuses { color: var(--body); font-size: 14px; line-height: 1.55; margin: 0 0 var(--space-8); }
+.role-panel .role-refuses > strong { color: var(--charcoal); font-weight: 600; }
+/* Three lines to a row — who, what they open the app to do, what the register says today — so the
+   avatar belongs at the top of them rather than halfway down the paragraph. */
+.role-panel .staff-signin-roles .record-row { align-items: flex-start; text-align: left; }
+.role-panel .staff-signin-roles .record-row > .avatar { align-self: flex-start; }
+.role-panel .record-row[aria-current] { border-color: var(--charcoal); }
+.role-panel .record-row > svg:last-child { align-self: center; }
+.role-panel .role-opens { color: var(--charcoal); }
+.role-panel .role-credential { display: inline-flex; align-items: center; gap: 6px; color: var(--faint); }
+.role-panel .role-credential.stop { color: var(--danger); }
+
+/* ---- A workspace on its way --------------------------------------------------------------------
+ *
+ * The one screen in this application drawn before the chunk behind it has arrived, so it may use
+ * nothing that is not already loaded: the clinical sheet travels *with* the workspace, which is the
+ * whole point, so this card is written against the eager design system and nothing else. It does not
+ * animate. A spinner that runs forever is the one piece of motion this codebase refuses outright. */
+.opening { display: flex; align-items: center; justify-content: center; min-height: 100dvh; padding: var(--space-24); background: var(--canvas); }
+.opening-card { max-width: 420px; }
+.opening-card > .eyebrow { margin: 0 0 var(--space-8); }
+.opening-card > h1 { font-size: 28px; font-weight: 500; letter-spacing: -.5px; margin: 0 0 var(--space-8); }
+.opening-card > p { margin: 0 0 var(--space-8); }

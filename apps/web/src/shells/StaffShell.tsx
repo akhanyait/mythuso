@@ -3,7 +3,10 @@ import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, Cal
 import { Modal, SectionTitle } from '../components/UI';
 import { Metric, Metrics, NavRow } from '../surface/Surface';
 import '../surface/clinical.css';
-import { NotConnected } from '../components/NotConnected';
+/* The clinical feature screens' own sheet. It used to be imported by the staff and admin entries,
+   which no longer exist: this shell is reached by a dynamic import now, so both sheets travel in
+   that chunk and a patient never downloads either. */
+import '../surface/clinical-screens.css';
 import { NurseSchedule, ReviewQueue, nurseDayCounts, reviewQueueCounts, roleExtras, sectionDoor, sectionWorkflow } from '../features/Workspaces';
 import { useVisitQueue } from '../features/VisitQueue';
 import type { Part } from '../lib/visit-queue';
@@ -22,9 +25,8 @@ import { LabOrderDetail, PrescriptionDetail } from '../features/Orders';
 import { IncidentDetail, NurseVetting } from '../features/Dispatch';
 import { VettingApplication, VettingQueue } from '../features/Vetting';
 import { t } from '../lib/i18n';
-import { probe, startSignIn, verifyCode, endSession } from '../lib/auth';
-import { EXPIRY_WARNING_DAYS, roleById, subjectStatusLabels, summarise } from '../lib/vetting';
-import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
+import { endSession } from '../lib/auth';
+import { subjectsByRole } from '../lib/vetting-fixtures';
 import { scrollToTop } from '../lib/scroll';
 import { cycle } from '../lib/earnings';
 
@@ -93,113 +95,35 @@ export const staffRoles = Object.keys(workspaces) as StaffRole[];
 /* How a name is shortened is a rule about names rather than about this sidebar, and lib/roster.ts
    needs the same one. It moved to lib/names.ts, re-exported here so every existing reader keeps
    working — a module in lib importing this shell closed the import graph and left the dispatch board
-   reading a roster that had not been built yet. */
+   reading a roster that had not been built yet. `whoIs` went the same way, to lib/roles.ts, for the
+   same reason wearing different clothes: the back office imported it from here, so opening a finance
+   console downloaded a dispatch board. */
 import { initialsOf } from '../lib/names';
+import { openingLine, whoIs, type ClinicalWorkspaceId } from '../lib/roles';
+import { DemoBar, useRole } from '../features/DemoLogin';
+/* The door in lib/roles.ts names these four as well, and cannot import this file to check — doing so
+   would pull the clinical bundle into the entry that exists to defer it. So the agreement is checked
+   here instead, at compile time and in both directions: a fifth workspace added above, or a name
+   changed on either side, stops the build rather than producing a role the door cannot open. */
+const _workspacesMatchTheDoor: Record<ClinicalWorkspaceId, WorkspaceDef> = workspaces;
+const _theDoorMatchesTheWorkspaces: Record<StaffRole, unknown> = _workspacesMatchTheDoor;
+void _theDoorMatchesTheWorkspaces;
 export { initialsOf };
-/* The register entry behind the person, and the sentence the sidebar shows about it. Derived from
-   the same summarise() the vetting console decides with, so a workspace cannot look cleared here
-   while the console has suspended it.
-   A countdown is only news inside the window the contract warns on. "SANC registration renews in
-   243 days" is a number nobody can act on taking up the one line the sidebar has for something a
-   clinician might need to do today, so outside EXPIRY_WARNING_DAYS it says what is passing instead. */
-export function whoIs(subjectId: string, withdrawn: string) {
- const subject = subjectById(subjectId)!;
- const state = summarise(subject);
- const due = state.nextDue && state.nextDue.days >= 0 && state.nextDue.days <= EXPIRY_WARNING_DAYS ? state.nextDue : null;
- const credential = state.status === 'suspended' || state.status === 'declined'
-  ? `${subjectStatusLabels[state.status]}. ${withdrawn}`
-  : due ? `${due.check.name} renews in ${due.days} days.`
-   : `${state.passed} of ${state.total} checks passing on the register.`;
- return { subject, roleName: roleById(subject.roleId)?.name ?? '', state, credential, initials: initialsOf(subject.name),
-  stopped: state.status === 'suspended' || state.status === 'declined' };
-}
 const signedInAs = (role: StaffRole) => whoIs(workspaces[role].subjectId, 'Dispatch is withdrawn until this is put right.');
 
-export default function StaffApp() {
- const [role, setRole] = useState<StaffRole | null>(null);
- /* Signing out returns to the door rather than to a different workspace, which is the whole
-    difference between an account and a picker. */
- return role ? <StaffWorkspace role={role} onSignOut={() => setRole(null)}/> : <StaffSignIn onOpen={setRole}/>;
-}
-
-/* ---- The door ---------------------------------------------------------------------------------
+/* There is no door in front of this any more.
  *
- * The identity service is installed and deliberately switched off until DNS, TLS and an SMS
- * provider exist, so this screen has to work with nothing behind it and say so rather than draw a
- * password box that goes nowhere. With a service answering it is a real one-time code. Without one
- * there are no accounts, and therefore no role for an account to carry — so the workspace is chosen
- * here, once, on the only screen in the application that admits it is choosing.
- */
-function StaffSignIn({ onOpen }: { onOpen: (role: StaffRole) => void }) {
- const [live, setLive] = useState(false);
- const [phone, setPhone] = useState('');
- const [challenge, setChallenge] = useState<string | null>(null);
- const [code, setCode] = useState('');
- const [person, setPerson] = useState<string | null>(null);
- const [busy, setBusy] = useState(false);
- const [error, setError] = useState('');
- useEffect(() => { document.title = 'Sign in · MyThuso for clinicians'; }, []);
- useEffect(() => { let cancelled = false; void probe().then(ok => { if (!cancelled) setLive(ok); }); return () => { cancelled = true; }; }, []);
- const phoneOk = /^0\d{9}$/.test(phone.replace(/\s/g, ''));
- const request = async () => {
-  setBusy(true); setError('');
-  const started = await startSignIn(phone);
-  setBusy(false);
-  if (!started.ok) return setError(started.message);
-  setChallenge(started.challengeId); setCode('');
- };
- const verify = async () => {
-  if (!challenge) return;
-  setBusy(true); setError('');
-  const verified = await verifyCode(challenge, code);
-  setBusy(false);
-  if (!verified.ok) return setError(verified.message);
-  setPerson(verified.person.name ?? verified.person.phone);
- };
- return <div className="onboarding clinical aurora">
-  <div className="onboard-panel">
-   {/* The reversed cut, because this column is studioNight. It used to be the light lockup on a
-       white plate, which is what you do when the only artwork you have is the wrong one. */}
-   <img src="/brand/mythuso-wordmark-reversed.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand reversed"/>
-   <h2>MyThuso for clinicians.</h2>
-   <p className="muted">The workspace a nurse, a doctor, a pharmacy partner and the Control Tower sign in to. Patients and families sign in to a different application at a different address.</p>
-   <div className="onboard-note"><ShieldCheck size={17}/>Nothing opened from here reaches a patient, a record, a payment or a device.</div>
-  </div>
-  <div className="onboard-form"><div className="onboard-body">
-   <h1>Sign in to your workspace</h1>
-   <NotConnected of="accounts"/>
-   {live && !person ? <>
-    <p className="muted">We’ll send a one-time code to the number on your staff record. There is no password to remember, and none to lose.</p>
-    {!challenge ? <>
-     <label>Mobile number<div className="phone-field"><span>+27</span>
-      <input inputMode="numeric" autoFocus value={phone} onChange={e => { setPhone(e.target.value.replace(/[^\d\s]/g, '').slice(0, 12)); setError(''); }} placeholder="082 000 0000"/>
-     </div></label>
-     <button className="primary full" disabled={!phoneOk || busy} onClick={request}>{busy ? 'Sending…' : 'Send my code'}<ArrowRight size={16}/></button>
-    </> : <>
-     <label>The six digits we sent you<input inputMode="numeric" autoFocus value={code} onChange={e => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }} placeholder="000000"/></label>
-     <button className="primary full" disabled={code.length < 6 || busy} onClick={verify}>{busy ? 'Checking…' : 'Sign in'}<ArrowRight size={16}/></button>
-    </>}
-    {error && <p className="helper" role="alert">{error}</p>}
-   </> : null}
-   {/* Why a person is being asked to pick, in both states, before they are asked to pick. A screen
-       that offers a choice it has not explained is a screen that is hiding what it is doing. */}
-   <p className="muted">{person
-    ? `You are signed in as ${person}. The identity service holds identity and nothing else — it does not yet carry a clinical role — so the workspace is still chosen here rather than granted by your account.`
-    : 'There are no accounts to sign in to yet, and so no role for an account to carry. Choose the workspace you need to see. Everybody in it is a fictional party from the vetting register.'}</p>
-   <div className="staff-signin-roles">{staffRoles.map(r => {
-    const who = signedInAs(r);
-    return <button className="record-row" key={r} onClick={() => onOpen(r)}>
-     <span className="avatar small">{who.initials}</span>
-     <span><strong>{r}</strong><small>{who.subject.name} · {who.roleName} · {who.subject.reference}</small></span>
-     <ArrowRight size={17}/>
-    </button>;
-   })}</div>
-  </div></div>
- </div>;
-}
+ * There used to be: a sign-in screen that said there are no accounts to sign in to, and then asked
+ * which of four workspaces you wanted anyway. It was honest and it was a wall drawn on a doorway.
+ * The choice is the door now — features/DemoLogin.tsx, in the bar at the top of every shell — and
+ * the sentence that screen carried moved there with it rather than being dropped, because a screen
+ * that stops speaking is the disclosure failure capabilities.json exists to refuse.
+ *
+ * What this module exports is therefore a workspace and not an application: the role is decided
+ * above it, and this file's whole job is to draw one. */
 
 /* ---- The workspace ----------------------------------------------------------------------------- */
-function StaffWorkspace({ role, onSignOut }: { role: StaffRole; onSignOut: () => void }) {
+export default function StaffWorkspace({ role }: { role: StaffRole }) {
  const { sections } = workspaces[role];
  const [section, setSection] = useState<string>(sections[0].id);
  const [modal, setModal] = useState<string | null>(null);
@@ -207,7 +131,11 @@ function StaffWorkspace({ role, onSignOut }: { role: StaffRole; onSignOut: () =>
  const go = (id: string) => { setSection(id); scrollToTop(); };
  const home = () => go(sections[0].id);
  useEffect(() => { document.title = `${section} · ${role} · MyThuso`; }, [section, role]);
- const signOut = () => { void endSession(); onSignOut(); };
+ /* Leaving a workspace lands on the patient application, because that is what this address means
+    without a role on it. It is not a sign-out — there was never a session to end beyond whatever the
+    identity service holds, which is identity and never a role — so it does not say one. */
+ const { setRole } = useRole();
+ const leave = () => { void endSession(); setRole('patient'); };
  /* Suspended is not a badge here, it is the first thing on the screen. A clinician whose clearance
     lapsed overnight needs to be told before she reads a schedule she is no longer dispatchable
     against — the arithmetic is in lib/vetting, and this is where it becomes a sentence. */
@@ -237,7 +165,7 @@ function StaffWorkspace({ role, onSignOut }: { role: StaffRole; onSignOut: () =>
     {/* No help card, no wallet, no language picker. The shell strings a picker would switch are the
         patient's navigation, and clinical wording is never translated at all — lib/i18n.ts is where
         that rule lives. A control that changes nothing while claiming access is worse than none. */}
-    <button className="settings-link" onClick={signOut}><LogOut size={18}/>Sign out</button>
+    <button className="settings-link" onClick={leave}><LogOut size={18}/>Leave this workspace</button>
    </div>
   </aside>
   <div className="workspace surface">
@@ -248,12 +176,13 @@ function StaffWorkspace({ role, onSignOut }: { role: StaffRole; onSignOut: () =>
     </div>
     <div className="breadcrumb">{role}<span>/</span><strong>{section}</strong></div>
     <div className="topbar-actions">
-     <button className="icon-button" aria-label="Sign out of this workspace" onClick={signOut}><LogOut size={19}/></button>
+     <button className="icon-button" aria-label="Leave this workspace" onClick={leave}><LogOut size={19}/></button>
     </div>
    </header>
-   {/* Not a button any more. It opened a menu of workspaces to preview, which is a development
-       affordance; the sentence it carried is not, so the sentence stays and the affordance goes. */}
-   <p className="demo-pill" role="note"><span className="status-dot"/>{t('shell.previewBadge', 'en-ZA')}</p>
+   {/* The disclosure, and beside it the door. The sentence is the same one every shell shows; the
+       switcher beside it is the way a person gets to another workspace now that no screen in front
+       of this one asks which. */}
+   <DemoBar note={t('shell.previewBadge', 'en-ZA')}/>
    <main id="main" tabIndex={-1}>{renderSection(role, section, setModal, home)}</main>
    <footer className="app-footer"><span>© 2026 MyThuso · {role} workspace</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
    {/* The visible label is the short one and the accessible name is the whole section. Both point
@@ -315,13 +244,17 @@ function renderSection(role: StaffRole, section: string, open: (m: string) => vo
 
 /* What each section is for, in the words a person doing the job would use. The four door sections
    keep the sentences the contract-adjacent table in features/Pages.tsx already wrote for them
-   rather than a second set that would drift. */
+   rather than a second set that would drift.
+
+   The four *first* sections — the one each role opens the app to do — come from lib/roles.ts, where
+   the demo login shows the same sentence about the same job. They were typed in both places for an
+   afternoon, word for word, which is how two screens come to describe one workspace differently. */
 const sectionBlurb: Record<string, string> = {
- Schedule: 'Today’s visits, in the order you will do them, and the one still waiting for your sign-off.',
- 'Review queue': 'Cases waiting to be read. Decision support may draft; only a registered doctor signs.',
- Dispatch: 'Where every visit is, which nurses are free, and what is running late.',
+ Schedule: openingLine('Schedule'),
+ 'Review queue': openingLine('Review queue'),
+ Dispatch: openingLine('Dispatch'),
  Incidents: 'What went wrong, how severe it is, and who is holding it.',
- Orders: 'Prescriptions and laboratory orders routed to this partner, and what each is waiting on.',
+ Orders: openingLine('Orders'),
  Collections: 'Sample collections booked against this partner, and the windows they have to be inside.',
  Results: 'Results this partner has produced, and what is holding each one back from release.',
  Protocols: sectionDoor.Protocols,

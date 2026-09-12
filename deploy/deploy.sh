@@ -321,8 +321,6 @@ verify_entry() { # <label> <path> <the built html this path must serve>
 }
 verify_entry landing /        landing.html
 verify_entry app     /app/    index.html
-verify_entry staff   /staff/  staff.html
-verify_entry admin   /admin/  admin.html
 verify_entry status  /status/ status.html
 
 # And the form a person actually types. /status without the trailing slash used to fall through to

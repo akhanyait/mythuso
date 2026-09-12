@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import Doorway from './Doorway';
 /* Four sheets, not one. styles.css was 2,098 lines shipped whole to every entry, so a patient
    opening her own visits downloaded the dispatch board, the vetting queue and the back office's
    allocation tables in order to look at them. The order below is the cascade: core.css is what a
@@ -25,9 +25,13 @@ import './surface/patient.css';
 /* And after it, the way in. Sign-in, the one-time code, recovery and first run stand on their own
    card rather than on the shell, and several of their rules answer one of equal specificity in
    core.css — so like patient.css this sheet is placed by the entry rather than by whichever
-   component the bundler happened to reach first. Only this entry loads it: the clinical and back
-   office doors still stand on `.onboarding` in app.css. */
+   component the bundler happened to reach first. It also carries the demo login, which is the only
+   door left: the clinical and back-office sign-in screens are gone, and the role switcher stands
+   where all three of them used to. */
 import './surface/door.css';
-/* The patient entry. One of four — the clinical workspaces are at /staff and the back office at
-   /admin, each its own bundle, so nobody opening their own visits downloads either. */
-ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
+/* The application entry, and now the only one the product has: /app serves this, / serves the public
+   page and /status the page that says what is connected. The clinical workspaces and the back office
+   used to be entries of their own; they are lazily-imported chunks of this one, reached by choosing a
+   role on the demo login rather than by going to another address. Nobody opening their own visits
+   downloads either — see src/Doorway.tsx for the measurement that says so. */
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><Doorway /></React.StrictMode>);

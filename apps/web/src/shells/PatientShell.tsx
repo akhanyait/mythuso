@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Activity, Ambulance, ArrowRight, Bell, CalendarDays, ChevronDown, CircleHelp, CreditCard, Globe, HeartHandshake, House, Languages, LayoutGrid, MapPin, MessageCircle, NotebookPen, Settings2, Stethoscope, Users } from 'lucide-react';
+import { DemoBar } from '../features/DemoLogin';
 import { locales, useT, type LocaleCode } from '../lib/i18n';
 
 /* The patient application's chrome, and only the patient's.
@@ -22,6 +23,13 @@ import { locales, useT, type LocaleCode } from '../lib/i18n';
 
    Explore MyThuso stays last. tests/deep-journeys.spec.ts reaches it by position, deliberately,
    because that journey has switched the shell into isiZulu and cannot name it. */
+/* The classes a dialog opened from this surface has to carry, in the one place that knows them.
+   A dialog is rendered into the browser's top layer rather than inside the shell that opened it, so
+   it cannot inherit the patient surface — it is told; `glass` gives it the same frosted material as
+   the sidebar and the top bar it opened from. Every caller passed them by hand, which was fine while
+   App.tsx was the only caller and stopped being fine when the demo login became a second. */
+export const PATIENT_SURFACE = 'patient-surface glass';
+
 const navigation = [
  ['Overview', House], ['Book a nurse', Stethoscope], ['My visits', CalendarDays], ['Health Passport', Activity],
  ['Live well', NotebookPen], ['My family', Users], ['Care plans', HeartHandshake], ['Thuso Wallet', CreditCard],
@@ -112,9 +120,12 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
        the wordmark and two controls — at 390px the profile button was drawn ten pixels off the
        right edge, and the first thing a squeezed top bar loses is the sentence saying none of this
        is real. It becomes a full-width band under the bar instead, which also survives the six
-       locales where "Design preview" is three words long. It is a note rather than a button now:
-       the menu it used to open was for design review, and design review is not a product feature. */}
-   <p className="demo-pill" role="note"><span className="status-dot"/>{t('shell.previewBadge')}</p>
+       locales where "Design preview" is three words long.
+
+       Beside it now, in the same band, is the way into the other five workspaces. The band was the
+       right home for it: it is already the strip that says this is a preview, and the switcher is
+       the one control in the product that is only there because it is one. */}
+   <DemoBar note={t('shell.previewBadge')} surface={PATIENT_SURFACE}/>
    <main id="main" tabIndex={-1}>{children}</main>
    <footer className="app-footer">
     <span>© 2026 MyThuso. {t('shell.tagline')}</span>

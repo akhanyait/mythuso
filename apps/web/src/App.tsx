@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, LogOut, ShieldCheck, Stethoscope, X } from 'lucide-react';
+import { ArrowRight, LogOut, ShieldCheck, X } from 'lucide-react';
 import { Modal, Pill } from './components/UI';
 import { NotConnected } from './components/NotConnected';
-import { PatientShell } from './shells/PatientShell';
+import { PATIENT_SURFACE as SURFACE, PatientShell } from './shells/PatientShell';
 import { Dashboard } from './features/Dashboard';
 import { Booking, CancelVisit, Reschedule } from './features/Booking';
 import {
@@ -23,6 +23,8 @@ import { SponsoredCare } from './features/Sponsor';
 import { stateOf } from './lib/cancelling';
 import { dateOf } from './lib/passport';
 import { Onboarding, SignIn } from './features/Onboarding';
+import { RolePanel, useRole } from './features/DemoLogin';
+import type { RoleId } from './lib/roles';
 import { ThusoKit } from './features/Kit';
 import { ThusoSos } from './features/Sos';
 import { LabOrderDetail, PrescriptionDetail } from './features/Orders';
@@ -64,6 +66,9 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     without being asked; a light that stops the instant the cursor does has already stopped. */
  useDecor();
  usePointerLight();
+ /* The one thing this application knows about the other five: that a person can leave for one. The
+    role itself is held above it, in src/Doorway.tsx, so nothing here imports a workspace. */
+ const { setRole } = useRole();
  const [page, setPage] = useState('Overview');
  const [modal, setModal] = useState<string | null>(null);
  const [booking, setBooking] = useState<Service | null>(null);
@@ -177,13 +182,9 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     ? <Reschedule visit={rowById(managing.id)!.visit} onMove={(date, start) => { moveVisit(managing.id, date, start); setManaging(null); navigate('My visits'); }}/>
     : <CancelVisit visit={rowById(managing.id)!.visit} onCancel={reason => { standDown(managing.id, reason); setManaging(null); navigate('My visits'); }}/>}
   </Modal>}
-  {modal && <Modal surface={SURFACE} title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding('first-run'); }, reopen: (m: string) => setModal(m), locale, setLocale, query, setQuery, location, setLocation, people, addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut, rows, invitations, bookFor, viewVisit: (id: string) => { setModal(null); setViewing(id); }, revoke: (id: string) => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i)) })}</Modal>}
+  {modal && <Modal surface={SURFACE} title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding('first-run'); }, reopen: (m: string) => setModal(m), locale, setLocale, query, setQuery, location, setLocation, people, addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut, rows, invitations, bookFor, viewVisit: (id: string) => { setModal(null); setViewing(id); }, revoke: (id: string) => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i)), openRole: (id: RoleId) => { setModal(null); setRole(id); } })}</Modal>}
  </>;
 }
-/* A dialog is rendered into the browser's top layer rather than inside the shell that opened it, so
-   it cannot inherit the patient surface — it is told. `glass` gives it the same frosted material as
-   the sidebar and the top bar it opened from. */
-const SURFACE = 'patient-surface glass';
 /* Four doors into the same surface: the passport's device tab, the roadmap tile, the connection
    card and the kit's own name. They are one screen because they are one question — where did this
    reading come from — and four copies of it would drift. */
@@ -210,10 +211,10 @@ function modalTitle(modal: string) {
  if (modal === 'Thuso Family') return 'Household record';
  if (modal === 'Thuso Pass') return 'Health summary';
  if (modal === 'Visit summary') return 'What the nurse found';
- if (modal === 'Switch workspace') return 'MyThuso for clinicians';
+ if (modal === 'Switch workspace') return 'Open MyThuso as';
  return modal;
 }
-type BodyProps = { modal: string; close: () => void; navigate: (s: string) => void; openOnboarding: () => void; reopen: (s: string) => void; locale: LocaleCode; setLocale: (l: LocaleCode) => void; query: string; setQuery: (q: string) => void; location: string; setLocation: (l: string) => void; people: string[]; addMember: (n: string) => void; addInvitation: (i: Invitation) => void; signOut: () => void; rows: VisitRow[]; invitations: Invitation[]; bookFor: (person: string) => void; viewVisit: (id: string) => void; revoke: (id: string) => void };
+type BodyProps = { modal: string; close: () => void; navigate: (s: string) => void; openOnboarding: () => void; reopen: (s: string) => void; locale: LocaleCode; setLocale: (l: LocaleCode) => void; query: string; setQuery: (q: string) => void; location: string; setLocation: (l: string) => void; people: string[]; addMember: (n: string) => void; addInvitation: (i: Invitation) => void; signOut: () => void; rows: VisitRow[]; invitations: Invitation[]; bookFor: (person: string) => void; viewVisit: (id: string) => void; revoke: (id: string) => void; openRole: (id: RoleId) => void };
 /* Who each person in the demo household is to the account holder. The family list works this out
    from a row's position; this dialog is opened by name, so it asks by name. */
 const relationOf = (name: string, people: string[]) =>
@@ -263,14 +264,12 @@ function modalBody(p: BodyProps) {
  /* The last row on the privacy screen used to open the catch-all: the sign-in capability's notice,
     one sentence about launch, and a button offering the product roadmap. */
  if (modal === 'Contact privacy team') return <InformationOfficer open={p.reopen} navigate={p.navigate}/>;
- /* This used to be a menu that switched the patient's shell into a nurse's, a doctor's or the
-    Control Tower's. A role is not something a patient account can put on; it belongs to a different
-    application at a different address, which is what this says instead. */
- if (modal === 'Switch workspace') return <div className="form-stack">
-  <p className="muted">Nurses, doctors, pharmacy partners and the Control Tower work in a different application, at a different address. It is not something a patient account can open, and signing in there does not sign you in here.</p>
-  <a className="primary full" href="/staff.html"><Stethoscope size={17}/>Open MyThuso for clinicians</a>
-  <div className="privacy-note"><ShieldCheck size={20}/>Nothing about this account grants access to a clinical workspace.</div>
- </div>;
+ /* This was a menu that switched the patient's shell into a nurse's; then it was a paragraph
+    explaining that the clinical application lives at another address and a link to it. It is the
+    demo login now, on this screen as well as in the band at the top of every shell, because there is
+    one door and this is a person standing at it. The rows carry the capability's notice and the
+    contract's own sentence about what choosing a role does not grant — features/DemoLogin.tsx. */
+ if (modal === 'Switch workspace') return <RolePanel onPick={p.openRole}/>;
  /* The care areas are the coverage contract's own zones. Three of the five were typed here, which is
     how a picker comes to offer a suburb the map cannot draw and the dispatch board does not cover. */
  if (modal === 'Your location') return <form className="form-stack" onSubmit={e => { e.preventDefault(); p.close(); }}><p className="muted">Choose a demo care area. No GPS access is requested.</p><label>Care area<select value={p.location} onChange={e => p.setLocation(e.target.value)}>{zones.map(z => <option key={z.id}>{z.name}, {coverage.city}</option>)}</select></label><p className="helper">{coverage.sentence}</p><button className="primary">Save location<ArrowRight size={16}/></button></form>;

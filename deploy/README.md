@@ -55,25 +55,31 @@ That check is the point of the script. Do not skip it by running the steps by ha
 | Path | What |
 |---|---|
 | `/` | The public landing page |
-| `/app/` | Patients and families — runs with no backend, exactly as it does locally |
-| `/staff/` | The clinical workspaces: nurse, doctor, pharmacy partner, Control Tower |
-| `/admin/` | The back office |
+| `/app/` | The product — runs with no backend, exactly as it does locally. Patients and families with no role on the address; the clinical workspaces and the back office behind `?role=`, from the demo login in the bar at the top of every screen |
+| `/staff/`, `/admin/` | 301s to `/app/`. They were applications of their own until 12 September; an old bookmark lands on the one door rather than on a 404 |
 | `/status/` | What is connected and what is not. Fifteen capabilities, none of them live. The page a funder or a clinician is sent to when they want to know whether any of this is real |
 | `/assets/` | Hashed bundles, cached for a year; HTML is never cached |
 | `/opt/mythuso/ops` | The scheduled jobs and their systemd units, reinstalled on every deploy |
 | `/etc/mythuso/host.env` | The host the health check should be asking about, written by the deploy |
 | `/etc/mythuso/key.fingerprint` | One `name fingerprint` line per key this host holds. Not the keys, and not secret — it is how a key that changed without anybody rotating it becomes visible |
 
-### Five entries on one host, and the one-line change when DNS moves
+### Three entries on one host, and the one-line change when DNS moves
 
-Each audience is its own build with its own bundle — `index.html`, `staff.html`, `admin.html`,
-`landing.html` and `status.html`, declared in `apps/web/vite.config.ts`. **Every one of them needs a
-`location` in `deploy/nginx/mythuso.conf` and a line in `deploy.sh`'s verification, or the entry is
-a build nobody can open.** Nothing enforces that pairing; `status.html` was added, built, published
-and unreachable, and every check the deploy ran came back green, because without a block of its own
-`/status` fell through to the catch-all and answered with the landing page and a 200. That is why
-the verification now asks each path to prove which entry it served rather than only that it
-answered. A sixth entry means a `location`, a `verify_entry` line, and a row in the table above.
+There are three builds — `index.html`, `landing.html` and `status.html`, declared in
+`apps/web/vite.config.ts`. **Every one of them needs a `location` in `deploy/nginx/mythuso.conf` and
+a line in `deploy.sh`'s verification, or the entry is a build nobody can open.** `status.html` was
+added, built, published and unreachable, and every check the deploy ran came back green, because
+without a block of its own `/status` fell through to the catch-all and answered with the landing page
+and a 200. That is why the verification now asks each path to prove which entry it served rather than
+only that it answered, and why `scripts/check-boundaries.mjs` reads the entry list out of the Vite
+config and holds nginx, the deploy script *and the dev server's own path map* to it. A fourth entry
+means a `location`, a `verify_entry` line, a path in the dev map and a row in the table above.
+
+There were five. `staff.html` and `admin.html` were the clinical workspaces and the back office, each
+with a sign-in screen that said there was no account to sign in to and then asked which workspace you
+wanted. The founder replaced all of that with one demo login inside `/app/`, so those two are 301s
+here and lazily-loaded chunks in the bundle. What the split was for survives it: a patient's first
+load is 286.3 kB gzipped, and nothing of a dispatch board is in it.
 
 They are served from paths on one host rather
 than from `staff.mythuso.co.za` and `admin.mythuso.co.za` for two reasons that are both temporary:
@@ -88,20 +94,22 @@ the copy replace
 ```nginx
 server_name __HOST__;
 ...
-location = /staff { return 301 /staff/; }
-location /staff/  { try_files /staff.html =404; }
+location = /app   { return 301 /app/; }
+location /app/    { try_files /index.html =404; }
 ```
 
 with
 
 ```nginx
-server_name staff.mythuso.co.za;
+server_name app.mythuso.co.za;
 ...
-location / { try_files /staff.html =404; }
+location / { try_files /index.html =404; }
 ```
 
-— the same for `admin` — and add both names to `ALIASES` in `deploy/deploy.sh` and to
-`deploy/dns/mythuso.co.za.zone`. The `location /app/` and `location = /` blocks stay where they are.
+and add the name to `ALIASES` in `deploy/deploy.sh` and to `deploy/dns/mythuso.co.za.zone`. The
+`location = /` block stays where it is. There is no longer a separate name to give the clinical
+workspaces or the back office: they are roles inside the one application, so a second name would be
+the same build served twice.
 
 ### The headers, and who sets what
 
@@ -134,11 +142,17 @@ that cannot reach the site and cannot be told otherwise. The certificate exists,
 withdrawn. Raising it is a second decision, taken in `RUNBOOK.md` once the header has been seen
 arriving on https and every subdomain `includeSubDomains` binds has been checked.
 
-**A path is not access control, and neither is a subdomain.** `/staff/` and `/admin/` are `noindex`
-and are not linked from the landing page, which keeps them out of a search result and out of
-nobody's way. There is no account behind either of them yet — the sign-in screen on each says so in
-the contract's own words, from `packages/catalog/capabilities.json` — and until there is, the honest
-description of both is "unlisted", never "restricted".
+**A path is not access control, and neither is a subdomain, and neither is a query string.**
+`/staff/` and `/admin/` used to be unlisted paths carrying `noindex`, which kept them out of a search
+result and out of nobody's way. They are `?role=` on the one application now, one press from a
+patient's home screen, and that is a change in how findable they are and in nothing else: there was
+never an account behind either, and there still is not. The demo login says so in the contract's own
+words, from `packages/catalog/capabilities.json` — the `accounts` notice and the refusal that
+choosing a role grants none. Until there are accounts, the honest description of all of it is
+"open", never "restricted", and the `noindex` that went with the old paths is worth knowing about:
+the clinical workspaces are now reachable from an entry that is not `noindex`. If keeping them out of
+a search index matters before accounts exist, that is an `X-Robots-Tag` decision on `/app/` and it
+has not been taken.
 
 ### What may never be deployed
 

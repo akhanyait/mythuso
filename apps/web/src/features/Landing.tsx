@@ -17,18 +17,26 @@ const elder = '/banners/one-safe-place-cutout.webp';
    is only which photograph belongs to which slide, in the order scripts/check-boundaries.mjs
    declares as `heroCutouts`; a check beside that list fails the build if the two orders part. */
 const slidePhotos = [family, elder, nurse];
-/* In development Vite serves the app at / and this page at /landing.html. In production nginx puts
-   the public page at / and the app at /app, which is the right way round for a marketing site. */
-const appHref = import.meta.env.DEV ? '/' : '/app';
-const homeHref = import.meta.env.DEV ? '/landing.html' : '/';
-/* nginx answers /status with a redirect to /status/, so the production href is the directory form.
-   Linking to the bare .html would take a reader through a redirect on a metered connection. */
-const statusHref = import.meta.env.DEV ? '/status.html' : '/status/';
 /* Seven seconds. Long enough to read a sentence of banner copy, short enough that a reader who
    wants the next one does not reach for the arrow — and it only ever runs while the page's
    decorative-motion flag is up, so a reader who has stopped motion, or asked their system for
    less of it, is never moved on at all. */
 const SLIDE_MS = 7000;
+/* One pair of addresses, dev and production alike. This used to be two — the dev server served the
+   app at / and this page at /landing.html, the opposite way round from nginx — and that divergence
+   was written up as a debt for weeks because closing it meant moving ninety-one `page.goto('/')`
+   calls in the test suite. It is closed: / is the public page everywhere, /app/ is the product
+   everywhere, and nothing in this repository is exercised at a path that serves the other one.
+
+   `?role=` is the demo login's own parameter (apps/web/src/lib/roles.ts), so a link from this page
+   can open the app already in a workspace — which is what "See the nurse's side" now genuinely
+   does, rather than landing a curious reader on a patient's home screen. */
+const appHref = '/app/';
+const nurseHref = '/app/?role=nurse';
+const homeHref = '/';
+/* And the status page, in the directory form nginx serves. Linking to the bare .html would
+   take a reader through a redirect on a metered connection. */
+const statusHref = '/status/';
 const sections = [['how', 'How it works'], ['services', 'Services'], ['plans', 'Care plans'], ['nurses', 'For nurses'], ['safety', 'Safety']] as const;
 /* The four in the hero's dark bar, derived from the list above rather than restated: everything
    except "How it works", which has its own control in the hero already. An icon per section is the
@@ -369,7 +377,7 @@ export function Landing() {
      <li><Clock3 size={18}/><span><strong>The hours and areas you choose</strong>Dispatch never crosses your registered scope of practice, and the Control Tower cannot override that.</span></li>
      <li><ClipboardList size={18}/><span><strong>A kit, training and an escalation route</strong>A connected diagnostic kit, device and protocol training, and a doctor to escalate to.</span></li>
     </ul>
-    <a className="secondary landing-secondary" href={appHref}>See the nurse's side<ArrowRight size={16}/></a>
+    <a className="secondary landing-secondary" href={nurseHref}>See the nurse's side<ArrowRight size={16}/></a>
    </div>
    <figure className="landing-portrait" data-reveal>
     <div className="landing-portrait-frame soft"><img src={family} alt="" aria-hidden="true"/></div>
