@@ -77,9 +77,14 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
   {/* The figures, directly on the ground rather than inside a card. A metric that sits in a box is a
       card of numbers; a metric on the ground with a chip floating above it is the thing the founder
       pointed at, and it is what makes the top of this screen read as calm rather than as busy. */}
+  {/* The check-in is the one on the lime tile, and the two readings beside it are not. That is a
+      clinical decision rather than a visual one: a reading singled out in colour reads as a verdict
+      on that reading, and this product does not issue verdicts — a doctor does, in words, with a
+      name against them. A countdown to something the person has to arrange carries no such
+      implication, and it is also the only figure on the strip they can act on today. */}
   <Metrics>
    {leadReadings.map(r => <Metric key={r.label} value={r.value} unit={r.unit} label={r.label} chip={r.chip}/>)}
-   <Metric value={String(planDueInDays)} unit="days" label="Until your next check-in" chip="Chronic Routine"/>
+   <Metric value={String(planDueInDays)} unit="days" label="Until your next check-in" chip="Chronic Routine" lead/>
   </Metrics>
 
   <div className="home-columns">

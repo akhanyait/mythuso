@@ -433,6 +433,9 @@
   padding-left: var(--space-32);
   border-left: 1px solid var(--pane-line);
  }
+ /* A hairline drawn hard against the edge of the lime tile reads as a seam in the tile rather than
+    as a rule between two figures. The tile's own edge is the separator there. */
+ .clinical .s-metric.lead + .s-metric { margin-left: var(--space-24); padding-left: 0; border-left: 0; }
  /* The console keeps the grid it was given: a figure there is a numeral with the plan it is
     measured against written under it, and a sentence has to have a column to wrap inside. */
  .clinical .c-figures .s-metrics {
@@ -486,6 +489,14 @@
  /* Flagged still reads as flagged without the fill: the fill was the chip, and what is left is the
     one label on the strip set in the colour everything else on this screen is read in. */
  .clinical .s-metric-chip.flagged { background: none; color: var(--charcoal); font-weight: 600; }
+ /* The lime tile follows the same departure. Its chip is a filled pill on a wide screen, and the
+    rule that fills it outranked the one above — so on a 390px phone the nurse's strip put a
+    dark pill with no padding across the label under it and the words ran into each other. The chip
+    is plain ink here like every other chip on this strip, and the tile's own padding comes in to
+    what a 104px column can actually hold. */
+ .clinical .s-metric.lead { padding: var(--space-12) var(--space-12) var(--space-16); }
+ .clinical .s-metric.lead .s-metric-chip,
+ .clinical .s-metric.lead .s-metric-chip.flagged { background: none; border-color: transparent; color: var(--studio-ink); }
  /* The console's figures stay two-up: each carries a sentence, and three sentences across a phone
     is three columns of two-word lines. */
  .clinical .c-figures .s-metrics { grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); }

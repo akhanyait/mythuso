@@ -14,7 +14,7 @@ import './surface.css';
 
 /** A number with its status above it and its name below — the reference's signature, and the
     inversion of what this product did everywhere, which was a small label above a bold figure. */
-export function Metric({ value, unit, prefix, label, chip, flagged = false }: {
+export function Metric({ value, unit, prefix, label, chip, flagged = false, lead = false }: {
  value: string;
  /** Trailing: BPM, %, kg. */
  unit?: string;
@@ -25,6 +25,12 @@ export function Metric({ value, unit, prefix, label, chip, flagged = false }: {
  chip?: string;
  /** Fills the chip charcoal. For the one value on a screen that is out of range. */
  flagged?: boolean;
+ /** The one figure in a strip that the screen is about, on a lime tile. At most one per strip: a
+     second one is a strip with two leads, which is a strip with none. It carries no clinical
+     meaning and must not be given one — a reading highlighted in colour reads as a verdict on that
+     reading, and nothing in this product may issue one. Use it on the figure a person came to
+     act on, not on the figure that happens to be interesting. */
+ lead?: boolean;
 }) {
  /* The chip sits on a line of its own whether or not this metric has one. A strip where some
     figures carry a chip and some do not was drawing them at two different heights — the back
@@ -32,7 +38,7 @@ export function Metric({ value, unit, prefix, label, chip, flagged = false }: {
     thing a row of numerals must never do. The line only reserves height when a sibling in the same
     strip actually has a chip, so a strip with none pays nothing for the rule. */
  return (
-  <div className="s-metric">
+  <div className={`s-metric${lead ? ' lead' : ''}`}>
    <span className="s-metric-chip-line">
     {chip && <span className={`s-metric-chip${flagged ? ' flagged' : ''}`}>{chip}</span>}
    </span>

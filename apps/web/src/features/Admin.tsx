@@ -63,8 +63,12 @@ export function AdminConsole({ open, tab, setTab }: { open: (s: string) => void;
    tests/admin-and-session.spec.ts assert against `.panel.metric`, and a class is part of the
    contract with them as much as any exported function is. clinical.css takes the card look back
    off it, so what it draws is a Metric on the ground and nothing else. */
-function Kpi({ label, value, note, flagged }: { label: string; value: string; note: string; flagged?: boolean }) {
- return <div className="c-figure panel metric">
+function Kpi({ label, value, note, flagged, lead }: { label: string; value: string; note: string; flagged?: boolean; lead?: boolean }) {
+ /* `lead` is on the wrapper rather than on the Metric inside it, because a console figure is the
+    number *and* the line saying what it is against — "84" without "84% of the month-9 plan" is a
+    number nobody can act on, and a tile that took the first and left the second outside it would
+    have split the one thing this screen reports. */
+ return <div className={`c-figure panel metric${lead ? ' lead' : ''}`}>
   <Metric label={label} value={value} chip={flagged ? 'Needs attention' : undefined} flagged={flagged}/>
   <small>{note}</small>
  </div>;
@@ -80,7 +84,10 @@ function Overview({ vetting }: { vetting: VettingState }) {
  const pace = (a: number, p: number) => Math.round((a / p) * 100);
  return <>
   <div className="c-figures"><Metrics>
-   <Kpi label="Visits yesterday" value="84" note={`${pace(actual.visitsPerDay, plan.visitsPerDay)}% of the month-9 plan (${plan.visitsPerDay})`}/>
+   {/* Visits a day is the figure this console is against — the sentence under the heading says so,
+       and it is the first line of the trajectory table below. Nothing here is typed that was not
+       typed before it. */}
+   <Kpi label="Visits yesterday" value="84" note={`${pace(actual.visitsPerDay, plan.visitsPerDay)}% of the month-9 plan (${plan.visitsPerDay})`} lead/>
    <Kpi label="Active subscribers" value="1,620" note={`${pace(actual.subscribers, plan.subscribers)}% of the month-9 plan (${plan.subscribers.toLocaleString()})`}/>
    <Kpi label="Revenue this month" value={bigMoney(actual.revenue)} note={`Plan ${bigMoney(plan.revenue)} · costs ${bigMoney(actual.costs)}`}/>
    <Kpi label="Nurses dispatchable" value={String(nurses.length - blocking(vetting.subjects, 'nurse'))} note={`Of ${nurses.length} in the vetting pipeline · read from the vetting module, not typed here`}/>

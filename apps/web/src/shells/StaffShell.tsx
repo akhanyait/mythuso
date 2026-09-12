@@ -393,8 +393,14 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
       reader having to guess which one is the page. */}
   {!ownsIntro && <div className="page-intro"><div><div className="eyebrow">{role.toUpperCase()}</div>
    {headsItself ? null : <><h1>{section}</h1><p>{sectionBlurb[section] ?? sectionDoor[section] ?? ''}</p></>}</div></div>}
-  {board && <Metrics>{metricsOf(role, queue).map(([label, value, unit, chip, flagged, prefix]) =>
-   <Metric key={label} label={label} value={value} unit={unit || undefined} prefix={prefix} chip={chip} flagged={flagged}/>)}</Metrics>}
+  {/* The first figure in each strip takes the lime tile, and it is the first one because every one
+      of these lists is already ordered urgency-first — the comment above metricsOf says so and has
+      done since the strips were written. So the tile is a rule rather than six separate opinions
+      about which number matters, and it cannot drift out of step with the order of the strip
+      because it is the order of the strip. Nothing is typed: the figure inside it is the same
+      counted value, from the same board underneath. */}
+  {board && <Metrics>{metricsOf(role, queue).map(([label, value, unit, chip, flagged, prefix], i) =>
+   <Metric key={label} label={label} value={value} unit={unit || undefined} prefix={prefix} chip={chip} flagged={flagged} lead={i === 0}/>)}</Metrics>}
   {section === 'Schedule' ? <NurseSchedule open={open}/>
    : section === 'Review queue' ? <ReviewQueue open={open}/>
 : section === 'Dispatch' ? <DispatchBoard/>
