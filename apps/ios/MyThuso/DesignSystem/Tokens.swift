@@ -59,6 +59,8 @@ enum ThusoTheme {
     static let studioLilac = Color(red: 0.871, green: 0.827, blue: 1.000)             // #DED3FF
     static let studioPeach = Color(red: 1.000, green: 0.808, blue: 0.678)             // #FFCEAD
     static let studioLine = Color(red: 0.886, green: 0.894, blue: 0.851)              // #E2E4D9
+    static let studioInkMuted = Color(red: 0.310, green: 0.365, blue: 0.341)          // #4F5D57
+    static let studioOlive = Color(red: 0.361, green: 0.447, blue: 0.302)             // #5C724D
 }
 enum ThusoRadius {
     static let card: CGFloat = 12

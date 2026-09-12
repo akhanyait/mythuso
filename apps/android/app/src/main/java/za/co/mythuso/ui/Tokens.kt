@@ -62,6 +62,8 @@ val StudioLime = Color(0xFFDFFF92)
 val StudioLilac = Color(0xFFDED3FF)
 val StudioPeach = Color(0xFFFFCEAD)
 val StudioLine = Color(0xFFE2E4D9)
+val StudioInkMuted = Color(0xFF4F5D57)
+val StudioOlive = Color(0xFF5C724D)
 
 object ThusoRadius {
     val card = 12.dp
