@@ -137,6 +137,15 @@ test.describe('the motion system', () => {
    return [style.getPropertyValue('--m-x').trim(), style.getPropertyValue('--m-y').trim()];
   });
   expect(at).toEqual(['700px', '520px']);
+
+  /* At the far corner most of the light is outside its pane, and an unclipped box hanging off the
+     right of a page is a horizontal scrollbar — the one thing the accessibility audit measures at
+     320px and at 200% zoom. The clip is on the pane; this is the measurement that says so. */
+  const width = page.viewportSize()!.width;
+  await page.mouse.move(width - 1, 40);
+  await page.waitForTimeout(120);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
  });
 
  test('a control is pressable while its entrance is still running', async ({ page }) => {

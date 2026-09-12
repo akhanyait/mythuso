@@ -85,6 +85,11 @@
    pointermove a browser synthesises under a finger would park the light wherever that finger last
    was and leave it there, which is a stain rather than a light. */
 @media (hover: hover) and (pointer: fine) {
+ /* Clipped to its own pane. The light is a 46vmax box centred on the cursor, so near an edge most
+    of it is outside the container — and an unclipped box hanging off the right of a page is a
+    horizontal scrollbar, which is the one thing the accessibility audit measures at 320px and at
+    200% zoom. A light that spills outside a rounded panel would be wrong to look at as well. */
+ .m-light { overflow: hidden; }
  [data-decor='on'] .m-light::before {
   content: '';
   position: absolute;
