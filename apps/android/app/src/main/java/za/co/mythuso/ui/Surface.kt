@@ -319,8 +319,8 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
             Box(
                 Modifier.weight(1f).height(12.dp).background(
                     when {
-                        index == now -> SageSlate
-                        index < done -> SoftSage
+                        index == now -> StudioNight
+                        index < done -> StudioOlive
                         else -> Cloud
                     },
                     RoundedCornerShape(ThusoRadius.pill)

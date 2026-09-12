@@ -507,7 +507,7 @@ struct SegmentBar: View {
         HStack(spacing: 5) {
             ForEach(0..<max(total, 1), id: \.self) { index in
                 Capsule()
-                    .fill(index == now ? ThusoTheme.sageSlate : index < done ? ThusoTheme.softSage : ThusoTheme.cloud)
+                    .fill(index == now ? ThusoTheme.studioNight : index < done ? ThusoTheme.studioOlive : ThusoTheme.cloud)
                     .frame(height: 12)
             }
         }

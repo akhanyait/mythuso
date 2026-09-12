@@ -59,7 +59,7 @@ struct PastVisitView: View {
     private var head: some View {
         SurfacePanel(spacing: ThusoSpacing.space16) {
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                TileIcon(symbol: service.symbol, tint: ThusoTheme.charcoal, background: ThusoTheme.paleSage, size: 44)
+                TileIcon(symbol: service.symbol, tint: ThusoTheme.charcoal, background: ThusoTheme.studioLime, size: 44)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(service.name).thusoFont(ThusoType.cardTitle, weight: .semibold)
                         .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)

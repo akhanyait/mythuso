@@ -235,7 +235,7 @@ struct DispensingView: View {
             }
         }
         .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.paleSage, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoTheme.studioLilac, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
 
     private var handover: some View {
@@ -309,7 +309,7 @@ struct DispensingView: View {
                     Text(Dispensing.rule("ends-in-a-review").sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal)
                 }
                 .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ThusoTheme.paleSage, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+                .background(ThusoTheme.studioLilac, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
             }
         }
     }

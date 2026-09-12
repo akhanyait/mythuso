@@ -156,7 +156,7 @@ struct HealthSummaryView: View {
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.paleSage, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoTheme.studioLilac, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 

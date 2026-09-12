@@ -98,7 +98,7 @@ struct EarningsView: View {
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(allowed ? ThusoTheme.paleSage : ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(allowed ? ThusoTheme.studioLilac : ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
 
     private var nursePicker: some View {

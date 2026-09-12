@@ -216,7 +216,7 @@ struct ProgrammesView: View {
     private func step0(_ number: Int, _ step: ProgrammeStep) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space8) {
             Text("\(number)").font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-                .frame(width: 20, height: 20).background(ThusoTheme.paleSage, in: Circle())
+                .frame(width: 20, height: 20).background(ThusoTheme.studioLime, in: Circle())
             VStack(alignment: .leading, spacing: 3) {
                 Text(step.label).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 Text(step.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
