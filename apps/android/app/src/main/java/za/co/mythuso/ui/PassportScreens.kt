@@ -45,7 +45,7 @@ import za.co.mythuso.model.*
             horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
         ) {
             listOf(headings.first, headings.second, headings.third).forEach {
-                Text(it, style = MaterialTheme.typography.labelSmall, color = Faint, modifier = Modifier.weight(1f))
+                Text(it, style = MaterialTheme.typography.labelSmall, color = StudioInkMuted, modifier = Modifier.weight(1f))
             }
         }
         rows.forEachIndexed { index, row ->
@@ -55,15 +55,15 @@ import za.co.mythuso.model.*
                 verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)
             ) {
                 Text(row.first, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                Text("${headings.second}: ${row.second}", style = MaterialTheme.typography.bodySmall, color = Faint)
-                Text("${headings.third}: ${row.third}", style = MaterialTheme.typography.bodySmall, color = Faint)
+                Text("${headings.second}: ${row.second}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Text("${headings.third}: ${row.third}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
             } else Row(
                 Modifier.fillMaxWidth().padding(vertical = ThusoSpacing.space12),
                 horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
             ) {
                 Text(row.first, style = MaterialTheme.typography.titleSmall, color = Charcoal, modifier = Modifier.weight(1f))
                 Text(row.second, style = MaterialTheme.typography.bodySmall, color = Charcoal, modifier = Modifier.weight(1f))
-                Text(row.third, style = MaterialTheme.typography.bodySmall, color = Faint, modifier = Modifier.weight(1f))
+                Text(row.third, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -74,14 +74,14 @@ import za.co.mythuso.model.*
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
         Text(term, style = MaterialTheme.typography.titleSmall, color = Charcoal)
         Text(detail, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
-        if (footnote.isNotEmpty()) Text(footnote, style = MaterialTheme.typography.bodySmall, color = Faint)
+        if (footnote.isNotEmpty()) Text(footnote, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
     }
 }
 
 @Composable private fun Helper(icon: ImageVector, text: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8), verticalAlignment = Alignment.Top) {
-        Icon(icon, null, tint = Faint, modifier = Modifier.size(16.dp).padding(top = 2.dp))
-        Text(text, style = MaterialTheme.typography.bodySmall, color = Faint)
+        Icon(icon, null, tint = StudioInkMuted, modifier = Modifier.size(16.dp).padding(top = 2.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
     }
 }
 
@@ -190,7 +190,7 @@ import za.co.mythuso.model.*
             Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                 Text(service.name, style = MaterialTheme.typography.titleLarge, color = Charcoal,
                      modifier = Modifier.semantics { heading() })
-                Text("${passportHolder.name} · Home visit · Sandton", style = MaterialTheme.typography.bodySmall, color = Faint)
+                Text("${passportHolder.name} · Home visit · Sandton", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
             }
             HorizontalDivider(color = StudioLine)
             ReviewLine("When", Scheduling.longDate(Passport.dateOf(dayOffset)))
@@ -201,7 +201,7 @@ import za.co.mythuso.model.*
                 TileIcon(Icons.Outlined.MedicalServices)
                 Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                     Text("Sister Naledi Mokoena", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                    Text("Registered Nurse (SANC)", style = MaterialTheme.typography.bodySmall, color = Faint)
+                    Text("Registered Nurse (SANC)", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                 }
             }
         }
@@ -337,7 +337,7 @@ private fun measureName(id: String): String {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                     Text(spec.name, style = MaterialTheme.typography.titleLarge, color = Charcoal,
                          modifier = Modifier.semantics { heading() })
-                    Text("Readings from ${spec.platform}", style = MaterialTheme.typography.bodySmall, color = Faint)
+                    Text("Readings from ${spec.platform}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                 }
             }
         }

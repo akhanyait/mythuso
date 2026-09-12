@@ -93,12 +93,12 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, tint = BodyText, modifier = Modifier.size(18.dp))
-            Text("Preview states", style = MaterialTheme.typography.labelLarge, color = BodyText, modifier = Modifier.weight(1f))
+            Icon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, tint = StudioInkMuted, modifier = Modifier.size(18.dp))
+            Text("Preview states", style = MaterialTheme.typography.labelLarge, color = StudioInkMuted, modifier = Modifier.weight(1f))
             if (state != LoadState.READY) StatusPill(state.label, "amber")
         }
         if (open) {
-            Text(title, style = MaterialTheme.typography.labelSmall, color = BodyText)
+            Text(title, style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
             FlowRowChips(LoadState.entries.map { it.label }, setOf(state.label)) { label -> onChange(LoadState.entries.first { it.label == label }) }
         }
     }

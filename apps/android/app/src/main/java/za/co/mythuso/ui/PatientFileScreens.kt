@@ -121,7 +121,7 @@ private fun grantSentence(roleId: String, capability: String): String? =
            because changing the viewer is the whole point of this screen. */
         Text(
             "$refused of ${fileTabs.size} sections are refused to this viewer.",
-            style = MaterialTheme.typography.labelLarge, color = BodyText,
+            style = MaterialTheme.typography.labelLarge, color = StudioInkMuted,
             modifier = Modifier.semantics {
                 liveRegion = LiveRegionMode.Polite
                 contentDescription = "${patient.name}, ${patient.id}. Viewing as ${viewer.name}, " +
@@ -337,7 +337,7 @@ private val withheldCategorySentence: String = run {
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.CalendarMonth, null, tint = Charcoal, modifier = Modifier.size(17.dp))
-            Text("Last visit", style = MaterialTheme.typography.labelLarge, color = BodyText)
+            Text("Last visit", style = MaterialTheme.typography.labelLarge, color = StudioInkMuted)
         }
         if (clinical.allowed) {
             Text(shortDate(patient.lastVisit.at), style = MaterialTheme.typography.titleMedium, color = Charcoal)
@@ -348,7 +348,7 @@ private val withheldCategorySentence: String = run {
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.EventAvailable, null, tint = Charcoal, modifier = Modifier.size(17.dp))
-            Text("Next appointment", style = MaterialTheme.typography.labelLarge, color = BodyText)
+            Text("Next appointment", style = MaterialTheme.typography.labelLarge, color = StudioInkMuted)
         }
         val next = patient.nextAppointment
         if (next != null) {
@@ -360,7 +360,7 @@ private val withheldCategorySentence: String = run {
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Medication, null, tint = Charcoal, modifier = Modifier.size(17.dp))
-            Text("Current medication", style = MaterialTheme.typography.labelLarge, color = BodyText)
+            Text("Current medication", style = MaterialTheme.typography.labelLarge, color = StudioInkMuted)
         }
         when {
             !medicines.allowed -> RefusalBody("Withheld", medicines)
@@ -443,7 +443,7 @@ private val withheldCategorySentence: String = run {
             ) {
                 TileIcon(Icons.Outlined.Lock, Danger, DangerSoft, 38.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(action.label, style = MaterialTheme.typography.titleSmall, color = BodyText)
+                    Text(action.label, style = MaterialTheme.typography.titleSmall, color = StudioInkMuted)
                     Note(allowed.reason.orEmpty())
                 }
             }
@@ -451,7 +451,7 @@ private val withheldCategorySentence: String = run {
         }
     }
     if (notice.isNotEmpty()) Text(
-        notice, style = MaterialTheme.typography.bodySmall, color = BodyText,
+        notice, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
     )
 }
@@ -463,7 +463,7 @@ private val withheldCategorySentence: String = run {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(icon, null, tint = Charcoal, modifier = Modifier.size(15.dp))
-            Text(name, style = MaterialTheme.typography.bodySmall, color = BodyText)
+            Text(name, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
         }
         Text(value, style = MaterialTheme.typography.titleSmall, color = Charcoal)
         provenance?.let { ProvenanceMark(it) }
@@ -513,7 +513,7 @@ private val withheldCategorySentence: String = run {
             )
             Text(
                 if (decision.allowed) entry.detail else decision.reason.orEmpty(),
-                style = MaterialTheme.typography.bodySmall, color = BodyText
+                style = MaterialTheme.typography.bodySmall, color = StudioInkMuted
             )
             Note(
                 if (full) "${type?.name} · ${type?.fhir} · ${shortDate(entry.at)}${if (decision.allowed) " · ${entry.by}" else ""}"
@@ -541,7 +541,7 @@ private val withheldCategorySentence: String = run {
                 Icon(
                     if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                     if (open) "Collapse this consultation" else "Open this consultation",
-                    tint = BodyText
+                    tint = StudioInkMuted
                 )
             }
             ReleasedTag(consultation)
@@ -555,7 +555,7 @@ private val withheldCategorySentence: String = run {
                 consultationSections.forEach { section ->
                     val filled = section.id in consultation.sections
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(section.name, style = MaterialTheme.typography.labelMedium, color = if (filled) Ink else BodyText)
+                        Text(section.name, style = MaterialTheme.typography.labelMedium, color = if (filled) Ink else StudioInkMuted)
                         Note(
                             (if (filled) "Recorded" else if (section.required) "Required and not recorded" else "Not recorded") +
                                 (section.gatedBy?.let { " · written only by a party holding $it" } ?: "")
@@ -620,7 +620,7 @@ private val withheldCategorySentence: String = run {
         TileIcon(Icons.Outlined.Medication, size = 36.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("${medicine.name} ${medicine.dose}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-            Text(detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
             Note(attribution)
             ReleasedTag(medicine)
         }
@@ -653,7 +653,7 @@ private val withheldCategorySentence: String = run {
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(row.name, style = MaterialTheme.typography.bodyMedium, color = BodyText, modifier = Modifier.weight(1f))
+                        Text(row.name, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted, modifier = Modifier.weight(1f))
                         Text(
                             row.value + (row.flag?.let { " · $it" } ?: ""),
                             style = MaterialTheme.typography.bodyMedium,
@@ -686,7 +686,7 @@ private val withheldCategorySentence: String = run {
                 TileIcon(Icons.AutoMirrored.Outlined.Send, size = 36.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(referral.to, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                    Text(referral.reason, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                    Text(referral.reason, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                     Note("${shortDate(referral.at)} · ${referral.urgency} · ${referral.by}")
                     StatusPill(referral.status, if (referral.status.startsWith("Accepted")) "teal" else "sky")
                 }
@@ -711,7 +711,7 @@ private val withheldCategorySentence: String = run {
                 TileIcon(Icons.Outlined.Description, size = 36.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(document.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                    Text("${document.kind} · ${document.by}", style = MaterialTheme.typography.bodySmall, color = BodyText)
+                    Text("${document.kind} · ${document.by}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                     Note("${shortDate(document.at)} · DocumentReference")
                 }
             }

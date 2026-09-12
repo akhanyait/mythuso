@@ -97,7 +97,7 @@ struct HeroCarousel: View {
                 Text(slide.title.replacingOccurrences(of: "\n", with: " "))
                     .font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(slide.body).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(slide.body).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
                 trustRow(slide)
                 Button { onAction(position) } label: {

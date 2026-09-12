@@ -91,7 +91,7 @@ import za.co.mythuso.model.mokoenaHousehold
                     Tab(
                         selected = tab == name, onClick = { tab = name },
                         text = { Text(name, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
-                        selectedContentColor = Charcoal, unselectedContentColor = Faint
+                        selectedContentColor = Charcoal, unselectedContentColor = StudioInkMuted
                     )
                 }
             }
@@ -215,9 +215,9 @@ import za.co.mythuso.model.mokoenaHousehold
                 Image(painterResource(R.drawable.mythuso_patient), null, Modifier.size(56.dp).clip(CircleShape), contentScale = ContentScale.Crop)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                     Text("Lerato Molefe", style = MaterialTheme.typography.titleLarge, color = Charcoal)
-                    Text("View and edit your profile", style = MaterialTheme.typography.bodySmall, color = BodyText)
+                    Text("View and edit your profile", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                 }
-                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Faint)
+                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = StudioInkMuted)
             }
         }
         Section("Your care") {

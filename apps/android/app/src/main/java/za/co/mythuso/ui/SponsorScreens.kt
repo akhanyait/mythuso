@@ -50,7 +50,7 @@ private val serviceIsNamed: Boolean = sponsorStatement.note.contains("switched t
 @Composable private fun DisclosureLine(disclosure: Disclosure) {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
         Text(disclosure.what, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-        Text(disclosure.why, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+        Text(disclosure.why, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
     }
 }
 
@@ -130,7 +130,7 @@ private val serviceIsNamed: Boolean = sponsorStatement.note.contains("switched t
                     TileIcon(Icons.Outlined.VisibilityOff, size = 36.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                         Text(detail.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                        Text(detail.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                        Text(detail.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                         Note("$first decides this, in her own account. It is not a setting on this screen and there is no way to ask for it.")
                     }
                 }
@@ -162,10 +162,10 @@ private val serviceIsNamed: Boolean = sponsorStatement.note.contains("switched t
             CareCard {
                 val rule = Programmes.rule("paying-is-not-permission")
                 Text(rule.title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                Text(rule.sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(rule.sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 HorizontalDivider(color = StudioLine)
                 Text("The least anybody can be given is more than this", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                Text("${leastScope.first} — ${leastScope.second}", style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text("${leastScope.first} — ${leastScope.second}", style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 Note("And that is granted by $first, from her own account, with an end date on it. A sponsorship grants nothing at all, so there is nothing here to widen.")
             }
             OutlinedButton(
@@ -180,7 +180,7 @@ private val serviceIsNamed: Boolean = sponsorStatement.note.contains("switched t
                     TileIcon(Icons.Outlined.HowToReg, size = 36.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                         Text(sponsorConsent.headline, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                        Text(sponsorConsent.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                        Text(sponsorConsent.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                     }
                 }
                 Note(sponsorConsent.withdrawal)

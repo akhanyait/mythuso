@@ -124,7 +124,7 @@ struct DispatchMap: View {
                 }
                 ForEach(Dispatch.nurses) { nurse in
                     if let point = Dispatch.plot(nurse.position) {
-                        Circle().fill(nurse.status == "Available" ? ThusoTheme.tealInk : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        Circle().fill(nurse.status == "Available" ? ThusoTheme.tealInk : ThusoTheme.studioInkMuted)
                             .frame(width: 10, height: 10).position(x: point.x * size, y: point.y * size)
                     }
                 }
@@ -139,7 +139,7 @@ struct DispatchMap: View {
                 }
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
-                        Text(zone.name).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        Text(zone.name).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
                             .position(x: point.x * size, y: (point.y - zone.radius) * size + 8)
                     }
                 }
@@ -281,7 +281,7 @@ struct DispatchBoardView: View {
     }
     @ViewBuilder private var mapKey: some View {
         Label("Available", systemImage: "circle.fill").foregroundStyle(ThusoTheme.tealInk).font(.footnote)
-        Label("On a visit", systemImage: "circle.fill").foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).font(.footnote)
+        Label("On a visit", systemImage: "circle.fill").foregroundStyle(ThusoTheme.studioInkMuted).font(.footnote)
         Label("Visit", systemImage: "square.fill").foregroundStyle(ThusoTheme.mangoInk).font(.footnote)
     }
 
@@ -325,12 +325,12 @@ struct DispatchBoardView: View {
         }
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Text("Estimated arrival is a straight-line guess in this preview. Real dispatch weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
             /* The sentence above is a promise; this one is the arithmetic that keeps it. If the two
                ever stop agreeing, it is this screen that is lying. */
             Text("Each estimate is the distance from the nurse’s last reported position to the address, in a straight line, at an assumed \(Int(urbanSpeedKmh)) km/h in traffic. No road factor is applied — a multiplier chosen to make the number feel right would make the label a lie. Where a position cannot be used, the row says “Estimating” and gives the reason rather than a number nothing produced.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -393,10 +393,10 @@ struct DispatchNurseRow: View {
                missing must not arrive as silence. The row shows the short form and speaks the
                long one, including what the estimate was derived from. */
             Text("\(nurse.area) · \(nurse.status) · \(estimate.label)")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityLabel("\(nurse.area). \(nurse.status). \(estimate.spoken)")
-            Text(nurse.skills).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(nurse.skills).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
             if case let .unavailable(reason, _) = estimate {
                 /* Amber, not red: nothing is being refused here. The nurse can still be assigned —
@@ -483,7 +483,7 @@ struct IncidentDetailView: View {
                     }
                 }
                 Text("Incident logs are append-only and reviewed weekly. Nothing here is recorded, paged or sent.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, ThusoSpacing.space16)

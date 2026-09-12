@@ -100,7 +100,7 @@ struct StatePicker: View {
     var body: some View {
         DisclosureGroup(isExpanded: $open) {
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                Text(title).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(title).font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
                 Picker(title, selection: $state) { ForEach(LoadState.allCases) { Text($0.rawValue).tag($0) } }
                     .pickerStyle(.segmented).labelsHidden()
             }.padding(.top, ThusoSpacing.space8)
@@ -110,7 +110,7 @@ struct StatePicker: View {
                state a reviewer opened the screen to see. The frame is on the label rather than on
                the group, because the group's frame is the whole expanded panel. */
             HStack(spacing: ThusoSpacing.space8) {
-                Text("Preview states").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text("Preview states").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
                 if state != .ready { StatusPill(text: state.rawValue, tone: "amber") }
                 Spacer(minLength: 0)
             }

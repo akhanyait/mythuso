@@ -44,7 +44,7 @@ import za.co.mythuso.model.*
 @Composable private fun StatedBlock(title: String, body: String) {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
         Text(title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-        Text(body, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+        Text(body, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
     }
 }
 

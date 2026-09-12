@@ -92,12 +92,12 @@ struct CareHeading: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             if !eyebrow.isEmpty {
-                Text(eyebrow.uppercased()).font(.caption2.weight(.semibold)).tracking(1.1).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(eyebrow.uppercased()).font(.caption2.weight(.semibold)).tracking(1.1).foregroundStyle(ThusoTheme.studioInkMuted)
             }
             Text(title).font(.title2.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
             if !subtitle.isEmpty {
-                Text(subtitle).font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(subtitle).font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -277,7 +277,7 @@ struct StepDots: View {
             : AnyLayout(HStackLayout(spacing: ThusoSpacing.space8))
         return layout {
             Text("Step \(step) of \(total)").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(label).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(label).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: ThusoSpacing.space8)
@@ -381,14 +381,14 @@ struct MenuRow: View {
                     .foregroundStyle(danger ? ThusoTheme.danger : ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
                 if !subtitle.isEmpty {
-                    Text(subtitle).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(subtitle).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer(minLength: ThusoSpacing.space8)
             if !danger {
                 Image(systemName: "chevron.right").font(.caption.weight(.semibold))
-                    .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).accessibilityHidden(true)
+                    .foregroundStyle(ThusoTheme.studioInkMuted).accessibilityHidden(true)
             }
         }
         .padding(.vertical, ThusoSpacing.space8)
@@ -412,9 +412,9 @@ struct FeatureDetail: View {
                     Text("This workflow will connect to the relevant clinical, operational or partner service in the functionality phase.")
                         .font(.subheadline).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
                     Text("No live care, payments, device permissions or clinical decisions are activated.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).fixedSize(horizontal: false, vertical: true)
+                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
                 }
-                Text("Connected to your care journey.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text("Connected to your care journey.").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
             }
             .padding(.horizontal, ThusoSpacing.space20).padding(.vertical, ThusoSpacing.space16)
         }

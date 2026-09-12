@@ -96,7 +96,7 @@ struct ReadingsExplainedView: View {
                             .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
                         Text(value.map { "\(Passport.rangeText(observation)) · your last was \(Passport.format(observation, $0)) \(observation.unit)" }
                              ?? Passport.rangeText(observation))
-                            .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                            .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: ThusoSpacing.space8)
@@ -107,7 +107,7 @@ struct ReadingsExplainedView: View {
                     }
                     Image(systemName: open ? "chevron.up" : "chevron.down")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .foregroundStyle(ThusoTheme.studioInkMuted)
                         .frame(width: 24, height: 44).accessibilityHidden(true)
                 }
                 .frame(minHeight: 44)

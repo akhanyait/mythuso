@@ -165,7 +165,7 @@ struct HomeView: View {
                     TileIcon(symbol: "calendar.badge.plus")
                     Text(Scheduling.Label.noUpcoming).font(.headline).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(Scheduling.Label.noUpcomingDetail).font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(Scheduling.Label.noUpcomingDetail).font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                     Button(thuso(.bookNurse, store.locale), action: book).buttonStyle(QuietButton())
                 }
@@ -255,7 +255,7 @@ struct HomeView: View {
             ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
             : AnyShape(Capsule())
         return HStack(spacing: ThusoSpacing.space12) {
-            Image(systemName: "magnifyingglass").foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).accessibilityHidden(true)
+            Image(systemName: "magnifyingglass").foregroundStyle(ThusoTheme.studioInkMuted).accessibilityHidden(true)
             /* One line, deliberately. A vertical axis would let the prompt wrap, and it would also
                turn Return into a newline — which is the one key this field has a job for. */
             TextField("What care do you need today?", text: $store.careQuery).submitLabel(.search).onSubmit(book)
@@ -295,15 +295,15 @@ struct HomeView: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(service.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(service.detail).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(service.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: ThusoSpacing.space8) {
                 VStack(alignment: stacked ? .leading : .trailing, spacing: 2) {
                     Text("R\(service.price)").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text("\(service.duration) min").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text("\(service.duration) min").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 }
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
                     .accessibilityHidden(true)
             }
         }
@@ -327,7 +327,7 @@ struct HomeView: View {
                         let row = HStack(alignment: .firstTextBaseline) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(result.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                                Text(result.1).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                                Text(result.1).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                             }
                             if !stacked { Spacer(minLength: 8); StatusPill(text: result.2, tone: result.3) }
                         }
@@ -392,7 +392,7 @@ struct HomeView: View {
                it decorates. */
             Label("Booking for someone opens their booking, never their record. What you may see is decided in My family.",
                   systemImage: "checkmark.shield")
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Booking for someone opens their booking, never their record. What you may see is decided in My family.")
@@ -426,7 +426,7 @@ struct HomeView: View {
             Text("Your health.\nOne safe place.").font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Every visit, reading and result, in a record you own and control.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
             Text("\(thuso(.openPassport, store.locale)) →").font(.subheadline.weight(.semibold))
                 .foregroundStyle(ThusoTheme.charcoal)

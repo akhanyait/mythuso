@@ -120,19 +120,20 @@ import androidx.compose.ui.unit.dp
 
 /* Secondary text, and the ground it is allowed to sit on.
  *
- * A metric's label is `faint` everywhere — 5.75 on a white card, 5.05 on the mist ground, 4.57 on a
- * cloud panel, all of them pairs tokens.json declares and the build computes. On the sage lead panel
- * it is 3.75, which fails AA for body text, and NOTHING WOULD HAVE CAUGHT IT: the contrast check
- * computes the pairs the token file lists, and faint-on-paleSage is a combination this design had
- * never put together before the lead panel started carrying metrics. It was found by working the
- * ratio out by hand after the screenshot looked slightly washed, which is the only way a pair
- * nobody declared ever gets found.
+ * THIS USED TO BE TWO SLATE BLUES AND A HOLE. A metric's label was `faint`, measured on white, mist
+ * and cloud — and 3.75 on the sage lead panel, which fails AA for body text and which NOTHING WOULD
+ * HAVE CAUGHT: the contrast check computes the pairs the token file lists, and faint-on-paleSage was
+ * a combination nobody had declared. It was found by working the ratio out by hand after a screenshot
+ * looked washed, which is the only way an undeclared pair ever gets found.
  *
- * So the lead panel provides the answer rather than every call site remembering it: inside a sage
- * panel a label is charcoal at 11.11, and a screen cannot get it wrong by forgetting. A pair to
- * declare in tokens.json is `faint on paleSage` as a KNOWN FAILURE with charcoal as its measured
- * replacement, so the next person to reach for it is told rather than left to notice. */
-internal val LocalSecondaryText = androidx.compose.runtime.compositionLocalOf { Faint }
+ * `studioInkMuted` closes it properly. One value, declared against every ground this palette asks it
+ * to sit on and computed on every build: paper 6.51, white 6.92, lime 6.21, lilac 4.90, peach 4.84.
+ * The two slate blues it replaces — BodyText and Faint — were the indigo generation's neutrals, which
+ * is why the tab labels came back navy against a cream ground in the emulator.
+ *
+ * The composition local stays, because the night card still has to say what its own quiet ink is and
+ * that one has no token yet. */
+internal val LocalSecondaryText = androidx.compose.runtime.compositionLocalOf { StudioInkMuted }
 
 /* The signature of the language, and the one text style in this app that is not one of Material's
    roles: `FontWeight.Light` is a real 300 here — Roboto ships the axis on every Android — where the
@@ -239,10 +240,11 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
         PanelTone.PLAIN, PanelTone.GLASS -> StudioLine
         else -> Color.Transparent
     }
-    /* Everything read on a sage panel is charcoal, and the panel says so rather than each caller
-       remembering to. See LocalSecondaryText above for the measurement. */
+    /* The lead panel used to have to override this, because the secondary grey of the day failed on
+       its fill. studioInkMuted clears 4.90 on studioLilac, so there is one answer for every tone and
+       the panel no longer has to know which one it is. */
     androidx.compose.runtime.CompositionLocalProvider(
-        LocalSecondaryText provides if (tone == PanelTone.LEAD) Charcoal else Faint
+        LocalSecondaryText provides StudioInkMuted
     ) {
         Column(
             modifier.fillMaxWidth().clip(shape).background(fill, shape).border(1.dp, hairline, shape).padding(padding),
@@ -299,7 +301,7 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
         ) {
             Icon(
                 Icons.AutoMirrored.Outlined.ArrowForward, null,
-                tint = if (current) StudioNight else Faint, modifier = Modifier.size(17.dp)
+                tint = if (current) StudioNight else StudioInkMuted, modifier = Modifier.size(17.dp)
             )
         }
     }

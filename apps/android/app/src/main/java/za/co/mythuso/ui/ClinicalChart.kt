@@ -49,7 +49,7 @@ data class Reading(val label: String, val value: Double, val note: String = "—
         )
         Text(
             if (delta == 0.0) "No change" else "${if (delta > 0) "+" else ""}${format(delta)} since ${first.label}",
-            style = MaterialTheme.typography.bodySmall, color = Faint
+            style = MaterialTheme.typography.bodySmall, color = StudioInkMuted
         )
         Canvas(Modifier.fillMaxWidth().height(74.dp).semantics { contentDescription = summary }) {
             val values = readings.map { it.value }

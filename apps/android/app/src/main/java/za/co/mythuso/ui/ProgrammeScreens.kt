@@ -118,16 +118,16 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
                 Text(
                     "The groups shown add up to ${report.publishedTookPart}, and the total says ${report.totalTookPart}. " +
                         "That is not an error. " + Programmes.rule("figures-do-not-reconcile").sentence,
-                    style = MaterialTheme.typography.bodyMedium, color = BodyText
+                    style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted
                 )
                 Note(report.programme.note)
                 Text(Programmes.rule("rounded-not-exact").sentence,
-                    style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                    style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             }
         }
 
         CareCard {
-            Text("WHAT AN EMPLOYER SEES", style = MaterialTheme.typography.labelSmall, color = Faint)
+            Text("WHAT AN EMPLOYER SEES", style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
             employerSees.forEach { DisclosureRow(it) }
         }
         CareCard {
@@ -145,29 +145,29 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
                     Note(programmeDeclining.note)
                 }
             }
-            Text(programmeDeclining.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            Text(programmeDeclining.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             Text(Programmes.rule("taking-part-is-the-employees").sentence,
-                style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             ProgrammeRefusalRow(Programmes.refusal("learn-who-declined"))
             ProgrammeRefusalRow(Programmes.refusal("condition-employment"))
         }
 
         Text("Joining, and leaving", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
-            Text("HOW SOMEBODY JOINS", style = MaterialTheme.typography.labelSmall, color = Faint)
+            Text("HOW SOMEBODY JOINS", style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
             programmeEnrolment.forEachIndexed { index, step -> StepRow(index + 1, step) }
         }
         CareCard {
-            Text("WHAT HAPPENS WHEN THEY LEAVE", style = MaterialTheme.typography.labelSmall, color = Faint)
+            Text("WHAT HAPPENS WHEN THEY LEAVE", style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
             programmeLeaving.forEach { step ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(step.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
-                    Text(step.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                    Text(step.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 }
             }
         }
         Text(Programmes.rule("leaving-does-not-unpublish").sentence,
-            style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
 
         Text("Somebody paying for somebody else", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         FlowRowChips(sponsors.map { it.name }, setOf(sponsor.name)) { name ->
@@ -179,7 +179,7 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
                 style = MaterialTheme.typography.titleMedium, color = Charcoal)
             Note("${statement.relationship} · ${randAmount(statement.setAside)} set aside · ${randAmount(statement.remaining)} left")
             Text(sponsorConsent.headline, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
-            Text(sponsorConsent.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            Text(sponsorConsent.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             Note(sponsorConsent.withdrawal)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(serviceNamed, { serviceNamed = it },
@@ -202,13 +202,13 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
             }
             HorizontalDivider()
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Drawn from what was set aside", style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text("Drawn from what was set aside", style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 Text(randAmount(statement.spent), style = MaterialTheme.typography.titleMedium, color = Charcoal)
             }
             Text("WHAT A SPONSOR NEVER SEES", style = MaterialTheme.typography.labelSmall, color = Danger)
             sponsorNeverSees.forEach { DisclosureRow(it) }
             Text(Programmes.rule("paying-is-not-permission").sentence,
-                style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             ProgrammeRefusalRow(Programmes.refusal("require-the-detail"))
         }
 
@@ -224,7 +224,7 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
             Modifier.fillMaxWidth().background(MangoSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(row.cohort.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Faint)
+            Text(row.cohort.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = StudioInkMuted)
             Text("NOT REPORTED", style = MaterialTheme.typography.labelSmall, color = MangoInk)
             Text(Programmes.suppressionReason(row.suppressedBy).sentence,
                 style = MaterialTheme.typography.bodyMedium, color = Charcoal)
@@ -233,7 +233,7 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
             Text(row.cohort.name, style = MaterialTheme.typography.bodyLarge, color = Charcoal, modifier = Modifier.weight(1f))
             Text("${row.tookPart} of ${row.eligible} · ${percent(row.uptake)} · ${row.advisedToSeeADoctor} advised",
-                style = MaterialTheme.typography.bodySmall, color = BodyText)
+                style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
         }
     }
 }
@@ -241,15 +241,15 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
 @Composable private fun Figure(value: String, label: String, why: String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(value, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = Charcoal)
-        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = Faint)
-        Text(why, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
+        Text(why, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
     }
 }
 
 @Composable private fun DisclosureRow(item: Disclosure) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(item.what, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
-        Text(item.why, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+        Text(item.why, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
     }
 }
 
@@ -259,7 +259,7 @@ private fun percent(value: Double) = "${(value * 100).roundToInt()}%"
             modifier = Modifier.background(IndigoSoft, RoundedCornerShape(ThusoRadius.control)).padding(horizontal = 8.dp, vertical = 4.dp))
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(step.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
-            Text(step.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            Text(step.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
         }
     }
 }

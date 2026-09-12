@@ -73,7 +73,7 @@ import za.co.mythuso.model.*
     TonedCard {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
             Icon(Icons.Outlined.EventRepeat, null, tint = Charcoal, modifier = Modifier.size(18.dp))
-            Text(CancellationData.rescheduleSentence, style = MaterialTheme.typography.bodySmall, color = BodyText)
+            Text(CancellationData.rescheduleSentence, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
         }
         OutlinedButton(
             onClick = move,

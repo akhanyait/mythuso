@@ -96,7 +96,7 @@ import za.co.mythuso.model.*
 @Composable private fun StatedRefusal(title: String, sentence: String, why: String = "") {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
         Text(title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-        Text(sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+        Text(sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
         if (why.isNotEmpty()) Note(why)
     }
 }

@@ -154,7 +154,7 @@ import androidx.compose.foundation.text.KeyboardActions
     ) {
         Icon(icon, null, tint = Charcoal, modifier = Modifier.size(16.dp))
         Text(text, style = MaterialTheme.typography.labelMedium, color = Charcoal, modifier = Modifier.weight(1f, fill = false))
-        Icon(Icons.Outlined.ExpandMore, null, tint = Faint, modifier = Modifier.size(16.dp))
+        Icon(Icons.Outlined.ExpandMore, null, tint = StudioInkMuted, modifier = Modifier.size(16.dp))
     }
 }
 
@@ -171,7 +171,7 @@ import androidx.compose.foundation.text.KeyboardActions
             LeadCard(Modifier.semantics(mergeDescendants = true) {}) {
                 TileIcon(Icons.Outlined.EditCalendar, size = 44.dp)
                 Text(SchedulingData.noUpcoming, style = MaterialTheme.typography.titleLarge, color = Charcoal)
-                Text(SchedulingData.noUpcomingDetail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(SchedulingData.noUpcomingDetail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             }
         } else {
             /* Spelled out rather than left to be concatenated. A merged card reads its children in
@@ -220,13 +220,13 @@ import androidx.compose.foundation.text.KeyboardActions
         PrimaryAction(thuso(Phrase.BOOK_NURSE, store.locale), icon = Icons.Outlined.MedicalServices) { book(null) }
         OutlinedTextField(
             store.careQuery, { store.careQuery = it }, placeholder = { Text("What care do you need today?") },
-            leadingIcon = { Icon(Icons.Outlined.Search, null, tint = Faint) },
+            leadingIcon = { Icon(Icons.Outlined.Search, null, tint = StudioInkMuted) },
             singleLine = true, shape = RoundedCornerShape(ThusoRadius.pill),
             textStyle = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search for care" },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { book(null) }),
-            colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = Faint)
+            colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = StudioInkMuted)
         )
     }
 }
@@ -255,11 +255,11 @@ import androidx.compose.foundation.text.KeyboardActions
                     TileIcon(serviceIcon(service.id))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                         Text(service.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                        Text(service.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                        Text(service.detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                     }
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                         Text("R${service.price}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                        Text("${service.duration} min", style = MaterialTheme.typography.bodySmall, color = Faint)
+                        Text("${service.duration} min", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                     }
                 }
                 if (index < 3) HorizontalDivider(color = StudioLine)
@@ -284,7 +284,7 @@ import androidx.compose.foundation.text.KeyboardActions
                         .semantics(mergeDescendants = true) {}
                 ) {
                     Text(name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                    Text(value, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                    Text(value, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                 }
                 if (index < results.size - 1) HorizontalDivider(color = StudioLine)
             }
@@ -334,7 +334,7 @@ import androidx.compose.foundation.text.KeyboardActions
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
                 Icon(Icons.Outlined.VerifiedUser, null, tint = Charcoal, modifier = Modifier.size(18.dp))
                 Text("Booking for someone opens their booking, never their record. What you may see is decided in My family.",
-                     style = MaterialTheme.typography.bodySmall, color = BodyText)
+                     style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
             }
         }
     }
@@ -420,11 +420,11 @@ fun serviceIcon(id: String) = when (id) {
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
             OutlinedTextField(
                 store.careQuery, { store.careQuery = it }, placeholder = { Text("Find a service") },
-                leadingIcon = { Icon(Icons.Outlined.Search, null, tint = Faint) },
+                leadingIcon = { Icon(Icons.Outlined.Search, null, tint = StudioInkMuted) },
                 singleLine = true, shape = RoundedCornerShape(ThusoRadius.pill),
                 textStyle = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Find a service" },
-                colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = Faint)
+                colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = StudioInkMuted)
             )
             if (filtered.isEmpty()) EmptyStateCard("No matching services", "Try another name, or browse the whole catalogue.")
             else filtered.chunked(columns).forEach { row ->
@@ -451,14 +451,14 @@ fun serviceIcon(id: String) = when (id) {
             TileIcon(serviceIcon(service.id))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                 Text(service.name, style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                Text(service.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                Text(service.detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
             }
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Faint, modifier = Modifier.size(20.dp))
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = StudioInkMuted, modifier = Modifier.size(20.dp))
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
             Text("From R${service.price}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
             Text("·", style = MaterialTheme.typography.bodySmall, color = StudioLine)
-            Text("${service.duration} minutes", style = MaterialTheme.typography.bodySmall, color = Faint)
+            Text("${service.duration} minutes", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
         }
     }
 }
@@ -496,7 +496,7 @@ fun serviceIcon(id: String) = when (id) {
                             TileIcon(serviceIcon(service.id))
                             Column(Modifier.weight(1f)) {
                                 Text(service.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                                Text("Registered nurse", style = MaterialTheme.typography.bodySmall, color = BodyText)
+                                Text("Registered nurse", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                             }
                             Text("R${service.price}", style = MaterialTheme.typography.titleMedium, color = Charcoal)
                         }
@@ -521,7 +521,7 @@ fun serviceIcon(id: String) = when (id) {
                                 RadioButton(kind == option.id, { kind = option.id })
                                 Column(Modifier.weight(1f).padding(top = 12.dp)) {
                                     Text(option.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                                    Text(option.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                                    Text(option.detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                                 }
                             }
                         }
@@ -548,7 +548,7 @@ fun serviceIcon(id: String) = when (id) {
                                 RadioButton(payment == name, { payment = name })
                                 Column(Modifier.weight(1f)) {
                                     Text(name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                                    Text(detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                                    Text(detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                                 }
                             }
                         }
@@ -561,7 +561,7 @@ fun serviceIcon(id: String) = when (id) {
                         ReviewLine("Location", address)
                         ReviewLine("Patient", person)
                         ReviewLine("Payment", if (payment == "Card") "•••• 4242" else payment)
-                        NurseRow { Text("★ 4.9", style = MaterialTheme.typography.labelMedium, color = BodyText) }
+                        NurseRow { Text("★ 4.9", style = MaterialTheme.typography.labelMedium, color = StudioInkMuted) }
                         /* The row is the control and the sentence is its name. This was a bare
                            `Checkbox` beside a separate `Text`, which TalkBack reads as "not
                            checked, checkbox" with nothing to say what would be agreed to — and the
@@ -576,7 +576,7 @@ fun serviceIcon(id: String) = when (id) {
                             Checkbox(consent, null)
                             Spacer(Modifier.width(ThusoSpacing.space8))
                             Text("I understand this is a UI preview using fictional information.",
-                                 style = MaterialTheme.typography.bodySmall, color = BodyText,
+                                 style = MaterialTheme.typography.bodySmall, color = StudioInkMuted,
                                  modifier = Modifier.weight(1f))
                         }
                         /* The window, from packages/catalog/cancellation.json rather than typed
@@ -638,9 +638,9 @@ fun serviceIcon(id: String) = when (id) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(offered.weekday, style = MaterialTheme.typography.labelMedium, color = if (day == index) SurfaceWhite else Faint)
+                Text(offered.weekday, style = MaterialTheme.typography.labelMedium, color = if (day == index) SurfaceWhite else StudioInkMuted)
                 Text(offered.dayNumber, style = MaterialTheme.typography.titleMedium, color = if (day == index) StudioPaper else Charcoal)
-                Text(offered.month, style = MaterialTheme.typography.labelMedium, color = if (day == index) SurfaceWhite else Faint)
+                Text(offered.month, style = MaterialTheme.typography.labelMedium, color = if (day == index) SurfaceWhite else StudioInkMuted)
             }
         }
     }
@@ -656,7 +656,7 @@ fun serviceIcon(id: String) = when (id) {
                         .border(1.dp, if (slot == time) Indigo else StudioLine, RoundedCornerShape(ThusoRadius.control))
                         .clickable { onSlot(time) }.semantics { selected = slot == time },
                     Alignment.Center
-                ) { Text(time, style = MaterialTheme.typography.titleSmall, color = if (slot == time) Color.White else BodyText) }
+                ) { Text(time, style = MaterialTheme.typography.titleSmall, color = if (slot == time) Color.White else StudioInkMuted) }
             }
         }
     }
@@ -748,7 +748,7 @@ fun serviceIcon(id: String) = when (id) {
                     Tab(
                         selected = tab == name, onClick = { tab = name },
                         text = { Text(name, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
-                        selectedContentColor = Charcoal, unselectedContentColor = Faint
+                        selectedContentColor = Charcoal, unselectedContentColor = StudioInkMuted
                     )
                 }
             }
@@ -762,9 +762,9 @@ fun serviceIcon(id: String) = when (id) {
                                         .padding(horizontal = ThusoSpacing.space8, vertical = ThusoSpacing.space8),
                                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
                                 ) {
-                                    Text(row.weekday, style = MaterialTheme.typography.labelSmall, color = Faint)
+                                    Text(row.weekday, style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
                                     Text(row.dayNumber, style = MaterialTheme.typography.titleLarge, color = Charcoal)
-                                    Text(row.month, style = MaterialTheme.typography.labelSmall, color = Faint)
+                                    Text(row.month, style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
                                 }
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
                                     StatusHeader(row.status, row.tone) {

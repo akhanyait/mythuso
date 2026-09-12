@@ -213,11 +213,14 @@ struct ThusoMetric: View {
             }
             .lineLimit(1)
             .minimumScaleFactor(0.6)
-            /* The ink, muted by opacity rather than by a grey of its own. A metric can sit on white,
-               on the palest sage or on the night card, and a fixed grey that reads on one does not
-               read on the others — which is exactly what "an accent is a fill and never a label" is
-               about. `studioPaper` at 78% over the night composites to #C8CBC6 and reads 9.04:1. */
-            Text(label).font(.footnote).foregroundStyle(ink.opacity(ThusoOpacity.charcoalMuted))
+            /* On a light ground this is `studioInkMuted`, the measured secondary ink, which clears
+               4.5 on all five studio grounds a metric can stand on. On the night card there is no
+               such token and there is no light ground either, so it is the card's own ink at the
+               muted opacity: `studioPaper` at 78% composites to #C8CBC6 and reads 9.04:1. A
+               `studioPaperMuted` would close that last gap; it is in the report rather than mixed
+               here. */
+            Text(label).font(.footnote)
+                .foregroundStyle(onNight ? ink.opacity(ThusoOpacity.charcoalMuted) : ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -271,7 +274,7 @@ enum ChipTone {
     var colours: (Color, Color, Color) {
         switch self {
         case .neutral: return (ThusoTheme.charcoal, ThusoTheme.surface, ThusoTheme.studioLine)
-        case .quiet: return (ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted), ThusoTheme.cloud, .clear)
+        case .quiet: return (ThusoTheme.studioInkMuted, ThusoTheme.cloud, .clear)
         case .attention: return (ThusoTheme.mangoInk, ThusoTheme.mangoSoft, ThusoTheme.mangoInk.opacity(0.24))
         case .refused: return (ThusoTheme.danger, ThusoTheme.dangerSoft, ThusoTheme.danger.opacity(0.3))
         case .onDark: return (ThusoTheme.surface, ThusoTheme.surface.opacity(0.16), ThusoTheme.surface.opacity(0.3))
@@ -375,7 +378,7 @@ struct PanelHead<Trailing: View>: View {
                 Text(title).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
                 if let note {
-                    Text(note).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -451,7 +454,7 @@ struct NavPillLabel: View {
                        label is, which reads 6.01 on that ground and darkens with it. */
                     Text(subtitle).font(.footnote)
                         .foregroundStyle(current ? ThusoTheme.studioPaper.opacity(0.8)
-                                                 : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                                                 : ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -460,7 +463,7 @@ struct NavPillLabel: View {
                but it is the decoration that says this row goes somewhere, and at 2.30 it did not
                say it to anybody. */
             Image(systemName: "arrow.right").font(.subheadline.weight(.semibold))
-                .foregroundStyle(current ? ThusoTheme.studioNight : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .foregroundStyle(current ? ThusoTheme.studioNight : ThusoTheme.studioInkMuted)
                 .frame(width: 36, height: 36)
                 .background(current ? ThusoTheme.studioPaper : .clear, in: Circle())
                 .accessibilityHidden(true)
@@ -530,7 +533,7 @@ struct SurfaceHeading: View {
                    label in this language is — never a sage, which reads at 2.30:1 on the cloud
                    ground a quiet panel uses and cannot carry a word anywhere. */
                 Text(eyebrow.uppercased()).font(.footnote.weight(.semibold)).tracking(1.1)
-                    .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .foregroundStyle(ThusoTheme.studioInkMuted)
             }
             Text(title).font(.system(size: titleSize, weight: .regular)).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
@@ -557,7 +560,7 @@ struct FactRow: View {
                 /* Charcoal, muted by opacity rather than by a grey of its own. A metric can sit on
                  white or on the palest sage, and a fixed grey that reads on one does not read on
                  the other — which is exactly what "sage is a fill and never a label" is about. */
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(label).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 Spacer(minLength: ThusoSpacing.space8)
                 Text(value).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                     .multilineTextAlignment(.trailing)
@@ -566,7 +569,7 @@ struct FactRow: View {
                 /* Charcoal, muted by opacity rather than by a grey of its own. A metric can sit on
                  white or on the palest sage, and a fixed grey that reads on one does not read on
                  the other — which is exactly what "sage is a fill and never a label" is about. */
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(label).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 Text(value).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -585,7 +588,7 @@ struct StatedFact: View {
     var footnote: String?
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-            Text(term).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(term).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
             Text(statement).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)

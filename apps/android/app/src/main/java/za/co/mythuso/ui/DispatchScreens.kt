@@ -156,7 +156,7 @@ private fun basisLine(eta: Eta): String = when (eta.basis) {
     EtaBasis.NONE -> eta.reason ?: "Nothing to estimate from."
 }
 private val Free = TealInk
-private val Busy = Faint
+private val Busy = StudioInkMuted
 private val Waiting = MangoInk
 
 /**

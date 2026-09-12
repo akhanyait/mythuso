@@ -91,8 +91,8 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
             secondaryContainer = Cloud, onSecondaryContainer = Charcoal,
             tertiary = Charcoal, tertiaryContainer = StudioLilac, onTertiaryContainer = Charcoal,
             background = StudioPaper, surface = SurfaceWhite, onBackground = Charcoal, onSurface = Charcoal,
-            surfaceVariant = Cloud, onSurfaceVariant = Faint,
-            outline = Faint, outlineVariant = StudioLine, error = Danger
+            surfaceVariant = Cloud, onSurfaceVariant = StudioInkMuted,
+            outline = StudioInkMuted, outlineVariant = StudioLine, error = Danger
         ),
         typography = ThusoTypography,
         /* Generous, as the reference is: a card takes the panel radius rather than the card one, and
@@ -174,17 +174,17 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
    label; at the caption size it is readable and still reads as a category. */
 @Composable fun Heading(eyebrow: String, title: String, subtitle: String) {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-        /* Faint rather than indigo. An eyebrow names a category; it is not an action, and colouring
+        /* The quiet ink rather than indigo. An eyebrow names a category; it is not an action, and colouring
            every one of them the brand colour is how a palette stops meaning anything. */
         if (eyebrow.isNotEmpty()) Text(
             eyebrow.uppercase(), style = MaterialTheme.typography.labelSmall,
-            letterSpacing = 0.8.sp, color = Faint
+            letterSpacing = 0.8.sp, color = StudioInkMuted
         )
         Text(
             title, style = MaterialTheme.typography.headlineSmall, color = Charcoal,
             modifier = Modifier.semantics { heading() }
         )
-        if (subtitle.isNotEmpty()) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+        if (subtitle.isNotEmpty()) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
     }
 }
 
@@ -223,7 +223,7 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
 @Composable fun DemoBadge() {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
         Box(Modifier.size(6.dp).background(Charcoal, CircleShape))
-        Text("Design preview · Fictional data", style = MaterialTheme.typography.labelMedium, color = Faint)
+        Text("Design preview · Fictional data", style = MaterialTheme.typography.labelMedium, color = StudioInkMuted)
     }
 }
 
@@ -251,7 +251,7 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
         "sky" -> InfoSoft to Info
         /* A refusal is not a warning. Vetting needs a pill that says so without shouting. */
         "danger" -> DangerSoft to Danger
-        "quiet" -> Cloud to Faint
+        "quiet" -> Cloud to StudioInkMuted
         "light" -> Color.White.copy(alpha = 0.20f) to Color.White
         /* The default is the language's own chip: white, a stone hairline, charcoal on it. It was an
            indigo wash, which made the commonest state on every screen the loudest thing on it. */
@@ -302,7 +302,7 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
         horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)
     ) {
         Text("Step $step of $total", style = MaterialTheme.typography.labelMedium, color = Indigo)
-        Text(label, style = MaterialTheme.typography.bodySmall, color = BodyText, modifier = Modifier.weight(1f))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted, modifier = Modifier.weight(1f))
         Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space4), verticalAlignment = Alignment.CenterVertically) {
             (1..total).forEach { index ->
                 Box(
@@ -340,7 +340,7 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
             TileIcon(icon, if (danger) Danger else Charcoal, if (danger) DangerSoft else Cloud, 40.dp)
         }),
         trailingContent = if (danger || !roomy) null else ({
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Faint)
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = StudioInkMuted)
         }),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier
@@ -359,7 +359,7 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
     ListItem(
         headlineContent = { Text(name, style = MaterialTheme.typography.titleSmall, color = Charcoal) },
         supportingContent = if (detail.isEmpty()) null else ({
-            Text(detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
         }),
         leadingContent = {
             Image(
@@ -368,7 +368,7 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
                 contentScale = ContentScale.Crop
             )
         },
-        trailingContent = { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Faint) },
+        trailingContent = { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = StudioInkMuted) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier
             .clip(RoundedCornerShape(ThusoRadius.control))
@@ -394,10 +394,10 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
             Text(title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-            if (subtitle.isNotEmpty()) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Faint)
+            if (subtitle.isNotEmpty()) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
         }
         Box(Modifier.size(36.dp), Alignment.Center) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = Faint, modifier = Modifier.size(17.dp))
+            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = StudioInkMuted, modifier = Modifier.size(17.dp))
         }
     }
 }

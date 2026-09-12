@@ -95,7 +95,7 @@ import za.co.mythuso.model.Capabilities
     TonedCard {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Info, null, tint = Charcoal, modifier = Modifier.size(18.dp))
-            Text(notice, style = MaterialTheme.typography.bodySmall, color = BodyText)
+            Text(notice, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
         }
     }
 }

@@ -75,7 +75,7 @@ import za.co.mythuso.model.*
                             RadioButton(store.locale == option, null)
                             Column(Modifier.padding(start = ThusoSpacing.space4), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                                 Text(option.native, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                                Text(option.reviewLabel, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                                Text(option.reviewLabel, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                             }
                         }
                     }
@@ -211,7 +211,7 @@ import za.co.mythuso.model.*
                     RadioButton(store.locale == option, null)
                     Column {
                         Text(option.native)
-                        Text(option.reviewLabel, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                        Text(option.reviewLabel, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                     }
                 }
             }
@@ -223,7 +223,7 @@ import za.co.mythuso.model.*
            there is no written form for a radio button to switch the interface into. It is a
            communication requirement on the account instead. */
         Text(ThusoLanguageNotes.signLanguageName, style = MaterialTheme.typography.titleLarge, color = Charcoal)
-        Text(ThusoLanguageNotes.signLanguageStatus, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+        Text(ThusoLanguageNotes.signLanguageStatus, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
         CareCard {
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 48.dp)
@@ -233,7 +233,7 @@ import za.co.mythuso.model.*
                 Checkbox(signs, null)
                 Column {
                     Text(ThusoLanguageNotes.signLanguageRequirement, style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                    Text(ThusoLanguageNotes.signLanguageRequirementDetail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                    Text(ThusoLanguageNotes.signLanguageRequirementDetail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                 }
             }
         }
@@ -242,14 +242,14 @@ import za.co.mythuso.model.*
         ThusoLanguageNotes.signLanguageMustHappen.forEach { (title, sentence) ->
             CareCard {
                 Text(title, style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                Text(sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             }
         }
         Text("What must never happen", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         ThusoLanguageNotes.signLanguageNeverHappens.forEach { sentence ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                 Icon(Icons.Outlined.Block, null, tint = Danger)
-                Text(sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             }
         }
         Note(ThusoLanguageNotes.signLanguageNotBuilt)

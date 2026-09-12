@@ -82,8 +82,8 @@ enum WorkspaceNavigation {
      * the workspaces were built; when the web lands, all three should read one file.
      *
      * The lead line is what the reader is there to do and the accent line is what the screen gives
-     * them for it. The second line carries the lime block, so it is short by construction: a
-     * highlighter across four words is an emphasis, and across two lines it is a banner. */
+     * them for it. The second line is set in `studioOlive` and is short by construction: at the
+     * display step a sentence that runs to three lines is a paragraph in disguise. */
     static func framing(_ role: String) -> (lead: String, accent: String) {
         switch role {
         case "Doctor": return ("Your judgement.", "A clearer view.")
@@ -286,11 +286,11 @@ struct WorkspaceSectionView: View {
                    one. Quiet, because it is true on every screen and a reader who has read it once
                    should not have to read past it to reach the work. */
                 Text("AI is decision support. An authorised clinician must sign off clinical decisions.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
                 if landing {
                     Text("Design role preview, not authentication.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 /* The way out, at full size, on every section.
@@ -446,7 +446,7 @@ struct WorkspaceSectionView: View {
             /* The sentence stays where the Form put it, because it is the truthful one: these rows
                are samples and nothing behind them is connected. */
             Text("Sample orders. No live partner API, dispensing or courier handover is connected.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -604,11 +604,11 @@ struct QueueRow: View {
             layout {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(reference).font(.footnote.weight(.semibold).monospaced())
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .foregroundStyle(ThusoTheme.studioInkMuted)
                     Text(subject).thusoFont(ThusoType.body, weight: .medium).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
                     if let note {
-                        Text(note).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        Text(note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -638,7 +638,7 @@ struct VisitRow: View {
                     Text(visit.service).thusoFont(ThusoType.body, weight: .medium).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
                     Text("\(visit.id) · \(visit.area)").font(.footnote)
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

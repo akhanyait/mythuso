@@ -109,7 +109,7 @@ import za.co.mythuso.model.*
                 Text(
                     if (hours.isEmpty()) interpretingLabels.modeUnavailable
                     else "Free " + hours.joinToString(" · ") { "${Scheduling.shortDate(it.date)} ${it.slot}" },
-                    style = MaterialTheme.typography.bodyMedium, color = BodyText
+                    style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted
                 )
             }
         }
@@ -162,7 +162,7 @@ import za.co.mythuso.model.*
             if (outcome.isHeld) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                     Icon(Icons.Outlined.Block, null, tint = Danger)
-                    Text(interpreterHold.whyNotDispatched, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                    Text(interpreterHold.whyNotDispatched, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 }
             }
         }
@@ -215,7 +215,7 @@ import za.co.mythuso.model.*
                 Icon(Icons.Outlined.Block, null, tint = Danger)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(refusal.title, style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                    Text(refusal.sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                    Text(refusal.sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 }
             }
         }
@@ -224,7 +224,7 @@ import za.co.mythuso.model.*
         interpretingRules.forEach { rule ->
             CareCard {
                 Text(rule.title, style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                Text(rule.sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(rule.sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             }
         }
         Note(interpretingNotYetBuilt)

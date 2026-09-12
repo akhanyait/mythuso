@@ -67,11 +67,15 @@ val StudioNightInkQuiet = StudioPaper.copy(alpha = 0.78f)
 /* THE DISPLAY HEADLINE: two lines, two grounds, one voice.
  *
  * The lead line is what the reader is — a greeting, or the framing of the role whose workspace this
- * is. The accent line is what the product is for, and it sits on a lime block, which is the accent
- * doing the one job the arithmetic allows it: being a ground. A highlighter rather than a banner —
- * the block is as wide as the line it is behind, so on a phone where "Help. Health. Home." fits on
- * one line it stops after the full stop, and it takes the column when the words need two, which is
- * what a highlighter does as well.
+ * is. The accent line is what the product is for, and it is
+ * studioOlive, the token that exists for this line and is declared against the ground at 4.98:1 and
+ * against a white card.
+ *
+ * IT WAS INK ON A LIME BLOCK FIRST, AND THE SCREENSHOT IS WHY IT IS NOT. A full-width lime bar under
+ * the greeting is the loudest object on the screen, on every screen carrying a headline, which is the
+ * opposite of the rule the rest of this pass enforces: one lime object per card, and it is the thing
+ * you press. The tokens settled it independently — a colour meant to sit on lime would have been
+ * declared against lime, and studioOlive is declared against paper.
  *
  * SIZE, AND WHERE IT STOPS. `metricLarge` is 40sp and it is the largest step the type scale declares.
  * Past a 1.5 font scale it drops to `screenTitle`: forty points is nine characters to a line on a
@@ -95,14 +99,11 @@ val StudioNightInkQuiet = StudioPaper.copy(alpha = 0.78f)
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                accent, color = StudioInk, fontSize = size, lineHeight = size * 1.1f,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .background(StudioLime, RoundedCornerShape(ThusoRadius.card))
-                    .padding(horizontal = ThusoSpacing.space8, vertical = ThusoSpacing.space4)
+                accent, color = StudioOlive, fontSize = size, lineHeight = size * 1.1f,
+                fontWeight = FontWeight.SemiBold
             )
         }
-        if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+        if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
     }
 }
 
@@ -148,7 +149,7 @@ val StudioNightInkQuiet = StudioPaper.copy(alpha = 0.78f)
    and on the night card on one; passing a colour down through all of them would have been a
    parameter nobody sets correctly the second time. */
 @Composable fun studioTitleInk(): Color = if (LocalOnStudioNight.current) StudioNightInk else Charcoal
-@Composable fun studioBodyInk(): Color = if (LocalOnStudioNight.current) StudioNightInkQuiet else BodyText
+@Composable fun studioBodyInk(): Color = if (LocalOnStudioNight.current) StudioNightInkQuiet else StudioInkMuted
 
 /* The visit card's header on the night ground. StatusHeader's own reasoning is unchanged — the chip
    goes above the title past a 1.3 font scale, because a pill and a title cannot both have the width
@@ -243,7 +244,7 @@ val StudioNightInkQuiet = StudioPaper.copy(alpha = 0.78f)
         onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
         colors = ButtonDefaults.buttonColors(
             containerColor = StudioLime, contentColor = StudioInkDeep,
-            disabledContainerColor = Cloud, disabledContentColor = Faint
+            disabledContainerColor = Cloud, disabledContentColor = StudioInkMuted
         ),
         contentPadding = contentPadding, content = content
     )

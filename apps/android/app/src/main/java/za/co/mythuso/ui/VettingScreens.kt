@@ -58,7 +58,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         LinearProgressIndicator({ summary.progress }, Modifier.fillMaxWidth())
-        Text("${summary.passed} / ${summary.total} · ${thuso(Phrase.VETTING_PROGRESS, locale)}", style = MaterialTheme.typography.labelLarge, color = BodyText)
+        Text("${summary.passed} / ${summary.total} · ${thuso(Phrase.VETTING_PROGRESS, locale)}", style = MaterialTheme.typography.labelLarge, color = StudioInkMuted)
     }
 }
 /** The countdown a dashboard should be showing: the soonest renewal, in days, not a reassurance. */

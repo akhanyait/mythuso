@@ -46,14 +46,14 @@ struct ClinicalChart: View {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
                 if let symbol {
                     Image(systemName: symbol).font(.footnote)
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).accessibilityHidden(true)
+                        .foregroundStyle(ThusoTheme.studioInkMuted).accessibilityHidden(true)
                 }
                 Text(latest.value == first.value ? "No change since \(first.label)" : "\(latest.value > first.value ? "+" : "")\(format(latest.value - first.value)) since \(first.label)")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             plot.frame(height: plotHeight).accessibilityElement().accessibilityLabel(summary)
-            HStack { Text(first.label); Spacer(); Text(latest.label) }.font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            HStack { Text(first.label); Spacer(); Text(latest.label) }.font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
             /* A button rather than a DisclosureGroup.
              *
              * MyThusoUITests found this twice, on two screens and at two content sizes: "Show
@@ -70,7 +70,7 @@ struct ClinicalChart: View {
                     Spacer(minLength: 0)
                     Image(systemName: showTable ? "chevron.up" : "chevron.down")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).accessibilityHidden(true)
+                        .foregroundStyle(ThusoTheme.studioInkMuted).accessibilityHidden(true)
                 }
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .contentShape(Rectangle())
@@ -85,13 +85,13 @@ struct ClinicalChart: View {
                             Text(reading.label).frame(maxWidth: .infinity, alignment: .leading)
                             Text("\(format(reading.value)) \(unit)").frame(maxWidth: .infinity, alignment: .leading)
                             Text(reading.note).frame(maxWidth: .infinity, alignment: .leading)
-                                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                                .foregroundStyle(ThusoTheme.studioInkMuted)
                         }
                         .font(.caption).padding(.vertical, ThusoSpacing.space8)
                         .accessibilityElement(children: .combine)
                         Divider().overlay(ThusoTheme.studioLine)
                     }
-                    Text("Fictional data, not a medical record.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
+                    Text("Fictional data, not a medical record.").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
                 }
             }
         }

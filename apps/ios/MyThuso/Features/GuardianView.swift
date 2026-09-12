@@ -84,7 +84,7 @@ struct InviteGuardianView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text("They receive an invitation on their own phone and choose whether to accept. You can withdraw it at any time.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
         Button("Continue") { step = 1 }.buttonStyle(CareButton())
@@ -115,7 +115,7 @@ struct InviteGuardianView: View {
             PanelHead("For how long?")
             PickRow(label: "Access expires", selection: $expires, options: durations.map { ($0, $0) })
             Text("Time-limited access is the safer default. An open-ended grant is reviewed with you every six months. They must verify their identity before the invitation becomes active — an unverified invitation grants nothing.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
         stepButtons(forward: "Review", to: 3, back: 1)
@@ -178,7 +178,7 @@ struct SystemStatesView: View {
                 }
                 EmptyStateCard(title: "No visits yet", message: "When you book your first visit it appears here, with the nurse’s name and what to have ready.")
                 Text("An error state never blames the patient, never loses what they typed, and always says what happens next.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, ThusoSpacing.space16)
@@ -228,10 +228,10 @@ struct LanguageView: View {
                 }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
                     Text(ThusoLanguageNotes.clinicalRule).font(.footnote)
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(ThusoLanguageNotes.fallback).font(.footnote)
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 signLanguage
@@ -244,7 +244,7 @@ struct LanguageView: View {
                         NavPillLabel(title: Interpreting.labels.heading, symbol: "person.2.wave.2")
                     }.buttonStyle(.plain)
                     Text(Interpreting.rule("one-roster").sentence).font(.footnote)
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -265,7 +265,7 @@ struct LanguageView: View {
             ForEach([ThusoLanguageNotes.signLanguageRequirementDetail,
                      ThusoLanguageNotes.signLanguageStatus,
                      ThusoLanguageNotes.signLanguageWhyNotListed], id: \.self) { sentence in
-                Text(sentence).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(sentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -284,7 +284,7 @@ struct LanguageView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text(ThusoLanguageNotes.signLanguageNotBuilt).font(.footnote)
-                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

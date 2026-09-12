@@ -142,7 +142,7 @@ import za.co.mythuso.model.heroSlides
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             Text(slide.title, style = MaterialTheme.typography.titleLarge, color = Charcoal, modifier = Modifier.fillMaxWidth(0.5f))
-            Text(slide.body, style = MaterialTheme.typography.bodySmall, color = BodyText, modifier = Modifier.fillMaxWidth(0.5f).padding(top = 8.dp))
+            Text(slide.body, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted, modifier = Modifier.fillMaxWidth(0.5f).padding(top = 8.dp))
             StudioButton(onClick = onAction, shape = CircleShape, modifier = Modifier.padding(top = 12.dp)) {
                 Text(slide.cta, style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.width(8.dp))

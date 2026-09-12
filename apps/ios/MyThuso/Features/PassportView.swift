@@ -40,7 +40,7 @@ struct PassportView: View {
                     CareCard {
                         Toggle("Demo access for Dr. A. Dlamini", isOn: $share).font(.subheadline)
                         Text(share ? "Demo access active for 24 hours. Turn off to revoke. No real access is granted." : "No active shares. You control who sees your records.")
-                            .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                            .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     }
                 default:
                     /* Where things stand today, before any curve. Somebody opening their passport
@@ -289,13 +289,13 @@ struct PlansView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(plan.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(plan.2).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(plan.2).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: ThusoSpacing.space8)
             Text(plan.1).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
-            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
                 .accessibilityHidden(true)
         }
         .padding(.vertical, ThusoSpacing.space8).frame(minHeight: 44).contentShape(Rectangle())
@@ -325,10 +325,10 @@ struct MoreView: View {
                             Image("Patient").resizable().scaledToFill().frame(width: 52, height: 52).accessibilityHidden(true).clipShape(Circle()).accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Lerato Molefe").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                                Text("View and edit your profile").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                                Text("View and edit your profile").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                             }
                             Spacer(minLength: ThusoSpacing.space8)
-                            Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                            Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
                                 .accessibilityHidden(true)
                         }
                         .accessibilityElement(children: .combine)
@@ -373,7 +373,7 @@ struct MoreView: View {
                         Button(action: firstRun) { MenuRow(title: "Log out", subtitle: "Returns to the first-run flow — this preview has no account", symbol: "rectangle.portrait.and.arrow.right", danger: true) }.buttonStyle(.plain)
                     }
                     Text("Native SwiftUI design preview. All data is fictional and held only in memory.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.bottom, ThusoSpacing.space16)
@@ -394,7 +394,7 @@ struct MoreView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             CareSectionHeader(title)
             if !note.isEmpty {
-                Text(note).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(note).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true).padding(.bottom, ThusoSpacing.space4)
             }
             VStack(spacing: ThusoSpacing.space8) { rows() }

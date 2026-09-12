@@ -36,7 +36,7 @@ struct WriteField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(label).font(.footnote.weight(.semibold))
-                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
             TextField(hint, text: $text)
                 .font(.body).foregroundStyle(ThusoTheme.charcoal)
@@ -48,7 +48,7 @@ struct WriteField: View {
                 .accessibilityLabel(label)
             if !note.isEmpty {
                 Text(note).font(.footnote)
-                    .foregroundStyle(wrong ? ThusoTheme.danger : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .foregroundStyle(wrong ? ThusoTheme.danger : ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -67,7 +67,7 @@ struct WriteNote: View {
         let shape = RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
         return VStack(alignment: .leading, spacing: 5) {
             Text(label).font(.footnote.weight(.semibold))
-                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
             TextEditor(text: $text)
                 .font(.body).foregroundStyle(ThusoTheme.charcoal)
@@ -77,7 +77,7 @@ struct WriteNote: View {
                 .overlay(shape.stroke(ThusoTheme.controlEdge, lineWidth: 1))
                 .accessibilityLabel(label)
             if !prompt.isEmpty {
-                Text(prompt).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(prompt).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -103,7 +103,7 @@ struct ChoiceRow<Value: Hashable>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             Text(label).font(.footnote.weight(.semibold))
-                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: ThusoSpacing.space8) { buttons }
@@ -152,7 +152,7 @@ struct PickRow<Value: Hashable>: View {
                narrower half of the row and truncates the end, which on a next step is the part that
                says what to do. */
             Text(label).font(.footnote.weight(.semibold))
-                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
             /* The padding is inside the picker rather than around it. A menu picker publishes the
                height of its own content as the control's accessibility frame, so a frame put on the
@@ -171,7 +171,7 @@ struct PickRow<Value: Hashable>: View {
                 .stroke(ThusoTheme.controlEdge, lineWidth: 1))
             .accessibilityLabel(label)
             if !note.isEmpty {
-                Text(note).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -257,7 +257,7 @@ struct ChoiceCard: View {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
                     Text(title).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(detail).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(detail).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                     if !footnote.isEmpty {
                         Text(footnote).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.charcoal)

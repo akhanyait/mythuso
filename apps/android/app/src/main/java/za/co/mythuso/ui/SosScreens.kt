@@ -170,10 +170,10 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top
                 ) {
                     Icon(if (ticked) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null,
-                        tint = if (ticked) Danger else Faint)
+                        tint = if (ticked) Danger else StudioInkMuted)
                     Column {
                         Text(condition.name, style = MaterialTheme.typography.bodyLarge, color = Charcoal)
-                        Text(condition.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                        Text(condition.detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                     }
                 }
             }
@@ -188,7 +188,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(if (none) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null,
-                    tint = if (none) Indigo else Faint)
+                    tint = if (none) Indigo else StudioInkMuted)
                 Text(sosRedFlags.noneLabel, style = MaterialTheme.typography.bodyLarge, color = Charcoal)
             }
             Text(sosRouting.isNotTriage, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
@@ -205,9 +205,9 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                 flagged.sorted().forEach { id ->
                     Sos.condition(id)?.let { Text("• ${it.name}", style = MaterialTheme.typography.titleSmall, color = Charcoal) }
                 }
-                Text(sosRedFlags.endsTheQuestions, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(sosRedFlags.endsTheQuestions, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 DialLine()
-                Text(sosEmergency.previewNote, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                Text(sosEmergency.previewNote, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
             }
         }
 
@@ -243,9 +243,9 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(outcome.headline, style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                Text(outcome.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(outcome.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 Text(failure.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                Text(failure.what, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(failure.what, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 Text(failure.instead, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                 if (door.failureId == "vetting") {
                     candidates.filter { !it.second.allowed }.forEach {
@@ -261,7 +261,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
             val outcome = Sos.outcome("urgent-visit")
             CareCard {
                 Text(outcome.headline, style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                Text(outcome.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(outcome.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 ReviewLine("Thuso SOS urgent visit", "R $sosVisitPrice")
                 ReviewLine("Of that, to the nurse", "R $sosVisitNurseShare")
                 ReviewLine("Where", area.orEmpty())
@@ -271,7 +271,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                     Text(sosTarget.title, style = MaterialTheme.typography.titleMedium, color = Charcoal, modifier = Modifier.weight(1f))
                     StatusPill(Sos.targetLabel, "amber")
                 }
-                Text(sosTarget.statement, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(sosTarget.statement, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 Text(sosTarget.whenItCannotBeMet, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
                 Note(sosTarget.estimateIsNotTheTarget)
             }
@@ -284,8 +284,8 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                             StatusPill(if (decision.allowed) "Cleared" else "Refused", if (decision.allowed) "teal" else "danger")
                         }
                         Text("${subject.zone.orEmpty()} · ${subject.reference} · ${arrivalLine(eta)}",
-                            style = MaterialTheme.typography.bodySmall, color = Faint)
-                        Text(basisLine(eta), style = MaterialTheme.typography.bodySmall, color = BodyText)
+                            style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                        Text(basisLine(eta), style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                         if (!decision.allowed) {
                             Text(decision.reason.orEmpty(), style = MaterialTheme.typography.bodySmall, color = Danger)
                         } else {
@@ -304,7 +304,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
         if (requested) {
             Text(sosStandDown.title, style = MaterialTheme.typography.titleLarge, color = Charcoal)
             CareCard {
-                Text(sosStandDown.statement, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(sosStandDown.statement, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 Note(sosStandDown.chargeRule)
                 val chosen = stoodDown?.let { id -> sosStandDown.reasons.firstOrNull { it.id == id } }
                 if (chosen == null) {
@@ -318,8 +318,8 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(if (unanswered) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank, null,
-                            tint = if (unanswered) MangoInk else Faint)
-                        Text("Preview: nobody answers the callback", style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                            tint = if (unanswered) MangoInk else StudioInkMuted)
+                        Text("Preview: nobody answers the callback", style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                     }
                     if (unanswered) {
                         Text(sosStandDown.noAnswerRule, style = MaterialTheme.typography.bodyMedium, color = Charcoal,
@@ -327,7 +327,7 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                     }
                 } else {
                     Text("Stood down · ${chosen.label}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                    Text(sosStandDown.nurseNote, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                    Text(sosStandDown.nurseNote, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                     ReviewLine("What the nurse is told", chosen.nurseIsTold)
                     ReviewLine("What is recorded", chosen.recorded)
                     OutlinedButton({ stoodDown = null }, shape = ThusoButtonShape) { Text("Back") }
@@ -343,14 +343,14 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                     Icon(Icons.Outlined.WarningAmber, null, tint = MangoInk)
                     Text(failure.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                 }
-                Text(failure.what, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(failure.what, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 Text(failure.instead, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
             }
         }
 
         Text("Where and when", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
-            Text(sosCoverage.statement, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            Text(sosCoverage.statement, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             Text(sosCoverage.areas.joinToString(" · "), style = MaterialTheme.typography.titleSmall, color = Charcoal)
             ReviewLine("Hours", "${sosCoverage.hours.days}, ${sosCoverage.hours.opensAt}–${sosCoverage.hours.closesAt}")
             Note(sosCoverage.hours.note)
@@ -360,27 +360,27 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
         Text("${sosAlert.name} · the panic button", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
             Text("${sosAlert.name} · R $sosAlertMonthly a month", style = MaterialTheme.typography.titleMedium, color = Charcoal)
-            Text(sosAlert.what, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            Text(sosAlert.what, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             Note(sosAlert.phaseNote)
             sosAlert.honesty.forEach {
-                Text(it.sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(it.sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             }
             Text(sosAlert.notCover, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
         }
 
         Text(sosRecord.title, style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
-            Text(sosRecord.statement, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            Text(sosRecord.statement, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             sosRecord.kept.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = Charcoal) }
             HorizontalDivider(color = StudioLine)
-            sosRecord.notKept.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = BodyText) }
+            sosRecord.notKept.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted) }
         }
 
         Text("The promises this screen makes", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         sosRules.forEach { rule ->
             CareCard {
                 Text(rule.title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                Text(rule.sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(rule.sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             }
         }
 
@@ -422,13 +422,13 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
                 Text(number.number, style = MaterialTheme.typography.titleLarge, color = Danger)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(number.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                    Text(number.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
-                    Text(number.whenToUse, style = MaterialTheme.typography.bodySmall, color = Faint)
+                    Text(number.detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text(number.whenToUse, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                 }
             }
         }
         Text(sosEmergency.notAnAmbulance, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
-        Text(sosEmergency.previewNote, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+        Text(sosEmergency.previewNote, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
     }
 }
 
@@ -441,6 +441,6 @@ private fun basisLine(eta: Eta) = when (eta.basis) {
         Icon(Icons.Outlined.Phone, null, tint = Danger)
         Text(sosEmergency.numbers[0].number, style = MaterialTheme.typography.titleLarge, color = Danger)
         Text("Ambulance · or ${sosEmergency.numbers[1].number} from a mobile",
-            style = MaterialTheme.typography.bodySmall, color = BodyText)
+            style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
     }
 }

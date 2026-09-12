@@ -113,10 +113,10 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
 
         Text("What a substitution may and may not change", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
-            Text("NEVER, WITHOUT THE PRESCRIBER", style = MaterialTheme.typography.labelSmall, color = Faint)
+            Text("NEVER, WITHOUT THE PRESCRIBER", style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
             substitutionNeverChanges.forEach { Bullet(it.what, it.why) }
             HorizontalDivider()
-            Text("MAY CHANGE, AND THE PATIENT IS TOLD", style = MaterialTheme.typography.labelSmall, color = Faint)
+            Text("MAY CHANGE, AND THE PATIENT IS TOLD", style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
             substitutionMayChange.forEach { Bullet(it.what, it.why) }
             DispensingRefusalRow(Dispensing.refusal("substitute-the-molecule"))
         }
@@ -126,7 +126,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             CareCard {
                 StatusPill(klass.shortName, klass.tone)
                 Text(klass.name, style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                Text(klass.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                Text(klass.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 Note(klass.whoDecides)
             }
         }
@@ -141,7 +141,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
         Text("${rx.items.size} items · ${rx.substituted.size} substituted",
             style = MaterialTheme.typography.titleLarge, color = Charcoal)
         Text(Dispensing.rule("substitution-is-clinical").sentence,
-            style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
         rx.items.forEach { item ->
             ItemCard(
                 item = item, pharmacist = rx.pharmacist, open = open,
@@ -152,9 +152,9 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             )
         }
         Text(Dispensing.rule("patient-is-told-first").sentence,
-            style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
         Text(Dispensing.rule("substitution-is-signed").sentence,
-            style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
 
         Text("The handover", style = MaterialTheme.typography.titleLarge, color = Charcoal)
         CareCard {
@@ -163,10 +163,10 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
                     (step.id == "recorded" && handed.size == rx.items.size))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                     Icon(if (done) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked, null,
-                        tint = if (done) Indigo else Faint)
+                        tint = if (done) Indigo else StudioInkMuted)
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(step.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
-                        Text(step.detail, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                        Text(step.detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                     }
                 }
             }
@@ -177,7 +177,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
                     Text(auth.reference, style = MaterialTheme.typography.titleLarge, color = Charcoal)
-                    Text("${auth.programme} · ${auth.condition}", style = MaterialTheme.typography.bodySmall, color = BodyText)
+                    Text("${auth.programme} · ${auth.condition}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
                 }
                 StatusPill("${Dispensing.repeatsRemaining} of ${auth.repeatsAuthorised} left",
                     if (Dispensing.bindsOnDate) "amber" else "teal")
@@ -193,7 +193,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             Note(auth.note)
             Note(auth.quantityNote)
             Text(Dispensing.rule("authorisation-is-boxed").sentence,
-                style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             ReviewLine("Last collected", "${-auth.lastCollectedDays} days ago")
             ReviewLine("Next collection due", "in ${Dispensing.nextCollectionInDays} days")
             StudioButton({ collectTried = true }, enabled = open, shape = ThusoButtonShape) { Text("Collect a repeat") }
@@ -204,7 +204,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
                 } else {
                     Alert(answer.reason)
                     Text(Dispensing.rule("early-is-refused-with-a-date").sentence,
-                        style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                        style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
                 }
             }
             if (Dispensing.isFinalRepeat) {
@@ -237,13 +237,13 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(item.dispensed, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
                 Text("${item.molecule} ${item.strength} · ${item.form} · ${item.dose} · ${item.quantity}",
-                    style = MaterialTheme.typography.bodySmall, color = BodyText)
+                    style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
             }
             StatusPill(klass.shortName, klass.tone)
         }
         Text(
             if (item.wasSubstituted) "Written: ${item.prescribed}" else "Written and dispensed: ${item.prescribed}",
-            style = MaterialTheme.typography.bodyMedium, color = BodyText
+            style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted
         )
         GroundRow(Dispensing.ground(item.ground))
         item.secondGround?.let { GroundRow(Dispensing.ground(it)) }
@@ -261,8 +261,8 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
                 Text("${pharmacist.name} · ${pharmacist.registration}",
                     style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
                 Text("${pharmacist.role} · the prescriber was told the same day",
-                    style = MaterialTheme.typography.bodySmall, color = Faint)
-                Text(reason, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                    style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Text(reason, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
             }
         }
 
@@ -277,7 +277,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             Text(
                 if (told) "Handed over"
                 else "Nothing is handed over before the patient has been told what it is",
-                style = MaterialTheme.typography.bodyMedium, color = if (told) Charcoal else Faint
+                style = MaterialTheme.typography.bodyMedium, color = if (told) Charcoal else StudioInkMuted
             )
         }
         Note(item.note)
@@ -300,10 +300,10 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
         }
         Text(item.patientWords, style = MaterialTheme.typography.bodyLarge, color = Charcoal)
         if (item.sameness.isNotEmpty()) {
-            Text("THE SAME", style = MaterialTheme.typography.labelSmall, color = Faint)
-            item.sameness.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = BodyText) }
-            Text("DIFFERENT", style = MaterialTheme.typography.labelSmall, color = Faint)
-            item.differences.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = BodyText) }
+            Text("THE SAME", style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
+            item.sameness.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted) }
+            Text("DIFFERENT", style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
+            item.differences.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted) }
         }
     }
 }
@@ -314,7 +314,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(if (ground.section == null) ground.name else "${ground.name} · section ${ground.section}",
                 style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Charcoal)
-            Text(ground.detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            Text(ground.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
         }
     }
 }
@@ -324,7 +324,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
         Text("•", color = Indigo)
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(what, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Charcoal)
-            Text(why, style = MaterialTheme.typography.bodySmall, color = BodyText)
+            Text(why, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
         }
     }
 }
@@ -334,9 +334,9 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
         Modifier.fillMaxWidth().background(Mist, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = Faint)
+        Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
         Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Charcoal)
-        Text(note, style = MaterialTheme.typography.bodySmall, color = BodyText)
+        Text(note, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
     }
 }
 

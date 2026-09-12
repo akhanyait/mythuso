@@ -41,10 +41,10 @@ struct TimelineList: View {
                     Text(step.label).font(.subheadline.weight(.semibold))
                         .foregroundStyle(ThusoTheme.charcoal.opacity(step.state == "waiting" ? ThusoOpacity.charcoalMuted : 1))
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(step.detail).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(step.detail).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                     if !step.at.isEmpty {
-                        Text(step.at).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        Text(step.at).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -109,7 +109,7 @@ struct PrescriptionView: View {
                                permission: "partner data sharing", retry: { state = .ready }) { EmptyView() }
                 }
                 Text(Dispensing.crossReference)
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, ThusoSpacing.space16)
@@ -130,9 +130,9 @@ struct PrescriptionView: View {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
                     Text(medicine.0).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(medicine.1).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(medicine.1).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(medicine.2).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(medicine.2).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                     /* What the patient is told, and it is the one line on the card that is not
                        about logistics. Full charcoal, because it is the sentence a person acts on. */
@@ -203,7 +203,7 @@ struct LabOrderView: View {
                 }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
                     Text("Abnormal results are never pushed to a patient without a clinician’s explanation. Release is a deliberate clinical act, not an automatic notification.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                     Button(released ? "Withdraw demo release" : "Release with an explanation") { released.toggle() }
                         .buttonStyle(released ? AnyButtonStyleBox(QuietButton()) : AnyButtonStyleBox(CareButton()))
@@ -235,7 +235,7 @@ struct LabOrderView: View {
                 }
             }
             HStack(spacing: ThusoSpacing.space8) {
-                Text("Reference \(row.2)").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text("Reference \(row.2)").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: ThusoSpacing.space8)
                 MetricChip(text: flagged ? row.3 : "Within range", tone: flagged ? .attention : .neutral)

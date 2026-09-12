@@ -43,7 +43,7 @@ struct ArrivalView: View {
                     SurfacePanel(tone: .quiet) {
                         Label(refusal, systemImage: "mappin.slash").font(.footnote)
                             .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
-                        Text(why).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        Text(why).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .accessibilityElement(children: .combine)
@@ -57,7 +57,7 @@ struct ArrivalView: View {
                 }
                 .accessibilityElement(children: .combine)
                 Text(Arrival.coverageSentence).font(.footnote)
-                    .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
                 NavigationLink { VisitDetailView(visit: visit) } label: {
                     Text("Open this visit").frame(maxWidth: .infinity)
@@ -88,7 +88,7 @@ struct ArrivalView: View {
                     Text(Arrival.nurse.name).thusoFont(ThusoType.cardTitle, weight: .semibold)
                         .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
                     Text(Arrival.nurse.role).font(.footnote)
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .foregroundStyle(ThusoTheme.studioInkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
@@ -168,10 +168,10 @@ struct ArrivalView: View {
             /* Both sentences are the geography contract's: how coarse a position is, and that no
                tile server was asked for one. */
             Text(Geography.schematicSentence).font(.footnote)
-                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
             Text(Arrival.precisionSentence).font(.footnote)
-                .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

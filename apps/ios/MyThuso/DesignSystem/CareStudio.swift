@@ -48,8 +48,15 @@ extension EnvironmentValues {
 /* Two lines, two grounds, one voice.
  *
  * The lead line is what the reader is — a greeting, or the framing of the role whose workspace this
- * is. The accent line is what the product is for, and it sits on a lime block, which is the accent
- * doing the one job the arithmetic allows it: being a ground.
+ * is. The accent line is what the product is for, and it is `studioOlive`, the token that exists for
+ * this line and is declared against the ground at 4.98:1 and against a white card.
+ *
+ * IT WAS INK ON A LIME BLOCK FIRST, AND THE SCREENSHOT IS WHY IT IS NOT. A full-width lime bar under
+ * the greeting is the loudest object on the screen, on every screen carrying a headline, which is the
+ * opposite of the rule the rest of this pass spends its time enforcing: one lime object per card,
+ * and it is the thing you press. Two ink tones say the same thing quietly and give the accent back to
+ * the button and the tile. The tokens settled it independently — a colour meant to sit on lime would
+ * have been declared against lime, and studioOlive is declared against paper.
  *
  * SIZE, AND THE POINT AT WHICH IT STOPS. `metricLarge` is 40 and it is the largest step the type
  * scale declares; it grows with the reader like everything else. Past the accessibility sizes it
@@ -79,24 +86,13 @@ struct StudioHeadline: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Text(accent)
                     .font(.system(size: size, weight: .semibold))
-                    .foregroundStyle(ThusoTheme.studioInk)
+                    .foregroundStyle(ThusoTheme.studioOlive)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, ThusoSpacing.space8)
-                    .padding(.vertical, ThusoSpacing.space4)
-                    .background(ThusoTheme.studioLime,
-                                in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
-                    /* A highlighter rather than a banner: the block is as wide as the line it is
-                       behind, so on a phone where "Help. Health. Home." fits on one line it stops
-                       after the full stop. It takes the column when the words need two lines, which
-                       is what a highlighter does as well. The negative leading padding puts the
-                       words back on the column the line above them starts at; without it the block's
-                       own padding indents the second line by eight points. */
-                    .padding(.leading, -ThusoSpacing.space8)
             }
             if !detail.isEmpty {
                 Text(detail)
                     .font(.subheadline)
-                    .foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

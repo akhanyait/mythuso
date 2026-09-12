@@ -156,7 +156,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                         label = { Text(label(destination), maxLines = 3, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall) },
                         colors = NavigationRailItemDefaults.colors(
                             selectedIconColor = StudioPaper, selectedTextColor = Charcoal,
-                            indicatorColor = StudioNight, unselectedIconColor = Faint, unselectedTextColor = Faint
+                            indicatorColor = StudioNight, unselectedIconColor = StudioInkMuted, unselectedTextColor = StudioInkMuted
                         )
                     )
                 }
@@ -215,7 +215,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                                 },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = StudioPaper, selectedTextColor = Charcoal,
-                                    indicatorColor = StudioNight, unselectedIconColor = Faint, unselectedTextColor = Faint
+                                    indicatorColor = StudioNight, unselectedIconColor = StudioInkMuted, unselectedTextColor = StudioInkMuted
                                 )
                             )
                         }

@@ -247,7 +247,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
         TileIcon(icon, size = 36.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
             Text(label, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-            Text(sentence, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+            Text(sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
         }
     }
 }
@@ -255,7 +255,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
 @Composable private fun QueueBullet(icon: ImageVector, text: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8), verticalAlignment = Alignment.Top) {
         Icon(icon, null, tint = Charcoal, modifier = Modifier.size(18.dp).padding(top = 2.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = BodyText, modifier = Modifier.weight(1f))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted, modifier = Modifier.weight(1f))
     }
 }
 
@@ -293,7 +293,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
         )
         Note("On this phone, ${ageText(part.deviceMillis)}.")
         if (part.isPending) Text(
-            part.kind.whileHeld, style = MaterialTheme.typography.bodyMedium, color = BodyText
+            part.kind.whileHeld, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted
         )
         conflict?.let {
             Text("${it.name}. ${it.detail}", style = MaterialTheme.typography.bodyMedium, color = MangoInk,
@@ -364,7 +364,7 @@ private fun toneOf(state: CaptureState): String = when (state) {
             Icon(mark, null, tint = ink, modifier = Modifier.size(20.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                 Text(heading, style = MaterialTheme.typography.titleSmall, color = ink)
-                Text(detail, style = MaterialTheme.typography.bodySmall, color = if (refused != null) MangoInk else BodyText)
+                Text(detail, style = MaterialTheme.typography.bodySmall, color = if (refused != null) MangoInk else StudioInkMuted)
             }
             TextButton(onClick = { open("Visit queue") }, Modifier.heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("Open") }
         }

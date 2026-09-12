@@ -86,7 +86,7 @@ private val householdRecordType = recordTypeById("household")
         }
         Text(
             status.ifEmpty { "Viewing as ${viewer.name} — ${viewer.role}." },
-            style = MaterialTheme.typography.labelLarge, color = BodyText,
+            style = MaterialTheme.typography.labelLarge, color = StudioInkMuted,
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
         )
 
@@ -348,7 +348,7 @@ private val householdRecordType = recordTypeById("household")
         Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = BodyText)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
         Text(value, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
     }
 }
@@ -434,7 +434,7 @@ private val householdRecordType = recordTypeById("household")
                 enabled = understood, modifier = Modifier.fillMaxWidth()
             , shape = ThusoButtonShape) { Text("Create the share") }
             Text(status.ifEmpty { "Nothing has been shared yet." },
-                style = MaterialTheme.typography.bodySmall, color = BodyText,
+                style = MaterialTheme.typography.bodySmall, color = StudioInkMuted,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
         }
 
@@ -497,7 +497,7 @@ private val householdRecordType = recordTypeById("household")
         Text("The reference above, and nothing else — 100 bits from the device’s own secure generator, not your patient number and not a number anyone can count up to. Someone holding it is answered with your initials ($initials), whether the summary is valid, expired or revoked, what it was made for, and when it stops. Not your name, not your date of birth, not one clinical word.",
             style = MaterialTheme.typography.bodyMedium, color = Charcoal)
         Text("No code is drawn here. The picture would only be a way to lose the reference, and the reference is the part that matters.",
-            style = MaterialTheme.typography.bodySmall, color = BodyText)
+            style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
     }
 }
 

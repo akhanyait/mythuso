@@ -50,7 +50,7 @@ struct CaptureQueueView: View {
                 controls
                 if !needingDecision.isEmpty {
                     SectionHeading(title: "Needs a decision · \(needingDecision.count)")
-                    Text(CaptureRules.conflictsAreNotMerged).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(CaptureRules.conflictsAreNotMerged).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                     ForEach(needingDecision) { entry in
                         NavigationLink { ConflictResolutionView(entryId: entry.id) } label: { EntryCard(entry: entry, chevron: true) }
                             .buttonStyle(.plain)
@@ -71,7 +71,7 @@ struct CaptureQueueView: View {
                 }
                 SectionHeading(title: "In the record · \(inTheRecord.count)")
                 Text("Ordered by when each was received, never by what a phone believed.")
-                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 ForEach(inTheRecord) { EntryCard(entry: $0) }
                 statesKey
                 housekeeping
@@ -93,12 +93,12 @@ struct CaptureQueueView: View {
                     Text(kit.onlyHereCount == 0 ? "Nothing is waiting" : "\(kit.onlyHereCount) reading\(kit.onlyHereCount == 1 ? "" : "s") on this phone")
                         .font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     Text(kit.queuedCount > 0 ? "\(kit.queuedCount) sealed and waiting for a connection" : "Nothing is sealed and waiting")
-                        .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 }
                 Spacer(minLength: 0)
             }
             .accessibilityElement(children: .combine)
-            Text(CaptureRules.queuedIsNotLost).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(CaptureRules.queuedIsNotLost).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
         }
     }
 
@@ -119,7 +119,7 @@ struct CaptureQueueView: View {
             }
             Divider().overlay(ThusoTheme.studioLine)
             ForEach(ledger?.saysLostTo ?? [], id: \.self) { line in
-                Label(line, systemImage: "xmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Label(line, systemImage: "xmark").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
             }
         }
     }
@@ -132,16 +132,16 @@ struct CaptureQueueView: View {
                 .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             Text(kit.ledgerWrittenAt.map { "Everything below was \(writtenInWords($0)). It is what this phone holds, not an answer from a server — there is no server in this build, and a local copy offered as though it were a fresh answer is the failure this line exists to prevent." }
                  ?? "Nothing has been written to this phone’s store yet.")
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 .accessibilityAddTraits(.updatesFrequently)
             if !kit.storeNote.isEmpty {
-                Text(kit.storeNote).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(kit.storeNote).font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
             }
             if let setAside = kit.setAside {
                 Label("A ledger that would not parse was kept as \(setAside) rather than deleted.", systemImage: "archivebox")
                     .font(.caption2).foregroundStyle(ThusoTheme.mangoInk)
             }
-            Text(kit.ledgerPath).font(.system(.caption2, design: .monospaced)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(kit.ledgerPath).font(.system(.caption2, design: .monospaced)).foregroundStyle(ThusoTheme.studioInkMuted)
                 .textSelection(.enabled)
         }
     }
@@ -151,7 +151,7 @@ struct CaptureQueueView: View {
             Label("Design-review controls", systemImage: "slider.horizontal.3")
                 .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             Text("There is no radio in this build and no clock to be wrong, so the two things that make a queue worth designing have to be askable for.")
-                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
             Toggle("Show this phone with no signal", isOn: $kit.pretendNoSignal)
                 .frame(minHeight: 44).contentShape(Rectangle())
             Stepper("Pretend this phone’s clock is \(kit.pretendClockFastHours) hour\(kit.pretendClockFastHours == 1 ? "" : "s") fast",
@@ -161,7 +161,7 @@ struct CaptureQueueView: View {
                 .buttonStyle(CareButton())
                 .disabled(sending)
             if !sendResult.isEmpty {
-                Text(sendResult).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(sendResult).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                     .accessibilityAddTraits(.updatesFrequently)
             }
         }
@@ -192,9 +192,9 @@ struct CaptureQueueView: View {
                         CaptureStatePill(state: state)
                         Spacer(minLength: 6)
                         Text("\(kit.entries.filter { $0.state == state }.count)")
-                            .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                            .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
                     }
-                    Text(state.detail).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    Text(state.detail).font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
                 }
                 .padding(.vertical, 3)
                 .accessibilityElement(children: .combine)
@@ -207,11 +207,11 @@ struct CaptureQueueView: View {
             Label("Prove it rather than believe it", systemImage: "arrow.clockwise")
                 .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             Text("Signing out of this preview returns to the first-run flow and goes nowhere near the file. This drops everything held in memory and reads the file again from nothing, which is what a cold launch does — the count above should not move.")
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
             Button("Sign out and read the file again") { kit.reloadFromDisk() }.buttonStyle(QuietButton())
             Divider().overlay(ThusoTheme.studioLine)
             Text("The only thing in this app that removes an entry, and it is a person’s deliberate act on fictional data. No sync, no sign-out and no failure ever does it.")
-                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
             Button("Clear this phone’s store and start again") { kit.resetToFixtures() }
                 .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
@@ -234,10 +234,10 @@ struct EntryCard: View {
                 }
                 if entry.superseded { StatusPill(text: "Superseded", tone: "quiet") }
                 Spacer(minLength: 0)
-                if chevron { Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)) }
+                if chevron { Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted) }
             }
             Text("\(entry.id) · \(entry.visitReference) · \(entry.patient)")
-                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
             ReadingRow(reading: entry.reading)
             FieldRow(label: "Captured by", value: "\(entry.capturedByName) · \(entry.capturedByReference)")
             if let countersigner = entry.countersignedBy, let reference = entry.countersignedByReference {
@@ -249,11 +249,11 @@ struct EntryCard: View {
             }
             if let decision = entry.decision, let by = entry.decidedBy, let at = entry.decidedAt {
                 Label("\(by), \(captureStamp(at)): \(decision)", systemImage: "person.crop.circle.badge.checkmark")
-                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
             }
             if let supersededBy = entry.supersededById {
                 Label("Set aside in favour of \(supersededBy), and kept. A superseded reading is still a reading somebody took.",
-                      systemImage: "arrow.uturn.down").font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                      systemImage: "arrow.uturn.down").font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
             }
             WrittenAgoNote(at: entry.writtenToPhoneAt)
         }
@@ -299,7 +299,7 @@ struct ConflictResolutionView: View {
                         CareCard {
                             Label("Decided", systemImage: "checkmark.seal.fill").font(.headline).foregroundStyle(ThusoTheme.charcoal)
                             Text("Nothing was merged and nothing was deleted. Both readings are still in the file above, and the record says who decided and why.")
-                                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                                .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                             Button("Back to the queue") { dismiss() }.buttonStyle(QuietButton())
                         }
                     } else {
@@ -320,39 +320,39 @@ struct ConflictResolutionView: View {
         CareCard {
             if let conflict = entry.conflict {
                 Text(conflict.name).font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(conflict.detail).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(conflict.detail).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 StatusPill(text: conflict.asksAPerson ? "A clinician decides" : "The server decided, and nobody was asked",
                            tone: conflict.asksAPerson ? "amber" : "quiet")
             } else {
                 Text("Refused").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(CaptureState.refused.detail).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(CaptureState.refused.detail).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
             }
-            Text(CaptureRules.conflictsAreNotMerged).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text(CaptureRules.conflictsAreNotMerged).font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
         }
     }
 
     @ViewBuilder private var whoDecides: some View {
         CareCard {
-            Text("Deciding as").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            Text("Deciding as").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
             Picker("Deciding as", selection: $decider) {
                 ForEach(resolvers) { Text("\($0.name) · \($0.reference)").tag($0.id) }
             }.labelsHidden()
             HStack(spacing: ThusoSpacing.space8) {
                 SubjectStatusPill(status: summarise(clinician).status)
-                Text(clinician.role?.name ?? clinician.roleId).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(clinician.role?.name ?? clinician.roleId).font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
                 Spacer(minLength: 0)
             }
             if !mayDecide.allowed {
                 RefusalCard(title: "This clinician cannot settle it", decision: mayDecide)
                 Text("A conflict left undecided is a conflict. It is not resolved by the platform growing impatient, and it is certainly not resolved by somebody whose own standing has lapsed.")
-                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
             }
             TextEditor(text: $note).frame(minHeight: 76).scrollContentBackground(.hidden)
                 .padding(ThusoSpacing.space8).background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.controlEdge, lineWidth: 1))
                 .accessibilityLabel("Why")
             Text("Why. The reason goes into the record beside the decision — the next clinician reads the reason, not the button that was pressed.")
-                .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
         }
     }
 
@@ -361,7 +361,7 @@ struct ConflictResolutionView: View {
             switch entry.conflict {
             case .duplicateObservation:
                 Text("Two readings of \(entry.reading.label.lowercased()) in one visit. Both stay in the file. One stands in the record; the other is marked superseded and stays readable, because a nurse whose retake was set aside is entitled to see that it was, and by whom.")
-                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 Button("The newer reading stands · \(entry.reading.display)") {
                     if let against { kit.resolveDuplicate(keep: entry.id, supersede: against.id, by: clinician, note: note) }
                 }
@@ -379,17 +379,17 @@ struct ConflictResolutionView: View {
                    clinician’s as the person who stands behind its being in the file. */
                 lapsedStanding(entry)
                 Text("She was cleared when she took it and she is not now. The reading is not discarded — it was lawful work at the time — and it is not filed on her authority alone, because that authority no longer exists. A cleared clinician reads it and puts their own registration to it, and the record then carries both names.")
-                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 Button("Countersign and file it") { kit.countersign(entry.id, by: clinician, note: note) }
                     .buttonStyle(CareButton()).disabled(!mayDecide.allowed || !reasoned)
                 Button("Hold it — I am not putting my registration to this") { kit.hold(entry.id, by: clinician, note: note) }
                     .buttonStyle(QuietButton()).disabled(!mayDecide.allowed || !reasoned)
                 Text("Holding it leaves it exactly where it is. Nothing expires it, nothing tidies it away, and it is still here tomorrow for somebody who was actually in the room.")
-                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
 
             case .staleWrite:
                 Text("The record moved on while this sat in the queue. It is never applied silently behind a signature — it is added in the open, after it, with the reason and the date, or it is held for the clinician who signed.")
-                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 Button("File it as an addendum, after the signature") { kit.fileAsAddendum(entry.id, by: clinician, note: note) }
                     .buttonStyle(CareButton()).disabled(!mayDecide.allowed || !reasoned)
                 Button("Hold it for the clinician who signed") { kit.hold(entry.id, by: clinician, note: note) }
@@ -397,16 +397,16 @@ struct ConflictResolutionView: View {
 
             case .clockSkew:
                 Text("Nobody is asked about this one. The receipt time ordered the record the moment the entry landed, the phone’s time is kept beside it as what the phone believed, and there is no decision here to take.")
-                    .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
 
             case .none:
-                Text(entry.refusal ?? "The server would not take it.").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text(entry.refusal ?? "The server would not take it.").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 Button("Put it back in the queue and try again") { kit.requeue(entry.id) }
                     .buttonStyle(CareButton()).disabled(!mayDecide.allowed)
                 Button("Hold it for the Control Tower") { kit.hold(entry.id, by: clinician, note: note) }
                     .buttonStyle(QuietButton()).disabled(!mayDecide.allowed || !reasoned)
                 Text("There is no button on this screen that deletes it. A refused entry is still a reading somebody took, and what to do with it is a decision made by a person who knows what it was.")
-                    .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                    .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
             }
         }
     }
@@ -418,7 +418,7 @@ struct ConflictResolutionView: View {
             FieldRow(label: "Captured by", value: "\(capturer.name) · \(capturer.reference)")
             FieldRow(label: "This phone believed it was taken", value: captureStamp(entry.deviceCapturedAt))
             HStack {
-                Text("Standing now").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                Text("Standing now").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 Spacer(minLength: 8)
                 SubjectStatusPill(status: summary.status)
             }

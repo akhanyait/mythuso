@@ -123,7 +123,7 @@ private fun stateTone(state: CaptureState) = when (state) {
         reading.caveats.forEach { caveat ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Outlined.Info, null, tint = MangoInk, modifier = Modifier.size(15.dp))
-                Text(caveat, style = MaterialTheme.typography.bodySmall, color = BodyText)
+                Text(caveat, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
             }
         }
     }
@@ -148,7 +148,7 @@ private fun stateTone(state: CaptureState) = when (state) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatusPill("Clock disagreed", "sky")
                 Text("This phone was ${skewText(skew)}. Settled by the server, because ordering is a fact about clocks — nothing clinical was decided.",
-                    style = MaterialTheme.typography.bodySmall, color = BodyText)
+                    style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
             }
         }
     }
@@ -433,8 +433,8 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(if (controls) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, tint = BodyText, modifier = Modifier.size(18.dp))
-                Text("Design-review controls", style = MaterialTheme.typography.labelLarge, color = BodyText, modifier = Modifier.weight(1f))
+                Icon(if (controls) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, tint = StudioInkMuted, modifier = Modifier.size(18.dp))
+                Text("Design-review controls", style = MaterialTheme.typography.labelLarge, color = StudioInkMuted, modifier = Modifier.weight(1f))
                 if (capture.pretendConnected) StatusPill("Pretending online", "amber")
             }
             if (controls) {
@@ -480,7 +480,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         CareCard {
             Text("The rules this screen is written against", style = MaterialTheme.typography.titleMedium)
             Note(captureWhy)
-            captureRules.forEach { (sentence, _) -> Text("· $sentence", style = MaterialTheme.typography.bodySmall, color = BodyText) }
+            captureRules.forEach { (sentence, _) -> Text("· $sentence", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted) }
         }
         ToolRow("Thuso Kit") { open("Thuso Kit") }
     }
@@ -496,7 +496,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             }
             Text("${reading.value} ${reading.unit}",
                  style = MaterialTheme.typography.titleLarge,
-                color = if (reading.superseded) BodyText else Ink)
+                color = if (reading.superseded) StudioInkMuted else Ink)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ProvenanceMark(reading.provenance)
