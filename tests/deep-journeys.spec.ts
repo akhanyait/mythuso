@@ -278,10 +278,14 @@ test('new surfaces do not overflow the viewport or throw', async ({ page }, test
 });
 
 /* By position, not by name: this runs after the shell has been switched to isiZulu, where the
-   entry is called something else — which is the point of that journey. */
+   entry is called something else — which is the point of that journey.
+
+   Last rather than eighth. The index was the eighth row until Live well was added above it, and an
+   ordinal into a navigation list is a selector that breaks on a row nobody touched. Explore is the
+   end of that list and has been since the roadmap stopped being a menu. */
 async function openExplore(page: Page) {
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
-  if (await sidebar.isVisible()) { await sidebar.getByRole('button').nth(7).click(); return; }
+  if (await sidebar.isVisible()) { await sidebar.getByRole('button').last().click(); return; }
   await page.locator('.tabbar button').nth(4).click();
   await page.locator('main').getByRole('button').filter({ hasText: /Explore|Hlola/ }).first().click();
 }

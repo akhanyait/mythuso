@@ -17,6 +17,7 @@ import {
 } from './features/Passport';
 import { PastVisit } from './features/VisitSummary';
 import { Arrival } from './features/Arrival';
+import { LiveWell } from './features/Wellbeing';
 import { GettingHelp } from './features/Help';
 import { SponsoredCare } from './features/Sponsor';
 import { stateOf } from './lib/cancelling';
@@ -34,6 +35,7 @@ import { currentPerson, endSession, probe } from './lib/auth';
 import { modules, money, services, type Service } from './lib/catalog';
 import { coverage, zones } from './lib/geography';
 import { scrollToTop } from './lib/scroll';
+import { sampleEntries, write, type Entry as WellbeingEntry } from './lib/wellbeing';
 import { useDecor, usePointerLight } from './lib/motion';
 
 /* MyThuso for patients and families. One audience, one bundle.
@@ -83,6 +85,11 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     screen a person opens on the morning of a visit and stays on, and a modal that has to be held
     open while somebody waits for a knock at the door is a modal in the way. */
  const [tracking, setTracking] = useState<string | null>(null);
+ /* What somebody has written in Live well, held here for the same reason the visits are: it has to
+    survive walking to another screen and back, and it may not survive anything longer than that.
+    Nothing is written to storage of any kind — which is also what the capability notice on that
+    screen says, so the sentence and the behaviour cannot drift apart. */
+ const [wellbeing, setWellbeing] = useState<WellbeingEntry[]>(sampleEntries);
  const [members, setMembers] = useState<string[]>([]);
  const [invitations, setInvitations] = useState<Invitation[]>(sampleInvitations);
  const [query, setQuery] = useState('');
@@ -136,6 +143,10 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     : page === 'Book a nurse' ? <Services book={setBooking} open={setModal} navigate={navigate} query={query} forPerson={forPerson} clearPerson={() => setForPerson(null)}/>
      : page === 'My visits' ? <Visits rows={rows} open={setModal} book={() => navigate('Book a nurse')} manage={manage} view={setViewing} track={track}/>
       : page === 'Health Passport' ? <Passport open={setModal} navigate={navigate}/>
+       : page === 'Live well' ? <LiveWell entries={wellbeing} navigate={navigate}
+          onWrite={(habit, words) => setWellbeing([write(habit, words), ...wellbeing])}
+          onRemove={id => setWellbeing(wellbeing.filter(entry => entry.id !== id))}
+          nextVisit={rows.find(row => row.group === 'upcoming')?.id ?? null} viewVisit={setViewing}/>
        : page === 'Health trends' ? <HealthTrends navigate={navigate}/>
        : page === 'What readings mean' ? <ReadingsExplained navigate={navigate} open={setModal}/>
        : page === 'Care timeline' ? <CareTimeline navigate={navigate} open={setModal}/>
@@ -160,7 +171,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
       over a visit that was stood down a fortnight ago, was the same sentence doing three jobs. */}
   {viewing && rowById(viewing) && <Modal surface={SURFACE} title={visitTitle(rowById(viewing)!.group)} onClose={() => setViewing(null)}>
    <VisitDetail row={rowById(viewing)!} manage={manage} navigate={p => { navigate(p); setViewing(null); }}
-    rebook={() => bookFor(rowById(viewing)!.visit.person)} track={track}/></Modal>}
+    rebook={() => bookFor(rowById(viewing)!.visit.person)} track={track} notes={wellbeing}/></Modal>}
   {managing && rowById(managing.id) && <Modal surface={SURFACE} title={managing.action === 'reschedule' ? 'Move this visit' : 'Cancel this visit'} onClose={() => setManaging(null)}>
    {managing.action === 'reschedule'
     ? <Reschedule visit={rowById(managing.id)!.visit} onMove={(date, start) => { moveVisit(managing.id, date, start); setManaging(null); navigate('My visits'); }}/>

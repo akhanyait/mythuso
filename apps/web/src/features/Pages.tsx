@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, HandCoins, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, PenLine, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, Users, UserPlus, Wallet, Zap } from 'lucide-react';
+import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, HandCoins, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, NotebookPen, PenLine, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, Users, UserPlus, Wallet, Zap } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
 import { EmptyState, StateBlock, useOffline, type LoadState } from '../components/States';
 import { InvitationList, scopes, type Invitation } from './Guardian';
+import { BroughtToTheVisit } from './Wellbeing';
+import type { Entry as WellbeingEntry } from '../lib/wellbeing';
 import { Metric, Metrics } from '../surface/Surface';
 import { HeroCarousel } from '../components/HeroCarousel';
 import { FamilyScene, PatientPortrait } from '../components/Portraits';
@@ -202,7 +204,7 @@ export function PageHeading({eyebrow,title,description}:{eyebrow:string;title:st
  * over whatever visit you had actually pressed, with one button that went to the Health Passport. It
  * is the visit now, and the two things a person opens a visit to do are on it. */
 const toBring=['Your identity document, so the nurse can confirm the right patient at the door','Every medicine you are taking, boxes and all','A chair and a light in a room you can close'] as const;
-export function VisitDetail({row,manage,navigate,rebook,track}:{row:VisitRow;manage:(id:string,action:VisitAction)=>void;navigate:(s:string)=>void;rebook:()=>void;track:(id:string)=>void}){
+export function VisitDetail({row,manage,navigate,rebook,track,notes=[]}:{row:VisitRow;manage:(id:string,action:VisitAction)=>void;navigate:(s:string)=>void;rebook:()=>void;track:(id:string)=>void;notes?:WellbeingEntry[]}){
  const {visit:v,status,tone,group,reason}=row;
  /* Three visits, three screens. A completed visit and a cancelled one used to render this one — a
     price, a nurse, and three things to have ready for a visit that had already happened or had been
@@ -228,6 +230,11 @@ export function VisitDetail({row,manage,navigate,rebook,track}:{row:VisitRow;man
   </button>
   <SectionTitle title="Have this ready"/>
   <div className="panel">{toBring.map(line=><div className="record-row static" key={line}><span className="service-icon"><Check size={20}/></span><span><strong>{line}</strong></span></div>)}</div>
+  {/* The other half of "bring this to your next visit". It is here rather than being sent anywhere:
+      nothing written in Live well is copied into the record until a clinician records it as part of
+      the visit, so what this screen can honestly offer is the words themselves, in front of the
+      person who is about to read them out. */}
+  <BroughtToTheVisit entries={notes}/>
   <div className="button-row"><button className="secondary" onClick={()=>manage(row.id,'reschedule')}><CalendarClock size={16}/>Reschedule</button><button className="secondary" onClick={()=>manage(row.id,'cancel')}><Ban size={16}/>Cancel</button></div>
   <button className="primary full" onClick={()=>navigate('Health Passport')}>Open my Health Passport<ArrowRight size={17}/></button>
  </div>;
@@ -631,7 +638,11 @@ export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOn
   {modules.map(([n,d,p])=><button className="panel module-card" key={n} onClick={()=>open(n)}><Pill tone="plain">{p}</Pill><h3>{n}<ArrowUpRight size={17}/></h3><p>{d}</p><small>{p==='Phase 1'?'Being built now':'On the roadmap'}</small></button>)}
  </div></>}
 const menuGroups=[
- [['My family','Manage your loved ones',Users,'My family'],['Care plans','Ongoing care and subscriptions',HeartHandshake,'Care plans'],['Thuso Wallet','Balance, activity and sponsored care',CreditCard,'Thuso Wallet']],
+ /* Live well first in this group, because on a phone this hub is the only door to it — the tab bar
+    holds five targets at 320px and the sixth would have come out of the four a person navigates by.
+    The sub-line says what the screen is rather than selling it: there is nothing to sell. */
+ [['Live well','What you did, in your own words, beside your record',NotebookPen,'Live well'],
+  ['My family','Manage your loved ones',Users,'My family'],['Care plans','Ongoing care and subscriptions',HeartHandshake,'Care plans'],['Thuso Wallet','Balance, activity and sponsored care',CreditCard,'Thuso Wallet']],
  [['Care area','Rosebank, Johannesburg',MapPin,'@Your location'],['Notifications','Visit updates and messages',Bell,'@Notifications'],['Privacy & settings','Your data and app preferences',Settings2,'Privacy & settings'],['Language','Read MyThuso your way',Globe,'@Language'],['Language & access','Twelve official languages, and what is honestly offered in each',Languages,'Language & access']],
  /* Emergency first in this group, and in the shell's sidebar as well. It was the fourteenth card
     inside a roadmap page — the most complete journey in the product behind the most clicks in it,

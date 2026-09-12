@@ -331,3 +331,114 @@
 @media(prefers-reduced-motion:reduce){
  .explain-chevron{transition:none}
 }
+
+/* ---- Live well ---------------------------------------------------------------------------------
+   The one patient screen with no figure on it.
+
+   Every other screen in this application is built around the reference's signature move — a large
+   thin numeral with a small label under it — and this one has nothing that could honestly be set in
+   that type. So the hierarchy is carried by the thing a person came here to do: the field they are
+   about to write in is the largest, most solid, most frosted object on the page, and everything
+   else is quieter than it. What that buys is more than composition. A number invented so this
+   screen would match the others is the exact harm the contract is written against.
+
+   Two columns from 1000px. The left is what somebody came for — the field, then what they wrote.
+   The right is what the feature owes them — the door to the visit, and the seven refusals. They are
+   columns rather than one stack because a diary entry set across 1,100 pixels is a line nobody can
+   read back, and because a refusal buried under thirty entries has been filed rather than said. */
+.wb-columns{display:grid;gap:var(--space-24);align-items:start}
+.wb-main,.wb-side{min-width:0;display:flex;flex-direction:column}
+/* One edge down the column rather than eleven. The notes in this app are capped at a reading measure
+   and the panels are not, so a column of both has a ragged right side and no alignment at all.
+   Capping the column itself and letting everything inside it fill gives the entries, the tiles, the
+   notes and the field one line to end on. 620px is the measure — about seventy characters of the
+   15px the entries are set in, with the card's own padding taken off. Below 700 the viewport is
+   already narrower than that and nothing here binds. */
+@media(min-width:700px){
+ .wb-columns{max-width:620px}
+ /* Named rather than a wildcard, and doubled up on purpose: core.css caps these at 68ch with
+    `p.helper` and `.privacy-note`, so a one-class selector here loses to it and the column goes
+    ragged again. */
+ .wb-columns p,.wb-columns p.helper,.wb-columns .privacy-note,.wb-columns .empty-note{max-width:none}
+}
+@media(min-width:1000px){
+ .wb-columns{max-width:none;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:var(--space-32) var(--space-24)}
+ .wb-main{max-width:620px}
+}
+/* The sentence the feature stands on, one step up from a note: 14px rather than 13 and the body
+   ink rather than the muted one, because it is the first thing on the page that is not a heading. */
+.wb-standing{margin-bottom:var(--space-24)}
+.wb-standing>span{font-size:14px;line-height:1.65;color:var(--slate)}
+
+.wb-write{display:flex;flex-direction:column;gap:var(--space-16)}
+.wb-choose{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--space-12)}
+.wb-choose legend{padding:0;font-size:16px;font-weight:600;letter-spacing:-.3px;color:var(--ink)}
+.wb-habits{display:flex;flex-wrap:wrap;gap:var(--space-8)}
+/* Five chips, one shape, one colour. No tint per habit: colour keyed to a name is a second way of
+   saying what the word already says, and five tints across five habits would have made the accent
+   stop pointing at anything — which is the mistake this palette's own notes record making once. */
+.wb-habit{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 16px;border:1px solid var(--faint);border-radius:var(--r-pill);background:var(--surface);color:var(--slate);font-size:14px;font-weight:550;cursor:pointer;transition:background-color var(--t-quick) var(--ease-soft),border-color var(--t-quick) var(--ease-soft)}
+.wb-habit>svg{color:var(--faint);flex-shrink:0}
+.wb-habit.selected{background:var(--charcoal);border-color:var(--charcoal);color:var(--surface)}
+.wb-habit.selected>svg{color:var(--surface)}
+/* Clipped rather than zero-sized, so the radio keeps its place in the focus order and the label it
+   sits in wears the ring on its behalf — the same arrangement the earnings and teleconsult
+   switches use, and for the same reason. */
+.wb-habit input{position:absolute;width:1px;height:1px;margin:-1px;opacity:0;clip:rect(0 0 0 0)}
+.wb-habit:has(:focus-visible){outline:3px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 7px var(--focus-edge)}
+/* The contract's own question, as the field's label rather than as a heading above it. It is the
+   largest text in the panel because it is the only instruction on the screen. */
+.wb-prompt{display:block;font-size:18px;font-weight:500;letter-spacing:-.3px;line-height:1.4;color:var(--ink)}
+.wb-write textarea{min-height:118px;background:var(--surface)}
+.wb-write-foot{display:flex;flex-wrap:wrap;gap:var(--space-12);align-items:center}
+.wb-write-foot .primary{flex:0 0 auto}
+.wb-said{flex:1 1 14ch;font-size:13px;line-height:1.5;color:var(--body);margin:0}
+.wb-private{color:var(--body)}
+
+.wb-record{display:flex;flex-direction:column;gap:var(--space-16)}
+.wb-record-lead{color:var(--body)}
+/* The gap refusal is a tile and not a third line of grey helper text. It is the same shape as the
+   seven in the other column because it is one of the ten, and because two identical grey lines
+   above a record is a reader skipping both. */
+.wb-gap{display:grid;grid-template-columns:auto 1fr;gap:var(--space-12);align-items:start;background:var(--canvas);border-radius:var(--r-tile);padding:13px 16px;color:var(--body);margin:0}
+.wb-gap>svg{margin-top:2px;color:var(--faint)}
+.wb-day{display:flex;flex-direction:column;gap:var(--space-8)}
+.wb-day>h3{font-size:13px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;color:var(--faint)}
+.wb-day>ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--space-8)}
+.wb-entry{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:10px var(--space-16) var(--space-16);display:grid;gap:var(--space-4)}
+/* The removes line up down the trailing edge rather than sitting under each entry, which takes a
+   line off every card and makes them a column instead of five loose controls. */
+.wb-entry-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-12)}
+.wb-entry-head strong{font-size:14px;font-weight:600;color:var(--ink)}
+.wb-entry-head small{font-size:13px;color:var(--faint);font-variant-numeric:tabular-nums}
+.wb-entry>p{font-size:15px;line-height:1.6;color:var(--slate);margin:0}
+.wb-remove{min-height:44px;margin-left:auto;color:var(--body)}
+.wb-remove:hover{color:var(--ink)}
+
+.wb-bring{display:flex;flex-direction:column;gap:var(--space-16);align-items:flex-start}
+.wb-bring-head{display:flex;gap:var(--space-12);align-items:flex-start}
+.wb-bring-head>div{min-width:0}
+.wb-bring-head h3{font-size:16px;font-weight:600;letter-spacing:-.3px;line-height:1.35}
+.wb-bring-head p{font-size:13px;line-height:1.6;color:var(--body);margin-top:6px}
+
+.wb-refusals{display:grid;gap:var(--space-8)}
+.wb-refusal{display:grid;grid-template-columns:auto 1fr;gap:var(--space-12);background:var(--canvas);border-radius:var(--r-tile);padding:14px 16px}
+.wb-refusal>svg{color:var(--faint);margin-top:2px}
+.wb-refusal p{font-size:13px;line-height:1.6;color:var(--body);margin:0}
+/* Between 700 and 1000 the side column has not split off yet and the refusals have the whole width,
+   which is two columns' worth of it. */
+@media(min-width:700px) and (max-width:999px){
+ .wb-refusals{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* What was written, on the visit's own screen. Quieter than the visit: it is something to read out,
+   not something the visit is about. */
+.wb-brought ul{list-style:none;margin:var(--space-12) 0 0;padding:0;display:grid;gap:var(--space-12)}
+.wb-brought li+li{border-top:1px solid var(--line);padding-top:var(--space-12)}
+.wb-brought-day{display:block;font-size:13px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;color:var(--faint);margin-bottom:6px}
+.wb-brought p{font-size:14px;line-height:1.6;color:var(--slate);margin:0 0 6px}
+.wb-brought strong{color:var(--ink);font-weight:600}
+
+@media(prefers-reduced-motion:reduce){
+ .wb-habit{transition:none}
+}

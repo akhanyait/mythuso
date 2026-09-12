@@ -118,12 +118,15 @@ const audit = async (page: Page, where: string) => {
   expect(await undersizedText(page, MIN_TEXT), `${where} renders text under ${MIN_TEXT}px, which is the smallest size the type scale declares`).toEqual([]);
 };
 
-/* The five patient screens the home's restructure did not reach. Health Passport was already
+/* The patient screens the home's restructure did not reach. Health Passport was already
    audited below; the other four were not, and Privacy & settings was where that showed — its three
    sharing switches were 50x30, the only controls left in the app under the floor the token file
    sets, on the screen where a person turns data sharing on and off. An audit that visits four of
    five screens is an audit of four screens. */
-const patientSurfaces = ['Health Passport', 'My family', 'Care plans', 'Thuso Wallet', 'Privacy & settings'] as const;
+/* Live well joined them the day it landed, rather than a release later. It is the screen with the
+   most text on it per square inch and the one whose controls are newest, which is exactly the
+   combination the 320px and 200% sweeps exist for. */
+const patientSurfaces = ['Health Passport', 'Live well', 'My family', 'Care plans', 'Thuso Wallet', 'Privacy & settings'] as const;
 const openPatientSurface = async (page: Page, name: string) => {
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (await sidebar.isVisible()) {
@@ -298,7 +301,7 @@ test.describe('at 200% zoom', () => {
     await audit(page, 'Thuso SOS at 200%');
   });
 
-  test('the five patient screens reflow rather than scroll sideways', async ({ page }) => {
+  test('the six patient screens reflow rather than scroll sideways', async ({ page }) => {
     await page.goto('/');
     await zoomedTo200(page);
     for (const surface of patientSurfaces) {

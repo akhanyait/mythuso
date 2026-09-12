@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Activity, Ambulance, ArrowRight, Bell, CalendarDays, ChevronDown, CircleHelp, CreditCard, Globe, HeartHandshake, House, Languages, LayoutGrid, MapPin, MessageCircle, Settings2, Stethoscope, Users } from 'lucide-react';
+import { Activity, Ambulance, ArrowRight, Bell, CalendarDays, ChevronDown, CircleHelp, CreditCard, Globe, HeartHandshake, House, Languages, LayoutGrid, MapPin, MessageCircle, NotebookPen, Settings2, Stethoscope, Users } from 'lucide-react';
 import { locales, useT, type LocaleCode } from '../lib/i18n';
 
 /* The patient application's chrome, and only the patient's.
@@ -15,9 +15,17 @@ import { locales, useT, type LocaleCode } from '../lib/i18n';
  * around the preview notice. The notice itself stays — it is true, and a shipped preview that stops
  * saying it is a preview is the one defect this codebase will not tolerate. */
 
+/* Live well sits between the Passport and the family, which is where the founder's prototype puts
+   it — beside Care, Visit, Passport and Family. It is a sidebar row and not a sixth tab on a phone:
+   a strip of five 44px targets is what 320px holds, and the sixth would have taken the width from
+   the four a person navigates by. Below 1000px it is the first row in the More hub instead.
+
+   Explore MyThuso stays last. tests/deep-journeys.spec.ts reaches it by position, deliberately,
+   because that journey has switched the shell into isiZulu and cannot name it. */
 const navigation = [
  ['Overview', House], ['Book a nurse', Stethoscope], ['My visits', CalendarDays], ['Health Passport', Activity],
- ['My family', Users], ['Care plans', HeartHandshake], ['Thuso Wallet', CreditCard], ['Explore MyThuso', LayoutGrid]
+ ['Live well', NotebookPen], ['My family', Users], ['Care plans', HeartHandshake], ['Thuso Wallet', CreditCard],
+ ['Explore MyThuso', LayoutGrid]
 ] as const;
 const tabs = [
  ['Overview', 'Home', House], ['Book a nurse', 'Book care', Stethoscope], ['My visits', 'Visits', CalendarDays],
