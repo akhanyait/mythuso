@@ -89,10 +89,9 @@ import androidx.compose.foundation.text.KeyboardActions
         HomeCarePlan(open)
         HomeFamily(store, open)
         PassportPromo(store, open)
-        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-            TextButton(onClick = firstRun, modifier = Modifier.heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("See the first-run and recovery flow") }
-            Text(thuso(Phrase.TAGLINE, store.locale), style = MaterialTheme.typography.bodySmall, color = Faint, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-        }
+        /* The tagline used to close this screen in thirteen-point grey. It opens it now, at forty
+           points on a lime block, so it is not repeated down here. */
+        TextButton(onClick = firstRun, modifier = Modifier.heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("See the first-run and recovery flow") }
     }
 }
 
@@ -102,13 +101,25 @@ import androidx.compose.foundation.text.KeyboardActions
 @OptIn(ExperimentalLayoutApi::class)
 @Composable private fun HomeGreeting(store: PreviewStore, open: (String) -> Unit) {
     var areaMenu by remember { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${thuso(Phrase.GREETING, store.locale)} 👋", style = MaterialTheme.typography.headlineSmall, color = Charcoal,
-                 modifier = Modifier.semantics { heading() })
-            Text(thuso(Phrase.GREETING_SUB, store.locale), style = MaterialTheme.typography.bodyMedium, color = BodyText)
-        }
+    Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
         DemoBadge()
+        /* THE HEADLINE IS THE CONTRACT'S OWN WORDS, IN ELEVEN LANGUAGES.
+           The prototype's patient frame is a greeting over a short line about what the product is
+           for, both set very large. The temptation was to type the second line in English and let ten
+           locales show a slogan nobody had translated, on the one screen a person opens first. There
+           was no need: shell.greeting and shell.tagline are both in locales.json, reviewed to the
+           same standard as the rest of the shell, and "Help. Health. Home." is three words in every
+           one of them. So the tagline is promoted from a centred grey caption at the very bottom of
+           this screen to the second line of the headline. Nothing new was written.
+
+           The waving hand went with it. An emoji at forty points is a picture the size of a word,
+           TalkBack reads it aloud as "waving hand" after the greeting, and it was the one decorative
+           object in a design that has no others. */
+        StudioHeadline(
+            lead = thuso(Phrase.GREETING, store.locale),
+            accent = thuso(Phrase.TAGLINE, store.locale),
+            detail = thuso(Phrase.GREETING_SUB, store.locale)
+        )
         /* A FlowRow rather than a Row: at the largest font scales the two chips take a line each
            instead of squeezing the care area down to an ellipsis. */
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -135,7 +146,7 @@ import androidx.compose.foundation.text.KeyboardActions
 @Composable private fun ContextChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, label: String, click: () -> Unit) {
     Row(
         Modifier.heightIn(min = TouchTarget).clip(CircleShape).background(Color.White.copy(alpha = 0.92f))
-            .border(1.dp, Stone, CircleShape).clickable(onClick = click)
+            .border(1.dp, StudioLine, CircleShape).clickable(onClick = click)
             .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space8)
             .semantics { contentDescription = label },
         verticalAlignment = Alignment.CenterVertically,
@@ -170,22 +181,33 @@ import androidx.compose.foundation.text.KeyboardActions
             val spoken = "${visit.service.name}, ${visit.status}. ${visit.shortWhenText}. " +
                 (if (visit.isScheduled) "${visit.service.duration} minutes. " else "Looking for the nearest nurse. ") +
                 "${visit.address}. Sister Naledi Mokoena, Registered Nurse, SANC."
-            LeadCard(
+            /* THE ONE NEAR-BLACK CARD ON THIS SCREEN, AND IT CARRIES THE ONE THING ALREADY TRUE.
+               The prototype's phone frames spend exactly one dark card and spend it on what is live
+               right now. On a returning patient's home that is the visit somebody has arranged — not
+               the catalogue under it and not the promotion at the foot of it. It was a pale lead card
+               among seven other cards, which is the defect the design language names first.
+
+               The chip loses its tone word on the way. On a card that is one node to TalkBack and one
+               object on the screen, a teal chip and an amber chip were two colours saying what the
+               words beside them already say; the night chip says the word. */
+            StudioNightCard(
                 Modifier
                     .clickable { open("Visit: ${visit.service.name} · ${visit.shortWhenText}") }
                     .semantics(mergeDescendants = true) { contentDescription = spoken }
             ) {
-                StatusHeader(visit.status, if (visit.isScheduled) "teal" else "amber") {
-                    Text(visit.service.name, style = MaterialTheme.typography.titleLarge, color = Charcoal)
-                    Text(visit.shortWhenText, style = MaterialTheme.typography.bodyMedium, color = BodyText)
+                StudioNightStatusHeader(visit.status) {
+                    Text(visit.service.name, style = MaterialTheme.typography.titleLarge, color = StudioNightInk)
+                    Text(visit.shortWhenText, style = MaterialTheme.typography.bodyMedium, color = StudioNightInkQuiet)
                 }
                 /* An arrival estimate belongs to "come now" and to nothing else; a visit booked for a
                    named hour says how long it takes instead, from the catalogue. */
                 if (visit.isScheduled) IconLine(Icons.Outlined.Schedule, "${visit.service.duration} minutes")
                 else IconLine(Icons.Outlined.Bolt, "Looking for the nearest nurse")
                 IconLine(Icons.Outlined.LocationOn, visit.address)
-                HorizontalDivider(color = Stone)
-                NurseRow { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Faint) }
+                /* A rule on a card this dark is drawn in the card's own ink. StudioLine is a hairline
+                   for a light ground and there is nothing of it to see here. */
+                HorizontalDivider(color = StudioPaper.copy(alpha = 0.18f))
+                NurseRow { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = StudioNightInkQuiet) }
             }
         }
     }
@@ -240,7 +262,7 @@ import androidx.compose.foundation.text.KeyboardActions
                         Text("${service.duration} min", style = MaterialTheme.typography.bodySmall, color = Faint)
                     }
                 }
-                if (index < 3) HorizontalDivider(color = Stone)
+                if (index < 3) HorizontalDivider(color = StudioLine)
             }
         }
     }
@@ -264,7 +286,7 @@ import androidx.compose.foundation.text.KeyboardActions
                     Text(name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
                     Text(value, style = MaterialTheme.typography.bodySmall, color = BodyText)
                 }
-                if (index < results.size - 1) HorizontalDivider(color = Stone)
+                if (index < results.size - 1) HorizontalDivider(color = StudioLine)
             }
         }
     }
@@ -300,7 +322,7 @@ import androidx.compose.foundation.text.KeyboardActions
                 }
                 if (portrait != null) PersonRow(member, relationship, portrait) { open("My family") }
                 else MenuRow(member, relationship, Icons.Outlined.AccountCircle) { open("My family") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
             }
             MenuRow("Add a family member", "", Icons.Outlined.PersonAdd) { open("My family") }
         }
@@ -318,10 +340,17 @@ import androidx.compose.foundation.text.KeyboardActions
     }
 }
 
+/* THE PROMOTION GAVE UP THE DARK CARD, BECAUSE THERE IS ONLY ONE OF THOSE.
+   It was charcoal, and so is the visit at the top of this screen now — two near-black cards on one
+   page, which is two subjects, which is none. One of those claims is a nurse arriving at somebody's
+   house on Thursday and the other is an invitation to look at a record, and they were drawn
+   identically. It takes studioPeach, one of the three tiles this palette declares, with charcoal on
+   it at 12.1:1. It is still the warmest object at the foot of the screen; it has stopped competing
+   with the thing that is actually happening. */
 @Composable private fun PassportPromo(store: PreviewStore, open: (String) -> Unit) {
     Box(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.card))
-            .background(Charcoal)
+            .background(StudioPeach)
             .clickable { open("Health Passport") }.padding(ThusoSpacing.space20)
             .semantics(mergeDescendants = true) {}
     ) {
@@ -346,8 +375,8 @@ import androidx.compose.foundation.text.KeyboardActions
             contentScale = ContentScale.Crop
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Sister Naledi Mokoena", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-            Text("Registered Nurse (SANC)", style = MaterialTheme.typography.bodySmall, color = BodyText)
+            Text("Sister Naledi Mokoena", style = MaterialTheme.typography.titleSmall, color = studioTitleInk())
+            Text("Registered Nurse (SANC)", style = MaterialTheme.typography.bodySmall, color = studioBodyInk())
         }
         trailing?.invoke()
     }
@@ -428,7 +457,7 @@ fun serviceIcon(id: String) = when (id) {
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
             Text("From R${service.price}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-            Text("·", style = MaterialTheme.typography.bodySmall, color = Stone)
+            Text("·", style = MaterialTheme.typography.bodySmall, color = StudioLine)
             Text("${service.duration} minutes", style = MaterialTheme.typography.bodySmall, color = Faint)
         }
     }
@@ -603,7 +632,7 @@ fun serviceIcon(id: String) = when (id) {
             Column(
                 Modifier.widthIn(min = 66.dp).heightIn(min = 72.dp).padding(vertical = 4.dp)
                     .background(if (day == index) Charcoal else SurfaceWhite, RoundedCornerShape(ThusoRadius.card))
-                    .border(1.dp, if (day == index) Indigo else Stone, RoundedCornerShape(ThusoRadius.card))
+                    .border(1.dp, if (day == index) Indigo else StudioLine, RoundedCornerShape(ThusoRadius.card))
                     .clickable { onDay(index) }
                     .semantics { selected = day == index; contentDescription = Scheduling.longDate(offered.date) },
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -621,7 +650,7 @@ fun serviceIcon(id: String) = when (id) {
                 Box(
                     Modifier.weight(1f).heightIn(min = TouchTarget)
                         .background(if (slot == time) Charcoal else SurfaceWhite, RoundedCornerShape(ThusoRadius.control))
-                        .border(1.dp, if (slot == time) Indigo else Stone, RoundedCornerShape(ThusoRadius.control))
+                        .border(1.dp, if (slot == time) Indigo else StudioLine, RoundedCornerShape(ThusoRadius.control))
                         .clickable { onSlot(time) }.semantics { selected = slot == time },
                     Alignment.Center
                 ) { Text(time, style = MaterialTheme.typography.titleSmall, color = if (slot == time) Color.White else BodyText) }
@@ -710,7 +739,7 @@ fun serviceIcon(id: String) = when (id) {
             PrimaryTabRow(
                 selectedTabIndex = tabs.indexOf(tab),
                 containerColor = Color.Transparent,
-                divider = { HorizontalDivider(color = Stone) }
+                divider = { HorizontalDivider(color = StudioLine) }
             ) {
                 tabs.forEach { name ->
                     Tab(
@@ -744,7 +773,7 @@ fun serviceIcon(id: String) = when (id) {
                                 }
                             }
                             if (row.nurse) {
-                                HorizontalDivider(color = Stone)
+                                HorizontalDivider(color = StudioLine)
                                 NurseRow()
                             }
                             /* Every visit that exists can be moved and can be cancelled — not only
@@ -761,7 +790,7 @@ fun serviceIcon(id: String) = when (id) {
                                rows all offering "Cancel this visit" are three identical stops to a
                                screen reader with nothing to tell them apart. */
                             row.visit?.let { visit ->
-                                HorizontalDivider(color = Stone)
+                                HorizontalDivider(color = StudioLine)
                                 Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
                                     OutlinedButton(
                                         onClick = { moving = visit },
@@ -769,7 +798,7 @@ fun serviceIcon(id: String) = when (id) {
                                             .semantics { contentDescription = "Move the ${row.title} visit, ${row.time}" },
                                         shape = ThusoButtonShape
                                     ) { Text("Reschedule") }
-                                    if (row.nurse) Button(
+                                    if (row.nurse) StudioButton(
                                         onClick = { open("Visit: ${row.title} · ${row.time}") },
                                         Modifier.weight(1f).heightIn(min = TouchTarget),
                                         shape = ThusoButtonShape
@@ -853,8 +882,9 @@ fun serviceIcon(id: String) = when (id) {
     moving?.let { visit -> RescheduleVisitDialog(visit, store) { moving = null } }
 }
 @Composable fun IconLine(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    val ink = studioBodyInk()
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Icon(icon, null, tint = BodyText, modifier = Modifier.size(14.dp))
-        Text(text, style = MaterialTheme.typography.bodySmall, color = BodyText)
+        Icon(icon, null, tint = ink, modifier = Modifier.size(14.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = ink)
     }
 }

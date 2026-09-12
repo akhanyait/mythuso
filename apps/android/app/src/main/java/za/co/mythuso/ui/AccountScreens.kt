@@ -85,7 +85,7 @@ import za.co.mythuso.model.mokoenaHousehold
                 selectedTabIndex = tabs.indexOf(tab),
                 containerColor = Color.Transparent,
                 edgePadding = 0.dp,
-                divider = { HorizontalDivider(color = Stone) }
+                divider = { HorizontalDivider(color = StudioLine) }
             ) {
                 tabs.forEach { name ->
                     Tab(
@@ -98,9 +98,9 @@ import za.co.mythuso.model.mokoenaHousehold
             when (tab) {
                 "Records" -> CareCard(padding = ThusoSpacing.space8) {
                     MenuRow("Visit summary", "Fictional document · 4 September", Icons.Outlined.Description) { open("Visit summary") }
-                    HorizontalDivider(color = Stone)
+                    HorizontalDivider(color = StudioLine)
                     MenuRow("Laboratory results", "Fasting panel · Released", Icons.Outlined.Science) { open("Laboratory order LAB-0023") }
-                    HorizontalDivider(color = Stone)
+                    HorizontalDivider(color = StudioLine)
                     MenuRow("Medical certificate", "Doctor reviewed · Demo", Icons.Outlined.VerifiedUser) { open("Medical certificate") }
                 }
                 "Medications" -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
@@ -112,7 +112,7 @@ import za.co.mythuso.model.mokoenaHousehold
                         StateBlock(deviceState, "Readings from your connected devices", "Health Connect access", { deviceState = LoadState.READY }) {
                             CareCard(padding = ThusoSpacing.space8) {
                                 MenuRow("Health Connect", "What would be read, and what never would", Icons.Outlined.MonitorHeart) { open("Health Connect") }
-                                HorizontalDivider(color = Stone)
+                                HorizontalDivider(color = StudioLine)
                                 /* The patient's side of the kit is the readings it wrote into her record, not
                                    the pairing surface — that one is a clinician's, and it opens under a
                                    nurse's registration. */
@@ -182,7 +182,7 @@ import za.co.mythuso.model.mokoenaHousehold
 @Composable fun ActionTile(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier, click: () -> Unit) {
     Column(
         modifier.heightIn(min = 88.dp).background(Color.White, RoundedCornerShape(ThusoRadius.card))
-            .border(1.dp, Stone, RoundedCornerShape(ThusoRadius.card)).clickable(onClick = click)
+            .border(1.dp, StudioLine, RoundedCornerShape(ThusoRadius.card)).clickable(onClick = click)
             .padding(ThusoSpacing.space12)
             .semantics(mergeDescendants = true) {},
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
@@ -223,20 +223,20 @@ import za.co.mythuso.model.mokoenaHousehold
         Section("Your care") {
             CareCard(padding = ThusoSpacing.space8) {
                 MenuRow("My family", "Manage your loved ones", Icons.Outlined.People) { open("My family") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("Care plans", "Ongoing care and subscriptions", Icons.Outlined.FavoriteBorder) { open("Care plans") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("Payments", "Cards, history and refunds", Icons.Outlined.CreditCard) { open("Thuso Wallet") }
             }
         }
         Section("Settings") {
             CareCard(padding = ThusoSpacing.space8) {
                 MenuRow("Notifications", "Visit updates and messages", Icons.Outlined.Notifications) { open("Notifications") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("Privacy & settings", "Your data and app preferences", Icons.Outlined.Tune) { open("Privacy & settings") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("Language", "Read MyThuso your way", Icons.Outlined.Language) { open("Language") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("Interpreters", "South African Sign Language: who is free, and what happens when nobody is", Icons.Outlined.Language) { open("Interpreters") }
             }
         }
@@ -249,7 +249,7 @@ import za.co.mythuso.model.mokoenaHousehold
                                           "Pharmacy and laboratory orders", "Dispatch, incidents and vetting"))
                     .forEachIndexed { index, (role, detail) ->
                         MenuRow("$role workspace", detail, workspaceSections(role).first().icon) { open("$role workspace") }
-                        if (index < workspaceRoles.size - 1) HorizontalDivider(color = Stone)
+                        if (index < workspaceRoles.size - 1) HorizontalDivider(color = StudioLine)
                     }
             }
             Note("A role preview for design review. Nothing here authenticates anybody or grants access to a record.")
@@ -257,19 +257,19 @@ import za.co.mythuso.model.mokoenaHousehold
         Section("For design review") {
             CareCard(padding = ThusoSpacing.space8) {
                 MenuRow("First-run & recovery", "Sign-up, one-time code and lost access", Icons.Outlined.PersonAdd) { firstRun() }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("System states", "Loading, error, offline and denied", Icons.Outlined.Layers) { open("System states") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("Explore the roadmap", "All 21 modules in the proposal", Icons.Outlined.GridView) { open("Roadmap") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("Vetting & verification", "Every party MyThuso vets, and what each is refused until it passes", Icons.Outlined.VerifiedUser) { open("Vetting pipeline") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("Patient file", "The clinician-facing record, and what each viewer is refused", Icons.Outlined.FolderShared) { open("Patient file") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("Consultation record", "One structure for every encounter, in long form or SOAP", Icons.Outlined.EditNote) { open("Consultation record") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("Household record", "One household, and what each member may see of the others", Icons.Outlined.Groups) { open("Household record") }
-                HorizontalDivider(color = Stone)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("Health summary", "The shareable summary, bound to a purpose and a period", Icons.Outlined.Share) { open("Health summary") }
             }
         }
@@ -297,7 +297,7 @@ import za.co.mythuso.model.mokoenaHousehold
                    "Thuso Locum", "Thuso Academy", "Thuso Money", "Thuso Cover", "Thuso Devices", "Thuso Kit", "Thuso AI", "Thuso Doctor")
                 .forEachIndexed { index, feature ->
                     MenuRow(feature, "", Icons.Outlined.GridView) { open(feature) }
-                    if (index < 14) HorizontalDivider(color = Stone)
+                    if (index < 14) HorizontalDivider(color = StudioLine)
                 }
         }
     }
@@ -406,7 +406,7 @@ import za.co.mythuso.model.mokoenaHousehold
         CareCard {
             Text("Add a fictional family member")
             OutlinedTextField(name, { name = it.take(60) }, label = { Text("Display name") }, modifier = Modifier.fillMaxWidth())
-            Button(onClick = { store.family.add(name.trim()); name = "" }, enabled = name.isNotBlank(), shape = ThusoButtonShape) { Text("Add demo member") }
+            StudioButton(onClick = { store.family.add(name.trim()); name = "" }, enabled = name.isNotBlank(), shape = ThusoButtonShape) { Text("Add demo member") }
         }
         InvitationList(store, open)
         CareCard {
@@ -593,13 +593,22 @@ fun workspaceUrgency(role: String, store: PreviewStore): List<Triple<String, Str
 @Composable fun WorkspaceUrgency(role: String, store: PreviewStore) {
     val entries = workspaceUrgency(role, store)
     BoxWithConstraints { val room = maxWidth
-    Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+    /* THE ONE NEAR-BLACK CARD ON THE SCREEN, AND IT CARRIES WHAT IS WAITING RIGHT NOW.
+       The strip was a pale sage lead card with two white cards beside it, which was the right answer
+       against a grey ground and is the previous generation's accent against a cream one. It is
+       studioNight now, which is what the prototype gives the thing that is live — and for somebody
+       holding a phone on a doorstep the thing that is live is the count of what has not been done.
+
+       The figures were upside down as well as the wrong colour: a small label above a large value
+       above a note, where docs/DESIGN-LANGUAGE.md asks for *a status chip floating above a large
+       light numeral, with a small label beneath*. The note is the chip, the value is the numeral and
+       the label sits under it, so the strip reads the way every other metric in the product does. */
+    StudioNightCard {
         entries.firstOrNull()?.let { (label, value, note) ->
-            LeadCard(Modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" }) {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = Indigo)
-                Text(value, style = MaterialTheme.typography.displaySmall, color = Charcoal)
-                Text(note, style = MaterialTheme.typography.bodyMedium, color = BodyText)
-            }
+            StudioNightFigure(
+                label, value, note, lead = true,
+                modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" }
+            )
         }
         /* Two half-width cards, until half is not a width any more.
            At the largest font scale on a tablet-shaped window the rail takes 110dp off the row, and
@@ -614,17 +623,13 @@ fun workspaceUrgency(role: String, store: PreviewStore): List<Triple<String, Str
            column. Above it they sit side by side exactly as before. */
         val stacked = room < 320.dp
         @Composable fun figure(label: String, value: String, note: String, modifier: Modifier) {
-            CareCard(
-                modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" },
-                padding = ThusoSpacing.space12
-            ) {
-                Text(label, style = MaterialTheme.typography.bodySmall, color = Faint)
-                Text(value, style = MaterialTheme.typography.titleLarge, color = Charcoal)
-                Text(note, style = MaterialTheme.typography.bodySmall, color = BodyText)
-            }
+            StudioNightFigure(
+                label, value, note,
+                modifier = modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" }
+            )
         }
         if (stacked) entries.drop(1).forEach { (label, value, note) -> figure(label, value, note, Modifier.fillMaxWidth()) }
-        else Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+        else Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
             entries.drop(1).forEach { (label, value, note) -> figure(label, value, note, Modifier.weight(1f)) }
         }
     } }
@@ -645,9 +650,15 @@ fun workspaceUrgency(role: String, store: PreviewStore): List<Triple<String, Str
         /* No eyebrow naming the workspace: the app bar above already says which one this is, and a
            screen that says "Control Tower workspace" twice — once in small capitals underneath
            itself — is spending the reader's first line on something they have just read. */
+        /* THE SECTION A ROLE LANDS ON IS FRAMED; THE OTHERS ARE LABELLED.
+           The landing opens with the role's own two-tone headline and keeps the preview disclosure
+           immediately under it, word for word. Every other section keeps the plain heading it had: a
+           display headline on all four of a role's tabs would be four claims of the same size, which
+           is the inverse of what a display size is for. */
         if (landing) {
+            val (lead, accent) = workspaceFraming(role)
             Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-                Heading("", section, "Role preview for design review, not authentication.")
+                StudioHeadline(lead, accent, "Role preview for design review, not authentication.")
                 DemoBadge()
             }
             WorkspaceUrgency(role, store)
