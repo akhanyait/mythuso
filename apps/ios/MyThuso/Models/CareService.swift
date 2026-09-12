@@ -74,6 +74,11 @@ struct GuardianInvitation: Identifiable, Hashable {
     @Published var wearableSharing = false
     @Published var marketing = false
     @Published var locale: ThusoLocale = .english
+    /* What somebody wrote in Live well. In memory and nowhere else — deliberately not in either of
+       the ledgers on the disk, because wellbeing.json's no-sharing-by-default refusal says what a
+       person writes there is not added to their record and is not sent to anybody, and a diary
+       quietly persisted beside a nurse's captured work is the first half of sending it. */
+    @Published var wellbeing = Wellbeing.seed
     @Published var invitations = [
         GuardianInvitation(id: "INV-0031", name: "Nomsa Molefe", relationship: "Mother", scope: "Visit summaries only", expires: "Until I revoke it", status: "Active"),
         GuardianInvitation(id: "INV-0034", name: "Kagiso Molefe", relationship: "Brother", scope: "Bookings and payments only", expires: "31 December 2026", status: "Awaiting acceptance")

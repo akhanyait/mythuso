@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import za.co.mythuso.model.CaptureState
+import za.co.mythuso.model.FramingData
 import za.co.mythuso.model.Passport
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.Scheduling
@@ -222,6 +223,8 @@ import za.co.mythuso.model.mokoenaHousehold
         }
         Section("Your care") {
             CareCard(padding = ThusoSpacing.space8) {
+                LiveWellRow(open)
+                HorizontalDivider(color = StudioLine)
                 MenuRow("My family", "Manage your loved ones", Icons.Outlined.People) { open("My family") }
                 HorizontalDivider(color = StudioLine)
                 MenuRow("Care plans", "Ongoing care and subscriptions", Icons.Outlined.FavoriteBorder) { open("Care plans") }
@@ -314,6 +317,11 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "What your readings mean" -> ExplainReadingsScreen(open)
         title == "Visit summary" -> PastVisitScreen(store, Passport.latestSet.dayOffset, open)
         isDevicePermissionScreen(title) -> DevicePermissionScreen(title, open)
+        /* Live well is the patient's own diary and it is a route of its own rather than a tab
+           inside the passport, because the passport is what clinicians measured and this is what
+           the person said. Putting them behind one door is the blur wellbeing.json's
+           no-reading-interpreted refusal is written to prevent. */
+        title == "Live well" -> LiveWellScreen(store, open)
         title == "My family" -> FamilyScreen(store, open)
         /* The payer's own view of what they pay for. Its own route rather than a tab inside the
            family screen: a sponsor is not a guardian, and putting the two behind one door is the
@@ -655,10 +663,15 @@ fun workspaceUrgency(role: String, store: PreviewStore): List<Triple<String, Str
            immediately under it, word for word. Every other section keeps the plain heading it had: a
            display headline on all four of a role's tabs would be four claims of the same size, which
            is the inverse of what a display size is for. */
-        if (landing) {
-            val (lead, accent) = workspaceFraming(role)
+        /* The words are packages/catalog/framing.json's, generated into FramingData.kt and into
+           iOS's FramingData.swift from the one file. They were typed here and typed again on iOS,
+           with a comment in each admitting the honest home was a contract; this is that contract. A
+           role the contract has not framed falls through to the plain heading rather than borrowing
+           the nurse's words, which is what the when expression's else branch used to do silently. */
+        val framing = if (landing) FramingData.forRole(role) else null
+        if (framing != null) {
             Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-                StudioHeadline(lead, accent, "Role preview for design review, not authentication.")
+                StudioHeadline(framing.lead, framing.accent, "Role preview for design review, not authentication.")
                 DemoBadge()
             }
             WorkspaceUrgency(role, store)

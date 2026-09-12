@@ -17,7 +17,7 @@
     "tokens": "node scripts/emit-tokens.mjs",
     "vetting": "node scripts/emit-vetting.mjs",
     "records": "node scripts/emit-records.mjs",
-    "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes && npm run interpreting && npm run scheduling && npm run geography && npm run capabilities && npm run cancellation && npm run passport && npm run capture",
+    "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes && npm run interpreting && npm run scheduling && npm run geography && npm run capabilities && npm run cancellation && npm run passport && npm run capture && npm run framing && npm run wellbeing",
     "check": "npm run check -w @mythuso/geo && npm run check -w @mythuso/web && npm run check -w @mythuso/api && node scripts/check-boundaries.mjs",
     "test": "npm run test -w @mythuso/geo && npm run test -w @mythuso/api && playwright test",
     "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0",
@@ -35,7 +35,9 @@
     "capabilities": "node scripts/emit-capabilities.mjs",
     "cancellation": "node scripts/emit-cancellation.mjs",
     "passport": "node scripts/emit-passport.mjs",
-    "capture": "node scripts/emit-capture.mjs"
+    "capture": "node scripts/emit-capture.mjs",
+    "framing": "node scripts/emit-framing.mjs",
+    "wellbeing": "node scripts/emit-wellbeing.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

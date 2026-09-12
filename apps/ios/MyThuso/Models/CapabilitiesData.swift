@@ -139,7 +139,7 @@ extension Capabilities {
                    notice: "This record is sample data. Nothing you type here is stored, and no real record exists behind this screen.",
                    state: "absent",
                    simulation: nil,
-                   surfaces: ["passport", "patient-file", "assessment", "capture"],
+                   surfaces: ["passport", "patient-file", "assessment", "capture", "live-well"],
                    neverSoften: nil,
                    requiresPermissions: []),
         Capability(id: "teleconsultation", name: "The consultation call", connected: false,

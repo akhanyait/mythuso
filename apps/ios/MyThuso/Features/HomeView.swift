@@ -62,6 +62,7 @@ struct HomeView: View {
                 bookingActions
                 shortcuts
                 results
+                liveWell
                 carePlan
                 family
                 NavigationLink { PassportView() } label: { passportPromo }.buttonStyle(.plain)
@@ -99,9 +100,13 @@ struct HomeView: View {
     private var greeting: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             DemoBadge()
-            StudioHeadline(lead: thuso(.greeting, store.locale),
-                           accent: thuso(.tagline, store.locale),
-                           detail: thuso(.greetingSub, store.locale))
+            /* Which three keys, from packages/catalog/framing.json rather than from here. The
+               words are still the locale table's — this screen has never typed them — but which
+               of its two hundred keys make up the patient's headline is a framing decision, and it
+               now sits in the one file that holds the other five. */
+            StudioHeadline(lead: thuso(FramingData.patientLead, store.locale),
+                           accent: thuso(FramingData.patientAccent, store.locale),
+                           detail: thuso(FramingData.patientDetail, store.locale))
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: ThusoSpacing.space8) { areaChip; personChip }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) { areaChip; personChip }
@@ -354,6 +359,33 @@ struct HomeView: View {
         [("Blood pressure", "118/78 mmHg", "In range", "teal"),
          ("Blood glucose", "5.4 mmol/L", "In range", "teal"),
          ("Full blood count", "Awaiting doctor review", "With a doctor", "amber")]
+    }
+
+    /* LIVE WELL, AND WHY IT IS HERE RATHER THAN IN THE TAB BAR.
+     *
+     * The founder's prototype carries it as a fifth patient tab. This shell already has five —
+     * Home, Book care, Visits, Passport and More — and a sixth on iOS does not become a sixth tab,
+     * it collapses the last two into a system "More" list that belongs to UIKit rather than to this
+     * design. So it is a full destination reached from two places instead: here, immediately under
+     * the readings it sits beside, and from the More index. Which of the five gives up its slot is
+     * a decision for him rather than for this pass.
+     *
+     * It follows the results deliberately. A person who has just read a measurement somebody else
+     * took is in exactly the frame to write down what they did — and the ordering says the quiet
+     * thing the contract insists on, that the diary is beside the record and not a second one. */
+    private var liveWell: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            CareSectionHeader("Live well")
+            NavigationLink { LiveWellView() } label: {
+                /* The row's second line is the framing's own accent line rather than the whole
+                   statement, which ran to three lines in a control built for one. The statement is
+                   the first thing on the screen this opens; saying it twice cost the home screen a
+                   paragraph to say nothing new. */
+                NavPillLabel(title: "Write down how you are",
+                             subtitle: FramingData.framing(id: "live-well")?.accent ?? "",
+                             symbol: "book.closed")
+            }.buttonStyle(.plain)
+        }
     }
 
     private var carePlan: some View {

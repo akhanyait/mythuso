@@ -155,7 +155,7 @@ val capabilities = listOf(
         "This record is sample data. Nothing you type here is stored, and no real record exists behind this screen.",
         "absent",
         null,
-        listOf("passport", "patient-file", "assessment", "capture"),
+        listOf("passport", "patient-file", "assessment", "capture", "live-well"),
         null,
         emptyList()),
     Capability("teleconsultation", "The consultation call", false,

@@ -1,5 +1,6 @@
 package za.co.mythuso.ui
 
+import za.co.mythuso.model.FramingData
 import za.co.mythuso.model.Passport
 import za.co.mythuso.model.passportHolder
 
@@ -86,6 +87,7 @@ import androidx.compose.foundation.text.KeyboardActions
         HomeBooking(store, book)
         HomeShortcuts(store, book)
         HomeResults(open)
+        HomeLiveWell(open)
         HomeCarePlan(open)
         HomeFamily(store, open)
         PassportPromo(store, open)
@@ -115,10 +117,14 @@ import androidx.compose.foundation.text.KeyboardActions
            The waving hand went with it. An emoji at forty points is a picture the size of a word,
            TalkBack reads it aloud as "waving hand" after the greeting, and it was the one decorative
            object in a design that has no others. */
+        /* Which three keys, from packages/catalog/framing.json rather than from here. The words are
+           still the locale table's — this screen has never typed them — but which of its two hundred
+           keys make up the patient's headline is a framing decision, and it sits in the one file
+           that holds the other five. */
         StudioHeadline(
-            lead = thuso(Phrase.GREETING, store.locale),
-            accent = thuso(Phrase.TAGLINE, store.locale),
-            detail = thuso(Phrase.GREETING_SUB, store.locale)
+            lead = thuso(FramingData.patientLead, store.locale),
+            accent = thuso(FramingData.patientAccent, store.locale),
+            detail = thuso(FramingData.patientDetail, store.locale)
         )
         /* A FlowRow rather than a Row: at the largest font scales the two chips take a line each
            instead of squeezing the care area down to an ellipsis. */
@@ -288,6 +294,29 @@ import androidx.compose.foundation.text.KeyboardActions
                 }
                 if (index < results.size - 1) HorizontalDivider(color = StudioLine)
             }
+        }
+    }
+}
+
+/* LIVE WELL, AND WHY IT IS HERE RATHER THAN IN THE BOTTOM BAR.
+   The founder's prototype carries it as a fifth patient tab. This shell already has five — Home,
+   Book care, Visits, Passport and More — and while a Material navigation bar will draw a sixth, iOS
+   will not: a sixth tab there collapses the last two into a system list that belongs to UIKit rather
+   than to this design, and a tab bar that differs between the two phones is worse than one that is
+   short. So it is a full destination reached from two places on both platforms instead: here, and
+   from the More index. Which of the five gives up its slot is a decision for him rather than for
+   this pass.
+
+   It follows the results deliberately. A person who has just read a measurement somebody else took
+   is in exactly the frame to write down what they did — and the ordering says the quiet thing the
+   contract insists on, that the diary is beside the record and not a second one. */
+@Composable private fun HomeLiveWell(open: (String) -> Unit) {
+    Section("Live well") {
+        CareCard(padding = ThusoSpacing.space8) {
+            /* The row's second line is the framing's own accent line rather than the whole
+               statement, which ran to three lines in a row built for one. The statement is the first
+               thing on the screen this opens. */
+            MenuRow("Write down how you are", FramingData.byId("live-well")?.accent.orEmpty(), Icons.Outlined.EditNote) { open("Live well") }
         }
     }
 }

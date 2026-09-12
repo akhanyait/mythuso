@@ -1,0 +1,62 @@
+{
+ "_note": "How a screen introduces itself, in the two tones the founder's prototype gives every phone frame: a lead line saying what the reader is here to do, and an accent line saying what the screen gives them for it. StudioHeadline draws it on iOS and Android and nothing else in either app sets a display-size sentence.",
+
+ "_whyThisIsAContract": "Because it was two copies, and both of them said so. WorkspaceNavigation.framing in apps/ios/MyThuso/Features/WorkspaceView.swift and workspaceFraming in apps/android/.../ui/CareStudio.kt each carried the same four pairs with a comment admitting the honest home was a file like this one and that the moment had not come. A headline is the first thing anybody reads on a screen and the cheapest thing in the product to change at eleven at night; two files holding it is how a nurse and a doctor end up being addressed in two slightly different voices by one product.",
+
+ "_whyTheAccentLineIsShort": "It is set at the display step, forty points, beside a lead line of the same size. A sentence that runs to three lines there is a paragraph in disguise and the screen has no subject left. The build holds it to 34 characters, which is the longest of the ones the founder actually wrote.",
+
+ "languageNote": "The clinical framings are English on every locale, and deliberately. They frame a workspace, and a workspace is the clinical half of this product: packages/catalog/locales.json holds no clinical string and says why — a confidently wrong sentence in a language the reader trusts is worse than an honest English one. The patient's framing is the opposite case and is handled the opposite way: it is the first sentence on the first screen a patient sees, it is not clinical, and it is already in eleven languages, so this contract points at the locale keys rather than restating the words.",
+
+ "framings": [
+  {
+   "id": "patient",
+   "surface": "The patient's home",
+   "fromLocale": { "lead": "shell.greeting", "accent": "shell.tagline", "detail": "shell.greetingSub" },
+   "why": "The prototype's patient frame is \"Hello, Nomsa.\" over \"Your next visit. Your team. Your health.\" What ships is the same shape with the locale contract's own words in it — the greeting and the three-word tagline, both reviewed to the same standard as the rest of the shell and both present in every locale offered. Typing the prototype's second line here would have put a slogan nobody had translated on the one screen every patient opens first, in ten languages, to gain nothing the tagline was not already saying."
+  },
+  {
+   "id": "nurse",
+   "role": "Nurse",
+   "surface": "The nurse's workspace, on the section it lands on",
+   "lead": "Your round today.",
+   "accent": "Make it count.",
+   "why": "The prototype's nurse frame is \"Make today matter.\" This is the same sentence with the round in it, because a nurse opens this screen at the start of a shift with a list of houses to reach, and \"today\" alone does not say which today. It was written for the Care Studio pass and has been on both phones since; it is recorded here rather than rewritten, because a headline that changes every time somebody reads the prototype again is a product with no voice."
+  },
+  {
+   "id": "doctor",
+   "role": "Doctor",
+   "surface": "The doctor's workspace, on the review queue",
+   "lead": "Your judgement.",
+   "accent": "A clearer view.",
+   "why": "The founder's own, word for word, and the one framing in this file nobody may improve. It says what the product is for on a clinical screen: decision support may draft, and the judgement is the doctor's. The same distinction the standing AI disclosure makes at the foot of every workspace section, made once at the top in the doctor's own terms."
+  },
+  {
+   "id": "partner",
+   "role": "Partner",
+   "surface": "The partner's workspace, on the orders board",
+   "lead": "Every order.",
+   "accent": "And what it waits on.",
+   "why": "A pharmacy or a laboratory opens this to find what is stuck, not what is fine. The accent line names the half of the board that is actually the job."
+  },
+  {
+   "id": "control-tower",
+   "role": "Control Tower",
+   "surface": "The control tower, on dispatch",
+   "lead": "Every visit.",
+   "accent": "One board.",
+   "why": "An operator's screen is the only one in this product that is about everybody at once, and the claim it makes is completeness. If the board is ever not every visit, this line is the first thing that has to change."
+  },
+  {
+   "id": "live-well",
+   "surface": "Live well, the patient's own record of what they did",
+   "lead": "Live well.",
+   "accent": "In your own words.",
+   "why": "The accent line is the refusal, said as an invitation. packages/catalog/wellbeing.json forbids a score, a grade, a target, a streak, a rank, a percentage and a unit anywhere in that feature, and \"in your own words\" is what is left when all of those are gone — which is the whole feature rather than a consolation for it."
+  }
+ ],
+
+ "rules": {
+  "oneHeadlinePerScreen": "A display-size headline is a claim the size of the screen. The role framings appear on the section a role lands on and nowhere else; every other section keeps a plain heading. Four display headlines across four tabs are four claims of the same size, which is the inverse of what a display size is for.",
+  "neverTyped": "No screen may type a lead or an accent line. scripts/check-boundaries.mjs fails the build when one of these strings appears in a native source outside the generated carriers, which is what makes the deletion of the two old copies permanent rather than tidy."
+ }
+}

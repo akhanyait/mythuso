@@ -36,6 +36,15 @@
   { "id": "no-cheerfulness-about-illness", "sentence": "MyThuso does not congratulate you and does not tell you how you are doing.", "why": "Encouragement aimed at somebody whose condition is getting worse reads as a product that has not noticed. Silence is the respectful default." }
  ],
 
+ "sampleEntries": [
+  { "habit": "moving", "dayOffset": 0, "text": "Walked to the shops and back. Easier than last week." },
+  { "habit": "medicines", "dayOffset": 0, "text": "Yes, both of them, with breakfast." },
+  { "habit": "sleeping", "dayOffset": -1, "text": "Woke at three and could not get back off. Slow morning." },
+  { "habit": "eating", "dayOffset": -2, "text": "Pap and beans. I remembered the spinach this time." },
+  { "habit": "feeling", "dayOffset": -4, "text": "Tired, but all right." }
+ ],
+ "sampleEntriesNote": "Five fictional entries so the timeline shows what it is for rather than an empty box on the day somebody looks at it. Day offsets from today, like every other fixture in this catalogue, so the preview never goes stale — and deliberately not one per day: there is a gap at yesterday-but-one and another before the oldest, because a record with no gaps in it is the chart this feature refuses to draw. Nothing here is anybody's, and nothing a person writes in the preview outlives the app being closed.",
+
  "timeline": {
   "statement": "What you wrote, when you wrote it, newest first, beside the visits and readings already on your record.",
   "showsNoGaps": true,

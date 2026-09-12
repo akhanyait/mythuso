@@ -68,31 +68,6 @@ enum WorkspaceNavigation {
         }
     }
 
-    /* HOW A ROLE IS FRAMED WHEN IT ARRIVES.
-     *
-     * The prototype the founder settled on gives each audience a headline of its own, in two tones:
-     * the patient gets a greeting, and the clinical roles get a sentence about the judgement they
-     * are being asked for. "Your judgement. A clearer view." is his, word for word, for the doctor.
-     *
-     * These four pairs are typed here and mirrored in Android's `workspaceFraming`. That is a copy,
-     * and this codebase does not like copies — but the honest place for it is a contract in
-     * packages/catalog, and the web's own workspace headings are being rebuilt by somebody else this
-     * week. Writing the contract now would mean writing it against a shell that is moving. So it is
-     * two copies rather than three, alongside `blurb` below, which has been the same two copies since
-     * the workspaces were built; when the web lands, all three should read one file.
-     *
-     * The lead line is what the reader is there to do and the accent line is what the screen gives
-     * them for it. The second line is set in `studioOlive` and is short by construction: at the
-     * display step a sentence that runs to three lines is a paragraph in disguise. */
-    static func framing(_ role: String) -> (lead: String, accent: String) {
-        switch role {
-        case "Doctor": return ("Your judgement.", "A clearer view.")
-        case "Partner": return ("Every order.", "And what it waits on.")
-        case "Control Tower": return ("Every visit.", "One board.")
-        default: return ("Your round today.", "Make it count.")
-        }
-    }
-
     /* What a section is for, in the words somebody doing the job would use. The same sentences the
        web's sectionBlurb carries, so a nurse reading the two does not meet two descriptions of one
        screen. A section with nothing useful to say has no line rather than a filler one. */
@@ -271,10 +246,16 @@ struct WorkspaceSectionView: View {
                    opens with the role's own two-tone headline and carries the section's own sentence
                    under it; every other section keeps the plain heading it had. A display headline
                    on all four of a role's tabs would be four claims of the same size, which is the
-                   inverse of what a display size is for. */
-                if landing {
+                   inverse of what a display size is for.
+
+                   The words are packages/catalog/framing.json's, generated into FramingData.swift
+                   and into Android's FramingData.kt from the one file. They were typed here and
+                   typed again on Android, with a comment in each admitting the honest home was a
+                   contract; this is that contract. A role the contract has not framed falls through
+                   to the plain heading rather than borrowing the nurse's words, which is what the
+                   switch statement's default branch used to do without saying so. */
+                if landing, let framing = FramingData.framing(role: role) {
                     DemoBadge()
-                    let framing = WorkspaceNavigation.framing(role)
                     StudioHeadline(lead: framing.lead, accent: framing.accent,
                                    detail: WorkspaceNavigation.blurb(section))
                     WorkspaceUrgency(role: role)

@@ -82,6 +82,12 @@ class PreviewStore(book: CaptureBook = MemoryBook(), visitBook: CaptureBook = Me
     var wearableSharing by mutableStateOf(false)
     var marketing by mutableStateOf(false)
     var locale by mutableStateOf(ThusoLocale.ENGLISH)
+    /* What somebody wrote in Live well. In memory and nowhere else — deliberately not in either of
+       the two ledgers this app keeps on the phone, because wellbeing.json's no-sharing-by-default
+       refusal says what a person writes there is not added to their record and is not sent to
+       anybody, and a diary quietly persisted beside a nurse's captured work is the first half of
+       sending it. */
+    val wellbeing = mutableStateListOf<WellbeingEntry>().apply { addAll(Wellbeing.seed()) }
     /* Vetting is held here so a decision taken in the Control Tower is the same record the nurse
        workspace reads a screen later, rather than two lists that agree by luck. */
     val vetting = VettingStore()

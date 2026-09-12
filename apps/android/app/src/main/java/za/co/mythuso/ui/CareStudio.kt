@@ -249,22 +249,3 @@ val StudioNightInkQuiet = StudioPaper.copy(alpha = 0.78f)
         contentPadding = contentPadding, content = content
     )
 }
-
-/* The four role framings the prototype gives the clinical audiences, and the twin of
-   WorkspaceNavigation.framing in apps/ios/MyThuso/Features/WorkspaceView.swift. "Your judgement. A
-   clearer view." is the founder's own, word for word, for the doctor.
-
-   This is a copy, and this codebase does not like copies. The honest home is a contract in
-   packages/catalog that all three platforms read, and the web's workspace headings are being rebuilt
-   this week — writing the contract against a shell that is moving would have produced a third copy
-   rather than the last one. It is two, alongside the section blurbs that have been two since the
-   workspaces were built, and it is written down here so the next person finds both at once.
-
-   The accent line carries the lime block, so it is short by construction: a highlighter across four
-   words is an emphasis and across two lines it is a banner. */
-fun workspaceFraming(role: String): Pair<String, String> = when (role) {
-    "Doctor" -> "Your judgement." to "A clearer view."
-    "Partner" -> "Every order." to "And what it waits on."
-    "Control Tower" -> "Every visit." to "One board."
-    else -> "Your round today." to "Make it count."
-}
