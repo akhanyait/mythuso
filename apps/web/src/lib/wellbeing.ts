@@ -105,8 +105,20 @@ export const write = (habit: HabitId, words: string): Entry => {
  * thing this feature refuses to hold. And there is nothing at all on the day between the last two,
  * so what a gap looks like here — nothing, no row, no note, no mention — is a thing a reader can
  * see rather than a sentence they have to take on trust. */
-const at = (dayOffset: number, hour: number, minute: number) =>
- midnight(Date.now()) + dayOffset * DAY + hour * 3_600_000 + minute * 60_000;
+/* Today's samples are pulled back behind the clock rather than pinned to an hour.
+ *
+ * They were written at 07:40 and 07:45, which is a perfectly ordinary morning and wrong for anybody
+ * opening the app before breakfast: a note written at 06:00 sorted *underneath* two entries stamped
+ * later the same day, so "what you write goes to the top of your record" was false for a few hours
+ * every morning and true for the rest — the worst kind of bug, because it is a real defect that
+ * looks like a flaky test. A sample on an earlier day keeps its hour, which is what makes the
+ * timeline read like a week rather than a list. */
+const at = (dayOffset: number, hour: number, minute: number) => {
+ const wanted = midnight(Date.now()) + dayOffset * DAY + hour * 3_600_000 + minute * 60_000;
+ if (dayOffset < 0) return wanted;
+ const nudge = (hour * 60 + minute) % 7;   /* keeps the samples in their written order */
+ return Math.min(wanted, Date.now() - (3 + nudge) * 60_000);
+};
 export const sampleEntries = (): Entry[] => [
  { id: 'wb-s1', habit: 'moving', words: 'Walked to the shops and back. Easier than last week — I did not have to stop at the corner.', at: at(0, 7, 40) },
  { id: 'wb-s2', habit: 'feeling', words: 'Tired, but not the heavy kind.', at: at(0, 7, 45) },

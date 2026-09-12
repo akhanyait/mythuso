@@ -1,6 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import { capabilityOf, confirmBooking, goSection, openWorkspace } from './nav';
 import { noticeFor } from './notices';
+import { cardAndEft } from '../apps/api/src/simulation/payments.ts';
+import { isRefusal } from '../apps/api/src/simulation/index.ts';
 /* The money and the identity seams, walked end to end against a stand-in.
  *
  * Nothing here asserts that a simulator works. It asserts the two things a simulator is worth
@@ -112,31 +114,63 @@ test('paying for a visit answers with a receipt that says it is simulated, or a 
 });
 
 test('a declined payment books nothing, and says so in the register a person reads', async ({ page }) => {
-  /* Walked against the provider rather than against a fixture: the reference is the visit, the
-     answer is the seed's, and the journey tries services until it meets a decline. One attempt in
-     five is refused, so six services is comfortable — and if none of them is refused, the decline
-     has stopped being a state this product can reach. */
-  let declined = false;
-  for (const service of [/Wound care/, /Mother & baby/, /Blood tests/, /Elderly care/, /Post-operative check/, /Family planning/]) {
+  /* Walked against the provider, and the provider is asked before the button is pressed.
+   *
+   * This used to try six services and hope one of them was refused. The simulator is seeded on the
+   * visit reference, the reference contains the visit's own date, and so which service declines
+   * changes at midnight — the test passed on some days and failed on others for a reason that was
+   * nowhere in the diff. It failed this morning, the second date-seeded assertion to cost an hour
+   * here, and the first one cost two agents an afternoon each proving it was not theirs.
+   *
+   * Now it reads the reference the review step has just built, asks the same pure function the app
+   * is about to call, and only presses Confirm on a visit it already knows will be refused. Nothing
+   * is mocked and the journey is the real one end to end; the test simply looks first. */
+  const offered: { id: string; name: RegExp }[] = [
+    { id: 'wound', name: /Wound care/ }, { id: 'mother', name: /Mother & baby/ },
+    { id: 'blood', name: /Blood tests/ }, { id: 'postop', name: /Post-operative check/ },
+    { id: 'planning', name: /Family planning/ }, { id: 'vitals', name: /Vitals & chronic check/ },
+    { id: 'injection', name: /Injection & vaccination/ }
+  ];
+  let refused = false;
+  for (const service of offered) {
     await page.goto('/app/');
     await openCatalogue(page);
-    await page.getByRole('button', { name: service }).first().click();
+    await page.getByRole('button', { name: service.name }).first().click();
     const d = page.getByRole('dialog');
-    await d.getByRole('button', { name: 'Continue' }).click();
-    await d.getByRole('button', { name: 'Continue' }).click();
-    await d.getByRole('button', { name: 'Continue' }).click();
+    await d.getByRole('button', { name: 'Continue' }).click();   // who & where
+    /* The hour is part of the reference too, so it is part of the search. Seven services against
+       one slot each is seven draws at one-in-five, and roughly one morning in eight none of them is
+       refused — which is how this assertion has failed twice. Every offered hour of every service is
+       forty-odd draws, and the arithmetic stops being interesting. */
+    const hours = d.locator('.time-chip');
+    const hourCount = Math.min(await hours.count(), 6);
+    let picked = false;
+    for (let hour = 0; hour < hourCount && !picked; hour += 1) {
+      await hours.nth(hour).click();
+      const look = await d.getByRole('button', { name: 'Continue' }).all();
+      await look[0].click();                                      // when
+      await d.getByRole('button', { name: 'Continue' }).click();  // payment
+      const reference = (await d.getByText(/^MT-/).first().textContent())?.trim() ?? '';
+      expect(reference, 'the review step no longer shows the visit reference the payment is seeded on').toMatch(/^MT-/);
+      const answer = cardAndEft.produce({ subject: reference, detail: { service: service.id, attempt: 1 } });
+      if (!isRefusal(answer) && answer.payload['outcome'] === 'declined') { picked = true; break; }
+      await d.getByRole('button', { name: /Back/ }).first().click();
+      await d.getByRole('button', { name: /Back/ }).first().click();
+    }
+    if (!picked) continue;
+
     await d.getByRole('checkbox').check();
     await d.getByRole('button', { name: 'Confirm & book' }).click();
-    if (!(await d.locator('.pay-declined').isVisible())) continue;
-    declined = true;
+    await expect(d.locator('.pay-declined')).toBeVisible();
     await expect(d.locator('.pay-declined')).toContainText(/Nothing has been taken\./);
     await expect(d.locator('.pay-declined')).toContainText(/Nothing is booked\./);
     /* Nothing was booked: the confirmation screen is not on the other side of this. */
     await expect(d.getByText('Your visit is booked.')).toHaveCount(0);
     await expect(d.getByRole('button', { name: 'Try the payment again' })).toBeVisible();
+    refused = true;
     break;
   }
-  expect(declined, 'six simulated payments and not one of them was declined — a booking flow that has only ever seen the happy path has no screen for the other one').toBe(true);
+  expect(refused, 'not one of the seven services is declined on its first attempt today — the decline has stopped being a state this product can reach').toBe(true);
 });
 
 test('a nurse’s week is run against the bank, and the bank answers in the contract’s own states', async ({ page }) => {

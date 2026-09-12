@@ -231,6 +231,11 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
    {scheduled ? <div className="review-line"><span><Clock3 size={15}/> Time</span><strong>{slot} – {ends}</strong></div> : null}
    <div className="review-line"><span><MapPin size={15}/> Location</span><strong>{address}</strong></div>
    <div className="review-line"><span>Patient</span><strong>{person}</strong></div>
+   {/* The reference, before the money rather than only after it. It was on the receipt alone, which
+       meant a person deciding whether to pay could not quote the thing they were paying for, and a
+       declined payment showed no reference at all — the one moment somebody most wants one to give
+       over the phone. It is worked out from the visit rather than issued, so it exists here already. */}
+   <div className="review-line"><span>Visit reference</span><strong>{reference}</strong></div>
    {outcome && <>
     <div className="review-line"><span>Interpreter</span><strong>{outcome.found ? `${outcome.found.interpreter.name} · ${interpreterModes.find(m => m.id === mode)!.name}` : interpreting.noneFree}</strong></div>
     <div className="review-line"><span>Status when booked</span><strong>{visit.status}</strong></div>
