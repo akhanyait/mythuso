@@ -24,7 +24,7 @@ const contract = JSON.parse(readFileSync(new URL('../packages/catalog/wellbeing.
 };
 
 const openLiveWell = async (page: Page) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await goSection(page, 'Live well');
   await expect(page.getByRole('heading', { level: 1, name: 'In your own words' })).toBeVisible();
 };

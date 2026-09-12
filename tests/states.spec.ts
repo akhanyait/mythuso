@@ -247,7 +247,12 @@ const SHARED_BY_BOTH_AUDIENCES = ['DemoLogin', 'Kit', 'KitCapture', 'LiveMap', '
    of them is drawn on a clinical screen. */
 const CARRIED_BY_THE_ONE_ENTRY = [
   'Access', 'Arrival', 'Booking', 'Consent', 'Dashboard', 'Guardian', 'Help', 'Household',
-  'Interpreting', 'Onboarding', 'Pages', 'Passport', 'PatientShell', 'Sos', 'Sponsor', 'VisitSummary'
+  'Interpreting', 'Onboarding', 'Pages', 'Passport', 'PatientShell', 'Sos', 'Sponsor', 'VisitSummary',
+  /* Live well, added the same night as the one entry. It is a patient feature and the patient is
+     the default surface, so it loads with the rest of the patient app rather than behind a role —
+     which is the cost this list exists to keep visible, not a leak. The ratchet did its job: it
+     failed on a sixteenth name and made somebody write this sentence. */
+  'Wellbeing'
 ];
 
 /** Every audience-owned source module a session actually asked the server for, by name. */
