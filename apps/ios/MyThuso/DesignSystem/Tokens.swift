@@ -61,6 +61,11 @@ enum ThusoTheme {
     static let studioLine = Color(red: 0.886, green: 0.894, blue: 0.851)              // #E2E4D9
     static let studioInkMuted = Color(red: 0.310, green: 0.365, blue: 0.341)          // #4F5D57
     static let studioOlive = Color(red: 0.361, green: 0.447, blue: 0.302)             // #5C724D
+    static let brandInk = Color(red: 0.059, green: 0.231, blue: 0.290)                // #0F3B4A
+    static let brandGreen = Color(red: 0.114, green: 0.620, blue: 0.459)              // #1D9E75
+    static let brandOrange = Color(red: 1.000, green: 0.420, blue: 0.208)             // #FF6B35
+    static let brandLime = Color(red: 0.851, green: 1.000, blue: 0.102)               // #D9FF1A
+    static let brandMint = Color(red: 0.624, green: 0.882, blue: 0.796)               // #9FE1CB
 }
 enum ThusoRadius {
     static let card: CGFloat = 12
