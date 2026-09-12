@@ -141,9 +141,12 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
             if (wide) NavigationRail(
                 containerColor = Color.Transparent,
                 header = {
+                    /* 104 by 28 is the wordmark's own 366:98. It was 96 by 36, which is 2.7:1 —
+                       the old raster carried its padding inside the file and the difference went
+                       into that. The outlined artwork has none, so the frame has to be right. */
                     Image(
                         painterResource(R.drawable.mythuso_logo), "MyThuso",
-                        modifier = Modifier.padding(vertical = ThusoSpacing.space16).width(96.dp).height(36.dp)
+                        modifier = Modifier.padding(vertical = ThusoSpacing.space16).width(104.dp).height(28.dp)
                     )
                 }
             ) {
@@ -171,7 +174,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                             when {
                                 detail != null -> Text(detail!!, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 role != null -> Text("$role workspace", maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                page == "Home" && !wide -> Image(painterResource(R.drawable.mythuso_logo), "MyThuso", modifier = Modifier.width(126.dp).height(44.dp))
+                                page == "Home" && !wide -> Image(painterResource(R.drawable.mythuso_logo), "MyThuso", modifier = Modifier.width(126.dp).height(34.dp))
                                 page != "Home" -> Text(label(tabs.first { it.key == page }), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         },

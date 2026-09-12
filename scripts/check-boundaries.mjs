@@ -407,6 +407,33 @@ for (const name of illustrations) {
  }
 }
 if (!read('apps/web/src/components/Portraits.tsx').includes('packages/illustrations')) throw new Error('The web app must read the shared illustration sources, not its own copy');
+/* THE MARK IS ONE ARTWORK ON THREE PLATFORMS, AND IT IS THE FOUNDER'S RATHER THAN A TRACING.
+ *
+ * The brand SVGs in apps/web/public/brand are the supplied files with every glyph outlined. The web
+ * reads them directly; the two native apps carry rasters of the same files, rendered by
+ * scripts/render-illustrations.mjs. The failure this guards against is the one the illustrations
+ * above already guard against and which a logo is far more likely to suffer: the artwork is replaced
+ * in one place and the apps quietly keep shipping the old mark. That is exactly what had happened —
+ * the indigo-and-teal logo was still in the iOS asset catalogue after the real files landed.
+ *
+ * NOT A FONT. The supplied SVGs set the wordmark as live <text font-family="Poppins">, which renders
+ * correctly only on a machine that happens to have Poppins and silently substitutes everywhere else.
+ * They are outlined now, and this refuses a file that has grown a font dependency back — in a logo
+ * that is not a rendering detail, it is a different logo on most of the devices that see it. */
+for (const [file, ios, android] of [['mythuso-logo', 'Brand', 'mythuso_logo'],
+                                    ['mythuso-mark', 'BrandMark', 'mythuso_mark'],
+                                    ['mythuso-mark-reversed', 'BrandMarkReversed', 'mythuso_mark_reversed'],
+                                    ['mythuso-logo-reversed', 'BrandReversed', 'mythuso_logo_reversed']]) {
+ const source = `apps/web/public/brand/${file}.svg`;
+ if (!existsSync(source)) throw new Error(`Missing brand source ${source}. The three apps draw one mark and this is it.`);
+ if (/<text|font-family/i.test(read(source))) throw new Error(`${source} sets type as live text rather than outlines. Poppins is installed on the machine the logo was drawn on and on almost nothing else, so this renders as the brand here and as a substitute everywhere a patient will see it. Outline the glyphs.`);
+ const derived = [`apps/ios/MyThuso/Assets.xcassets/${ios}.imageset/${file}@3x.png`,
+                  `apps/android/app/src/main/res/drawable-xxhdpi/${android}.png`];
+ for (const f of derived) {
+  if (!existsSync(f)) throw new Error(`The brand cut ${file} has not been rendered for ${f}. Run: node scripts/render-illustrations.mjs`);
+  if (statSync(f).mtimeMs < statSync(source).mtimeMs) throw new Error(`${f} is older than ${source}, so a native app is drawing a mark the brand no longer is. Run: node scripts/render-illustrations.mjs`);
+ }
+}
 /* The landing banner is written out three times. A slide added in one app and forgotten in another
    is exactly the kind of drift a design review will not catch. */
 const heroCutouts = ['care-that-comes-to-you', 'one-safe-place', 'feel-better'];

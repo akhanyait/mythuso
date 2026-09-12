@@ -9,8 +9,35 @@ const targets = [
  { name: 'nurse', width: 188, height: 224 },
  { name: 'patient', width: 240, height: 240 },
  { name: 'family', width: 176, height: 220 },
- { name: 'elder', width: 208, height: 234 },
- { name: 'logo', width: 520, height: 140, ios: 'Brand', android: 'mythuso_logo', web: true }
+ { name: 'elder', width: 208, height: 234 }
+];
+
+/* THE MARK, AND WHY IT IS NOT IN THE LIST ABOVE.
+ *
+ * `logo` used to be the fifth illustration: packages/illustrations/logo.svg, rasterised into the
+ * Brand imageset and mythuso_logo.png, and copied out to the web as a sixth file. That artwork was
+ * the indigo-and-teal mark, and it is not the brand any more — the founder supplied the real files
+ * and they live in apps/web/public/brand as outlined paths, which is where the web reads them from.
+ *
+ * So the native apps read the same files rather than a second copy of them. One source, three
+ * platforms, which is the rule everything else in this script exists to keep; the only difference is
+ * that the source directory is the web's public folder rather than packages/illustrations, because
+ * that is where the brand actually landed and moving it would mean editing a tree somebody else is
+ * working in.
+ *
+ * EACH CUT IS RENDERED AT ITS OWN ASPECT, NOT AT A BOX SOMEBODY LIKED. The wordmark's viewBox is
+ * 366×98 and the square mark's is 200×200; rendering either into the other's frame is how a logo
+ * arrives letterboxed inside its own padding. The sizes below are the viewBoxes, so a 3x raster is
+ * about three times the artwork and every native frame scales it down rather than up.
+ *
+ * There is no font here and there must not be one. The supplied SVGs set the wordmark as live text
+ * in Poppins; every glyph is outlined now, and a rasteriser that had to resolve a font family would
+ * have produced a different logo on every machine that ran it. */
+const brand = [
+ { file: 'mythuso-logo', width: 366, height: 98, ios: 'Brand', android: 'mythuso_logo' },
+ { file: 'mythuso-mark', width: 200, height: 200, ios: 'BrandMark', android: 'mythuso_mark' },
+ { file: 'mythuso-mark-reversed', width: 200, height: 200, ios: 'BrandMarkReversed', android: 'mythuso_mark_reversed' },
+ { file: 'mythuso-logo-reversed', width: 366, height: 98, ios: 'BrandReversed', android: 'mythuso_logo_reversed' }
 ];
 const iosScales = [['', 1], ['@2x', 2], ['@3x', 3]];
 mkdirSync('apps/android/app/src/main/res/drawable-xxhdpi', { recursive: true });
@@ -31,8 +58,26 @@ for (const { name, width, height, ios, android, web } of targets) {
   images: iosScales.map(([suffix, scale]) => ({ filename: `${name}${suffix}.png`, idiom: 'universal', scale: `${scale}x` })),
   info: { author: 'xcode', version: 1 }
  }, null, 1));
- if (web) { mkdirSync('apps/web/public', { recursive: true }); copyFileSync(`packages/illustrations/${name}.svg`, `apps/web/public/${name}.svg`); }
  console.log(`rendered ${name}`);
+}
+
+for (const { file, width, height, ios, android } of brand) {
+ const svg = readFileSync(`apps/web/public/brand/${file}.svg`, 'utf8');
+ const dir = `apps/ios/MyThuso/Assets.xcassets/${ios}.imageset`;
+ mkdirSync(dir, { recursive: true });
+ for (const [suffix, scale] of iosScales) {
+  const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: scale });
+  await page.setContent(`<style>html,body{margin:0;background:transparent}svg{display:block;width:${width}px;height:${height}px}</style>${svg}`);
+  const shot = await page.screenshot({ omitBackground: true });
+  writeFileSync(`${dir}/${file}${suffix}.png`, shot);
+  if (scale === 3) writeFileSync(`apps/android/app/src/main/res/drawable-xxhdpi/${android}.png`, shot);
+  await page.close();
+ }
+ writeFileSync(`${dir}/Contents.json`, JSON.stringify({
+  images: iosScales.map(([suffix, scale]) => ({ filename: `${file}${suffix}.png`, idiom: 'universal', scale: `${scale}x` })),
+  info: { author: 'xcode', version: 1 }
+ }, null, 1));
+ console.log(`rendered ${file}`);
 }
 /* Hero photography follows the same one-source rule: packages/banners is the original and every
    app bundle is derived from it. The cut-outs are what the design actually wants — a person on

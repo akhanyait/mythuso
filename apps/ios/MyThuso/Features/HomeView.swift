@@ -36,12 +36,16 @@ struct HomeView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                /* The mark, not the lockup. "Brand" is the full horizontal lockup — icon, wordmark and
-                   the tagline "Help. Health. Home." — and the web gives it 168 points of width to be
-                   read in. This slot is a 34-point circle, so the same file arrived with its wordmark
-                   about three points tall and its tagline under two: not a small logo, an illegible
-                   one, and the first thing on the first screen. BrandMark is the icon out of that same
-                   artwork, measured off its own alpha rather than cropped by eye. */
+                /* The mark, not the lockup, and it is the founder's own artwork now rather than the
+                   indigo-and-teal one this app shipped with. "Brand" is the horizontal wordmark and
+                   the web gives it 168 points of width to be read in; this slot is a 34-point circle,
+                   so the same file arrives with its letters about three points tall — not a small
+                   logo, an illegible one, and the first thing on the first screen. BrandMark is the
+                   square cut, drawn for exactly this.
+
+                   It is NOT repainted to match the ground it sits on. The brand palette is a separate
+                   generation from the interface palette on purpose: brandInk is a blue-teal navy where
+                   studioInk is a green-black. A mark that changes colour per screen is not a mark. */
                     Image("BrandMark").resizable().scaledToFit().frame(height: 30).accessibilityLabel("MyThuso")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
