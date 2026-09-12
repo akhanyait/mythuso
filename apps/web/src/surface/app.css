@@ -88,7 +88,11 @@
 .home-top{position:relative;margin-bottom:18px}
 /* ---- Hero carousel ---- */
 .hero-carousel{position:relative;overflow-x:clip;overflow-y:visible}
-.hero-track{display:flex;transition:transform .55s cubic-bezier(.4,0,.2,1);touch-action:pan-y}
+/* Material's standard curve was typed in here — an ease-in-out, against the ease-out everything
+   else in this product settles on, so the one thing on the home screen that moves on its own was
+   the one thing moving differently. The duration stays: a full-width slide is deliberately slower
+   than a panel arriving, and .55s is that decision rather than drift. */
+.hero-track{display:flex;transition:transform .55s var(--ease-soft);touch-action:pan-y}
 .hero-slide-copy{max-width:49%}
 .hero-slide-copy .primary{min-height:48px;padding:12px 18px;border-radius:999px;font-size:13px;box-shadow:0 8px 18px color-mix(in srgb, var(--indigo) 20%, transparent);white-space:nowrap}
 .hero-trust li+li{border-left:1px solid var(--teal-light)}

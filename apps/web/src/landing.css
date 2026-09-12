@@ -46,7 +46,11 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 .landing{
  background:var(--mist);min-height:100dvh;overflow-x:clip;
  --wrap:1200px;--gutter:clamp(20px,4.4vw,40px);--pad:max(var(--gutter),calc((100vw - var(--wrap)) / 2));
- --ease:cubic-bezier(.22,.68,0,1);
+ /* The page's own curve, which was its own curve: cubic-bezier(.22,.68,0,1), written here and used
+    five times, a hair away from the one every other surface accelerates on and different enough to
+    feel it side by side. It is an alias now. The name stays because five rules spend it and a local
+    name for a shared value is not a copy of it. */
+ --ease:var(--ease-soft);
  /* The radius the reference uses on a card sits between --r-card (12) and --r-pill, and the token
     contract has no step there. Rather than type 18px into a marketing page — the exact way three
     platforms end up disagreeing about a corner — it is derived from the card radius, so a change
@@ -109,6 +113,11 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    only place mango appears here outside the focus ring, and on --charcoal it measures 9.57:1. */
 .landing-notice .status-dot{background:var(--mango);width:8px;height:8px}
 .landing-portrait figcaption{margin-top:14px;font-size:13px;line-height:1.5;color:var(--body)}
+/* The caption and the pause control share a line. The caption takes the width it needs and the
+   control keeps its own size, because a 44px target that shrinks to fit a sentence is not one. */
+.landing-portrait-foot{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.landing-portrait-foot figcaption{flex:1 1 200px;min-width:0}
+.landing-portrait-foot .m-pause{margin-top:14px;flex-shrink:0}
 .landing-footer-note strong{color:var(--charcoal);font-weight:500}
 
 /* ---- Navigation ----
@@ -406,8 +415,14 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
  *
  * Both are pseudo-elements with pointer-events:none and nothing inside them, so no control's box
  * ever moves — which is what made the old bubbles a test hazard rather than the fact that they
- * moved. */
-[data-motion=on] .landing-hero::after {
+ * moved.
+ *
+ * Gated on data-decor rather than data-motion. They are two different questions and they were being
+ * answered by one flag: data-motion means "the script is running, so an entrance may hide something
+ * until it arrives", and data-decor means "this reader has not asked the motion to stop". These two
+ * are the only things on this page that move on their own and never end, which is exactly what WCAG
+ * 2.2.2 wants a control for — and that control is beside the portrait. See surface/motion.css. */
+[data-decor=on] .landing-hero::after {
  content: '';
  position: absolute;
  inset: -25%;
@@ -422,7 +437,7 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
  will-change: transform;
 }
 
-[data-motion=on] .landing-portrait-frame::before {
+[data-decor=on] .landing-portrait-frame::before {
  content: '';
  position: absolute;
  inset: -30%;

@@ -15,6 +15,11 @@
    packages/design-tokens/tokens.json, so the same numbers reach the web, iOS and Android without
    anybody re-typing them. Everything below this import is the design itself. */
 @import '../tokens.generated.css';
+/* And the motion system, which spends four of those tokens. It is here rather than in glass.css —
+   where it used to live — because the landing page and the door do not load glass and animate all
+   the same, so a reduced-motion removal written inside a sheet three of the five entries never see
+   is a removal three entries never get. First in the cascade on purpose: see ./motion.css. */
+@import './motion.css';
 /* ---- Typefaces ----
    Self-hosted rather than pulled from a font CDN. This page's Content-Security-Policy allows fonts
    from its own origin only, and a health service has no business telling a third party who is

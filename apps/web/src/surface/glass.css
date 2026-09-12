@@ -93,39 +93,17 @@
 }
 
 /* ---- Motion ----
-   One easing curve and three durations, so everything in the product accelerates the same way. The
-   curve overshoots very slightly, which is what reads as "smooth" rather than "linear". */
-:root {
- --ease-soft: cubic-bezier(.22, 1, .36, 1);
- --t-quick: 160ms;
- --t-settle: 280ms;
- --t-enter: 420ms;
-}
+   The curve, the durations, the entrance and the settle are in ./motion.css, which core.css imports
+   into every entry. They were declared here, which made glass.css the home of a motion system that
+   only the web could read; the numbers are in tokens.json now and reach iOS and Android too. What
+   stays here is the one piece of motion that belongs to glass itself. */
 
-.rise { animation: rise var(--t-enter) var(--ease-soft) both; }
-.rise-2 { animation: rise var(--t-enter) var(--ease-soft) 60ms both; }
-.rise-3 { animation: rise var(--t-enter) var(--ease-soft) 120ms both; }
-
-@keyframes rise {
- from { opacity: 0; transform: translate3d(0, 10px, 0); }
- to { opacity: 1; transform: none; }
-}
-
-/* Everything interactive settles rather than snaps. transform and opacity only — a build check
-   refuses an endless animation that touches anything else, because a box that keeps changing makes
-   a click land on a moving target. */
-.glass, .s-nav-row, .s-panel, .s-open, .s-metric-chip {
- transition: transform var(--t-settle) var(--ease-soft),
-             box-shadow var(--t-settle) var(--ease-soft),
-             background-color var(--t-settle) var(--ease-soft),
-             border-color var(--t-settle) var(--ease-soft);
-}
-
+/* A panel lifts a pixel under the pointer. One pixel: a frosted surface is meant to feel like it is
+   floating slightly, and anything further reads as a card being picked up. */
 .glass:hover { transform: translate3d(0, -1px, 0); }
 
-/* And none of it happens to somebody who asked for stillness. */
+/* And it does not happen to somebody who asked for stillness. The shared removal in motion.css
+   answers the transition; this answers the transform, which is this sheet's own. */
 @media (prefers-reduced-motion: reduce) {
- .rise, .rise-2, .rise-3 { animation: none; }
- .glass, .s-nav-row, .s-panel, .s-open, .s-metric-chip { transition: none; }
  .glass:hover { transform: none; }
 }

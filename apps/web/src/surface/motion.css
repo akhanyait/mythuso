@@ -1,0 +1,148 @@
+/* The motion system. One curve, a few durations, and the four things that spend them.
+ *
+ * Motion here is decorative and navigation never waits for it. Every control on this surface is
+ * usable before an animation starts, while it runs and after it ends — nothing is hidden by a
+ * keyframe that JavaScript is responsible for un-hiding, and no animation is on the path between a
+ * press and its result. If every rule below were deleted the product would behave identically and
+ * merely look abrupt, which is the test for whether a piece of motion has been written correctly.
+ *
+ * THE CURVE AND THE DURATIONS ARE NOT DECLARED HERE. They were, in glass.css, where only the web
+ * could reach them — so "the same easing on all three platforms" was three people's guesses. They
+ * are in packages/design-tokens/tokens.json now and arrive as --ease-soft, --t-quick, --t-settle
+ * and --t-enter from tokens.generated.css, beside ThusoMotion.soft() on iOS and ThusoMotion.EaseSoft
+ * on Android. A curve is a number like any other.
+ *
+ * FOUR THINGS, AND WHY EACH IS ALLOWED TO MOVE.
+ *
+ *   1. An entrance (`rise`). Something arriving on screen for the first time, once, for 420ms. It
+ *      starts at opacity 0, so the one rule it must obey is that nothing it hides is anything a
+ *      reader needs — the landing headline deliberately has no entrance for exactly that reason.
+ *   2. A settle. A control coming to rest after a hover or a state change. 280ms, no exceptions.
+ *   3. A chapter entrance. The same `rise`, replayed when a panel's subject changes, because the
+ *      thing arriving is genuinely new content rather than the same content redrawn. It is keyed
+ *      from React rather than restarted from CSS; see apps/web/src/lib/motion.ts.
+ *   4. A pointer-following light. Ambient, on the ground layer only, and it moves by transform.
+ *
+ * WHAT NOTHING HERE MAY DO.
+ *
+ *   - Move under a word being read. The light is confined to `.patient-ground`, a fixed, empty,
+ *     aria-hidden pane behind every panel. There is no text on it and there cannot be.
+ *   - Move a control a thumb is travelling towards. Every endless animation below is on a
+ *     pseudo-element with pointer-events:none and nothing inside it, and moves by transform, so no
+ *     control's box ever changes. That, rather than the motion itself, was what made the old hero
+ *     bubbles a test hazard: Playwright waits for a box to hold still before it will click.
+ *   - Darken the ground. The light is white — the lightest colour in the palette — so it can only
+ *     lift the ground, never lower it. That is what keeps --glass-floor honest: every contrast
+ *     figure in this product measured against a frosted panel assumes the ground never goes darker
+ *     than --glass-floor-ground, and a light that could darken would quietly falsify all of them.
+ *
+ * THE PAUSE CONTROL. Decorative motion that starts on its own is gated behind [data-decor='on'],
+ * which apps/web/src/lib/motion.ts sets and the pause control clears. Three consequences worth
+ * naming: a page whose script never runs gets no endless motion at all rather than motion nobody
+ * can stop; the reader's choice governs every such animation on the page from one button; and
+ * because the flag is on <html>, a pause control placed anywhere stops everything. */
+
+/* ---- An entrance ----------------------------------------------------------------------------
+   Three delays and no more. A fourth step puts 180ms between the top of a screen and the bottom,
+   which is long enough to be waiting rather than arriving. */
+.rise { animation: rise var(--t-enter) var(--ease-soft) both; }
+.rise-2 { animation: rise var(--t-enter) var(--ease-soft) 60ms both; }
+.rise-3 { animation: rise var(--t-enter) var(--ease-soft) 120ms both; }
+
+@keyframes rise {
+ from { opacity: 0; transform: translate3d(0, 10px, 0); }
+ to { opacity: 1; transform: none; }
+}
+
+/* ---- A settle -------------------------------------------------------------------------------
+   Everything interactive comes to rest rather than snapping. Written once, here, rather than on
+   each component: a transition duration chosen per-component is how a product ends up with six. */
+.glass, .s-nav-row, .s-panel, .s-open, .s-metric-chip {
+ transition: transform var(--t-settle) var(--ease-soft),
+             box-shadow var(--t-settle) var(--ease-soft),
+             background-color var(--t-settle) var(--ease-soft),
+             border-color var(--t-settle) var(--ease-soft);
+}
+
+/* A press. The one piece of feedback that has to be faster than a settle, because it answers a
+   finger that is still on the glass. Scale only — a control that moves under a thumb mid-press is
+   a control that gets released somewhere else. */
+.m-press:active:not(:disabled) { transform: scale(.98); }
+.m-press { transition: transform var(--t-quick) var(--ease-soft); }
+
+/* ---- The pointer-following light ------------------------------------------------------------
+   A soft white lift that follows the cursor around the ground. It is a fixed, sized box moved by
+   transform rather than a gradient stop moved inside a full-viewport background: a background
+   position that changes repaints the whole pane on every pointer move, which on the mid-range
+   Android handsets this product is for is the difference between ambient and janky.
+
+   Only for a pointer that genuinely hovers. A touch screen has no cursor to follow — the
+   pointermove a browser synthesises under a finger would park the light wherever that finger last
+   was and leave it there, which is a stain rather than a light. */
+@media (hover: hover) and (pointer: fine) {
+ [data-decor='on'] .m-light::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 46vmax;
+  height: 46vmax;
+  margin: -23vmax 0 0 -23vmax;
+  pointer-events: none;
+  /* --surface, and nothing else. See the note at the top: this layer may never go darker. */
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--surface) 62%, transparent), transparent 72%);
+  transform: translate3d(var(--m-x, 50vw), var(--m-y, 50vh), 0);
+  /* Invisible until the pointer has actually been somewhere. Without this the light sits in the
+     middle of the screen on first paint, which reads as a blown-out patch rather than as a light. */
+  opacity: 0;
+  transition: opacity var(--t-enter) var(--ease-soft);
+ }
+ [data-decor='on'][data-pointer='seen'] .m-light::before { opacity: 1; }
+}
+
+/* ---- The pause control ----------------------------------------------------------------------
+   A real control: a 44px pill with a written label, in the tab order, operable from the keyboard,
+   and saying which of the two states pressing it produces. It is rendered only where decorative
+   motion exists, and not at all to a reader who has asked their system for less motion — there is
+   nothing to pause, and a disabled button that explains an absence is worse than the absence. */
+.m-pause {
+ display: inline-flex;
+ align-items: center;
+ gap: 8px;
+ min-height: 44px;
+ min-width: 44px;
+ padding: 0 14px;
+ border: 1px solid var(--faint);
+ border-radius: var(--r-pill);
+ background: var(--surface);
+ color: var(--charcoal);
+ font-size: 13px;
+ font-weight: 500;
+ cursor: pointer;
+ transition: background-color var(--t-quick) var(--ease-soft), border-color var(--t-quick) var(--ease-soft);
+}
+.m-pause:hover { background: var(--cloud); }
+.m-pause:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
+.m-pause svg { flex-shrink: 0; }
+.m-pause span { white-space: nowrap; }
+/* The label stays on a phone. It was hidden below 600px and the control became two grey bars in a
+   circle, which is a glyph a reader has to already know — and "Pause motion" is 139px at the
+   smallest size on the scale, so at 320px it costs a wrap in a caption row and nothing else. A
+   44px target is a floor for the box, never an argument for removing the words in it. */
+
+/* ---- Removal ---------------------------------------------------------------------------------
+   Not shortening. A 420ms entrance run at 80ms is still a thing that moved, and a reader who has
+   asked for stillness asked for stillness. Everything above is switched off; nothing above is the
+   only way anything becomes visible, so switching it off removes the movement and nothing else.
+
+   !important, and deliberately. This sheet is imported from core.css and is therefore the FIRST
+   thing in the cascade, so a transition declared in any later sheet on any of these selectors would
+   beat a plain rule here. A reduced-motion block that a stylesheet loaded afterwards can overrule
+   is not a removal; it is a suggestion. */
+@media (prefers-reduced-motion: reduce) {
+ .rise, .rise-2, .rise-3 { animation: none !important; }
+ .glass, .s-nav-row, .s-panel, .s-open, .s-metric-chip, .m-pause { transition: none !important; }
+ .m-press { transition: none !important; }
+ .m-press:active:not(:disabled) { transform: none !important; }
+ .m-light::before { display: none !important; }
+}
