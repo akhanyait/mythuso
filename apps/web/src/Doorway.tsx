@@ -15,7 +15,7 @@ import { roleFromSearch, roleOf, searchForRole, type RoleId } from './lib/roles'
  * patient application is the entry — it is what the address means with no role on it, and it is
  * therefore what must never wait for anything — and the two other surfaces arrive on a dynamic
  * import when somebody asks for them, stylesheets included. Measured, gzipped, at the entry's own
- * first load: 287.2 kB before the merge and 286.3 kB after it, with the clinical workspaces (32.5
+ * first load: 287.2 kB before the merge and 286.6 kB after it, with the clinical workspaces (32.5
  * kB of shell, 38.5 kB of screens, 10.0 kB of stylesheet) and the back office (6.8 kB) behind the
  * dynamic import. It is not a saving worth celebrating; it is the number that had to not move, and
  * the only reason to write it down is that this is the change where it could quietly have.

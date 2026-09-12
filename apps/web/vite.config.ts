@@ -18,7 +18,7 @@ export default defineConfig({
      about bytes and survives the merge intact. A patient opening her own visits on a mid-range phone
      on metered data still does not download a dispatch board, a vetting queue or an operations
      console: they are behind a dynamic import, and the entry's first load measured 287.2 kB gzipped
-     before the merge and 286.3 kB after it. A lazy route is what keeps that true, and it is the one
+     before the merge and 286.6 kB after it. A lazy route is what keeps that true, and it is the one
      thing here that would be easy to undo by accident — a static import of either shell from any
      module this entry already reaches puts all of it back into the first load, silently.
 

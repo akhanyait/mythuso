@@ -79,7 +79,7 @@ There were five. `staff.html` and `admin.html` were the clinical workspaces and 
 with a sign-in screen that said there was no account to sign in to and then asked which workspace you
 wanted. The founder replaced all of that with one demo login inside `/app/`, so those two are 301s
 here and lazily-loaded chunks in the bundle. What the split was for survives it: a patient's first
-load is 286.3 kB gzipped, and nothing of a dispatch board is in it.
+load is 286.6 kB gzipped, and nothing of a dispatch board is in it.
 
 They are served from paths on one host rather
 than from `staff.mythuso.co.za` and `admin.mythuso.co.za` for two reasons that are both temporary:

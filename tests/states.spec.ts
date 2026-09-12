@@ -228,8 +228,8 @@ test('and the controller who is shown one still gets it', async ({ page }) => {
  * HTML entries and a sign-in screen each; there is one entry and a role in the query string. The
  * patient application is what that address means with no role on it, so it is imported statically —
  * which means a clinician opening /app/?role=nurse downloads it too. Measured against the built
- * bundle, gzipped: a patient's first load went from 287.2 kB to 286.3 kB, and a nurse's from 278.2
- * kB to 365.7 kB.
+ * bundle, gzipped: a patient's first load went from 287.2 kB to 286.6 kB, and a nurse's from 278.2
+ * kB to 365.8 kB and the back office's from 285.3 kB to 340.8 kB.
  *
  * That is a promise to nurses partly given back, so it is recorded here in the number rather than
  * deleted from the assertions. The half that still holds is the one that started this work and the
