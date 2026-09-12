@@ -97,7 +97,7 @@ struct CancelVisitView: View {
             ForEach(Array(Cancellation.reasons.enumerated()), id: \.element) { index, option in
                 Button { reason = option.id } label: { reasonRow(option) }.buttonStyle(.plain)
                     .accessibilityAddTraits(reason == option.id ? [.isSelected] : [])
-                if index < Cancellation.reasons.count - 1 { Divider().overlay(ThusoTheme.stone) }
+                if index < Cancellation.reasons.count - 1 { Divider().overlay(ThusoTheme.studioLine) }
             }
         }
         /* From the contract, not typed. The sentence exists because a screen can behave permissively
@@ -199,7 +199,7 @@ struct CancelVisitView: View {
         CareCard(weight: .lead) {
             Text(record.state.patientWords).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 .fixedSize(horizontal: false, vertical: true)
-            Divider().overlay(ThusoTheme.stone)
+            Divider().overlay(ThusoTheme.studioLine)
             LabeledContent("Visit", value: record.visit.service.name)
             LabeledContent("It was booked for", value: record.visit.whenText)
             LabeledContent("Reason recorded", value: record.reason.text)
@@ -289,7 +289,7 @@ struct RescheduleVisitView: View {
     @ViewBuilder private func confirmation(_ visit: BookedVisit) -> some View {
         CareCard(weight: .lead) {
             Text("This visit has moved.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            Divider().overlay(ThusoTheme.stone)
+            Divider().overlay(ThusoTheme.studioLine)
             LabeledContent("Visit", value: visit.service.name)
             LabeledContent("Now", value: visit.whenText)
             LabeledContent("Where", value: visit.address)

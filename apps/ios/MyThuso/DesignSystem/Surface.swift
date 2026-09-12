@@ -15,8 +15,10 @@ import SwiftUI
  *      inverts on the row you are on. The circle is what makes the selected row read as a place
  *      you are rather than a button you could press.
  *   3. Separation is a hairline and a lighter fill, never a shadow. Generous corner radii.
- *   4. Sage is a fill and never a label. Everything read is charcoal, which clears 11.11:1 on the
- *      palest sage and 14.95:1 on the ground.
+ *   4. The accent is a fill and never a label. That rule outlived the accent it was written for:
+ *      it was teal, then sage, and it is `studioLime` now, which measures 1.05:1 on the paper ground
+ *      and so may be a word on nothing but `studioNight`. Everything read on a light ground is
+ *      charcoal, which clears 15.9:1 on paper and 15.3:1 on the lime plate.
  *
  * GLASS, AND THE FLOOR RULE. A translucent surface has no colour of its own — it is whatever is
  * behind it, tinted — so a contrast figure measured against it is a guess about where the panel
@@ -36,25 +38,29 @@ import SwiftUI
 
 // MARK: - The luminous ground
 
-/* A slow mesh of three pale tints rather than a flat fill, because a frosted panel over a flat
-   colour reads as a grey card — the glass needs something to refract. None of the three is darker
-   than glassFloorGround, which is what keeps the contrast arithmetic above honest.
-
-   The radii are fractions of the view rather than point values so the mesh is the same shape on a
-   phone and on an iPad, and so there is no measurement here for the design system to disagree
-   with. */
-struct AuroraGround: View {
+/* THE GROUND IS PAPER NOW.
+ *
+ * It was a mesh of three pale tints — auroraWarm, auroraCool, auroraSage — drawn so that a frosted
+ * panel had something to refract, because glass over a flat colour reads as a grey card.
+ *
+ * The Care Studio generation the founder chose on 12 September has one ground and it is `studioPaper`,
+ * a cream. A mesh of three tints under it would be the old palette showing through the new one, which
+ * is the same mistake the sage ramp made when it kept a blue-black gradient from the indigo design.
+ *
+ * So: paper, with a single soft highlight of white rather than three of anything. Glass still has a
+ * gradient to refract and the ground is one colour rather than three. The contrast arithmetic gets
+ * easier rather than harder — every point on this ground is at least as light as `mist`, which is
+ * what every charcoal pair in tokens.json was measured against, and `glassFloor` is the tint over the
+ * darkest point the ground may reach, so a lighter ground makes that floor conservative rather than
+ * optimistic. Nothing that was declared stops being true. */
+struct StudioGround: View {
     var body: some View {
         GeometryReader { geo in
             let span = max(geo.size.width, geo.size.height)
             ZStack {
-                ThusoTheme.auroraCool
-                RadialGradient(colors: [ThusoTheme.auroraWarm, ThusoTheme.auroraWarm.opacity(0)],
-                               center: UnitPoint(x: 0.12, y: 0.06), startRadius: 0, endRadius: span * 0.62)
-                RadialGradient(colors: [ThusoTheme.auroraSage, ThusoTheme.auroraSage.opacity(0)],
-                               center: UnitPoint(x: 0.88, y: 0.12), startRadius: 0, endRadius: span * 0.55)
-                RadialGradient(colors: [ThusoTheme.surface, ThusoTheme.surface.opacity(0)],
-                               center: UnitPoint(x: 0.5, y: 1), startRadius: 0, endRadius: span * 0.7)
+                ThusoTheme.studioPaper
+                RadialGradient(colors: [ThusoTheme.surface.opacity(0.85), ThusoTheme.surface.opacity(0)],
+                               center: UnitPoint(x: 0.85, y: 0), startRadius: 0, endRadius: span * 0.7)
             }
         }
         .ignoresSafeArea()
@@ -64,7 +70,7 @@ struct AuroraGround: View {
 
 extension View {
     /// The ground every screen stands on. One call so a screen cannot invent its own.
-    func thusoGround() -> some View { background(AuroraGround()) }
+    func thusoGround() -> some View { background(StudioGround()) }
 }
 
 /* THE DARK HERO, AND WHY IT STOPPED BEING A GRADIENT.
@@ -83,25 +89,31 @@ extension View {
  * The gradient was not carrying depth; it was carrying the old brand, faintly.
  *
  * So the second dark value is not needed and is not requested. What replaces it is the ground's own
- * construction, inverted: AuroraGround is a flat tint with soft radial highlights over it, and this
- * is a flat charcoal with one soft radial highlight over it. Same grammar, opposite polarity, one
- * token. It keeps the sense of light the founder liked in the reference without a second hue, and a
- * flat black rectangle 150 points tall — which is the other obvious answer — would have been the
- * same flatness this product already rejected in its corner radii.
+ * construction, inverted: StudioGround is a flat tint with one soft radial highlight over it, and
+ * this is a flat dark with one soft radial highlight over it. Same grammar, opposite polarity, one
+ * token. A flat black rectangle 150 points tall — which is the other obvious answer — would have
+ * been the same flatness this product already rejected in its corner radii.
+ *
+ * THE DARK IS `studioNight` RATHER THAN `charcoal`. On a cream ground a neutral black panel reads
+ * as a hole cut in the paper; the Care Studio generation's dark is #172B2B, which shares the
+ * ground's warmth and is the one token in the palette declared to carry both `studioPaper` and
+ * `studioLime` as words. It is what the prototype's phone frames use for the one thing that is
+ * live right now, and it is the only place in this palette an accent may be a word at all.
  *
  * MEASURED, NOT EYEBALLED, AND THIS IS WHY IT IS A HIGHLIGHT RATHER THAN AN ALPHA ON THE PANEL.
- * A panel that is charcoal-at-an-alpha lets the pale ground through, so the colour under the text
- * is wherever the panel happens to be sitting — which is precisely the guess `glassFloor` exists to
- * stop, and it is worse here because the ground is light and the text is white. This panel is fully
+ * A panel that is dark-at-an-alpha lets the pale ground through, so the colour under the text is
+ * wherever the panel happens to be sitting — which is precisely the guess `glassFloor` exists to
+ * stop, and it is worse here because the ground is light and the text is not. This panel is fully
  * opaque at every point. The highlight is `surface` at 10%, so the palest point on it composites to
- * #333333, and white reads 12.69:1 there against 17.04:1 at the darkest — both clear AA and AAA,
- * and there is no point on the panel where the arithmetic depends on what is behind it. */
+ * #2E4040, where `studioPaper` reads 10.28:1 against 13.95:1 at the darkest and `studioLime` reads
+ * 9.80 against 13.31 — all four clear AA, and there is no point on the panel where the arithmetic
+ * depends on what is behind it. */
 struct NightPanel: View {
     var body: some View {
         GeometryReader { geo in
             let span = max(geo.size.width, geo.size.height)
             ZStack {
-                ThusoTheme.charcoal
+                ThusoTheme.studioNight
                 RadialGradient(colors: [ThusoTheme.surface.opacity(0.10), ThusoTheme.surface.opacity(0)],
                                center: UnitPoint(x: 0.12, y: 0.02), startRadius: 0, endRadius: span * 0.9)
             }
@@ -129,7 +141,7 @@ struct Frosted: ViewModifier {
                 }
             }
             .overlay {
-                shape.stroke(ThusoTheme.stone, lineWidth: 1)
+                shape.stroke(ThusoTheme.studioLine, lineWidth: 1)
                     .overlay(alignment: .top) {
                         if edge && !reduceTransparency {
                             LinearGradient(colors: [ThusoTheme.glassEdge.opacity(0),
@@ -174,26 +186,38 @@ struct ThusoMetric: View {
     var flagged = false
     @ScaledMetric(relativeTo: .largeTitle) private var figure: CGFloat = ThusoType.metric
     @ScaledMetric(relativeTo: .footnote) private var affix: CGFloat = ThusoType.cardTitle
+    /* The figures moved onto the night card and took their colours with them. A metric asked for
+       charcoal on every ground it had ever stood on, and charcoal on `studioNight` is 1.6:1 — the
+       strip would have been there in the layout and gone in the screenshot. Read from the
+       environment rather than passed, because the thing that knows is the card, and a strip built
+       from a ForEach over a contract has nowhere to put an argument that is the same for all of
+       them. StudioNightCard is the only thing that sets it. */
+    @Environment(\.onStudioNight) private var onNight
+    private var ink: Color { onNight ? ThusoTheme.studioPaper : ThusoTheme.charcoal }
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-            if let chip { MetricChip(text: chip, flagged: flagged) }
+            if let chip {
+                MetricChip(text: chip, tone: onNight ? (flagged ? .flaggedOnNight : .onDark)
+                                                     : (flagged ? .filled : .neutral))
+            }
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 if let prefix {
-                    Text(prefix).font(.system(size: affix, weight: .regular)).foregroundStyle(ThusoTheme.charcoal)
+                    Text(prefix).font(.system(size: affix, weight: .regular)).foregroundStyle(ink)
                 }
                 Text(value)
                     .font(.system(size: figure, weight: .light).monospacedDigit())
-                    .foregroundStyle(ThusoTheme.charcoal)
+                    .foregroundStyle(ink)
                 if let unit {
-                    Text(unit).font(.system(size: affix, weight: .regular)).foregroundStyle(ThusoTheme.charcoal)
+                    Text(unit).font(.system(size: affix, weight: .regular)).foregroundStyle(ink)
                 }
             }
             .lineLimit(1)
             .minimumScaleFactor(0.6)
-            /* Charcoal, muted by opacity rather than by a grey of its own. A metric can sit on
-               white or on the palest sage, and a fixed grey that reads on one does not read on the
-               other — which is exactly what "sage is a fill and never a label" is about. */
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+            /* The ink, muted by opacity rather than by a grey of its own. A metric can sit on white,
+               on the palest sage or on the night card, and a fixed grey that reads on one does not
+               read on the others — which is exactly what "an accent is a fill and never a label" is
+               about. `studioPaper` at 78% over the night composites to #C8CBC6 and reads 9.04:1. */
+            Text(label).font(.footnote).foregroundStyle(ink.opacity(ThusoOpacity.charcoalMuted))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -235,17 +259,24 @@ enum ChipTone {
     case onDark
     /// The one value on a screen that is being pointed at. Charcoal fill, white word.
     case filled
+    /* `filled` on the night card, which is where the accent finally gets to be a fill behind a
+       word. A charcoal chip on a near-black card is a chip nobody can find, and the flagged one is
+       the single figure on the strip a reader has to find without reading — so it takes `studioLime`
+       with `studioInkDeep` on it, the pair tokens.json declares for the heavier label on an accent
+       fill. It is the one lime object on the card, which is the whole of why it works. */
+    case flaggedOnNight
 
     /// (ink, fill, edge). Charcoal clears 17.04:1 on surface and 13.53:1 on cloud; mangoInk 6.22
     /// and danger 5.77 on their own washes; white 12.6:1 on the charcoal fill.
     var colours: (Color, Color, Color) {
         switch self {
-        case .neutral: return (ThusoTheme.charcoal, ThusoTheme.surface, ThusoTheme.stone)
+        case .neutral: return (ThusoTheme.charcoal, ThusoTheme.surface, ThusoTheme.studioLine)
         case .quiet: return (ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted), ThusoTheme.cloud, .clear)
         case .attention: return (ThusoTheme.mangoInk, ThusoTheme.mangoSoft, ThusoTheme.mangoInk.opacity(0.24))
         case .refused: return (ThusoTheme.danger, ThusoTheme.dangerSoft, ThusoTheme.danger.opacity(0.3))
         case .onDark: return (ThusoTheme.surface, ThusoTheme.surface.opacity(0.16), ThusoTheme.surface.opacity(0.3))
         case .filled: return (ThusoTheme.surface, ThusoTheme.charcoal, ThusoTheme.charcoal)
+        case .flaggedOnNight: return (ThusoTheme.studioInkDeep, ThusoTheme.studioLime, ThusoTheme.studioLime)
         }
     }
 
@@ -305,8 +336,10 @@ struct ThusoMetrics<Content: View>: View {
 // MARK: - A panel
 
 /* A hairline and a lighter fill. No shadow, and no second shadow under the first one.
-   `lead` takes the palest sage as a ground — the one panel a screen is about — and charcoal reads
-   on it at 11.11:1. `quiet` recedes into the ground rather than making a second claim. */
+   `lead` takes `studioLilac` as a ground — the one panel a screen is about — and charcoal reads on
+   it at 11.93:1. `quiet` recedes into the ground rather than making a second claim. The sage it
+   replaces was the palest step of a ramp measured against a grey ground this app no longer has; see
+   CareCard in DesignSystem/Theme.swift for the argument, which is spent once and holds for both. */
 struct SurfacePanel<Content: View>: View {
     var tone: PanelTone = .plain
     var padding: CGFloat = ThusoSpacing.space20
@@ -315,7 +348,7 @@ struct SurfacePanel<Content: View>: View {
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous) }
     private var fill: Color {
         switch tone {
-        case .lead: return ThusoTheme.paleSage
+        case .lead: return ThusoTheme.studioLilac
         case .plain: return ThusoTheme.surface
         case .quiet: return ThusoTheme.cloud
         }
@@ -325,7 +358,7 @@ struct SurfacePanel<Content: View>: View {
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(fill, in: shape)
-            .overlay(shape.stroke(tone == .plain ? ThusoTheme.stone : .clear, lineWidth: 1))
+            .overlay(shape.stroke(tone == .plain ? ThusoTheme.studioLine : .clear, lineWidth: 1))
     }
 }
 
@@ -393,7 +426,10 @@ struct NavPillLabel: View {
             ? AnyShape(Capsule())
             : AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
-    private var ink: Color { current ? ThusoTheme.surface : ThusoTheme.charcoal }
+    /* The row you are on takes `studioNight` and `studioPaper`, which is the same pair the one live
+       card on a screen uses. A neutral black pill on a cream ground reads as a hole rather than as a
+       place, and the two darks would have been the only two darks in the app that disagreed. */
+    private var ink: Color { current ? ThusoTheme.studioPaper : ThusoTheme.charcoal }
     var body: some View {
         HStack(spacing: ThusoSpacing.space12) {
             /* At the accessibility sizes the symbol is dropped rather than shrunk: the words are
@@ -414,7 +450,7 @@ struct NavPillLabel: View {
                        the row is the one they want. It is the muted charcoal every other secondary
                        label is, which reads 6.01 on that ground and darkens with it. */
                     Text(subtitle).font(.footnote)
-                        .foregroundStyle(current ? ThusoTheme.surface.opacity(0.8)
+                        .foregroundStyle(current ? ThusoTheme.studioPaper.opacity(0.8)
                                                  : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -424,15 +460,15 @@ struct NavPillLabel: View {
                but it is the decoration that says this row goes somewhere, and at 2.30 it did not
                say it to anybody. */
             Image(systemName: "arrow.right").font(.subheadline.weight(.semibold))
-                .foregroundStyle(current ? ThusoTheme.charcoal : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                .foregroundStyle(current ? ThusoTheme.studioNight : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 .frame(width: 36, height: 36)
-                .background(current ? ThusoTheme.surface : .clear, in: Circle())
+                .background(current ? ThusoTheme.studioPaper : .clear, in: Circle())
                 .accessibilityHidden(true)
         }
         .padding(.leading, ThusoSpacing.space16).padding(.trailing, 6)
         .padding(.vertical, ThusoSpacing.space8)
         .frame(maxWidth: .infinity, minHeight: 52)
-        .background(current ? ThusoTheme.charcoal : ThusoTheme.cloud, in: shape)
+        .background(current ? ThusoTheme.studioNight : ThusoTheme.cloud, in: shape)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(current ? [.isSelected] : [])
@@ -586,5 +622,5 @@ extension View {
 
 /// A hairline. Separation in this language is this and a lighter fill, and nothing else.
 struct Hairline: View {
-    var body: some View { Rectangle().fill(ThusoTheme.stone).frame(height: 1).accessibilityHidden(true) }
+    var body: some View { Rectangle().fill(ThusoTheme.studioLine).frame(height: 1).accessibilityHidden(true) }
 }

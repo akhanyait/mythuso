@@ -18,11 +18,11 @@ struct PassportView: View {
                 case "Records":
                     CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                         NavigationLink { PastVisitView(service: CareService.all[1]) } label: { MenuRow(title: "Visit summary", subtitle: "What the nurse found, and what the doctor said about it", symbol: "doc.text") }.buttonStyle(.plain)
-                        Divider().overlay(ThusoTheme.stone)
+                        Divider().overlay(ThusoTheme.studioLine)
                         NavigationLink { LabOrderView() } label: { MenuRow(title: "Laboratory results", subtitle: "Fasting panel · Released", symbol: "flask") }.buttonStyle(.plain)
-                        Divider().overlay(ThusoTheme.stone)
+                        Divider().overlay(ThusoTheme.studioLine)
                         NavigationLink { ReadingsExplainedView() } label: { MenuRow(title: "What your readings mean", subtitle: "Seven measurements, in words, written by a person", symbol: "text.book.closed") }.buttonStyle(.plain)
-                        Divider().overlay(ThusoTheme.stone)
+                        Divider().overlay(ThusoTheme.studioLine)
                         NavigationLink { FeatureDetail(title: "Medical certificate") } label: { MenuRow(title: "Medical certificate", subtitle: "Doctor reviewed · Demo", symbol: "checkmark.seal") }.buttonStyle(.plain)
                     }
                 case "Medications":
@@ -33,7 +33,7 @@ struct PassportView: View {
                     StateBlock(state: deviceState, subject: "Readings from your connected devices", permission: "Apple Health access", retry: { deviceState = .ready }) {
                         CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                             NavigationLink { DevicePermissionView(integration: DeviceIntegration.of("apple-health")) } label: { MenuRow(title: "Apple Health", subtitle: "Exactly what would be read, and what never would", symbol: "heart.circle") }.buttonStyle(.plain)
-                            Divider().overlay(ThusoTheme.stone)
+                            Divider().overlay(ThusoTheme.studioLine)
                             NavigationLink { DevicePermissionView(integration: DeviceIntegration.of("thuso-kit")) } label: { MenuRow(title: "Thuso Kit", subtitle: "The instruments a nurse brings, and how a reading is filed", symbol: "sensor") }.buttonStyle(.plain)
                         }
                     }
@@ -212,7 +212,7 @@ private struct SectionTabs: View {
                        which is the frame XCUITest measures and a thumb has to find. */
                     .frame(maxWidth: filling ? .infinity : nil, minHeight: 44)
                     .background(chosen ? ThusoTheme.charcoal : ThusoTheme.surface, in: shape)
-                    .overlay(shape.stroke(chosen ? ThusoTheme.charcoal : ThusoTheme.stone, lineWidth: 1))
+                    .overlay(shape.stroke(chosen ? ThusoTheme.charcoal : ThusoTheme.studioLine, lineWidth: 1))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -272,7 +272,7 @@ struct PlansView: View {
                 CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                     ForEach(Array(plans.enumerated()), id: \.element.0) { index, plan in
                         NavigationLink { FeatureDetail(title: plan.0) } label: { planRow(plan) }.buttonStyle(.plain)
-                        if index < plans.count - 1 { Divider().overlay(ThusoTheme.stone) }
+                        if index < plans.count - 1 { Divider().overlay(ThusoTheme.studioLine) }
                     }
                 }
             }
@@ -446,7 +446,7 @@ struct RoadmapView: View {
                         } else {
                             NavigationLink { FeatureDetail(title: feature) } label: { MenuRow(title: feature, subtitle: "", symbol: "square.grid.2x2") }.buttonStyle(.plain)
                         }
-                        if index < features.count - 1 { Divider().overlay(ThusoTheme.stone) }
+                        if index < features.count - 1 { Divider().overlay(ThusoTheme.studioLine) }
                     }
                 }
             }

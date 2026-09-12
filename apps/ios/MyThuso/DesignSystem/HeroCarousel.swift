@@ -119,7 +119,7 @@ struct HeroCarousel: View {
             Spacer(minLength: 0)
         }
         .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.stone, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.studioLine, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .shadow(color: ThusoTheme.lift, radius: 10, y: 3)
         .padding(.horizontal, 2)

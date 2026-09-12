@@ -94,7 +94,7 @@ struct ProvenanceKey: View {
                 }
                 .padding(.vertical, 4)
                 .accessibilityElement(children: .combine)
-                if provenance != Provenance.allCases.last { Divider().overlay(ThusoTheme.stone) }
+                if provenance != Provenance.allCases.last { Divider().overlay(ThusoTheme.studioLine) }
             }
             Text(CaptureRules.provenanceIsRequired).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
         }

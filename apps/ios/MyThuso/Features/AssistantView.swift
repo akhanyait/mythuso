@@ -170,7 +170,7 @@ struct AssistantView: View {
                     .background(chosen ? ThusoTheme.charcoal : ThusoTheme.surface,
                                 in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
-                        .stroke(chosen ? ThusoTheme.charcoal : ThusoTheme.stone, lineWidth: 1))
+                        .stroke(chosen ? ThusoTheme.charcoal : ThusoTheme.studioLine, lineWidth: 1))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -189,7 +189,7 @@ struct AssistantView: View {
             CareSectionHeader("Why it cannot listen")
             CareCard {
                 ForEach(Array(Capabilities.blocking(capability).enumerated()), id: \.offset) { index, reason in
-                    if index > 0 { Divider().overlay(ThusoTheme.stone) }
+                    if index > 0 { Divider().overlay(ThusoTheme.studioLine) }
                     Text(reason).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.vertical, ThusoSpacing.space4)

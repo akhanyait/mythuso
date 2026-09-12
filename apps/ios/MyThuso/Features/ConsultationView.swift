@@ -344,7 +344,7 @@ struct ConsultationRecordView: View {
                         Text(entry.whenItHappened).font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         WrittenAgoNote(at: entry.writtenToPhoneAt, what: "This reading")
                     }
-                    if entry.id != visitReadings.last?.id { Divider().overlay(ThusoTheme.stone) }
+                    if entry.id != visitReadings.last?.id { Divider().overlay(ThusoTheme.studioLine) }
                 }
                 Text("Read-only here. These are the readings as they were taken, with the origin, the instrument and the calibration each was taken under. The box below is for what they do not carry.")
                     .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))

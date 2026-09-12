@@ -117,7 +117,7 @@ struct CaptureQueueView: View {
             ForEach(ledger?.saysSurvives ?? [], id: \.self) { line in
                 Label(line, systemImage: "checkmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
             }
-            Divider().overlay(ThusoTheme.stone)
+            Divider().overlay(ThusoTheme.studioLine)
             ForEach(ledger?.saysLostTo ?? [], id: \.self) { line in
                 Label(line, systemImage: "xmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
@@ -209,7 +209,7 @@ struct CaptureQueueView: View {
             Text("Signing out of this preview returns to the first-run flow and goes nowhere near the file. This drops everything held in memory and reads the file again from nothing, which is what a cold launch does — the count above should not move.")
                 .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Button("Sign out and read the file again") { kit.reloadFromDisk() }.buttonStyle(QuietButton())
-            Divider().overlay(ThusoTheme.stone)
+            Divider().overlay(ThusoTheme.studioLine)
             Text("The only thing in this app that removes an entry, and it is a person’s deliberate act on fictional data. No sync, no sign-out and no failure ever does it.")
                 .font(.caption2).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             Button("Clear this phone’s store and start again") { kit.resetToFixtures() }

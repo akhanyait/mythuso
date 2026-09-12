@@ -87,7 +87,7 @@ struct StateBlock<Content: View>: View {
             }
             .padding(.vertical, ThusoSpacing.space8)
             .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.stone, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.studioLine, lineWidth: 1))
         }
     }
 }
@@ -120,7 +120,7 @@ struct StatePicker: View {
         .padding(ThusoSpacing.space12)
         .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)
-            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.stone))
+            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.studioLine))
     }
 }
 
@@ -137,7 +137,7 @@ struct EmptyStateCard: View {
         }
         .padding(.vertical, ThusoSpacing.space8)
         .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.stone, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.studioLine, lineWidth: 1))
     }
 }
 

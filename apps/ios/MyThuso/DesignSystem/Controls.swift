@@ -274,7 +274,7 @@ struct ChoiceCard: View {
             .background(chosen ? ThusoTheme.paleSage : ThusoTheme.surface,
                         in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)
-                .stroke(chosen ? ThusoTheme.charcoal : ThusoTheme.stone, lineWidth: 1))
+                .stroke(chosen ? ThusoTheme.charcoal : ThusoTheme.studioLine, lineWidth: 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

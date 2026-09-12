@@ -233,7 +233,7 @@ struct RangeTable: View {
                 .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                 .accessibilityHidden(true)
                 ForEach(rows) { row in
-                    Divider().overlay(ThusoTheme.stone).gridCellColumns(3)
+                    Divider().overlay(ThusoTheme.studioLine).gridCellColumns(3)
                     GridRow {
                         Text(row.name).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                             .fixedSize(horizontal: false, vertical: true)

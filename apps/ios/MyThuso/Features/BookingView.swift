@@ -16,7 +16,7 @@ struct ServicesView: View {
                     CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                         ForEach(Array(matches.enumerated()), id: \.element) { index, service in
                             NavigationLink { BookingView(service: service) } label: { serviceRow(service) }.buttonStyle(.plain)
-                            if index < matches.count - 1 { Divider().overlay(ThusoTheme.stone) }
+                            if index < matches.count - 1 { Divider().overlay(ThusoTheme.studioLine) }
                         }
                     }
                 }
@@ -129,7 +129,7 @@ struct BookingView: View {
         summary
         CareCard {
             Picker("Who is this visit for?", selection: $patient) { ForEach(["Lerato Molefe"] + store.family, id: \.self) { Text($0) } }
-            Divider().overlay(ThusoTheme.stone)
+            Divider().overlay(ThusoTheme.studioLine)
             TextField("Visit location", text: $address)
         }
         Text("Sample availability and proposal pricing. Tests, medicines and prescriptions may require separate arrangements.")
@@ -198,7 +198,7 @@ struct BookingView: View {
             if scheduled { LabeledContent("Time", value: "\(slot) – \(endTime)") }
             LabeledContent("Location", value: address)
             LabeledContent("Patient", value: patient)
-            Divider().overlay(ThusoTheme.stone)
+            Divider().overlay(ThusoTheme.studioLine)
             HStack(spacing: ThusoSpacing.space12) {
                 Monogram(text: Arrival.nurse.initials)
                 VStack(alignment: .leading, spacing: 2) {
@@ -209,7 +209,7 @@ struct BookingView: View {
                 Text("★ 4.9").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
             }
             .accessibilityElement(children: .combine)
-            Divider().overlay(ThusoTheme.stone)
+            Divider().overlay(ThusoTheme.studioLine)
             HStack(spacing: ThusoSpacing.space12) {
                 Image(systemName: "creditcard").font(.body).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
                 Text(payment == "Card" ? "•••• 4242" : payment).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
@@ -385,7 +385,7 @@ struct VisitsView: View {
                                     }
                                     .padding(.vertical, ThusoSpacing.space8).frame(minWidth: 52, minHeight: 58)
                                     .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                                    .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.stone, lineWidth: 1))
+                                    .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.studioLine, lineWidth: 1))
                                     /* One element saying the date once. `children: .combine` left the
                                        three parts in the tree beside the combined one, so VoiceOver
                                        read "FRI, 11, SEP" and then "FRI", "11", "SEP" again. */
@@ -416,13 +416,13 @@ struct VisitsView: View {
                                    and the row for it led nowhere: the same shape as an upcoming
                                    visit, three days after it happened. */
                                 if row.status == "Completed" {
-                                    Divider().overlay(ThusoTheme.stone)
+                                    Divider().overlay(ThusoTheme.studioLine)
                                     NavigationLink { PastVisitView(service: CareService.all[1], address: row.place) } label: {
                                         Text("See what the nurse found").frame(maxWidth: .infinity)
                                     }.buttonStyle(CareButton())
                                 }
                                 if row.nurse, let visit = store.visits.first {
-                                    Divider().overlay(ThusoTheme.stone)
+                                    Divider().overlay(ThusoTheme.studioLine)
                                     NavigationLink { ArrivalView(visit: visit) } label: {
                                         HStack(spacing: ThusoSpacing.space12) {
                                             Monogram(text: Arrival.nurse.initials)

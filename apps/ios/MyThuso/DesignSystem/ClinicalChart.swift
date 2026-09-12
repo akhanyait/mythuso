@@ -89,7 +89,7 @@ struct ClinicalChart: View {
                         }
                         .font(.caption).padding(.vertical, ThusoSpacing.space8)
                         .accessibilityElement(children: .combine)
-                        Divider().overlay(ThusoTheme.stone)
+                        Divider().overlay(ThusoTheme.studioLine)
                     }
                     Text("Fictional data, not a medical record.").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
                 }

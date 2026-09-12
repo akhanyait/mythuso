@@ -61,9 +61,17 @@ struct CareCard<Content: View>: View {
     var spacing: CGFloat = ThusoSpacing.space12
     @ViewBuilder var content: Content
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous) }
+    /* THE LEAD FILL IS LILAC NOW, AND THE REASON IS THE GROUND UNDER IT.
+       `paleSage` was the palest step of a ramp chosen against a grey #F0F0F0 ground. The ground is
+       cream, and a desaturated sage panel on cream is the previous generation's accent showing
+       through the new one — the exact fault this file's own comment accuses the indigo gradient of.
+       `studioLilac` is one of the three tiles the Care Studio palette declares, charcoal reads
+       11.93:1 on it and the muted label 5.59, and it is quiet enough to be on every screen in the
+       way `studioLime` is emphatically not. The loud one is spent on a tile plate, a flag chip and
+       the one button a screen is for. */
     private var fill: Color {
         switch weight {
-        case .lead: return ThusoTheme.paleSage
+        case .lead: return ThusoTheme.studioLilac
         case .plain: return ThusoTheme.surface
         case .quiet: return ThusoTheme.cloud
         }
@@ -73,7 +81,7 @@ struct CareCard<Content: View>: View {
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(fill, in: shape)
-            .overlay(shape.stroke(weight == .plain ? ThusoTheme.stone : .clear, lineWidth: 1))
+            .overlay(shape.stroke(weight == .plain ? ThusoTheme.studioLine : .clear, lineWidth: 1))
     }
 }
 
@@ -147,16 +155,27 @@ private func buttonShape(_ accessibility: Bool) -> AnyShape {
     accessibility ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)) : AnyShape(Capsule())
 }
 
+/* THE PRIMARY ACTION IS A LIME PILL WITH AN INK LABEL.
+ *
+ * It was a charcoal pill with a white label, and the prototype's is lime with ink on it — which is
+ * the single most recognisable object in the founder's screenshots and the reason the accent exists
+ * at all. `studioInkDeep on studioLime` is a declared pair; the accent is a ground here and never a
+ * word, which is the rule it has been held to since it was teal.
+ *
+ * PRESSED IS A DARKENING RATHER THAN A FADE. Lowering the fill's alpha would let the paper through
+ * and leave the label sitting on whatever the button happens to be over — the same guess `glassFloor`
+ * exists to stop. An ink veil over the lime only ever makes the ratio better. */
 struct CareButton: ButtonStyle {
     @Environment(\.dynamicTypeSize) private var typeSize
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let shape = buttonShape(typeSize.isAccessibilitySize)
+        return configuration.label
             .font(.subheadline.weight(.semibold))
             .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
             .frame(maxWidth: .infinity, minHeight: 48)
-            .background(ThusoTheme.charcoal.opacity(configuration.isPressed ? 0.82 : 1),
-                        in: buttonShape(typeSize.isAccessibilitySize))
-            .foregroundStyle(.white)
+            .background(ThusoTheme.studioLime, in: shape)
+            .overlay(shape.fill(ThusoTheme.studioInkDeep.opacity(configuration.isPressed ? 0.12 : 0)))
+            .foregroundStyle(ThusoTheme.studioInkDeep)
             .contentShape(Rectangle())
     }
 }
@@ -204,7 +223,7 @@ struct Monogram: View {
             Text(text).font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
                 .frame(width: diameter * scale, height: diameter * scale)
                 .background(background, in: Circle())
-                .overlay(Circle().stroke(ThusoTheme.stone, lineWidth: 1))
+                .overlay(Circle().stroke(ThusoTheme.studioLine, lineWidth: 1))
                 .accessibilityHidden(true)
         }
     }
@@ -214,7 +233,10 @@ struct Monogram: View {
 struct TileIcon: View {
     let symbol: String
     var tint: Color = ThusoTheme.charcoal
-    var background: Color = ThusoTheme.paleSage
+    /* The lime accent block, at the one size it is affordable. A plate is forty points square and
+       marks what leads a section rather than every row in it, so the accent stays countable: a
+       screen has one or two of these, not eleven. Charcoal reads 15.3:1 on it. */
+    var background: Color = ThusoTheme.studioLime
     var size: CGFloat = 40
     /* @ScaledMetric so the plate grows with the reader's text size. It used to be a fixed square
        beside text that could triple in height, which is how a 44-point tile ended up floating
@@ -346,7 +368,7 @@ struct MenuRow: View {
         HStack(spacing: ThusoSpacing.space12) {
             if tinted || danger {
                 TileIcon(symbol: symbol, tint: danger ? ThusoTheme.danger : ThusoTheme.charcoal,
-                         background: danger ? ThusoTheme.dangerSoft : ThusoTheme.paleSage, size: 36)
+                         background: danger ? ThusoTheme.dangerSoft : ThusoTheme.studioLime, size: 36)
             } else if !typeSize.isAccessibilitySize {
                 /* At the accessibility sizes the symbol is dropped rather than shrunk: the words are
                    what the row is for, and a 24-point glyph beside six lines of wrapped label is

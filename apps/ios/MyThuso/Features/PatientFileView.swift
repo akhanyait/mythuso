@@ -502,20 +502,20 @@ struct PatientFileOverview: View {
         CareCard {
             VitalStat(symbol: "heart", name: "Blood pressure", value: "\(Int(latest.systolic))/\(Int(latest.diastolic))",
                       unit: "mmHg", provenance: originOf(latest, "systolic"))
-            Divider().overlay(ThusoTheme.stone)
+            Divider().overlay(ThusoTheme.studioLine)
             VitalStat(symbol: "waveform.path.ecg", name: "Pulse", value: "\(Int(latest.pulse))", unit: "bpm",
                       provenance: originOf(latest, "pulse"))
-            Divider().overlay(ThusoTheme.stone)
+            Divider().overlay(ThusoTheme.studioLine)
             VitalStat(symbol: "thermometer", name: "Temperature", value: String(format: "%.1f", latest.temperature),
                       unit: "°C", provenance: originOf(latest, "temperature"))
-            Divider().overlay(ThusoTheme.stone)
+            Divider().overlay(ThusoTheme.studioLine)
             VitalStat(symbol: "scalemass", name: "Weight", value: String(format: "%.1f", latest.weight), unit: "kg",
                       provenance: originOf(latest, "weight"))
-            Divider().overlay(ThusoTheme.stone)
+            Divider().overlay(ThusoTheme.studioLine)
             VitalStat(symbol: "lungs", name: "Oxygen saturation", value: "\(Int(latest.oxygen))", unit: "%",
                       provenance: originOf(latest, "oxygen"))
             if let instrument = latest.instrument {
-                Divider().overlay(ThusoTheme.stone)
+                Divider().overlay(ThusoTheme.studioLine)
                 FieldRow(label: "Instrument", value: instrument)
             }
             if let note = latest.calibrationNote {
@@ -553,7 +553,7 @@ struct PatientFileOverview: View {
                     MenuRow(title: action.label, subtitle: allowed.reason ?? "", symbol: "lock", danger: true)
                         .accessibilityLabel("\(action.label), refused. \(allowed.reason ?? "")")
                 }
-                if action.id != Records.fileActions.last?.id { Divider().overlay(ThusoTheme.stone) }
+                if action.id != Records.fileActions.last?.id { Divider().overlay(ThusoTheme.studioLine) }
             }
         }
     }
@@ -649,7 +649,7 @@ struct PatientFileTimeline: View {
                                    tab do not read as two families of control on one screen. */
                                 .background(filter == kind ? ThusoTheme.charcoal : ThusoTheme.surface, in: Capsule())
                                 .foregroundStyle(filter == kind ? ThusoTheme.surface : ThusoTheme.charcoal)
-                                .overlay(Capsule().stroke(filter == kind ? .clear : ThusoTheme.stone, lineWidth: 1))
+                                .overlay(Capsule().stroke(filter == kind ? .clear : ThusoTheme.studioLine, lineWidth: 1))
                         }
                         .buttonStyle(.plain)
                         .accessibilityAddTraits(filter == kind ? [.isSelected] : [])
@@ -989,7 +989,7 @@ struct PatientFileBilling: View {
                         }
                         .padding(.vertical, 4)
                         .accessibilityElement(children: .combine)
-                        Divider().overlay(ThusoTheme.stone)
+                        Divider().overlay(ThusoTheme.studioLine)
                     }
                     HStack {
                         Text("Visible to this viewer").font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
