@@ -53,19 +53,32 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
     to the token still moves it. A --r-panel step in packages/design-tokens/tokens.json would
     retire this line. */
  --r-panel:calc(var(--r-card) * 1.5);
- /* Two values mixed rather than added to the palette: a hairline that reads on charcoal, and the
-    quiet text that sits on it. --stone at 62% over --charcoal measures 5.59:1, which is the
-    smallest thing on a dark ground here and still clears AA. */
+ /* Two values mixed rather than added to the palette: a hairline that reads on the night ground,
+    and the quiet text that sits on it. Both are mixed from studioNight now rather than from the ink,
+    because the three dark surfaces on this page are studioNight and a quiet colour computed against
+    a ground it is not on is a figure about nothing. Paper at 72% over night measures 7.94:1, which
+    is the smallest thing on a dark ground here and still well clear of AA. */
  --on-dark:color-mix(in srgb,var(--surface) 16%,transparent);
- --on-dark-quiet:color-mix(in srgb,var(--stone) 62%,var(--charcoal));
+ --on-dark-quiet:color-mix(in srgb,var(--studio-paper) 72%,var(--studio-night));
 }
 .landing section[id]{scroll-margin-top:88px}
 .landing a{text-decoration:none}
-/* Nothing on this page is bold. The heaviest weight below is 500, and the self-hosted Inter subset
-   starts at 400 — there is no lighter face to reach for, so the "large and light" figure is 400 at
-   a size nothing else on the page comes near. */
-.landing h1,.landing h2{font-family:var(--font-display);font-weight:500;letter-spacing:-.035em;color:var(--charcoal);text-wrap:balance}
-.landing h1{font-size:clamp(36px,5.4vw,64px);line-height:1.02}
+/* The headings are bold now, and the figures are still light. That reads as a contradiction of the
+   paragraph this replaces — "nothing on this page is bold" — so here is what changed and why.
+   The sage generation put its emphasis entirely in size and space, because a near-monochrome page
+   has nothing else to put it in. Care Studio has a second lever: two inks. So a heading is set
+   heavy and split across two colours, and the *figures* keep the light weight, which is what stops
+   the page reading as one shouted block. Emphasis is still not decoration — it is the difference
+   between the thing a person came for and the thing beside it.
+
+   700 rather than 800: the self-hosted Inter subset carries the whole axis, and at clamp(36,64) the
+   heavier cut closes the counters at a reading distance. */
+.landing h1,.landing h2{font-family:var(--font-display);font-weight:700;letter-spacing:-.04em;color:var(--charcoal);text-wrap:balance}
+.landing h1{font-size:clamp(36px,5.6vw,64px);line-height:1.0}
+/* The olive. Lime at 30% into the ink — 4.98:1 on paper, and this is large text, which SC 1.4.3
+   holds to 3:1. It is the one colour on the page that is neither ink nor a fill, and it exists to
+   split one sentence rather than to appear anywhere else. */
+.landing h1 .landing-h1-accent{color:color-mix(in srgb,var(--studio-lime) 30%,var(--studio-ink))}
 .landing h2{font-size:clamp(28px,3.6vw,42px);line-height:1.08}
 .landing h3{font-size:18px;font-weight:500;letter-spacing:-.015em;color:var(--charcoal);line-height:1.35}
 /* Every paragraph on this page is coloured by the rule for the block it is in, and there is no
@@ -84,8 +97,12 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    The banner, the caption under each photograph and the footer note. None of them is decoration and
    none of them may be shrunk to tidy a layout, so they are styled here first, on purpose. The
    banner is the darkest thing on the page and the first thing on it, which is the treatment a
-   sentence saying "this does not work yet" has earned. */
-.landing-notice{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--charcoal);color:var(--mist);font-size:13px;line-height:1.55;padding:13px var(--pad)}
+   sentence saying "this does not work yet" has earned.
+
+   studioNight rather than the ink, because the page now has three dark moments — this banner, the
+   bar of sections in the hero and the closing panel — and three near-blacks a few points apart read
+   as a mistake rather than as a system. Paper on night measures 13.96. */
+.landing-notice{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--studio-night);color:var(--studio-paper);font-size:13px;line-height:1.55;padding:13px var(--pad)}
 .landing-notice strong{color:var(--surface);font-weight:500}
 /* Mango, not the teal the shared dot ships with. A teal dot is the app's "live" indicator, and this
    is the one statement on the page that says the opposite. Mango is the attention colour, it is the
@@ -126,20 +143,24 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 .landing-nav nav.is-open a:hover{background:none}
 
 /* ---- Hero ----
-   No dark slab any more. The proposition sits on the page's own ground in charcoal at 14.95:1,
-   which is the highest-contrast thing on the page as well as the largest, and the colour is in the
-   photograph rather than behind the words. */
-.landing-hero{position:relative;overflow:clip;padding:clamp(48px,7vw,104px) var(--pad) clamp(48px,7vw,104px);display:grid;gap:clamp(36px,5vw,72px);align-items:center}
+   No dark slab any more. The proposition sits on the page's own ground in studioInk at 12.02, the
+   second half of the sentence in the olive at 4.98, and the colour is in the photograph rather than
+   behind the words. The one dark thing in the hero is the bar of sections across the foot of it. */
+.landing-hero{position:relative;overflow:clip;padding:clamp(48px,7vw,104px) var(--pad) clamp(40px,4.5vw,64px);display:grid;gap:clamp(36px,5vw,72px);align-items:center}
+/* The dark bar runs the whole width of the hero under both columns, and its own gap to them is
+   smaller than the gap between the columns — it belongs to the hero rather than following it. */
+.landing-hero>.studio-bar-wrap{grid-column:1 / -1;margin-top:calc(clamp(36px,5vw,72px) * -.35)}
 .landing-hero>*{position:relative;z-index:1}
 .landing-kicker{display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--body);margin:0 0 24px}
 .landing-hero h1{margin:0}
 .landing-hero-lede{margin:26px 0 0;max-width:46ch;font-size:16px;line-height:1.7;color:var(--body)}
 .landing-actions{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin:36px 0 0}
-/* Both actions are pills. The primary is the only filled thing in the hero; the second is the same
-   shape with a hairline, so the pair reads as one control set rather than as a button beside a link
-   somebody forgot to style. */
-.landing-actions .primary,.landing-final .primary{border-radius:var(--r-pill);background:var(--charcoal);color:var(--surface);min-height:52px;padding:15px 26px;font-size:15px;font-weight:500}
-.landing-actions .primary:hover:not(:disabled){background:color-mix(in srgb,var(--charcoal) 82%,var(--surface))}
+/* Both actions are pills. The primary is the lime one and the only filled thing in the hero; the
+   second is the same shape with a hairline, so the pair reads as one control set rather than as a
+   button beside a link somebody forgot to style. Its label is ink at 11.46 — lime is a fill on this
+   ground and carries a word only where the ground is studioNight. */
+.landing-actions .primary,.landing-final .primary{border-radius:var(--r-pill);background:var(--studio-lime);color:var(--studio-ink-deep);min-height:52px;padding:15px 26px;font-size:15px;font-weight:600}
+.landing-actions .primary:hover:not(:disabled){background:color-mix(in srgb,var(--studio-lime) 84%,var(--studio-ink));color:var(--studio-ink-deep)}
 .landing-quiet{display:inline-flex;align-items:center;gap:8px;min-height:52px;padding:14px 24px;font-size:15px;font-weight:500;color:var(--charcoal);border:1px solid var(--stone);border-radius:var(--r-pill);transition:background .18s,border-color .18s}
 .landing-quiet:hover{background:var(--surface);border-color:var(--charcoal)}
 .landing-facts{list-style:none;display:flex;flex-wrap:wrap;gap:10px;padding:36px 0 0;margin:36px 0 0;border-top:1px solid var(--stone)}
@@ -151,8 +172,14 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    the sage lives: a pale-sage panel with the drift on it, the portrait on top, and the caption
    underneath saying what it is. No text is ever inside this box, which is what makes the wash safe
    to animate at all — nothing a reader has to read sits on a ground that is changing. */
-.landing-portrait{margin:0;min-width:0}
+.landing-portrait{position:relative;margin:0;min-width:0}
 .landing-portrait-frame{position:relative;overflow:hidden;border-radius:var(--r-panel);background:var(--pale-sage);border:1px solid var(--stone);aspect-ratio:4 / 5;display:grid;align-items:end;justify-items:center;color:var(--charcoal)}
+/* The white card floating over the photograph, which is the reference's other signature. It carries
+   the caption that was under the frame: a sentence saying this is not a MyThuso nurse and not a
+   patient belongs on the photograph it is about, where somebody looking at the face reads it,
+   rather than in a line beneath that the eye skips. It is opaque, not frosted — a disclosure is the
+   last thing in this product that should be translucent. */
+.landing-portrait figcaption{position:absolute;z-index:2;left:14px;right:14px;bottom:14px;margin:0;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-card);padding:12px 14px;box-shadow:var(--shadow);color:var(--body)}
 .landing-portrait-frame img{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:contain;object-position:bottom center}
 .landing-portrait-frame.soft{background:var(--cloud)}
 
@@ -174,7 +201,10 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    there is room either side of it for the ground to show. Below that the inset would eat a fifth
    of a 320px screen to prove a point about depth. */
 .landing-section{padding:clamp(64px,7vw,112px) var(--pad)}
-.landing-section.tinted{background:var(--cloud)}
+/* The recessed band is a wash of the ground rather than the hairline colour. --cloud is studioLine,
+   which is the greige a border is drawn in; a whole section of it against cream reads as a dirty
+   patch rather than as a step back. Ink on this measures 10.84 and --body 5.87. */
+.landing-section.tinted{background:color-mix(in srgb,var(--studio-line) 55%,var(--studio-paper));color:var(--charcoal)}
 .landing-head{max-width:62ch;margin-bottom:clamp(36px,4vw,56px)}
 .landing-eyebrow{display:flex;align-items:baseline;gap:14px;font-size:13px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--body);margin:0 0 16px}
 .landing-eyebrow i{font-style:normal;color:var(--charcoal);font-variant-numeric:tabular-nums;letter-spacing:.1em}
@@ -208,9 +238,15 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 .landing-services .landing-price{margin-top:20px;border-top:1px solid var(--stone)}
 .landing-price strong{font-size:20px;font-weight:400;letter-spacing:-.02em;color:var(--charcoal)}
 .landing-price span{font-size:13px;color:var(--body)}
-/* The sage fills. An icon tile is a shape, and a shape is what sage is for — the glyph on top of it
-   stays charcoal, which measures 11.11:1 on --pale-sage. */
-.landing .service-icon,.landing .tile-icon{background:var(--pale-sage);color:var(--charcoal);border-radius:var(--r-control)}
+/* The accent fills. An icon tile is a shape, and a shape is what the accent is for — the glyph on
+   top of it stays ink, which measures 11.75:1 on the default lime wash and 11.46, 9.04 and 8.92 on
+   the three named tints. */
+/* :not([data-tint]) because a tile that names its own tint has already answered this question, and
+   this rule outranked it — the three "how it works" tiles were all painted the same wash while the
+   markup said lime, peach, lilac. A default that wins arguments is not a default; the same sentence
+   is above `.landing p` in this file for the same reason. */
+.landing .service-icon:not([data-tint]),.landing .tile-icon:not([data-tint]){background:var(--pale-sage);color:var(--charcoal);border-radius:var(--r-control)}
+.landing [data-tint]{border-radius:var(--r-control)}
 
 /* ---- Split sections ---- */
 .landing-split{display:grid;gap:clamp(36px,5vw,72px);padding:clamp(64px,7vw,112px) var(--pad);align-items:center}
@@ -218,7 +254,11 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 .landing-points{list-style:none;padding:0;margin:32px 0 0;display:flex;flex-direction:column;gap:0}
 .landing-points li{display:flex;gap:16px;align-items:flex-start;padding:20px 0;border-top:1px solid var(--stone)}
 .landing-points li:last-child{border-bottom:1px solid var(--stone)}
-.landing-points svg{color:var(--charcoal);margin-top:2px;flex-shrink:0}
+.landing-points svg{color:var(--charcoal);margin-top:0;flex-shrink:0}
+/* The icon takes a tile so the three points read as the reference's cards do — a tinted square, a
+   heading, a sentence — rather than as a glyph loose beside a paragraph. 40 rather than 44: it is
+   decoration inside a list item, not a control, so the target floor does not reach it. */
+.landing-point-tile{width:40px;height:40px;flex-shrink:0;display:grid;place-items:center;border-radius:var(--r-tile);color:var(--charcoal)}
 .landing-points strong{display:block;font-size:15px;font-weight:500;color:var(--charcoal);margin-bottom:6px}
 .landing-points span{font-size:14px;line-height:1.65;color:var(--body)}
 .landing-secondary{margin-top:32px;min-height:48px;padding:13px 24px;font-size:14px;border-radius:var(--r-pill);background:transparent;border:1px solid var(--stone);color:var(--charcoal)}
@@ -272,14 +312,15 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 .landing-faq .landing-answer p{padding:0 0 24px;font-size:15px;line-height:1.75;color:var(--body);max-width:72ch}
 
 /* ---- Closing panel and footer ---- */
-.landing-final{padding:clamp(72px,8vw,128px) var(--pad);background:var(--charcoal);color:var(--surface);text-align:center}
+.landing-final{padding:clamp(72px,8vw,128px) var(--pad);background:var(--studio-night);color:var(--surface);text-align:center}
 .landing-final>div{max-width:56ch;margin:0 auto}
 .landing-final h2{color:var(--surface);font-size:clamp(32px,4.8vw,64px)}
-.landing-final p{margin:24px 0 0;font-size:16px;line-height:1.7;color:var(--mist)}
-/* White on charcoal, 17.04:1 — the one inverted primary on the page, and the only place the button
-   is lighter than what it sits on. */
-.landing-final .primary{margin-top:36px;background:var(--surface);color:var(--charcoal)}
-.landing-final .primary:hover:not(:disabled){background:var(--cloud)}
+.landing-final p{margin:24px 0 0;font-size:16px;line-height:1.7;color:var(--studio-paper)}
+/* Lime on the dark panel, which is the one ground in the palette where lime is also allowed to be
+   a word. The label stays ink at 11.46 either way; what changes is that the closing action is the
+   same pill as the opening one rather than a white rectangle that reads as a third kind of button. */
+.landing-final .primary{margin-top:36px;background:var(--studio-lime);color:var(--studio-ink-deep)}
+.landing-final .primary:hover:not(:disabled){background:color-mix(in srgb,var(--studio-lime) 84%,var(--studio-paper));color:var(--studio-ink-deep)}
 /* Two classes, so it outranks `.landing-final p` above it rather than losing to it. */
 .landing-final .landing-final-note{font-size:14px;color:var(--on-dark-quiet)}
 /* The footer is light. It used to be the same near-black as the panel above it, and the two ran

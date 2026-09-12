@@ -181,32 +181,42 @@ test('everything focusable shows a focus indicator', async ({ page }) => {
   expect(missing).toEqual([]);
 });
 
-/* The one rule the whole visual language rests on: **sage is a fill and never a label.** The
-   darkest of the four sages measures 2.54:1 as text on the page ground, which clears nothing, so
-   the ramp is allowed to be an icon tile, a chip and a wash behind a photograph and nothing else —
-   everything a person reads is charcoal or --body.
+/* The one rule the whole visual language rests on: **the accent is a fill and never a label.**
+
+   It was sage when this test was written, and the sentence it was written to survives the change of
+   palette word for word: on the Care Studio generation the accent is studioLime, which measures
+   1.05:1 as text on studioPaper. Lilac and peach are 1.4 and 1.6. All three are allowed to be an
+   icon tile, a chip and a wash behind a photograph and nothing else — everything a person reads is
+   studioInk or --body. That is the third palette this product has had and the third time the same
+   rule has been arrived at, because it is a fact about accents rather than a taste: a colour bright
+   enough to draw the eye on paper is never dark enough to be read on it.
 
    That cannot be checked by reading the stylesheet, because a colour arrives at a word by
    inheritance far more often than by being written next to it: one `color` on a container is all it
-   takes for a section of prose to turn sage without a single rule looking wrong. So it is checked
-   where it actually matters, on the rendered text, against the four values in the token contract
-   rather than four copies of them typed here.
+   takes for a section of prose to turn lime without a single rule looking wrong. So it is checked
+   where it actually matters, on the rendered text, against the values in the token contract rather
+   than copies of them typed here.
 
-   The ground is asserted in the same breath. Mist rather than white is the decision every other
+   The sage ramp stays in the list beside them. The web no longer renders a sage — the four tokens
+   are re-pointed onto studio washes in apps/web/src/surface/studio.css — so those three assertions
+   are vacuous today and cost nothing, and on the day somebody points a stylesheet back at the old
+   ramp they are not vacuous at all.
+
+   The ground is asserted in the same breath. Paper rather than white is the decision every other
    surface on this page is a consequence of — the cards are only readable as cards because the page
    behind them is darker — and a stray `background:#fff` would undo the lot while every one of the
    assertions above went on passing. */
-const sageRamp: string[] = ['sageSlate', 'mutedSage', 'softSage', 'paleSage'].map(name => {
+const fillsOnly: string[] = ['studioLime', 'studioLilac', 'studioPeach', 'sageSlate', 'mutedSage', 'softSage', 'paleSage'].map(name => {
   const hex: string = tokens.color[name];
   return `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
 });
-const mist: string = tokens.color.mist;
+const ground: string = tokens.color.studioPaper;
 
-test('sage fills and never labels, on the page ground the language is built on', async ({ page }) => {
+test('the accent fills and never labels, on the page ground the language is built on', async ({ page }) => {
   expect(await page.locator('.landing').evaluate(el => getComputedStyle(el).backgroundColor))
-    .toBe(`rgb(${[1, 3, 5].map(i => parseInt(mist.slice(i, i + 2), 16)).join(', ')})`);
+    .toBe(`rgb(${[1, 3, 5].map(i => parseInt(ground.slice(i, i + 2), 16)).join(', ')})`);
 
-  const inSage = await page.evaluate(ramp => {
+  const carrying = await page.evaluate(ramp => {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const found = new Set<string>();
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -217,8 +227,8 @@ test('sage fills and never labels, on the page ground the language is built on',
       if (ramp.includes(style.color)) found.add(`${parent.tagName.toLowerCase()}.${parent.className}: ${(node.textContent ?? '').trim().slice(0, 40)}`);
     }
     return [...found];
-  }, sageRamp);
-  expect(inSage, 'text is being carried by a sage, and the darkest of them measures 2.54:1 on --mist').toEqual([]);
+  }, fillsOnly);
+  expect(carrying, 'text is being carried by an accent fill, and studioLime measures 1.05:1 on studioPaper').toEqual([]);
 });
 
 /* The page animates. Two things have to stay true whatever the motion setting: no section is ever

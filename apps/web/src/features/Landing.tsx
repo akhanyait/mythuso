@@ -12,6 +12,14 @@ const elder = '/banners/one-safe-place-cutout.webp';
 const appHref = import.meta.env.DEV ? '/' : '/app';
 const homeHref = import.meta.env.DEV ? '/landing.html' : '/';
 const sections = [['how', 'How it works'], ['services', 'Services'], ['plans', 'Care plans'], ['nurses', 'For nurses'], ['safety', 'Safety']] as const;
+/* The four in the hero's dark bar, derived from the list above rather than restated: everything
+   except "How it works", which has its own control in the hero already. An icon per section is the
+   only thing typed here, and an icon is a picture of a word that is already on the row — it is
+   never the only thing saying which section this is. */
+const barIcons: Record<string, React.ReactNode> = {
+ services: <Stethoscope size={20}/>, plans: <Heart size={20}/>, nurses: <Users size={20}/>, safety: <ShieldCheck size={20}/>
+};
+const barSections = sections.filter(([id]) => id in barIcons);
 
 /* Not one figure on this page is typed. A marketing page is exactly where a price quietly drifts
    away from the price the app charges, so every number below is read out of packages/catalog at
@@ -38,6 +46,13 @@ const refusals = ([['nurse', 'view-clinical-record'], ['nurse', 'view-protected-
   sentence: roleById(roleId)?.grants.find(g => g.capability === capability)?.refusal ?? ''
  }));
 
+/* The three steps and the three Thuso Pass points each carry a tint. It is keyed to a named, ordered
+   thing — step 01, step 02, step 03 — rather than to a position in an array, which is the
+   distinction core.css records the last tint rotation being deleted for: colouring a service by its
+   index told two readers two different things and neither of them anything. Here the colour is a
+   second way of saying what the number and the heading already say, it is stable, and it is never
+   the only difference between two rows. */
+const tints = ['lime', 'peach', 'lilac'] as const;
 const steps = [
  { icon: CalendarClock, title: 'You book, and see the price first', body: 'Pick what you need and a time that suits you. The full price is on the screen before you confirm — no quote, no call-out fee, nothing added afterwards.' },
  { icon: House, title: 'A registered nurse comes to you', body: 'A nurse registered with the South African Nursing Council arrives with a connected kit, and confirms it is the right house with a code only you hold.' },
@@ -119,7 +134,13 @@ export function Landing() {
   <section className="landing-hero">
    <div className="landing-hero-copy">
     <p className="landing-kicker">Nurse-led home healthcare · Johannesburg</p>
-    <h1>A registered nurse at your door, from {money(fromPrice)}.</h1>
+    {/* Two-tone, which is the reference's own move: the subject in ink and what it costs you in
+        the olive. The split is between the two halves of the sentence rather than at a line break,
+        so it says the same thing at 320px as it does at 1440 — a headline coloured by where the
+        text happens to wrap is a headline that means something different on every screen. The
+        accessible name is unchanged: one space between the spans, and the price is still read out
+        of the catalogue. */}
+    <h1><span>A registered nurse</span>{' '}<span className="landing-h1-accent">at your door, from {money(fromPrice)}.</span></h1>
     <p className="landing-hero-lede">A nurse registered with the South African Nursing Council comes to your home with a connected kit. A registered doctor reviews what they find and decides what happens next. The price is fixed before you confirm, and you do not need medical aid.</p>
     <div className="landing-actions">
      <a className="primary" href={appHref}>See the app<ArrowRight size={17}/></a>
@@ -133,6 +154,22 @@ export function Landing() {
     <div className="landing-portrait-frame"><img src={nurse} alt="" aria-hidden="true"/></div>
     <figcaption>Illustrative photograph. Not a MyThuso nurse, and not a patient.</figcaption>
    </figure>
+   {/* The dark bar across the foot of the hero. It is the four sections under this one, taken from
+       the same `sections` list the navigation is built from rather than typed again — so a section
+       added to the page appears in both places or in neither, and neither can promise a destination
+       the other has forgotten. "How it works" is not among them: it already has its own control in
+       the hero just above this bar, and one page offering two doors into one section is how a
+       navigation starts disagreeing with itself.
+
+       It is a <nav> with a label rather than a decorative strip, because for a reader arriving by
+       keyboard it is four links and nothing else. */}
+   <nav className="studio-bar-wrap" aria-label="Jump to a section">
+    <ul className="studio-bar">
+     {barSections.map(([id, label]) => <li key={id}>
+      <a href={`#${id}`}>{barIcons[id]}<span>{label}</span><i aria-hidden="true"><ArrowRight size={17}/></i></a>
+     </li>)}
+    </ul>
+   </nav>
   </section>
 
   <section className="landing-figures" aria-label="What the catalogue says">
@@ -148,7 +185,7 @@ export function Landing() {
     body="Software can flag what a doctor should look at. It never diagnoses, never prescribes and never signs anything. That order is the design of the service rather than a policy that could be relaxed later."/>
    <ol className="landing-steps">{steps.map((s, i) => <li key={s.title} data-reveal style={{ ['--i' as string]: i }}>
     <span className="landing-step-index">{String(i + 1).padStart(2, '0')}</span>
-    <span className="tile-icon"><s.icon size={20}/></span>
+    <span className="tile-icon" data-tint={tints[i]}><s.icon size={20}/></span>
     <h3>{s.title}</h3><p>{s.body}</p>
    </li>)}</ol>
    <p className="landing-note" data-reveal>The target being built to is under an hour from booking to arrival, in the areas MyThuso opens in. It is a target, not a promise, and nothing on this page dispatches anybody.</p>
@@ -171,8 +208,9 @@ export function Landing() {
     <p className="landing-eyebrow"><i>03</i>Thuso Pass</p>
     <h2>Your record is yours, entry by entry.</h2>
     <p className="landing-lede">Every visit, reading, result and document would land in a Health Passport that belongs to the patient rather than to MyThuso. Access is something granted, not something assumed.</p>
-    <ul className="landing-points">{passPoints.map(p => <li key={p.title}>
-     <p.icon size={18}/><span><strong>{p.title}</strong>{p.body}</span>
+    <ul className="landing-points">{passPoints.map((p, i) => <li key={p.title}>
+     <span className="landing-point-tile" data-tint={tints[i]}><p.icon size={18}/></span>
+     <span><strong>{p.title}</strong>{p.body}</span>
     </li>)}</ul>
    </div>
    <figure className="landing-portrait" data-reveal>
