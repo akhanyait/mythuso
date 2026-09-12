@@ -47,7 +47,7 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
   <div className="patient-ground aurora m-light" aria-hidden="true"/>
   <a href="#main" className="skip-link">{t('shell.skip')}</a>
   <aside className="sidebar glass">
-   <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/logo.svg" alt="MyThuso — Help. Health. Home."/></a>
+   <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/brand/mythuso-logo.svg" alt="MyThuso"/></a>
    <div className="nav-label">{t('nav.section')}</div>
    {/* Icon, label, and a circular arrow at the trailing edge — the reference's own navigation shape.
        The circle is decorative on an inactive row and inverts on the active one, which is what makes
@@ -91,7 +91,7 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
         reads there; this bar gives it about a hundred, and on a phone the tagline under it lands
         below two points — the same defect the iOS toolbar had and the sign-in door had, in its third
         place. icon.svg is the icon out of that same artwork. */}
-    <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/icon.svg" alt="MyThuso"/></a>
+    <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/brand/mythuso-mark.svg" alt="MyThuso"/></a>
     <div className="breadcrumb">{t('shell.breadcrumb')}<span>/</span><strong>{t(`nav.${page}`)}</strong></div>
     <div className="topbar-actions">
      <button className="location-button" onClick={() => open('Your location')}><MapPin size={16}/><span>{location}</span><ChevronDown size={13}/></button>

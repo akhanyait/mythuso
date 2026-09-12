@@ -125,7 +125,7 @@ export function Landing() {
   </div>
 
   <header className={`landing-nav${y > 24 ? ' is-condensed' : ''}`}>
-   <a className="landing-brand" href={homeHref}><img src="/logo.svg" alt="MyThuso — Help. Health. Home."/></a>
+   <a className="landing-brand" href={homeHref}><img src="/brand/mythuso-logo.svg" alt="MyThuso"/></a>
    <nav className={menu ? 'is-open' : ''} aria-label="Sections">
     {sections.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setMenu(false)}>{label}</a>)}
    </nav>
@@ -301,7 +301,7 @@ export function Landing() {
 
   <footer className="landing-footer">
    <div>
-    <img src="/logo.svg" alt="MyThuso"/>
+    <img src="/brand/mythuso-logo.svg" alt="MyThuso"/>
     <p>MyThuso is a product of Akhanya IT Innovations (Pty) Ltd, Johannesburg. {services.length} services in the catalogue, {liveServices.length} of them at launch.</p>
    </div>
    <div className="landing-footer-note">

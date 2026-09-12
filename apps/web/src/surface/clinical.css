@@ -695,7 +695,11 @@
    available here, so the background moves instead: a white plate, sized to the mark, which is what
    a brand manual asks for on a dark ground anyway. Third time this lockup has gone illegible
    somewhere; the first two are in the log. */
-.clinical .onboard-brand { background: var(--surface); border-radius: var(--r-control); padding: 6px 12px; width: auto; height: 56px; box-sizing: content-box; align-self: flex-start; }
+/* The white plate is gone. It existed because the only lockup available was the light one and its
+   ink measured under 2:1 on this column — a plate behind a logo is what you do when you have the
+   wrong artwork. There is a reversed cut now, drawn for a dark ground, so the mark sits on the
+   ground rather than on a patch of paper laid over it. */
+.clinical .onboard-brand.reversed { width: 158px; height: auto; border-radius: var(--r-control); }
 .clinical .onboard-panel h2, .clinical .onboard-panel p { color: var(--studio-paper); }
 /* The sentence about what this door does not reach keeps its own white card, on the dark. It is a
    disclosure, so it is the brightest thing in the column rather than the quietest — the contract's

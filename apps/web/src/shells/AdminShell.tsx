@@ -38,7 +38,7 @@ function AdminSignIn({ onOpen }: { onOpen: () => void }) {
  useEffect(() => { let cancelled = false; void probe().then(ok => { if (!cancelled) setLive(ok); }); return () => { cancelled = true; }; }, []);
  return <div className="onboarding clinical aurora">
   <div className="onboard-panel">
-   <img src="/logo.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
+   <img src="/brand/mythuso-wordmark.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
    <h2>MyThuso back office.</h2>
    <p className="muted">Vetting decisions, the service catalogue, growth, finance and what is standing between each capability and being real.</p>
    <div className="onboard-note"><ShieldCheck size={17}/>Health information is never held here. This console reads readiness, not records.</div>
@@ -81,7 +81,7 @@ function AdminWorkspace({ onSignOut }: { onSignOut: () => void }) {
  return <div className="app-shell clinical aurora">
   <a href="#main" className="skip-link">{t('shell.skip', 'en-ZA')}</a>
   <aside className="sidebar">
-   <span className="brand"><img src="/logo.svg" alt="MyThuso — Help. Health. Home."/></span>
+   <span className="brand"><img src="/brand/mythuso-logo.svg" alt="MyThuso"/></span>
    <div className="staff-id">{who}</div>
    <p className={`staff-credential ${stopped ? 'stop' : state.status === 'expiring' ? 'due' : ''}`}>
     {stopped ? <ShieldAlert size={15}/> : <ShieldCheck size={15}/>}<span>{credential}</span>

@@ -158,7 +158,9 @@ function StaffSignIn({ onOpen }: { onOpen: (role: StaffRole) => void }) {
  };
  return <div className="onboarding clinical aurora">
   <div className="onboard-panel">
-   <img src="/logo.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand"/>
+   {/* The reversed cut, because this column is studioNight. It used to be the light lockup on a
+       white plate, which is what you do when the only artwork you have is the wrong one. */}
+   <img src="/brand/mythuso-wordmark-reversed.svg" alt="MyThuso — Help. Health. Home." className="onboard-brand reversed"/>
    <h2>MyThuso for clinicians.</h2>
    <p className="muted">The workspace a nurse, a doctor, a pharmacy partner and the Control Tower sign in to. Patients and families sign in to a different application at a different address.</p>
    <div className="onboard-note"><ShieldCheck size={17}/>Nothing opened from here reaches a patient, a record, a payment or a device.</div>
@@ -213,7 +215,7 @@ function StaffWorkspace({ role, onSignOut }: { role: StaffRole; onSignOut: () =>
  return <div className="app-shell clinical aurora">
   <a href="#main" className="skip-link">{t('shell.skip', 'en-ZA')}</a>
   <aside className="sidebar">
-   <button className="brand" onClick={home}><img src="/logo.svg" alt="MyThuso — Help. Health. Home."/></button>
+   <button className="brand" onClick={home}><img src="/brand/mythuso-logo.svg" alt="MyThuso"/></button>
    <div className="staff-id">
     <span className="avatar small">{who.initials}</span>
     <span><strong>{who.subject.name}</strong><small>{who.roleName} · {who.subject.reference}</small></span>

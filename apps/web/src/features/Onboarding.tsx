@@ -41,7 +41,7 @@ function Door({ promise, steps, note, children }: {
   <div className="patient-ground aurora m-light" aria-hidden="true"/>
   <div className="door-card glass lead">
    <aside className="door-aside">
-    <img src="/icon.svg" alt="MyThuso" className="door-mark" width="512" height="512"/>
+    <img src="/brand/mythuso-mark.svg" alt="MyThuso" className="door-mark" width="512" height="512"/>
     <p className="door-promise">{promise}</p>
     {steps}
     <p className="door-note">{note}</p>
