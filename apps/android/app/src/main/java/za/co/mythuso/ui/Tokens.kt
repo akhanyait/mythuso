@@ -54,6 +54,14 @@ val CharcoalMutedOnMist = Color(0xFF575757)
 val CharcoalMutedOnCloud = Color(0xFF545454)
 val CharcoalMutedOnPaleSage = Color(0xFF4C5049)
 val CharcoalMutedOnSoftSage = Color(0xFF464A44)
+val StudioPaper = Color(0xFFFAF8F2)
+val StudioNight = Color(0xFF172B2B)
+val StudioInk = Color(0xFF243630)
+val StudioInkDeep = Color(0xFF13251E)
+val StudioLime = Color(0xFFDFFF92)
+val StudioLilac = Color(0xFFDED3FF)
+val StudioPeach = Color(0xFFFFCEAD)
+val StudioLine = Color(0xFFE2E4D9)
 
 object ThusoRadius {
     val card = 12.dp

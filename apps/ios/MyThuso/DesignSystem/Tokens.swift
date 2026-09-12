@@ -51,6 +51,14 @@ enum ThusoTheme {
     static let charcoalMutedOnCloud = Color(red: 0.329, green: 0.329, blue: 0.329)    // #545454
     static let charcoalMutedOnPaleSage = Color(red: 0.298, green: 0.314, blue: 0.286) // #4C5049
     static let charcoalMutedOnSoftSage = Color(red: 0.275, green: 0.290, blue: 0.267) // #464A44
+    static let studioPaper = Color(red: 0.980, green: 0.973, blue: 0.949)             // #FAF8F2
+    static let studioNight = Color(red: 0.090, green: 0.169, blue: 0.169)             // #172B2B
+    static let studioInk = Color(red: 0.141, green: 0.212, blue: 0.188)               // #243630
+    static let studioInkDeep = Color(red: 0.075, green: 0.145, blue: 0.118)           // #13251E
+    static let studioLime = Color(red: 0.875, green: 1.000, blue: 0.573)              // #DFFF92
+    static let studioLilac = Color(red: 0.871, green: 0.827, blue: 1.000)             // #DED3FF
+    static let studioPeach = Color(red: 1.000, green: 0.808, blue: 0.678)             // #FFCEAD
+    static let studioLine = Color(red: 0.886, green: 0.894, blue: 0.851)              // #E2E4D9
 }
 enum ThusoRadius {
     static let card: CGFloat = 12
