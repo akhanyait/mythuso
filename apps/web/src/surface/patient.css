@@ -348,14 +348,23 @@
 .patient-surface .not-connected > svg { color: var(--charcoal); }
 
 /* ---- Buttons ----
-   Fully round, as the reference draws them, and charcoal rather than indigo. A secondary is the same
-   pill with a hairline instead of a fill, so the two read as one family at two weights. */
+   Fully round, and lime rather than charcoal. Care Studio's one action on a screen is the bright
+   thing on it — studioInk on studioLime at 11.46 — and it is bright precisely because nothing else
+   is. A secondary is the same pill with a hairline instead of a fill, so the two read as one family
+   at two weights. */
 .patient-surface .primary,
 .patient-surface .secondary,
 .patient-surface .ghost,
 .patient-surface a.primary { border-radius: var(--r-pill); }
-.patient-surface .primary { background: var(--charcoal); color: var(--surface); }
-.patient-surface .primary:hover:not(:disabled) { background: var(--charcoal); }
+.patient-surface .primary { background: var(--studio-lime); color: var(--studio-ink-deep); }
+.patient-surface .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--studio-lime) 84%, var(--studio-ink)); color: var(--studio-ink-deep); }
+/* The one exception, and the reason is the rule rather than an escape from it. The submit inside the
+   search field is a control belonging to the field beside it, not the thing this screen is for — and
+   the home has "Book a nurse" three rows below it in the same lime. Two lime pills stacked is a
+   screen with two primary actions, which is a screen with none. It takes the ink, paper on it at
+   12.02, and stays the same size and shape. */
+.patient-surface .search-field .search-go { background: var(--studio-ink); color: var(--studio-paper); }
+.patient-surface .search-field .search-go:hover:not(:disabled) { background: var(--studio-ink-deep); }
 .patient-surface .secondary {
  background: color-mix(in srgb, var(--surface) 70%, transparent);
  border-color: var(--stone);

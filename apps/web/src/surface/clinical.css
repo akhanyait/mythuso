@@ -375,8 +375,13 @@
 .clinical .s-metric-chip { white-space: normal; background: var(--pane); border-color: var(--pane-line); }
 .clinical .s-metric-chip.flagged { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
 /* It carries `panel metric` too, because the console journeys read those class names. It is not a
-   card, so the card comes back off: a figure sits on the ground beside the other figures. */
-.clinical .c-figure, .clinical .c-figure.panel {
+   card, so the card comes back off: a figure sits on the ground beside the other figures.
+
+   :not(.lead) excludes the one figure the console is about. That figure takes the lime tile from
+   apps/web/src/surface/studio.css, and this rule outranked it — `.clinical .c-figure.panel` is three
+   classes against two, so the tile was declared and never drawn. Same shape of bug as the landing
+   page's tinted tiles an hour earlier: a default that wins arguments is not a default. */
+.clinical .c-figure:not(.lead), .clinical .c-figure.panel:not(.lead) {
  display: flex;
  flex-direction: column;
  gap: var(--space-8);
@@ -388,7 +393,12 @@
  padding: 0;
 }
 .clinical .c-figure::before, .clinical .c-figure.panel::before { display: none; }
+.clinical .c-figure { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
 .clinical .c-figure > small { font-size: 13px; line-height: 1.5; color: var(--faint); }
+/* On the tile the sentence under the figure is ink rather than the quiet grey: --faint on lime is
+   5.32, which clears, but a muted colour on a coloured ground reads as a mistake next to the same
+   sentence in grey on the ground beside it. */
+.clinical .c-figure.lead > small { color: var(--studio-ink); }
 
 /* ---- Charts: a soft sage area, a thin line, no shouting ---------------------------------------
    The gradient the reference fades its areas with is done as an alpha mask over a flat sage fill:
@@ -521,13 +531,14 @@
 .clinical .not-connected.inline { background: none; border-left: 2px solid var(--pane-line); border-radius: 0; }
 
 /* ---- Controls ---------------------------------------------------------------------------------
-   The primary action is charcoal on these screens. Indigo stays for meaning — an information mark,
-   a link out — and stops being the colour of every button, because a workspace where the "Assign"
-   on a dispatch row and the "Got it" on a dialog are painted identically is one where the colour
-   has stopped meaning "this is the thing to press". Fully round, as the reference's are. */
+   The primary action is lime on these screens, with its label in ink at 11.46. Indigo stays for
+   meaning — an information mark, a link out — and stops being the colour of every button, because a
+   workspace where the "Assign" on a dispatch row and the "Got it" on a dialog are painted
+   identically is one where the colour has stopped meaning "this is the thing to press". Fully
+   round, as the reference's are. */
 .clinical .primary, .clinical .secondary, .clinical .ghost, .clinical a.primary { border-radius: var(--r-pill); font-weight: 500; }
-.clinical .primary, .clinical a.primary { background: var(--charcoal); color: var(--surface); }
-.clinical .primary:hover:not(:disabled), .clinical a.primary:hover { background: var(--ink); }
+.clinical .primary, .clinical a.primary { background: var(--studio-lime); color: var(--studio-ink-deep); }
+.clinical .primary:hover:not(:disabled), .clinical a.primary:hover { background: color-mix(in srgb, var(--studio-lime) 84%, var(--studio-ink)); color: var(--studio-ink-deep); }
 .clinical .secondary { background: var(--pane); border-color: var(--pane-line); color: var(--charcoal); }
 .clinical .secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--surface) 90%, transparent); border-color: var(--pane-line); }
 .clinical .ghost { background: color-mix(in srgb, var(--charcoal) 5%, transparent); color: var(--charcoal); }
@@ -672,13 +683,26 @@
 .clinical .livemap-note { color: var(--faint); }
 
 /* The staff door. Same language as the workspace behind it, so signing in does not look like a
-   different product from the one being signed in to. The left panel is the lead card of the screen
-   and takes the sage ground; the form beside it is the aurora with glass on it. */
-.clinical .onboard-panel { background: var(--pale-sage); color: var(--charcoal); }
-.clinical .onboard-panel h2, .clinical .onboard-panel p, .clinical .onboard-note { color: var(--charcoal); }
-/* Solid, not frosted: it sits on sage, which is darker than the floor. */
-.clinical .onboard-note { background: var(--surface); border-color: var(--stone); border-radius: var(--r-panel); }
-.clinical .onboard-note svg { color: var(--charcoal); }
+   different product from the one being signed in to. The left panel is the night card — the dark
+   element Care Studio gives a page one of — and the form beside it is the paper ground with glass
+   on it. It went dark rather than staying a tint because a whole column of accent is the failure
+   this palette is easiest to make: a half-metre of lime says nothing, and the same half-metre of
+   studioNight says "this is the other half of the screen". Paper on it measures 13.96. */
+.clinical .onboard-panel { background: var(--studio-night); color: var(--studio-paper); }
+/* The lockup keeps its own colours and gets a plate to stand on. The wordmark is a teal-to-indigo
+   gradient and the indigo end of it measures under two to one against studioNight — the mark was
+   dissolving into the panel. Recolouring somebody's logo to suit a background is not a fix
+   available here, so the background moves instead: a white plate, sized to the mark, which is what
+   a brand manual asks for on a dark ground anyway. Third time this lockup has gone illegible
+   somewhere; the first two are in the log. */
+.clinical .onboard-brand { background: var(--surface); border-radius: var(--r-control); padding: 6px 12px; width: auto; height: 56px; box-sizing: content-box; align-self: flex-start; }
+.clinical .onboard-panel h2, .clinical .onboard-panel p { color: var(--studio-paper); }
+/* The sentence about what this door does not reach keeps its own white card, on the dark. It is a
+   disclosure, so it is the brightest thing in the column rather than the quietest — the contract's
+   a-simulation-says-so rule is about what a screen says, and a screen can also say it by where it
+   puts it. Ink on white at 12.76. */
+.clinical .onboard-note { background: var(--surface); border-color: var(--surface); border-radius: var(--r-panel); color: var(--studio-ink); }
+.clinical .onboard-note svg { color: var(--studio-ink); }
 .clinical .staff-signin-roles .record-row {
  border-color: var(--pane-line);
  border-radius: var(--r-panel);
