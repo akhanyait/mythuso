@@ -3,7 +3,7 @@ import { openAdminConsole, openFirstRun } from './nav';
 const tab = (page: Page, index: number) => page.locator('.tabbar button').nth(index);
 const openAdmin = openAdminConsole;
 test('signing out really closes the account, and signing back in restores it', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (await sidebar.isVisible()) await page.getByRole('button', { name: 'Your profile', exact: true }).click();
   else { await tab(page, 4).click(); }
@@ -17,7 +17,7 @@ test('signing out really closes the account, and signing back in restores it', a
   await expect(page.getByRole('heading', { name: 'Hello, Lerato' })).toBeVisible();
 });
 test('signing out from the sign-in screen can start a new account instead', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await openFirstRun(page);
   await page.getByRole('button', { name: 'Skip for now and look around' }).click();
   await expect(page.getByRole('heading', { name: 'Hello, Lerato' })).toBeVisible();

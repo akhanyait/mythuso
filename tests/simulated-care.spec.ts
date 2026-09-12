@@ -53,7 +53,7 @@ const go = goSection;
 const MORNING = new Date('2026-09-10T06:00:00Z'); // 08:00 in Africa/Johannesburg
 
 test('a visit is booked against somebody the roster would actually offer, and says who it will not', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await go(page, 'Book a nurse');
   await page.getByRole('button', { name: /Vitals & chronic check/ }).first().click();
   const d = page.getByRole('dialog');
@@ -86,7 +86,7 @@ test('a visit is booked against somebody the roster would actually offer, and sa
 });
 
 test('the dispatch board draws the roster, and says which of three reasons a pin is missing', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await openWorkspace(page, 'Control Tower');
   await goSection(page, 'Dispatch');
 
@@ -116,7 +116,7 @@ test('the dispatch board draws the roster, and says which of three reasons a pin
 
 test('the patient watches her close the distance, and the screen says what is doing the moving', async ({ page }) => {
   await page.clock.setFixedTime(MORNING);
-  await page.goto('/');
+  await page.goto('/app/');
   await go(page, 'My visits');
   await page.getByRole('button', { name: 'Where is my nurse?' }).first().click();
   await expect(page.getByRole('heading', { name: 'Where is your nurse?' })).toBeVisible();
@@ -142,7 +142,7 @@ test('the patient watches her close the distance, and the screen says what is do
 });
 
 test('the consultation connects through a waiting room that admits how long it is standing in for', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await openWorkspace(page, 'Doctor');
   await goSection(page, 'Teleconsultation');
   const d = page.locator('main');
@@ -177,7 +177,7 @@ test('no simulated screen is quieter than the absent one it replaced', async ({ 
      because something answers now and nobody notices that what answers is a fixture. Each of these
      four surfaces is named by its capability in packages/catalog/capabilities.json, and each has to
      be carrying that capability's simulation notice word for word. */
-  await page.goto('/');
+  await page.goto('/app/');
   await go(page, 'My visits');
   await expect(page.getByText(simulation('booking').notice).first()).toBeVisible();
 

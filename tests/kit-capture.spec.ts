@@ -8,7 +8,7 @@ import { goSection, openModule, openWorkspace } from './nav';
 const overflow = (page: Page) => page.evaluate(() => { const el = document.querySelector('main') ?? document.documentElement; return el.scrollWidth <= el.clientWidth; });
 test('kit surface: pair, capture, queue, all four conflicts', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-  await page.goto('/');
+  await page.goto('/app/');
   await openModule(page, 'Thuso Kit');
   const d = page.getByRole('dialog');
   await expect(d.locator('.not-connected')).toContainText(noticeFor('devices'));

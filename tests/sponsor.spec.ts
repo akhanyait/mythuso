@@ -42,7 +42,7 @@ const openSponsorship = async (page: Page) => {
 };
 
 test('a sponsor can see what was set aside, what has been used and what is left', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await openSponsorship(page);
   await expect(page.getByText(noticeFor('payments'))).toBeVisible();
 
@@ -64,7 +64,7 @@ test('a sponsor can see what was set aside, what has been used and what is left'
 });
 
 test('and cannot see any of the four things paying for care does not buy', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await openSponsorship(page);
   const never = page.locator('.sponsor-never');
   for (const item of programmes.sponsor.neverSees as { what: string; why: string }[]) {
@@ -78,7 +78,7 @@ test('and cannot see any of the four things paying for care does not buy', async
 });
 
 test('whether the service is named is the recipient’s switch, and there is no control here for it', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await openSponsorship(page);
   /* The back office has a checkbox for this so a reader can see what it does to a statement. The
      sponsor's own screen must not: a disabled toggle says the sponsor is the sort of person who

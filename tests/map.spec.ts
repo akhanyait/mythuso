@@ -59,8 +59,7 @@ async function stubTiles(page: Page) {
 }
 
 const openTower = async (page: Page) => {
-  await page.goto('/staff.html');
-  await page.locator('.staff-signin-roles .record-row').filter({ has: page.getByText('Control Tower', { exact: true }) }).click();
+  await page.goto('/app/?role=control-tower');
   await expect(page.locator('.livemap')).toBeVisible();
 };
 
@@ -71,7 +70,7 @@ const MORNING = new Date('2026-09-10T06:00:00Z');
 
 const openArrival = async (page: Page) => {
   await page.clock.setFixedTime(MORNING);
-  await page.goto('/');
+  await page.goto('/app/');
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (await sidebar.isVisible()) await sidebar.getByRole('button', { name: /^My visits/ }).click();
   else await page.locator('.tabbar button').nth(2).click();
@@ -193,12 +192,14 @@ test('the square a tile request discloses is the one the contract says it is', a
  * streets quietly never arriving, on a screen designed to fall back to the schematic without
  * complaining. This is what notices.
  *
- * Only the two entries that draw a map. A patient's booking flow and the public landing page have no
- * business being allowed to reach a tile server, and a policy widened everywhere because one page
- * needed it is a policy that has stopped meaning anything. */
+ * Only the entry that draws one. It used to be two — the patient's arrival screen and the Control
+ * Tower's board were separate builds — and they are one entry now, so the list shrank rather than
+ * the permission widening. The public page and the status page have no business being allowed to
+ * reach a tile server, and a policy widened everywhere because one page needed it is a policy that
+ * has stopped meaning anything. */
 const origin = new URL(source.styleUrl).origin;
 
-for (const entry of ['index.html', 'staff.html']) {
+for (const entry of ['index.html']) {
   test(`${entry} may reach the tile source the contract names, and nothing else new`, async () => {
     const html = readFileSync(new URL(`../apps/web/${entry}`, import.meta.url), 'utf8');
     const policy = html.match(/Content-Security-Policy" content="([^"]+)"/)?.[1] ?? '';
@@ -211,7 +212,7 @@ for (const entry of ['index.html', 'staff.html']) {
   });
 }
 
-for (const entry of ['landing.html', 'admin.html', 'status.html']) {
+for (const entry of ['landing.html', 'status.html']) {
   test(`${entry} draws no map, so it may not reach a tile server`, async () => {
     const html = readFileSync(new URL(`../apps/web/${entry}`, import.meta.url), 'utf8');
     expect(html, `${entry} has been given access to ${source.host} and has no map to draw with it`).not.toContain(source.host);

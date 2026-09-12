@@ -57,7 +57,7 @@ const MORNING = new Date('2026-09-10T06:00:00Z'); // 08:00 in Africa/Johannesbur
 test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(MORNING); });
 
 test('the visit that is today says how far away she is, and what the figure is not', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await track(page);
 
   /* dispatch is not connected, so the contract's sentence is above everything. It is the first
@@ -86,7 +86,7 @@ test('the visit that is today says how far away she is, and what the figure is n
 });
 
 test('and it refuses, in words, everything a moving dot would otherwise be read as promising', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await track(page);
   const facts = page.locator('.arrival-facts');
   await expect(facts.getByText('It is not an arrival time')).toBeVisible();
@@ -100,7 +100,7 @@ test('and it refuses, in words, everything a moving dot would otherwise be read 
 });
 
 test('a visit that is not today has no position on it at all, and says why', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await track(page, 1);
   /* The refusal that is the design: a patient can open this screen a fortnight early and gets her
      suburb, the name of the nurse and a sentence â€” not a nurse moving around Johannesburg. */
@@ -113,7 +113,7 @@ test('a visit that is not today has no position on it at all, and says why', asy
 });
 
 test('the arrival view never places a pin on an address', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await track(page);
   /* Every position on this screen is a zone centre out of the contract, at the precision the
      contract declares. The suburb names on the key are the proof a reader can see. */
@@ -134,7 +134,7 @@ test('a patient watching a nurse downloads no map library to do it', async ({ pa
      back is exactly what this watches for. The tile host is the other thing a patient who has not
      asked for streets must never fetch. */
   page.on('request', r => { if (/mapbox|maplibre|TileMap|tiles\.openfreemap\.org/i.test(r.url())) asked.push(r.url()); });
-  await page.goto('/');
+  await page.goto('/app/');
   await track(page);
   await expect(page.locator('.livemap-canvas.schematic')).toBeVisible();
   expect(asked, `a patient's arrival screen fetched the map bundle: ${asked.join(', ')}`).toEqual([]);
@@ -150,7 +150,7 @@ test('a visit that has already started refuses to be cancelled, in the contractâ
     const started = m.stateOf('2020-01-01', '09:00');
     return { state: started, mayCancel: m.mayCancel(started), said: m.stateById(started).patientWords };
   }).catch(() => null) ?? await (async () => {
-    await page.goto('/');
+    await page.goto('/app/');
     return page.evaluate(async () => {
       const m = await import('/src/lib/cancelling.ts');
       const started = m.stateOf('2020-01-01', '09:00');

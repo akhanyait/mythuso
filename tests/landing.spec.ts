@@ -15,7 +15,7 @@ const nurseShare = Math.round((1 - model.unitEconomics.platformShare) * 100);
 const nurseChecks = vetting.roles.find(r => r.id === 'nurse')!.checks.length;
 const money = (n: number) => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(n);
 
-test.beforeEach(async ({ page }) => { await page.goto('/landing.html'); });
+test.beforeEach(async ({ page }) => { await page.goto('/'); });
 
 test('the landing page says what MyThuso is, and what it is not', async ({ page }) => {
   const errors: string[] = [];
@@ -148,7 +148,7 @@ test('it holds together at 320px, and at 200% zoom', async ({ page }) => {
      action at all — which is exactly how a 30px nav link gets shipped. */
   await auditLanding(page, 'at the configured viewport');
   await page.setViewportSize({ width: 320, height: 640 });
-  await page.goto('/landing.html');
+  await page.goto('/');
   await auditLanding(page, 'at 320px');
   /* 200% browser zoom halves the layout viewport and leaves the CSS pixel the size it was, which is
      what setViewportSize does. The floor of 320 is there because nothing here claims to work at

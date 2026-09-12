@@ -32,7 +32,7 @@ async function navigate(page: Page, name: string) {
   await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
 }
 const openInterpreting = async (page: Page) => {
-  await page.goto('/');
+  await page.goto('/app/');
   const sidebar = page.locator('.settings-link').filter({ hasText: 'Language & access' });
   if (await sidebar.isVisible()) await sidebar.click();
   else await navigate(page, 'Language & access');

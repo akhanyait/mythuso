@@ -96,7 +96,7 @@ const staffSections: Record<string, string[]> = {
 const adminSections = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance'];
 
 const applications: Application[] = [
-  { app: 'Patient', enter: async page => { await page.goto('/'); },
+  { app: 'Patient', enter: async page => { await page.goto('/app/'); },
     destinations: patientSections.map(name => ({ name, open: (page: Page) => goPatient(page, name) })) },
   ...Object.entries(staffSections).map(([role, sections]) => ({
     app: role,
@@ -168,7 +168,7 @@ for (const { app, enter, destinations } of applications) {
    name in the nav land somewhere that exists. An anchor pointing at an id nothing carries is the
    landing page's version of a dead link. */
 test('Landing: every navigation anchor lands on a section that exists', async ({ page }) => {
-  await page.goto('/landing.html');
+  await page.goto('/');
   const anchors = page.locator('.landing-nav a[href^="#"]');
   const count = await anchors.count();
   expect(count, 'The landing page navigation has no anchors, so either the page or this check is wrong').toBeGreaterThan(0);

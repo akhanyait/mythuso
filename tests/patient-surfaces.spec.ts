@@ -30,7 +30,7 @@ async function navigate(page: Page, name: string) {
    one place left in the app under the 44px floor packages/design-tokens/tokens.json sets, and the
    worst possible place for it. The track is still drawn at 50x30; the button around it is not. */
 test('the privacy switches are big enough to hit, and say which way they are set', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'Privacy & settings');
   const reminders = page.getByRole('switch', { name: 'Care reminders' });
   const box = (await reminders.boundingBox())!;
@@ -43,7 +43,7 @@ test('the privacy switches are big enough to hit, and say which way they are set
 
 /* Seven rights behind seven identical shields is a list that has to be read word by word. */
 test('each privacy right says what is behind it before you open it', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'Privacy & settings');
   const history = page.getByRole('button', { name: /^View access history/ });
   await expect(history).toContainText('who was refused');
@@ -54,7 +54,7 @@ test('each privacy right says what is behind it before you open it', async ({ pa
 /* Booking for somebody is not seeing their record. That sentence was in the body of a card; it is a
    badge on every row it applies to now, and a badge is a word rather than a colour. */
 test('a family row says what choosing it does and does not give you', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'My family');
   await expect(page.locator('.family-member').filter({ hasText: 'Lerato Molefe' })).toContainText('Your own record');
   const mother = page.locator('.family-member').filter({ hasText: 'Nomsa Molefe' });
@@ -67,7 +67,7 @@ test('a family row says what choosing it does and does not give you', async ({ p
 /* Two invitations in one list were told apart by two different kinds of thing: a teal pill for the
    active one and a bare uppercase caption for the other. */
 test('every invitation status is the same kind of badge', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'My family');
   const rows = page.locator('.record-row.static');
   await expect(rows).toHaveCount(2);
@@ -91,7 +91,7 @@ test('every invitation status is the same kind of badge', async ({ page }) => {
    pixels and broke "Kagiso Molefe · Brother" a word at a time down the side of the badge, which is
    a privacy boundary rendered unreadable by a layout. */
 test('an invitation still says what it grants and when it ends, at a phone width', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'My family');
   const kagiso = page.locator('.record-row.static').filter({ hasText: 'Kagiso Molefe' });
   await expect(kagiso).toContainText('Bookings and payments only');
@@ -104,7 +104,7 @@ test('an invitation still says what it grants and when it ends, at a phone width
 
 /* Nothing on this screen can be bought, so nothing on it gets the button that means "buy this". */
 test('no care plan offers a call to action it cannot honour', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'Care plans');
   await expect(page.locator('.plan-card')).toHaveCount(5);
   await expect(page.locator('.plan-card button.primary')).toHaveCount(0);
@@ -114,7 +114,7 @@ test('no care plan offers a call to action it cannot honour', async ({ page }) =
 /* A payment provider being unavailable is an ordinary Tuesday. The wallet list goes through the
    same shared states as every other list rather than an improvised message of its own. */
 test('the wallet activity list carries the shared error state, and says no money moves', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'Thuso Wallet');
   await expect(page.locator('.not-connected')).toContainText(noticeFor('payments'));
   await expect(page.getByText('Family care credit')).toBeVisible();
@@ -123,7 +123,7 @@ test('the wallet activity list carries the shared error state, and says no money
 /* An absence of prescriptions is an ordinary state with an ordinary empty state, not a tinted note
    with a button underneath it that nothing connects to the note. */
 test('the passport uses the shared empty state for prescriptions, and keeps review status on documents', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'Health Passport');
   await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Medications' }).click();
   await expect(page.getByRole('heading', { name: 'No active prescriptions' })).toBeVisible();
@@ -145,7 +145,7 @@ test('the passport uses the shared empty state for prescriptions, and keeps revi
 /* The three record actions were three 80px tiles with an 11px caption under an icon, sitting
    directly against the heading of the section below them. They are rows with names now. */
 test('the passport record actions say what they do before they are pressed', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'Health Passport');
   const exportRow = page.locator('.shortcut-row').filter({ hasText: 'Export sample passport' });
   await expect(exportRow).toContainText('Nothing is sent anywhere');

@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   test.skip(!reachable, 'no identity service on /api — run `npm run api`');
 });
 test('a real one-time code signs you in, and signing out ends the session', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   // with a service answering, the preview stops pretending: you have to sign in
   await expect(page.getByRole('heading', { name: 'Sign in to MyThuso' })).toBeVisible();
   /* The chip says what is true rather than what would be convenient: a service answering on this

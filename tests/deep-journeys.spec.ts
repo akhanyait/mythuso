@@ -19,7 +19,7 @@ async function switchRole(page: Page, role: string) {
   await expect(page.getByText(role.toUpperCase(), { exact: true }).first()).toBeVisible();
 }
 test('sign-up refuses a bad code and a bad ID number, then completes', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await openFirstRun(page);
   await page.getByRole('radio', { name: 'isiZulu' }).check();
   await page.getByRole('button', { name: 'Create my account' }).click();
@@ -52,7 +52,7 @@ test('sign-up refuses a bad code and a bad ID number, then completes', async ({ 
   await expect(page.getByRole('heading', { name: 'Sawubona, Lerato' })).toBeVisible();
 });
 test('account recovery offers a route that does not need the lost phone', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await openFirstRun(page);
   await page.getByRole('button', { name: 'I’ve lost access to my account' }).click();
   await expect(page.getByRole('button', { name: 'Start recovery' })).toBeDisabled();
@@ -64,7 +64,7 @@ test('account recovery offers a route that does not need the lost phone', async 
   await expect(page.getByRole('heading', { name: 'Hello, Lerato' })).toBeVisible();
 });
 test('a guardian invitation names its scope, its end date and can be revoked', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'My family');
   await page.getByRole('button', { name: 'Invite someone' }).click();
   const dialog = page.getByRole('dialog');
@@ -87,7 +87,7 @@ test('a guardian invitation names its scope, its end date and can be revoked', a
   await expect(row.getByRole('button', { name: 'Revoked' })).toBeDisabled();
 });
 test('a nurse assessment checks identity, flags an out-of-range reading and signs off', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await switchRole(page, 'Nurse');
   await page.getByRole('button', { name: 'Start this visit' }).click();
   const dialog = page.getByRole('dialog');
@@ -121,7 +121,7 @@ test('a nurse assessment checks identity, flags an out-of-range reading and sign
   await expect(dialog.getByText(/waiting for a connection/)).toBeVisible();
 });
 test('control tower assigns a nurse and logs an incident action', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await switchRole(page, 'Control Tower');
   await page.getByRole('button', { name: 'TH-2052', exact: true }).click();
   await expect(page.getByText('Unassigned')).toBeVisible();
@@ -146,7 +146,7 @@ test('control tower assigns a nurse and logs an incident action', async ({ page 
   await expect(dialog.getByRole('list', { name: 'Incident log' })).toContainText('Escalate to the on-call clinical lead');
 });
 test('partner orders show chain of custody and every integration state', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await switchRole(page, 'Partner');
   await page.getByRole('button', { name: /^RX-0081/ }).click();
   const dialog = page.getByRole('dialog');
@@ -219,7 +219,7 @@ test('a doctor whose registration has lapsed cannot sign, and is told which chec
   await expect(sign).toBeEnabled();
 });
 test('every clinical chart is also available as a table', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'Health Passport');
   const chart = page.locator('.chart-card').filter({ hasText: 'Blood pressure' }).first();
   /* The date is not pinned any more. These readings were four literal arrays typed into the passport
@@ -237,7 +237,7 @@ test('every clinical chart is also available as a table', async ({ page }) => {
   await expect(chart.getByRole('row').filter({ hasText: 'Missed medication' })).toContainText('141');
 });
 test('the shell can be read in isiZulu, Sesotho and Afrikaans', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   for (const [language, overview, passport, tabLabel] of [['Sesotho', 'Kakaretso', 'Phasepoto ya Bophelo', 'Lehae'], ['Afrikaans', 'Oorsig', 'Gesondheidspaspoort', 'Tuis'], ['isiZulu', 'Uhlolojikelele', 'Iphasiphothi Yezempilo', 'Ikhaya']]) {
     const settings = page.locator('button.settings-link').first();
     if (await settings.isVisible()) await settings.click();
@@ -257,7 +257,7 @@ test('the shell can be read in isiZulu, Sesotho and Afrikaans', async ({ page })
 test('new surfaces do not overflow the viewport or throw', async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'Health Passport');
   await expect(page.locator('.chart-card').first()).toBeVisible();
   await page.screenshot({ path: `test-results/passport-charts-${testInfo.project.name}.png` });
@@ -269,7 +269,7 @@ test('new surfaces do not overflow the viewport or throw', async ({ page }, test
   // controller reaches names the suburb rather than a street
   await expect(page.locator('.map-pin.visit-waiting').first()).toBeVisible();
   await page.screenshot({ path: `test-results/dispatch-${testInfo.project.name}.png` });
-  await page.goto('/');
+  await page.goto('/app/');
   await openFirstRun(page);
   await expect(page.getByRole('heading', { name: 'Care that comes to you.' })).toBeVisible();
   await page.screenshot({ path: `test-results/onboarding-${testInfo.project.name}.png` });
@@ -297,7 +297,7 @@ test('the hero rotates on its own, and can be stopped', async ({ page }) => {
   test.setTimeout(60_000);
   // the carousel lives on Explore, not on the returning patient's home, where an auto-rotating
   // promotion stood between them and the thing they opened the app to do
-  await page.goto('/');
+  await page.goto('/app/');
   await openExplore(page);
   const hero = page.getByRole('region', { name: 'MyThuso highlights' });
   await expect(hero.getByRole('heading', { name: 'Care that comes to you.' })).toBeVisible();
@@ -319,7 +319,7 @@ test('the hero rotates on its own, and can be stopped', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Professional care at your door' })).toBeVisible();
 });
 test('the hero banner is translated with the rest of the shell', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await openExplore(page);
   const settings = page.locator('button.settings-link').first();
   if (await settings.isVisible()) await settings.click();

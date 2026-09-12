@@ -38,7 +38,7 @@ async function navigate(page: Page, label: string) {
 const onScreen = (sentence: string) => new RegExp(sentence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'));
 
 test('every reading explains itself in the contract’s own words, and says who wrote them', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'Health Passport');
   await page.getByRole('button', { name: /What these readings mean/ }).click();
   await expect(page.getByRole('heading', { name: 'What your readings mean.' })).toBeVisible();
@@ -74,7 +74,7 @@ test('every reading explains itself in the contract’s own words, and says who 
 test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(new Date('2026-09-10T06:00:00Z')); });
 
 test('the arrival screen refuses in the contract’s words, and shows nothing before the day', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'My visits');
   await page.getByRole('button', { name: 'Where is my nurse?' }).first().click();
   await expect(page.getByRole('heading', { name: 'Where is your nurse?' })).toBeVisible();

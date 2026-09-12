@@ -41,7 +41,7 @@ async function goPatient(page: Page, name: string) {
    four-step booking modal for Vitals & chronic check: a person who had just said they did not know
    what to book was handed a booking. */
 test('the care-team row says what help exists rather than opening an unrelated booking', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await goPatient(page, 'Book a nurse');
   await page.locator('.menu-row').filter({ hasText: 'Not sure what you need?' }).click();
 
@@ -63,7 +63,7 @@ test('the care-team row says what help exists rather than opening an unrelated b
 
 /* ---- The Health Passport's four --------------------------------------------------------------- */
 test('a visit on the care timeline opens on what it recorded', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await goPatient(page, 'Health Passport');
   await page.locator('.record-row').filter({ hasText: 'Nurse home visit' }).first().click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -83,7 +83,7 @@ test('a visit on the care timeline opens on what it recorded', async ({ page }) 
 });
 
 test('the care team names who has been in the record and what that does not grant', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await goPatient(page, 'Health Passport');
   await page.locator('.shortcut-row').filter({ hasText: 'Doctors' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -99,7 +99,7 @@ test('the care team names who has been in the record and what that does not gran
 });
 
 test('both of the passport documents that had no screen now open', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await goPatient(page, 'Health Passport');
   await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Records' }).click();
 
@@ -120,7 +120,7 @@ test('both of the passport documents that had no screen now open', async ({ page
 });
 
 test('the device permission cards are under the notice rather than behind a button that grants nothing', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await goPatient(page, 'Health Passport');
   await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'More' }).click();
   await expect(page.getByRole('button', { name: /Review permission/ })).toHaveCount(0);
@@ -129,7 +129,7 @@ test('the device permission cards are under the notice rather than behind a butt
 });
 
 test('the medications tab explains what happens to a prescription rather than opening the roadmap', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await goPatient(page, 'Health Passport');
   await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Medications' }).click();
   await page.getByRole('button', { name: /What happens after a doctor signs one/ }).click();

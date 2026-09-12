@@ -37,7 +37,7 @@ const noSidewaysScroll = async (page: Page) => page.evaluate(() =>
     .map(el => `${el.tagName.toLowerCase()}.${el.className} ${el.scrollWidth}>${el.clientWidth}`));
 
 test('a completed visit says what was measured, what was in range and what the doctor said', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   const visit = await openVisit(page, 'Past');
   await expect(visit.getByRole('heading', { name: 'What the nurse found' })).toBeVisible();
   await expect(visit.getByText(noticeFor('clinical-records'), { exact: false })).toBeVisible();
@@ -62,7 +62,7 @@ test('a completed visit says what was measured, what was in range and what the d
 });
 
 test('booking a completed visit again opens the catalogue with the same patient chosen', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   const visit = await openVisit(page, 'Past');
   await visit.getByRole('button', { name: /^Book .* again/ }).click();
   await expect(page.getByText(/^Booking for/)).toContainText('Lerato Molefe');
@@ -72,7 +72,7 @@ test('booking a completed visit again opens the catalogue with the same patient 
 });
 
 test('a cancelled visit shows the reason, the window it fell on and what cancelling did not undo', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   const visit = await openVisit(page, 'Cancelled');
   await expect(visit.getByRole('heading', { name: 'A cancelled visit' })).toBeVisible();
   await expect(visit.getByText('I no longer need this visit')).toBeVisible();
@@ -90,7 +90,7 @@ test('a cancelled visit shows the reason, the window it fell on and what cancell
 });
 
 test('cancelling a visit records the reason and the side of the window it was on', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'My visits');
   /* Scoped to the visit's own action row: there is another control with this accessible name on the
      page, and a bare getByRole would find it first. */
@@ -105,7 +105,7 @@ test('cancelling a visit records the reason and the side of the window it was on
 });
 
 test('the trends screen draws every reading against the range the contract holds it to', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'Health Passport');
   /* Two sections offer "See all" now — the trend charts and the care timeline — so this names the
      one it means rather than relying on there being only one. */
@@ -130,7 +130,7 @@ test('the trends screen draws every reading against the range the contract holds
 const integrations = ['Apple Health', 'Health Connect', 'Thuso Kit'] as const;
 for (const integration of integrations) {
   test(`the ${integration} permission screen says what would be read and what never would`, async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     await navigate(page, 'Health Passport');
     await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'More' }).click();
     /* "Review permission" is gone. It sat on the denied block and flipped this screen's own state to
@@ -159,7 +159,7 @@ for (const integration of integrations) {
 }
 
 test('a family member’s profile shows their visits, both directions of sharing, and books for them', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'My family');
   await page.locator('.family-member').filter({ hasText: 'Nomsa Molefe' }).click();
   const profile = page.getByRole('dialog');
@@ -185,7 +185,7 @@ test('a family member’s profile shows their visits, both directions of sharing
 });
 
 test('a preselected patient does not outlive the journey that set it', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'My family');
   await page.locator('.family-member').filter({ hasText: 'Thabo Molefe' }).click();
   await page.getByRole('dialog').getByRole('button', { name: /^Book a visit for Thabo/ }).click();
@@ -208,7 +208,7 @@ test('a preselected patient does not outlive the journey that set it', async ({ 
  * read the wording. All four are sentences somebody could quietly soften, and `screening` is the
  * capability in this product easiest to overstate. */
 test('the passport explains a measurement, refuses to diagnose, and says who decides', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await navigate(page, 'Health Passport');
   await page.getByRole('button', { name: /What these readings mean/ }).click();
   await expect(page.getByRole('heading', { name: 'What your readings mean.' })).toBeVisible();

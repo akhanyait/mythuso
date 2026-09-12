@@ -169,17 +169,27 @@ is now off: every run starts a server it owns, and a busy port fails loudly rath
 This is the same shape as the iOS trap below and it went unnoticed for longer, because a web run
 prints no clue about whose files it served.
 
-**No test in this repository has ever opened the patient app at the path production serves it
-from.** nginx maps `/` to the landing page and the patient app to `/app/`; the Vite dev server knew
-none of the five mappings, so every pretty path fell through to `index.html`. Locally `/staff/`,
-`/admin/` and `/status/` all served the patient application — and since sign-in landed, its sign-in
-wall. `/status/` is the worst of those: it is the page a funder is sent to, it carries no framework
-at all by design, and locally it was serving the application it exists to be independent of.
+**No test in this repository had ever opened the patient app at the path production serves it
+from — and that is closed now.** nginx maps `/` to the landing page and the patient app to `/app/`;
+the Vite dev server knew none of the five mappings, so every pretty path fell through to
+`index.html`. Locally `/staff/`, `/admin/` and `/status/` all served the patient application — and
+since sign-in landed, its sign-in wall. `/status/` was the worst of those: it is the page a funder is
+sent to, it carries no framework at all by design, and locally it was serving the application it
+exists to be independent of.
 
-Four of the five are fixed in `apps/web/vite.config.ts`. `/` is not, and that is a debt rather than
-a decision: ninety-one `page.goto('/')` calls across twenty specs assume the patient app is at the
-root, so closing it is a change to the suite rather than to the config. Until somebody makes that
-change, the patient journeys are walked at a path that serves the marketing page in production.
+Four of the five were fixed in `apps/web/vite.config.ts` and `/` was left as a written-down debt:
+ninety-one `page.goto('/')` calls across twenty specs assumed the patient app was at the root, so
+closing it was a change to the suite rather than to the config. On 12 September the entries were
+merged — one application at `/app/`, a role in the query string — and closing the debt came with it.
+`/` is the landing page in both places, the specs open `/app/`, and `/staff/` and `/admin/` are 301s
+to the one door in both places too.
+
+What stops it reopening is a check rather than this paragraph. `scripts/check-boundaries.mjs` now
+reads the dev server's own path map out of `vite.config.ts` and holds it in both directions: every
+built entry must be reachable at some path locally, and every path the dev server claims must be a
+`location` nginx has. The lesson this cost twice is that a local environment answering differently
+from the deployed one does not fail — it misleads — and the only thing that catches that is
+something reading both maps.
 
 **Fewer workers makes the web suite worse, not better, and the instinct to slow it down is wrong.**
 Measured on 10 September on a quiet machine, same commit, three configurations:

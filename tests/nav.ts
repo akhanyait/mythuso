@@ -54,14 +54,22 @@ export async function goSection(page: Page, name: string) {
   await row.first().click();
 }
 
-/* The three applications, each at its own entry.
+/* One application, one address, and a role in the query string.
  *
- * There is no workspace picker inside the product any more — a role is what an account carries, and
- * the only reason a journey gets to choose one here is that the identity service is switched off,
- * which is exactly what the signed-out staff screen says on itself. */
+ * There is no sign-in screen in front of a workspace any more: the four doors became one demo login
+ * — apps/web/src/features/DemoLogin.tsx — and a role is a link, which is what makes it an auto login
+ * rather than a menu. So a journey opens a workspace the way a person following a link does, and the
+ * ids are the contract's own, out of apps/web/src/lib/roles.ts.
+ *
+ * The workspace arrives on a dynamic import, so `openWorkspace` waits for the navigation rather than
+ * for the URL: a spec that asserted immediately after the goto would be looking at the fallback. */
+const ROLE_PARAM: Record<string, string> = {
+  Nurse: 'nurse', Doctor: 'doctor', Partner: 'partner', 'Control Tower': 'control-tower'
+};
 export async function openWorkspace(page: Page, role: string) {
-  await page.goto('/staff.html');
-  await page.locator('.staff-signin-roles .record-row').filter({ has: page.getByText(role, { exact: true }) }).click();
+  const id = ROLE_PARAM[role];
+  if (!id) throw new Error(`No role "${role}" on the demo login. It offers: ${Object.keys(ROLE_PARAM).join(', ')}.`);
+  await page.goto(`/app/?role=${id}`);
   await expect(page.getByRole('navigation', { name: 'Primary' }).or(page.getByRole('navigation', { name: 'Main navigation' })).first()).toBeVisible();
 }
 /* The console lands on Overview, and Overview is what its heading now says. It used to say
@@ -69,9 +77,7 @@ export async function openWorkspace(page: Page, role: string) {
    screen, above the one word that told you which of the eight you were looking at. The name is the
    eyebrow now, so this waits for the tab rather than for the product. */
 export async function openAdminConsole(page: Page) {
-  await page.goto('/admin.html');
-  await page.locator('.staff-signin-roles .record-row').click();
-  await expect(page.getByText('MyThuso back office', { exact: true })).toBeVisible();
+  await page.goto('/app/?role=back-office');
   await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
 }
 

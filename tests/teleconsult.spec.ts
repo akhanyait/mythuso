@@ -9,7 +9,7 @@ import { goSection, openWorkspace } from './nav';
  * encounter which lost its line cannot be closed as a completed consultation, does not write an
  * assessment or a plan, and is not charged for. */
 const openCall = async (page: Page) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await openWorkspace(page, 'Doctor');
   await goSection(page, 'Teleconsultation');
   return page.locator('main');

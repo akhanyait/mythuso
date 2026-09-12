@@ -11,7 +11,7 @@ const overflow = (page: Page) => page.evaluate(() => { const el = document.query
 /* Privacy & settings is in the sidebar on a desktop and behind the More tab on a phone. Both are
    real routes a person uses, so the journey takes whichever one this viewport has. */
 async function openPrivacy(page: Page) {
-  await page.goto('/');
+  await page.goto('/app/');
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (await sidebar.isVisible()) await page.getByRole('button', { name: 'Privacy & settings' }).click();
   else {

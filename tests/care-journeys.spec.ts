@@ -14,7 +14,7 @@ async function navigate(page: Page, name: string) {
   await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
 }
 test('booking requires acknowledgement and creates a demo visit', async ({page})=>{
-  await page.goto('/');
+  await page.goto('/app/');
   await page.getByRole('button',{name:/Vitals & chronic check/}).first().click();
   const dialog=page.getByRole('dialog');
   await dialog.getByLabel('Who is this visit for?').selectOption('Nomsa Molefe');
@@ -36,7 +36,7 @@ test('booking requires acknowledgement and creates a demo visit', async ({page})
   await expect(page.locator('.panel').first()).toContainText('Nomsa Molefe');
 });
 test('services filter and empty state',async({page})=>{
-  await page.goto('/');await navigate(page,'Book a nurse');
+  await page.goto('/app/');await navigate(page,'Book a nurse');
   await page.getByRole('button',{name:'Recovery',exact:true}).click();
   await expect(page.locator('.catalog-grid .service-card')).toHaveCount(3);
   // later-phase services are visible but not bookable
@@ -46,7 +46,7 @@ test('services filter and empty state',async({page})=>{
   await expect(page.getByText('No services match your search. Try another name or category.')).toBeVisible();
 });
 test('family addition, sharing revocation and export',async({page})=>{
-  await page.goto('/');await page.getByRole('button',{name:'Add a family member',exact:true}).click();
+  await page.goto('/app/');await page.getByRole('button',{name:'Add a family member',exact:true}).click();
   await page.getByLabel('Display name').fill('Aunt Thandi');await page.getByRole('button',{name:'Add demo member'}).click();
   await expect(page.getByRole('heading',{name:'Aunt Thandi'})).toBeVisible();
   await navigate(page,'Health Passport');await page.getByRole('button',{name:'Share record'}).click();
@@ -70,7 +70,7 @@ test('each clinical workspace opens at its own work, and no horizontal overflow'
 });
 test('dashboard renders without errors and fits the viewport',async({page},testInfo)=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/');
+  await page.goto('/app/');
   // the home leads with the greeting and the four bookable services, not a rotating banner
   await expect(page.getByRole('heading',{level:1})).toBeVisible();
   await expect(page.locator('.shortcut-row')).toHaveCount(4);

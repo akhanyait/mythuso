@@ -31,7 +31,7 @@ const simulated = capabilities.filter(c => c.state === 'simulated');
 const absent = notConnected.filter(c => c.state !== 'simulated');
 const noticeFor = (c: typeof capabilities[number]) => c.connected ? null : c.simulation ? c.simulation.notice : c.notice;
 
-test.beforeEach(async ({ page }) => { await page.goto('/status.html'); });
+test.beforeEach(async ({ page }) => { await page.goto('/status/'); });
 
 test('lists every capability in the contract, once each', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'What is switched on', level: 1 })).toBeVisible();

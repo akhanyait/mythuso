@@ -39,7 +39,7 @@ const signOut = async (page: Page) => {
 
 test('signing in receives a code that was made here, and handles the one that never arrives', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-  await page.goto('/');
+  await page.goto('/app/');
   await signOut(page);
 
   /* The screen says what is behind it before it asks for anything. */
@@ -87,7 +87,7 @@ test('signing in receives a code that was made here, and handles the one that ne
 });
 
 test('paying for a visit answers with a receipt that says it is simulated, or a decline in words', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await page.getByRole('button', { name: /Vitals & chronic check/ }).first().click();
   const d = page.getByRole('dialog');
   await d.getByRole('button', { name: 'Continue' }).click();
@@ -118,7 +118,7 @@ test('a declined payment books nothing, and says so in the register a person rea
      has stopped being a state this product can reach. */
   let declined = false;
   for (const service of [/Wound care/, /Mother & baby/, /Blood tests/, /Elderly care/, /Post-operative check/, /Family planning/]) {
-    await page.goto('/');
+    await page.goto('/app/');
     await openCatalogue(page);
     await page.getByRole('button', { name: service }).first().click();
     const d = page.getByRole('dialog');

@@ -31,7 +31,7 @@ async function go(page: Page, name: string) {
 }
 
 const openService = async (page: Page, name: RegExp) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await page.getByRole('button', { name }).first().click();
   return page.getByRole('dialog');
 };
@@ -54,7 +54,7 @@ test('a visit ends its own duration after it starts, not an hour later', async (
   await vitals.getByRole('button', { name: 'Continue' }).click();
   await expect(vitals.getByText(/09:00 – 09:30 \(30 minutes\)/)).toBeVisible();
   // wound care is 40, and the same 09:00 slot ends at 09:40
-  await page.goto('/');
+  await page.goto('/app/');
   const wound = await openService(page, /Wound care/);
   await wound.getByRole('button', { name: 'Continue' }).click();
   await expect(wound.getByText(/09:00 – 09:40 \(40 minutes\)/)).toBeVisible();
@@ -85,7 +85,7 @@ test('the date chosen survives the confirmation and reaches the visit list', asy
 });
 
 test('the home visit card is the visit you booked, not a fixture', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   // with nothing booked it offers a way to book rather than inventing an appointment
   await expect(page.getByText('Nothing booked yet')).toBeVisible();
   await expect(page.getByText('Vitals & chronic check · 12 September')).toHaveCount(0);
@@ -125,7 +125,7 @@ test('an arrival estimate belongs to care asked for now, not to an appointment',
 
 test('each shortcut on the home opens the service it names', async ({ page }) => {
   for (const [name, price] of [['Vitals & chronic check', 'R 249'], ['Wound care', 'R 299'], ['Mother & baby', 'R 349'], ['Blood tests', 'R 299']] as const) {
-    await page.goto('/');
+    await page.goto('/app/');
     await page.locator('.shortcut-row').filter({ hasText: name }).click();
     const d = page.getByRole('dialog');
     await expect(d.locator('.booking-summary')).toContainText(name);
@@ -135,7 +135,7 @@ test('each shortcut on the home opens the service it names', async ({ page }) =>
 });
 
 test('the search field carries its query into the service list', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await page.getByRole('textbox', { name: 'Search for care' }).fill('wound');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Search services' })).toHaveValue('wound');
@@ -144,7 +144,7 @@ test('the search field carries its query into the service list', async ({ page }
 });
 
 test('a clinical workspace navigates as itself, not as the patient shop', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
   const bar = page.locator('.tabbar');
   /* A clinical tab shows "Earnings" and is named "Earnings & payouts", because a full section name

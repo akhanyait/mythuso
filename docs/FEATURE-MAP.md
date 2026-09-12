@@ -347,6 +347,20 @@ phone: the tab bar holds five 44px targets at 320px and a sixth would have taken
 four a person navigates by. It is also the one patient screen with no figure on it — the rest of the
 application is built around a large thin numeral with a small label under it, and there is nothing
 here that could honestly be set in that type.
+## Delivered — one door, and the address the product actually starts at, 12 September 2026
+
+Four front doors became one. The clinical workspaces at `/staff/` and the back office at `/admin/`
+were applications of their own with a sign-in screen each; both screens said there was no account to
+sign in to, and then asked the reader to choose a workspace anyway. The founder's instruction was to
+stop drawing the wall: *"create auto logins for all the user roles instead of creating different
+entry points… everything will start on the landing page."*
+
+| What changed | The refusals it keeps, and the ones it adds | Where |
+|---|---|---|
+| **One application, and a role in the address.** Six roles — patient, nurse, doctor, pharmacy partner, Control Tower, back office — in one table read out of the vetting register, three of them in a bar at the top of every screen and the rest one press behind "All roles". `/app/?role=doctor` opens the review queue, which is what makes this an auto login rather than a menu | The role lives in the URL and nowhere else: no `localStorage`, no cookie, no memory of which workspace somebody was last looking at. A value nobody recognises opens the patient app, because a stranger's link is not a reason to show somebody a dispatch board | `apps/web/src/lib/roles.ts`, `apps/web/src/Doorway.tsx`, `apps/web/src/features/DemoLogin.tsx` |
+| **The notice moved with the screens it was on.** Four sign-in screens carried the `accounts` capability's notice; the demo login carries it, on every surface, whichever role is open — beside the contract's own new refusal, that choosing a role grants none | `a-demo-login-is-not-an-account` is a new rule in the contract, and `scaffolding-is-not-a-disclosure` was amended rather than quietly contradicted: a role switcher used to be named there as something removed from what ships. The build holds both — the door may not import the identity client, and it must render the notice | `packages/catalog/capabilities.json`, `scripts/check-boundaries.mjs` |
+| **`/` is the landing page everywhere.** The dev server served the patient app at `/` and nginx served the marketing page there, so no test in this repository had ever opened the patient app at the path production serves it from. Ninety-five `page.goto('/')` calls moved to `/app/`; `/staff/` and `/admin/` are 301s in both places | A boundary check now reads the dev server's own path map and holds it to the entry list *and* to nginx, in both directions. The debt stood for weeks because nothing could see it | `apps/web/vite.config.ts`, `deploy/nginx/mythuso.conf`, `tests/` |
+| **The split survived the merge, measured.** The clinical workspaces and the back office are lazily-imported chunks, stylesheets included. A patient's first load went from 287.2 kB gzipped to 286.3 kB | And a nurse's went from 278.2 kB to 365.7 kB, because the patient application is what the address means with no role on it and is therefore imported statically. That is a promise partly given back, and it is recorded in the number in `tests/states.spec.ts` rather than deleted from the assertions. The half that still holds — no patient downloads a gram of a dispatch board — is asserted as before | `apps/web/src/Doorway.tsx`, `tests/states.spec.ts` |
 
 ## Cross-platform consistency
 
@@ -400,6 +414,13 @@ today — and which now has a server behind it, so the console is a surface rath
 behind it yet, so iOS and Android have neither the contract nor the screen. The boundary check
 already reads `apps/ios` and `apps/android` for the forbidden words, so the day either one grows a
 Live well file it is held to the same ten refusals as the web.
+**A clinician downloads the patient application.** Merging the entries cost a nurse 87 kB gzipped,
+because `src/Doorway.tsx` imports the patient app statically — it is what `/app/` means with no role
+on it, and making it lazy would put a fallback in front of every patient load and 5.8 kB on it. The
+fix that costs neither is to split the patient's *own* screens behind their own dynamic imports:
+the booking flow, the passport, the household record and the emergency pathway are not on the
+overview and need not be in its first load. `tests/states.spec.ts` carries the ratchet and the two
+numbers.
 
 **Two quarantined copies are left of nine, and both retire themselves.** Moving three bodies of
 prose into the catalogue could not finish in one pass, because adopting a contract means editing the

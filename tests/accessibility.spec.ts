@@ -182,7 +182,7 @@ test.describe('at a 320px viewport', () => {
   test.use({ viewport: { width: 320, height: 640 } });
 
   test('the shell, the language screen and the booking catalogue hold together', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     await audit(page, 'Patient overview at 320px');
     await openLanguageAndAccess(page);
     await audit(page, 'Language & access at 320px');
@@ -193,14 +193,14 @@ test.describe('at a 320px viewport', () => {
   });
 
   test('the way in holds together', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     await auditTheDoor(page, 'at 320px');
   });
 
   /* One load, then the shell's own navigation — five reloads of a single-page app to reach five of
      its own pages is five seconds of nothing, and a slow test starves the ones beside it. */
   test('my family, care plans, the wallet and privacy hold together too', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     for (const surface of patientSurfaces) {
       await openPatientSurface(page, surface);
       await audit(page, `${surface} at 320px`);
@@ -208,7 +208,7 @@ test.describe('at a 320px viewport', () => {
   });
 
   test('the passport reads in all four of its sections', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     await page.locator('.tabbar button').nth(3).click();
     for (const section of ['Records', 'Medications', 'More']) {
       await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: section, exact: true }).click();
@@ -220,7 +220,7 @@ test.describe('at a 320px viewport', () => {
      of long sentences or both — the two shapes that break a 320px column — and the timeline is a
      four-column table of readings, which is the widest thing on the patient side. */
   test('the screens that closed the audit hold together too', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     await page.locator('.tabbar button').nth(4).click();
     await page.locator('.menu-row').filter({ hasText: 'Help & support' }).first().click();
     await audit(page, 'Help & support at 320px');
@@ -241,7 +241,7 @@ test.describe('at a 320px viewport', () => {
   });
 
   test('the language dialog says which languages nobody has read, and stays inside the screen', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     await page.locator('.tabbar button').nth(4).click();
     await page.getByRole('button', { name: /^Language Read MyThuso/ }).click();
     const dialog = page.getByRole('dialog');
@@ -258,7 +258,7 @@ test.describe('at a 320px viewport', () => {
   });
 
   test('the shell is in the chosen language and the clinical wording is not', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     await page.locator('.tabbar button').nth(4).click();
     await page.getByRole('button', { name: /^Language Read MyThuso/ }).click();
     const dialog = page.getByRole('dialog');
@@ -277,7 +277,7 @@ test.describe('at a 320px viewport', () => {
 
 test.describe('at 200% zoom', () => {
   test('the patient shell and the language screen reflow rather than scroll sideways', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     await zoomedTo200(page);
     await audit(page, 'Patient overview at 200%');
     await openLanguageAndAccess(page);
@@ -285,13 +285,13 @@ test.describe('at 200% zoom', () => {
   });
 
   test('the way in holds together', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     await zoomedTo200(page);
     await auditTheDoor(page, 'at 200%');
   });
 
   test('the emergency pathway keeps the ambulance number readable and reachable', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     await zoomedTo200(page);
     const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
     if (await sidebar.isVisible()) await sidebar.getByRole('button', { name: 'Explore MyThuso', exact: true }).click();
@@ -302,7 +302,7 @@ test.describe('at 200% zoom', () => {
   });
 
   test('the six patient screens reflow rather than scroll sideways', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/app/');
     await zoomedTo200(page);
     for (const surface of patientSurfaces) {
       await openPatientSurface(page, surface);
@@ -328,10 +328,13 @@ test.describe('at 200% zoom', () => {
     for (const hour of ['08:00', '09:00']) await page.locator('.fc').getByRole('button', { name: hour, exact: true }).click();
     await audit(page, 'Earnings and the shift forecast at 200%');
   });
-  test('the clinical sign-in and the back office hold together', async ({ page }) => {
+  test('the demo login and the back office hold together', async ({ page }) => {
     await zoomedTo200(page);
-    await page.goto('/staff.html');
-    await audit(page, 'Clinical sign-in at 200%');
+    /* The clinical sign-in screen this used to audit is gone: one demo login replaced all four
+       doors. What has to survive 200% now is the bar it became, which is harder — it shares a band
+       with the sentence saying none of this is real, and at 200% that band is most of the width. */
+    await page.goto('/app/');
+    await audit(page, 'The demo login at 200%');
     await openAdminConsole(page);
     await audit(page, 'Operations console at 200%');
   });
@@ -340,7 +343,7 @@ test.describe('at 200% zoom', () => {
 /* Neither viewport is allowed to be the only one that works. This runs at the project viewport as
    configured — 1440x1100 and 390x844 — and is the control for the two groups above. */
 test('the shell holds together at the configured viewport', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   await audit(page, 'Patient overview');
   await openLanguageAndAccess(page);
   await audit(page, 'Language & access');

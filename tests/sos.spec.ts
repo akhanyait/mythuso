@@ -11,7 +11,7 @@ import { test, expect, type Page } from '@playwright/test';
 /* The sidebar on a desktop, the More tab on a phone — the same two taps a patient takes to reach
    the roadmap, on both viewports. */
 const openSos = async (page: Page) => {
-  await page.goto('/');
+  await page.goto('/app/');
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (await sidebar.isVisible()) await sidebar.getByRole('button', { name: 'Explore MyThuso', exact: true }).click();
   else {

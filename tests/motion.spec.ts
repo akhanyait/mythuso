@@ -32,7 +32,7 @@ const running = (page: Page) => page.evaluate(() =>
 
 test.describe('the motion system', () => {
  test('the curve and the durations are generated, not typed', async ({ page }) => {
-  await page.goto('/landing.html');
+  await page.goto('/');
   const [ease, quick, settle, enter] = await page.evaluate(() => {
    const style = getComputedStyle(document.documentElement);
    return ['--ease-soft', '--t-quick', '--t-settle', '--t-enter'].map(name => style.getPropertyValue(name).trim());
@@ -45,7 +45,7 @@ test.describe('the motion system', () => {
  });
 
  test('the pause control is a control, and it stops what moves', async ({ page }) => {
-  await page.goto('/landing.html');
+  await page.goto('/');
   const pause = page.getByRole('button', { name: 'Pause motion' });
   await expect(pause).toBeVisible();
 
@@ -77,7 +77,7 @@ test.describe('the motion system', () => {
 
  test('the landing page is complete and still under reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/landing.html');
+  await page.goto('/');
   await page.locator('#safety').scrollIntoViewIfNeeded();
   await page.waitForTimeout(ENTER_MS + 200);
 
@@ -99,7 +99,7 @@ test.describe('the motion system', () => {
 
  test('the patient app is complete and still under reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/');
+  await page.goto('/app/');
   await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
   await page.waitForTimeout(ENTER_MS + 200);
   expect(await running(page)).toEqual([]);
@@ -116,7 +116,7 @@ test.describe('the motion system', () => {
  });
 
  test('the pointer light stays behind the panels and off a touch screen', async ({ page }, testInfo) => {
-  await page.goto('/');
+  await page.goto('/app/');
   const ground = page.locator('.m-light');
   await expect(ground).toHaveCount(1);
   /* aria-hidden and pointer-events:none, which together are the reason a light may move at all:
@@ -149,7 +149,7 @@ test.describe('the motion system', () => {
  });
 
  test('a control is pressable while its entrance is still running', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/app/');
   /* No settle, no wait: the first press goes in on whatever frame the page has reached. If anything
      in the entrance were on the path between a press and its result, this is where it would show. */
   const book = page.getByRole('button', { name: /Book a nurse|Book care/ }).first();
