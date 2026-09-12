@@ -126,20 +126,6 @@ struct StudioNightCard<Content: View>: View {
     }
 }
 
-/* The eyebrow on a night card: the accent, as a word, on the one ground where it is allowed to be
-   one. `studioLime` on `studioNight` is 13.31:1 and it is a declared pair. */
-struct StudioEyebrow: View {
-    let text: String
-    var body: some View {
-        Text(text.uppercased())
-            .thusoFont(ThusoType.caption, weight: .semibold)
-            .tracking(1.1)
-            .foregroundStyle(ThusoTheme.studioLime)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityLabel(text)
-    }
-}
-
 /* Text on the night card. Two weights, and neither of them is a grey: `studioPaper` is the declared
    ink for this ground and the quiet one is that same paper at the muted opacity, which composites
    to #C8CBC6 and reads 9.04:1. A flattened grey would stop following the card if the card ever
