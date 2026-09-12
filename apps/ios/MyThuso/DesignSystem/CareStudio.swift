@@ -7,17 +7,18 @@ import SwiftUI
  * blocks and lime pill actions with ink labels, and a near-black card carrying the one thing that is
  * live right now. The palette landed first — `studioPaper`, `studioNight`, `studioInk`,
  * `studioInkDeep`, `studioLime`, `studioLilac`, `studioPeach`, `studioLine` in tokens.json, with
- * every pair measured. This file is the four shapes that palette is spent on, so that a screen
- * cannot spell one of them slightly differently from the screen next to it.
+ * every pair measured, and `studioInkMuted` and `studioOlive` arrived beside them. This file is the
+ * shapes that palette is spent on — the display headline, the night card and the ink that reads on
+ * it — so that a screen cannot spell one of them slightly differently from the screen next to it.
  *
  * WHAT IS NOT HERE, AND WHY.
  *
  * No second typeface. The 10 September cut of this direction set its accent line in a serif italic,
  * and `typography.families.display` in tokens.json now says in as many words why that was dropped:
  * *a decorative serif across the headlines of a clinical product reads as an editorial about health
- * rather than a tool for managing one*. So the two tones of the headline are two grounds — ink on
- * paper, then ink on a lime block — rather than two faces. The block is the accent; the words never
- * change face.
+ * rather than a tool for managing one*. So the two tones of the headline are two INKS — `charcoal`
+ * then `studioOlive`, both on the paper — rather than two faces or two grounds. The words never
+ * change face and the line behind them is never a block.
  *
  * No decorative motion, no orbiting sparkle, no pause control for either. That cut had an infinite
  * rotation with a play/pause button beside it, which is two problems: a forever-changing box, and a
@@ -45,7 +46,7 @@ extension EnvironmentValues {
 
 // MARK: - The headline
 
-/* Two lines, two grounds, one voice.
+/* Two lines, two inks, one voice.
  *
  * The lead line is what the reader is — a greeting, or the framing of the role whose workspace this
  * is. The accent line is what the product is for, and it is `studioOlive`, the token that exists for

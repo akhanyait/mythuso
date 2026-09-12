@@ -194,7 +194,7 @@ struct HomeView: View {
     private func visitCard(_ visit: BookedVisit) -> some View {
         StudioNightCard(spacing: ThusoSpacing.space12) {
             let head = HStack(spacing: ThusoSpacing.space12) {
-                TileIcon(symbol: visit.service.symbol, tint: ThusoTheme.studioInkDeep)
+                TileIcon(symbol: visit.service.symbol, tint: ThusoTheme.studioInkDeep, background: ThusoTheme.studioLime)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(visit.service.name).font(.subheadline.weight(.semibold)).studioNightInk()
                     Text(visit.shortWhenText).font(.footnote).studioNightInk(quiet: true)

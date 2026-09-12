@@ -233,10 +233,13 @@ struct Monogram: View {
 struct TileIcon: View {
     let symbol: String
     var tint: Color = ThusoTheme.charcoal
-    /* The lime accent block, at the one size it is affordable. A plate is forty points square and
-       marks what leads a section rather than every row in it, so the accent stays countable: a
-       screen has one or two of these, not eleven. Charcoal reads 15.3:1 on it. */
-    var background: Color = ThusoTheme.studioLime
+    /* THE DEFAULT IS THE QUIET PLATE, AND THE LOUD ONE IS ASKED FOR BY NAME.
+       This was studioLime for an afternoon, and the emulator screenshot of the care catalogue is why
+       it is not: six rows, six lime squares, straight down the screen. A plate marks what leads a
+       section rather than every row in it — that is the sentence above this control — and a default
+       is precisely what every row gets, so a loud default is the one thing that rule cannot survive.
+       Charcoal reads 13.53:1 on cloud and 15.3:1 on the lime a caller passes deliberately. */
+    var background: Color = ThusoTheme.cloud
     var size: CGFloat = 40
     /* @ScaledMetric so the plate grows with the reader's text size. It used to be a fixed square
        beside text that could triple in height, which is how a 44-point tile ended up floating

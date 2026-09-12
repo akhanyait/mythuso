@@ -39,8 +39,8 @@ import androidx.compose.ui.unit.sp
  * No second typeface. The 10 September cut of this direction set its accent line in FontFamily.Serif
  * italic, and typography.families.display in tokens.json now says in as many words why that was
  * dropped: a decorative serif across the headlines of a clinical product reads as an editorial about
- * health rather than a tool for managing one. The two tones of the headline are two grounds — ink on
- * paper, then ink on a lime block — rather than two faces.
+ * health rather than a tool for managing one. The two tones of the headline are two INKS — Charcoal
+ * then StudioOlive, both on the paper — rather than two faces or two grounds.
  *
  * No infinite rotation and no pause control for one. That cut had a sparkle turning on a 24-second
  * loop with a play/pause button beside it, which is two problems at once: a box that never stops
@@ -64,7 +64,7 @@ val LocalOnStudioNight = compositionLocalOf { false }
 val StudioNightInk = StudioPaper
 val StudioNightInkQuiet = StudioPaper.copy(alpha = 0.78f)
 
-/* THE DISPLAY HEADLINE: two lines, two grounds, one voice.
+/* THE DISPLAY HEADLINE: two lines, two inks, one voice.
  *
  * The lead line is what the reader is — a greeting, or the framing of the role whose workspace this
  * is. The accent line is what the product is for, and it is

@@ -227,13 +227,16 @@ val ThusoButtonShape = RoundedCornerShape(ThusoRadius.control)
     }
 }
 
-/* A soft tinted square holding a symbol, and the lime accent block at the one size it is affordable.
-   A plate is forty dp and marks what leads a section rather than every row in it, so the accent stays
-   countable: a screen has one or two of these, not eleven. Charcoal reads 15.3:1 on it. Every row in
-   the app used to carry an indigo tile on an indigo wash, which is colour spent on the fact that a
-   row exists rather than on anything about it — the rule that replaced it is unchanged and this is
-   only a different fill inside it. */
-@Composable fun TileIcon(icon: ImageVector, tint: Color = Charcoal, background: Color = StudioLime, size: Dp = 40.dp) {
+/* A soft tinted square holding a symbol. Cloud and charcoal by default, and an accent only when it
+   means one — every row in the app used to carry an indigo tile on an indigo wash, which is colour
+   spent on the fact that a row exists rather than on anything about it.
+
+   THE DEFAULT WAS studioLime FOR AN AFTERNOON AND THE EMULATOR IS WHY IT IS NOT. The care catalogue
+   came back with six rows and six lime squares straight down the screen. A plate marks what leads a
+   section rather than every row in it, and a default is precisely what every row gets, so a loud
+   default is the one thing that rule cannot survive. Lime is passed by name where a tile genuinely
+   leads something; charcoal reads 13.53:1 on cloud and 15.3:1 on the lime. */
+@Composable fun TileIcon(icon: ImageVector, tint: Color = Charcoal, background: Color = Cloud, size: Dp = 40.dp) {
     Box(Modifier.size(size).background(background, RoundedCornerShape(ThusoRadius.tile)), Alignment.Center) {
         Icon(icon, null, tint = tint, modifier = Modifier.size(size * 0.5f))
     }
