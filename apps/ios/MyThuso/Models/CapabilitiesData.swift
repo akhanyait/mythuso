@@ -31,7 +31,8 @@ extension Capabilities {
                                               refuses: [
                                                   "Send anything to a real handset.",
                                                   "Accept a code it did not itself produce.",
-                                                  "Survive a restart as a real account would."
+                                                  "Survive a restart as a real account would.",
+                                                  "Grant a role. The demo login chooses which workspace to draw; it authenticates nobody, and no workspace it opens is reached by having permission to."
                                               ]),
                    surfaces: ["sign-in", "profile", "sign-out"],
                    neverSoften: nil,
@@ -293,8 +294,11 @@ extension Capabilities {
                        statement: "A capability may be marked connected only when `evidence` names a file that exists and `blockedBy` is empty. The build refuses it otherwise.",
                        why: "The failure mode is never a lie. It is somebody clearing a banner off a layout because the screenshot looked better without it."),
         CapabilityRule(id: "scaffolding-is-not-a-disclosure",
-                       statement: "A role switcher, a state picker and a gallery of loading states are development tools. They are removed from what ships, and removing them says nothing about whether anything is connected.",
-                       why: "The two got tangled: taking the demo furniture out felt like claiming the product was live. They are separate questions and this file answers only the second."),
+                       statement: "A state picker and a gallery of loading states are development tools. They are removed from what ships, and removing them says nothing about whether anything is connected.",
+                       why: "The two got tangled: taking the demo furniture out felt like claiming the product was live. They are separate questions and this file answers only the second. This rule named a role switcher as well until 12 September, when the founder made one the way in; see a-demo-login-is-not-an-account for why that is a change to what ships rather than to what is claimed."),
+        CapabilityRule(id: "a-demo-login-is-not-an-account",
+                       statement: "The demo login is what ships, because there is nothing to sign in to. Every surface it opens renders the accounts notice, and the switcher says in the contract's own words that it grants no role.",
+                       why: "Four sign-in screens each carried this capability's notice, each explained that there are no accounts, and each then asked the reader to choose a workspace anyway. Replacing them with one switcher is honest about what was already happening — but it moves the notice off four screens at once, and a screen that stops speaking is exactly the disclosure failure a-simulation-says-so exists to refuse. So the notice moves with it rather than being dropped, and the switcher carries the refusal too: an auto login that looks like an account is worse than a sign-in wall with nothing behind it, because the wall at least admits it is a door."),
         CapabilityRule(id: "simulated-is-not-connected",
                        statement: "`state: simulated` never sets `connected: true`, and the two may not disagree. A simulated capability still lists everything blocking it.",
                        why: "The whole hazard of a simulator is that it works. A person who has watched a payment go through end to end is one edit away from believing a payment provider exists, and the status page is the page a funder reads. So the boolean that removes every notice in the product is left alone, and the build fails if the state and the boolean drift apart."),
