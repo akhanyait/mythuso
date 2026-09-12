@@ -1509,14 +1509,23 @@ if(existsSync('apps/web/src/surface/glass.css')) {
 
    So it is checked. Any rule that paints a sage background may not also set a colour that is not
    charcoal, and may not leave one to be inherited from a lighter ground. */
-const sageFills = /(--pale-sage|--soft-sage|--muted-sage|--sage-slate)\)/;
+/* The Care Studio tints are in this list beside the sage ramp, for the same reason and under the
+   same sentence. studioLime measures 1.05 on studioPaper and 11.46 under ink; lilac and peach are
+   9.04 and 8.92 under ink and clear nothing as text. So a rule that paints one of them owes a
+   foreground, and that foreground is the ink — which is what the old rule said about charcoal, in a
+   different palette. The accepted foregrounds grew by exactly the two studio inks; nothing else was
+   loosened. */
+const sageFills = /(--pale-sage|--soft-sage|--muted-sage|--sage-slate|--studio-lime|--studio-lilac|--studio-peach)\)/;
+/* The inks that may be read on any of them. --studio-ink-deep has to be spelled out: the old test
+   was /--ink\)/ and "var(--studio-ink-deep)" does not contain "--ink)". */
+const inkForeground = /--charcoal|--ink\)|--studio-ink\)|--studio-ink-deep\)/;
 /* A surface that paints sage must also set a colour, and that colour must be charcoal.
    The first version of this check only saw a rule that did both at once. It missed the real case:
    `.s-panel.lead` painted sage and set no colour, `.s-panel-head p` set faint and painted nothing,
    and faint landed on sage at 3.75:1 through inheritance across two rules that were each fine on
    their own. A guard that only reads one declaration at a time cannot see a failure that only
    exists where two of them meet — so a sage ground must now carry its own foreground down. */
-for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/surface/surface.css','apps/web/src/surface/patient.css','apps/web/src/surface/clinical.css','apps/web/src/shells/shells.css']) {
+for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/surface/surface.css','apps/web/src/surface/patient.css','apps/web/src/surface/clinical.css','apps/web/src/surface/studio.css','apps/web/src/shells/shells.css']) {
  if(!existsSync(sheet)) continue;
  /* Comments stripped first. A CSS comment sitting above a rule is captured as part of that rule's
     selector by any regex this simple, so the error named a paragraph of prose instead of a class —
@@ -1530,7 +1539,7 @@ for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/sur
      text is white, and forcing charcoal onto it would be the actual defect. So a declaration that
      names charcoal alongside the sage is not a sage surface. */
   const paintsSage = body.split(';').some(d =>
-   /^\s*background/.test(d) && sageFills.test(d) && !/--charcoal/.test(d));
+   /^\s*background/.test(d) && sageFills.test(d) && !/--charcoal|--studio-ink/.test(d));
   if(!paintsSage) continue;
   const colour = body.split(';').find(d => /^\s*color\s*:/.test(d));
   /* A surface only has to provide a foreground if something could be read on it. A pseudo-element
@@ -1538,8 +1547,8 @@ for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/sur
      requiring a colour there would be noise, and noise is how a check gets switched off. */
   const decorative = /::(before|after)/.test(selector)
    || (/height:\s*(\d+)px/.test(body) && Number(body.match(/height:\s*(\d+)px/)[1]) < 13);
-  if(!colour && !decorative) throw new Error(`${sheet}: "${selector.trim().slice(0,60)}" paints a sage background and sets no colour, so whatever a child inherits lands on sage unmeasured — faint gets 3.75:1 there and fails. Set color: var(--charcoal) on the surface that paints the sage; a child cannot be relied on to remember. If nothing can be read on it, say so by giving it a height under the type floor or making it a pseudo-element.`);
-  if(colour && !/--charcoal|--ink\)/.test(colour)) throw new Error(`${sheet}: "${selector.trim().slice(0,60)}" paints a sage background and sets ${colour.trim()}. Charcoal is the only foreground measured against the sage ramp — faint on paleSage is 3.70 and fails. Everything read on sage is charcoal.`);
+  if(!colour && !decorative) throw new Error(`${sheet}: "${selector.trim().slice(0,60)}" paints an accent fill and sets no colour, so whatever a child inherits lands on it unmeasured — faint gets 3.75:1 on paleSage and fails, and studioLime is 1.05 under anything but the ink. Set the foreground on the surface that paints the fill — var(--charcoal) on a sage, var(--studio-ink) on a studio tint; a child cannot be relied on to remember. If nothing can be read on it, say so by giving it a height under the type floor or making it a pseudo-element.`);
+  if(colour && !inkForeground.test(colour)) throw new Error(`${sheet}: "${selector.trim().slice(0,60)}" paints an accent fill and sets ${colour.trim()}. The inks are the only foregrounds measured against these ramps — faint on paleSage is 3.70 and fails, and nothing but studioInk is declared against studioLime. Everything read on an accent fill is charcoal or a studio ink.`);
  }
 }
 
@@ -1796,7 +1805,7 @@ void inventedNotices;
    So an animation that runs forever may only touch the compositor. A finite one may do as it likes:
    it stops, and the wait ends with it. */
 const composited = /^(transform|opacity|filter|background-position|background-size|box-shadow|color|background-color|border-color|stroke|fill|stroke-dashoffset)$/;
-for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/map/map.css']) {
+for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/surface/studio.css','apps/web/src/map/map.css']) {
  const css=read(sheet);
  const frames=new Map();
  for(const match of css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g)) frames.set(match[1], match[2]);
