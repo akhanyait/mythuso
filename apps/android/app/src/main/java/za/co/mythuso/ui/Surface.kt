@@ -166,9 +166,9 @@ private val MetricNumeral = androidx.compose.ui.text.TextStyle(
            outlined. Colour is never the only difference — the chip says the word as well. */
         if (chip != null) Text(
             chip, style = MaterialTheme.typography.labelSmall,
-            color = if (flagged) SurfaceWhite else Charcoal,
+            color = if (flagged) StudioPaper else Charcoal,
             modifier = Modifier
-                .background(if (flagged) Charcoal else SurfaceWhite, RoundedCornerShape(ThusoRadius.pill))
+                .background(if (flagged) StudioNight else SurfaceWhite, RoundedCornerShape(ThusoRadius.pill))
                 .then(if (flagged) Modifier else Modifier.border(1.dp, StudioLine, RoundedCornerShape(ThusoRadius.pill)))
                 .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space4)
         )
@@ -334,9 +334,9 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
     val shape = RoundedCornerShape(ThusoRadius.pill)
     Text(
         text, style = MaterialTheme.typography.labelSmall,
-        color = if (flagged) SurfaceWhite else Charcoal, maxLines = 1,
+        color = if (flagged) StudioPaper else Charcoal, maxLines = 1,
         modifier = Modifier
-            .background(if (flagged) Charcoal else SurfaceWhite, shape)
+            .background(if (flagged) StudioNight else SurfaceWhite, shape)
             .then(if (flagged) Modifier else Modifier.border(1.dp, StudioLine, shape))
             .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space4)
     )

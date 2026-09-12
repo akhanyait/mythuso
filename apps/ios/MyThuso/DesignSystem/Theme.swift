@@ -283,7 +283,7 @@ struct StepDots: View {
             Spacer(minLength: ThusoSpacing.space8)
             HStack(spacing: ThusoSpacing.space4) {
                 ForEach(1...total, id: \.self) { index in
-                    Capsule().fill(index <= step ? ThusoTheme.charcoal : ThusoTheme.cloud)
+                    Capsule().fill(index <= step ? ThusoTheme.studioNight : ThusoTheme.cloud)
                         .frame(width: index == step ? 18 : 6, height: 6)
                 }
             }

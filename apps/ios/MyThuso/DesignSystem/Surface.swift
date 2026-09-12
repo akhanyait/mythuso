@@ -275,7 +275,7 @@ enum ChipTone {
         case .attention: return (ThusoTheme.mangoInk, ThusoTheme.mangoSoft, ThusoTheme.mangoInk.opacity(0.24))
         case .refused: return (ThusoTheme.danger, ThusoTheme.dangerSoft, ThusoTheme.danger.opacity(0.3))
         case .onDark: return (ThusoTheme.surface, ThusoTheme.surface.opacity(0.16), ThusoTheme.surface.opacity(0.3))
-        case .filled: return (ThusoTheme.surface, ThusoTheme.charcoal, ThusoTheme.charcoal)
+        case .filled: return (ThusoTheme.studioPaper, ThusoTheme.studioNight, ThusoTheme.studioNight)
         case .flaggedOnNight: return (ThusoTheme.studioInkDeep, ThusoTheme.studioLime, ThusoTheme.studioLime)
         }
     }

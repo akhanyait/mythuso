@@ -206,13 +206,13 @@ private struct SectionTabs: View {
                 Text(section).font(.footnote.weight(.semibold))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(chosen ? Color.white : ThusoTheme.charcoal)
+                    .foregroundStyle(chosen ? ThusoTheme.studioPaper : ThusoTheme.charcoal)
                     .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8)
                     /* Where the forty-four points are actually met — on the button's own frame,
                        which is the frame XCUITest measures and a thumb has to find. */
                     .frame(maxWidth: filling ? .infinity : nil, minHeight: 44)
-                    .background(chosen ? ThusoTheme.charcoal : ThusoTheme.surface, in: shape)
-                    .overlay(shape.stroke(chosen ? ThusoTheme.charcoal : ThusoTheme.studioLine, lineWidth: 1))
+                    .background(chosen ? ThusoTheme.studioNight : ThusoTheme.surface, in: shape)
+                    .overlay(shape.stroke(chosen ? ThusoTheme.studioNight : ThusoTheme.studioLine, lineWidth: 1))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

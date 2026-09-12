@@ -142,7 +142,7 @@ struct DevicePermissionView: View {
         SurfacePanel {
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                 TileIcon(symbol: integration.symbol, tint: ThusoTheme.charcoal,
-                         background: ThusoTheme.paleSage, size: 44)
+                         background: ThusoTheme.studioLime, size: 44)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(integration.name).thusoFont(ThusoType.cardTitle, weight: .semibold)
                         .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)

@@ -88,7 +88,7 @@ struct CaptureQueueView: View {
             HStack(spacing: ThusoSpacing.space12) {
                 TileIcon(symbol: kit.onlyHereCount == 0 ? "checkmark.seal" : "iphone",
                          tint: kit.onlyHereCount == 0 ? ThusoTheme.charcoal : ThusoTheme.info,
-                         background: kit.onlyHereCount == 0 ? ThusoTheme.paleSage : ThusoTheme.infoSoft)
+                         background: kit.onlyHereCount == 0 ? ThusoTheme.studioLime : ThusoTheme.infoSoft)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(kit.onlyHereCount == 0 ? "Nothing is waiting" : "\(kit.onlyHereCount) reading\(kit.onlyHereCount == 1 ? "" : "s") on this phone")
                         .font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)

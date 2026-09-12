@@ -284,9 +284,14 @@ struct VisitTimePicker: View {
                             }
                             .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8)
                             .frame(minWidth: 62, minHeight: 68)
-                            .background(day == index ? ThusoTheme.charcoal : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(day == index ? ThusoTheme.charcoal : ThusoTheme.controlEdge, lineWidth: 1))
-                            .foregroundStyle(day == index ? .white : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                            /* TWO CHOICES ON ONE SCREEN, AT TWO WEIGHTS. The day is where you
+                               are — the same studioNight the navigation pill and the tab bar use —
+                               and the hour is the choice being made, which is the one lime object.
+                               Both were pure black, which put two identical near-black chips on a
+                               cream screen and said nothing about which of them was the decision. */
+                            .background(day == index ? ThusoTheme.studioNight : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(day == index ? ThusoTheme.studioNight : ThusoTheme.controlEdge, lineWidth: 1))
+                            .foregroundStyle(day == index ? ThusoTheme.studioPaper : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         }
                         .accessibilityLabel(Scheduling.longDate(offered.date))
                         .accessibilityAddTraits(day == index ? [.isSelected] : [])
@@ -302,9 +307,9 @@ struct VisitTimePicker: View {
                     Button { slot = time } label: {
                         Text(time).font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity, minHeight: 48)
-                            .background(slot == time ? ThusoTheme.charcoal : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(slot == time ? ThusoTheme.charcoal : ThusoTheme.controlEdge, lineWidth: 1))
-                            .foregroundStyle(slot == time ? .white : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                            .background(slot == time ? ThusoTheme.studioLime : ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(slot == time ? ThusoTheme.studioInkDeep : ThusoTheme.controlEdge, lineWidth: 1))
+                            .foregroundStyle(slot == time ? ThusoTheme.studioInkDeep : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                     }.accessibilityAddTraits(slot == time ? [.isSelected] : [])
                 }
             }

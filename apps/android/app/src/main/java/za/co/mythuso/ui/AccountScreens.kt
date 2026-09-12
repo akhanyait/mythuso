@@ -57,7 +57,7 @@ import za.co.mythuso.model.mokoenaHousehold
     ScreenColumn {
         Box(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.card))
-                .background(Charcoal)
+                .background(StudioNight)
                 .padding(ThusoSpacing.space20)
                 .semantics(mergeDescendants = true) {}
         ) {

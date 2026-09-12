@@ -120,15 +120,15 @@ struct ChoiceRow<Value: Hashable>: View {
             Button { selection = option.value } label: {
                 Text(option.title)
                     .font(.subheadline.weight(on ? .semibold : .regular))
-                    .foregroundStyle(on ? ThusoTheme.surface : ThusoTheme.charcoal)
+                    .foregroundStyle(on ? ThusoTheme.studioPaper : ThusoTheme.charcoal)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, ThusoSpacing.space12)
                     .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(on ? ThusoTheme.charcoal : ThusoTheme.surface,
+                    .background(on ? ThusoTheme.studioNight : ThusoTheme.surface,
                                 in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
-                        .stroke(on ? ThusoTheme.charcoal : ThusoTheme.controlEdge, lineWidth: 1))
+                        .stroke(on ? ThusoTheme.studioNight : ThusoTheme.controlEdge, lineWidth: 1))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -213,8 +213,8 @@ struct ThusoSwitchStyle: ToggleStyle {
     }
     private func switchMark(_ on: Bool) -> some View {
         Capsule()
-            .fill(on ? ThusoTheme.charcoal : ThusoTheme.cloud)
-            .overlay(Capsule().stroke(on ? ThusoTheme.charcoal : ThusoTheme.controlEdge, lineWidth: 1))
+            .fill(on ? ThusoTheme.studioNight : ThusoTheme.cloud)
+            .overlay(Capsule().stroke(on ? ThusoTheme.studioNight : ThusoTheme.controlEdge, lineWidth: 1))
             .frame(width: 50, height: 30)
             .overlay(alignment: on ? .trailing : .leading) {
                 Circle().fill(ThusoTheme.surface)
@@ -268,10 +268,13 @@ struct ChoiceCard: View {
             }
             .padding(ThusoSpacing.space16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            /* The palest sage marks the chosen one, and the charcoal hairline marks it a second
+            /* The soft tile marks the chosen one, and the charcoal hairline marks it a second
                time — colour is never the only difference between two states, and the radio mark is
-               the third. Charcoal reads 11.11:1 on paleSage. */
-            .background(chosen ? ThusoTheme.paleSage : ThusoTheme.surface,
+               the third. Charcoal reads 11.93:1 on studioLilac. Lilac rather than lime because this
+               is a full-width card in a list of two or three: a lime panel of that size is the lead
+               card the design deliberately does not have. The loud fill is spent on the time-slot
+               grid, where the chosen object is one chip out of twelve. */
+            .background(chosen ? ThusoTheme.studioLilac : ThusoTheme.surface,
                         in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)
                 .stroke(chosen ? ThusoTheme.charcoal : ThusoTheme.studioLine, lineWidth: 1))

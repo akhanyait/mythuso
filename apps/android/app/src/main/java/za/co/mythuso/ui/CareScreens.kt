@@ -631,7 +631,7 @@ fun serviceIcon(id: String) = when (id) {
         days.forEachIndexed { index, offered ->
             Column(
                 Modifier.widthIn(min = 66.dp).heightIn(min = 72.dp).padding(vertical = 4.dp)
-                    .background(if (day == index) Charcoal else SurfaceWhite, RoundedCornerShape(ThusoRadius.card))
+                    .background(if (day == index) StudioNight else SurfaceWhite, RoundedCornerShape(ThusoRadius.card))
                     .border(1.dp, if (day == index) Indigo else StudioLine, RoundedCornerShape(ThusoRadius.card))
                     .clickable { onDay(index) }
                     .semantics { selected = day == index; contentDescription = Scheduling.longDate(offered.date) },
@@ -639,7 +639,7 @@ fun serviceIcon(id: String) = when (id) {
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(offered.weekday, style = MaterialTheme.typography.labelMedium, color = if (day == index) SurfaceWhite else Faint)
-                Text(offered.dayNumber, style = MaterialTheme.typography.titleMedium, color = if (day == index) SurfaceWhite else Charcoal)
+                Text(offered.dayNumber, style = MaterialTheme.typography.titleMedium, color = if (day == index) StudioPaper else Charcoal)
                 Text(offered.month, style = MaterialTheme.typography.labelMedium, color = if (day == index) SurfaceWhite else Faint)
             }
         }
@@ -649,7 +649,10 @@ fun serviceIcon(id: String) = when (id) {
             row.forEach { time ->
                 Box(
                     Modifier.weight(1f).heightIn(min = TouchTarget)
-                        .background(if (slot == time) Charcoal else SurfaceWhite, RoundedCornerShape(ThusoRadius.control))
+                        /* A time somebody has picked out of a grid of twelve is exactly the
+                           one-per-screen the loud fill is for: studioLime, with charcoal on it at
+                           15.3:1, and it is the only object on the screen wearing it. */
+                        .background(if (slot == time) StudioLime else SurfaceWhite, RoundedCornerShape(ThusoRadius.control))
                         .border(1.dp, if (slot == time) Indigo else StudioLine, RoundedCornerShape(ThusoRadius.control))
                         .clickable { onSlot(time) }.semantics { selected = slot == time },
                     Alignment.Center
@@ -850,7 +853,7 @@ fun serviceIcon(id: String) = when (id) {
         }
         Box(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.card))
-                .background(Charcoal)
+                .background(StudioNight)
                 .semantics(mergeDescendants = true) {}
         ) {
             Image(painterResource(R.drawable.mythuso_family), null, Modifier.align(Alignment.BottomEnd).height(140.dp), contentScale = ContentScale.Fit)

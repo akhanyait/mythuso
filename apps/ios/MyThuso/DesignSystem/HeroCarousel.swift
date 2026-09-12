@@ -53,7 +53,7 @@ struct HeroCarousel: View {
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) { index = position }
                     playing = false
                 } label: {
-                    Capsule().fill(position == index ? ThusoTheme.charcoal : ThusoTheme.controlEdge)
+                    Capsule().fill(position == index ? ThusoTheme.studioNight : ThusoTheme.controlEdge)
                         .frame(width: position == index ? 22 : 6, height: 6)
                         .frame(width: 30, height: 44)
                         .contentShape(Rectangle())
@@ -85,7 +85,7 @@ struct HeroCarousel: View {
                    so it stands on the palest sage in the ramp and is cropped by the
                    band rather than by a hand-placed offset. */
                 ZStack(alignment: .bottom) {
-                    LinearGradient(colors: [ThusoTheme.paleSage, ThusoTheme.surface], startPoint: .top, endPoint: .bottom)
+                    LinearGradient(colors: [ThusoTheme.studioLilac, ThusoTheme.surface], startPoint: .top, endPoint: .bottom)
                     Image(slide.banner).resizable().scaledToFit().frame(height: 150)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .padding(.trailing, ThusoSpacing.space20)
@@ -108,7 +108,7 @@ struct HeroCarousel: View {
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
                     .frame(minHeight: 44)
-                    .background(ThusoTheme.charcoal, in: Capsule()).foregroundStyle(.white)
+                    .background(ThusoTheme.studioNight, in: Capsule()).foregroundStyle(ThusoTheme.studioPaper)
                 }
                 .padding(.top, ThusoSpacing.space4)
                 Text(slide.caption).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)

@@ -135,8 +135,8 @@ struct PatientFileView: View {
                             if !open { Image(systemName: "lock").font(.caption2.weight(.semibold)) }
                         }
                         .padding(.horizontal, 13).padding(.vertical, 9)
-                        .background(item.name == tabName ? ThusoTheme.charcoal : .white, in: Capsule())
-                        .foregroundStyle(item.name == tabName ? .white : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
+                        .background(item.name == tabName ? ThusoTheme.studioNight : .white, in: Capsule())
+                        .foregroundStyle(item.name == tabName ? ThusoTheme.studioPaper : ThusoTheme.charcoal.opacity(ThusoOpacity.charcoalMuted))
                         .overlay(Capsule().stroke(ThusoTheme.controlEdge, lineWidth: item.name == tabName ? 0 : 1))
                     }
                     .buttonStyle(.plain)
@@ -370,7 +370,7 @@ struct RecordEntryRow: View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             TileIcon(symbol: decision.allowed ? "doc.text" : "lock",
                      tint: decision.allowed ? ThusoTheme.charcoal : ThusoTheme.danger,
-                     background: decision.allowed ? ThusoTheme.paleSage : ThusoTheme.dangerSoft, size: 38)
+                     background: decision.allowed ? ThusoTheme.studioLime : ThusoTheme.dangerSoft, size: 38)
             VStack(alignment: .leading, spacing: 3) {
                 Text(decision.allowed ? entry.title : "\(type?.name ?? "Record") · withheld")
                     .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
@@ -645,10 +645,10 @@ struct PatientFileTimeline: View {
                         Button { filter = kind } label: {
                             Text(kind).font(.caption.weight(.semibold))
                                 .padding(.horizontal, 12).padding(.vertical, 8)
-                                /* The same charcoal chip the tab strip above uses, so a filter and a
+                                /* The same night chip the tab strip above uses, so a filter and a
                                    tab do not read as two families of control on one screen. */
-                                .background(filter == kind ? ThusoTheme.charcoal : ThusoTheme.surface, in: Capsule())
-                                .foregroundStyle(filter == kind ? ThusoTheme.surface : ThusoTheme.charcoal)
+                                .background(filter == kind ? ThusoTheme.studioNight : ThusoTheme.surface, in: Capsule())
+                                .foregroundStyle(filter == kind ? ThusoTheme.studioPaper : ThusoTheme.charcoal)
                                 .overlay(Capsule().stroke(filter == kind ? .clear : ThusoTheme.studioLine, lineWidth: 1))
                         }
                         .buttonStyle(.plain)
