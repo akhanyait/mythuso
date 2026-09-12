@@ -169,6 +169,13 @@ struct CapabilityNotice: View {
             /* A note rather than a status: it is true when the screen opens and does not change, so
                announcing it as a live update would interrupt a reader mid-sentence for old news. */
             .accessibilityElement(children: .combine)
+            /* Named, so a test can ask whether the notice is there without knowing what it says.
+               CancellationTests asserted the literal "No payment is taken" and went red the day
+               payments became a simulated capability and started saying something else — a test
+               holding its own copy of a contract sentence, which is the drift this whole file exists
+               to remove, in the file that removes it. The identifier is the capability's id, so the
+               question a test asks is the question that matters: is this screen still speaking. */
+            .accessibilityIdentifier("capability-notice-\(of)")
         }
     }
 }

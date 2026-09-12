@@ -206,8 +206,13 @@ final class CancellationTests: XCTestCase {
         /* And the sentence that is allowed to be there, which is not this screen's own: it comes
            from the payments capability, so it disappears from every platform at once the day a
            provider is connected. */
-        XCTAssertTrue(seen.contains { $0.contains("No payment is taken") },
-                      "the cancellation flow says nothing about payment at all. The payments capability's notice is what belongs there — the screen must not write its own.")
+        /* Asked by identifier, not by words. This asserted the literal "No payment is taken" and
+           went red the day `payments` became a simulated capability and its notice changed — a test
+           carrying its own copy of a contract sentence, which is precisely what CapabilityNotice
+           exists to stop a *screen* doing. The question worth asking is unchanged: is the screen
+           still speaking about payment, out of the contract rather than in its own words. */
+        XCTAssertTrue(app.descendants(matching: .any)["capability-notice-payments"].firstMatch.exists,
+                      "the cancellation flow shows no payments notice at all. What happens to money when a visit is cancelled is a fact about a provider that does not exist yet, and the screen must say so in the contract's words rather than its own.")
     }
 
     // MARK: - Moving a visit keeps the same visit
