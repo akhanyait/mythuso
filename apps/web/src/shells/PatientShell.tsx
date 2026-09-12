@@ -38,8 +38,13 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
  const t = useT();
  return <div className="app-shell patient-surface">
   {/* The luminous ground, behind everything and going nowhere. See surface/patient.css for why it is
-      a pane of its own rather than a background on the shell. */}
-  <div className="patient-ground aurora" aria-hidden="true"/>
+      a pane of its own rather than a background on the shell.
+
+      `m-light` puts the pointer-following light here and only here. That is the whole safety
+      argument for it: this pane is fixed, empty, aria-hidden and behind every panel, so a light
+      moving across it can never be a light moving under a word. It is white, so it can only lift
+      the ground and never lower it, which is what keeps --glass-floor true. */}
+  <div className="patient-ground aurora m-light" aria-hidden="true"/>
   <a href="#main" className="skip-link">{t('shell.skip')}</a>
   <aside className="sidebar glass">
    <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/logo.svg" alt="MyThuso — Help. Health. Home."/></a>

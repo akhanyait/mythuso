@@ -38,7 +38,7 @@ function Door({ promise, steps, note, children }: {
  children: ReactNode;
 }) {
  return <div className="door patient-surface">
-  <div className="patient-ground aurora" aria-hidden="true"/>
+  <div className="patient-ground aurora m-light" aria-hidden="true"/>
   <div className="door-card glass lead">
    <aside className="door-aside">
     <img src="/icon.svg" alt="MyThuso" className="door-mark" width="512" height="512"/>

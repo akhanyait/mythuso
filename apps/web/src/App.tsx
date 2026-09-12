@@ -34,6 +34,7 @@ import { currentPerson, endSession, probe } from './lib/auth';
 import { modules, money, services, type Service } from './lib/catalog';
 import { coverage, zones } from './lib/geography';
 import { scrollToTop } from './lib/scroll';
+import { useDecor, usePointerLight } from './lib/motion';
 
 /* MyThuso for patients and families. One audience, one bundle.
  *
@@ -54,6 +55,13 @@ export default function App() {
 }
 
 function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: LocaleCode) => void }) {
+ /* The ground's pointer light. It is decorative motion, so it is gated behind the same flag every
+    other piece is — but it starts nowhere on its own: it only moves while the reader is moving a
+    pointer, and it exists only for an input that can genuinely hover. That is why this surface
+    carries no pause control and the landing page does. WCAG 2.2.2 is about motion that begins
+    without being asked; a light that stops the instant the cursor does has already stopped. */
+ useDecor();
+ usePointerLight();
  const [page, setPage] = useState('Overview');
  const [modal, setModal] = useState<string | null>(null);
  const [booking, setBooking] = useState<Service | null>(null);

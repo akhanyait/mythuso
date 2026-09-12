@@ -3,7 +3,8 @@ import { ArrowDown, ArrowRight, BadgeCheck, CalendarClock, ChevronDown, Clipboar
 import { ServiceIcon } from '../components/UI';
 import { businessModel, liveServices, money, services } from '../lib/catalog';
 import { capabilityById, roleById } from '../lib/vetting';
-import { useReveal, useScrollProgress } from '../lib/motion';
+import { MotionPause } from '../components/MotionPause';
+import { useDecor, useReveal, useScrollProgress } from '../lib/motion';
 const nurse = '/banners/feel-better-cutout.webp';
 const family = '/banners/care-that-comes-to-you-cutout.webp';
 const elder = '/banners/one-safe-place-cutout.webp';
@@ -113,6 +114,10 @@ export function Landing() {
  const [menu, setMenu] = useState(false);
  const [open, setOpen] = useState<number | null>(0);
  useReveal();
+ /* This page has motion that starts on its own, so it says so. Nothing endless runs until the flag
+    is up, which means a reader whose script never loaded gets a still page rather than a moving one
+    with no way to stop it. */
+ useDecor();
  const { y, progress } = useScrollProgress();
  return <div className="landing" style={{ ['--scroll' as string]: progress }}>
   <div className="landing-notice" role="status">
@@ -152,7 +157,14 @@ export function Landing() {
    </div>
    <figure className="landing-portrait">
     <div className="landing-portrait-frame"><img src={nurse} alt="" aria-hidden="true"/></div>
-    <figcaption>Illustrative photograph. Not a MyThuso nurse, and not a patient.</figcaption>
+    {/* The pause control sits with the caption rather than in the actions row above it. Both of the
+        things that move on this page are here — the drift inside this frame and the lines across
+        the hero behind it — so the control is beside what it governs; and putting a third pill next
+        to "See the app" would have made the one action the hero exists for into one of three. */}
+    <div className="landing-portrait-foot">
+     <figcaption>Illustrative photograph. Not a MyThuso nurse, and not a patient.</figcaption>
+     <MotionPause/>
+    </div>
    </figure>
    {/* The dark bar across the foot of the hero. It is the four sections under this one, taken from
        the same `sections` list the navigation is built from rather than typed again — so a section
