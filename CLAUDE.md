@@ -6,10 +6,19 @@ Johannesburg. `Documentation/` holds the funding proposal this is built from.
 
 Three native apps and one service:
 
-- `apps/web` — React 19 + TypeScript + Vite. Five entries, one per audience: the patient app
-  (`index.html`), the clinical workspaces (`staff.html`), the back office (`admin.html`), the
-  public landing page (`landing.html`), and the status page (`status.html`), which renders
+- `apps/web` — React 19 + TypeScript + Vite. **Three entries**, and the split is about who is
+  reading rather than who is working: the public page (`landing.html`, served at `/`), the whole
+  product (`index.html`, served at `/app/`), and the status page (`status.html`), which renders
   `packages/catalog/capabilities.json` and carries no framework at all.
+
+  The product was four applications behind four addresses until 12 September, when the founder asked
+  for one address and a role you pick — `/app/?role=nurse` and the rest, with no role meaning the
+  patient. `staff.html` and `admin.html` are gone and their paths redirect. The reason the split
+  existed is still true, so it moved rather than went: a patient on a mid-range phone on metered
+  data must not download a dispatch board, and the workspaces are behind dynamic imports that fetch
+  when a role is opened. The patient entry was measured before and after, 287.2 kB against 286.6 —
+  if that figure ever rises, the convenience has been paid for by the people this is built for.
+
 - `apps/ios` — SwiftUI, iOS 17+.
 - `apps/android` — Jetpack Compose + Material 3, API 26+.
 - `apps/api` — the identity service. Zero dependencies: `node:http`, `node:crypto`, `node:sqlite`,
