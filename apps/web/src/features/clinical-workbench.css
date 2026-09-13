@@ -1,6 +1,9 @@
 .iq-workbench{margin:0 0 32px;border:1px solid var(--studio-line);border-radius:28px;overflow:hidden;background:var(--surface);color:var(--studio-ink)}
 .iq-heading{display:flex;justify-content:space-between;gap:24px;padding:28px 30px;background:var(--studio-night);color:var(--studio-paper)}
-.iq-heading h2{font-size:clamp(23px,2.3vw,34px);line-height:1.15;max-width:600px;margin:12px 0;letter-spacing:-1px;color:inherit}
+/* The workspace shell styles every .clinical h2 charcoal, which on this dark header is a
+   1.28:1 headline nobody can read. Same specificity loses on source order, so this rule carries
+   the extra class rather than !important. */
+.iq-workbench .iq-heading h2{font-size:clamp(23px,2.3vw,34px);line-height:1.15;max-width:600px;margin:12px 0;letter-spacing:-1px;color:inherit}
 .iq-heading p{color:var(--studio-line);font-size:14px;margin:0}
 .iq-eyebrow{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:1.4px;font-weight:600;line-height:1.5}
 .iq-heading .iq-eyebrow{color:var(--studio-lime)}
