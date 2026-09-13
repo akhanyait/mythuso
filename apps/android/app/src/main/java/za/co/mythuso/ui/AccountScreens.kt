@@ -319,6 +319,10 @@ import za.co.mythuso.model.mokoenaHousehold
            inside the passport, because the passport is what clinicians measured and this is what
            the person said. Putting them behind one door is the blur wellbeing.json's
            no-reading-interpreted refusal is written to prevent. */
+        /* The shop is a route of its own rather than a tab beside care. A person comparing the
+           price of a thermometer is on a different errand from a person checking a visit, and the
+           web app keeps them at separate addresses for the same reason. */
+        title == "Shop" -> ShopScreen()
         title == "Live well" -> LiveWellScreen(store, open)
         title == "My family" -> FamilyScreen(store, open)
         /* The payer's own view of what they pay for. Its own route rather than a tab inside the

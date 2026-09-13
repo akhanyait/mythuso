@@ -30,7 +30,13 @@ export default defineConfig({
   build: { rollupOptions: { input: {
     app: resolve(import.meta.dirname, 'index.html'),
     landing: resolve(import.meta.dirname, 'landing.html'),
-    status: resolve(import.meta.dirname, 'status.html')
+    status: resolve(import.meta.dirname, 'status.html'),
+    /* The shop is its own entry for the same reason status is: a different audience, on a
+       different errand. A patient checking her visit on metered data must not download a product
+       catalogue, and a person browsing a blood pressure monitor does not need the dispatch board.
+       It is also the entry most likely to grow — images, a basket, a checkout — and keeping that
+       growth outside index.html is what protects the 286.6 kB the patient entry is held to. */
+    shop: resolve(import.meta.dirname, 'shop.html')
   } } },
   /* The paths nginx serves, served here too — including `/`, which is the one that was not.
    *
@@ -57,7 +63,7 @@ export default defineConfig({
   plugins: [react(), {
     name: 'mythuso-pretty-paths',
     configureServer(server) {
-      const served: Record<string, string> = { '/': '/landing.html', '/app': '/index.html', '/status': '/status.html' };
+      const served: Record<string, string> = { '/': '/landing.html', '/app': '/index.html', '/status': '/status.html', '/shop': '/shop.html' };
       const moved: Record<string, string> = { '/staff': '/app/', '/admin': '/app/' };
       server.middlewares.use((req, res, next) => {
         const url = req.url ?? '/';

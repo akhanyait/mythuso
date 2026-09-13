@@ -322,6 +322,7 @@ verify_entry() { # <label> <path> <the built html this path must serve>
 verify_entry landing /        landing.html
 verify_entry app     /app/    index.html
 verify_entry status  /status/ status.html
+verify_entry shop    /shop/   shop.html
 
 # And the form a person actually types. /status without the trailing slash used to fall through to
 # the catch-all and answer with the landing page and a 200 — a wrong page wearing a right page's

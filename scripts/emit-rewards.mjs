@@ -1,0 +1,187 @@
+/* Thuso Points, written out for two native apps by a machine.
+
+   packages/catalog/rewards.json is the feature. Two tracks, seven earning reasons, three tiers and
+   ten refusals — and the refusals are most of the value, because a loyalty scheme attached to
+   healthcare is a machine for producing quiet harms: an incentive to take a drug, a diagnosis
+   legible in a points history, a queue that moves faster for the people who spend more.
+
+   WHAT THIS GENERATOR REFUSES TO EMIT. Three things, each of which would be a sentence on a screen
+   before anybody noticed:
+
+   1. A rand. `randPerPoint` is emitted once, and no other number in the output is money. A screen
+      that wants to show what a balance is worth multiplies; a screen with "R10" in it has made a
+      second copy of a number that will be wrong the day the first one changes. The generator
+      throws on any earning reason, tier or refusal whose text contains a currency figure.
+   2. An earning reason that discloses anything clinical. Every reason carries `discloses` and
+      `never`, both are checked for a non-empty sentence, and `discloses` is what the ledger row
+      actually says — packages/commerce writes that field and never a caller's string. A points
+      history is read casually, shown to family and screenshotted; it is the worst container in
+      the product for a diagnosis.
+   3. A reason that rewards taking medicine. Section 18A of the Medicines and Related Substances
+      Act 101 of 1965 prohibits supplying medicine under a bonus, rebate or incentive scheme, and
+      an adherence reward is exactly that no matter which screen it is drawn on. The generator
+      throws on a reason whose name or id mentions a dose, a script, a refill or adherence.
+
+   Escaping: Swift needs its quotes escaped; Kotlin needs backslash, quote and dollar. */
+
+import { readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const SOURCE = 'packages/catalog/rewards.json';
+const MEDICINE_REWARD = /\b(dose|doses|script|scripts|refill|adherence|medicine|medication|course)\b/i;
+const MONEY = /\bR\s?\d|\d\s?rand\b/i;
+
+const swift = value => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+const kotlin = value => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$')}"`;
+const wrap = (text, width = 94) => text.match(new RegExp(`.{1,${width}}(\\s|$)`, 'g')).map(line => line.trim());
+/* A rate is a Double on both platforms, so it is emitted with a decimal point even when the
+   contract holds a whole number. Kotlin will not widen an Int literal to a Double? and refuses the
+   file outright; Swift would have taken it, which is exactly how the two would have drifted. */
+const decimal = value => (Number.isInteger(value) ? `${value}.0` : `${value}`);
+
+export function emitRewards(root = '') {
+ const contract = JSON.parse(readFileSync(root + SOURCE, 'utf8'));
+
+ if (!contract.refusals?.length) throw new Error('packages/catalog/rewards.json declares no refusals, and the refusals are the feature.');
+ if (typeof contract.randPerPoint !== 'number') throw new Error('rewards.json has no randPerPoint, which is the one place a point is worth anything.');
+
+ const tracks = new Set(contract.tracks.map(t => t.id));
+ for (const reason of contract.earnReasons) {
+  if (!tracks.has(reason.track)) throw new Error(`Earning reason "${reason.id}" is on the track "${reason.track}", which rewards.json has not got.`);
+  if (!reason.discloses?.trim() || !reason.never?.trim()) throw new Error(`Earning reason "${reason.id}" does not say what it discloses and what it never does. That pair is the whole POPIA surface of the ledger.`);
+  /* A reason that pays somebody for taking a drug, caught here rather than on a screen. */
+  if (MEDICINE_REWARD.test(`${reason.id} ${reason.name}`)) throw new Error(`Earning reason "${reason.id}" rewards something to do with medicine. Section 18A of the Medicines and Related Substances Act 101 of 1965 prohibits supplying medicine under a bonus, rebate or incentive scheme — see the generator.`);
+  if (reason.points === null && typeof reason.perRand !== 'number') throw new Error(`Earning reason "${reason.id}" earns neither a fixed number of points nor a rate per rand.`);
+ }
+ for (const tier of contract.tiers) {
+  if (MONEY.test(tier.benefit)) throw new Error(`Tier "${tier.id}" names a currency amount in its benefit. What a point is worth lives in randPerPoint and nowhere else.`);
+ }
+ if (!Array.isArray(contract.tierInputs) || contract.tierInputs.length !== 1) throw new Error('rewards.json must list its tier inputs exhaustively, and there is exactly one: points earned. A tier quietly influenced by a suburb is redlining with a friendly name.');
+ for (const refusal of contract.refusals) {
+  if (!refusal.sentence || !refusal.why) throw new Error(`Refusal "${refusal.id}" is missing its sentence or its reasoning.`);
+ }
+
+ const banner = () => [
+  `Generated by scripts/emit-rewards.mjs from ${SOURCE}.`,
+  'Do not edit by hand — run `npm run rewards`. The build fails if this file and the source',
+  'disagree, so an edit here is lost rather than merely wrong.',
+  '',
+  'Thuso Points. Two tracks — a household balance that can be spent on goods that are not',
+  'medicine, and a nurse recognition track that is worth nothing at any rate and is never pay.',
+  '',
+  'Points are not money: they cannot be withdrawn, transferred or paid into an account, and',
+  'there is no command anywhere in packages/commerce that would do any of those. No medicine',
+  'earns a point and no point comes off the price of one — section 18A of the Medicines and',
+  'Related Substances Act 101 of 1965. A points history records that a visit happened and never',
+  'what it was for.'
+ ].map(line => (line ? `// ${line}` : '//')).join('\n');
+
+ const swiftFile = `${banner()}
+
+import Foundation
+
+enum RewardsData {
+    /// A reason points were earned. \`discloses\` is what the ledger row is allowed to say; the
+    /// ledger never carries a string a caller passed in — see packages/commerce/rewards.ts.
+    struct EarnReason: Identifiable, Hashable {
+        let id: String; let track: String; let name: String
+        let points: Int?; let perRand: Double?; let cap: Int?
+        let discloses: String; let never: String
+    }
+    struct Tier: Identifiable, Hashable { let id: String; let name: String; let from: Int; let benefit: String }
+    struct Track: Identifiable, Hashable { let id: String; let name: String; let who: String; let redeemable: Bool }
+    /// Something the scheme will not do, in the words a person reads.
+    struct Refusal: Identifiable, Hashable { let id: String; let sentence: String }
+
+${wrap(contract._randPerPointNote).map(line => `    // ${line}`).join('\n')}
+    static let randPerPoint = ${contract.randPerPoint}
+    static let expiryMonths = ${contract.expiryMonths}
+    static let warnBeforeExpiryDays = ${contract.warnBeforeExpiryDays}
+
+    /// The only inputs a tier has. Anything else here would be a protected category wearing a
+    /// different name.
+    static let tierInputs: [String] = [${contract.tierInputs.map(swift).join(', ')}]
+
+    static let tracks: [Track] = [
+${contract.tracks.map(t => `        .init(id: ${swift(t.id)}, name: ${swift(t.name)}, who: ${swift(t.who)}, redeemable: ${t.redeemable})`).join(',\n')}
+    ]
+
+    static let earnReasons: [EarnReason] = [
+${contract.earnReasons.map(r => `        .init(id: ${swift(r.id)}, track: ${swift(r.track)}, name: ${swift(r.name)},
+              points: ${r.points === null || r.points === undefined ? 'nil' : r.points}, perRand: ${r.perRand === undefined ? 'nil' : decimal(r.perRand)}, cap: ${r.cap === undefined ? 'nil' : r.cap},
+              discloses: ${swift(r.discloses)}, never: ${swift(r.never)})`).join(',\n')}
+    ]
+
+    static let tiers: [Tier] = [
+${contract.tiers.map(t => `        .init(id: ${swift(t.id)}, name: ${swift(t.name)}, from: ${t.from}, benefit: ${swift(t.benefit)})`).join(',\n')}
+    ]
+
+    static let refusals: [Refusal] = [
+${contract.refusals.map(r => `        .init(id: ${swift(r.id)}, sentence: ${swift(r.sentence)})`).join(',\n')}
+    ]
+
+    /// What a balance is worth, worked out rather than written down.
+    static func randValue(_ points: Int) -> Double { Double(points) * randPerPoint }
+    static func tier(forPoints points: Int) -> Tier {
+        tiers.sorted { $0.from > $1.from }.first { points >= $0.from } ?? tiers[0]
+    }
+    static func reason(_ id: String) -> EarnReason? { earnReasons.first { $0.id == id } }
+    static func refusal(_ id: String) -> Refusal? { refusals.first { $0.id == id } }
+}
+`;
+
+ const kotlinFile = `${banner()}
+
+package za.co.mythuso.model
+
+data class RewardEarnReason(
+    val id: String, val track: String, val name: String,
+    val points: Int?, val perRand: Double?, val cap: Int?,
+    val discloses: String, val never: String
+)
+data class RewardTier(val id: String, val name: String, val from: Int, val benefit: String)
+data class RewardTrack(val id: String, val name: String, val who: String, val redeemable: Boolean)
+data class RewardRefusal(val id: String, val sentence: String)
+
+val rewardTracks = listOf(
+${contract.tracks.map(t => `    RewardTrack(${kotlin(t.id)}, ${kotlin(t.name)}, ${kotlin(t.who)}, ${t.redeemable})`).join(',\n')}
+)
+
+val rewardEarnReasons = listOf(
+${contract.earnReasons.map(r => `    RewardEarnReason(${kotlin(r.id)}, ${kotlin(r.track)}, ${kotlin(r.name)}, ${r.points === null || r.points === undefined ? 'null' : r.points}, ${r.perRand === undefined ? 'null' : decimal(r.perRand)}, ${r.cap === undefined ? 'null' : r.cap}, ${kotlin(r.discloses)}, ${kotlin(r.never)})`).join(',\n')}
+)
+
+val rewardTiers = listOf(
+${contract.tiers.map(t => `    RewardTier(${kotlin(t.id)}, ${kotlin(t.name)}, ${t.from}, ${kotlin(t.benefit)})`).join(',\n')}
+)
+
+val rewardRefusals = listOf(
+${contract.refusals.map(r => `    RewardRefusal(${kotlin(r.id)}, ${kotlin(r.sentence)})`).join(',\n')}
+)
+
+object RewardsData {
+${wrap(contract._randPerPointNote, 88).map((line, i) => `${i ? '       ' : '    /* '}${line}`).join('\n')} */
+    const val randPerPoint = ${contract.randPerPoint}
+    const val expiryMonths = ${contract.expiryMonths}
+    const val warnBeforeExpiryDays = ${contract.warnBeforeExpiryDays}
+    val tierInputs = listOf(${contract.tierInputs.map(kotlin).join(', ')})
+
+    fun randValue(points: Int) = points * randPerPoint
+    fun tierForPoints(points: Int) = rewardTiers.sortedByDescending { it.from }.firstOrNull { points >= it.from } ?: rewardTiers[0]
+    fun reason(id: String) = rewardEarnReasons.firstOrNull { it.id == id }
+    fun refusal(id: String) = rewardRefusals.firstOrNull { it.id == id }
+}
+`;
+
+ return [
+  { path: 'apps/ios/MyThuso/Models/RewardsData.swift', content: swiftFile },
+  { path: 'apps/android/app/src/main/java/za/co/mythuso/model/RewardsData.kt', content: kotlinFile }
+ ];
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+ for (const file of emitRewards()) {
+  writeFileSync(file.path, file.content);
+  console.log(`rewards → ${file.path}`);
+ }
+}

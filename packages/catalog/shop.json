@@ -1,0 +1,54 @@
+{
+ "_note": "The MyThuso shop. Devices, consumables and wellness goods a household buys between visits — and nothing else. Read directly by apps/web; generated into Swift and Kotlin by scripts/emit-shop.mjs. Prices are indicative rands from the funding proposal's retail line, not trading results. Delivery zones are not restated here: they are the coverage areas in packages/catalog/geography.json, so a suburb dispatch cannot reach is a suburb this shop cannot deliver to, by the same arithmetic. Dates are day offsets from today so the preview never goes stale.",
+
+ "_lawNote": "Two Acts decide the shape of this file. The Medicines and Related Substances Act 101 of 1965 makes selling or supplying a medicine an activity for a licensed pharmacy holding a prescription where one is required — so no medicine is listed here at all, scheduled or not, and `neverSold` is enforced by scripts/check-boundaries.mjs rather than trusted. Section 18A of the same Act prohibits supplying a medicine according to any bonus, rebate or incentive scheme; packages/catalog/rewards.json therefore earns and redeems nothing against anything in this file that is a medicine, which is trivially true because there is nothing in this file that is a medicine, and stays true because the check fails the build if one ever appears. The Consumer Protection Act 68 of 2008 is why a listing states what a thing does and never what it treats.",
+
+ "currency": "ZAR",
+
+ "categories": [
+  { "id": "measuring", "name": "Measuring devices", "blurb": "Things that take a reading at home.", "pointsEligible": true },
+  { "id": "consumable", "name": "Consumables", "blurb": "Dressings, strips and the parts that run out.", "pointsEligible": true },
+  { "id": "maternity", "name": "Mother and baby", "blurb": "For pregnancy and a baby's first year.", "pointsEligible": true },
+  { "id": "mobility", "name": "Mobility and safety", "blurb": "Getting around the house, and not falling in it.", "pointsEligible": true },
+  { "id": "firstaid", "name": "First aid", "blurb": "What a household keeps in the cupboard.", "pointsEligible": true }
+ ],
+
+ "_productNote": "`does` is what the object physically does. There is no `treats` field and no `claims` field, and adding one is a build error rather than a review comment — a shop listing is the single easiest place in this product to make a medical claim by accident, because the sentence that sells a thing and the sentence that claims it cures something are one word apart.",
+
+ "products": [
+  { "id": "bp-upper", "name": "Upper-arm blood pressure monitor", "category": "measuring", "price": 749, "stock": 24, "does": "Takes a blood pressure reading from the upper arm and stores the last sixty.", "needsReading": true },
+  { "id": "oximeter", "name": "Fingertip pulse oximeter", "category": "measuring", "price": 329, "stock": 40, "does": "Estimates oxygen saturation and pulse from a fingertip.", "needsReading": true },
+  { "id": "thermometer", "name": "Digital thermometer", "category": "measuring", "price": 149, "stock": 60, "does": "Takes a temperature under the arm or in the mouth.", "needsReading": true },
+  { "id": "glucose-strips", "name": "Glucose test strips, 50", "category": "consumable", "price": 289, "stock": 35, "does": "Fifty single-use strips for a compatible glucose meter.", "needsReading": true },
+  { "id": "bp-cuff-large", "name": "Large blood pressure cuff", "category": "consumable", "price": 219, "stock": 18, "does": "A wider cuff for an upper arm the standard cuff does not close around.", "needsReading": false },
+  { "id": "dressings", "name": "Sterile dressing pack", "category": "consumable", "price": 189, "stock": 52, "does": "Sterile gauze, pads and tape for covering a wound between visits.", "needsReading": false },
+  { "id": "maternity-pillow", "name": "Maternity support pillow", "category": "maternity", "price": 459, "stock": 14, "does": "Supports the back and the abdomen while sleeping in later pregnancy.", "needsReading": false },
+  { "id": "baby-scale", "name": "Baby weighing scale", "category": "maternity", "price": 899, "stock": 9, "does": "Weighs an infant to the nearest ten grams.", "needsReading": true },
+  { "id": "grab-rail", "name": "Bathroom grab rail", "category": "mobility", "price": 279, "stock": 26, "does": "Bolts to a wall to hold onto beside a bath or a toilet.", "needsReading": false },
+  { "id": "walker", "name": "Folding walking frame", "category": "mobility", "price": 1099, "stock": 7, "does": "Takes a person's weight through the arms while walking, and folds flat.", "needsReading": false },
+  { "id": "firstaid-home", "name": "Household first-aid kit", "category": "firstaid", "price": 349, "stock": 31, "does": "Plasters, bandages, gloves, scissors and a foil blanket in one box.", "needsReading": false },
+  { "id": "bp-diary", "name": "Home readings notebook", "category": "firstaid", "price": 59, "stock": 80, "does": "A printed book for writing down a reading and the date beside it.", "needsReading": false }
+ ],
+
+ "_neverSoldNote": "Not a disclaimer. scripts/check-boundaries.mjs reads this list, and fails the build if any product's name, id or `does` sentence matches one of these words, if any product declares a schedule, or if any id in this file also appears in packages/catalog/dispensing.json. The shop cannot grow into a pharmacy by increments.",
+ "neverSold": ["medicine", "medication", "tablet", "capsule", "syrup", "antibiotic", "analgesic", "schedule", "prescription", "pharmacy-only", "supplement", "vitamin", "remedy", "treatment"],
+
+ "orderStates": [
+  { "id": "basket", "name": "Basket", "meaning": "Chosen, not committed. Nothing is reserved and nothing is owed." },
+  { "id": "reserved", "name": "Stock held", "meaning": "The items are held for this household. In a real service this is where payment would begin; here it is where it stops." },
+  { "id": "quoted", "name": "Quoted", "meaning": "What it would cost, in writing, including delivery. No card is charged." },
+  { "id": "cancelled", "name": "Cancelled", "meaning": "Released back to stock. Any points that were held are returned unspent." }
+ ],
+
+ "delivery": { "standardDays": 3, "fee": 65, "freeAbove": 750, "_feeNote": "One fee, one threshold, both stated before a basket is opened. A delivery fee that appears at the last step is how a shop makes a person agree to something they did not choose." },
+
+ "refusals": [
+  { "id": "no-medicine", "sentence": "We do not sell medicine here. A medicine reaches you through a pharmacy that has seen a prescription, not through a shop.", "why": "Supplying medicine is a licensed activity under the Medicines and Related Substances Act 101 of 1965. A shop that sells a monitor today and a painkiller tomorrow has become a pharmacy without a licence, and the step between the two is small enough to take by accident." },
+  { "id": "no-payment", "sentence": "This is a preview. No card is charged, no order is placed and nothing is delivered.", "why": "Nothing in this repository is a real service. A shop is the screen a person is most likely to mistake for one, because shops are the thing they have used most often online." },
+  { "id": "no-claim", "sentence": "This tells you what the item does. It does not say what it will do for you — a nurse or a doctor decides that.", "why": "A listing that says a device manages a condition has made a medical claim to somebody with that condition, alone, at night, with a card in their hand." },
+  { "id": "reading-is-not-advice", "sentence": "This device takes a reading. It does not tell you what the reading means, and a reading on its own is not a diagnosis.", "why": "A person who buys an oximeter because a screen implied it would tell them whether they are ill will act on a number nobody has interpreted. Every product that produces a number carries this sentence." },
+  { "id": "outside-coverage", "sentence": "We cannot deliver to this address yet. It is outside the areas MyThuso reaches, and we would rather say so than take the order.", "why": "Delivery is held to the same coverage areas as a home visit. A shop that quietly accepts an order it cannot fulfil has sold a person a wait." },
+  { "id": "stock-held-once", "sentence": "Someone else reserved the last one while this basket was open. It is no longer held for you.", "why": "Stock reserved twice is stock sold twice. The refusal is at the moment of reserving, not at the moment of delivering, because that is the moment a person can still choose something else." },
+  { "id": "no-minor-account", "sentence": "This account belongs to someone under eighteen. A guardian has to place the order.", "why": "A minor may hold a health record here under a guardian. Holding a record is not the same as entering a sale, and conflating the two would let a child commit a household to a cost." }
+ ]
+}

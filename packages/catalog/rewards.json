@@ -1,0 +1,49 @@
+{
+ "_note": "Thuso Points. What a household earns for looking after itself, and a separate, deliberately non-monetary track for nurses. Read directly by apps/web; generated into Swift and Kotlin by scripts/emit-rewards.mjs. Money is not described here — packages/catalog/earnings.json owns every rand a nurse is paid and this file may not name one. What a point is worth is stated once, in `randPerPoint`, and every screen on every platform multiplies rather than restates it.",
+
+ "_lawNote": "Section 18A of the Medicines and Related Substances Act 101 of 1965: no person shall supply any medicine according to a bonus system, rebate system or any other incentive scheme. That single sentence is why this contract can only ever touch packages/catalog/shop.json, which sells no medicine, and why `medicineEarnsNothing` is enforced by arithmetic in packages/commerce rather than written down as an intention. The same section is why there is no point in this file for collecting a script, for finishing a course, or for taking a dose — an adherence reward is an incentive scheme attached to a medicine no matter which screen it is drawn on.",
+
+ "_popiaNote": "A points ledger is not a clinical record and must never become one by accident. Health data is special personal information under POPIA; the fact that a person attended a visit on a date is ordinary personal information, but the reason for that visit is not. Every earning reason below therefore carries `discloses`, and packages/commerce refuses to write a ledger line that carries anything else. A ledger row reads 'a booked visit was attended' and never which visit or what for.",
+
+ "randPerPoint": 0.1,
+ "_randPerPointNote": "Ten points to the rand, in one place. A screen that wants to show what a balance is worth multiplies by this; a screen that hard-codes 'R10' has created a second copy of a number that will be wrong the day this one changes.",
+
+ "expiryMonths": 18,
+ "warnBeforeExpiryDays": 60,
+
+ "tracks": [
+  { "id": "household", "name": "Household points", "who": "Patients and the family members on their account", "redeemable": true },
+  { "id": "recognition", "name": "Nurse recognition", "who": "SANC-registered nurses on the roster", "redeemable": false, "_note": "Deliberately not redeemable, not transferable, and worth no rand at any rate. It exists to be seen, not spent." }
+ ],
+
+ "earnReasons": [
+  { "id": "visit-attended", "track": "household", "points": 150, "name": "A booked visit was attended", "discloses": "that a visit happened, and its date", "never": "the service booked, the reason for it, or anything said in it" },
+  { "id": "screening-completed", "track": "household", "points": 100, "name": "A screening was completed", "discloses": "that a screening was completed, and its date", "never": "what was screened for, or any result" },
+  { "id": "follow-up-kept", "track": "household", "points": 120, "name": "A follow-up appointment was kept", "discloses": "that a follow-up was kept, and its date", "never": "the condition it follows up, or whether anything is wrong" },
+  { "id": "goods-purchased", "track": "household", "points": null, "perRand": 1, "name": "Goods bought in the shop", "discloses": "the order number and its total", "never": "nothing clinical is involved; no item in the shop is a medicine" },
+  { "id": "family-invited", "track": "household", "points": 250, "cap": 5, "capPeriod": "year", "name": "A family member joined and booked", "discloses": "that an invitation was accepted", "never": "who was invited, or anything about their care" },
+  { "id": "visit-completed", "track": "recognition", "points": 40, "name": "A visit was completed and written up", "discloses": "that a visit was completed", "never": "the patient, the address, or the clinical content" },
+  { "id": "credentials-current", "track": "recognition", "points": 200, "name": "Every credential on the register is current", "discloses": "that the register is clear", "never": "which checks, or anything about a check that failed" }
+ ],
+
+ "_tierNote": "Tiers are earned on points in the last twelve months and buy convenience — never care, never a price on a medicine, and never a place in a clinical queue. The inputs are listed exhaustively in `tierInputs` and checked, because a tier quietly influenced by where somebody lives is redlining with a friendly name.",
+ "tierInputs": ["points earned in the last 12 months"],
+ "tiers": [
+  { "id": "green", "name": "Green", "from": 0, "benefit": "Points on everything the shop sells that is not a medicine, which is everything the shop sells." },
+  { "id": "amber", "name": "Amber", "from": 1500, "benefit": "Delivery at no charge on any order, whatever it comes to." },
+  { "id": "deep", "name": "Deep green", "from": 4000, "benefit": "Delivery at no charge, and the booking calendar opens a day earlier for routine visits." }
+ ],
+
+ "refusals": [
+  { "id": "points-are-not-money", "sentence": "Points are not money. They cannot be withdrawn, sent to anyone, or paid into a bank account.", "why": "A balance that can be cashed out is a deposit, and taking deposits is a licensed activity. It would also make every screen that awards a point a screen that hands out money, which is a very different thing to get wrong." },
+  { "id": "no-points-on-medicine", "sentence": "No medicine earns points, and no points come off the price of a medicine.", "why": "Section 18A of the Medicines and Related Substances Act 101 of 1965 prohibits supplying medicine under a bonus, rebate or incentive scheme. This is enforced by arithmetic in packages/commerce — a medicine earns zero and redeems zero — rather than by the shop merely happening not to stock one." },
+  { "id": "no-adherence-reward", "sentence": "There are no points for taking your medicine, collecting a script, or finishing a course.", "why": "Paying somebody to take a drug is an incentive scheme attached to a medicine, and it pressures the person least able to argue — the one who is ill. Whether a dose was taken is also exactly the kind of detail this ledger must never hold." },
+  { "id": "ledger-holds-nothing-clinical", "sentence": "Your points history shows that a visit happened. It never shows what it was for.", "why": "The reason for a visit is special personal information under POPIA. A points ledger is read casually, shown to family, screenshotted and pasted into chats — it is the worst possible container for a diagnosis." },
+  { "id": "tier-is-not-triage", "sentence": "A tier changes when you can book, never how quickly you are seen. Nobody is treated sooner for having more points.", "why": "The moment a balance moves a person up a clinical queue, care is being sold by loyalty rather than given by need, and the people with the fewest points are the ones who can least afford to wait." },
+  { "id": "no-protected-category", "sentence": "Nothing about who you are affects your tier — only the points you have earned.", "why": "A protected category is never an input here, for the same reason it is never a header chip anywhere else in this product. A tier influenced by an area code is a tier influenced by race in this country's geography." },
+  { "id": "recognition-is-not-pay", "sentence": "Recognition points are not pay, and they change nothing about what you are owed or which visits you are offered.", "why": "A nurse's income is settled entirely by packages/catalog/earnings.json. A second scoreboard that quietly affected dispatch would be a productivity target wearing a badge, and the thing it would squeeze is time spent with a patient." },
+  { "id": "earned-points-survive", "sentence": "If your tier drops, the points you have already earned stay yours.", "why": "The same principle as a suspension never touching money already earned. A balance that can be taken back is a promise the holder cannot rely on, and a person planning around it is being misled." },
+  { "id": "expiry-is-announced", "sentence": "Points last 18 months. We tell you 60 days before any of them expire, and we tell you how many.", "why": "Silent expiry is how a loyalty scheme takes back what it advertised. The warning is part of the contract, not a courtesy, so both numbers live here and no screen may invent its own." },
+  { "id": "no-minor-balance", "sentence": "An account belonging to someone under eighteen does not earn or spend points. A guardian's account does.", "why": "A minor may hold a health record here under a guardian. Letting that record earn a spendable balance would make a child the target of an incentive scheme." }
+ ]
+}

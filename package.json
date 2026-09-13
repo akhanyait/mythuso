@@ -6,6 +6,7 @@
   "workspaces": [
     "packages/geo",
     "packages/thusoiq",
+    "packages/commerce",
     "apps/web",
     "apps/api"
   ],
@@ -18,9 +19,9 @@
     "tokens": "node scripts/emit-tokens.mjs",
     "vetting": "node scripts/emit-vetting.mjs",
     "records": "node scripts/emit-records.mjs",
-    "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes && npm run interpreting && npm run scheduling && npm run geography && npm run capabilities && npm run cancellation && npm run passport && npm run capture && npm run framing && npm run wellbeing",
-    "check": "npm run check -w @mythuso/thusoiq && npm run check -w @mythuso/geo && npm run check -w @mythuso/web && npm run check -w @mythuso/api && node scripts/check-boundaries.mjs",
-    "test": "npm run test -w @mythuso/geo && npm run test -w @mythuso/api && playwright test",
+    "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes && npm run interpreting && npm run scheduling && npm run geography && npm run capabilities && npm run cancellation && npm run passport && npm run capture && npm run framing && npm run wellbeing && npm run rewards && npm run shop",
+    "check": "npm run check -w @mythuso/thusoiq && npm run check -w @mythuso/commerce && npm run check -w @mythuso/geo && npm run check -w @mythuso/web && npm run check -w @mythuso/api && node scripts/check-boundaries.mjs",
+    "test": "npm run test -w @mythuso/geo && npm run test -w @mythuso/thusoiq && npm run test -w @mythuso/commerce && npm run test -w @mythuso/api && playwright test",
     "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0",
     "api": "npm run dev -w @mythuso/api",
     "test:live": "playwright test tests/live-identity.spec.ts",
@@ -41,8 +42,9 @@
     "wellbeing": "node scripts/emit-wellbeing.mjs",
     "banners": "python3 scripts/prepare-banners.py && node scripts/render-illustrations.mjs",
     "appicon": "python3 scripts/emit-appicon.py",
-    "test:thusoiq": "npm run test -w @mythuso/thusoiq",
-    "thusoiq": "node packages/thusoiq/server.ts"
+    "thusoiq": "node packages/thusoiq/server.ts",
+    "rewards": "node scripts/emit-rewards.mjs",
+    "shop": "node scripts/emit-shop.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

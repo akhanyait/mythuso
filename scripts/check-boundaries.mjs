@@ -19,6 +19,8 @@ import { emitPassport } from './emit-passport.mjs';
 import { emitCapture } from './emit-capture.mjs';
 import { emitFraming } from './emit-framing.mjs';
 import { emitWellbeing } from './emit-wellbeing.mjs';
+import { emitShop } from './emit-shop.mjs';
+import { emitRewards } from './emit-rewards.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -848,7 +850,9 @@ const generated = [
  { source: 'packages/catalog/passport.json', command: 'npm run passport', files: emitPassport() },
  { source: 'packages/catalog/capture.json', command: 'npm run capture', files: emitCapture() },
  { source: 'packages/catalog/framing.json', command: 'npm run framing', files: emitFraming() },
- { source: 'packages/catalog/wellbeing.json', command: 'npm run wellbeing', files: emitWellbeing() }
+ { source: 'packages/catalog/wellbeing.json', command: 'npm run wellbeing', files: emitWellbeing() },
+ { source: 'packages/catalog/shop.json', command: 'npm run shop', files: emitShop() },
+ { source: 'packages/catalog/rewards.json', command: 'npm run rewards', files: emitRewards() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -4165,3 +4169,114 @@ console.log(`${simulationFiles.filter(([f]) => !/\/(index|contract|suppliers|car
    for the same reason its checks are their own block: three seams are being simulated at once and a
    sentence three people are editing is a sentence three people conflict over. */
 console.log(`Four of them stand behind four of those doors and none of them is reachable from the request path: ${careRoster.nurses.length} fictional nurses over ${careZoneNames.size} suburbs, ${careSimulators.reduce((total, [id]) => total + capabilities.capabilities.find(c => c.id === id).simulation.refuses.length, 0)} refusals enforced in the contract's own words and typed into no simulator, a shift computed from the ${careSlots.length} hours the product offers and the ${careLongest}-minute longest visit it sells rather than from two times somebody wrote down, ${careRoster.nurses.filter(n => !careZoneNames.has(n.zone.toLowerCase())).length} nurses outside phase one and ${careRoster.nurses.filter(n => !n.sharesPosition).length} whose phone is telling nobody anything — so every one of those refusals is something a person can open the app and see. Nothing in the directory calls Math.random, nothing in it reaches for a camera or a microphone, and the teleconsultation capability still declares no permission for either app to ask for.`);
+
+/* ─── The shop and the points ──────────────────────────────────────────────────────────────────
+   Two contracts, one kernel, and a set of invariants that are worth more than the feature.
+
+   A loyalty scheme bolted onto healthcare is a machine for producing quiet harms, and every one of
+   them is a line of code somebody wrote for a good reason: a discount that happens to apply to a
+   medicine, a points history that happens to name a condition, a tier that happens to correlate
+   with a suburb, a nurse scoreboard that happens to feed dispatch. None of those arrives announced.
+   They arrive as a helpful increment to something that already exists, which is why the checks
+   below are about arithmetic and absence rather than about sentences. */
+const shopContract = JSON.parse(read('packages/catalog/shop.json'));
+const rewardsContract = JSON.parse(read('packages/catalog/rewards.json'));
+const dispensingContract = JSON.parse(read('packages/catalog/dispensing.json'));
+
+/* 1. Nothing in the shop is a medicine, checked three ways: the never-sold vocabulary, the absence
+      of any field a medicine would need to describe itself, and the dispensing contract's own item
+      list — because the pharmacy side of this product already knows what a medicine is called and
+      the shop must not be allowed to disagree with it. */
+const MEDICINE_FIELDS = ['treats', 'claims', 'indication', 'schedule', 'prescription', 'activeIngredient', 'strength'];
+const dispensedNames = JSON.stringify(dispensingContract).toLowerCase();
+for (const product of shopContract.products) {
+ const haystack = `${product.id} ${product.name} ${product.does}`.toLowerCase();
+ const word = shopContract.neverSold.find(w => haystack.includes(w.toLowerCase()));
+ if (word) throw new Error(`The shop lists "${product.id}", which matches the never-sold word "${word}". Supplying medicine is a licensed activity under the Medicines and Related Substances Act 101 of 1965; this shop does not do it, and this check is what keeps that true as the catalogue grows.`);
+ for (const field of MEDICINE_FIELDS) if (field in product) throw new Error(`The shop product "${product.id}" carries a "${field}" field. That is a field only a medicine needs, and a shop listing states what a thing does and never what it treats.`);
+ if (dispensedNames.includes(`"${product.id}"`)) throw new Error(`The shop product "${product.id}" also appears in packages/catalog/dispensing.json. An item cannot be both something a pharmacist dispenses against a prescription and something a person puts in a basket.`);
+}
+
+/* 2. Section 18A of the Medicines and Related Substances Act 101 of 1965 — no medicine supplied
+      under a bonus, rebate or incentive scheme. Two halves: no earning reason may be about taking
+      or collecting a drug, and the kernel's own arithmetic must make a medicine earn and redeem
+      nothing. The second half is checked by reading the engine, because a comment saying it does
+      is not the same as a line doing it. */
+const s18aReward = /\b(dose|script|refill|adherence|medicine|medication|course)\b/i;
+for (const reason of rewardsContract.earnReasons) {
+ if (s18aReward.test(`${reason.id} ${reason.name}`)) throw new Error(`The earning reason "${reason.id}" rewards something to do with medicine. Section 18A prohibits supplying a medicine according to a bonus, rebate or any other incentive scheme, and an adherence reward is one no matter which screen it is drawn on.`);
+}
+const commerceRewards = read('packages/commerce/rewards.ts');
+if (!/isMedicine\(/.test(commerceRewards)) throw new Error('packages/commerce/rewards.ts no longer consults isMedicine(). Section 18A is enforced here by arithmetic — a medicine earning zero and redeeming zero — and without that call the shop is one listing away from an incentive scheme attached to a drug.');
+if (!/refuse\('refused', 'no-points-on-medicine'\)/.test(commerceRewards)) throw new Error("packages/commerce/rewards.ts no longer refuses a redemption against a medicine with the contract's own sentence.");
+
+/* 3. The ledger is not a clinical record. Every earning reason says what it discloses and what it
+      never does, and the kernel writes that field rather than a caller's string — the one line
+      below is the whole POPIA surface of this feature, because a points history is read casually,
+      shown to family and screenshotted. */
+for (const reason of rewardsContract.earnReasons) {
+ if (!reason.discloses?.trim() || !reason.never?.trim()) throw new Error(`The earning reason "${reason.id}" does not say what it discloses and what it never does.`);
+}
+if (!/note: reason\.discloses/.test(commerceRewards)) throw new Error("packages/commerce/rewards.ts no longer writes the reason's own `discloses` sentence into the ledger. A free-text note here is where somebody would eventually write why the visit happened.");
+
+/* 4. Points are not money, and the enforcement is an absence: there is no command that would pay
+      anybody, so there is nothing to call by mistake. Checked against the command union itself. */
+const commerceTypes = read('packages/commerce/types.ts');
+const forbiddenCommands = /'(rewards\.withdraw|rewards\.transfer|order\.pay|order\.charge)'/;
+if (forbiddenCommands.test(commerceTypes)) throw new Error('packages/commerce declares a command that pays, withdraws or transfers. A balance that can be cashed out is a deposit, and taking deposits is a licensed activity.');
+if (/\b(card|pan|cvv|cvc|expiry)\b/i.test(commerceTypes)) throw new Error('packages/commerce/types.ts names a card field. No payment is taken anywhere in this repository.');
+
+/* 5. A tier is decided by points and by nothing else. The contract lists its inputs exhaustively
+      so that this check can be about a list rather than about a reader's judgement. */
+if (rewardsContract.tierInputs.length !== 1 || !/points/i.test(rewardsContract.tierInputs[0])) throw new Error('packages/catalog/rewards.json lists more than one tier input. A tier quietly influenced by where somebody lives is redlining with a friendly name — in this country, an area code is a proxy for race.');
+const PROTECTED = /\b(race|gender|sex|religion|hiv|status|disability|pregnan|age|nationality|language|suburb|income)\b/i;
+for (const tier of rewardsContract.tiers) {
+ if (PROTECTED.test(tier.benefit)) throw new Error(`The tier "${tier.id}" names a protected category in its benefit.`);
+ if (/\bR\s?\d|\d\s?rand\b/i.test(tier.benefit)) throw new Error(`The tier "${tier.id}" names a currency amount. What a point is worth is randPerPoint and lives in one place.`);
+}
+
+/* 6. A tier buys convenience, never care. The words that would mean otherwise are refused in the
+      benefit text, because "seen sooner" is the sentence this whole feature must never be able to
+      say. */
+const CLINICAL_BENEFIT = /\b(sooner|faster|priority|queue|triage|ahead|first in line|urgent)\b/i;
+for (const tier of rewardsContract.tiers) {
+ if (CLINICAL_BENEFIT.test(tier.benefit)) throw new Error(`The tier "${tier.id}" offers something about how quickly a person is seen. A balance that moves somebody up a clinical queue is care sold by loyalty rather than given by need.`);
+}
+
+/* 7. Recognition is not pay and must not reach dispatch or earnings. Checked as an absence across
+      the whole kernel: the recognition track is worth no rand at any rate. */
+const recognition = rewardsContract.tracks.find(t => t.id === 'recognition');
+if (recognition?.redeemable !== false) throw new Error('The nurse recognition track has become redeemable. A nurse\'s income is settled entirely by packages/catalog/earnings.json; a second scoreboard that could be spent is a productivity target wearing a badge.');
+const commerceSources = files('packages/commerce').filter(f => /\.ts$/.test(f) && !/\.test\.ts$/.test(f));
+for (const file of commerceSources) {
+ const source = read(file);
+ if (/\b(payout|dispatch|nurseShare|earnings)\b/i.test(source)) throw new Error(`${file} names payouts, dispatch or earnings. The shop and the points may not reach either: money is packages/catalog/earnings.json and work allocation is the dispatch board.`);
+}
+
+/* 8. What a point is worth is stated once. No screen on any platform may restate it — the failure
+      mode is the day randPerPoint changes and one screen keeps multiplying by the old number. */
+const pointValueScreens = [...files('apps/web/src'), ...files('apps/ios/MyThuso'), ...files('apps/android/app/src/main')]
+ .filter(f => /(shop|reward|points)/i.test(f) && /\.(tsx?|swift|kt)$/.test(f) && !/Data\.(swift|kt)$/.test(f));
+for (const file of pointValueScreens) {
+ const source = read(file);
+ if (/\b0\.1\b/.test(source) && !/randPerPoint/.test(source)) throw new Error(`${file} contains the literal rate a point is worth without reading randPerPoint. That number lives in packages/catalog/rewards.json and everything else multiplies.`);
+}
+
+/* 9. Delivery reaches exactly as far as a home visit does. A shop that accepts an order it cannot
+      fulfil has sold a person a wait, and the coverage list already exists. */
+const geographyForShop = JSON.parse(read('packages/catalog/geography.json'));
+const coverageNames = new Set(JSON.stringify(geographyForShop).toLowerCase().match(/[a-z]+/g));
+const sandboxZones = read('packages/commerce/fixtures.ts').match(/SANDBOX_ZONES = \[([^\]]*)\]/)?.[1] ?? '';
+for (const zone of sandboxZones.split(',').map(z => z.trim().replace(/^'|'$/g, '')).filter(Boolean)) {
+ if (!coverageNames.has(zone.toLowerCase())) throw new Error(`The shop's sandbox delivers to "${zone}", which is not a coverage area in packages/catalog/geography.json. Delivery is held to the areas a nurse can reach.`);
+}
+
+/* 10. Every refusal in both contracts carries its reasoning, and every one of them is rendered by
+       the web app rather than paraphrased there. The sentence is what a person reads; the reasoning
+       is what stops the next person deleting it. */
+for (const refusal of [...shopContract.refusals, ...rewardsContract.refusals]) {
+ if (!refusal.sentence?.trim() || !refusal.why?.trim()) throw new Error(`The refusal "${refusal.id}" is missing its sentence or its reasoning.`);
+ if (refusal.sentence.length > 200) throw new Error(`The refusal "${refusal.id}" is ${refusal.sentence.length} characters. A refusal a person cannot read in one breath is one they will not read.`);
+}
+
+console.log(`The shop sells ${shopContract.products.length} things over ${shopContract.categories.length} categories and not one of them is a medicine — checked against its own never-sold vocabulary, against the ${MEDICINE_FIELDS.length} fields only a medicine would need, and against the dispensing contract's own item list, so the shop cannot become a pharmacy by increments. Section 18A of the Medicines and Related Substances Act 101 of 1965 is arithmetic rather than intention: ${rewardsContract.earnReasons.length} earning reasons and none of them about a dose, a script or a refill, and a kernel that makes a medicine earn zero and redeem zero by consulting isMedicine() rather than by trusting the catalogue. The ledger is not a clinical record — every reason states what it discloses and what it never does, and the kernel writes that sentence rather than a caller's, so a points history says a visit happened and never what it was for. Points are not money, enforced by absence: no command withdraws, transfers, pays or charges, and no field in the kernel has the shape of a card. A tier has exactly ${rewardsContract.tierInputs.length} input, names no protected category and offers nothing about being seen sooner, because a balance that moves somebody up a clinical queue is care sold by loyalty rather than given by need. Nurse recognition is worth nothing at any rate, and no file in packages/commerce may even name a payout, dispatch or earnings. What a point is worth is written once, in randPerPoint, and ${pointValueScreens.length} screens across three platforms are read to make sure none of them has quietly written it down again.`);

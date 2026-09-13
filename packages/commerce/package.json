@@ -1,0 +1,5 @@
+{
+  "name": "@mythuso/commerce", "private": true, "version": "0.1.0", "type": "module",
+  "description": "The shop and the points, in one kernel because a redemption and an order must commit together. Fictional sandbox only; no payment is ever taken.",
+  "scripts": {"test": "node --test \"*.test.ts\"", "check": "tsc -b"}
+}
