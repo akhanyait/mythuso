@@ -1,0 +1,90 @@
+{
+ "_note": "The four hero slides, taken apart. The founder supplied them on 13 September as four finished 1774×887 compositions — logo, eyebrow, two-tone headline, paragraph, call to action, three trust marks, two floating cards, a slide counter and a disclosure, all baked into pixels — and asked for the pieces loose so the app could draw them itself. This file is the words and the structure; packages/banners/ holds the one thing that has to stay a picture.",
+
+ "_whyNotJustShipThePictures": "Because a picture of a headline is a headline nobody can translate, nobody can tab to, and no screen reader can read. Eleven locales carry this product's interface and a baked banner is English at every one of them. The call to action in each of these images is a button; as a JPEG it is a rectangle that does nothing. Every word below renders as text, every card is a real element, and the photograph is the only thing left that is genuinely a photograph.",
+
+ "_aboutThePhotographs": "Cropped to the part of each composition the floating cards never covered, which is why they are portraits rather than the full landscape frame. The cards in the supplied art sit over the right-hand third of the photograph, and removing them convincingly is not something that can be done by stretching neighbouring pixels — it was tried and it looked exactly like what it was. The honest crop keeps every face and loses the corner. If the original photographs turn up without the cards on them, these crops widen and nothing else in this file changes.",
+
+ "slides": [
+  {
+   "id": "care-that-comes-to-you",
+   "eyebrow": "Care that comes to you",
+   "headline": { "lead": "Better care.", "accent": "Closer to home." },
+   "body": "Nurse-led care at home, with doctor review and your health record in one place.",
+   "action": { "label": "Explore the app", "goes": "app" },
+   "photograph": "care-that-comes-to-you",
+   "marks": [
+    { "icon": "nurse", "lines": ["Nurse-led", "visits"] },
+    { "icon": "stethoscope", "lines": ["Doctor", "review"] },
+    { "icon": "passport", "lines": ["Health", "Passport"] }
+   ],
+   "cards": [
+    { "at": "top", "icon": "home", "tint": "peach", "title": "Care at home", "lines": ["A familiar place.", "A helping hand."] },
+    { "at": "foot", "icon": "lock", "tint": "mint", "title": "Your Health Passport", "lines": ["Your care story,", "kept together."] }
+   ]
+  },
+  {
+   "id": "for-your-family",
+   "eyebrow": "Care for the people you love",
+   "headline": { "lead": "For your family.", "accent": "With you, always." },
+   "body": "Arrange care for a loved one and stay connected, with their permission.",
+   "action": { "label": "Explore family care", "goes": "family" },
+   "photograph": "for-your-family",
+   "marks": [
+    { "icon": "family", "lines": ["Family", "support"] },
+    { "icon": "message", "lines": ["Private", "updates"] },
+    { "icon": "plaster", "lines": ["Connected", "care"] }
+   ],
+   "cards": [
+    { "at": "top", "icon": "family", "tint": "mint", "title": "Family updates", "lines": ["Shared with", "permission."] },
+    { "at": "foot", "icon": "plaster", "tint": "peach", "title": "One care team", "lines": ["Nurse. Doctor. Family."] }
+   ]
+  },
+  {
+   "id": "everyday-wellbeing",
+   "eyebrow": "Everyday wellbeing",
+   "headline": { "lead": "Small steps.", "accent": "A healthier you." },
+   "body": "Move a little more. Eat well. Rest better. Healthy living, alongside your MyThuso care.",
+   "action": { "label": "Explore healthy living", "goes": "live-well" },
+   "photograph": "everyday-wellbeing",
+   "marks": [
+    { "icon": "walking", "lines": ["Gentle", "movement"] },
+    { "icon": "apple", "lines": ["Healthy", "food"] },
+    { "icon": "moon", "lines": ["Better", "rest"] }
+   ],
+   "cards": [
+    { "at": "top", "icon": "walking", "tint": "mint", "title": "Move your way", "lines": ["At your own pace."] },
+    { "at": "foot", "icon": "leaf", "tint": "peach", "title": "Eat well", "lines": ["Nourish your everyday."] }
+   ],
+   "_wellbeingNote": "This slide advertises Live well, so it is held to Live well's contract. packages/catalog/wellbeing.json forbids a score, a grade, a target, a streak, a rank, a percentage or a unit anywhere in that feature, and a slide that sells it may not promise what the screen behind it refuses. 'Move a little more', 'at your own pace' and 'nourish your everyday' all pass: none of them is a quantity, a goal or an instruction about food. 'Eat well' is the closest to the line and stays because it is the habit's own name in the contract, not advice about what to eat."
+  },
+  {
+   "id": "for-the-nurses",
+   "eyebrow": "For the nurses who care",
+   "headline": { "lead": "Your skill.", "accent": "Someone’s comfort." },
+   "body": "Bring your nursing skills closer to home, with connected tools and doctor support.",
+   "action": { "label": "Explore nursing", "goes": "nurse" },
+   "photograph": "for-the-nurses",
+   "marks": [
+    { "icon": "calendar", "lines": ["Visit", "planning"] },
+    { "icon": "clinical", "lines": ["Clinical", "tools"] },
+    { "icon": "handover", "lines": ["Care", "handovers"] }
+   ],
+   "cards": [
+    { "at": "top", "icon": "calendar", "tint": "peach", "title": "Your care day", "lines": ["Visits, notes and", "handovers."] },
+    { "at": "foot", "icon": "stethoscope", "tint": "mint", "title": "Doctor support", "lines": ["A connected", "care team."] }
+   ]
+  }
+ ],
+
+ "standing": {
+  "place": "Johannesburg · Launch preview",
+  "placeWhy": "Top right of every slide in the supplied art. It says where and it says preview, which is two disclosures in five words.",
+  "photographNote": "Design preview · Illustrative photography",
+  "photographNoteWhy": "Bottom right of every slide. It is the same refusal the landing page already makes about its photographs — nobody in them is a MyThuso nurse and nobody is a patient — and it stays on the picture rather than in a footnote, because that is where somebody looks."
+ },
+
+ "_iconNote": "Names rather than glyphs. Each app already has an icon set and a way of drawing a tinted disc; naming the idea lets three platforms each draw it their own way, and stops a fourth copy of an SVG appearing in a JSON file.",
+ "_tintNote": "Two tints, peach and mint, alternating between a slide's two cards. They are the brand's own, and the contrast pairs are declared in packages/design-tokens/tokens.json — the tint is a disc behind an icon and never carries a word.",
+ "_orderNote": "Four slides in the order the founder numbered them, 01 to 04: what the service is, who it is for, what it adds, and who delivers it. The counter and the progress rule in the supplied art are the carousel's, and the app already draws both."
+}
