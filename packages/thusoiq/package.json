@@ -1,0 +1,1 @@
+{"name":"@mythuso/thusoiq","private":true,"version":"0.1.0","type":"module","description":"Standalone clinical workflow kernel and ThusoIQ integration contract. Fictional sandbox only.","scripts":{"check":"tsc -b","test":"node --test \"*.test.ts\""}}

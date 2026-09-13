@@ -1,3 +1,4 @@
+import { ClinicalWorkbench } from '../features/ClinicalWorkbench';
 import framing from '../../../../packages/catalog/framing.json' with { type: 'json' };
 import { useEffect, useState } from 'react';
 import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
@@ -184,7 +185,10 @@ export default function StaffWorkspace({ role }: { role: StaffRole }) {
        switcher beside it is the way a person gets to another workspace now that no screen in front
        of this one asks which. */}
    <DemoBar note={t('shell.previewBadge', 'en-ZA')}/>
-   <main id="main" tabIndex={-1}>{renderSection(role, section, setModal, home)}</main>
+   <main id="main" tabIndex={-1}>
+    {((role === 'Doctor' && section === 'Review queue') || (role === 'Nurse' && section === 'Schedule') || (role === 'Partner' && section === 'Orders')) && <ClinicalWorkbench role={role as 'Nurse' | 'Doctor' | 'Partner'}/>}
+    {renderSection(role, section, setModal, home)}
+   </main>
    <footer className="app-footer"><span>© 2026 MyThuso · {role} workspace</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
    {/* The visible label is the short one and the accessible name is the whole section. Both point
        at the same thing and the short one is a prefix of the long one, so WCAG 2.5.3 is satisfied
