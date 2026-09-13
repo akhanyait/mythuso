@@ -52,6 +52,22 @@ object FramingData {
        this replaced did silently with its else branch. */
     fun forRole(role: String) = screenFramings.firstOrNull { it.role == role }
 
+    /* The sections whose blurb belongs to the screen rather than to somebody's job. A section
+       with nothing useful to say is absent from this list and gets no line, rather than a
+       filler one. */
+    private val blurbs = mapOf(
+        "Schedule" to "Today’s visits, in the order you will do them, and the one still waiting for your sign-off.",
+        "Review queue" to "Cases waiting to be read. Decision support may draft; only a registered doctor signs.",
+        "Orders" to "Prescriptions and laboratory orders routed to this partner, and what each is waiting on.",
+        "Dispatch" to "Where every visit is, which nurses are free, and what is running late.",
+        "Incidents" to "What went wrong, how severe it is, and who is holding it.",
+        "Collections" to "Sample collections booked against this partner, and the windows they have to be inside.",
+        "Results" to "Results this partner has produced, and what is holding each one back from release."
+    )
+    /* What a section is for. Empty for a section with nothing useful to say, which is deliberately
+       different from a filler sentence: the heading then stands on its own. */
+    fun blurb(section: String) = blurbs[section] ?: ""
+
     /* The prototype's patient frame is "Hello, Nomsa." over "Your next visit. Your team. Your
        health." What ships is the same shape with the locale contract's own words in it — the
        greeting and the three-word tagline, both reviewed to the same standard as the rest of

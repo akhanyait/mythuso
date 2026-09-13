@@ -55,6 +55,43 @@
   }
  ],
 
+ "_whyTheOpeningLinesMovedHere": "The same sentences were in apps/web/src/lib/roles.ts as `opensTo` and in apps/ios/MyThuso/Features/WorkspaceView.swift as `WorkspaceNavigation.blurb`, and the iOS comment above them said out loud that they were the web's. Four of the six are shown twice inside the web alone \u2014 once on the door a person signs in through, once as the heading of the section they land on \u2014 which is why the web already read them back through one function. That function's source was a TypeScript file no other platform can read. This is the same idea with a home all three can reach.",
+
+ "opening": [
+  { "role": "patient", "section": null,
+    "line": "Book a nurse, follow a visit, and read what was found at home.",
+    "why": "Three verbs, in the order a patient does them. It is the one opening line in this file that names no clinical object: a person booking a nurse for their mother is not reading a workspace." },
+  { "role": "nurse", "section": "Schedule",
+    "line": "Today\u2019s visits, in the order you will do them, and the one still waiting for your sign-off.",
+    "why": "The last clause is the reason the sentence is this long. A nurse opening the app mid-shift is looking for the thing they have not finished, and a schedule that does not point at it is a list." },
+  { "role": "doctor", "section": "Review queue",
+    "line": "Cases waiting to be read. Decision support may draft; only a registered doctor signs.",
+    "why": "The refusal is in the opening line rather than in a notice further down, because it is the whole basis on which a doctor is being asked to look at this screen at all." },
+  { "role": "partner", "section": "Orders",
+    "line": "Prescriptions and laboratory orders routed to this partner, and what each is waiting on.",
+    "why": "\u2018Routed to this partner\u2019 rather than \u2018your orders\u2019: a pharmacy sees what was sent to it and nothing else, and the sentence says so before the board does." },
+  { "role": "control-tower", "section": "Dispatch",
+    "line": "Where every visit is, which nurses are free, and what is running late.",
+    "why": "Three questions an operator asks in that order. The claim is completeness \u2014 every visit \u2014 which is also what the control tower's framing accent line promises." },
+  { "role": "back-office", "section": null,
+    "line": "Vetting decisions, the catalogue, growth, finance, and what stands between each capability and being real.",
+    "why": "The last clause is the readiness list, named on the door rather than found later. The back office is the one role whose job includes knowing what this product cannot yet do." }
+ ],
+ "openingNote": "One line per role. Where a role lands on a named section, that section's heading shows this same sentence rather than a second description of one screen \u2014 which is what `section` is for and why four of the six have one.",
+
+ "sections": [
+  { "id": "Incidents",
+    "blurb": "What went wrong, how severe it is, and who is holding it.",
+    "why": "Three facts in the order an operator needs them. Deliberately not \u2018incidents raised today\u2019: a count belongs to the board under the heading, and a heading that counts is a figure nobody can check." },
+  { "id": "Collections",
+    "blurb": "Sample collections booked against this partner, and the windows they have to be inside.",
+    "why": "A collection window is the only thing on that board with a deadline attached, so it is the half of the sentence that earns its place." },
+  { "id": "Results",
+    "blurb": "Results this partner has produced, and what is holding each one back from release.",
+    "why": "\u2018Holding back from release\u2019 rather than \u2018pending\u2019: a result that exists and cannot be sent is a different problem from one that has not been produced, and the partner is the only party who can tell them apart." }
+ ],
+ "sectionsNote": "The sections whose blurb belongs to the screen rather than to somebody's job. A section with nothing useful to say is absent from this list and gets no line, rather than a filler one.",
+
  "rules": {
   "oneHeadlinePerScreen": "A display-size headline is a claim the size of the screen. The role framings appear on the section a role lands on and nowhere else; every other section keeps a plain heading. Four display headlines across four tabs are four claims of the same size, which is the inverse of what a display size is for.",
   "neverTyped": "No screen may type a lead or an accent line. scripts/check-boundaries.mjs fails the build when one of these strings appears in a native source outside the generated carriers, which is what makes the deletion of the two old copies permanent rather than tidy."

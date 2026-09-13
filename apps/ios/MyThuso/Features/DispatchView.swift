@@ -217,8 +217,11 @@ struct DispatchBoardView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
                 DemoBadge()
+                /* The subtitle is the contract's, not this screen's. It was typed here as well as in
+                   WorkspaceView and in the web's shell, so the same board had three descriptions and
+                   a change to one of them left the other two saying something slightly else. */
                 SurfaceHeading(eyebrow: "Control Tower", title: "Dispatch",
-                               subtitle: "Where every visit is, which nurses are free, and what is running late.")
+                               subtitle: FramingData.blurb("Dispatch"))
                 SurfacePanel(tone: .quiet, padding: ThusoSpacing.space16) {
                     StatePicker(title: "Preview the dispatch feed state", state: $state)
                 }

@@ -1,3 +1,4 @@
+import framing from '../../../../packages/catalog/framing.json' with { type: 'json' };
 import { EXPIRY_WARNING_DAYS, roleById, subjectStatusLabels, summarise } from './vetting';
 import { subjectById } from './vetting-fixtures';
 import { initialsOf } from './names';
@@ -22,11 +23,11 @@ import { initialsOf } from './names';
  * clinical roles are one bundle because they are one application, and picking Doctor rather than
  * Nurse changes the navigation rather than the code.
  *
- * `opensTo` is the sentence each workspace already showed under its own first section, moved here
- * rather than written again. Three of the six were, for one afternoon, typed twice — word for word,
- * in this file and in shells/StaffShell.tsx — which is the drift this repository fails builds over
- * everywhere it can see it. The shell reads them back through `openingLine`, so the door and the
- * screen behind it cannot start describing the same job differently. */
+ * `opensTo` is the sentence each workspace shows under its own first section. It is not written
+ * here: packages/catalog/framing.json holds the six, because iOS carried a seven-case copy of the
+ * same sentences and a TypeScript file is a home two of the three applications cannot read. The
+ * shell reads them back through `openingLine` and the phones read the generated `FramingData`, so
+ * the door, the screen behind it and both native apps cannot start describing one job differently. */
 
 export type Surface = 'patient' | 'clinical' | 'back-office';
 /* The four workspaces inside the clinical application, named here as well as in the shell that
@@ -49,19 +50,27 @@ export type Role = {
  readonly opensTo: string;
 };
 
+/* Loud rather than blank: a role whose opening line is missing from the contract would otherwise
+   render an empty paragraph on the door somebody signs in through, and nothing would say so. */
+const openingFor = (id: RoleId): string => {
+ const opening = framing.opening.find(o => o.role === id);
+ if (!opening) throw new Error(`packages/catalog/framing.json has no opening line for the role "${id}". Every role shows one on the door it signs in through.`);
+ return opening.line;
+};
+
 export const roles: readonly Role[] = [
  { id: 'patient', label: 'Patient', surface: 'patient', workspace: null, subjectId: null,
-   opensTo: 'Book a nurse, follow a visit, and read what was found at home.' },
+   opensTo: openingFor('patient') },
  { id: 'nurse', label: 'Nurse', surface: 'clinical', workspace: 'Nurse', subjectId: 'N-205',
-   opensTo: 'Today’s visits, in the order you will do them, and the one still waiting for your sign-off.' },
+   opensTo: openingFor('nurse') },
  { id: 'doctor', label: 'Doctor', surface: 'clinical', workspace: 'Doctor', subjectId: 'D-401',
-   opensTo: 'Cases waiting to be read. Decision support may draft; only a registered doctor signs.' },
+   opensTo: openingFor('doctor') },
  { id: 'partner', label: 'Pharmacy partner', surface: 'clinical', workspace: 'Partner', subjectId: 'P-501',
-   opensTo: 'Prescriptions and laboratory orders routed to this partner, and what each is waiting on.' },
+   opensTo: openingFor('partner') },
  { id: 'control-tower', label: 'Control Tower', surface: 'clinical', workspace: 'Control Tower', subjectId: 'O-801',
-   opensTo: 'Where every visit is, which nurses are free, and what is running late.' },
+   opensTo: openingFor('control-tower') },
  { id: 'back-office', label: 'Back office', surface: 'back-office', workspace: null, subjectId: 'A-901',
-   opensTo: 'Vetting decisions, the catalogue, growth, finance, and what stands between each capability and being real.' }
+   opensTo: openingFor('back-office') }
 ];
 
 /* The three the founder put in the bar itself. Everything else is one press further, behind "All

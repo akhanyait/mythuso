@@ -36,6 +36,20 @@ export function emitFraming(root = '') {
  const locales = JSON.parse(readFileSync(root + LOCALES, 'utf8'));
  const keyById = new Map(locales.keys.map(key => [key.id, key]));
 
+ /* The section blurbs: one sentence per workspace section, saying what the section is for. Four of
+    them are a role's opening line — the sentence shown on the door that role signs in through — and
+    are not restated here, they are read off that role's entry, because a door and the screen behind
+    it describing one job differently is the whole reason this contract exists. */
+ const blurbs = new Map();
+ for (const opening of contract.opening) {
+  if (!opening.section) continue;
+  blurbs.set(opening.section, opening.line);
+ }
+ for (const section of contract.sections) {
+  if (blurbs.has(section.id)) throw new Error(`Section "${section.id}" has a blurb of its own and is also where the "${contract.opening.find(o => o.section === section.id).role}" role lands. One screen, two descriptions, which is what this contract removes.`);
+  blurbs.set(section.id, section.blurb);
+ }
+
  const literal = [], pointed = [];
  for (const framing of contract.framings) {
   if (framing.fromLocale && (framing.lead || framing.accent)) throw new Error(`Framing "${framing.id}" both points at locale keys and types its own lines. Two sources for one headline is the drift this contract exists to remove.`);
@@ -100,6 +114,14 @@ ${swiftFramings}
     /// this replaced did silently with its default branch.
     static func framing(role: String) -> Framing? { framings.first { $0.role == role } }
 
+${wrap(contract.sectionsNote).map(line => `    // ${line}`).join('\n')}
+    private static let blurbs: [String: String] = [
+${[...blurbs].map(([id, line]) => `        ${swift(id)}: ${swift(line)}`).join(',\n')}
+    ]
+    /// What a section is for. Empty for a section with nothing useful to say, which is deliberately
+    /// different from a filler sentence: the heading then stands on its own.
+    static func blurb(_ section: String) -> String { blurbs[section] ?? "" }
+
 ${wrap(patient.why).map(line => `    // ${line}`).join('\n')}
     static let patientLead = ThusoString.${patientSlot('lead', 'swift')}
     static let patientAccent = ThusoString.${patientSlot('accent', 'swift')}
@@ -133,6 +155,14 @@ object FramingData {
        plain section heading rather than somebody else's words, which is what the when expression
        this replaced did silently with its else branch. */
     fun forRole(role: String) = screenFramings.firstOrNull { it.role == role }
+
+${wrap(contract.sectionsNote, 88).map((line, i) => `${i ? '       ' : '    /* '}${line}`).join('\n')} */
+    private val blurbs = mapOf(
+${[...blurbs].map(([id, line]) => `        ${kotlin(id)} to ${kotlin(line)}`).join(',\n')}
+    )
+    /* What a section is for. Empty for a section with nothing useful to say, which is deliberately
+       different from a filler sentence: the heading then stands on its own. */
+    fun blurb(section: String) = blurbs[section] ?: ""
 
 ${wrap(patient.why, 88).map((line, i) => `${i ? '       ' : '    /* '}${line}`).join('\n')} */
     val patientLead = Phrase.${patientSlot('lead', 'kotlin')}

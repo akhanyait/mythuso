@@ -1620,15 +1620,38 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  for(const role of roles) {
   if(!framed.has(role)) throw new Error(`packages/catalog/framing.json has no framing for the "${role}" workspace, and both apps open one. An unframed role gets the plain section heading instead of its own headline, which is a regression nobody would see in a diff.`);
  }
+ /* Every section a role lands on must be one the contract has an opening line for, and no section
+    may be described twice. The generator refuses the second case; this refuses the first, because a
+    role that lands on an unnamed section shows a heading with no sentence under it and nothing says
+    so. */
+ const openingSections = new Set(framing.opening.map(o => o.section).filter(Boolean));
+ for(const section of framing.sections) {
+  if(openingSections.has(section.id)) throw new Error(`packages/catalog/framing.json describes the section "${section.id}" twice: once as a role's opening line and once in "sections". One screen, two descriptions, which is what this contract removes.`);
+ }
+ for(const one of framing.opening) {
+  if(!one.line) throw new Error(`packages/catalog/framing.json has no opening line for the role "${one.role}". Every role shows one on the door it signs in through, and a missing one renders as an empty paragraph.`);
+ }
+
+ /* The sweep. Every sentence the contract owns — both halves of each headline, all six opening
+    lines and all three section blurbs — looked for as a literal in every hand-written source of all
+    three applications. The native half of this existed already; the web half is new, and it is the
+    half that matters most, because the three partner blurbs lived in shells/StaffShell.tsx and in
+    apps/ios/MyThuso/Features/WorkspaceView.swift at the same time, word for word, with the iOS
+    comment above them admitting whose they were. */
  const framingCarriers = ['apps/ios/MyThuso/Models/FramingData.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/FramingData.kt'];
- const sources = files('apps/ios/MyThuso').concat(files('apps/android/app/src/main'))
-  .filter(f => /\.(swift|kt)$/.test(f) && !framingCarriers.includes(f));
+ const framingSentences = [
+  ...framing.framings.flatMap(f => [f.lead, f.accent]),
+  ...framing.opening.map(o => o.line),
+  ...framing.sections.map(section => section.blurb)
+ ].filter(Boolean);
+ const sources = files('apps/ios/MyThuso').concat(files('apps/android/app/src/main')).concat(files('apps/web/src'))
+  .filter(f => /\.(swift|kt|ts|tsx)$/.test(f) && !framingCarriers.includes(f));
  for(const file of sources) {
   const source = read(file);
-  for(const one of framing.framings) {
-   for(const line of [one.lead, one.accent].filter(Boolean)) {
-    if(source.includes(`"${line}"`)) throw new Error(`${file} types the framing line "${line}". It belongs to packages/catalog/framing.json and is generated into FramingData.swift and FramingData.kt — this is the copy that was deleted when the contract landed, growing back.`);
-   }
+  for(const line of framingSentences) {
+   /* Both quote styles: Swift and Kotlin use one, the web's source uses the other, and a sentence
+      with an apostrophe in it is written with double quotes there. */
+   if(source.includes(`"${line}"`) || source.includes(`'${line}'`)) throw new Error(`${file} types the framing line "${line}". It belongs to packages/catalog/framing.json — read it there, or on the phones read the generated FramingData. This is the copy that was deleted when the contract landed, growing back.`);
   }
  }
 }

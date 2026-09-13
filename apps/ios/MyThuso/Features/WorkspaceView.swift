@@ -68,21 +68,6 @@ enum WorkspaceNavigation {
         }
     }
 
-    /* What a section is for, in the words somebody doing the job would use. The same sentences the
-       web's sectionBlurb carries, so a nurse reading the two does not meet two descriptions of one
-       screen. A section with nothing useful to say has no line rather than a filler one. */
-    static func blurb(_ section: String) -> String {
-        switch section {
-        case "Schedule": return "Today’s visits, in the order you will do them, and the one still waiting for your sign-off."
-        case "Review queue": return "Cases waiting to be read. Decision support may draft; only a registered doctor signs."
-        case "Dispatch": return "Where every visit is, which nurses are free, and what is running late."
-        case "Incidents": return "What went wrong, how severe it is, and who is holding it."
-        case "Orders": return "Prescriptions and laboratory orders routed to this partner, and what each is waiting on."
-        case "Collections": return "Sample collections booked against this partner, and the windows they have to be inside."
-        case "Results": return "Results this partner has produced, and what is holding each one back from release."
-        default: return ""
-        }
-    }
 }
 
 // MARK: - What is waiting, counted from what is on the screen
@@ -264,11 +249,11 @@ struct WorkspaceSectionView: View {
                 if landing, let framing = FramingData.framing(role: role) {
                     DemoBadge()
                     StudioHeadline(lead: framing.lead, accent: framing.accent,
-                                   detail: WorkspaceNavigation.blurb(section))
+                                   detail: FramingData.blurb(section))
                         .accessibilityIdentifier("workspace-section-\(section)")
                     WorkspaceUrgency(role: role)
                 } else {
-                    SurfaceHeading(title: section, subtitle: WorkspaceNavigation.blurb(section))
+                    SurfaceHeading(title: section, subtitle: FramingData.blurb(section))
                         .accessibilityIdentifier("workspace-section-\(section)")
                 }
                 content

@@ -1,3 +1,4 @@
+import framing from '../../../../packages/catalog/framing.json' with { type: 'json' };
 import { useEffect, useState } from 'react';
 import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
 import { Modal, SectionTitle } from '../components/UI';
@@ -242,21 +243,25 @@ function renderSection(role: StaffRole, section: string, open: (m: string) => vo
  * The boards themselves — dispatch, incidents, fulfilment — are still the feature components. Only
  * the heading, the counts strip and the two queues that were inline in Workspace are here. */
 
-/* What each section is for, in the words a person doing the job would use. The four door sections
-   keep the sentences the contract-adjacent table in features/Pages.tsx already wrote for them
-   rather than a second set that would drift.
+/* What each section is for, in the words a person doing the job would use.
 
-   The four *first* sections — the one each role opens the app to do — come from lib/roles.ts, where
-   the demo login shows the same sentence about the same job. They were typed in both places for an
-   afternoon, word for word, which is how two screens come to describe one workspace differently. */
+   Seven of the nine are packages/catalog/framing.json's now, and none of them is typed here. Four
+   are a role's opening line, read back through `openingLine` so the door somebody signs in through
+   and the screen behind it cannot describe one job differently — that much was already true. The
+   other three were typed here and, word for word, in apps/ios/MyThuso/Features/WorkspaceView.swift,
+   whose comment above them said they were this file's. A TypeScript module is a home two of the
+   three applications cannot read, so the sentences moved to the contract and both phones now read
+   the generated FramingData.
+
+   Protocols and Quality keep the door sentences from features/Pages.tsx: they are not a section any
+   role opens the app at, and inventing a contract entry for a screen that is still a door would be
+   writing the sentence twice in order to say it once. */
 const sectionBlurb: Record<string, string> = {
  Schedule: openingLine('Schedule'),
  'Review queue': openingLine('Review queue'),
  Dispatch: openingLine('Dispatch'),
- Incidents: 'What went wrong, how severe it is, and who is holding it.',
  Orders: openingLine('Orders'),
- Collections: 'Sample collections booked against this partner, and the windows they have to be inside.',
- Results: 'Results this partner has produced, and what is holding each one back from release.',
+ ...Object.fromEntries(framing.sections.map(s => [s.id, s.blurb])),
  Protocols: sectionDoor.Protocols,
  Quality: sectionDoor.Quality
 };
