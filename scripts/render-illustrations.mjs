@@ -108,7 +108,16 @@ const encodeHeic = (from, to) => {
 };
 if (existsSync('packages/banners')) {
  for (const file of readdirSync('packages/banners').filter(f => /\.(jpg|png)$/.test(f))) {
-  if (!file.endsWith('-cutout.png')) { copyFileSync(`packages/banners/${file}`, `apps/web/public/banners/${file}`); continue; }
+  /* The flat crops go to the web as WebP with the .jpg behind them. The landing hero is four
+     photographs now rather than three, and it is read on mid-range Android handsets on metered
+     data: about 290 kB of JPEG against about 140 kB of WebP, for pictures a stranger sees before
+     they have asked for anything. The .jpg stays published — it is the fallback the page falls to
+     when the other will not decode, and it is what the native apps take. */
+  if (!file.endsWith('-cutout.png')) {
+   copyFileSync(`packages/banners/${file}`, `apps/web/public/banners/${file}`);
+   if (file.endsWith('.jpg')) encodeWebp(`packages/banners/${file}`, `apps/web/public/banners/${file.replace(/\.jpg$/, '.webp')}`);
+   continue;
+  }
   const source = `packages/banners/${file}`;
   const name = file.replace('-cutout.png', '');
   /* The web gets WebP too: the same 1.4 MB was going down a South African mobile connection on

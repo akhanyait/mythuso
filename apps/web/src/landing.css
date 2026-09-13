@@ -79,10 +79,13 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
    heavier cut closes the counters at a reading distance. */
 .landing h1,.landing h2{font-family:var(--font-display);font-weight:700;letter-spacing:-.04em;color:var(--charcoal);text-wrap:balance}
 .landing h1{font-size:clamp(36px,5.6vw,64px);line-height:1.0}
-/* The olive. Lime at 30% into the ink — 4.98:1 on paper, and this is large text, which SC 1.4.3
-   holds to 3:1. It is the one colour on the page that is neither ink nor a fill, and it exists to
-   split one sentence rather than to appear anywhere else. */
-.landing h1 .landing-h1-accent{color:color-mix(in srgb,var(--studio-lime) 30%,var(--studio-ink))}
+/* The headline's second tone, and it is the brand's own green rather than the olive the page used
+   to mix for itself: the four banners this hero is drawn from set the second half of every headline
+   in it, and a mark is not repainted to match a screen it happens to sit on. brandGreen measures
+   3.19:1 on this ground, which SC 1.4.3 allows for large text and nothing else — so it appears on
+   the <h1> and on nothing smaller anywhere in this product. The pair is declared in
+   packages/design-tokens/tokens.json and computed on every build. */
+.landing h1 .landing-h1-accent{color:var(--brand-green)}
 .landing h2{font-size:clamp(28px,3.6vw,42px);line-height:1.08}
 .landing h3{font-size:18px;font-weight:500;letter-spacing:-.015em;color:var(--charcoal);line-height:1.35}
 /* Every paragraph on this page is coloured by the rule for the block it is in, and there is no
@@ -159,100 +162,173 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 .landing-nav nav.is-open a:hover{background:none}
 
 /* ---- Hero ----
-   No dark slab any more. The proposition sits on the page's own ground in studioInk at 12.02, the
-   second half of the sentence in the olive at 4.98, and the colour is in the photograph rather than
-   behind the words. The one dark thing in the hero is the bar of sections across the foot of it. */
-.landing-hero{position:relative;overflow:clip;padding:clamp(48px,7vw,104px) var(--pad) clamp(40px,4.5vw,64px);display:grid;gap:clamp(36px,5vw,72px);align-items:center}
+ *
+ * The founder's four banners, drawn rather than shown. He supplied them on 13 September as finished
+ * 1774×887 compositions and asked for the pieces loose; packages/catalog/hero.json is the words and
+ * features/Landing.tsx is the structure, and this is everything that used to be a pixel.
+ *
+ * The composition is his: a pill, a two-tone headline, a paragraph, one lime action, three tinted
+ * marks and a counter down the left; a photograph with two white cards on it down the right; the
+ * place note above the picture and the photography disclosure below it. What is NOT his is the
+ * eyebrow's colour — see the rule for it — and there is no second thing on this list.
+ *
+ * THERE IS NOT ONE LITERAL COLOUR BELOW, and every mix carries its measured ratio. The brand's own
+ * four rules are measurements rather than preferences and all four are obeyed here: brandInk reads
+ * anywhere, brandGreen is large text only at 3.19 on this ground and appears on nothing smaller than
+ * the headline, brandOrange is never a word, and brandLime is a fill whose label is brandInk at
+ * 10.47. */
+.landing-hero{position:relative;overflow:clip;padding:clamp(40px,5.2vw,76px) var(--pad) clamp(40px,4.5vw,64px);display:grid;gap:clamp(30px,4.2vw,54px);align-items:start}
+.landing-hero>*{position:relative;z-index:1}
 /* The dark bar runs the whole width of the hero under both columns, and its own gap to them is
    smaller than the gap between the columns — it belongs to the hero rather than following it. */
-.landing-hero>.studio-bar-wrap{grid-column:1 / -1;margin-top:calc(clamp(36px,5vw,72px) * -.35)}
-.landing-hero>*{position:relative;z-index:1}
-.landing-kicker{display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--body);margin:0 0 24px}
-.landing-hero h1{margin:0}
-.landing-hero-lede{margin:26px 0 0;max-width:46ch;font-size:16px;line-height:1.7;color:var(--body)}
-.landing-actions{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;margin:36px 0 0}
-/* Both actions are pills. The primary is the lime one and the only filled thing in the hero; the
-   second is the same shape with a hairline, so the pair reads as one control set rather than as a
-   button beside a link somebody forgot to style. Its label is ink at 11.46 — lime is a fill on this
-   ground and carries a word only where the ground is studioNight. */
-.landing-actions .primary,.landing-final .primary{border-radius:var(--r-pill);background:var(--studio-lime);color:var(--studio-ink-deep);min-height:52px;padding:15px 26px;font-size:15px;font-weight:600}
-.landing-actions .primary:hover:not(:disabled){background:color-mix(in srgb,var(--studio-lime) 84%,var(--studio-ink));color:var(--studio-ink-deep)}
-.landing-quiet{display:inline-flex;align-items:center;gap:8px;min-height:52px;padding:14px 24px;font-size:15px;font-weight:500;color:var(--charcoal);border:1px solid var(--stone);border-radius:var(--r-pill);transition:background .18s,border-color .18s}
-.landing-quiet:hover{background:var(--surface);border-color:var(--charcoal)}
-.landing-facts{list-style:none;display:flex;flex-wrap:wrap;gap:10px;padding:36px 0 0;margin:36px 0 0;border-top:1px solid var(--stone)}
-/* Facts as chips on the white the cards are made of, so the ground reads through between them. */
-.landing-facts li{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:500;color:var(--charcoal);background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-pill);padding:9px 16px}
-.landing-facts svg{color:var(--charcoal);opacity:.55}
+.landing-hero>.studio-bar-wrap{grid-column:1 / -1;margin-top:calc(clamp(30px,4.2vw,54px) * -.3)}
 
-/* A photograph belongs in a frame, not floating on a blob with a drop shadow. The frame is where
-   the sage lives: a pale-sage panel with the drift on it, the portrait on top, and the caption
-   underneath saying what it is. No text is ever inside this box, which is what makes the wash safe
-   to animate at all — nothing a reader has to read sits on a ground that is changing. */
-/* A grid of one column rather than a stack of absolutely positioned boxes, and the reason is a bug
-   this shape fixes rather than a preference. A <figcaption> is only valid as the figure's first or
-   last child, so the caption cannot be moved inside the frame it has to sit on — it was positioned
-   against the *figure* instead, with bottom:14px. That is the bottom of the photograph in the two
-   splits, and in the hero, where the figure also carries a row of controls, it was the bottom of
-   the controls: the caption card sat on top of the pause button and covered half its target.
-   One grid cell shared by the frame and the caption puts the caption back on the picture wherever
-   it appears, and gives the carousel's controls a row of their own beneath. */
+/* One column until the picture has somewhere to stand beside the words.
+   `display:contents` is doing real work here rather than saving a wrapper: the copy and the
+   controls belong together in one column on a wide screen — the controls sit at the foot of the
+   copy, which is where the supplied art puts the counter — and the picture belongs BETWEEN them on
+   a phone, because a reader on 390px should see the banner before they see a control for changing
+   it. Dissolving the column below that width is the only way to have both without rendering either
+   half twice. */
+.landing-hero-column{display:contents}
+/* Everything in the hero carries an explicit order, including the bar, because `order` decides
+   where a grid item is auto-placed as well as where a flex item sits — a bar left at the default
+   was placed before the three things written above it and appeared at the top of the banner. */
+.landing-hero-copy{order:1}
+.landing-hero .landing-portrait{order:2}
+.landing-hero-foot{order:3}
+.landing-hero>.studio-bar-wrap{order:4}
+
+/* The four slides, stacked in one grid cell and cross-faded.
+   Nothing here moves a box: every slide is in the same cell, so the column is the height of its
+   tallest slide in every frame of the change and between changes — which is the whole of what made
+   the carousel before last four flaky specs. See the note above Hero in features/Landing.tsx.
+
+   The three that are not showing are visibility:hidden as well as transparent. That takes them out
+   of the tab order, out of the accessibility tree, and out of the text walkers in
+   tests/landing.spec.ts — and it is what keeps exactly one <h1> and exactly one call to action on
+   the page at a time. The delay on visibility is what lets the fade finish first. */
+.landing-hero-copy{display:grid;grid-template-columns:minmax(0,1fr);min-width:0}
+.landing-hero-slide{grid-area:1 / 1;min-width:0;opacity:0;visibility:hidden;transition:opacity .55s var(--ease),visibility 0s .55s}
+.landing-hero-slide.is-on{opacity:1;visibility:visible;transition:opacity .55s var(--ease)}
+
+/* The eyebrow. A peach pill with the word in ink.
+   It is orange in the supplied art and it cannot be: brandOrange measures 2.67:1 on this ground and
+   the brand's own rule is that it is the chevron and never a word. The tint it sat on is kept, so
+   the pill still reads warm — peach at 42% over paper, with studioInk on it at 11.04. */
+.landing-hero-eyebrow{display:inline-block;margin:0 0 clamp(16px,2vw,24px);padding:9px 18px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--studio-peach) 42%,var(--studio-paper));color:var(--studio-ink);font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;line-height:1.25}
+
+/* The headline, two lines in two tones, exactly as the art sets it. Each half is its own block
+   because the contract splits the sentence there — a headline coloured by where the text happens to
+   wrap means something different on every screen. The space between the two spans stays in the
+   markup, so the accessible name is still one sentence. */
+.landing-hero h1{margin:0}
+.landing-hero h1 span{display:block}
+.landing-hero-lede{margin:clamp(18px,2.2vw,26px) 0 0;max-width:44ch;font-size:18px;line-height:1.6;color:var(--body)}
+
+/* The action. The brand lime rather than the interface's studioLime, and the two are separate on
+   purpose: this is the founder's mark on his own banner, and packages/design-tokens/tokens.json
+   says plainly that a mark is not repainted to match a screen it happens to sit on. brandInk on
+   brandLime measures 10.47 and is a declared pair. It is the only filled control in the hero. */
+.landing-hero .primary{display:inline-flex;align-items:center;gap:10px;margin:clamp(24px,2.8vw,34px) 0 0;border-radius:var(--r-pill);background:var(--brand-lime);color:var(--brand-ink);min-height:56px;padding:16px 28px;font-size:16px;font-weight:600}
+.landing-hero .primary:hover{background:color-mix(in srgb,var(--brand-lime) 86%,var(--brand-ink));color:var(--brand-ink)}
+
+/* The three trust marks. A tinted disc, then two short lines beside it.
+   The tint alternates mint, peach, mint by position. That is rhythm and not meaning: each mark
+   already carries its own glyph and its own two words, so the colour is never the only difference
+   between two of them, and the contract gives a mark no tint of its own to be faithful to. */
+.landing-hero-marks{list-style:none;display:flex;flex-wrap:wrap;gap:16px clamp(16px,2.2vw,30px);margin:clamp(30px,3.8vw,50px) 0 0;padding:0}
+.landing-hero-marks li{display:flex;align-items:center;gap:12px;min-width:0}
+.landing-hero-marks li>span:last-child{display:flex;flex-direction:column;font-size:15px;line-height:1.3;font-weight:500;color:var(--studio-ink);min-width:0}
+.landing-hero-marks i{font-style:normal}
+/* The disc, on both the marks and the floating cards. Mixed into --surface rather than into the
+   ground each one sits on, so a disc is the same colour on the page as it is on a white card.
+   The glyph is the brand colour the art uses — green at 3.01 on the mint disc, orange at 2.44 on
+   the peach one. Neither owes SC 1.4.11's 3:1 because neither is the only thing saying what the
+   mark is: every disc on this banner sits against words that say the same thing. */
+.landing-hero-disc{flex-shrink:0;border-radius:var(--r-pill)}
+/* Each tint carries its own size and centring rather than inheriting them, which is how .tile-icon
+   in surface/core.css is written and what lets scripts/check-boundaries.mjs see what these are: a
+   fixed square that centres one child holds a glyph and cannot hold a sentence. A tint that painted
+   a fill and left the foreground to a shorthand elsewhere is the failure that check exists for. */
+.landing-hero-disc.tint-mint{display:grid;place-items:center;width:50px;height:50px;background:color-mix(in srgb,var(--brand-mint) 32%,var(--surface));color:var(--brand-green)}
+.landing-hero-disc.tint-peach{display:grid;place-items:center;width:50px;height:50px;background:color-mix(in srgb,var(--studio-peach) 44%,var(--surface));color:var(--brand-orange)}
+
+/* ---- The picture, and the two lines that stand on every slide ----
+   The place note above it and the photography disclosure below it, both right-aligned against the
+   picture, which is where the founder put them. They are outside the four slides on purpose: a
+   sentence saying nobody in these photographs is a MyThuso nurse is not something a rotation may
+   carry off the screen. */
 .landing-portrait{position:relative;display:grid;grid-template-columns:minmax(0,1fr);margin:0;min-width:0}
 .landing-portrait-frame{grid-area:1 / 1;position:relative;overflow:hidden;border-radius:var(--r-panel);background:var(--pale-sage);border:1px solid var(--stone);aspect-ratio:4 / 5;color:var(--charcoal)}
-/* The white card floating over the photograph, which is the reference's other signature. It carries
-   the caption that was under the frame: a sentence saying this is not a MyThuso nurse and not a
-   patient belongs on the photograph it is about, where somebody looking at the face reads it,
-   rather than in a line beneath that the eye skips. It is opaque, not frosted — a disclosure is the
-   last thing in this product that should be translucent. */
 .landing-portrait figcaption{grid-area:1 / 1;align-self:end;z-index:3;margin:14px;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-card);padding:12px 14px;box-shadow:var(--shadow);color:var(--body)}
 .landing-portrait-frame img{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:contain;object-position:bottom center}
 .landing-portrait-frame.soft{background:var(--cloud)}
 
-/* ---- The hero's three pictures ----
-   Stacked in one cell and cross-faded, so the figure is the same size in every frame of the change
-   and between them. Nothing here moves a box, which is the whole of what made the last carousel on
-   this page four flaky specs — see the note above HeroSlides in features/Landing.tsx.
+/* The hero's own figure is three rows rather than one overlaid cell: the note, the picture, the
+   disclosure. The two splits further down this page keep the overlaid treatment above. */
+.landing-hero .landing-portrait{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto;gap:10px}
+.landing-hero .landing-portrait-place,.landing-hero .landing-portrait figcaption{grid-area:auto;justify-self:end;text-align:right;margin:0;background:none;border:0;box-shadow:none;padding:0;font-size:13px;line-height:1.5;color:var(--body);max-width:100%}
+.landing-hero .landing-portrait-place{display:inline-flex;align-items:center;gap:7px;font-weight:500}
+.landing-hero .landing-portrait-place svg{flex-shrink:0;color:var(--studio-ink)}
+/* The blob. The art's photograph is a rounded shape with one small corner, and the crops in
+   packages/banners keep a sliver of the mint ground the founder set it on — so the frame is washed
+   the same mint rather than bordered, and the crop's own edge disappears into it instead of being
+   cut off. brandMint at 20% over paper; no text is ever inside this box, which is also what makes
+   the drift on it safe to animate. */
+.landing-hero .landing-portrait-frame{grid-area:auto;aspect-ratio:4 / 5;border:0;background:color-mix(in srgb,var(--brand-mint) 29%,var(--surface));border-radius:clamp(30px,6vw,88px) var(--r-panel) clamp(30px,6vw,88px) clamp(30px,6vw,88px)}
+/* Anchored right. These crops carry the composition's mint ground down their left edge — the part
+   of each frame the floating cards never covered — so the frame is narrower than the crop and the
+   difference is taken off that side. */
+.landing-hero .landing-portrait-frame img{object-fit:cover;object-position:100% 50%}
 
-   The slide that is not showing is visibility:hidden as well as transparent. That takes it out of
-   the tab order and the accessibility tree, and it takes it out of the text walkers in
-   tests/landing.spec.ts too: a hidden slide's sentence is not a sentence anybody is reading, so it
-   should not be measured as one. The delay on visibility is what lets the fade finish first. */
+/* The four photographs, stacked and cross-faded in the same way the copy is. */
 .landing-slide{position:absolute;inset:0;z-index:1;opacity:0;visibility:hidden;transition:opacity .55s var(--ease),visibility 0s .55s}
 .landing-slide.is-on{opacity:1;visibility:visible;transition:opacity .55s var(--ease)}
-/* An eyebrow and a sentence, both out of packages/catalog/locales.json. Set like a point in the
-   Thuso Pass list rather than as another eyebrow in capitals: the strong line here is the banner's
-   own headline, and a headline shouted in 13px capitals beside an h1 reads as a second headline
-   arguing with the first. Ink measures 12.76 on this card and --body 6.92.
 
-   Top left, and never wider than three quarters of the frame: the caption card is at the foot of
-   the same picture and the two may not meet. */
-.landing-slide-card{position:absolute;z-index:2;top:14px;left:14px;max-width:min(300px,76%);margin:0;background:var(--surface);border:1px solid var(--stone);border-radius:var(--r-card);padding:13px 15px;box-shadow:var(--shadow);font-size:14px;line-height:1.55;color:var(--body)}
-.landing-slide-card i{display:block;font-style:normal;margin-bottom:6px;font-size:15px;font-weight:500;letter-spacing:-.01em;color:var(--charcoal)}
+/* The two floating cards. White, opaque, one shadow, a tinted disc and two or three short lines —
+   the art's other signature, and the reason the crops are portraits: these are what covered the
+   right-hand third of each original.
+   They stay inside the frame rather than hanging off its edge as they do in the art. A card that
+   overhangs is a box outside a clipped container, and at 320px that is a horizontal scrollbar on
+   the one page a stranger reads first. studioInk on white measures 12.76 and studioInkMuted 6.92. */
+.landing-hero-card{position:absolute;z-index:2;right:clamp(10px,2.4%,16px);display:flex;align-items:flex-start;gap:12px;width:max-content;max-width:min(300px,74%);background:var(--surface);border-radius:var(--r-panel);padding:14px 18px 14px 14px;box-shadow:var(--shadow);font-size:14px;line-height:1.45;color:var(--studio-ink-muted)}
+.landing-hero-card.at-top{top:clamp(10px,3%,26px)}
+.landing-hero-card.at-foot{bottom:clamp(10px,3%,26px)}
+.landing-hero-card>span:last-child{display:flex;flex-direction:column;min-width:0}
+.landing-hero-card i{font-style:normal;margin-bottom:3px;font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--studio-ink)}
+.landing-hero-card .landing-hero-disc.tint-mint,.landing-hero-card .landing-hero-disc.tint-peach{width:40px;height:40px}
 
-/* The controls. One row under the picture: which of three, how long the current one has left, the
-   page's pause control, and the two arrows. */
-/* Two rows by default and one from 1080px, which is the width at which the figure's own column is
-   finally wider than the four controls laid end to end. Wrapping was tried first and it put the
-   forward arrow alone on a line under a 390px phone; a grid says where each piece goes instead of
-   leaving it to whatever happens to fit. */
-.landing-portrait-foot{grid-area:2 / 1;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px 12px;margin-top:18px}
+/* ---- The controls ----
+   One row at the foot of the copy: which of four, how long this one has left, the page's pause
+   control, and the two arrows.
+   Two rows by default and one from 1080px, which is the width at which the column is finally wider
+   than the four controls laid end to end. Wrapping was tried first and it put the forward arrow
+   alone on a line under a 390px phone; a grid says where each piece goes instead of leaving it to
+   whatever happens to fit. */
+.landing-hero-foot{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px 12px;margin-top:clamp(22px,2.6vw,34px)}
 .landing-slide-index{grid-area:1 / 1}
 .landing-slide-rule{grid-area:1 / 2}
-.landing-portrait-foot .m-pause{grid-area:2 / 1}
+.landing-hero-foot .m-pause{grid-area:2 / 1}
 .landing-slide-steps{grid-area:2 / 2;justify-self:end;display:flex;gap:10px}
 .landing-slide-index{margin:0;font-size:13px;font-weight:500;letter-spacing:.08em;color:var(--charcoal);font-variant-numeric:tabular-nums}
 .landing-slide-index i{font-style:normal;color:var(--body);margin:0 5px}
 /* Progress as a row of rounded segments, which is how this page draws it under the navigation and
    how docs/DESIGN-LANGUAGE.md draws it everywhere. The current segment fills across the seven
-   seconds, so the next picture is something a reader can see coming rather than something that
-   happens to them — and the duration is not typed here: HeroSlides writes SLIDE_MS onto the row as
+   seconds, so the next banner is something a reader can see coming rather than something that
+   happens to them — and the duration is not typed here: Hero writes SLIDE_MS onto the row as
    --slide-ms, so the clock and the timer cannot drift apart.
 
    It is finite, it is on an empty <b> with nothing to click, and it only exists while the page's
    decorative-motion flag is up — so the pause control stops it, and a reader who has asked for
-   less motion never has it applied at all and sees the current segment simply full. */
-.landing-slide-rule{flex:1 1 56px;min-width:44px;display:flex;align-items:center;gap:4px}
-.landing-slide-rule i{flex:1;height:3px;border-radius:var(--r-pill);background:var(--stone);overflow:hidden}
-.landing-slide-rule b{display:block;height:100%;border-radius:inherit;background:var(--charcoal);transform:scaleX(0);transform-origin:left}
+   less motion never has it applied at all and sees the current segment simply full.
+
+   The filled segment is the brand lime over ink, which is what the art marks the current banner
+   with. A 3px rule is not text and carries no ratio; what it must clear is SC 1.4.11's 3:1 against
+   the track beside it, and lime on the --stone track measures well past that. */
+.landing-slide-rule{flex:1 1 56px;min-width:44px;display:flex;align-items:center;gap:5px}
+.landing-slide-rule i{flex:1;height:4px;border-radius:var(--r-pill);background:var(--stone);overflow:hidden}
+.landing-slide-rule b{display:block;height:100%;border-radius:inherit;background:var(--brand-lime);transform:scaleX(0);transform-origin:left}
 .landing-slide-rule i.is-on b{transform:scaleX(1)}
 [data-decor=on] .landing-slide-rule i.is-on b{animation:slide-clock var(--slide-ms) linear both}
 .landing-slide-rule.is-still i.is-on b{animation-play-state:paused}
@@ -425,7 +501,6 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
  .landing-nav nav{display:flex;flex-direction:row}
  .landing-cta{display:inline-flex}
  .landing-menu{display:none}
- .landing-hero{grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr)}
  .landing-figures{grid-template-columns:repeat(4,minmax(0,1fr))}
  .landing-figures>div,.landing-figures>div:nth-child(2n){padding:0 clamp(16px,2.2vw,32px);border-left:1px solid var(--stone)}
  .landing-figures>div:first-child{padding-left:0;border-left:0}
@@ -443,9 +518,30 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
     same amount so the text inside a panel stays on the same column as the text outside one. */
  .landing-section.tinted,.landing-final{margin-inline:var(--gutter);border-radius:var(--r-panel);padding-inline:max(var(--gutter),calc(var(--pad) - var(--gutter)))}
 }
+/* The banner takes two columns here and not a step earlier. Below this the picture is full width
+   under the words, which is what the four crops want: they are portraits, and a portrait squeezed
+   into a third of a phone is a face nobody can see. The copy column is the wider of the two, as it
+   is in the supplied art — the words are what a stranger reads first. */
+@media(min-width:980px){
+ /* Both columns take the row's full height so the foot of the words and the foot of the picture
+    land on one line; the figure's own rows stay at their content height inside it, or the frame
+    would be stretched out of the aspect its crop was made for. */
+ .landing-hero{grid-template-columns:minmax(0,1fr) minmax(0,.68fr);align-items:stretch}
+ .landing-hero .landing-portrait{align-content:start}
+ /* The column becomes real, and the controls sit at its foot rather than after the picture. */
+ .landing-hero-column{display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+ .landing-hero-copy{flex:1}
+ /* The crops are portraits where the supplied art's photograph is a landscape, so the picture is
+    always a little taller than the words beside it. The counter goes to the foot of the column, so
+    the bottom of the words and the bottom of the picture land on one line and the difference reads
+    as air above a control rather than as a hole in the middle of a sentence. Pushing the trust
+    marks down there too was tried and it was worse: it opened the same gap between the call to
+    action and the marks, where the eye is actually travelling. */
+ .landing-hero-foot{margin-top:clamp(30px,3.4vw,46px)}
+}
 @media(min-width:1080px){
- .landing-portrait-foot{grid-template-columns:auto minmax(44px,1fr) auto auto}
- .landing-portrait-foot .m-pause{grid-area:1 / 3}
+ .landing-hero-foot{grid-template-columns:auto minmax(44px,1fr) auto auto}
+ .landing-hero-foot .m-pause{grid-area:1 / 3}
  .landing-slide-steps{grid-area:1 / 4}
  .landing-services{grid-template-columns:repeat(3,minmax(0,1fr))}
  .landing-plans{grid-template-columns:repeat(4,minmax(0,1fr))}

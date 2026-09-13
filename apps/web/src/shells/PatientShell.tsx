@@ -35,6 +35,10 @@ const navigation = [
  ['Live well', NotebookPen], ['My family', Users], ['Care plans', HeartHandshake], ['Thuso Wallet', CreditCard],
  ['Explore MyThuso', LayoutGrid]
 ] as const;
+/* The sections a link may open. `?open=` on the product's address is how the landing page's hero
+   sends a reader to the screen its call to action named, and it is validated against this list
+   rather than against a second copy of it — a slug nothing here answers to opens the overview. */
+export const patientSections = navigation.map(([page]) => page);
 const tabs = [
  ['Overview', 'Home', House], ['Book a nurse', 'Book care', Stethoscope], ['My visits', 'Visits', CalendarDays],
  ['Health Passport', 'Passport', Activity], ['More', 'More', LayoutGrid]

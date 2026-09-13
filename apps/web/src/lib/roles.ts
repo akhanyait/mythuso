@@ -144,3 +144,28 @@ export function searchForRole(search: string, id: RoleId): string {
  const query = params.toString();
  return query ? `?${query}` : '';
 }
+
+/* ---- The section in the address bar --------------------------------------------------------
+ *
+ * A second piece of state that lives in the URL and nowhere else, for the same reason the role
+ * does: no storage, and a link that opens the screen it says it opens.
+ *
+ * The landing page's hero carries four calls to action out of packages/catalog/hero.json, and two
+ * of them name a section of the patient application rather than the application. "Explore family
+ * care" landing somebody on their own home screen is a banner that did not do the one thing it
+ * offered, so `/app/?open=live-well` opens Live well and `/app/?open=my-family` opens the family.
+ *
+ * It is read once, when the application starts, and never written. A section is where a link put
+ * you, not where you are: once somebody is inside and navigating, the address stops following them
+ * — which is the honest behaviour while the app has no routing of its own, rather than a history
+ * of pages that Back cannot actually walk.
+ *
+ * An unreadable value opens the overview, because that is what the address without one means. A
+ * stranger's link is not a reason to show somebody a screen this application does not have. */
+export const OPEN_PARAM = 'open';
+export const slugOfSection = (page: string) => page.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+export const searchForSection = (page: string | null) => page ? `?${OPEN_PARAM}=${slugOfSection(page)}` : '';
+export function sectionFromSearch(search: string, pages: readonly string[], fallback: string): string {
+ const asked = new URLSearchParams(search).get(OPEN_PARAM);
+ return pages.find(page => slugOfSection(page) === asked) ?? fallback;
+}

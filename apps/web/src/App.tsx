@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, LogOut, ShieldCheck, X } from 'lucide-react';
 import { Modal, Pill } from './components/UI';
 import { NotConnected } from './components/NotConnected';
-import { PATIENT_SURFACE as SURFACE, PatientShell } from './shells/PatientShell';
+import { PATIENT_SURFACE as SURFACE, PatientShell, patientSections } from './shells/PatientShell';
 import { Dashboard } from './features/Dashboard';
 import { Booking, CancelVisit, Reschedule } from './features/Booking';
 import {
@@ -24,6 +24,7 @@ import { stateOf } from './lib/cancelling';
 import { dateOf } from './lib/passport';
 import { Onboarding, SignIn } from './features/Onboarding';
 import { RolePanel, useRole } from './features/DemoLogin';
+import { sectionFromSearch } from './lib/roles';
 import type { RoleId } from './lib/roles';
 import { ThusoKit } from './features/Kit';
 import { ThusoSos } from './features/Sos';
@@ -69,7 +70,11 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
  /* The one thing this application knows about the other five: that a person can leave for one. The
     role itself is held above it, in src/Doorway.tsx, so nothing here imports a workspace. */
  const { setRole } = useRole();
- const [page, setPage] = useState('Overview');
+ /* Which screen this started on. The overview, unless a link said otherwise: the landing page's
+    hero offers four destinations and two of them are sections rather than the application, so
+    `/app/?open=live-well` opens Live well. Read once and never written — see lib/roles.ts for why
+    the address stops following a reader the moment they start navigating for themselves. */
+ const [page, setPage] = useState(() => sectionFromSearch(window.location.search, patientSections, 'Overview'));
  const [modal, setModal] = useState<string | null>(null);
  const [booking, setBooking] = useState<Service | null>(null);
  /* Every visit the app knows about, in one list, because a visit you can look at and never change is

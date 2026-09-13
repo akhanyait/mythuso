@@ -470,18 +470,92 @@ for (let slide = 1; slide <= heroCutouts.length; slide += 1) {
 if (localeContract.keys.filter(k => /^slide\d+\.title$/.test(k.id)).length !== heroCutouts.length) {
  throw new Error(`The locale contract has a different number of hero slides than there are cut-outs (${heroCutouts.length})`);
 }
-/* Which photograph belongs to which slide. The landing page's hero is the same three slides, and
-   it pairs slide 1's words with a picture by ordering the three file names — the one thing about a
-   slide that packages/catalog cannot hold, because a contract of sentences knows nothing about a
-   crop. That ordering is therefore a second copy of the list above, and a page that showed the
-   elder beside "Care that comes to you." would be wrong in a way no test of either half can see. */
+/* ---- The four banners, and what they may not promise -------------------------------------------
+ *
+ * The founder supplied four finished compositions on 13 September and asked for the pieces loose, so
+ * packages/catalog/hero.json is the whole of the landing page's hero: four slides of words, four
+ * photographs named by stem, and the two lines every slide carries. Six things are checked, and each
+ * of them is a way the banner could quietly stop being the contract.
+ *
+ * A picture for every slide, published in both formats. A slide whose photograph has not been
+ * distributed is a blank frame on the one page a stranger reads first, and the WebP is not a nicety:
+ * four photographs on a metered South African connection is the difference between 140 kB and 290.
+ *
+ * Every icon name drawn, every tint known, every destination answered. The contract names ideas
+ * rather than glyphs so that three platforms can each use the set they have; the web's answer is the
+ * HeroIcon union in apps/web/src/lib/hero.ts, and a name in one and not the other is an empty disc
+ * or a dead type.
+ *
+ * Not one of the banner's sentences typed into the page. That is the whole reason the compositions
+ * were taken apart — a picture of a headline is a headline nobody can translate — and a sentence
+ * that reappears as a literal has undone it.
+ *
+ * AND THE ONE THAT IS NOT BOOKKEEPING: the everyday-wellbeing slide advertises Live well, and
+ * wellbeing.json refuses a score, a grade, a target, a streak, a rank, a percentage and a unit
+ * anywhere in that feature. A banner that sells a feature may not promise what the screen behind it
+ * refuses, so that slide is read for a digit and for the vocabulary of measurement. It passes today
+ * — "move a little more", "at your own pace", "nourish your everyday" are none of those things — and
+ * the check exists so that the first person to add a number to it for visual balance is stopped by
+ * the build rather than by a review. */
 {
+ const hero = JSON.parse(read('packages/catalog/hero.json'));
+ const heroLib = read('apps/web/src/lib/hero.ts');
  const landing = read('apps/web/src/features/Landing.tsx');
- const order = landing.match(/const slidePhotos\s*=\s*\[([^\]]*)\]/)?.[1];
- if (!order) throw new Error('apps/web/src/features/Landing.tsx no longer declares slidePhotos, so nothing checks that the hero\'s pictures are still in the order their words are written for.');
- const paths = order.split(',').map(name => landing.match(new RegExp(`const ${name.trim()}\\s*=\\s*'([^']+)'`))?.[1]);
- const stems = paths.map(p => p?.match(/\/banners\/(.+)-cutout\.webp$/)?.[1]);
- if (stems.join() !== heroCutouts.join()) throw new Error(`The landing hero shows its pictures in the order ${stems.join(', ')} and the slide copy is written for ${heroCutouts.join(', ')}. Slide 1's sentence would be read beside slide ${heroCutouts.indexOf(stems[0]) + 1}'s photograph.`);
+ if (hero.slides.length < 2) throw new Error('packages/catalog/hero.json has fewer than two slides, so the landing page is carrying a carousel around one picture.');
+ for (const slide of hero.slides) {
+  const source = `packages/banners/${slide.photograph}.jpg`;
+  if (!existsSync(source)) throw new Error(`Hero slide "${slide.id}" names the photograph ${slide.photograph}, and ${source} does not exist. The crops live in packages/banners; run: python3 scripts/prepare-banners.py`);
+  for (const published of [`apps/web/public/banners/${slide.photograph}.jpg`, `apps/web/public/banners/${slide.photograph}.webp`]) {
+   if (!existsSync(published)) throw new Error(`Hero slide "${slide.id}" has no ${published}, so its half of the banner is a blank frame. Run: node scripts/render-illustrations.mjs`);
+   if (statSync(published).mtimeMs < statSync(source).mtimeMs) throw new Error(`${published} is older than ${source}. Run: node scripts/render-illustrations.mjs`);
+  }
+ }
+ /* The names the contract uses, against the names the web can draw. The union in lib/hero.ts is what
+    TypeScript holds the glyph table to, so checking the union against the contract closes the loop
+    from the JSON to the rendered disc. */
+ const declared = (name) => new Set((heroLib.match(new RegExp(`export type ${name} =([^;]+);`))?.[1] ?? '')
+  .split('|').map(part => part.trim().replace(/^'|'$/g, '')).filter(Boolean));
+ const icons = declared('HeroIcon'), tints = declared('HeroTint'), destinations = declared('HeroDestination');
+ for (const set of [['HeroIcon', icons], ['HeroTint', tints], ['HeroDestination', destinations]]) {
+  if (!set[1].size) throw new Error(`apps/web/src/lib/hero.ts no longer declares ${set[0]}, so nothing checks that the banner's names are the ones the page can draw.`);
+ }
+ const used = { icon: new Set(), tint: new Set(), goes: new Set() };
+ for (const slide of hero.slides) {
+  used.goes.add(slide.action.goes);
+  for (const mark of slide.marks) used.icon.add(mark.icon);
+  for (const card of slide.cards) { used.icon.add(card.icon); used.tint.add(card.tint); }
+ }
+ for (const name of used.icon) if (!icons.has(name)) throw new Error(`packages/catalog/hero.json uses the icon "${name}" and apps/web/src/lib/hero.ts does not know it, so the web draws an empty disc where the art has a glyph.`);
+ for (const name of used.tint) if (!tints.has(name)) throw new Error(`packages/catalog/hero.json uses the tint "${name}", which apps/web/src/lib/hero.ts does not declare.`);
+ for (const name of used.goes) if (!destinations.has(name)) throw new Error(`A hero slide's call to action goes to "${name}", which apps/web/src/lib/hero.ts has no address for — a button that promises a screen nobody can open.`);
+ /* Every destination the type allows must have somewhere to go. `sections` answers two of them with
+    a page name and `roleFor` answers the third; a destination missing from both is an address of
+    `/app/` wearing a more specific label. */
+ for (const name of destinations) {
+  if (!new RegExp(`(^|[^\\w'])'?${name}'?\\s*:`, 'm').test(heroLib)) throw new Error(`apps/web/src/lib/hero.ts declares the destination "${name}" and never says where it goes.`);
+ }
+ /* Not one of the banner's sentences typed onto the page. */
+ const sentences = hero.slides.flatMap(slide => [slide.eyebrow, slide.headline.lead, slide.headline.accent, slide.body, slide.action.label,
+  ...slide.marks.flatMap(mark => mark.lines), ...slide.cards.flatMap(card => [card.title, ...card.lines])])
+  .concat([hero.standing.place, hero.standing.photographNote]);
+ /* Three words and fourteen characters, which is the line between a sentence out of the banner and
+    a word the English language also uses — "visits" and "Doctor" appear on this page for reasons
+    that have nothing to do with a trust mark. What is being caught is copy, not vocabulary. */
+ for (const sentence of sentences.filter(line => line.trim().split(/\s+/).length >= 3 && line.length >= 14)) {
+  if (landing.includes(sentence)) throw new Error(`apps/web/src/features/Landing.tsx types the banner's own words — "${sentence}" — instead of rendering them from packages/catalog/hero.json. That is the state the four supplied JPEGs were in, and it is why they were taken apart.`);
+ }
+ /* The slide that sells Live well is held to Live well's contract. */
+ const wellbeingSlide = hero.slides.find(slide => /wellbeing|live.?well/i.test(slide.id));
+ if (!wellbeingSlide) throw new Error('No hero slide advertises Live well any more. If that is deliberate, take this check out with it — a rule about a slide nobody has is a rule nobody is keeping.');
+ const wellbeingWords = [wellbeingSlide.eyebrow, wellbeingSlide.headline.lead, wellbeingSlide.headline.accent, wellbeingSlide.body, wellbeingSlide.action.label,
+  ...wellbeingSlide.marks.flatMap(mark => mark.lines), ...wellbeingSlide.cards.flatMap(card => [card.title, ...card.lines])].join(' ');
+ if (/\d/.test(wellbeingWords)) throw new Error(`The "${wellbeingSlide.id}" banner carries a digit, and packages/catalog/wellbeing.json forbids a score, a target, a streak and a unit anywhere in the feature it advertises. A banner may not promise what the screen behind it refuses.`);
+ /* Words that are a measurement whatever sits beside them. A unit needs a number to become one —
+    "Small steps." is a metaphor and the digit check above is what catches a step count — so no unit
+    is listed here, and listing one is how a headline the contract wrote gets refused by a regex. */
+ const measuring = /\b(score|scored|grade|graded|target|goal|streak|rank|ranked|ranking|per ?cent|percentage|bmi|calorie|calories|kilograms?|kg)\b/i;
+ const found = wellbeingWords.match(measuring);
+ if (found) throw new Error(`The "${wellbeingSlide.id}" banner says "${found[0]}", which is the vocabulary of measurement that packages/catalog/wellbeing.json refuses — no score, no grade, no target, no streak, no rank, no percentage, no unit. The slide sells Live well and Live well has none of those.`);
 }
 /* The identity service holds a name and a mobile number. That is personal information, not the
    special personal information that health data is, which is the only reason it can exist ahead of
@@ -1780,10 +1854,20 @@ for(const sheet of [...designSheets,'apps/web/src/landing.css','apps/web/src/sur
   /* A surface only has to provide a foreground if something could be read on it. A pseudo-element
      overlay, and a bar declared shorter than the 13px type floor, cannot hold a word between them —
      requiring a colour there would be noise, and noise is how a check gets switched off. */
+  /* A third thing that cannot hold a word: an icon disc. A rule that fixes both dimensions of a
+     square and centres a single child has room for a glyph and for nothing else, and a glyph on
+     this product is never the only thing saying what a control is — every one of them sits beside
+     the words it repeats, which is why SC 1.4.11's 3:1 is not owed by it. That is what lets the
+     brand's own green and orange be the glyph on a tint — 3.01 and 2.44, measured — while the rule
+     below still refuses either of them as a label. It must still declare A foreground: a disc that
+     sets none lets a colour arrive by inheritance, which is the failure this whole check exists
+     for. */
+  const glyphDisc = /place-items:\s*center/.test(body)
+   && /(^|;)\s*width:\s*\d+px/.test(body) && /(^|;)\s*height:\s*\d+px/.test(body);
   const decorative = /::(before|after)/.test(selector)
    || (/height:\s*(\d+)px/.test(body) && Number(body.match(/height:\s*(\d+)px/)[1]) < 13);
   if(!colour && !decorative) throw new Error(`${sheet}: "${selector.trim().slice(0,60)}" paints an accent fill and sets no colour, so whatever a child inherits lands on it unmeasured — faint gets 3.75:1 on paleSage and fails, and studioLime is 1.05 under anything but the ink. Set the foreground on the surface that paints the fill — var(--charcoal) on a sage, var(--studio-ink) on a studio tint; a child cannot be relied on to remember. If nothing can be read on it, say so by giving it a height under the type floor or making it a pseudo-element.`);
-  if(colour && !inkForeground.test(colour)) throw new Error(`${sheet}: "${selector.trim().slice(0,60)}" paints an accent fill and sets ${colour.trim()}. The inks are the only foregrounds measured against these ramps — faint on paleSage is 3.70 and fails, and nothing but studioInk is declared against studioLime. Everything read on an accent fill is charcoal or a studio ink.`);
+  if(colour && !inkForeground.test(colour) && !glyphDisc) throw new Error(`${sheet}: "${selector.trim().slice(0,60)}" paints an accent fill and sets ${colour.trim()}. The inks are the only foregrounds measured against these ramps — faint on paleSage is 3.70 and fails, and nothing but studioInk is declared against studioLime. Everything read on an accent fill is charcoal or a studio ink.`);
  }
 }
 
