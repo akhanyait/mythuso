@@ -63,7 +63,7 @@ struct ClinicalChart: View {
              * widens a rectangle nothing is listening to. The table underneath is every value on
              * the chart in words, so the control that opens it is the whole of this chart's
              * accessibility story, and it has to be a target rather than nearly one. */
-            Button { withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) { showTable.toggle() } } label: {                HStack(spacing: ThusoSpacing.space8) {
+            Button { withAnimation(reduceMotion ? nil : ThusoMotion.soft()) { showTable.toggle() } } label: {                HStack(spacing: ThusoSpacing.space8) {
                     Text(showTable ? "Hide readings" : "Show readings as a table")
                         .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
@@ -112,6 +112,7 @@ struct ClinicalChart: View {
                     let top = point(0, normal.upperBound).y, bottom = point(0, normal.lowerBound).y
                     Rectangle().fill(ThusoTheme.paleSage).frame(height: max(bottom - top, 1)).position(x: geo.size.width / 2, y: (top + bottom) / 2)
                 }
+                ZStack {
                 Path { path in
                     for (index, reading) in readings.enumerated() {
                         let next = point(index, reading.value)
@@ -124,6 +125,7 @@ struct ClinicalChart: View {
                         .frame(width: index == readings.count - 1 ? 9 : 6)
                         .position(point(index, reading.value))
                 }
+                }.studioChartEntrance(identity: readings.map { "\($0.label):\($0.value)" }.joined(separator: "|"))
             }
         }
     }

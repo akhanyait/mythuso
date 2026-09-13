@@ -122,7 +122,7 @@
 /* A visit is a square and a nurse is a circle. Colour alone never carries the difference: a
    controller with a colour vision deficiency reads the same board as everyone else. */
 .map-marker.visit-waiting::before,
-.map-marker.visit-assigned::before { border-radius: var(--r-tile); }
+.map-marker.visit-assigned::before { border-radius: 3px; }
 
 .map-marker.nurse-blocked::before { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--danger); }
 
@@ -161,7 +161,7 @@
  border: 1px solid var(--line);
 }
 
-.livemap .maplibregl-ctrl-group button { width: 36px; height: 36px; }
+.livemap .maplibregl-ctrl-group button { width: 44px; height: 44px; }
 
 .livemap .maplibregl-ctrl-group button:focus-visible {
  box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge);
@@ -207,8 +207,8 @@
    refusal. It used to be an indigo wash under indigo pins on a blue-grey ground, which is three
    ways of saying nothing three times. */
 .livemap-canvas.schematic .map-ground { fill: var(--mist); }
-.livemap-canvas.schematic .map-grid { stroke: var(--stone); stroke-width: .4; }
-.livemap-canvas.schematic .map-zone { fill: var(--pale-sage); stroke: var(--stone); stroke-width: .4; }
+.livemap-canvas.schematic .map-grid { stroke: var(--stone); stroke-width: .25; }
+.livemap-canvas.schematic .map-zone { fill: var(--pale-sage); stroke: var(--sage-slate); stroke-width: .3; fill-opacity: .65; }
 /* A suburb name inside a 0–100 viewBox is measured in viewBox units, so a size written here is
    multiplied by whatever the square is rendered at — four units came to 12.7px in a 318px box and
    11.4px at a 320px viewport, under the floor the token file declares in both. LiveMap measures the
@@ -246,3 +246,13 @@
  stroke-dasharray: 1.6 1.4;
  opacity: .55;
 }
+
+/* The map has its own quiet frame; status colours stay reserved for the marks. */
+.livemap-heading { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; color: var(--charcoal); font-size: 13px; }
+.livemap-heading span { background: var(--pale-sage); border-radius: var(--r-pill); padding: 5px 10px; }
+.livemap .maplibregl-map { position: relative; }
+.livemap .map-reset { position: absolute; z-index: 2; top: 10px; left: 10px; min-height: 44px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--stone); background: var(--surface); color: var(--charcoal); font: inherit; font-size: 13px; font-weight: 600; box-shadow: var(--shadow); }
+.livemap-canvas.schematic { background: var(--studio-paper, var(--mist)); }
+.livemap-canvas.schematic .map-ground { fill: var(--studio-paper, var(--mist)); }
+.map-pin > g > circle, .map-pin > g > rect { stroke: var(--surface); stroke-width: .6; paint-order: stroke; }
+.map-pin > g:focus-visible > circle, .map-pin > g:focus-visible > rect { stroke: var(--focus); stroke-width: 1.6; }

@@ -10,6 +10,22 @@ import { useCallback, useEffect, useLayoutEffect, useState, useSyncExternalStore
       cheap Android phone stays smooth. */
 export const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/** Keep ambient artwork still outside the viewport; content and controls never depend on it. */
+export function useAmbientVisibility() {
+ useEffect(() => {
+  const regions = document.querySelectorAll<HTMLElement>('[data-ambient]');
+  if (typeof IntersectionObserver !== 'function') {
+   for (const region of regions) region.dataset.ambient = 'visible';
+   return;
+  }
+  const observer = new IntersectionObserver(entries => {
+   for (const entry of entries) (entry.target as HTMLElement).dataset.ambient = entry.isIntersecting ? 'visible' : 'paused';
+  }, { threshold: 0 });
+  for (const region of regions) observer.observe(region);
+  return () => observer.disconnect();
+ }, []);
+}
+
 /* Sections arrive as you reach them, in the order they are written. Each element is released once
    and then forgotten, so scrolling back up does not replay the page at you. */
 export function useReveal() {
@@ -22,15 +38,18 @@ export function useReveal() {
    for (const entry of entries) if (entry.isIntersecting) release(entry.target as HTMLElement);
   }, { rootMargin: '0px 0px -8%', threshold: 0.06 });
   const release = (el: HTMLElement) => { el.dataset.reveal = 'shown'; waiting.delete(el); seen.unobserve(el); };
-  /* Jumping clean past a section — an anchor link, the End key, a restored scroll position — never
-     changes its intersection state, so an observer on its own would leave it invisible above you
-     for the rest of the visit. Anything the page has scrolled entirely past is simply released. */
+  /* Anchor jumps and late image layout can skip an intersection. Release anything whose start
+     the reader has passed, and recheck after layout changes as well as scrolling. */
   let frame = 0;
-  const sweep = () => { frame = 0; for (const el of waiting) if (el.getBoundingClientRect().bottom < 0) release(el); };
+  const sweep = () => { frame = 0; for (const el of waiting) if (el.getBoundingClientRect().top < 0) release(el); };
   const onScroll = () => { if (!frame) frame = requestAnimationFrame(sweep); };
   for (const el of waiting) seen.observe(el);
+  const layout = typeof ResizeObserver === 'function' ? new ResizeObserver(onScroll) : null;
+  layout?.observe(document.body);
   addEventListener('scroll', onScroll, { passive: true });
-  return () => { seen.disconnect(); removeEventListener('scroll', onScroll); cancelAnimationFrame(frame); delete root.dataset.motion; };
+  addEventListener('resize', onScroll, { passive: true });
+  sweep();
+  return () => { seen.disconnect(); layout?.disconnect(); removeEventListener('scroll', onScroll); removeEventListener('resize', onScroll); cancelAnimationFrame(frame); delete root.dataset.motion; };
  }, []);
 }
 
@@ -97,7 +116,7 @@ const decor = {
  listeners: new Set<() => void>(),
  apply() {
   const root = document.documentElement;
-  if (this.holders > 0 && this.playing && !reducedMotion()) root.dataset.decor = 'on';
+  if (this.holders > 0 && this.playing && !reducedMotion() && !document.hidden) root.dataset.decor = 'on';
   else delete root.dataset.decor;
  },
  set(playing: boolean) { this.playing = playing; this.apply(); for (const notify of [...this.listeners]) notify(); }
@@ -107,14 +126,20 @@ const decor = {
     entry root so the page declares it has some, and again inside the pause control. */
 export function useDecor() {
  const reduced = useReducedMotion();
+ const [visible, setVisible] = useState(() => !document.hidden);
  const playing = useSyncExternalStore(
   useCallback((notify: () => void) => { decor.listeners.add(notify); return () => { decor.listeners.delete(notify); }; }, []),
   () => decor.playing,
   () => false
  );
  useEffect(() => { decor.holders += 1; decor.apply(); return () => { decor.holders -= 1; decor.apply(); }; }, []);
+ useEffect(() => {
+  const update = () => { setVisible(!document.hidden); decor.apply(); };
+  document.addEventListener('visibilitychange', update);
+  return () => document.removeEventListener('visibilitychange', update);
+ }, []);
  useEffect(() => { decor.apply(); }, [reduced]);
- return { playing: playing && !reduced, reduced, toggle: useCallback(() => decor.set(!decor.playing), []) };
+ return { playing: playing && !reduced && visible, reduced, toggle: useCallback(() => decor.set(!decor.playing), []) };
 }
 
 /* ---- The pointer-following light ---------------------------------------------------------------
@@ -166,4 +191,3 @@ export function usePointerLight() {
 export function useChapter(subject: string | number) {
  return useReducedMotion() ? 'chapter' : `chapter-${subject}`;
 }
-

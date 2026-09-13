@@ -1,22 +1,15 @@
-import { Ambulance, ArrowRight, ArrowUpRight, CalendarPlus, ChevronDown, ChevronRight, Clock3, MapPin, Plus, Search, ShieldCheck, Stethoscope, Zap } from 'lucide-react';
+import { Activity, Ambulance, ArrowRight, ArrowUpRight, CalendarPlus, ChevronDown, ChevronRight, Clock3, Heart, MapPin, Plus, Search, ShieldCheck, Zap } from 'lucide-react';
 import { SectionTitle, Pill, ServiceIcon } from '../components/UI';
 import { Metric, Metrics } from '../surface/Surface';
 import { liveServices, money, type Service } from '../lib/catalog';
 import { labels as scheduling, shortWhenText, visitEnds } from '../lib/scheduling';
 import type { DemoVisit } from './Booking';
 import { useT } from '../lib/i18n';
+import { nurseFor } from '../lib/arrival';
+import { ClinicalChart } from '../components/Chart';
+import { latestSet, formatValue, isInRange, labelOf, measureSpec, seriesFor } from '../lib/passport';
 
-/* The returning patient's home.
- *
- * It used to open with a rotating promotional carousel roughly two thirds of the phone screen tall,
- * a decorative script slogan competing with the greeting, and a photograph printed over the
- * headline and the button. The four service shortcuts began below the fold and the "next visit"
- * card was hard-coded — it said the same Vitals check on 12 September however many visits you had
- * actually booked, and whatever you had booked them for.
- *
- * What a returning patient needs, in the order they need it: who they are and where, what is
- * already arranged, how to arrange the next thing, and then the rest. The promotional card is still
- * here, once, further down, where it is an offer rather than an obstacle. */
+/* A care overview built around the patient, the latest record and the next action. */
 type Props = {
  navigate: (s: string) => void;
  book: (s: Service) => void;
@@ -34,25 +27,20 @@ type Props = {
    nowhere else, so the figure at the top of the screen and the row half a column below it could not
    have disagreed — because only one of them existed. Now both read this. */
 const planDueInDays = 9;
-/* The three readings the home leads with, as figures rather than as rows.
- *
- * This is the reference's signature and the inversion of what this product did everywhere: a small
- * label above a heavy number becomes a status chip above a large light one, with the name beneath.
- * Two of them are values a nurse recorded; the third is a count of days, which is a figure a person
- * can act on in a way that "your plan is active" is not. The one result that has no number — a full
- * blood count a doctor has not finished with — stays a row underneath, because a reading that is
- * still a sentence should not be drawn as though it were a measurement. */
+// Use the Passport fixture so opening a reading never changes its value.
 const leadReadings = [
- { value: '118/78', unit: 'mmHg', label: 'Blood pressure', chip: 'In range' },
- { value: '5.4', unit: 'mmol/L', label: 'Blood glucose', chip: 'In range' }
+ { value: `${formatValue('systolic', latestSet.values.systolic!)}/${formatValue('diastolic', latestSet.values.diastolic!)}`, unit: 'mmHg', label: 'Blood pressure', chip: isInRange('systolic', latestSet.values.systolic!) && isInRange('diastolic', latestSet.values.diastolic!) ? 'In range' : 'Outside range', icon: Heart },
+ { value: formatValue('glucose', latestSet.values.glucose!), unit: 'mmol/L', label: 'Blood glucose', chip: isInRange('glucose', latestSet.values.glucose!) ? 'In range' : 'Outside range', icon: Activity }
 ] as const;
 
 export function Dashboard({ navigate, book, open, query, setQuery, visits, location, viewVisit }: Props) {
  const t = useT();
  const next = visits[0];
+ const nurse = next ? nurseFor(next.address) : null;
  return <div className="home">
   <header className="home-head rise">
    <div>
+    <p className="home-eyebrow">YOUR EVERYDAY CARE</p>
     <h1>{t('shell.greeting')}</h1>
     <p>{t('shell.greetingSub')}</p>
    </div>
@@ -68,26 +56,44 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
    </div>
   </header>
 
-  {/* The order this file already argued for — who and where, what is already arranged, how to
-      arrange the next thing, then the rest — was only true on a wide screen. On a phone the whole
-      of the second column came after the whole of the first, so "your next visit" sat about
-      fourteen hundred pixels below a greeting that had just asked who the visit was for. The
-      appointment is its own area now: top right beside the care column on a wide screen, directly
-      under the greeting on a narrow one. */}
-  {/* The figures, directly on the ground rather than inside a card. A metric that sits in a box is a
-      card of numbers; a metric on the ground with a chip floating above it is the thing the founder
-      pointed at, and it is what makes the top of this screen read as calm rather than as busy. */}
-  {/* The check-in is the one on the lime tile, and the two readings beside it are not. That is a
-      clinical decision rather than a visual one: a reading singled out in colour reads as a verdict
-      on that reading, and this product does not issue verdicts — a doctor does, in words, with a
-      name against them. A countdown to something the person has to arrange carries no such
-      implication, and it is also the only figure on the strip they can act on today. */}
-  <Metrics>
-   {leadReadings.map(r => <Metric key={r.label} value={r.value} unit={r.unit} label={r.label} chip={r.chip}/>)}
-   <Metric value={String(planDueInDays)} unit="days" label="Until your next check-in" chip="Chronic Routine" lead/>
-  </Metrics>
+  <section className="care-next-action" aria-label="Your next care action">
+   <span className="care-next-symbol"><CalendarPlus size={24}/></span>
+   <div><p className="home-eyebrow">YOUR NEXT STEP</p><h2>{next ? next.status === 'Confirmed' ? 'Get ready for your visit' : 'Review your visit request' : 'Find the care you need'}</h2>
+    <p>{next ? `${next.service.name} · ${shortWhenText(next)} · ${next.person}` : 'Compare care options, then choose a time that suits you.'}</p></div>
+   <button className="primary" onClick={next ? viewVisit : () => navigate('Book a nurse')}>{next ? next.status === 'Confirmed' ? 'Prepare for my visit' : 'View visit details' : 'Explore care'}<ArrowRight size={17}/></button>
+  </section>
+  <div className="care-desk">
+   <section className="care-cover">
+    <img src="/editorial/care-at-home.png" alt=""/>
+    <div className="care-cover-copy">
+     <span className="home-eyebrow">HELP. HEALTH. HOME.</span>
+     <h2>Care that<br/>feels like home.</h2>
+     <p>A familiar space.<br/>A little more support.</p>
+     <button className="primary" onClick={() => navigate('Book a nurse')}>{t('nav.Book a nurse')}<ArrowUpRight size={19}/></button>
+    </div>
+    <span className="care-photo-note">Illustrative image</span>
+   </section>
+   <section className="wellbeing-invite">
+    <div className="lunar-art" aria-hidden="true"><i/><span>＋</span></div>
+    <span className="home-eyebrow">YOUR EVERYDAY WELLBEING</span>
+    <h2>Make room<br/>for you.</h2>
+    <p>How have you been feeling?<br/>A quiet space for your own words.</p>
+    <button className="secondary" onClick={() => navigate('Live well')}>Open your journal<ArrowUpRight size={17}/></button>
+   </section>
+   <div className="desk-readings">
+  <section className="health-overview" aria-label="Your care at a glance">
+   <div className="health-overview-title"><h2>Your care at a glance</h2><span>Sample readings · {labelOf(latestSet.dayOffset)}</span></div>
+   <Metrics>
+    {leadReadings.map(r => <button className="overview-reading" key={r.label} onClick={() => navigate('Health Passport')}>
+     <span className="overview-reading-head"><r.icon size={19}/><ArrowUpRight size={17}/></span>
+     <span className="reading-plot" aria-hidden="true">{seriesFor(r.label === 'Blood pressure' ? 'systolic' : 'glucose').map((reading, i) => <i key={i} style={{ height: `${Math.max(12, reading.value / (r.label === 'Blood pressure' ? 160 : 8) * 100)}%` }}/>)}</span>
+     <Metric value={r.value} unit={r.unit} label={r.label} chip={r.chip} flagged={r.chip !== 'In range'}/>
+    </button>)}
+   </Metrics>
+  </section>
 
-  <div className="home-columns">
+   </div>
+   <div className="desk-visit">
    <section className={`home-appointment rise${next ? '' : ' is-empty'}`}>
     <SectionTitle title={t('shell.nextVisit')} action={t('cta.allVisits')} onClick={() => navigate('My visits')}/>
     {next ? <button className="visit-card glass lead" onClick={viewVisit}>
@@ -105,10 +111,11 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
       <span><MapPin size={14}/>{next.address}</span>
      </div>
      <div className="nurse-row">
-      <span className="avatar nurse-avatar">SN</span>
-      <div><strong>Sister Naledi Mokoena</strong><span>Registered Nurse (SANC)</span></div>
+      <span className="avatar nurse-avatar">{nurse?.initials}</span>
+      <div><strong>{nurse?.name}</strong><span>{nurse?.role} · Sample assignment</span></div>
       <ChevronRight size={18}/>
      </div>
+     <p className="visit-ready-hint">View preparation, clinician details and contact options<ArrowRight size={15}/></p>
     </button> : <div className="panel glass lead empty-visit">
      <span className="glow"><span className="tile-icon"><CalendarPlus size={21}/></span></span>
      <strong>{scheduling.noUpcoming}</strong>
@@ -117,20 +124,17 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
     </div>}
    </section>
 
-   <div className="home-main rise-2">
+    <button className="plan-note" onClick={() => navigate('Care plans')}>
+     <span className="plan-number">{planDueInDays}<small>days</small></span>
+     <span><strong>Your next check-in</strong><small>Chronic Routine</small></span><ArrowUpRight size={19}/>
+    </button>
+   </div>
+   <section className="desk-services">
     <form className="search-field" role="search" onSubmit={e => { e.preventDefault(); navigate('Book a nurse'); }}>
      <Search size={19}/>
      <input aria-label="Search for care" placeholder="What care do you need today?" value={query} onChange={e => setQuery(e.target.value)}/>
      <button className="primary search-go" type="submit" aria-label="Search"><Search size={17}/><span aria-hidden="true">Search</span></button>
     </form>
-    <button className="primary full book-cta" onClick={() => navigate('Book a nurse')}>
-     <Stethoscope size={19}/>{t('nav.Book a nurse')}<ArrowRight size={17}/>
-    </button>
-
-    {/* No action on this heading. It carried a "Book a nurse" link directly beneath a full-width
-        "Book a nurse" button, going to the same screen — three ways to say the same thing inside
-        one hundred and twenty pixels, which is how a screen ends up feeling busy without carrying
-        anything more. Every row underneath opens booking anyway. */}
     <SectionTitle title="Care you can book today"/>
     {/* One row per service: one icon, the name, what it is, the price and how long it takes.
         A grid of two made the names wrap to three lines on a narrow phone. */}
@@ -149,33 +153,14 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
      </button>)}
     </div>
 
-    {/* What is left of the results panel once the two measurements have moved to the top of the
-        screen as figures: the one result that is still a sentence rather than a number. */}
-    <SectionTitle title="Waiting on a doctor" action={t('cta.passport')} onClick={() => navigate('Health Passport')}/>
-    <div className="panel result-list">
-     <button className="result-row" onClick={() => navigate('Health Passport')}>
-      <span><strong>Full blood count</strong><small>Awaiting doctor review</small></span>
-      <Pill tone="amber">With a doctor</Pill>
-     </button>
-    </div>
+   </section>
+   <section className="desk-trend">
+    <SectionTitle title="Your health over time" action={t('cta.passport')} onClick={() => navigate('Health Passport')}/>
+    <div className="home-trend"><ClinicalChart title="Systolic blood pressure" unit={measureSpec('systolic').unit} readings={seriesFor('systolic')} normal={measureSpec('systolic').range as [number, number]}/></div>
 
-    <section className="promo-card">
-     <div>
-      <h2>Your health. One safe place.</h2>
-      <p>Every visit, reading and result, in a record you own and control.</p>
-      <button className="secondary" onClick={() => navigate('Health Passport')}>{t('cta.passport')}<ArrowRight size={16}/></button>
-     </div>
-    </section>
-   </div>
-
-   <aside className="home-side rise-3">
-    <SectionTitle title="Care plan" action="Care plans" onClick={() => navigate('Care plans')}/>
-    <button className="panel reminder-row" onClick={() => navigate('Care plans')}>
-     <span className="tile-icon amber"><Clock3 size={20}/></span>
-     <span><strong>Chronic Routine</strong><small>Monthly check-in · due in {planDueInDays} days</small></span>
-     <ChevronRight size={17}/>
-    </button>
-
+    <button className="result-row" onClick={() => navigate('Health Passport')}><span><strong>Full blood count</strong><small>Awaiting doctor review</small></span><Pill tone="amber">With a doctor</Pill></button>
+   </section>
+   <aside className="desk-family">
     <SectionTitle title="Your circle of care" action="My family" onClick={() => navigate('My family')}/>
     <div className="panel">
      {/* "Sponsored care" used to be a word with nothing behind it: every row on this card went to

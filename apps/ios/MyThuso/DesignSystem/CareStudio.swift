@@ -20,10 +20,8 @@ import SwiftUI
  * then `studioOlive`, both on the paper — rather than two faces or two grounds. The words never
  * change face and the line behind them is never a block.
  *
- * No decorative motion, no orbiting sparkle, no pause control for either. That cut had an infinite
- * rotation with a play/pause button beside it, which is two problems: a forever-changing box, and a
- * control whose only job is to stop the thing we chose to start. The animation here is the one the
- * platform already gives a state change, and it is off under Reduce Motion.
+ * Requested editorial motion is confined to decorative artwork and brief chart entrances.
+ * Readings remain steady; Reduce Motion presents the complete, still artwork.
  *
  * `studioLime` IS A FILL AND NEVER A WORD ON A LIGHT GROUND. It measures 1.05:1 against paper, so
  * no such pair is declared and one would fail the build. Everything below spends it as a ground
@@ -135,5 +133,90 @@ extension View {
     func studioNightInk(quiet: Bool = false) -> some View {
         foregroundStyle(quiet ? ThusoTheme.studioPaper.opacity(ThusoOpacity.charcoalMuted)
                               : ThusoTheme.studioPaper)
+    }
+}
+
+// Native decorative moon, shared by the journal invitation and journal opening.
+struct MoonArtwork: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var visible = false
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || !visible || scenePhase != .active)) { context in
+            let phase = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate * .pi / 4
+            ZStack {
+            Circle().fill(RadialGradient(colors: [ThusoTheme.surface, ThusoTheme.studioLilac, ThusoTheme.studioInkMuted],
+                                         center: .topLeading, startRadius: 0, endRadius: 140))
+                .padding(16)
+                .shadow(color: ThusoTheme.studioInk.opacity(0.15), radius: 12, x: 8, y: 10)
+                .scaleEffect(1 + 0.02 * sin(phase))
+            Ellipse().stroke(ThusoTheme.studioInkMuted.opacity(0.4), lineWidth: 1)
+                .frame(height: 50).rotationEffect(.degrees(-28 + 12 * sin(phase * 0.5)))
+            }.offset(y: 3 * sin(phase))
+        }.accessibilityHidden(true)
+            .studioVisibility { visible = $0 }
+            .onDisappear { visible = false }
+    }
+}
+
+// Visibility starts finite entrances when the artwork reaches the scroll viewport.
+private struct StudioVisibility: ViewModifier {
+    let changed: (Bool) -> Void
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollVisibilityChange(threshold: 0.1, changed)
+        } else {
+            content.onAppear { changed(true) }.onDisappear { changed(false) }
+        }
+    }
+}
+
+private struct StudioBarEntrance: ViewModifier {
+    let delay: Double
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var revealed = false
+    func body(content: Content) -> some View {
+        // Keep an unscaled layout box so a bar starting at zero still enters the viewport.
+        content.hidden().overlay {
+            content.scaleEffect(x: 1, y: reduceMotion || revealed ? 1 : 0, anchor: .bottom)
+        }
+            .studioVisibility { visible in
+                guard visible, !revealed else { return }
+                withAnimation(reduceMotion ? nil : ThusoMotion.soft(ThusoMotion.enter).delay(delay)) { revealed = true }
+            }
+    }
+}
+
+extension View {
+    func studioVisibility(_ changed: @escaping (Bool) -> Void) -> some View {
+        modifier(StudioVisibility(changed: changed))
+    }
+    func studioBarEntrance(delay: Double, identity: String = "") -> some View {
+        modifier(StudioBarEntrance(delay: delay)).id(identity)
+    }
+    func studioChartEntrance(identity: String) -> some View {
+        modifier(StudioChartEntrance()).id(identity)
+    }
+}
+
+/// Reveal only the plotted layer; its labels and reference bands live outside this modifier.
+private struct StudioChartEntrance: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduced
+    @Environment(\.scenePhase) private var phase
+    @State private var visible = false
+    @State private var progress: CGFloat = 0
+    func body(content: Content) -> some View {
+        content.mask(alignment: .leading) {
+            GeometryReader { geometry in
+                Rectangle().frame(width: (geometry.size.width + 16) * (reduced || phase != .active ? 1 : progress), height: geometry.size.height + 16)
+                    .offset(x: -8, y: -8)
+            }
+        }
+        .studioVisibility { visible = $0 }
+        .task(id: "\(visible)-\(reduced)-\(phase)") {
+            guard visible || reduced || phase != .active else { return }
+            withAnimation(reduced || phase != .active ? nil : .easeOut(duration: 0.85)) { progress = 1 }
+        }
     }
 }

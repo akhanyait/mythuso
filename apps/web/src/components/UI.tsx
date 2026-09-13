@@ -10,6 +10,6 @@ export function SectionTitle({title,action,onClick}:{title:string;action?:string
 export function Modal({title,children,onClose,surface=''}:{title:string;children:ReactNode;onClose:()=>void;surface?:string}) {
  const ref=useRef<HTMLDialogElement>(null);
  useEffect(()=>{const d=ref.current; const previous=document.activeElement as HTMLElement; d?.showModal(); const overflow=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{d?.close();document.body.style.overflow=overflow;previous?.focus();};},[]);
- return <dialog ref={ref} className={`modal${surface?` ${surface}`:''}`} onCancel={e=>{e.preventDefault();onClose();}} onClick={e=>{if(e.target===ref.current)onClose();}}><div className="modal-heading"><h2>{title}</h2><button className="icon-button" onClick={onClose} aria-label="Close dialog"><X size={21}/></button></div>{children}</dialog>;
+ return <dialog ref={ref} aria-label={title} className={`modal${surface?` ${surface}`:''}`} onCancel={e=>{e.preventDefault();onClose();}} onClick={e=>{if(e.target===ref.current)onClose();}}><div className="modal-heading"><h2>{title}</h2><button className="icon-button" onClick={onClose} aria-label="Close dialog"><X size={21}/></button></div>{children}</dialog>;
 }
 export function EmptyNote({children}:{children:ReactNode}) {return <div className="empty-note">{children}</div>;}

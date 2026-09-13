@@ -36,7 +36,19 @@ import type { MapMarker } from './LiveMap';
    origin, so worker-src stays 'self' rather than being opened to blob:. */
 setWorkerUrl(mapWorkerUrl);
 
-const cssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+// Resolve CSS colour mixes to sRGB before passing them to the map style parser.
+const cssVar = (name: string) => {
+ const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+ if (!value) return '';
+ const canvas = document.createElement('canvas');
+ canvas.width = canvas.height = 1;
+ const context = canvas.getContext('2d');
+ if (!context) return value;
+ context.fillStyle = value;
+ context.fillRect(0, 0, 1, 1);
+ const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+ return `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+};
 
 /* The palette comes from the same generated tokens as everything else, read at runtime rather than
    restated here, so a map cannot be the one surface that kept the old colours. */
@@ -49,7 +61,11 @@ const paint = () => ({
  danger: cssVar('--danger') || '#b42318',
  faint: cssVar('--faint') || '#5d6b80',
  charcoal: cssVar('--charcoal') || '#1f2733',
- surface: cssVar('--surface') || '#ffffff'
+ surface: cssVar('--surface') || '#ffffff',
+ paper: cssVar('--studio-paper') || '#f6f5ef',
+ sage: cssVar('--pale-sage') || '#e8eddf',
+ water: cssVar('--teal-soft') || '#e0eeea',
+ stone: cssVar('--stone') || '#d9ddd2'
 });
 
 /** A circle of `radiusKm` around a point, as a GeoJSON polygon. A GL renderer will happily scale a
@@ -107,6 +123,8 @@ export function TileMap({ markers, summary, link, onTilesFailed }: {
   const c = paint();
   const instance = new MapLibreMap({
    container: host.current,
+   maxPitch: 0,
+   dragRotate: false,
    style: source.styleUrl,
    center: [mapWindow.centre.lng, mapWindow.centre.lat],
    zoom: view.zoom,
@@ -129,6 +147,21 @@ export function TileMap({ markers, summary, link, onTilesFailed }: {
   });
   map.current = instance;
   instance.addControl(new NavigationControl({ showCompass: false }), 'top-right');
+  instance.touchZoomRotate.disableRotation();
+  const reset = () => {
+   const halfLat = (view.spanKm / 2) / 110.574;
+   const halfLng = (view.spanKm / 2) / (111.32 * Math.cos((mapWindow.centre.lat * Math.PI) / 180));
+   instance.fitBounds(
+    [[mapWindow.centre.lng - halfLng, mapWindow.centre.lat - halfLat], [mapWindow.centre.lng + halfLng, mapWindow.centre.lat + halfLat]],
+    { animate: false, padding: 8 }
+   );
+  };
+  const resetButton = document.createElement('button');
+  resetButton.type = 'button';
+  resetButton.className = 'map-reset';
+  resetButton.textContent = 'Reset view';
+  resetButton.addEventListener('click', reset);
+  host.current.append(resetButton);
 
   /* Three ways for streets not to arrive and one answer to all of them. The endpoint can be down,
      the network can be off, and a clinic's wifi can answer the request with its own sign-in page —
@@ -154,6 +187,16 @@ export function TileMap({ markers, summary, link, onTilesFailed }: {
     if (instance.getLayer(layer)) instance.setLayoutProperty(layer, 'visibility', 'none');
    }
 
+   // Keep Positron's road hierarchy and label contrast, tint only the base fills.
+   const fills: Record<string, string> = {
+    park: c.sage, landcover_wood: c.sage, water: c.water,
+    landuse_residential: c.paper, building: c.stone
+   };
+   if (instance.getLayer('background')) instance.setPaintProperty('background', 'background-color', c.paper);
+   for (const [id, colour] of Object.entries(fills)) {
+    if (instance.getLayer(id)?.type === 'fill') instance.setPaintProperty(id, 'fill-color', colour);
+   }
+
    instance.addSource('zones', {
     type: 'geojson',
     data: { type: 'FeatureCollection', features: zones.map(z => ({ ...circle(z.at, z.radiusKm), properties: { name: z.name } })) }
@@ -164,12 +207,7 @@ export function TileMap({ markers, summary, link, onTilesFailed }: {
       framed different cities and Soweto fell off the bottom of one of them. A controller must not
       find that a zone exists or does not depending on which rendering they happen to be looking at.
       Zoom stays in the contract as where the camera starts; the bounds are what it settles on. */
-   const halfLat = (view.spanKm / 2) / 110.574;
-   const halfLng = (view.spanKm / 2) / (111.32 * Math.cos((mapWindow.centre.lat * Math.PI) / 180));
-   instance.fitBounds(
-    [[mapWindow.centre.lng - halfLng, mapWindow.centre.lat - halfLat], [mapWindow.centre.lng + halfLng, mapWindow.centre.lat + halfLat]],
-    { animate: false, padding: 8 }
-   );
+   reset();
 
    instance.addLayer({ id: 'zone-fill', type: 'fill', source: 'zones', paint: { 'fill-color': c.teal, 'fill-opacity': 0.14 } });
    instance.addLayer({ id: 'zone-edge', type: 'line', source: 'zones', paint: { 'line-color': c.tealInk, 'line-width': 1.5, 'line-opacity': 0.55 } });
@@ -204,7 +242,7 @@ export function TileMap({ markers, summary, link, onTilesFailed }: {
    });
   });
 
-  return () => { clearTimeout(clock); drawn.current = false; instance.remove(); map.current = null; };
+  return () => { clearTimeout(clock); drawn.current = false; resetButton.remove(); instance.remove(); map.current = null; };
  }, []);
 
  /* The line follows the estimate it was measured from rather than the map's lifetime: a patient
@@ -239,5 +277,5 @@ export function TileMap({ markers, summary, link, onTilesFailed }: {
   return () => { for (const pin of pins.current) pin.remove(); pins.current = []; };
  }, [markers]);
 
- return <div ref={host} className="livemap-canvas" role="img" aria-label={summary}/>;
+ return <div ref={host} className="livemap-canvas" role="group" aria-label={summary}/>;
 }

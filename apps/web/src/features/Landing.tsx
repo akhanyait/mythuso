@@ -1,34 +1,26 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Apple, ArrowLeft, ArrowRight, Bandage, CalendarClock, CalendarDays, ChevronDown, ClipboardList, Clock3, FileText, Heart, House, IdCard, Leaf, Lock, MapPin, Menu, MessagesSquare, Moon, PersonStanding, ShieldCheck, Stethoscope, UserRoundPlus, Users, UsersRound, Wallet, X } from 'lucide-react';
 import { ServiceIcon } from '../components/UI';
 import { businessModel, liveServices, money, services } from '../lib/catalog';
 import { capabilities, connectedCount } from '../lib/capabilities';
 import { capabilityById, roleById } from '../lib/vetting';
 import { MotionPause } from '../components/MotionPause';
-import { useDecor, useReveal, useScrollProgress } from '../lib/motion';
+import { useAmbientVisibility, useDecor, useReveal, useScrollProgress } from '../lib/motion';
 import { searchForSection } from '../lib/roles';
-import { photographJpeg, photographWebp, roleFor, sectionFor, slides, standing, type HeroDestination, type HeroIcon } from '../lib/hero';
-/* The two cut-outs the page still uses, which are the splits further down rather than the hero.
-   The hero's four photographs are named by packages/catalog/hero.json and turned into addresses by
-   lib/hero.ts, so nothing about which picture belongs to which slide is written here any more. */
-const family = '/banners/care-that-comes-to-you-cutout.webp';
-const elder = '/banners/one-safe-place-cutout.webp';
+import { roleFor, sectionFor, slides, standing, type HeroDestination, type HeroIcon } from '../lib/hero';
+/* Editorial photographs share the hero's natural light and retain the full composition. */
+const familyRecord = '/editorial/family-care.png';
+const nursingStory = '/editorial/nursing-care.png';
 /* Seven seconds. Long enough to read a sentence of banner copy, short enough that a reader who
    wants the next one does not reach for the arrow — and it only ever runs while the page's
    decorative-motion flag is up, so a reader who has stopped motion, or asked their system for
    less of it, is never moved on at all. */
 const SLIDE_MS = 7000;
-/* One pair of addresses, dev and production alike. This used to be two — the dev server served the
-   app at / and this page at /landing.html, the opposite way round from nginx — and that divergence
-   was written up as a debt for weeks because closing it meant moving ninety-one `page.goto('/')`
-   calls in the test suite. It is closed: / is the public page everywhere, /app/ is the product
-   everywhere, and nothing in this repository is exercised at a path that serves the other one.
-
-   `?role=` is the demo login's own parameter (apps/web/src/lib/roles.ts), so a link from this page
-   can open the app already in a workspace — which is what "See the nurse's side" now genuinely
-   does, rather than landing a curious reader on a patient's home screen. */
-const appHref = '/app/';
-const nurseHref = '/app/?role=nurse';
+/* Public content and role dashboards share the main address. A role selects a fictional
+   preview workspace; real authentication remains the identity service's responsibility. */
+const appHref = '/?role=patient';
+const LoginPanel = lazy(() => import('./LoginPanel'));
+const nurseHref = '/?role=nurse';
 const homeHref = '/';
 /* And the status page, in the directory form nginx serves. Linking to the bare .html would
    take a reader through a redirect on a metered connection. */
@@ -49,6 +41,7 @@ const barSections = sections.filter(([id]) => id in barIcons);
    further down, which scripts/check-boundaries.mjs reads out of this file by pattern and compares
    against the catalogue — a literal that fails the build the moment it stops being true. */
 const fromPrice = Math.min(...liveServices.map(s => s.price));
+const serviceCategories = ['All care', ...new Set(liveServices.map(s => s.category))];
 const nurseShare = Math.round((1 - businessModel.unitEconomics.platformShare) * 100);
 const plans = businessModel.subscriptions.filter(s => s.price && s.phase <= 3);
 const fromPlan = Math.min(...plans.map(s => s.price!));
@@ -57,7 +50,7 @@ const nurseRole = roleById('nurse')!;
    described in adjectives. If a check is added to the contract it appears here; if one is removed,
    the page stops claiming it. */
 const nurseChecks = nurseRole.checks;
-const renewal = (months: number | null) => months === null ? 'Verified once, at onboarding' : `Re-checked every ${months} months`;
+const renewal = (months: number | null) => months === null ? 'At onboarding' : `Every ${months} months`;
 
 /* What the platform refuses, in the contract's own words. These sentences are rendered word for
    word on all three platforms; quoting them here rather than paraphrasing them is the point. */
@@ -76,28 +69,32 @@ const refusals = ([['nurse', 'view-clinical-record'], ['nurse', 'view-protected-
    the only difference between two rows. */
 const tints = ['lime', 'peach', 'lilac'] as const;
 const steps = [
- { icon: CalendarClock, title: 'You book, and see the price first', body: 'Pick what you need and a time that suits you. The full price is on the screen before you confirm — no quote, no call-out fee, nothing added afterwards.' },
- { icon: House, title: 'A registered nurse comes to you', body: 'A nurse registered with the South African Nursing Council arrives with a connected kit, and confirms it is the right house with a code only you hold.' },
- { icon: Stethoscope, title: 'A registered doctor decides', body: 'Readings go to a doctor who reviews them and decides what happens next. Their name is on the decision, and everything lands in your record.' }
+ { icon: CalendarClock, person: 'You', portrait: 'patient', title: 'You book, with the price upfront', body: 'Pick the care you need and a time that suits you. See the full price before you confirm, with no call-out fee or surprise extras.' },
+ { icon: House, person: 'Your nurse', portrait: 'nurse', title: 'A registered nurse visits you', body: 'Your nurse is registered with the South African Nursing Council. They arrive with a connected kit and confirm your visit using a code only you hold.' },
+ { icon: Stethoscope, person: 'Your doctor', portrait: 'doctor', title: 'Your doctor plans the next step', body: 'A registered doctor reviews your readings and decides what comes next. They may also decide to visit you at home. Their decisions and visit notes stay in your Health Passport.' }
 ];
 const passPoints = [
  { icon: ShieldCheck, title: 'Share one visit, not a history', body: 'Access is granted entry by entry, for as long as you say, and withdrawn the moment you withdraw it.' },
  { icon: Users, title: 'Pay for someone without reading their file', body: 'Booking and paying for a family member is one decision. Seeing their record is a different one, and only they can make it.' },
  { icon: ClipboardList, title: 'Take all of it with you', body: 'Every visit, reading, result and document, exported whenever you want it, in a form another clinician can read.' }
 ];
-/* Four figures, each one derived from a contract rather than asserted. A statistic that has to be
-   typed into a marketing page is a statistic nothing can hold to account.
-
-   Each one carries the file it was read out of, on the page, in a chip above the numeral. The
-   figure was already derived; naming the source turns that from something a reader has to take on
-   trust into something they can go and open. The file name is the only part typed here, and a file
-   name is a structure rather than a claim — if one moves, the import above it stops compiling. */
+/* Prices and counts are derived from the service contracts; labels use patient-facing language. */
 const figures = [
- { source: 'services.json', value: money(fromPrice), label: 'Where a visit starts. The whole price is shown before you confirm.' },
- { source: 'business-model.json', value: `${nurseShare}%`, label: 'Of every visit fee is paid to the nurse who did the visit.' },
- { source: 'services.json', value: String(liveServices.length), label: `Services a nurse can be dispatched to at launch, from a catalogue of ${services.length}.` },
- { source: 'vetting.json', value: String(nurseChecks.length), label: 'Checks that must pass before a nurse attends a first visit.' }
+ { source: 'Clear pricing', contract: 'services.json', value: money(fromPrice), unit: 'Starting price · per visit', label: 'Know the full price before you confirm.' },
+ { source: 'For our nurses', contract: 'business-model.json', value: `${nurseShare}%`, unit: 'Of each visit fee', label: 'Paid to the nurse who cares for you.' },
+ { source: 'Care at home', contract: 'services.json', value: String(liveServices.length), unit: 'Services at launch', label: `Available for home visits, from a catalogue of ${services.length}.` },
+ { source: 'Carefully checked', contract: 'vetting.json', value: String(nurseChecks.length), unit: 'Required checks', label: 'Must pass before a nurse’s first visit.' }
 ];
+
+function FigureValue({ value }: { value: string }) {
+ return <strong className="landing-figure-value">
+  <span className="visually-hidden">{value}</span>
+  <span className="figure-value-visual" aria-hidden="true">{Array.from(value).map((character, index) =>
+   <span key={index} className={`figure-character${/\d/.test(character) ? ' is-digit' : ' is-affix'}`}>
+    <span className="figure-character-ink" style={{ ['--digit-order' as string]: index }}>{character === ' ' ? '\u00a0' : character}</span>
+   </span>)}</span>
+ </strong>;
+}
 
 const questions: [string, React.ReactNode][] = [
  ['Is this instead of my clinic or my doctor?',
@@ -140,169 +137,95 @@ function HeroGlyph({ name, size }: { name: HeroIcon; size: number }) {
 const heroHref = (goes: HeroDestination) => {
  if (roleFor(goes)) return nurseHref;
  const section = sectionFor(goes);
- return section ? `${appHref}${searchForSection(section)}` : appHref;
+ return section ? `${appHref}&${searchForSection(section).slice(1)}` : appHref;
 };
 
-/* The hero, which is the founder's four banners drawn rather than shown.
- *
- * He supplied four finished 1774×887 compositions on 13 September and asked for the pieces loose:
- * "strip the images and exact text and other assets to make them loose and apply them dynamically".
- * packages/catalog/hero.json is what came out of taking them apart, and every word below is read
- * from it. Nothing in this function is typed copy — if a sentence is wanted on this banner it goes
- * in the contract, because a picture of a headline is a headline nobody can translate, nobody can
- * tab to and no screen reader can read, and eleven locales carry this product's interface.
- *
- * SO EVERYTHING THAT WAS A PIXEL IS AN ELEMENT. The eyebrow is a pill, the headline is one sentence
- * in two tones, the call to action is a link that genuinely goes somewhere, the three trust marks
- * are tinted discs with their own words beside them, and the two floating cards are boxes over the
- * photograph. The photograph is the only thing left that is a photograph.
- *
- * A CAROUSEL IS THE MOST DANGEROUS THING ON THIS PAGE, and the rules the last one was written to are
- * unchanged — docs/ARCHITECTURE.md records the afternoon the one before that cost.
- *
- *   Nothing moves a box. Both halves of a slide are stacked in one grid cell with every sibling and
- *   cross-fade on opacity, so each column is the height of its tallest slide in every frame of the
- *   change and between changes. There is no track sliding sideways.
- *
- *   Rotation is the page's decorative-motion flag and not a second system. `useDecor()` is the same
- *   hook the hero's drifting lines answer to and the same one `<MotionPause/>` clears, so the one
- *   control below the copy stops the four slides, the lines and the wash behind the photograph
- *   together — which is the mechanism WCAG 2.2.2 asks for rather than three of them.
- *
- *   Reduced motion removes it rather than shortening it. The flag is never set for a reader who has
- *   asked their system for less, so nothing rotates, no pause control is rendered, and the first
- *   slide is simply the banner. The arrows still work.
- *
- *   Only the slide showing exists for a reader. The other three are inert and visibility:hidden in
- *   both columns, so they are out of the tab order, out of the accessibility tree, and out of the
- *   text a page search — or the contrast audit in tests/landing.spec.ts — walks. That is also what
- *   keeps exactly one <h1> and exactly one call to action on the page at a time.
- *
- * THE TWO STANDING LINES ARE NOT PART OF A SLIDE. The place note above the picture and the
- * photography disclosure below it are in the figure itself, where they are on all four at once: a
- * sentence saying nobody in these photographs is a MyThuso nurse is not something a rotation may
- * carry off the screen. Both sit where the founder put them, at the top and bottom right of the
- * picture, rather than in a footnote — that is where somebody looking at a face actually looks. */
+/* Editorial cover: a typographic opening, a cinematic image, and an independent price panel.
+   The four contract-backed stories retain their real destinations and accessible controls. */
+const editorialPhotos: Record<string, string> = {
+ 'care-that-comes-to-you': '/editorial/care-at-home.png',
+ 'for-your-family': '/editorial/family-care.png',
+ 'everyday-wellbeing': '/editorial/everyday-wellbeing.png',
+ 'for-the-nurses': '/editorial/nursing-care.png'
+};
+
 function Hero() {
  const { playing } = useDecor();
  const [index, setIndex] = useState(0);
- /* Holding still while somebody is actually reading the banner. A pointer that genuinely hovers is
-    the only one this listens to: on a touch screen the browser synthesises a mouseenter under a
-    finger and never a leave, so hover-to-pause there is a carousel that stops for the rest of the
-    visit the first time it is tapped. The pause control and the arrows are what a touch reader
-    has, and both work. */
- const canHover = typeof matchMedia === 'function' && matchMedia('(hover: hover) and (pointer: fine)').matches;
  const [held, setHeld] = useState(false);
+ const canHover = typeof matchMedia === 'function' && matchMedia('(hover: hover) and (pointer: fine)').matches;
  const rotating = playing && !held;
- /* A timeout rather than an interval, keyed on the slide showing. Pressing an arrow therefore
-    restarts the seven seconds instead of inheriting whatever was left of them — a reader who has
-    just asked for the next banner should not be moved on again half a second later. */
  useEffect(() => {
   if (!rotating) return;
   const timer = setTimeout(() => setIndex(i => (i + 1) % slides.length), SLIDE_MS);
   return () => clearTimeout(timer);
  }, [rotating, index]);
  const step = (by: number) => (index + by + slides.length) % slides.length;
- const go = (by: number) => setIndex(step(by));
- /* What a slide is called, for an arrow's label and a screen reader's slide name: its own headline,
-    both tones, in the contract's words. Nothing here invents a name for a slide. */
  const named = (i: number) => `${slides[i].headline.lead} ${slides[i].headline.accent}`;
- /* Held while the pointer is over something a person is reading — the words or the picture — and
-    not while it is over the controls. It used to be the whole section, and that turned pressing
-    Play into a control that appeared to do nothing: the cursor that had just pressed it was still
-    inside the banner, so the carousel came straight back to a stop. */
  const hold = canHover ? { onMouseEnter: () => setHeld(true), onMouseLeave: () => setHeld(false) } : {};
- return <section className="landing-hero" role="group" aria-roledescription="carousel" aria-label="MyThuso in four pictures">
-  <div className="landing-hero-column">
-   <div className="landing-hero-copy" {...hold}>
-    {slides.map((slide, i) => <article key={slide.id} className={`landing-hero-slide${i === index ? ' is-on' : ''}`}
-     aria-roledescription="slide" aria-label={`${i + 1} of ${slides.length}`} aria-hidden={i !== index} inert={i !== index}>
-     {/* The eyebrow is a peach pill with the word in ink. It is orange in the supplied art and it
-         cannot be here: brandOrange measures 2.67:1 on this ground, and the brand's own rule in
-         packages/design-tokens/tokens.json is that it is the chevron and never a word. The tint it
-         sat on is kept, so the pill still reads warm; ink on peach at 42% over paper is 11.04. */}
-     <p className="landing-hero-eyebrow">{slide.eyebrow}</p>
-     {/* One sentence in two tones, split where the contract splits it rather than at a line break —
-         a headline coloured by where the text happens to wrap says something different on every
-         screen. The accent is the brand green at 3.19:1 on paper, which SC 1.4.3 allows because
-         this is large text and nothing smaller on this page is ever set in it. The space between
-         the two spans is what keeps the accessible name one sentence. */}
+ return <section className="landing-hero editorial-hero" role="group" aria-roledescription="carousel" aria-label="MyThuso in four pictures" data-ambient="paused">
+  <div className="landing-hero-copy" {...hold}>
+   {slides.map((slide, i) => <article key={slide.id} className={`landing-hero-slide${i === index ? ' is-on' : ''}`}
+    aria-roledescription="slide" aria-label={`${i + 1} of ${slides.length}`} aria-hidden={i !== index} inert={i !== index}>
+    <div className="editorial-heading">
+     <p className="landing-hero-eyebrow"><span/> {slide.eyebrow}</p>
      <h1><span>{slide.headline.lead}</span>{' '}<span className="landing-h1-accent">{slide.headline.accent}</span></h1>
+    </div>
+    <div className="editorial-intro">
+     <span className="editorial-star" aria-hidden="true">✳</span>
      <p className="landing-hero-lede">{slide.body}</p>
-     {/* A real button that navigates, which is the whole argument for taking these apart: in the
-         supplied JPEG it is a rectangle that does nothing. Where each destination leads is in
-         lib/hero.ts, and two of the four open a section of the app rather than its front door. */}
-     <a className="primary" href={heroHref(slide.action.goes)} tabIndex={i === index ? undefined : -1}>
-      {slide.action.label}<ArrowRight size={18}/>
-     </a>
-     {/* The three trust marks. The tint alternates by position — mint, peach, mint — because that
-         is rhythm rather than meaning, and it is never the only thing separating two marks: each
-         has its own glyph and its own two words. The contract gives the marks no tint of their
-         own, which is why this is the one thing on the banner decided here rather than there. */}
-     <ul className="landing-hero-marks">
-      {slide.marks.map((mark, n) => <li key={mark.icon}>
-       <span className={`landing-hero-disc ${n % 2 ? 'tint-peach' : 'tint-mint'}`}><HeroGlyph name={mark.icon} size={21}/></span>
-       <span>{mark.lines.map(line => <i key={line}>{line}</i>)}</span>
-      </li>)}
-     </ul>
-    </article>)}
-   </div>
-   {/* The controls, at the foot of the copy where the supplied art puts the counter: which of four,
-       how long this one has left, the page's pause control, and the two arrows. */}
-   <div className="landing-hero-foot">
-    <p className="landing-slide-index"><span className="visually-hidden">Banner </span>{String(index + 1).padStart(2, '0')}<i aria-hidden="true">/</i><span className="visually-hidden">of </span>{String(slides.length).padStart(2, '0')}</p>
-    {/* Segments rather than a bar, which is how docs/DESIGN-LANGUAGE.md draws progress everywhere
-        else on this page. The current segment fills over the seven seconds so a reader can see the
-        next banner coming instead of being surprised by it — a finite animation, on a child with
-        nothing in it, gated on the same flag, and held still while the pointer is. */}
-    <span className={`landing-slide-rule${rotating ? '' : ' is-still'}`} aria-hidden="true" style={{ ['--slide-ms' as string]: `${SLIDE_MS}ms` }}>
-     {slides.map((slide, i) => <i key={slide.id} className={i === index ? 'is-on' : ''}><b/></i>)}
-    </span>
-    <MotionPause/>
-    {/* The two arrows are one group so that a narrow row wraps them together. Loose, the second one
-        dropped onto a line of its own under a 390px phone and sat there as a single orphan. */}
-    <span className="landing-slide-steps">
-     <button type="button" className="landing-slide-step m-press" onClick={() => go(-1)} aria-label={`Show the previous banner: ${named(step(-1))}`}><ArrowLeft size={18}/></button>
-     <button type="button" className="landing-slide-step m-press" onClick={() => go(1)} aria-label={`Show the next banner: ${named(step(1))}`}><ArrowRight size={18}/></button>
-    </span>
-   </div>
+     <a className="primary" href={heroHref(slide.action.goes)} tabIndex={i === index ? undefined : -1}>{slide.action.label}<ArrowRight size={18}/></a>
+    </div>
+   </article>)}
   </div>
-  <figure className="landing-portrait" {...hold}>
-   <p className="landing-portrait-place"><MapPin size={15} aria-hidden="true"/>{standing.place}</p>
-   <div className="landing-portrait-frame">
-    {slides.map((slide, i) => <div key={slide.id} className={`landing-slide${i === index ? ' is-on' : ''}`}
-     aria-hidden={i !== index} inert={i !== index}>
-     {/* WebP first and the same crop as a JPEG behind it, and only the banner showing first is
-         fetched eagerly — three more photographs on a metered connection before anybody has asked
-         for them is exactly what this product may not do. */}
-     <img src={photographWebp(slide)} alt="" aria-hidden="true"
-      loading={i ? 'lazy' : 'eager'} fetchPriority={i ? 'low' : 'high'} decoding="async"
-      onError={event => { const img = event.currentTarget; if (!img.src.endsWith('.jpg')) img.src = photographJpeg(slide); }}/>
-     {slide.cards.map(card => <div key={card.title} className={`landing-hero-card at-${card.at}`}>
-      <span className={`landing-hero-disc tint-${card.tint}`}><HeroGlyph name={card.icon} size={20}/></span>
-      <span><i>{card.title}</i>{card.lines.map(line => <span key={line}>{line}</span>)}</span>
+  <div className="editorial-story">
+   <figure className="landing-portrait" {...hold}>
+    <p className="landing-portrait-place"><MapPin size={15} aria-hidden="true"/>{standing.place}</p>
+    <div className="landing-portrait-frame">
+     {slides.map((slide, i) => <div key={slide.id} className={`landing-slide${i === index ? ' is-on' : ''}`} aria-hidden={i !== index} inert={i !== index}>
+      <div className="editorial-photo-visual">
+       <img src={editorialPhotos[slide.id]} alt="" aria-hidden="true"
+        loading={i ? 'lazy' : 'eager'} fetchPriority={i ? 'low' : 'high'} decoding="async"
+        onError={event => { const img = event.currentTarget; if (!img.src.endsWith('/care-at-home.png')) img.src = '/editorial/care-at-home.png'; }}/>
+      </div>
+      <div className="editorial-photo-footer">
+       <div className="editorial-photo-caption"><span>MYTHUSO / EVERYDAY CARE</span><strong>More life. Less waiting.</strong></div>
+      <div className="editorial-photo-cards">{slide.cards.map(card => <div key={card.title} className={`landing-hero-card at-${card.at}`}>
+       <span className={`landing-hero-disc tint-${card.tint}`}><HeroGlyph name={card.icon} size={20}/></span>
+       <span><i>{card.title}</i>{card.lines.map(line => <span key={line}>{line}</span>)}</span>
+      </div>)}</div>
+      </div>
      </div>)}
-    </div>)}
-   </div>
-   <figcaption>{standing.photographNote}</figcaption>
-  </figure>
-  {/* The dark bar across the foot of the hero. It is the four sections under this one, taken from
-      the same `sections` list the navigation is built from rather than typed again — so a section
-      added to the page appears in both places or in neither, and neither can promise a destination
-      the other has forgotten. "How it works" is not among them: it already has its own control in
-      the navigation above, and one page offering two doors into one section is how a navigation
-      starts disagreeing with itself.
-
-      It is a <nav> with a label rather than a decorative strip, because for a reader arriving by
-      keyboard it is four links and nothing else. It sits outside the four slides, so it is not
-      something a rotation carries away. */}
-  <nav className="studio-bar-wrap" aria-label="Jump to a section">
-   <ul className="studio-bar">
-    {barSections.map(([id, label]) => <li key={id}>
-     <a href={`#${id}`}>{barIcons[id]}<span>{label}</span><i aria-hidden="true"><ArrowRight size={17}/></i></a>
-    </li>)}
-   </ul>
-  </nav>
+    </div>
+    <figcaption>{standing.photographNote}</figcaption>
+   </figure>
+   <aside className="editorial-care-note">
+    <span className="editorial-note-top">CARE, ON YOUR TERMS<House size={22}/></span>
+    <div className="care-orbit" aria-hidden="true"><i/><i/><i/><Heart size={45} strokeWidth={1.2}/></div>
+    <div><span>Home visits from</span><strong>{money(fromPrice)}<i> / visit</i></strong><p>One clear price.<br/>Care in your own space.</p></div>
+    <a href="#services">Find your care<ArrowRight size={20}/></a>
+    <small>Planned launch pricing</small>
+   </aside>
+  </div>
+  <div className="landing-hero-foot">
+   <p className="landing-slide-index"><span className="visually-hidden">Banner </span>{String(index + 1).padStart(2, '0')}<i aria-hidden="true">/</i><span className="visually-hidden">of </span>{String(slides.length).padStart(2, '0')}</p>
+   <span className={`landing-slide-rule${rotating ? '' : ' is-still'}`} aria-hidden="true" style={{ ['--slide-ms' as string]: `${SLIDE_MS}ms` }}>
+    {slides.map((slide, i) => <i key={slide.id} className={i === index ? 'is-on' : ''}><b/></i>)}
+   </span>
+   <MotionPause/>
+   <span className="landing-slide-steps">
+    <button type="button" className="landing-slide-step m-press" onClick={() => setIndex(step(-1))} aria-label={`Show the previous banner: ${named(step(-1))}`}><ArrowLeft size={18}/></button>
+    <button type="button" className="landing-slide-step m-press" onClick={() => setIndex(step(1))} aria-label={`Show the next banner: ${named(step(1))}`}><ArrowRight size={18}/></button>
+   </span>
+  </div>
+  <div className="editorial-trust">
+   {slides.map((slide, i) => <ul key={slide.id} className="landing-hero-marks" hidden={i !== index}>
+    {slide.marks.map(mark => <li key={mark.icon}><span className="landing-hero-disc tint-mint"><HeroGlyph name={mark.icon} size={21}/></span><span>{mark.lines.map(line => <i key={line}>{line}</i>)}</span></li>)}
+   </ul>)}
+  </div>
+  <nav className="studio-bar-wrap" aria-label="Jump to a section"><ul className="studio-bar">
+   {barSections.map(([id, label]) => <li key={id}><a href={`#${id}`}>{barIcons[id]}<span>{label}</span><i aria-hidden="true"><ArrowRight size={17}/></i></a></li>)}
+  </ul></nav>
  </section>;
 }
 
@@ -319,8 +242,18 @@ function Head({ index, eyebrow, title, body }: { index: string; eyebrow: string;
    are part of the layout rather than something tucked under it. */
 export function Landing() {
  const [menu, setMenu] = useState(false);
+ const [login, setLogin] = useState(false);
  const [open, setOpen] = useState<number | null>(0);
+ const [serviceQuery, setServiceQuery] = useState('');
+ const [serviceCategory, setServiceCategory] = useState('All care');
+ const serviceSearch = useRef<HTMLInputElement>(null);
+ const query = serviceQuery.trim().toLocaleLowerCase();
+ const matchingServices = liveServices.filter(s =>
+  (serviceCategory === 'All care' || s.category === serviceCategory) &&
+  `${s.name} ${s.description} ${s.category}`.toLocaleLowerCase().includes(query));
+ const resetServices = () => { setServiceQuery(''); setServiceCategory('All care'); serviceSearch.current?.focus(); };
  useReveal();
+ useAmbientVisibility();
  /* This page has motion that starts on its own, so it says so. Nothing endless runs until the flag
     is up, which means a reader whose script never loaded gets a still page rather than a moving one
     with no way to stop it. */
@@ -347,41 +280,68 @@ export function Landing() {
    <nav className={menu ? 'is-open' : ''} aria-label="Sections">
     {sections.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setMenu(false)}>{label}</a>)}
    </nav>
-   <a className="primary landing-cta" href={appHref}>Open the app<ArrowRight size={16}/></a>
+   <button className="primary landing-cta" type="button" aria-haspopup="dialog" onClick={() => setLogin(true)}>Log in<ArrowRight size={16}/></button>
    <button className="icon-button landing-menu" aria-label={menu ? 'Close menu' : 'Open menu'} aria-expanded={menu} onClick={() => setMenu(m => !m)}>{menu ? <X size={20}/> : <Menu size={20}/>}</button>
    <i className="landing-progress" aria-hidden="true"/>
   </header>
 
+  {login && <Suspense fallback={<p role="status">Opening login…</p>}><LoginPanel onClose={() => setLogin(false)}/></Suspense>}
   <Hero/>
 
-  <section className="landing-figures" aria-label="What the catalogue says">
-   {figures.map(f => <div key={f.label} data-reveal>
-    <span className="landing-figure-source">{f.source}</span>
-    <strong>{f.value}</strong><span>{f.label}</span>
+  <section className="landing-figures" aria-label="Care, clearly explained">
+   {figures.map((f, index) => <div key={f.source} data-reveal style={{ ['--figure-order' as string]: index }}>
+    <span className="landing-figure-source" data-source={f.contract}>{f.source}</span>
+    <FigureValue value={f.value}/>
+    <p className="landing-figure-unit">{f.unit}</p>
+    <span className="landing-figure-detail">{f.label}</span>
    </div>)}
-   <p className="landing-figures-note" data-reveal>Each figure names the contract file it is read from. Not one of them is typed onto this page, so none of them can drift away from what the app charges.</p>
+   <p className="landing-figures-note" data-reveal>Planned launch pricing and services. You will always see the full price before confirming a visit.</p>
   </section>
 
-  <section id="how" className="landing-section">
-   <Head index="01" eyebrow="How it works" title="The nurse is the hands. The doctor is the decision."
-    body="Software can flag what a doctor should look at. It never diagnoses, never prescribes and never signs anything. That order is the design of the service rather than a policy that could be relaxed later."/>
+  <section id="how" className="landing-section" data-ambient="paused">
+   <Head index="01" eyebrow="How it works" title="Your care. A team around you."
+    body="Your nurse and doctor work together around your needs, including a doctor’s home visit when they decide it is needed. Software supports the team; it never diagnoses or prescribes."/>
    <ol className="landing-steps">{steps.map((s, i) => <li key={s.title} data-reveal style={{ ['--i' as string]: i }}>
-    <span className="landing-step-index">{String(i + 1).padStart(2, '0')}</span>
-    <span className="tile-icon" data-tint={tints[i]}><s.icon size={20}/></span>
+    <div className="landing-step-top"><span className="landing-step-index">{String(i + 1).padStart(2, '0')}</span>
+     <span className="landing-step-person-label"><s.icon size={16} aria-hidden="true"/>{s.person}</span>
+    </div>
+    <div className="step-person-orbit" data-tint={tints[i]} aria-hidden="true">
+     <i/><i/><i/>
+     <img src={`/editorial/step-${s.portrait}.jpg`} alt="" loading="lazy" decoding="async" width="144" height="144"/>
+    </div>
     <h3>{s.title}</h3><p>{s.body}</p>
    </li>)}</ol>
+   <p className="step-portrait-note">Illustrative portraits.</p>
    <p className="landing-note" data-reveal>The target being built to is under an hour from booking to arrival, in the areas MyThuso opens in. It is a target, not a promise, and nothing on this page dispatches anybody.</p>
   </section>
 
-  <section id="services" className="landing-section tinted">
+  <section id="services" className="landing-section tinted" data-ambient="paused">
    <Head index="02" eyebrow="What a nurse is sent to do" title="The visits that should not cost you a day."
     body={<>At launch a nurse can be dispatched to {liveServices.length} of the {services.length} services in the catalogue. Each price below is the price paid: no call-out fee, no charge per kilometre, and no bill afterwards that nobody mentioned.</>}/>
-   <ul className="landing-services">{liveServices.map((s, i) => <li key={s.id} data-reveal style={{ ['--i' as string]: i % 3 }}>
-    <span className="service-icon"><ServiceIcon name={s.icon} size={20}/></span>
+   <div className="landing-service-finder">
+    <label className="landing-service-search" htmlFor="landing-service-search">
+     <span>Find the care you need</span>
+     <input ref={serviceSearch} id="landing-service-search" type="search" placeholder="Try blood tests or wound care" value={serviceQuery} onChange={e => setServiceQuery(e.target.value)} aria-controls="landing-service-results"/>
+    </label>
+    <div className="landing-service-categories" role="group" aria-label="Filter services by category">
+     {serviceCategories.map(category => <button type="button" key={category} aria-pressed={serviceCategory === category} onClick={() => setServiceCategory(category)}>{category}</button>)}
+    </div>
+    <div className="landing-service-result-note">
+     <p aria-live="polite" aria-atomic="true">{matchingServices.length} {matchingServices.length === 1 ? 'service' : 'services'}{serviceCategory !== 'All care' ? ` in ${serviceCategory.toLocaleLowerCase()}` : ' at launch'}</p>
+     {(serviceQuery || serviceCategory !== 'All care') && <button type="button" onClick={resetServices}>Reset filters</button>}
+    </div>
+   </div>
+   <ul id="landing-service-results" className="landing-services">{matchingServices.map((s, i) => <li key={s.id} data-reveal="shown" style={{ ['--i' as string]: i % 3 }}>
+    <span className="service-icon service-icon-orbit" aria-hidden="true"><i/><i/><i/><ServiceIcon name={s.icon} size={20}/></span>
     <h3>{s.name}</h3>
     <p>{s.description}</p>
     <p className="landing-price"><strong>From {money(s.price)}</strong><span>{s.duration} min</span></p>
    </li>)}</ul>
+   {matchingServices.length === 0 && <div className="landing-service-empty">
+    <h3>No services match your search.</h3>
+    <p>Try a shorter search or choose another category.</p>
+    <button type="button" onClick={resetServices}>Show all launch services<ArrowRight size={18}/></button>
+   </div>}
    <p className="landing-note" data-reveal>Later-phase services — screening bundles, men&rsquo;s health, mental-health check-ins and allied health — appear in the app marked with the phase they arrive in. None of them can be booked, here or there.</p>
   </section>
 
@@ -396,7 +356,7 @@ export function Landing() {
     </li>)}</ul>
    </div>
    <figure className="landing-portrait" data-reveal>
-    <div className="landing-portrait-frame soft"><img src={elder} alt="" aria-hidden="true"/></div>
+    <div className="landing-story-photo"><img src={familyRecord} alt="" aria-hidden="true" loading="lazy" width="1792" height="1024"/></div>
     <figcaption>Illustrative photograph.</figcaption>
    </figure>
   </section>
@@ -431,21 +391,34 @@ export function Landing() {
     <a className="secondary landing-secondary" href={nurseHref}>See the nurse's side<ArrowRight size={16}/></a>
    </div>
    <figure className="landing-portrait" data-reveal>
-    <div className="landing-portrait-frame soft"><img src={family} alt="" aria-hidden="true"/></div>
+    <div className="landing-story-photo"><img src={nursingStory} alt="" aria-hidden="true" loading="lazy" width="1792" height="1024"/></div>
     <figcaption>Illustrative photograph.</figcaption>
    </figure>
   </section>
 
-  <section id="safety" className="landing-section tinted">
-   <Head index="06" eyebrow="Safety" title="The parts we will not shortcut."
-    body={<>Home healthcare only works if the governance is heavier than the app. These are the {nurseChecks.length} checks a nurse passes before a first visit, held as a contract the three apps read, and four things the platform refuses outright.</>}/>
-   <ul className="landing-checks">{nurseChecks.map((c, i) => <li key={c.id} data-reveal style={{ ['--i' as string]: i % 4 }}>
-    <h3>{c.name}</h3>
-    <p>{c.detail}</p>
-    <p className="landing-cadence">{renewal(c.renewMonths)}</p>
+  <section id="safety" className="landing-section safety-section" aria-labelledby="safety-title">
+   <div className="safety-heading">
+    <header>
+     <p className="landing-eyebrow"><i>06</i>Patient safety</p>
+     <h2 id="safety-title">Safety is a condition of care.</h2>
+     <p className="safety-intro">Professional registration, identity and clinical readiness must be checked before care begins. These are the nurse verification requirements for our planned launch, with review schedules shown for each check.</p>
+    </header>
+    <aside className="safety-standard">
+     <ShieldCheck size={32} strokeWidth={1.5} aria-hidden="true"/>
+     <h3>Verification is mandatory</h3>
+     <p>All {nurseChecks.length} nurse checks must pass before a first visit can be accepted.</p>
+    </aside>
+   </div>
+   <div className="safety-register-title"><h3>Nurse verification requirements</h3><span>{nurseChecks.length} required checks</span></div>
+   <div className="safety-register-columns" aria-hidden="true"><span>Requirement</span><span>How it is checked</span><span>Review schedule</span></div>
+   <ul className="landing-checks">{nurseChecks.map((c, i) => <li key={c.id}>
+    <div className="safety-check-heading"><span className="safety-check-number" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span><h3>{c.name}</h3></div>
+    <p className="safety-check-detail">{c.detail}</p>
+    <p className="landing-cadence"><Clock3 size={15} aria-hidden="true"/><span><span className="safety-review-label">Review schedule</span>{renewal(c.renewMonths)}</span></p>
    </li>)}</ul>
-   <div className="landing-refusals" data-reveal>
-    <h3>And four things it refuses</h3>
+   <div className="landing-refusals">
+    <h3>Access and clinical boundaries</h3>
+    <p className="safety-boundaries-intro">Rules that protect your records and keep clinical decisions with authorised professionals.</p>
     <ul>{refusals.map(r => <li key={r.capability}>
      <strong>{r.title}</strong><p>{r.sentence}</p>
     </li>)}</ul>

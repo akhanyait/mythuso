@@ -18,6 +18,7 @@ test('booking requires acknowledgement and creates a demo visit', async ({page})
   await page.getByRole('button',{name:/Vitals & chronic check/}).first().click();
   const dialog=page.getByRole('dialog');
   await dialog.getByLabel('Who is this visit for?').selectOption('Nomsa Molefe');
+  await dialog.getByRole('button',{name:'Continue'}).click(); // Who → Where
   await dialog.getByRole('button',{name:'Continue'}).click();
   // the second day the app offers, whatever date that is today — the strip used to be hard-coded
   await dialog.locator('.date-chip').nth(1).click();

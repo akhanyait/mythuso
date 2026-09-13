@@ -91,9 +91,9 @@ test('the care team names who has been in the record and what that does not gran
   /* Both clinicians, each under the registration the vetting register holds them to. */
   /* Read, not typed. packages/catalog/passport.json owns the reviewer, and a boundary check refuses
      a second copy — including one in a test, which is where a stale number survives longest. */
-  await expect(page.locator('.record-row').filter({ hasText: passport.reviewer.name }))
+  await expect(page.locator('.clinician-profile').filter({ hasText: passport.reviewer.name }))
     .toContainText(passport.reviewer.registration);
-  await expect(page.locator('.record-row').filter({ hasText: 'Sister Naledi Mokoena' })).toContainText('SANC 20016688');
+  await expect(page.locator('.clinician-profile').filter({ hasText: 'Sister Naledi Mokoena' })).toContainText('SANC 20016688');
   /* And the limit, which is the vetting contract's own refusal rather than a paraphrase. */
   await expect(page.getByText('A protected category is released by the patient, entry by entry, even to a treating doctor.')).toBeVisible();
 });

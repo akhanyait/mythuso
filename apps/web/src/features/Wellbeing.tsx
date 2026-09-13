@@ -61,6 +61,7 @@ export function LiveWell({ entries, onWrite, onRemove, nextVisit, viewVisit, nav
    <h1>In your own words</h1>
    <p>{whatItIs.statement}</p></div>
   <NotConnected of={capabilityId}/>
+  <section className="wb-atmosphere"><span aria-hidden="true"><Moon size={28}/></span><div><h2>A moment to check in.</h2><p>Choose a topic below and write what matters to you today.</p></div></section>
   <div className="wb-columns">
    <div className="wb-main">
     {/* The sentence the whole feature stands on, above the field rather than in the small print

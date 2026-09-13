@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, HandCoins, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, NotebookPen, PenLine, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, Users, UserPlus, Wallet, Zap } from 'lucide-react';
-import { EmptyNote, Pill, SectionTitle, ServiceIcon } from '../components/UI';
+import { Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
 import { EmptyState, StateBlock, useOffline, type LoadState } from '../components/States';
@@ -21,7 +21,8 @@ import {
  readingSets, reviewedBy, seriesFor
 } from '../lib/passport';
 import { CancelledVisit, PastVisit } from './VisitSummary';
-import { nurseFor } from '../lib/arrival';
+import { nurseFor, assignedNurse } from '../lib/arrival';
+import { ClinicianProfile } from '../components/ClinicianProfile';
 import businessModel from '../../../../packages/catalog/business-model.json';
 /* One service, one card, one symbol.
  *
@@ -48,7 +49,8 @@ function ServiceCard({service,onOpen}:{service:Service;onOpen:()=>void}) {
 export function Services({book,open,navigate,query='',forPerson,clearPerson}:{book:(s:Service)=>void;open:(s:string)=>void;navigate:(s:string)=>void;query?:string;forPerson?:string|null;clearPerson?:()=>void}) {
  const [category,setCategory]=useState('All services');
  const [search,setSearch]=useState(query);
- const filtered=services.filter(s=>(category==='All services'||s.category===category)&&`${s.name} ${s.description}`.toLowerCase().includes(search.toLowerCase()));
+ const clearFilters=()=>{setSearch('');setCategory('All services');};
+ const filtered=services.filter(s=>(category==='All services'||s.category===category)&&`${s.name} ${s.description}`.toLowerCase().includes(search.trim().toLowerCase()));
  const bookable=filtered.filter(s=>s.phase===1);
  const planned=filtered.filter(s=>s.phase!==1);
  return <>
@@ -58,7 +60,8 @@ export function Services({book,open,navigate,query='',forPerson,clearPerson}:{bo
       make that nobody would notice until a nurse knocked. */}
   {forPerson&&<p className="booking-for" role="status"><Users size={16}/>Booking for <strong>{forPerson}</strong>{clearPerson&&<button className="text-button" onClick={clearPerson}>Book for myself instead</button>}</p>}
   <div className="catalog-tools"><label className="search-box"><Search size={18}/><input aria-label="Search services" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find a service…"/></label><span className="helper">{filtered.filter(s=>s.phase===1).length} bookable now · {filtered.length} in the catalogue</span></div>
-  <div className="tabs" aria-label="Service categories">{['All services','Everyday care','Family health','Recovery','Tests & screening'].map(c=><button key={c} className={category===c?'selected':''} onClick={()=>setCategory(c)}>{c}</button>)}</div>
+  <div className="tabs" role="group" aria-label="Service categories">{['All services','Everyday care','Family health','Recovery','Tests & screening'].map(c=><button key={c} className={category===c?'selected':''} aria-pressed={category===c} onClick={()=>setCategory(c)}>{c}</button>)}</div>
+  {(search || category!=='All services')&&<div className="catalog-filter-summary"><span role="status">{filtered.length} {filtered.length===1?'service':'services'} found{search.trim()?` for “${search.trim()}”`:''}</span><button className="text-button" onClick={clearFilters}>Clear filters</button></div>}
   {/* Bookable and planned are two groups, not one grid with a quieter twelfth card. The only
       difference used to be a word in the footer — "R 449 planned · Phase 2" — set at the same
       weight, in the same white card, in the same grid, so the answer to "what can I actually get
@@ -69,7 +72,7 @@ export function Services({book,open,navigate,query='',forPerson,clearPerson}:{bo
    <div className="catalog-grid">{bookable.map(s=><ServiceCard key={s.id} service={s} onOpen={()=>book(s)}/>)}</div></>}
   {planned.length>0&&<><SectionTitle title={`In the plan · ${planned.length}`}/>
    <div className="catalog-grid">{planned.map(s=><ServiceCard key={s.id} service={s} onOpen={()=>open(`${s.name} · Phase ${s.phase}`)}/>)}</div></>}
-  {!filtered.length&&<EmptyNote>No services match your search. Try another name or category.</EmptyNote>}
+  {!filtered.length&&<EmptyState title="No matching care" body="No services match your search. Try another name or category." action="Show all services" onAction={clearFilters}/>}
   {/* This used to open the four-step booking modal for the first service in the catalogue, which
       answered "I don't know what I need" with a confident booking for a chronic check. It goes to
       the help screen now: there is no care-team chat, and the honest close is a screen that says so
@@ -228,6 +231,7 @@ export function VisitDetail({row,manage,navigate,rebook,track,notes=[]}:{row:Vis
    <div><strong>{nurseFor(v.address).name}</strong><span>{nurseFor(v.address).role}</span></div>
    <span className="nurse-track-cta"><Navigation size={16}/>Where is she?</span>
   </button>
+  <ClinicianProfile subject={nurseFor(v.address).roster.subject} name={nurseFor(v.address).name} role={nurseFor(v.address).role} reference={nurseFor(v.address).roster.reference}/>
   <SectionTitle title="Have this ready"/>
   <div className="panel">{toBring.map(line=><div className="record-row static" key={line}><span className="service-icon"><Check size={20}/></span><span><strong>{line}</strong></span></div>)}</div>
   {/* The other half of "bring this to your next visit". It is here rather than being sent anywhere:
@@ -235,6 +239,8 @@ export function VisitDetail({row,manage,navigate,rebook,track,notes=[]}:{row:Vis
       the visit, so what this screen can honestly offer is the words themselves, in front of the
       person who is about to read them out. */}
   <BroughtToTheVisit entries={notes}/>
+  <section className="visit-support"><h3>Need help before your visit?</h3><p>See the contact options currently available. Direct clinician messaging is not connected in this preview.</p><button className="secondary full" onClick={()=>navigate('Help & support')}>Contact options<ArrowRight size={17}/></button></section>
+  <p className="helper">A reviewing doctor may decide that a home visit is appropriate. Any further visit would need to be arranged separately; it is not included in this nurse booking.</p>
   <div className="button-row"><button className="secondary" onClick={()=>manage(row.id,'reschedule')}><CalendarClock size={16}/>Reschedule</button><button className="secondary" onClick={()=>manage(row.id,'cancel')}><Ban size={16}/>Cancel</button></div>
   <button className="primary full" onClick={()=>navigate('Health Passport')}>Open my Health Passport<ArrowRight size={17}/></button>
  </div>;
@@ -295,7 +301,7 @@ export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:stri
    <SectionTitle title="Your care timeline" action="See all" onClick={()=>navigate('Care timeline')}/>
    <div className="panel">{[['Nurse home visit',latestSet.dayOffset],['Doctor review completed',lastReview.reviewedDayOffset],['Vitals recorded',readingSets[readingSets.length-2].dayOffset]].map(([label,day])=>{
     const title=`${label} · ${longDateOf(dateOf(day as number))}`;
-    return <button className="record-row" key={title} onClick={()=>navigate('Care timeline')}><span className="service-icon"><FileText size={20}/></span><span><strong>{title}</strong><small>Reviewed by {reviewedBy}</small></span><ChevronRight size={18}/></button>;
+    return <button className="record-row" key={title} onClick={()=>navigate('Care timeline')}><span className="service-icon"><FileText size={20}/></span><span><strong>{title}</strong><small>{label==='Doctor review completed'?`Reviewed by ${reviewedBy}`:label==='Nurse home visit'?`Recorded by ${assignedNurse.name} · Doctor review available`:`Recorded by ${assignedNurse.name} · No doctor review recorded`}</small></span><ChevronRight size={18}/></button>;
    })}</div>
   </>:tab==='Records'?<>
    <SectionTitle title="Your documents"/>

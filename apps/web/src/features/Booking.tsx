@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useOffline } from '../components/States';
+import { ClinicianProfile } from '../components/ClinicianProfile';
 import { ArrowLeft, ArrowRight, Ban, CalendarDays, CalendarClock, Check, CircleAlert, Clock3, CreditCard, Hourglass, MapPin, ShieldCheck, Undo2, X, Zap } from 'lucide-react';
 import { type Service, money } from '../lib/catalog';
 import { balance as walletBalance } from '../lib/wallet';
@@ -43,13 +45,17 @@ export type DemoVisit = Visit;
 /* The wallet's balance is read rather than restated. It was typed here as "Balance R500.00" and
    typed again on the wallet screen, which is two places for one number. */
 const payments = [['Card', 'Visa ending 4242', CreditCard], ['Cash', 'Pay the nurse after the visit', CreditCard], ['Thuso Wallet', `Balance ${money(walletBalance)}`, CreditCard]] as const;
-const stepLabels = ['Who & where', 'When', 'Payment', 'Review'];
+const stepLabels = ['Who', 'Where', 'When', 'Payment', 'Review'];
 
 /* `person` is who the catalogue was opened for. A family profile's "Book a visit for Nomsa" reached
    this screen with the account holder selected, so the row promised the one thing the flow did not
    do. It is still a select — the choice is never taken away — it just starts on the right person. */
 export function Booking({ service, person: forPerson, onComplete }: { service: Service; person?: string; onComplete: (visit: DemoVisit) => void }) {
  const [step, setStep] = useState(0);
+ const offline = useOffline();
+ const stepFocus = useRef<HTMLDivElement>(null);
+ const previousStep = useRef(0);
+ useEffect(() => { if (previousStep.current !== step) { stepFocus.current?.focus({ preventScroll: true }); const dialog = stepFocus.current?.closest('dialog'); if (dialog) dialog.scrollTop = 0; previousStep.current = step; } }, [step]);
  const [person, setPerson] = useState(forPerson ?? 'Lerato Molefe');
  /* A suburb the coverage contract actually names. It was Sandton, which packages/catalog/geography.json
     does not list, so a booking made here produced a visit no map in the product could draw. */
@@ -62,6 +68,7 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
  const [slot, setSlot] = useState('09:00');
  const [payment, setPayment] = useState('Card');
  const [consent, setConsent] = useState(false);
+ useEffect(() => { setConsent(false); }, [person, address, kind, date, slot, payment]);
  const [done, setDone] = useState<Visit | null>(null);
  const [cancelled, setCancelled] = useState(false);
  /* Not asked here. The requirement lives on the account, set once in the language dialog, because a
@@ -103,6 +110,7 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
  const throughAProvider = payment !== 'Cash';
  const reference = visitReference(visit);
  const confirm = () => {
+  if (offline) return;
   if (!throughAProvider) return setDone(visit);
   const attempt = payAttempt + 1;
   setPayAttempt(attempt);
@@ -156,14 +164,24 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
  </div>;
 
  return <>
-  <StepHead step={step + 1} total={4} label={stepLabels[step]}/>
+  <aside className="journey-summary" aria-label="Your booking summary">
+   <span className="service-icon"><ServiceIcon name={service.icon}/></span>
+   <div><strong>{service.name}</strong><small>{person.split(' ')[0]} · {service.duration} min{step > 2 ? ` · ${scheduled ? `${slot}, ${longDateOf(date)}` : 'As soon as available'}` : ''}</small></div>
+   <strong>{money(service.price)}</strong>
+  </aside>
+  <div ref={stepFocus} tabIndex={-1} className="journey-step-focus"><StepHead step={step + 1} total={5} label={stepLabels[step]}/></div>
+  {offline && <div className="journey-connection" role="status"><CircleAlert size={19}/><span>You’re offline. Your choices stay here while this booking is open. Reconnect to confirm; you can continue reviewing your details.</span></div>}
   {step === 0 ? <div className="form-stack">
    <div className="booking-summary"><span className="service-icon"><ServiceIcon name={service.icon}/></span><div><h3>{service.name}</h3><p>{service.duration} min · Registered nurse</p></div><strong>{money(service.price)}</strong></div>
    <label>Who is this visit for?<select value={person} onChange={e => setPerson(e.target.value)}><option>Lerato Molefe</option><option>Nomsa Molefe</option><option>Thabo Molefe</option></select></label>
+   <p className="helper">Choose the person receiving care. Their record stays separate from yours.</p>
+   <button className="primary full" onClick={() => setStep(1)}>Continue<ArrowRight size={17}/></button>
+  </div> : step === 1 ? <div className="form-stack">
+   <h3>Where should the visit take place?</h3>
    <label>Visit location<input value={address} onChange={e => setAddress(e.target.value)} maxLength={160} required/></label>
    <p className="helper">Sample availability and proposal pricing. Tests, medicines and prescriptions may require separate arrangements.</p>
-   <button className="primary full" disabled={address.trim().length < 5} onClick={() => setStep(1)}>Continue<ArrowRight size={17}/></button>
-  </div> : step === 1 ? <div className="form-stack">
+   <div className="button-row"><button className="secondary" onClick={() => setStep(0)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={address.trim().length < 5} onClick={() => setStep(2)}>Continue<ArrowRight size={17}/></button></div>
+  </div> : step === 2 ? <div className="form-stack">
    <h3>{labels.chooseWhen}</h3>
    {/* Two different promises, chosen deliberately rather than inferred. */}
    <div className="choice-list" role="radiogroup" aria-label={labels.chooseWhen}>
@@ -211,8 +229,8 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
      </div>
     </div>
    </div>}
-   <div className="button-row"><button className="secondary" onClick={() => setStep(0)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStep(2)}>Continue<ArrowRight size={16}/></button></div>
-  </div> : step === 2 ? <div className="form-stack">
+   <div className="button-row"><button className="secondary" onClick={() => setStep(1)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStep(3)}>Continue<ArrowRight size={16}/></button></div>
+  </div> : step === 3 ? <div className="form-stack">
    <h3>How would you like to pay?</h3>
    <div className="choice-list">{payments.map(([name, detail, Icon]) => <label key={name} className={`choice-row ${payment === name ? 'selected' : ''}`}>
     <input type="radio" name="payment" checked={payment === name} onChange={() => setPayment(name)}/>
@@ -224,9 +242,8 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
        introduced to prevent: a screen that stops being accurate without stopping speaking. */}
    <NotConnected of="payments"/>
    <div className="privacy-note"><ShieldCheck size={19}/>No card is stored, here or anywhere else in MyThuso. Production payments run through a regulated provider, never through MyThuso directly.</div>
-   <div className="button-row"><button className="secondary" onClick={() => setStep(1)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStep(3)}>Continue<ArrowRight size={16}/></button></div>
+   <div className="button-row"><button className="secondary" onClick={() => setStep(2)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStep(4)}>Continue<ArrowRight size={16}/></button></div>
   </div> : <div className="form-stack">
-   <div className="booking-summary"><span className="service-icon"><ServiceIcon name={service.icon}/></span><div><h3>{service.name}</h3><p>{service.duration} min</p></div><strong>{money(service.price)}</strong></div>
    <div className="review-line"><span><CalendarDays size={15}/> Date</span><strong>{scheduled ? longDateOf(date) : kinds.find(k => k.id === 'asap')!.name}</strong></div>
    {scheduled ? <div className="review-line"><span><Clock3 size={15}/> Time</span><strong>{slot} – {ends}</strong></div> : null}
    <div className="review-line"><span><MapPin size={15}/> Location</span><strong>{address}</strong></div>
@@ -241,7 +258,7 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
     <div className="review-line"><span>Status when booked</span><strong>{visit.status}</strong></div>
     {isHeld(outcome) && <p className="helper">{hold.whyNotDispatched}</p>}
    </>}
-   <button className="text-button" onClick={() => setStep(1)}>{labels.changeDate}</button>
+   <div className="journey-edit-links"><button className="text-button" onClick={() => setStep(0)}>Change person</button><button className="text-button" onClick={() => setStep(1)}>Change location</button><button className="text-button" onClick={() => setStep(2)}>{labels.changeDate}</button></div>
    {/* Somebody the roster would actually offer for this suburb, rather than one name printed on
        every booking in Johannesburg. She is the simulated roster's answer, gated by the same vetting
        the console decides with — and the people it will not offer are named underneath with the
@@ -251,10 +268,10 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
        What is gone from this row is a rating: "★ 4.9 (128 visits)" was invented, on the screen where
        a person decides whether to let somebody into their house, about a nurse who does not exist.
        Where she works is a fact the roster actually holds. */}
-   <div className="nurse-row"><span className="avatar nurse-avatar">{booked.initials}</span><div><strong>{booked.name}</strong><span>{booked.role}</span></div><span className="rating">Working in {booked.area}</span></div>
+   <ClinicianProfile subject={booked.roster.subject} name={booked.name} role={booked.role} reference={booked.roster.reference} detail={`Working in ${booked.area}. This is the sample nurse offered for this visit.`}/>
    <p className="helper">{simulationOf('booking')!.supplier} {refused.length === 1 ? 'One nurse on it is not being offered:' : `${refused.length} nurses on it are not being offered:`}</p>
    <ul className="landing-list">{refused.map(({ nurse, refusal }) => <li key={nurse.id}><Ban size={16}/>{nurse.name} · {nurse.zoneName} — {refusal}</li>)}</ul>
-   <div className="pay-row"><span className="service-icon"><CreditCard size={20}/></span><span>{payment === 'Card' ? '•••• 4242' : payment}</span><button className="text-button" onClick={() => setStep(2)}>Change</button></div>
+   <div className="pay-row"><span className="service-icon"><CreditCard size={20}/></span><span>{payment === 'Card' ? '•••• 4242' : payment}</span><button className="text-button" onClick={() => setStep(3)}>Change</button></div>
    {/* A real gate on a real step: the address and the person are what a nurse is sent to, and
        neither is worth getting wrong. It is not where this screen says what is connected — that
        sentence comes from the contract, above. */}
@@ -267,9 +284,9 @@ export function Booking({ service, person: forPerson, onComplete }: { service: S
       <CircleAlert size={19}/><span>{paid.declineReason} Nothing is booked. You can try again, or choose another way to pay.</span></div>
     : null}
    <NotConnected of="booking"/>
-   <button className="primary full" disabled={!consent} onClick={confirm}>{paid && paid.refused === undefined && paid.outcome === 'declined' ? <>Try the payment again<ArrowRight size={16}/></> : <>Confirm &amp; book<ArrowRight size={16}/></>}</button>
+   <button className="primary full" disabled={!consent || offline} onClick={confirm}>{paid && paid.refused === undefined && paid.outcome === 'declined' ? <>Try the payment again<ArrowRight size={16}/></> : <>Confirm &amp; book<ArrowRight size={16}/></>}</button>
    <p className="helper">{ruleById('everything-survives-the-booking').sentence}</p>
-   <button className="text-button" onClick={() => setStep(2)}><ArrowLeft size={15}/>Back</button>
+   <button className="text-button" onClick={() => setStep(3)}><ArrowLeft size={15}/>Back</button>
   </div>}
  </>;
 }

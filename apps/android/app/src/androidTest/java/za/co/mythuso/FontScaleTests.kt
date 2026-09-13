@@ -154,7 +154,7 @@ class FontScaleTests {
         rule.onAllNodes(describedStartingWith("Blood tests") and hasClickAction())
             .onFirst().performScrollTo().performClick()
         rule.waitForIdle()
-        repeat(3) {                                   // who & where → when → payment → review
+        repeat(4) {                                   // who → where → when → payment → review
             rule.onAllNodes(hasText("Continue") and hasClickAction()).onFirst().performClick()
             rule.waitForIdle()
         }

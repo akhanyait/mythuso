@@ -58,7 +58,8 @@ test('a visit is booked against somebody the roster would actually offer, and sa
   await page.getByRole('button', { name: /Vitals & chronic check/ }).first().click();
   const d = page.getByRole('dialog');
 
-  await d.getByRole('button', { name: 'Continue' }).click();   // who & where
+  await d.getByRole('button', { name: 'Continue' }).click();   // who
+  await d.getByRole('button', { name: 'Continue' }).click();   // where
   await d.getByRole('button', { name: 'Continue' }).click();   // when
   await d.getByRole('button', { name: 'Continue' }).click();   // payment
 
@@ -68,7 +69,7 @@ test('a visit is booked against somebody the roster would actually offer, and sa
   await expect(d.getByText(simulation('booking').notice)).toBeVisible();
 
   /* Somebody on the roster, rather than one name printed on every booking in Johannesburg. */
-  const named = d.locator('.nurse-row strong');
+  const named = d.locator('.clinician-profile h3');
   await expect(named).toBeVisible();
   expect(nurses.map(n => n.name)).toContain((await named.innerText()).trim());
 
@@ -77,11 +78,12 @@ test('a visit is booked against somebody the roster would actually offer, and sa
   await expect(d.getByText(`${lapsed.name} · ${lapsed.zone} — ${simulation('booking').refuses[1]}`)).toBeVisible();
   await expect(d.getByText(`${outsideCoverage.name} · ${outsideCoverage.zone} — ${simulation('booking').refuses[3]}`)).toBeVisible();
 
+  const offeredName = (await named.innerText()).trim();
   /* Booked, and the confirmation carries her too. */
   await d.locator('label.checkbox input').check();
   await d.getByRole('button', { name: /Confirm & book/ }).click();
   await expect(d.getByRole('heading', { name: 'Your visit is booked.' })).toBeVisible();
-  await expect(d.locator('.nurse-row strong')).toHaveText((await named.innerText()).trim());
+  await expect(d.locator('.nurse-row strong')).toHaveText(offeredName);
   await expect(d.getByText(simulation('booking').notice)).toBeVisible();
 });
 

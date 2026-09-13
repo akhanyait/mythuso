@@ -124,7 +124,7 @@ internal fun rand(amount: Int): String {
             }
             val split = Earnings.split(service)
             Row(
-                Modifier.fillMaxWidth().height(16.dp).semantics {
+                Modifier.fillMaxWidth().height(16.dp).studioChartEntrance(service.id).semantics {
                     contentDescription = "Of ${rand(split.price)}, ${rand(split.nurse)} is yours, " +
                         "${rand(split.payment)} is the card fee and ${rand(split.platform)} is what MyThuso keeps"
                 },

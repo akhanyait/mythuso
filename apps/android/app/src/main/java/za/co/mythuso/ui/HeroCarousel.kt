@@ -181,9 +181,18 @@ private fun trustIcon(name: String) = when (name) {
 /** "Remove animations" in Android accessibility settings zeroes the animator scale. */
 @Composable fun prefersReducedMotion(): Boolean {
     val resolver = LocalContext.current.contentResolver
-    return remember(resolver) {
+    fun readSetting() =
         Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    var reduced by remember(resolver) { mutableStateOf(readSetting()) }
+    DisposableEffect(resolver) {
+        val observer = object : android.database.ContentObserver(android.os.Handler(android.os.Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) { reduced = readSetting() }
+        }
+        resolver.registerContentObserver(Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, observer)
+        reduced = readSetting()
+        onDispose { resolver.unregisterContentObserver(observer) }
     }
+    return reduced
 }
 @Composable fun HeroTexture(tone: Int = 0, reduceMotion: Boolean = prefersReducedMotion()) {
     /* The brand's own soft tints rather than the three hand-mixed mints this used to hold. Teal is an

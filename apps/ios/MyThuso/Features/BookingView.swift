@@ -2,6 +2,16 @@ import SwiftUI
 
 struct ServicesView: View {
     @EnvironmentObject private var store: PreviewStore
+    @State private var category = "All care"
+    private let categories = ["All care", "Everyday health", "Recovery", "Family care"]
+    private func belongs(_ service: CareService) -> Bool {
+        switch category {
+        case "Recovery": return ["wound", "postop"].contains(service.id)
+        case "Family care": return ["mother", "planning", "senior"].contains(service.id)
+        case "Everyday health": return ["vitals", "blood", "injection", "certificate"].contains(service.id)
+        default: return true
+        }
+    }
     /* Bound to the store, so a query typed on the home screen is already applied when this opens. */
     private var query: Binding<String> { Binding(get: { store.careQuery }, set: { store.careQuery = $0 }) }
     var body: some View {
@@ -9,9 +19,13 @@ struct ServicesView: View {
             VStack(alignment: .leading, spacing: ThusoSpacing.space20) {
                 DemoBadge()
                 CareHeading(eyebrow: "Care, on your terms", title: "Professional care at your door", subtitle: "Choose a service and we’ll match you with the nearest qualified nurse.")
-                let matches = CareService.all.filter { store.careQuery.isEmpty || $0.name.localizedCaseInsensitiveContains(store.careQuery) }
+                SectionTabs(sections: categories, groupLabel: "Care categories", selection: $category)
+                let term = store.careQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+                let matches = CareService.all.filter { belongs($0) && (term.isEmpty || "\($0.name) \($0.detail)".localizedCaseInsensitiveContains(term)) }
+                Text("\(matches.count) services · Sample prices and availability").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 if matches.isEmpty {
-                    ContentUnavailableView.search(text: store.careQuery)
+                    EmptyStateCard(title: "No matching care", message: "Try a different word or see all services. Your search stays here until you change it.", symbol: "magnifyingglass")
+                    Button("Clear filters") { store.careQuery = ""; category = "All care" }.buttonStyle(QuietButton())
                 } else {
                     CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                         ForEach(Array(matches.enumerated()), id: \.element) { index, service in
@@ -20,11 +34,18 @@ struct ServicesView: View {
                         }
                     }
                 }
-                NavigationLink { FeatureDetail(title: "Chat to our care team") } label: {
-                    CareCard(padding: ThusoSpacing.space16, spacing: 0) {
-                        MenuRow(title: "Not sure what you need?", subtitle: "Chat to our care team", symbol: "questionmark.circle", tinted: true)
+                CareCard(padding: ThusoSpacing.space16) {
+                    HStack(alignment: .center, spacing: 12) {
+                        Image("CareDoctorPortrait").resizable().scaledToFill().frame(width: 56, height: 64).clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 16)).accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Care, with clinical support").font(.headline)
+                            Text("Illustrative image").thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                        }
                     }
-                }.buttonStyle(.plain)
+                    Text("A doctor reviews clinical findings and may recommend a home visit when appropriate. This catalogue offers nurse visits; a doctor home visit is a separate clinical decision.")
+                        .font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                }
                 Text("All clinical decisions require a registered clinician. Prescription services require a valid prescription.")
                     .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
                     .padding(.bottom, ThusoSpacing.space16)
@@ -36,6 +57,7 @@ struct ServicesView: View {
         .navigationTitle("Book care").navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.glassFloor, for: .navigationBar)
         .searchable(text: query, prompt: "Find a service")
+        .sensoryFeedback(.selection, trigger: category)
     }
     @Environment(\.dynamicTypeSize) private var typeSize
     private func serviceRow(_ service: CareService) -> some View {
@@ -79,12 +101,16 @@ struct BookingView: View {
     @State private var consent = false
     @State private var step = 0
     @State private var booked = false
+    @State private var restoredDraft = false
+    private var draft: CareBookingDraft {
+        CareBookingDraft(patient: patient, address: address, day: day, selectedDate: scheduled ? chosenDay.date : nil, slot: slot, payment: payment, consent: consent, kind: kind, step: step)
+    }
     /* Computed once when the view appears rather than typed. The strip used to be five hand-written
        labels beginning ("Fri", "12", "Sep") — a weekday that had not matched its date for months,
        and which disagreed with the date printed on the review screen two steps later. */
     @State private var days = Scheduling.offeredDays()
     @State private var kind = "scheduled"
-    private let labels = ["Who & where", "When", "Payment", "Review"]
+    private let labels = ["Who", "Where", "When", "Payment", "Review"]
     private var scheduled: Bool { kind == "scheduled" }
     private var endTime: String { Scheduling.endTime(start: slot, minutes: service.duration) }
     private var chosenDay: OfferedDay { days.indices.contains(day) ? days[day] : days[0] }
@@ -92,11 +118,13 @@ struct BookingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 if booked { success } else {
-                    StepDots(step: step + 1, total: 4, label: labels[step])
+                    StepDots(step: step + 1, total: 5, label: labels[step])
+                    compactSummary
                     switch step {
-                    case 0: whoAndWhere
-                    case 1: dateAndTime
-                    case 2: paymentStep
+                    case 0: whoStep
+                    case 1: whereStep
+                    case 2: dateAndTime
+                    case 3: paymentStep
                     default: review
                     }
                 }
@@ -106,11 +134,49 @@ struct BookingView: View {
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
         /* Three moments worth feeling: a step advancing, a slot chosen, and the booking landing.
            Nothing else in the flow buzzes. */
+        .onAppear {
+            guard !restoredDraft else { return }
+            if let saved = store.bookingDrafts[service.id] {
+                patient = saved.patient; address = saved.address
+                slot = saved.slot; payment = saved.payment; consent = saved.consent
+                kind = saved.kind; step = min(max(saved.step, 0), labels.count - 1)
+                let offeredIndex = days.firstIndex { offered in
+                    saved.selectedDate.map { Scheduling.format(offered.date, "yyyy-MM-dd") == Scheduling.format($0, "yyyy-MM-dd") } ?? false
+                }
+                day = offeredIndex ?? 0
+                // An expired date must be chosen again, never silently shifted to a different day.
+                if saved.kind == "scheduled" && offeredIndex == nil { step = min(step, 2); consent = false }
+            }
+            restoredDraft = true
+        }
+        .onChange(of: draft) { _, updated in
+            if restoredDraft && !booked { store.bookingDrafts[service.id] = updated }
+        }
+        .onChange(of: booked) { _, completed in
+            if completed { store.bookingDrafts.removeValue(forKey: service.id) }
+        }
         .sensoryFeedback(.selection, trigger: step)
+        .sensoryFeedback(.selection, trigger: kind)
+        .sensoryFeedback(.selection, trigger: payment)
         .sensoryFeedback(.success, trigger: booked)
         .thusoGround()
         .navigationTitle(booked ? "All set" : "Your home visit").navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.glassFloor, for: .navigationBar)
+    }
+    private var compactSummary: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ViewThatFits(in: .horizontal) {
+                HStack { Text(service.name).font(.subheadline.weight(.semibold)); Spacer(); Text("R\(service.price)").font(.headline).monospacedDigit() }
+                VStack(alignment: .leading) { Text(service.name).font(.subheadline.weight(.semibold)); Text("R\(service.price)").font(.headline).monospacedDigit() }
+            }
+            Text("\(patient) · \(service.duration) min").font(.footnote)
+            if step > 1 { Text(address).font(.footnote).fixedSize(horizontal: false, vertical: true) }
+            if step > 2 { Text(scheduled ? "\(Scheduling.shortDate(chosenDay.date)) · \(slot) – \(endTime)" : Scheduling.kind("asap").name).font(.footnote) }
+        }
+        .foregroundStyle(ThusoTheme.studioInkDeep).padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(ThusoTheme.studioLime, in: RoundedRectangle(cornerRadius: 18))
+        .accessibilityElement(children: .combine).accessibilityIdentifier("bookingSummary")
     }
     private var summary: some View {
         CareCard(weight: .lead) {
@@ -125,16 +191,23 @@ struct BookingView: View {
             }
         }
     }
-    @ViewBuilder private var whoAndWhere: some View {
-        summary
+    @ViewBuilder private var whoStep: some View {
+        Text("Who needs care?").font(.title2.weight(.semibold))
         CareCard {
             Picker("Who is this visit for?", selection: $patient) { ForEach(["Lerato Molefe"] + store.family, id: \.self) { Text($0) } }
-            Divider().overlay(ThusoTheme.studioLine)
-            TextField("Visit location", text: $address)
         }
+        Text("Choose yourself or someone in your circle of care. Your choices are kept while this app stays open.").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+        Button("Continue") { step = 1 }.buttonStyle(CareButton())
+    }
+    @ViewBuilder private var whereStep: some View {
+        Text("Where should we come?").font(.title2.weight(.semibold))
+        CareCard { TextField("Visit location", text: $address).textContentType(.fullStreetAddress) }
         Text("Sample availability and proposal pricing. Tests, medicines and prescriptions may require separate arrangements.")
             .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-        Button("Continue") { step = 1 }.buttonStyle(CareButton()).disabled(address.trimmingCharacters(in: .whitespaces).count < 5)
+        HStack(spacing: ThusoSpacing.space8) {
+            Button("Back") { step = 0 }.buttonStyle(QuietButton())
+            Button("Continue") { step = 2 }.buttonStyle(CareButton()).disabled(address.trimmingCharacters(in: .whitespacesAndNewlines).count < 5)
+        }
     }
     @ViewBuilder private var dateAndTime: some View {
         Text(Scheduling.Label.chooseWhen).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
@@ -161,8 +234,8 @@ struct BookingView: View {
                 .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
         }
         HStack(spacing: ThusoSpacing.space8) {
-            Button("Back") { step = 0 }.buttonStyle(QuietButton())
-            Button("Continue") { step = 2 }.buttonStyle(CareButton())
+            Button("Back") { step = 1 }.buttonStyle(QuietButton())
+            Button("Continue") { step = 3 }.buttonStyle(CareButton())
         }
     }
     @ViewBuilder private var paymentStep: some View {
@@ -187,12 +260,11 @@ struct BookingView: View {
         Text("No card is stored and no payment is taken. Production payments run through a regulated provider, never through MyThuso directly.")
             .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
         HStack(spacing: ThusoSpacing.space8) {
-            Button("Back") { step = 1 }.buttonStyle(QuietButton())
-            Button("Continue") { step = 3 }.buttonStyle(CareButton())
+            Button("Back") { step = 2 }.buttonStyle(QuietButton())
+            Button("Continue") { step = 4 }.buttonStyle(CareButton())
         }
     }
     @ViewBuilder private var review: some View {
-        summary
         CareCard(padding: ThusoSpacing.space16) {
             LabeledContent("Date", value: scheduled ? Scheduling.longDate(chosenDay.date) : Scheduling.kind("asap").name)
             if scheduled { LabeledContent("Time", value: "\(slot) – \(endTime)") }
@@ -206,7 +278,7 @@ struct BookingView: View {
                     Text("Registered Nurse (SANC)").font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
                 }
                 Spacer(minLength: ThusoSpacing.space4)
-                Text("★ 4.9").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("Demo clinician").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
             }
             .accessibilityElement(children: .combine)
             Divider().overlay(ThusoTheme.studioLine)
@@ -214,7 +286,7 @@ struct BookingView: View {
                 Image(systemName: "creditcard").font(.body).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
                 Text(payment == "Card" ? "•••• 4242" : payment).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 Spacer()
-                Button("Change") { step = 2 }.frame(minHeight: 44).contentShape(Rectangle()).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Button("Change") { step = 3 }.frame(minHeight: 44).contentShape(Rectangle()).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             }
         }
         Toggle("I understand this is a UI preview using fictional information.", isOn: $consent).font(.footnote)
@@ -232,7 +304,7 @@ struct BookingView: View {
            to check it against. It is packages/catalog/cancellation.json's now. */
         Text(Cancellation.windowSentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).frame(maxWidth: .infinity)
             .fixedSize(horizontal: false, vertical: true)
-        Button("Back") { step = 2 }.buttonStyle(QuietButton())
+        Button("Back") { step = 3 }.buttonStyle(QuietButton())
     }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ViewBuilder private var success: some View {
@@ -511,8 +583,14 @@ struct VisitDetailView: View {
                     Text("Before your visit").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     Text("Have your medication list ready.").font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Secure messaging will be connected in the functionality phase.")
+                    Text("Messaging and calls are not connected in this preview. No message can be sent from this screen.")
                         .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                }
+                ClinicianProfileLink(doctor: false)
+                CareCard {
+                    Label("Your care team", systemImage: "stethoscope").font(.headline)
+                    Text("A doctor reviews clinical findings and may recommend a home visit when appropriate. Doctor home visits are not booked through this nurse booking flow.").font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                    ClinicianProfileLink(doctor: true)
                 }
                 /* The one question a person waiting at home actually has. It is a destination now
                    rather than a sentence promising one later — and what it shows on the day, and
@@ -539,5 +617,69 @@ struct VisitDetailView: View {
     @ViewBuilder private var exits: some View {
         NavigationLink { RescheduleVisitView(visit: visit) } label: { Text("Move this visit").frame(maxWidth: .infinity) }.buttonStyle(CareButton())
         NavigationLink { CancelVisitView(visit: visit) } label: { Text("Cancel this visit").frame(maxWidth: .infinity) }.buttonStyle(QuietButton())
+    }
+}
+
+/// A native sheet showing only identity and credentials present in the preview register.
+struct ClinicianProfileLink: View {
+    var doctor = false
+    @State private var presented = false
+    var body: some View {
+        Button { presented = true } label: {
+            Label(doctor ? "Meet your reviewing doctor" : "Meet your nurse", systemImage: "person.crop.circle")
+                .font(.subheadline.weight(.semibold)).frame(minHeight: 44)
+        }
+        .sensoryFeedback(.selection, trigger: presented)
+        .sheet(isPresented: $presented) {
+            NavigationStack { CareClinicianProfile(doctor: doctor) }
+                .presentationDetents([.large]).presentationDragIndicator(.visible)
+        }
+    }
+}
+
+struct CareClinicianProfile: View {
+    let doctor: Bool
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var register = VettingStore.shared
+    private var subject: VettingSubject? { register.subject(doctor ? "D-403" : "N-205") }
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                DemoBadge()
+                HStack(alignment: .top, spacing: 16) {
+                    Monogram(text: doctor ? "LK" : Arrival.nurse.initials)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(subject?.name ?? (doctor ? Passport.reviewer.name : Arrival.nurse.name)).font(.title2.weight(.semibold))
+                        Text(doctor ? "Reviewing doctor" : Arrival.nurse.role).font(.subheadline)
+                        Text("Fictional profile · Preview register").thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    }
+                }
+                if let subject {
+                    let standing = summarise(subject)
+                    CareCard {
+                        Text("Professional record").font(.headline)
+                        LabeledContent("Registration", value: subject.reference)
+                        if let zone = subject.zone { LabeledContent("Care area", value: zone) }
+                        if !subject.scope.isEmpty { LabeledContent("Recorded scope", value: subject.scope.joined(separator: ", ")) }
+                        Divider()
+                        StatusPill(text: standing.status.label, tone: standing.status.tone)
+                        Text("\(standing.passed) of \(standing.total) checks passed in the demo register.").font(.subheadline)
+                        if !standing.cleared {
+                            Text("This profile is not fully cleared. Showing a profile does not authorise care or prescribing.").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        }
+                    }
+                }
+                CareCard {
+                    Text(doctor ? "Clinical decisions" : "At your home visit").font(.headline)
+                    Text(doctor
+                         ? "The doctor reviews findings and decides the next step. A doctor may recommend a home visit when appropriate; this preview does not arrange one."
+                         : "Your nurse records findings for clinical review. Have your medication list ready and check your visit details before the day.")
+                        .font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text("Messaging and calls are not connected in this preview.").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                }
+            }.padding(20)
+        }
+        .thusoGround().navigationTitle("Your care professional").navigationBarTitleDisplayMode(.inline)
+        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
     }
 }

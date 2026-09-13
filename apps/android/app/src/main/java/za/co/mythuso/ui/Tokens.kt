@@ -55,16 +55,16 @@ val CharcoalMutedOnMist = Color(0xFF575757)
 val CharcoalMutedOnCloud = Color(0xFF545454)
 val CharcoalMutedOnPaleSage = Color(0xFF4C5049)
 val CharcoalMutedOnSoftSage = Color(0xFF464A44)
-val StudioPaper = Color(0xFFFAF8F2)
-val StudioNight = Color(0xFF172B2B)
-val StudioInk = Color(0xFF243630)
-val StudioInkDeep = Color(0xFF13251E)
-val StudioLime = Color(0xFFDFFF92)
-val StudioLilac = Color(0xFFDED3FF)
-val StudioPeach = Color(0xFFFFCEAD)
-val StudioLine = Color(0xFFE2E4D9)
-val StudioInkMuted = Color(0xFF4F5D57)
-val StudioOlive = Color(0xFF5C724D)
+val StudioPaper = Color(0xFFF5F4EF)
+val StudioNight = Color(0xFF202923)
+val StudioInk = Color(0xFF283D30)
+val StudioInkDeep = Color(0xFF19291F)
+val StudioLime = Color(0xFFE0EDAC)
+val StudioLilac = Color(0xFFE7E1F0)
+val StudioPeach = Color(0xFFF4DDC9)
+val StudioLine = Color(0xFFDFE2D8)
+val StudioInkMuted = Color(0xFF505D53)
+val StudioOlive = Color(0xFF466647)
 val BrandInk = Color(0xFF0F3B4A)
 val BrandGreen = Color(0xFF1D9E75)
 val BrandOrange = Color(0xFFFF6B35)
@@ -72,10 +72,10 @@ val BrandLime = Color(0xFFD9FF1A)
 val BrandMint = Color(0xFF9FE1CB)
 
 object ThusoRadius {
-    val card = 12.dp
-    val panel = 18.dp
-    val control = 10.dp
-    val tile = 10.dp
+    val card = 20.dp
+    val panel = 28.dp
+    val control = 16.dp
+    val tile = 16.dp
     val pill = 999.dp
 }
 /** Opacities, as opacities. A flattened grey cannot follow the ground it sits on; an alpha has no

@@ -155,16 +155,7 @@ private func buttonShape(_ accessibility: Bool) -> AnyShape {
     accessibility ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)) : AnyShape(Capsule())
 }
 
-/* THE PRIMARY ACTION IS A LIME PILL WITH AN INK LABEL.
- *
- * It was a charcoal pill with a white label, and the prototype's is lime with ink on it — which is
- * the single most recognisable object in the founder's screenshots and the reason the accent exists
- * at all. `studioInkDeep on studioLime` is a declared pair; the accent is a ground here and never a
- * word, which is the rule it has been held to since it was teal.
- *
- * PRESSED IS A DARKENING RATHER THAN A FADE. Lowering the fill's alpha would let the paper through
- * and leave the label sitting on whatever the button happens to be over — the same guess `glassFloor`
- * exists to stop. An ink veil over the lime only ever makes the ratio better. */
+// The primary action uses brand ink; mint remains a supporting card accent.
 struct CareButton: ButtonStyle {
     @Environment(\.dynamicTypeSize) private var typeSize
     func makeBody(configuration: Configuration) -> some View {
@@ -173,9 +164,9 @@ struct CareButton: ButtonStyle {
             .font(.subheadline.weight(.semibold))
             .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
             .frame(maxWidth: .infinity, minHeight: 48)
-            .background(ThusoTheme.studioLime, in: shape)
+            .background(ThusoTheme.studioInk, in: shape)
             .overlay(shape.fill(ThusoTheme.studioInkDeep.opacity(configuration.isPressed ? 0.12 : 0)))
-            .foregroundStyle(ThusoTheme.studioInkDeep)
+            .foregroundStyle(ThusoTheme.surface)
             .contentShape(Rectangle())
     }
 }

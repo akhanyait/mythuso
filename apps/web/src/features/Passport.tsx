@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Activity, Ambulance, ArrowRight, Bluetooth, Check, ChevronDown, Droplets, Heart, LockKeyhole, ShieldCheck, Smartphone, Thermometer, TriangleAlert, Wind } from 'lucide-react';
+import { ClinicianProfile } from '../components/ClinicianProfile';
+import { EmptyState } from '../components/States';
 import { Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
@@ -382,13 +384,22 @@ const timeline = (): TimelineEvent[] => {
 
 export function CareTimeline({ navigate, open }: { navigate: (page: string) => void; open: (modal: string) => void }) {
  const [shown, setShown] = useState<string | null>(null);
+ const [filter, setFilter] = useState('All entries');
+ const [period, setPeriod] = useState('All time');
  const events = timeline();
+ const visible = events.filter(event => (filter === 'All entries' || event.kind === ({ Visits: 'readings', Reviews: 'review', Documents: 'document' } as Record<string,string>)[filter]) && (period === 'All time' || event.dayOffset >= -Number(period)));
  return <>
   <div className="page-intro"><div className="eyebrow">Health Passport</div><h1>Everything on your record.</h1>
    <p>{events.length} entries over {Math.round(Math.abs(readingSets[0].dayOffset) / 30)} months. Each one opens on what it produced, and says who made it.</p></div>
   <NotConnected of="clinical-records"/>
 
-  <div className="panel explain-list">{events.map(event => {
+  <div className="care-timeline-tools">
+   <div className="tabs" role="group" aria-label="Timeline entry types">{['All entries','Visits','Reviews','Documents','Medicines'].map(label=><button key={label} className={filter===label?'selected':''} aria-pressed={filter===label} onClick={()=>{setFilter(label);setShown(null);}}>{label}</button>)}</div>
+   <label>Time period<select value={period} onChange={e=>{setPeriod(e.target.value);setShown(null);}}><option value="All time">All time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></label>
+  </div>
+  <p className="helper" role="status">{visible.length} {visible.length===1?'entry':'entries'} shown · Newest first</p>
+  {!visible.length && <EmptyState title={filter==='Medicines'?'No medicine entries on this record':'No entries in this view'} body={filter==='Medicines'?'A medicine history will appear when prescriptions are recorded. No active prescriptions are recorded in this preview.':'Try a different entry type or widen the time period.'} action="Show all entries" onAction={()=>{setFilter('All entries');setPeriod('All time');}}/>}
+  <div className="panel explain-list care-timeline">{visible.map(event => {
    const key = `${event.kind}-${event.dayOffset}-${event.title}`;
    const isOpen = shown === key;
    const measures = event.set ? measuredIn(event.set) : [];
@@ -397,7 +408,8 @@ export function CareTimeline({ navigate, open }: { navigate: (page: string) => v
    return <div className={`explain-item${isOpen ? ' open' : ''}`} key={key}>
     <button className="record-row explain-row" aria-expanded={isOpen} onClick={() => setShown(isOpen ? null : key)}>
      <span><strong>{event.title}</strong>
-      <small>{longDateOf(dateOf(event.dayOffset))} · {event.by}</small></span>
+      <small><time dateTime={dateOf(event.dayOffset)}>{longDateOf(dateOf(event.dayOffset))}</time> · {event.by}</small>
+      <small className="timeline-status">{event.kind==='review'?'Review completed':event.kind==='document'?(doc?.reviewed?'Doctor reviewed':'Awaiting review'):event.dayOffset===latestSet.dayOffset?'Doctor review available':'No doctor review recorded'}</small></span>
      {event.kind === 'readings' && <Pill tone={outside.length ? 'amber' : ''}>{outside.length ? `${outside.length} outside range` : `${measures.length} readings`}</Pill>}
      <ChevronDown size={17} className="explain-chevron"/>
     </button>
@@ -466,13 +478,8 @@ export function CareTeam({ navigate, open }: { navigate: (page: string) => void;
    <p>{contract.summary}</p></div>
   <NotConnected of="clinical-records"/>
 
-  <div className="panel">{team.map(person => <div className="record-row static" key={person.name}>
-   {/* `small` and not bare `avatar`: the base rule carries no dimensions — every other use sets its
-       own — so an avatar dropped into a flex row stretches to half the row's width. */}
-   <span className="avatar small peach">{person.name.split(' ').filter(word => /^[A-Z]/.test(word)).map(word => word[0]).slice(-2).join('')}</span>
-   <span><strong>{person.name}</strong><small>{person.role} · {person.reference}</small>
-    <small>{person.did}</small><small>{person.sees}</small></span>
-  </div>)}</div>
+  <div className="care-team-grid">{team.map(person => <ClinicianProfile key={person.name} name={person.name} role={person.role} reference={person.reference} detail={person.did} access={person.sees} subject={subjectsByRole(person.name===reviewer.name?'doctor':'nurse').find(subject=>subject.name===person.name)}/>)}</div>
+  <p className="helper">The reviewing doctor may decide that a home visit is appropriate. This care-team list does not book a doctor visit or change who is assigned to your nurse appointment.</p>
 
   {/* The limit, and it is the whole point of the screen. A care team is not a standing grant, and
       the three sentences that say so are the vetting contract's own refusals rather than this

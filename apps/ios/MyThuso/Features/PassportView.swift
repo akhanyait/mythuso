@@ -3,6 +3,7 @@ import SwiftUI
 struct PassportView: View {
     @State private var tab = "Overview"
     @State private var share = false
+    @State private var recordFilter = "All records"
     /* The content, not the refusal. This opened on .denied, which put a "we need your permission
        first" block in front of the two device screens the tab exists to reach — and those screens
        are the ones that say what a permission would and would not cover. The denied state is still
@@ -16,6 +17,7 @@ struct PassportView: View {
                 SectionTabs(sections: ["Overview", "Records", "Medications", "More"], selection: $tab)
                 switch tab {
                 case "Records":
+                    recordTimeline
                     CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                         NavigationLink { PastVisitView(service: CareService.all[1]) } label: { MenuRow(title: "Visit summary", subtitle: "What the nurse found, and what the doctor said about it", symbol: "doc.text") }.buttonStyle(.plain)
                         Divider().overlay(ThusoTheme.studioLine)
@@ -85,6 +87,37 @@ struct PassportView: View {
         .thusoGround()
         .navigationTitle("Health Passport").navigationBarTitleDisplayMode(.large)
     }
+    private var recordTimeline: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Your care timeline").font(.title2.weight(.semibold))
+            Text("Sample records, newest first. Recorded readings and a doctor’s review are separate events.").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            SectionTabs(sections: ["All records", "Readings", "Reviews"], groupLabel: "Record filters", selection: $recordFilter)
+            if recordFilter != "Readings" {
+                NavigationLink { PastVisitView(service: CareService.all[1]) } label: {
+                    CareCard {
+                        Label(Scheduling.longDate(Passport.lastReview.date), systemImage: "checkmark.bubble").font(.footnote)
+                        Text("Doctor review completed").font(.headline)
+                        Text(Passport.reviewer.attribution).font(.subheadline)
+                        Text(Passport.lastReview.next).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    }
+                }.buttonStyle(.plain)
+            }
+            if recordFilter != "Reviews" {
+                ForEach(Passport.readingSets.sorted { $0.dayOffset > $1.dayOffset }) { reading in
+                    NavigationLink { HealthTrendsView() } label: {
+                        CareCard {
+                            Label(Scheduling.longDate(reading.date), systemImage: "heart.text.square").font(.footnote)
+                            Text("Home visit readings").font(.headline)
+                            Text("\(Passport.measured(in: reading).count) measurements recorded").font(.subheadline)
+                            if let note = reading.note { Text(note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted) }
+                            Text("Recorded · Open health trends").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        }
+                    }.buttonStyle(.plain)
+                }
+            }
+        }.sensoryFeedback(.selection, trigger: recordFilter)
+    }
+
     /// The last visit as four metrics and one way into it. A chip above a thin numeral with its
     /// name below — the same shape a figure takes on every other screen in this product.
     private var lastVisit: some View {
@@ -118,7 +151,7 @@ struct PassportView: View {
         ShareLink(item: "MyThuso fictional passport: BP 118/78 mmHg, pulse 72 bpm, glucose 5.2 mmol/L. Demo only, not a medical record.") {
             tileFace("Export sample", "arrow.down.doc")
         }.buttonStyle(.plain)
-        NavigationLink { FeatureDetail(title: "Your care team") } label: { tileFace("Doctors", "person.2") }.buttonStyle(.plain)
+        NavigationLink { CareClinicianProfile(doctor: true) } label: { tileFace("Doctors", "person.2") }.buttonStyle(.plain)
     }
     private func tileFace(_ title: String, _ symbol: String) -> some View {
         VStack(spacing: ThusoSpacing.space8) {
@@ -172,8 +205,9 @@ struct PassportView: View {
  * gives everywhere it runs out of width: the passport's own action tiles, the home's chips and
  * CareSectionHeader all fall from a row to a column through ViewThatFits.
  */
-private struct SectionTabs: View {
+struct SectionTabs: View {
     let sections: [String]
+    var groupLabel = "Passport sections"
     @Binding var selection: String
     /* A capsule's ends curve in by half its height, so a label that has wrapped to two lines is cut
        off by its own background. Past the accessibility sizes it becomes a rounded chip instead —
@@ -195,7 +229,7 @@ private struct SectionTabs: View {
         /* The Picker carried the name of the group; four loose buttons would not, so it is said
            here rather than lost. `children: .contain` leaves each pill its own element. */
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Passport sections")
+        .accessibilityLabel(groupLabel)
     }
     @ViewBuilder private func pills(filling: Bool) -> some View {
         ForEach(sections, id: \.self) { section in

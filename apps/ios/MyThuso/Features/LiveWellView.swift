@@ -47,7 +47,18 @@ struct LiveWellView: View {
             VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
                 DemoBadge()
                 if let framing = FramingData.framing(id: "live-well") {
-                    StudioHeadline(lead: framing.lead, accent: framing.accent, detail: WellbeingData.statement)
+                    VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
+                        MoonArtwork().frame(width: 130, height: 130).frame(maxWidth: .infinity)
+                        Text(framing.lead).thusoFont(ThusoType.caption, weight: .semibold).tracking(1.2)
+                            .foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(framing.accent).font(.largeTitle.weight(.semibold)).tracking(-1)
+                            .foregroundStyle(ThusoTheme.studioInkDeep).fixedSize(horizontal: false, vertical: true)
+                        Text(WellbeingData.statement).font(.subheadline)
+                            .foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(ThusoSpacing.space24)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(ThusoTheme.studioLilac, in: RoundedRectangle(cornerRadius: 30))
                 }
                 /* The standing disclosure, and it is clinical-records rather than a capability of
                    this feature's own — there is no wellbeing supplier to be blocked on, and

@@ -1,0 +1,10 @@
+.central-login .staff-signin-roles { display: grid; gap: 12px; }
+.central-login .record-row { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 16px; text-align: left; background: var(--surface); border: 1px solid var(--stone); border-radius: 20px; color: var(--charcoal); }
+.central-login .record-row > span:nth-child(2) { flex: 1; min-width: 0; }
+.central-login .record-row small { display: block; font-size: 13px; margin-top: 5px; color: var(--faint); }
+.central-login .record-row > svg { flex-shrink: 0; margin-top: 4px; }
+.central-login .record-row:hover { background: var(--pale-sage); border-color: var(--sage-slate); }
+.central-login .role-refuses { font-size: 13px; color: var(--faint); }
+.central-login .role-credential svg { vertical-align: middle; margin-right: 4px; }
+
+.central-login .modal-heading h2 { font-size: 26px; line-height: 1.15; letter-spacing: -.6px; }

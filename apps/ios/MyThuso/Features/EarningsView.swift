@@ -165,6 +165,7 @@ struct EarningsView: View {
                     }
                 }
                 .frame(height: 16)
+                .studioChartEntrance(identity: serviceId)
                 .accessibilityLabel("Of \(rand(parts.price)), \(rand(parts.nurse)) is yours, \(rand(parts.payment)) is the card fee and \(rand(parts.platform)) is what MyThuso keeps")
                 legend(ThusoTheme.charcoal, rand(parts.nurse), "Yours · \(Int((parts.nurseShareOfPrice * 100).rounded()))% of the price")
                 legend(ThusoTheme.mango, rand(parts.payment), "The card fee, paid by MyThuso")

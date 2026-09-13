@@ -57,7 +57,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
         Modifier.fillMaxWidth().semantics { contentDescription = spokenSummary(subject, summary) },
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        LinearProgressIndicator({ summary.progress }, Modifier.fillMaxWidth())
+        LinearProgressIndicator({ summary.progress }, Modifier.fillMaxWidth().studioChartEntrance(summary.progress))
         Text("${summary.passed} / ${summary.total} · ${thuso(Phrase.VETTING_PROGRESS, locale)}", style = MaterialTheme.typography.labelLarge, color = StudioInkMuted)
     }
 }

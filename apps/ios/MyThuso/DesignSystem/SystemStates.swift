@@ -14,6 +14,7 @@ struct SkeletonRows: View {
     var rows = 3
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shimmer = false
+    @Environment(\.scenePhase) private var scenePhase
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             ForEach(0..<rows, id: \.self) { index in
@@ -29,8 +30,11 @@ struct SkeletonRows: View {
             }
         }
         .opacity(shimmer ? 0.55 : 1)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: shimmer)
+        .animation(reduceMotion || scenePhase != .active ? nil : .easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: shimmer)
         .onAppear { if !reduceMotion { shimmer = true } }
+        .onChange(of: reduceMotion) { _, reduced in shimmer = !reduced }
+        .onDisappear { shimmer = false }
+        .onChange(of: scenePhase) { _, phase in shimmer = phase == .active && !reduceMotion }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Loading care information")
     }
@@ -58,9 +62,9 @@ struct StateBlock<Content: View>: View {
     }
     private var body_: String {
         switch state {
-        case .offline: return "\(subject) needs a connection. What you’ve already opened stays available, and nothing you entered has been lost."
+        case .offline: return "\(subject) cannot refresh while you’re offline. Your choices on this screen are kept. Reconnect, then try again."
         case .denied: return "MyThuso cannot show \(subject.lowercased()) until you allow \(permission). You can change your mind at any time, and declining never blocks a visit."
-        default: return "\(subject) did not load. This is a preview, so nothing was lost — in production this would retry automatically and log the failure for the care team."
+        default: return "\(subject) could not load. Your choices on this screen are kept. Try again when you’re ready."
         }
     }
     private var symbol: String {

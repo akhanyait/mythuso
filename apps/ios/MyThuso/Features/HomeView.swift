@@ -1,22 +1,6 @@
 import SwiftUI
 
-/* The returning patient's home.
- *
- * It used to open with a 470-point green field behind a carousel that rotated on its own, then a
- * search box, then a two-up grid of service tiles whose names wrapped to three lines on a narrow
- * phone — and the services began below the fold. A person who has already decided to book saw a
- * promotion first and the thing they came for last.
- *
- * The order below is what a returning patient needs, in the order they need it: who they are and
- * where, what is already arranged, how to arrange the next thing, and then results, plans and
- * family. The shortcuts are rows rather than tiles because a row has somewhere to put the price and
- * the length of the visit without squeezing the name. One promotional card is still here, once,
- * near the bottom, where it is an offer rather than an obstacle; the rotating one moved to the
- * roadmap, which is the screen rotating promotion is actually for.
- *
- * Nothing on this screen has a fixed height around text. At the largest Dynamic Type sizes the
- * rows lay themselves out vertically instead of clipping, which is what the frames removed from
- * here used to do. */
+// Native care overview. Large text uses a vertical layout so readings stay readable.
 struct HomeView: View {
     let book: () -> Void
     let firstRun: () -> Void
@@ -25,28 +9,13 @@ struct HomeView: View {
     private var stacked: Bool { typeSize.isAccessibilitySize }
 
     var body: some View {
-        /* THE BAND BEHIND THE GREETING IS GONE.
-           It was 210 points of brand texture under the first thing on the first screen, and on the
-           Care Studio ground it is a second surface drawn on top of the one the whole app now stands
-           on — two grounds arguing along a hard edge, which is what the Android shell already removed
-           for the same reason. The headline is the hero. Paper, and a very large sentence on it. */
         content
             .thusoGround()
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                /* The mark, not the lockup, and it is the founder's own artwork now rather than the
-                   indigo-and-teal one this app shipped with. "Brand" is the horizontal wordmark and
-                   the web gives it 168 points of width to be read in; this slot is a 34-point circle,
-                   so the same file arrives with its letters about three points tall — not a small
-                   logo, an illegible one, and the first thing on the first screen. BrandMark is the
-                   square cut, drawn for exactly this.
-
-                   It is NOT repainted to match the ground it sits on. The brand palette is a separate
-                   generation from the interface palette on purpose: brandInk is a blue-teal navy where
-                   studioInk is a green-black. A mark that changes colour per screen is not a mark. */
-                    Image("BrandMark").resizable().scaledToFit().frame(height: 30).accessibilityLabel("MyThuso")
+                    Image("Brand").resizable().scaledToFit().frame(width: 124, height: 34).accessibilityLabel("MyThuso")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink { NotificationsView() } label: { Image(systemName: "bell") }.accessibilityLabel("Notifications")
@@ -59,15 +28,15 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
                 greeting
                 arranged
-                bookingActions
+                careCover
+                healthSnapshot
+                searchField
+                liveWell
                 shortcuts
                 results
-                liveWell
                 carePlan
                 family
                 NavigationLink { PassportView() } label: { passportPromo }.buttonStyle(.plain)
-                /* The tagline used to close this screen in thirteen-point grey. It opens it now, at
-                   forty points on a lime block, so it is not repeated down here. */
                 Button(action: firstRun) {
                     Label("See the first-run and recovery flow", systemImage: "person.badge.plus").font(.footnote.weight(.semibold))
                 }
@@ -84,29 +53,19 @@ struct HomeView: View {
 
     // MARK: - Who, and where
 
-    /* The care area and the person a visit is for sit at the top, together, because they change
-       what everything under them means. Choosing a family member here opens the family screen,
-       where the consent and record-access questions are actually answered — never their record.
-
-       THE HEADLINE IS THE CONTRACT'S OWN WORDS, IN ELEVEN LANGUAGES.
-       The prototype's patient frame is a greeting over a short line about what the product is for,
-       both set very large. The temptation was to type the second line in English and let ten locales
-       show a slogan nobody had translated — on the one screen a person opens first. There was no
-       need: `shell.greeting` and `shell.tagline` are both in locales.json, reviewed to the same
-       standard as everything else on the shell, and "Help. Health. Home." is three words in every
-       one of them. So the tagline is promoted from a grey caption at the very bottom of this screen
-       — where it had been since the first cut and where nobody would ever read it — to the second
-       line of the headline. Nothing new was written and nothing is only in English. */
+    // Location and patient context remain beside the greeting.
     private var greeting: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             DemoBadge()
-            /* Which three keys, from packages/catalog/framing.json rather than from here. The
-               words are still the locale table's — this screen has never typed them — but which
-               of its two hundred keys make up the patient's headline is a framing decision, and it
-               now sits in the one file that holds the other five. */
-            StudioHeadline(lead: thuso(FramingData.patientLead, store.locale),
-                           accent: thuso(FramingData.patientAccent, store.locale),
-                           detail: thuso(FramingData.patientDetail, store.locale))
+            VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+                Text(thuso(FramingData.patientLead, store.locale))
+                    .font(.largeTitle.weight(.semibold)).tracking(-1.2)
+                    .foregroundStyle(ThusoTheme.studioInkDeep)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(thuso(FramingData.patientDetail, store.locale))
+                    .font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: ThusoSpacing.space8) { areaChip; personChip }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) { areaChip; personChip }
@@ -167,6 +126,19 @@ struct HomeView: View {
             }
             if let visit = store.visits.first {
                 NavigationLink { VisitDetailView(visit: visit) } label: { visitCard(visit) }.buttonStyle(.plain)
+                CareCard(padding: ThusoSpacing.space16, spacing: ThusoSpacing.space12) {
+                    HStack(alignment: .center, spacing: 12) {
+                        Image("CareNursePortrait").resizable().scaledToFill().frame(width: 56, height: 64).clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 16)).accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label("Before your visit", systemImage: "checklist").font(.subheadline.weight(.semibold))
+                            Text("Care at home · Illustrative image").thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                        }
+                    }
+                    Text("Have your medication list ready. Review the address and appointment details before the day.").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    ClinicianProfileLink(doctor: false)
+                    NavigationLink { VisitDetailView(visit: visit) } label: { Text("Visit details and preparation").frame(minHeight: 44).contentShape(Rectangle()) }.buttonStyle(.plain)
+                }
             } else {
                 /* Not a blank space and not a fixture. The sentences are the scheduling contract's,
                    so all three apps say the same thing about having nothing booked. */
@@ -229,8 +201,8 @@ struct HomeView: View {
             HStack(spacing: ThusoSpacing.space12) {
                 Monogram(text: Arrival.nurse.initials, background: ThusoTheme.studioPaper)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Sister Naledi Mokoena").font(.subheadline.weight(.semibold)).studioNightInk()
-                    Text("Registered Nurse (SANC)").thusoFont(ThusoType.caption).studioNightInk(quiet: true)
+                    Text(Arrival.nurse.name).font(.subheadline.weight(.semibold)).studioNightInk()
+                    Text(Arrival.nurse.role).thusoFont(ThusoType.caption).studioNightInk(quiet: true)
                 }
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).studioNightInk(quiet: true)
@@ -240,18 +212,37 @@ struct HomeView: View {
 
     // MARK: - Arranging the next thing
 
-    private var bookingActions: some View {
-        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            searchField
+    private var careCover: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
+            Text("HELP. HEALTH. HOME.").thusoFont(ThusoType.caption, weight: .semibold).tracking(1.5)
+                .foregroundStyle(ThusoTheme.studioLime)
+            Text("Care that\nfeels like home.").font(.largeTitle.weight(.medium)).tracking(-1.4)
+                .foregroundStyle(.white).fixedSize(horizontal: false, vertical: true)
             Button(action: book) {
-                HStack(spacing: ThusoSpacing.space8) {
-                    Image(systemName: "stethoscope")
-                    Text(thuso(.bookNurse, store.locale))
-                    Image(systemName: "arrow.right")
-                }
-            }
-            .buttonStyle(CareButton())
+                Label(thuso(.bookNurse, store.locale), systemImage: "arrow.up.right")
+                    .font(.subheadline.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
+                    .frame(minHeight: 44)
+                    .background(ThusoTheme.studioLime, in: RoundedRectangle(cornerRadius: ThusoRadius.control))
+                    .foregroundStyle(ThusoTheme.studioInkDeep)
+            }.buttonStyle(.plain)
+            Text("Illustrative image").thusoFont(ThusoType.caption).foregroundStyle(.white)
         }
+        .padding(ThusoSpacing.space24)
+        .frame(maxWidth: .infinity, minHeight: 254, alignment: .leading)
+        .background {
+            GeometryReader { geometry in
+                Image("CareEditorial").resizable().scaledToFill()
+                    .frame(width: geometry.size.width, height: geometry.size.height).clipped()
+                    .overlay {
+                        LinearGradient(stops: [.init(color: ThusoTheme.studioNight.opacity(0.96), location: 0),
+                                               .init(color: ThusoTheme.studioNight.opacity(0.80), location: 0.52),
+                                               .init(color: ThusoTheme.studioNight.opacity(0.1), location: 1)],
+                                       startPoint: .leading, endPoint: .trailing)
+                    }
+            }.accessibilityHidden(true)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
     }
 
     /* The words typed here live on the store, so the catalogue in the next tab opens already
@@ -304,15 +295,15 @@ struct HomeView: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(service.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(service.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(service.detail).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: ThusoSpacing.space8) {
                 VStack(alignment: stacked ? .leading : .trailing, spacing: 2) {
                     Text("R\(service.price)").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text("\(service.duration) min").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text("\(service.duration) min").thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 }
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
+                Image(systemName: "chevron.right").thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.studioInkMuted)
                     .accessibilityHidden(true)
             }
         }
@@ -325,67 +316,102 @@ struct HomeView: View {
 
     // MARK: - Results, plans and family
 
-    private var results: some View {
+    // The home and Passport read the same fixture; a redesign must not invent new readings.
+    private var healthSnapshot: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            CareSectionHeader(title: "Recent results") {
-                NavigationLink(thuso(.openPassport, store.locale)) { PassportView() }.frame(minHeight: 44).contentShape(Rectangle())
+            Text("Your care at a glance").font(.headline).foregroundStyle(ThusoTheme.studioInk)
+            Text("Sample readings · \(Scheduling.shortDate(Passport.latestSet.date))")
+                .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            let layout = stacked ? AnyLayout(VStackLayout(spacing: ThusoSpacing.space12))
+                                 : AnyLayout(HStackLayout(alignment: .top, spacing: ThusoSpacing.space12))
+            layout {
+                snapshotCard(id: "systolic", symbol: "heart", fill: ThusoTheme.surface)
+                snapshotCard(id: "glucose", symbol: "waveform.path.ecg", fill: ThusoTheme.studioLime)
             }
-            CareCard(padding: ThusoSpacing.space16, spacing: 0) {
-                ForEach(Array(sampleResults.enumerated()), id: \.offset) { index, result in
-                    NavigationLink { PassportView() } label: {
-                        let row = HStack(alignment: .firstTextBaseline) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(result.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                                Text(result.1).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+        }
+    }
+
+    private func snapshotCard(id: String, symbol: String, fill: Color) -> some View {
+        NavigationLink { PassportView() } label: {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+                HStack {
+                    Image(systemName: symbol)
+                    Spacer()
+                    Image(systemName: "arrow.up.right").thusoFont(ThusoType.caption)
+                }.foregroundStyle(ThusoTheme.studioInk)
+                if let observation = Passport.spec(id), let value = Passport.latestSet.values[id] {
+                    let display = id == "systolic"
+                        ? "\(Int(value))/\(Int(Passport.latestSet.values["diastolic"] ?? 0))"
+                        : Passport.format(observation, value)
+                    Text(id == "systolic" ? "Blood pressure" : observation.label)
+                        .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(display).font(.title.weight(.semibold)).tracking(-1.2)
+                        .foregroundStyle(ThusoTheme.studioInkDeep)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(alignment: .bottom) {
+                        Text(observation.unit).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Spacer(minLength: 4)
+                        HStack(alignment: .bottom, spacing: 3) {
+                            ForEach(Array(Passport.series(observation).enumerated()), id: \.offset) { index, reading in
+                                Capsule().fill(ThusoTheme.studioOlive.opacity(0.45))
+                                    .frame(width: 7, height: max(5, reading.value / (id == "systolic" ? 160 : 8) * 30))
+                                    .studioBarEntrance(delay: Double(index) * 0.08, identity: "\(id):\(reading.value)")
                             }
-                            if !stacked { Spacer(minLength: 8); StatusPill(text: result.2, tone: result.3) }
-                        }
-                        if stacked {
-                            VStack(alignment: .leading, spacing: ThusoSpacing.space8) { row; StatusPill(text: result.2, tone: result.3) }
-                                .frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, ThusoSpacing.space8)
-                                .frame(minHeight: 44).contentShape(Rectangle())
-                        } else {
-                            row.padding(.vertical, ThusoSpacing.space8).frame(minHeight: 44).contentShape(Rectangle())
-                        }
+                        }.frame(height: 30).accessibilityHidden(true)
                     }
-                    .buttonStyle(.plain)
-                    if index < sampleResults.count - 1 { Divider().overlay(ThusoTheme.studioLine) }
                 }
             }
-        }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(ThusoSpacing.space16)
+            .background(fill, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        }.buttonStyle(.plain)
     }
 
-    private var sampleResults: [(String, String, String, String)] {
-        [("Blood pressure", "118/78 mmHg", "In range", "teal"),
-         ("Blood glucose", "5.4 mmol/L", "In range", "teal"),
-         ("Full blood count", "Awaiting doctor review", "With a doctor", "amber")]
-    }
-
-    /* LIVE WELL, AND WHY IT IS HERE RATHER THAN IN THE TAB BAR.
-     *
-     * The founder's prototype carries it as a fifth patient tab. This shell already has five —
-     * Home, Book care, Visits, Passport and More — and a sixth on iOS does not become a sixth tab,
-     * it collapses the last two into a system "More" list that belongs to UIKit rather than to this
-     * design. So it is a full destination reached from two places instead: here, immediately under
-     * the readings it sits beside, and from the More index. Which of the five gives up its slot is
-     * a decision for him rather than for this pass.
-     *
-     * It follows the results deliberately. A person who has just read a measurement somebody else
-     * took is in exactly the frame to write down what they did — and the ordering says the quiet
-     * thing the contract insists on, that the diary is beside the record and not a second one. */
-    private var liveWell: some View {
+    private var results: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            CareSectionHeader("Live well")
-            NavigationLink { LiveWellView() } label: {
-                /* The row's second line is the framing's own accent line rather than the whole
-                   statement, which ran to three lines in a control built for one. The statement is
-                   the first thing on the screen this opens; saying it twice cost the home screen a
-                   paragraph to say nothing new. */
-                NavPillLabel(title: "Write down how you are",
-                             subtitle: FramingData.framing(id: "live-well")?.accent ?? "",
-                             symbol: "book.closed")
+            CareSectionHeader(title: "Your health over time") {
+                NavigationLink(thuso(.openPassport, store.locale)) { PassportView() }
+            }
+            if let observation = Passport.spec("systolic") {
+                ClinicalChart(title: "Systolic blood pressure", unit: observation.unit,
+                              readings: Passport.series(observation), normal: observation.range,
+                              symbol: "heart")
+            }
+            NavigationLink { PassportView() } label: {
+                CareCard {
+                    Text("Full blood count").font(.headline).foregroundStyle(ThusoTheme.studioInk)
+                    Text("Awaiting doctor review").font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                    StatusPill(text: "With a doctor", tone: "amber")
+                }
             }.buttonStyle(.plain)
         }
+    }
+
+    private var liveWell: some View {
+        NavigationLink { LiveWellView() } label: {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
+                Text("YOUR EVERYDAY WELLBEING").thusoFont(ThusoType.caption, weight: .semibold).tracking(1.2)
+                    .foregroundStyle(ThusoTheme.studioInkMuted)
+                HStack(alignment: .center, spacing: 8) {
+                    Text("Make room\nfor you.").font(.largeTitle.weight(.medium)).tracking(-1.4)
+                        .foregroundStyle(ThusoTheme.studioInkDeep).fixedSize(horizontal: false, vertical: true)
+                    if !stacked { Spacer(minLength: 0); MoonArtwork().frame(width: 120, height: 120) }
+                }
+                Text("How have you been feeling? A quiet space for your own words.")
+                    .font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Text("Open your journal").font(.subheadline.weight(.semibold))
+                    Spacer(minLength: 8)
+                    Image(systemName: "arrow.up.right")
+                }
+                .foregroundStyle(ThusoTheme.studioInk)
+                .padding(ThusoSpacing.space16)
+                .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control))
+            }
+            .padding(ThusoSpacing.space24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(ThusoTheme.studioLilac, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+        }.buttonStyle(.plain)
     }
 
     private var carePlan: some View {
@@ -428,7 +454,7 @@ struct HomeView: View {
                it decorates. */
             Label("Booking for someone opens their booking, never their record. What you may see is decided in My family.",
                   systemImage: "checkmark.shield")
-                .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Booking for someone opens their booking, never their record. What you may see is decided in My family.")

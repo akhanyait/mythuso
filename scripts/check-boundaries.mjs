@@ -1484,7 +1484,7 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
  if(match.role !== 'doctor') throw new Error(`packages/catalog/passport.json's reviewer "${reviewer.name}" is on the register as a ${match.role}, not a doctor. A nurse records and a doctor reviews — that separation is the point of naming the reviewer at all.`);
 }
 
-/* Nothing renders below the smallest size the design declares, and iOS does — 422 times.
+/* Nothing renders below the smallest size the design declares, and iOS does — 417 times.
    `ThusoType.minimumRendered` is 13 and its comment says "Nothing in any of the three apps renders
    text below this." The web is held to it: tests/accessibility.spec.ts measures rendered text at a
    320px viewport and found twenty-odd rules that had drifted under, each one a number somebody
@@ -1503,7 +1503,7 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
    counted with the rest: a glyph has no legibility floor, but separating them by regex is a guess,
    and a ratchet that guesses is a ratchet nobody trusts. */
 {
- const SMALL_TYPE_ON_IOS = 422;
+ const SMALL_TYPE_ON_IOS = 417;
  let found = 0;
  const worst = [];
  for(const file of files('apps/ios/MyThuso').filter(f => f.endsWith('.swift'))) {
@@ -1688,10 +1688,10 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
     were separate builds. They are one now — the workspaces are lazily-imported chunks of the app
     entry rather than entries of their own — so the list shrank to one rather than the permission
     widening. What must not happen is a third name appearing here because a page wanted a map. */
- for(const entry of ['index.html']) {
+ for(const entry of ['index.html','landing.html']) {
   if(!read(`apps/web/${entry}`).includes(source.host)) throw new Error(`apps/web/${entry} draws a map and its content policy does not allow ${source.host}. The tiles do not fail loudly — the map falls back to the schematic and nobody is told why.`);
  }
- for(const entry of ['landing.html','status.html']) {
+ for(const entry of ['status.html']) {
   if(existsSync(`apps/web/${entry}`) && read(`apps/web/${entry}`).includes(source.host)) throw new Error(`apps/web/${entry} allows the tile host and draws no map. An entry that can reach a tile server is an entry that can leak a viewport; only the one that needs it may.`);
  }
  /* And the attribution is a licence condition, not a courtesy. */

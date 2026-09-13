@@ -14,6 +14,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,8 @@ data class Reading(val label: String, val value: Double, val note: String = "—
 @OptIn(ExperimentalLayoutApi::class)
 @Composable fun ClinicalChart(title: String, unit: String, readings: List<Reading>, normal: ClosedFloatingPointRange<Double>? = null, decimals: Int = 0) {
     var showTable by remember { mutableStateOf(false) }
+    var plotVisible by remember { mutableStateOf(false) }
+    val reveal = rememberStudioReveal(plotVisible, identity = readings)
     fun format(value: Double) = "%.${decimals}f".format(value)
     val latest = readings.last()
     val first = readings.first()
@@ -51,7 +54,8 @@ data class Reading(val label: String, val value: Double, val note: String = "—
             if (delta == 0.0) "No change" else "${if (delta > 0) "+" else ""}${format(delta)} since ${first.label}",
             style = MaterialTheme.typography.bodySmall, color = StudioInkMuted
         )
-        Canvas(Modifier.fillMaxWidth().height(74.dp).semantics { contentDescription = summary }) {
+        Canvas(Modifier.fillMaxWidth().height(74.dp).studioVisibility { plotVisible = it }
+            .semantics { contentDescription = summary }) {
             val values = readings.map { it.value }
             val low = min(values.min(), normal?.start ?: Double.MAX_VALUE)
             val high = max(values.max(), normal?.endInclusive ?: -Double.MAX_VALUE)
@@ -68,11 +72,13 @@ data class Reading(val label: String, val value: Double, val note: String = "—
             readings.forEachIndexed { index, reading ->
                 if (index == 0) path.moveTo(x(index), y(reading.value)) else path.lineTo(x(index), y(reading.value))
             }
+            clipRect(left = -8f, top = -8f, right = (size.width + 8f) * reveal.value, bottom = size.height + 8f) {
             drawPath(path, Charcoal, style = Stroke(width = 3f))
             readings.forEachIndexed { index, reading ->
                 val last = index == readings.lastIndex
                 drawCircle(if (last) SurfaceWhite else Charcoal, if (last) 7f else 4f, Offset(x(index), y(reading.value)))
                 if (last) drawCircle(Charcoal, 7f, Offset(x(index), y(reading.value)), style = Stroke(width = 3f))
+            }
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

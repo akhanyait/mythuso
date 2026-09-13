@@ -43,7 +43,7 @@ export function StateBlock({ state, subject, permission = 'device access', onRet
   ? `${subject} needs a connection. What you’ve already opened stays available, and nothing you entered has been lost.`
   : state === 'denied'
    ? `MyThuso cannot show ${subject.toLowerCase()} until you allow ${permission}. You can change your mind at any time, and declining never blocks a visit.`
-   : `${subject} did not load, and nothing was lost — what you entered is still here. Try again in a moment; if it keeps failing, the care team is told without you having to report it.`;
+   : `${subject} did not load, and nothing was lost — what you entered is still here. Try again when you have a connection. Your current screen stays open while you retry.`;
  return <div className={`state-block ${state}`} role={state === 'error' ? 'alert' : 'status'}>
   <span className="state-icon">{icon}</span>
   <div><h3>{heading}</h3><p>{body}</p></div>

@@ -29,7 +29,21 @@ struct GuardianInvitation: Identifiable, Hashable {
     let expires: String
     var status: String
 }
+/// In-memory only: leaving a booking screen must not discard an unfinished choice.
+struct CareBookingDraft: Equatable {
+    var patient: String
+    var address: String
+    var day: Int
+    var selectedDate: Date?
+    var slot: String
+    var payment: String
+    var consent: Bool
+    var kind: String
+    var step: Int
+}
+
 @MainActor final class PreviewStore: ObservableObject {
+    @Published var bookingDrafts: [String: CareBookingDraft] = [:]
     /* Seeded with a real date rather than the string "12 September · 09:00", which stopped being
        true the day after somebody typed it and never matched the weekday shown beside it. */
     @Published var visits = [BookedVisit(service: CareService.all[0], patient: "Lerato Molefe",

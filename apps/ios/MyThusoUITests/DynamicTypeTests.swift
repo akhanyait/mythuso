@@ -50,7 +50,8 @@ final class DynamicTypeTests: XCTestCase {
            content size the fourth service is not in the view hierarchy at all until the grid has
            been scrolled far enough to build it. */
         tapAfterScrolling(app, app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Blood tests'")).firstMatch)
-        tapAfterScrolling(app, app.buttons["Continue"])            // who & where → when
+        tapAfterScrolling(app, app.buttons["Continue"])            // who → where
+        tapAfterScrolling(app, app.buttons["Continue"])            // where → when
         tapAfterScrolling(app, app.buttons["Continue"])            // when → payment
         tapAfterScrolling(app, app.buttons["Continue"])            // payment → review
         XCTAssertTrue(app.buttons["Confirm & book"].waitForExistence(timeout: 20), "the review step did not open")
@@ -102,6 +103,31 @@ final class DynamicTypeTests: XCTestCase {
 
     func testTheHealthPassportIsUsable() {
         auditBothSizes("The Health Passport", journey: openPassport)
+    }
+
+    func testTheWellbeingArtworkMovesWithoutMovingItsAction() {
+        let app = launchApp()
+        let card = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Open your journal'")).firstMatch
+        for _ in 0..<12 {
+            if card.exists && card.frame.minY > 100 && card.frame.maxY < app.frame.height - 100 { break }
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+            start.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)))
+        }
+        XCTAssertTrue(card.isHittable)
+        let frame = card.frame
+        let first = card.screenshot()
+        Thread.sleep(forTimeInterval: 1.2)
+        let second = card.screenshot()
+        XCTAssertEqual(card.frame, frame, "Artwork motion must not move the journal control")
+        XCTAssertNotEqual(first.pngRepresentation, second.pngRepresentation, "The visible moon should animate with standard motion settings")
+        for (name, screenshot) in [("Wellbeing motion first frame", first), ("Wellbeing motion second frame", second)] {
+            let attachment = XCTAttachment(screenshot: screenshot)
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        card.tap()
+        XCTAssertTrue(app.navigationBars["Live well"].waitForExistence(timeout: 10))
     }
 
     // MARK: - Text that answers the setting

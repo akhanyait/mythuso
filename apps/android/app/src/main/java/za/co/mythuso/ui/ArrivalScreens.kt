@@ -70,7 +70,8 @@ import za.co.mythuso.model.*
         drawRect(Mist, Offset.Zero, Size(size.width, size.height))
         GeographyData.zones.forEach { zone ->
             val mine = zone.id == to.id || zone.id == from?.id
-            drawCircle(if (mine) PaleSage else Cloud, radius(zone), at(zone))
+            drawCircle(if (mine) PaleSage.copy(alpha = 0.65f) else Cloud, radius(zone), at(zone))
+            drawCircle(SageSlate.copy(alpha = 0.55f), radius(zone), at(zone), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()))
         }
         if (from != null) drawLine(
             SageSlate, at(from), at(to), strokeWidth = 3f, cap = StrokeCap.Round,

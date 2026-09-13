@@ -202,7 +202,9 @@ private val Waiting = MangoInk
                         fun at(point: BoxPoint) = Offset((point.x / 100.0).toFloat() * size.width, (point.y / 100.0).toFloat() * size.height)
                         drawRect(Mist, Offset.Zero, Size(size.width, size.height))
                         locatedZones.forEach { (zone, point) ->
-                            drawCircle(IndigoSoft, (kmToBoxUnits(zone.radiusKm, mapWindow) / 100.0).toFloat() * side, at(point))
+                            val zoneRadius = (kmToBoxUnits(zone.radiusKm, mapWindow) / 100.0).toFloat() * side
+                            drawCircle(PaleSage.copy(alpha = 0.65f), zoneRadius, at(point))
+                            drawCircle(SageSlate.copy(alpha = 0.55f), zoneRadius, at(point), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()))
                         }
                         locatedNurses.forEach { (nurse, point) ->
                             drawCircle(if (nurse.name in refusedNames) Danger else if (nurse.status == "Available") Free else Busy, 9f, at(point))

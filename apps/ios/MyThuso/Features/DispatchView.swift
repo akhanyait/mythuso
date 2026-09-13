@@ -117,7 +117,8 @@ struct DispatchMap: View {
                 RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).fill(ThusoTheme.cloud)
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
-                        Circle().fill(ThusoTheme.studioLime)
+                        Circle().fill(ThusoTheme.paleSage.opacity(0.65))
+                            .overlay { Circle().stroke(ThusoTheme.sageSlate.opacity(0.55), lineWidth: 1) }
                             .frame(width: zone.radius * 2 * size, height: zone.radius * 2 * size)
                             .position(x: point.x * size, y: point.y * size)
                     }

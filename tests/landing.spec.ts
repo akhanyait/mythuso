@@ -72,7 +72,7 @@ test('each banner\u2019s call to action opens what it says it opens', async ({ p
     if (i) await page.getByRole('button', { name: /Show the next banner/ }).click();
     const action = page.getByRole('link', { name: new RegExp(slide.action.label) });
     const href = await action.getAttribute('href');
-    expect(href, `${slide.id} has no destination`).toMatch(/^\/app\//);
+    expect(href, `${slide.id} has no destination`).toMatch(/^\/\?role=/);
     if (slide.action.goes === 'nurse') expect(href).toContain('role=nurse');
     if (slide.action.goes === 'family') expect(href).toContain('open=my-family');
     if (slide.action.goes === 'live-well') expect(href).toContain('open=live-well');
@@ -108,11 +108,14 @@ test('every figure it quotes comes from a contract', async ({ page }) => {
    — and worth nothing at all if a chip can name a file that is not there. So the chip is resolved
    against the catalogue directory rather than compared to a string typed here: rename a contract
    and this fails, which is exactly when the page has started citing something that does not exist. */
-test('each figure names a contract file that exists', async ({ page }) => {
+test('each figure remains traceable to its source without exposing filenames in the interface', async ({ page }) => {
   const chips = page.locator('.landing-figures .landing-figure-source');
   await expect(chips).toHaveCount(4);
-  for (const named of await chips.allInnerTexts()) {
-    expect(existsSync(new URL(`../packages/catalog/${named.trim()}`, import.meta.url)), `the figures band cites packages/catalog/${named.trim()}, which is not there`).toBe(true);
+  for (const chip of await chips.all()) {
+    const source = await chip.getAttribute('data-source');
+    expect(source).toBeTruthy();
+    expect(existsSync(new URL(`../packages/catalog/${source}`, import.meta.url))).toBe(true);
+    await expect(chip).not.toContainText('.json');
   }
 });
 
@@ -276,7 +279,7 @@ test('the accent fills and never labels, on the page ground the language is buil
    left invisible, and a reader who asked for less motion gets none. */
 test('sections arrive as you reach them, and none of them can get stuck hidden', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.dataset.motion)).toBe('on');
-  const safety = page.getByRole('heading', { name: 'The parts we will not shortcut.' });
+  const safety = page.getByRole('heading', { name: 'Safety is a condition of care.' });
   await safety.scrollIntoViewIfNeeded();
   await expect(safety).toBeVisible();
   /* Two separate guarantees, because they fail for different reasons.
@@ -305,7 +308,7 @@ test.describe('when the reader has asked for less motion', () => {
   test('nothing moves, and the page is fully visible without it', async ({ page }) => {
     // the reveal styles are keyed off this flag, so leaving it unset is what keeps the page visible
     expect(await page.evaluate(() => document.documentElement.dataset.motion)).toBeUndefined();
-    await expect(page.getByRole('heading', { name: 'The parts we will not shortcut.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Safety is a condition of care.' })).toBeVisible();
     await expect(page.locator('.landing-figures > div').first()).toContainText(money(fromPrice));
     const moving = await page.evaluate(() => document.getAnimations()
       .filter(a => a.playState === 'running').map(a => (a as CSSAnimation).animationName ?? 'transition'));
@@ -364,7 +367,8 @@ test('every word on a banner is the contract\u2019s', async ({ page }) => {
     await expect(on).toContainText(slide.eyebrow);
     await expect(on).toContainText(slide.body);
     await expect(on.getByRole('link', { name: new RegExp(slide.action.label) })).toBeVisible();
-    for (const mark of slide.marks) for (const line of mark.lines) await expect(on).toContainText(line);
+    const trust = page.locator('.editorial-trust .landing-hero-marks:visible');
+    for (const mark of slide.marks) for (const line of mark.lines) await expect(trust).toContainText(line);
     const figure = page.locator('.landing-portrait .landing-slide.is-on');
     for (const card of slide.cards) {
       await expect(figure).toContainText(card.title);

@@ -92,6 +92,7 @@ test('paying for a visit answers with a receipt that says it is simulated, or a 
   await page.goto('/app/');
   await page.getByRole('button', { name: /Vitals & chronic check/ }).first().click();
   const d = page.getByRole('dialog');
+  await d.getByRole('button', { name: 'Continue' }).click(); // Who → Where
   await d.getByRole('button', { name: 'Continue' }).click();
   await d.getByRole('button', { name: 'Continue' }).click();
 
@@ -137,7 +138,8 @@ test('a declined payment books nothing, and says so in the register a person rea
     await openCatalogue(page);
     await page.getByRole('button', { name: service.name }).first().click();
     const d = page.getByRole('dialog');
-    await d.getByRole('button', { name: 'Continue' }).click();   // who & where
+    await d.getByRole('button', { name: 'Continue' }).click();   // who
+  await d.getByRole('button', { name: 'Continue' }).click();   // where
     /* The hour is part of the reference too, so it is part of the search. Seven services against
        one slot each is seven draws at one-in-five, and roughly one morning in eight none of them is
        refused — which is how this assertion has failed twice. Every offered hour of every service is

@@ -51,16 +51,16 @@ enum ThusoTheme {
     static let charcoalMutedOnCloud = Color(red: 0.329, green: 0.329, blue: 0.329)    // #545454
     static let charcoalMutedOnPaleSage = Color(red: 0.298, green: 0.314, blue: 0.286) // #4C5049
     static let charcoalMutedOnSoftSage = Color(red: 0.275, green: 0.290, blue: 0.267) // #464A44
-    static let studioPaper = Color(red: 0.980, green: 0.973, blue: 0.949)             // #FAF8F2
-    static let studioNight = Color(red: 0.090, green: 0.169, blue: 0.169)             // #172B2B
-    static let studioInk = Color(red: 0.141, green: 0.212, blue: 0.188)               // #243630
-    static let studioInkDeep = Color(red: 0.075, green: 0.145, blue: 0.118)           // #13251E
-    static let studioLime = Color(red: 0.875, green: 1.000, blue: 0.573)              // #DFFF92
-    static let studioLilac = Color(red: 0.871, green: 0.827, blue: 1.000)             // #DED3FF
-    static let studioPeach = Color(red: 1.000, green: 0.808, blue: 0.678)             // #FFCEAD
-    static let studioLine = Color(red: 0.886, green: 0.894, blue: 0.851)              // #E2E4D9
-    static let studioInkMuted = Color(red: 0.310, green: 0.365, blue: 0.341)          // #4F5D57
-    static let studioOlive = Color(red: 0.361, green: 0.447, blue: 0.302)             // #5C724D
+    static let studioPaper = Color(red: 0.961, green: 0.957, blue: 0.937)             // #F5F4EF
+    static let studioNight = Color(red: 0.125, green: 0.161, blue: 0.137)             // #202923
+    static let studioInk = Color(red: 0.157, green: 0.239, blue: 0.188)               // #283D30
+    static let studioInkDeep = Color(red: 0.098, green: 0.161, blue: 0.122)           // #19291F
+    static let studioLime = Color(red: 0.878, green: 0.929, blue: 0.675)              // #E0EDAC
+    static let studioLilac = Color(red: 0.906, green: 0.882, blue: 0.941)             // #E7E1F0
+    static let studioPeach = Color(red: 0.957, green: 0.867, blue: 0.788)             // #F4DDC9
+    static let studioLine = Color(red: 0.875, green: 0.886, blue: 0.847)              // #DFE2D8
+    static let studioInkMuted = Color(red: 0.314, green: 0.365, blue: 0.325)          // #505D53
+    static let studioOlive = Color(red: 0.275, green: 0.400, blue: 0.278)             // #466647
     static let brandInk = Color(red: 0.059, green: 0.231, blue: 0.290)                // #0F3B4A
     static let brandGreen = Color(red: 0.114, green: 0.620, blue: 0.459)              // #1D9E75
     static let brandOrange = Color(red: 1.000, green: 0.420, blue: 0.208)             // #FF6B35
@@ -68,10 +68,10 @@ enum ThusoTheme {
     static let brandMint = Color(red: 0.624, green: 0.882, blue: 0.796)               // #9FE1CB
 }
 enum ThusoRadius {
-    static let card: CGFloat = 12
-    static let panel: CGFloat = 18
-    static let control: CGFloat = 10
-    static let tile: CGFloat = 10
+    static let card: CGFloat = 20
+    static let panel: CGFloat = 28
+    static let control: CGFloat = 16
+    static let tile: CGFloat = 16
     static let pill: CGFloat = 999
 }
 /// Opacities, as opacities. A flattened grey cannot follow the ground it sits on; an alpha has no

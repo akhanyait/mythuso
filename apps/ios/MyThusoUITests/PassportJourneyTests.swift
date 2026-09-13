@@ -58,6 +58,21 @@ final class PassportJourneyTests: XCTestCase {
                       "the device permission screen did not open")
     }
 
+    func testRecordFiltersSeparateReviewsFromRecordedReadings() {
+        let app = launchApp()
+        openPassport(app)
+        tapAfterScrolling(app, section(app, "Records"))
+        let filters = app.otherElements["Record filters"]
+        tapAfterScrolling(app, filters.buttons["Reviews"])
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Doctor review completed'")).firstMatch.exists)
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Home visit readings'")).firstMatch.exists)
+        filters.buttons["Readings"].tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Home visit readings'")).firstMatch.exists)
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Doctor review completed'")).firstMatch.exists)
+        filters.buttons["All records"].tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Doctor review completed'")).firstMatch.exists)
+    }
+
     // MARK: - Usable at both content sizes
 
     private func audit(_ name: String, contentSize: [String], journey: (XCUIApplication) -> Void) -> ScreenAudit {

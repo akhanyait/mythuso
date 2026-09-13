@@ -30,9 +30,11 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
    shapes say what is loading — so nothing is lost by obeying. */
 @Composable fun SkeletonRows(rows: Int = 3) {
     val still = prefersReducedMotion()
-    val transition = rememberInfiniteTransition(label = "skeleton")
-    val pulse by transition.animateFloat(0.45f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "alpha")
-    val alpha = if (still) 0.7f else pulse
+    val alpha = if (still) 0.7f else {
+        val transition = rememberInfiniteTransition(label = "skeleton")
+        val pulse by transition.animateFloat(0.6f, 1f, infiniteRepeatable(tween(StudioMotion.loadingMillis), RepeatMode.Reverse), label = "alpha")
+        pulse
+    }
     Column(
         Modifier.fillMaxWidth().alpha(alpha).semantics { contentDescription = "Loading care information" },
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -51,7 +53,10 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
 @Composable fun StateBlock(state: LoadState, subject: String, permission: String = "device access", retry: (() -> Unit)? = null, content: @Composable () -> Unit) {
     when (state) {
         LoadState.READY -> content()
-        LoadState.LOADING -> SkeletonRows()
+        LoadState.LOADING -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Loading ${subject.replaceFirstChar { it.lowercase() }}…", style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+            SkeletonRows()
+        }
         else -> {
             val heading = when (state) {
                 LoadState.OFFLINE -> "You’re offline"
@@ -59,9 +64,9 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
                 else -> "We couldn’t load this just now"
             }
             val body = when (state) {
-                LoadState.OFFLINE -> "$subject needs a connection. What you’ve already opened stays available, and nothing you entered has been lost."
+                LoadState.OFFLINE -> "$subject is unavailable while offline. Reconnect, then try again. This preview keeps your current choices in this session."
                 LoadState.DENIED -> "MyThuso cannot show ${subject.lowercase()} until you allow $permission. You can change your mind at any time, and declining never blocks a visit."
-                else -> "$subject did not load. This is a preview, so nothing was lost — in production this would retry automatically and log the failure for the care team."
+                else -> "$subject did not load. Try again when you are ready. Your current choices remain in this session."
             }
             val icon = when (state) {
                 LoadState.OFFLINE -> Icons.Outlined.CloudOff

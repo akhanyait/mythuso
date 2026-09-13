@@ -92,7 +92,8 @@ class BookingJourneyTests {
         rule.onAllNodes(describedStartingWith("Blood tests") and hasClickAction())
             .onFirst().performScrollTo().performClick()
         settle()
-        tap("Continue")                                            // who & where → when
+        tap("Continue")                                            // who → where
+        tap("Continue")                                            // where → when
 
         // MARK: Every chip's weekday belongs to the date on it
         val chips = rule.onAllNodes(hasClickAction() and describedLikeALongDate())

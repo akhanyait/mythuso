@@ -97,13 +97,7 @@ import za.co.mythuso.model.mokoenaHousehold
                 }
             }
             when (tab) {
-                "Records" -> CareCard(padding = ThusoSpacing.space8) {
-                    MenuRow("Visit summary", "Fictional document · 4 September", Icons.Outlined.Description) { open("Visit summary") }
-                    HorizontalDivider(color = StudioLine)
-                    MenuRow("Laboratory results", "Fasting panel · Released", Icons.Outlined.Science) { open("Laboratory order LAB-0023") }
-                    HorizontalDivider(color = StudioLine)
-                    MenuRow("Medical certificate", "Doctor reviewed · Demo", Icons.Outlined.VerifiedUser) { open("Medical certificate") }
-                }
+                "Records" -> PassportTimeline(open)
                 "Medications" -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
                     EmptyStateCard("No active prescriptions", "Prescriptions appear here after a registered doctor issues them.")
                     OutlinedButton(onClick = { open("Prescription RX-0081") }, Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("Preview a sample prescription") }
@@ -307,6 +301,10 @@ import za.co.mythuso.model.mokoenaHousehold
 }
 @Composable fun DetailScreen(title: String, store: PreviewStore, open: (String) -> Unit, firstRun: () -> Unit) {
     when {
+        title == "Your care team" -> CareTeamScreen(store, open)
+        title.startsWith("Clinician: ") -> ClinicianProfileScreen(store, title.removePrefix("Clinician: "))
+        title.startsWith("Upcoming visit: ") -> UpcomingVisitScreen(store, title.removePrefix("Upcoming visit: "), open)
+        title.startsWith("Past visit: ") -> PastVisitScreen(store, title.removePrefix("Past visit: ").toLongOrNull() ?: Passport.latestSet.dayOffset, open)
         title == "Health Passport" -> PassportScreen(open)
         /* The three the passport offered and could not open. A completed visit is looked up by the
            day it happened rather than handed its readings, so a visit and what was measured at it

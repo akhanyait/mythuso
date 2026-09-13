@@ -71,6 +71,7 @@ final class BookingJourneyTests: XCTestCase {
         XCTAssertTrue(catalogueEntry.waitForExistence(timeout: 20), "the care catalogue does not list Blood tests")
         tapAfterScrolling(app, catalogueEntry)
         tapAfterScrolling(app, app.buttons["Continue"])
+        tapAfterScrolling(app, app.buttons["Continue"])
 
         // MARK: Every chip's weekday belongs to the date on it
         let chips = app.buttons.matching(NSPredicate(format: "label MATCHES %@", "^[A-Za-z]+, [0-9]{1,2} [A-Za-z]+ [0-9]{4}$"))
@@ -166,6 +167,47 @@ final class BookingJourneyTests: XCTestCase {
                       "the visit's own screen does not carry the whole choice — the date, the start and the end")
         XCTAssertTrue(rowShows(app, field: "How long", value: "\(declaredMinutes) minutes"),
                       "the visit's own screen does not say it takes \(declaredMinutes) minutes")
+    }
+
+    func testCategoryFiltersAndBookingSummaryKeepTheChosenCare() {
+        let app = launchApp()
+        app.tabBars.buttons.element(boundBy: 1).tap()
+        let recovery = app.buttons["Recovery"]
+        XCTAssertTrue(recovery.waitForExistence(timeout: 20))
+        recovery.tap()
+        let wound = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Wound care'")).firstMatch
+        XCTAssertTrue(wound.exists)
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Blood tests'")).firstMatch.exists)
+        wound.tap()
+        let summary = app.descendants(matching: .any)["bookingSummary"].firstMatch
+        XCTAssertTrue(summary.waitForExistence(timeout: 10))
+        XCTAssertTrue(summary.label.contains("299"))
+        app.buttons["Continue"].tap()
+        XCTAssertTrue(summary.label.contains("Wound care"))
+        XCTAssertTrue(summary.label.contains("299"))
+        app.buttons["Continue"].tap()
+        app.buttons["Back"].tap()
+        let location = app.textFields["Visit location"]
+        XCTAssertTrue(location.exists)
+        location.tap()
+        location.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (location.value as? String ?? "").count) + "Home visit · Rosebank")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        wound.tap()
+        XCTAssertTrue(location.waitForExistence(timeout: 10))
+        XCTAssertEqual(location.value as? String, "Home visit · Rosebank")
+    }
+
+    func testClinicianProfileUsesRegisterAndCanBeDismissed() {
+        let app = launchApp()
+        let nurse = app.buttons["Meet your nurse"].firstMatch
+        for _ in 0..<6 where !nurse.isHittable { app.swipeUp() }
+        XCTAssertTrue(nurse.waitForExistence(timeout: 10))
+        nurse.tap()
+        XCTAssertTrue(app.staticTexts["Professional record"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'SANC 20016688'")).firstMatch.exists)
+        XCTAssertFalse(app.buttons["Call"].exists)
+        app.buttons["Done"].tap()
+        XCTAssertTrue(nurse.waitForExistence(timeout: 10))
     }
 
     // MARK: - Reading numbers back off a screen

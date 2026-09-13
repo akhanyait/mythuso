@@ -63,6 +63,29 @@ const openTower = async (page: Page) => {
   await expect(page.locator('.livemap')).toBeVisible();
 };
 
+test('the main-site dashboard offers touch-sized map controls and resets the view', async ({ page }) => {
+  const asked = await stubTiles(page);
+  await page.goto('/?role=control-tower');
+  await expect(page.locator('.livemap')).toBeVisible();
+  expect(asked).toHaveLength(0);
+  await page.getByRole('button', { name: tiles.showLabel, exact: true }).click();
+  const reset = page.getByRole('button', { name: 'Reset view', exact: true });
+  await expect(reset).toBeVisible();
+  await expect(page.locator('.livemap-credit')).toBeVisible();
+  const zoom = page.getByRole('button', { name: 'Zoom in', exact: true });
+  const target = await zoom.boundingBox();
+  expect(target!.width).toBeGreaterThanOrEqual(44);
+  expect(target!.height).toBeGreaterThanOrEqual(44);
+  const marker = page.locator('.map-marker').first();
+  // Reset after the initial load has fitted the service area, then move the camera.
+  await reset.click();
+  const before = await marker.boundingBox();
+  await zoom.click();
+  await expect.poll(async () => Math.abs((await marker.boundingBox())!.x - before!.x)).toBeGreaterThan(2);
+  await reset.click();
+  await expect.poll(async () => Math.abs((await marker.boundingBox())!.x - before!.x)).toBeLessThan(2);
+});
+
 /* Pinned to a morning in Johannesburg, for the same reason arrival.spec.ts is: the sample visit
    rolls to tomorrow after the last slot of the day, and a test whose result depends on when somebody
    ran it is the worst kind. */
@@ -199,7 +222,7 @@ test('the square a tile request discloses is the one the contract says it is', a
  * has stopped meaning anything. */
 const origin = new URL(source.styleUrl).origin;
 
-for (const entry of ['index.html']) {
+for (const entry of ['index.html', 'landing.html']) {
   test(`${entry} may reach the tile source the contract names, and nothing else new`, async () => {
     const html = readFileSync(new URL(`../apps/web/${entry}`, import.meta.url), 'utf8');
     const policy = html.match(/Content-Security-Policy" content="([^"]+)"/)?.[1] ?? '';
@@ -212,7 +235,7 @@ for (const entry of ['index.html']) {
   });
 }
 
-for (const entry of ['landing.html', 'status.html']) {
+for (const entry of ['status.html']) {
   test(`${entry} draws no map, so it may not reach a tile server`, async () => {
     const html = readFileSync(new URL(`../apps/web/${entry}`, import.meta.url), 'utf8');
     expect(html, `${entry} has been given access to ${source.host} and has no map to draw with it`).not.toContain(source.host);

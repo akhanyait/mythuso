@@ -25,6 +25,7 @@ struct VettingProgressRow: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             ProgressView(value: summary.progress)
                 .tint(summary.cleared ? ThusoTheme.charcoal : ThusoTheme.mangoInk)
+                .studioChartEntrance(identity: "\(summary.passed)/\(summary.total)")
             Text("\(summary.passed) of \(summary.total) checks in date")
                 .font(.caption).foregroundStyle(.secondary)
         }

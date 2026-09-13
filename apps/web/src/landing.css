@@ -151,11 +151,11 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 .landing-nav nav{display:none;flex-direction:row;align-items:center;gap:2px;margin-left:auto}
 .landing-nav nav a{display:inline-flex;align-items:center;min-height:44px;font-size:14px;font-weight:500;color:var(--body);padding:10px 15px;border-radius:var(--r-pill);transition:color .18s,background .18s}
 .landing-nav nav a:hover{color:var(--charcoal);background:var(--cloud)}
-.landing-cta{display:none;min-height:44px;padding:11px 20px;font-size:14px;border-radius:var(--r-pill);background:var(--charcoal);color:var(--surface)}
+.landing-cta{display:inline-flex;margin-left:auto;flex-shrink:0;min-height:44px;padding:11px 20px;font-size:14px;border-radius:var(--r-pill);background:var(--charcoal);color:var(--surface)}
 .landing-cta:hover:not(:disabled){background:color-mix(in srgb,var(--charcoal) 82%,var(--surface))}
 /* Circular, hairline, no fill — the reference's icon button. --shadow is removed rather than
    inherited, because a shadow on a 44px circle over a grey ground reads as a smudge. */
-.landing-menu{margin-left:auto;width:44px;height:44px;box-shadow:none;background:transparent;border:1px solid var(--stone);color:var(--charcoal)}
+.landing-menu{margin-left:0;flex-shrink:0;width:44px;height:44px;box-shadow:none;background:transparent;border:1px solid var(--stone);color:var(--charcoal)}
 .landing-menu:hover{background:var(--cloud)}
 .landing-nav nav.is-open{display:flex;flex-direction:column;align-items:stretch;position:absolute;left:0;right:0;top:100%;gap:0;background:var(--mist);border-bottom:1px solid var(--stone);padding:4px var(--pad) 16px;margin:0}
 .landing-nav nav.is-open a{padding:15px 0;border-radius:0;border-bottom:1px solid var(--stone);font-size:16px;min-height:44px;display:flex;align-items:center}
@@ -350,7 +350,7 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 .landing-figures{display:grid;grid-template-columns:minmax(0,1fr);gap:36px 0;padding:clamp(40px,5vw,64px) var(--pad);border-block:1px solid var(--stone)}
 .landing-figure-source{display:inline-block;font-size:13px;font-weight:500;line-height:1;color:var(--charcoal);background:var(--pale-sage);border-radius:var(--r-pill);padding:6px 12px;font-variant-numeric:tabular-nums}
 .landing-figures strong{display:block;font-family:var(--font-display);font-size:clamp(40px,5.4vw,64px);font-weight:400;line-height:1;letter-spacing:-.04em;color:var(--charcoal);font-variant-numeric:tabular-nums;margin:18px 0 0}
-.landing-figures span:last-child{display:block;max-width:26ch;margin-top:14px;font-size:14px;line-height:1.6;color:var(--body)}
+.landing-figures > div > span:last-child{display:block;max-width:26ch;margin-top:14px;font-size:14px;line-height:1.6;color:var(--body)}
 .landing-figures-note{grid-column:1 / -1;margin:0;padding-top:28px;border-top:1px solid var(--stone);font-size:13px;line-height:1.6;color:var(--body)}
 
 /* ---- Sections and headings ----
@@ -636,4 +636,11 @@ html:has(.landing){scroll-behavior:smooth;background:var(--mist)}
 @keyframes portrait-drift {
  from { transform: translate3d(-4%, -3%, 0) scale(1.05); }
  to   { transform: translate3d(4%, 3%, 0) scale(1.14); }
+}
+
+@media (max-width: 480px) {
+ .landing-nav { gap: 8px; }
+ .landing-brand img { height: 26px; }
+ .landing-cta { padding-inline: 12px; }
+ .landing-cta svg { display: none; }
 }

@@ -69,6 +69,9 @@ class PreviewStore(book: CaptureBook = MemoryBook(), visitBook: CaptureBook = Me
     val cancelled = mutableStateListOf<CancelledVisit>()
     /* What somebody typed on the home screen, so the catalogue it hands off to can apply it. */
     var careQuery by mutableStateOf("")
+    var careCategory by mutableStateOf("All care")
+    // Session-only drafts survive closing a sheet; they are never written to a clinical record.
+    val bookingDrafts = mutableMapOf<String, BookingDraft>()
     /* Where the visit would happen. It sits beside the person a visit is for because those are the
        two things that change what everything on the home screen means, and a home that opens with a
        promotion instead of them makes a patient guess at both. No location permission is asked for. */
@@ -115,4 +118,27 @@ class PreviewStore(book: CaptureBook = MemoryBook(), visitBook: CaptureBook = Me
        is the right choice in exactly this one place — the alternative is losing the write, and by
        then nobody is looking at the screen for it to stutter. */
     fun flushLedgersToDisk() { capture.flushToDisk(); visitQueue.flushToDisk() }
+}
+
+
+class BookingDraft {
+    var step by mutableStateOf(0)
+    var person by mutableStateOf("Lerato Molefe")
+    var address by mutableStateOf("Home visit · Randburg")
+    var day by mutableStateOf(0)
+    var slot by mutableStateOf("09:00")
+    var payment by mutableStateOf("Card")
+    var kind by mutableStateOf("scheduled")
+}
+
+val careCategories = listOf("All care", "Everyday health", "Recovery", "Family care", "Tests & treatments")
+fun careCategory(service: CareService): String = when (service.id) {
+    "wound", "postop" -> "Recovery"
+    "mother", "planning", "senior" -> "Family care"
+    "blood", "injection" -> "Tests & treatments"
+    else -> "Everyday health"
+}
+fun discoverCare(query: String, category: String): List<CareService> = services.filter {
+    (category == "All care" || careCategory(it) == category) &&
+        (it.name + " " + it.detail).contains(query.trim(), ignoreCase = true)
 }

@@ -20,6 +20,8 @@ import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,39 +57,18 @@ import androidx.compose.foundation.text.KeyboardActions
         verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space24), content = content
     )
 }
-/* The returning patient's home.
- *
- * It used to open with a 470dp green field behind a carousel that rotated on its own, then a search
- * box, then a two-up grid of service tiles whose names wrapped to three lines on a narrow phone —
- * and the services began below the fold. A person who had already decided to book saw a promotion
- * first and the thing they came for last.
- *
- * The order below is what a returning patient needs, in the order they need it: who they are and
- * where, what is already arranged, how to arrange the next thing, and then results, plans and
- * family. The shortcuts are rows rather than tiles because a row has somewhere to put the price and
- * the length of the visit without squeezing the name. One promotional card is still here, once,
- * near the bottom, where it is an offer rather than an obstacle; the rotating one moved to the
- * roadmap, which is the screen rotating promotion is actually for.
- *
- * `book` takes the service the person tapped. Every shortcut used to call the same argumentless
- * callback, so all four opened the same generic booking — and the search field captured a query
- * that nothing ever read.
- *
- * Nothing here puts a fixed height around text. At the largest font scales the rows wrap rather
- * than clip, which is what the tiles this replaces used to do.
- *
- * What is new below is weight. The order was already right and every card was still drawn the same
- * as every other, so the screen had eight equal things on it and no subject. The visit that is
- * already arranged is now the one lifted card on the page, the action that arranges the next one is
- * the one filled button, and everything under them is a quiet list under a heading. */
+/* Native editorial home: care cover, dated readings, appointments and a personal journal.
+   Booking callbacks still carry the selected service and search query. */
 @Composable fun HomeScreen(store: PreviewStore, book: (CareService?) -> Unit, open: (String) -> Unit, firstRun: () -> Unit) {
     ScreenColumn {
         HomeGreeting(store, open)
         HomeNextVisit(store, book, open)
         HomeBooking(store, book)
+        HomeSnapshot(open)
+        HomeCareCover(store, book)
+        HomeLiveWell(open)
         HomeShortcuts(store, book)
         HomeResults(open)
-        HomeLiveWell(open)
         HomeCarePlan(open)
         HomeFamily(store, open)
         PassportPromo(store, open)
@@ -121,11 +102,13 @@ import androidx.compose.foundation.text.KeyboardActions
            still the locale table's — this screen has never typed them — but which of its two hundred
            keys make up the patient's headline is a framing decision, and it sits in the one file
            that holds the other five. */
-        StudioHeadline(
-            lead = thuso(FramingData.patientLead, store.locale),
-            accent = thuso(FramingData.patientAccent, store.locale),
-            detail = thuso(FramingData.patientDetail, store.locale)
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            Text(thuso(FramingData.patientLead, store.locale),
+                style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-1).sp, color = StudioInkDeep)
+            Text(thuso(FramingData.patientDetail, store.locale),
+                style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+        }
         /* A FlowRow rather than a Row: at the largest font scales the two chips take a line each
            instead of squeezing the care area down to an ellipsis. */
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -178,6 +161,7 @@ import androidx.compose.foundation.text.KeyboardActions
                 TileIcon(Icons.Outlined.EditCalendar, size = 44.dp)
                 Text(SchedulingData.noUpcoming, style = MaterialTheme.typography.titleLarge, color = Charcoal)
                 Text(SchedulingData.noUpcomingDetail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+                StudioButton(onClick = { book(null) }) { Text("Find your care") }
             }
         } else {
             /* Spelled out rather than left to be concatenated. A merged card reads its children in
@@ -198,7 +182,7 @@ import androidx.compose.foundation.text.KeyboardActions
                words beside them already say; the night chip says the word. */
             StudioNightCard(
                 Modifier
-                    .clickable { open("Visit: ${visit.service.name} · ${visit.shortWhenText}") }
+                    .clickable { open("Upcoming visit: ${visit.reference}") }
                     .semantics(mergeDescendants = true) { contentDescription = spoken }
             ) {
                 StudioNightStatusHeader(visit.status) {
@@ -214,6 +198,8 @@ import androidx.compose.foundation.text.KeyboardActions
                    for a light ground and there is nothing of it to see here. */
                 HorizontalDivider(color = StudioPaper.copy(alpha = 0.18f))
                 NurseRow { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = StudioNightInkQuiet) }
+                Text("Have your medication list ready.", style = MaterialTheme.typography.bodySmall, color = StudioNightInkQuiet)
+                Text("View visit details & preparation", style = MaterialTheme.typography.labelMedium, color = StudioLime)
             }
         }
     }
@@ -221,9 +207,32 @@ import androidx.compose.foundation.text.KeyboardActions
 
 /* The action, and then the way round it. The search field used to sit above the button, which put a
    text box between somebody who had already decided and the button that acts on the decision. */
+@Composable private fun HomeCareCover(store: PreviewStore, book: (CareService?) -> Unit) {
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).background(StudioNight)) {
+        Image(painterResource(R.drawable.care_editorial), null,
+            modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
+        Box(Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(
+            StudioNight.copy(alpha = 0.96f), StudioNight.copy(alpha = 0.80f), StudioNight.copy(alpha = 0.1f)))))
+        Column(Modifier.fillMaxWidth().heightIn(min = 254.dp).padding(ThusoSpacing.space24),
+            verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
+            Text("HELP. HEALTH. HOME.", style = MaterialTheme.typography.labelMedium,
+                letterSpacing = 1.5.sp, color = StudioLime)
+            Text("Care that\nfeels like home.", style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Medium, letterSpacing = (-1.4).sp, color = SurfaceWhite)
+            Button(onClick = { book(null) }, shape = RoundedCornerShape(ThusoRadius.control),
+                colors = ButtonDefaults.buttonColors(containerColor = StudioLime, contentColor = StudioInkDeep),
+                modifier = Modifier.heightIn(min = TouchTarget)) {
+                Text(thuso(Phrase.BOOK_NURSE, store.locale), modifier = Modifier.weight(1f, fill = false))
+                Spacer(Modifier.width(ThusoSpacing.space8))
+                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, modifier = Modifier.size(18.dp))
+            }
+            Text("Illustrative image", style = MaterialTheme.typography.bodySmall, color = SurfaceWhite)
+        }
+    }
+}
+
 @Composable private fun HomeBooking(store: PreviewStore, book: (CareService?) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-        PrimaryAction(thuso(Phrase.BOOK_NURSE, store.locale), icon = Icons.Outlined.MedicalServices) { book(null) }
         OutlinedTextField(
             store.careQuery, { store.careQuery = it }, placeholder = { Text("What care do you need today?") },
             leadingIcon = { Icon(Icons.Outlined.Search, null, tint = StudioInkMuted) },
@@ -231,7 +240,7 @@ import androidx.compose.foundation.text.KeyboardActions
             textStyle = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search for care" },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { book(null) }),
+            keyboardActions = KeyboardActions(onSearch = { store.careCategory = "All care"; book(null) }),
             colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = StudioInkMuted)
         )
     }
@@ -274,49 +283,85 @@ import androidx.compose.foundation.text.KeyboardActions
     }
 }
 
-@Composable private fun HomeResults(open: (String) -> Unit) {
-    Section("Recent results", "Health Passport", { open("Health Passport") }) {
-        CareCard(padding = ThusoSpacing.space8) {
-            val results = listOf(
-                Triple("Blood pressure", "118/78 mmHg", "In range" to "teal"),
-                Triple("Blood glucose", "5.4 mmol/L", "In range" to "teal"),
-                Triple("Full blood count", "Awaiting doctor review", "With a doctor" to "amber")
-            )
-            results.forEachIndexed { index, (name, value, status) ->
-                StatusHeader(
-                    status.first, status.second,
-                    Modifier.clip(RoundedCornerShape(ThusoRadius.control)).clickable { open("Health Passport") }
-                        .heightIn(min = TouchTarget).padding(horizontal = ThusoSpacing.space8, vertical = ThusoSpacing.space8)
-                        .semantics(mergeDescendants = true) {}
-                ) {
-                    Text(name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                    Text(value, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+// Sample values come from the same record as the Passport, including their date.
+@Composable private fun HomeSnapshot(open: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+        Text("Your care at a glance", style = MaterialTheme.typography.titleMedium, color = StudioInk)
+        Text("Sample readings · ${Passport.shortLabel(Passport.latestSet.dayOffset)}",
+            style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+        val stacked = LocalDensity.current.fontScale >= 1.3f
+        if (stacked) {
+            SnapshotCard("systolic", Modifier.fillMaxWidth(), open)
+            SnapshotCard("glucose", Modifier.fillMaxWidth(), open)
+        } else Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+            SnapshotCard("systolic", Modifier.weight(1f), open)
+            SnapshotCard("glucose", Modifier.weight(1f), open)
+        }
+    }
+}
+
+@Composable private fun SnapshotCard(id: String, modifier: Modifier, open: (String) -> Unit) {
+    val observation = Passport.spec(id) ?: return
+    val value = Passport.latestSet.values[id] ?: return
+    val shape = RoundedCornerShape(ThusoRadius.panel)
+    val display = if (id == "systolic") "${value.toInt()}/${Passport.latestSet.values.getValue("diastolic").toInt()}"
+                  else Passport.format(observation, value)
+    Column(modifier.clip(shape).background(if (id == "systolic") SurfaceWhite else StudioLime)
+        .clickable(role = Role.Button) { open("Health Passport") }
+        .semantics(mergeDescendants = true) {}
+        .padding(ThusoSpacing.space16), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Icon(if (id == "systolic") Icons.Outlined.FavoriteBorder else Icons.Outlined.MonitorHeart,
+                null, tint = StudioInk, modifier = Modifier.size(20.dp))
+            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = StudioInkMuted, modifier = Modifier.size(16.dp))
+        }
+        Text(if (id == "systolic") "Blood pressure" else observation.label,
+            style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+        Text(display, fontSize = 30.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-1).sp, color = StudioInkDeep)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(observation.unit, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+            Row(Modifier.height(30.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                Passport.seriesFor(observation).forEachIndexed { index, (_, reading) ->
+                    Box(Modifier.width(7.dp).height((reading / (if (id == "systolic") 160 else 8) * 30).toFloat().dp)
+                        .studioBarEntrance(index * 80, reading)
+                        .background(StudioOlive.copy(alpha = 0.45f), CircleShape))
                 }
-                if (index < results.size - 1) HorizontalDivider(color = StudioLine)
             }
         }
     }
 }
 
-/* LIVE WELL, AND WHY IT IS HERE RATHER THAN IN THE BOTTOM BAR.
-   The founder's prototype carries it as a fifth patient tab. This shell already has five — Home,
-   Book care, Visits, Passport and More — and while a Material navigation bar will draw a sixth, iOS
-   will not: a sixth tab there collapses the last two into a system list that belongs to UIKit rather
-   than to this design, and a tab bar that differs between the two phones is worse than one that is
-   short. So it is a full destination reached from two places on both platforms instead: here, and
-   from the More index. Which of the five gives up its slot is a decision for him rather than for
-   this pass.
+@Composable private fun HomeResults(open: (String) -> Unit) {
+    Section("Your health over time", "Health Passport", { open("Health Passport") }) {
+        Passport.spec("systolic")?.let { observation ->
+            ClinicalChart("Systolic blood pressure", observation.unit, Passport.seriesFor(observation).map { (set, value) -> Reading(Passport.shortLabel(set.dayOffset), value, set.note ?: "—") }, observation.low..observation.high)
+        }
+        PassportData.documents.firstOrNull { it.name == "Laboratory results" }?.let { document ->
+            CareCard {
+                MenuRow(document.name, "${Passport.shortLabel(document.dayOffset)} · ${document.kind}", Icons.Outlined.Biotech) { open(document.opens ?: "Health Passport") }
+                StatusPill(if (document.reviewed) "Doctor reviewed" else "Awaiting doctor review", if (document.reviewed) "teal" else "amber")
+            }
+        }
+    }
+}
 
-   It follows the results deliberately. A person who has just read a measurement somebody else took
-   is in exactly the frame to write down what they did — and the ordering says the quiet thing the
-   contract insists on, that the diary is beside the record and not a second one. */
 @Composable private fun HomeLiveWell(open: (String) -> Unit) {
-    Section("Live well") {
-        CareCard(padding = ThusoSpacing.space8) {
-            /* The row's second line is the framing's own accent line rather than the whole
-               statement, which ran to three lines in a row built for one. The statement is the first
-               thing on the screen this opens. */
-            MenuRow("Write down how you are", FramingData.byId("live-well")?.accent.orEmpty(), Icons.Outlined.EditNote) { open("Live well") }
+    val stacked = LocalDensity.current.fontScale >= 1.3f
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).background(StudioLilac)
+        .clickable(role = Role.Button) { open("Live well") }.semantics(mergeDescendants = true) {}
+        .padding(ThusoSpacing.space24), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
+        Text("YOUR EVERYDAY WELLBEING", style = MaterialTheme.typography.labelMedium, letterSpacing = 1.2.sp, color = StudioInkMuted)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Make room\nfor you.", style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Medium, letterSpacing = (-1.4).sp, color = StudioInkDeep, modifier = Modifier.weight(1f))
+            if (!stacked) MoonArtwork(Modifier.size(112.dp))
+        }
+        Text("How have you been feeling? A quiet space for your own words.", style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+        Row(Modifier.fillMaxWidth().background(SurfaceWhite, RoundedCornerShape(ThusoRadius.control))
+            .padding(ThusoSpacing.space16), horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8),
+            verticalAlignment = Alignment.CenterVertically) {
+            Text("Open your journal", style = MaterialTheme.typography.labelLarge, color = StudioInk, modifier = Modifier.weight(1f))
+            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = StudioInk, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -435,6 +480,7 @@ fun serviceIcon(id: String) = when (id) {
     /* The query lives on the store so a search typed on the home screen is already applied here.
        It used to be captured into a local that nothing outside this screen could read. */
     var selected by remember { mutableStateOf<CareService?>(null) }
+    val haptic = LocalHapticFeedback.current
     LaunchedEffect(preselect) { if (preselect != null) { selected = preselect; onPreselectUsed() } }
     val columns = if (with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() } >= 600.dp) 2 else 1
     ScreenColumn {
@@ -445,7 +491,7 @@ fun serviceIcon(id: String) = when (id) {
             Heading("", "Professional care at your door", "Choose a service and we’ll match you with the nearest qualified nurse.")
             DemoBadge()
         }
-        val filtered = services.filter { it.name.contains(store.careQuery, ignoreCase = true) }
+        val filtered = discoverCare(store.careQuery, store.careCategory)
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
             OutlinedTextField(
                 store.careQuery, { store.careQuery = it }, placeholder = { Text("Find a service") },
@@ -455,10 +501,22 @@ fun serviceIcon(id: String) = when (id) {
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Find a service" },
                 colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = StudioInkMuted)
             )
-            if (filtered.isEmpty()) EmptyStateCard("No matching services", "Try another name, or browse the whole catalogue.")
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                careCategories.forEach { category ->
+                    FilterChip(selected = store.careCategory == category, onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        store.careCategory = category
+                    }, label = { Text(category) })
+                }
+            }
+            Text("${filtered.size} services · Prices and durations shown before booking", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+            if (filtered.isEmpty()) {
+                EmptyStateCard("No matching services", "Try a different care category or a shorter search.")
+                OutlinedButton(onClick = { store.careQuery = ""; store.careCategory = "All care" }, shape = ThusoButtonShape) { Text("Show all services") }
+            }
             else filtered.chunked(columns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-                    row.forEach { service -> ServiceRow(service, Modifier.weight(1f)) { selected = service } }
+                    row.forEach { service -> ServiceRow(service, Modifier.weight(1f)) { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); selected = service } }
                     repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
@@ -491,150 +549,106 @@ fun serviceIcon(id: String) = when (id) {
         }
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable fun BookingDialog(service: CareService, store: PreviewStore, close: () -> Unit) {
-    var step by remember { mutableIntStateOf(0) }
-    var person by remember { mutableStateOf("Lerato Molefe") }
-    var address by remember { mutableStateOf("Home visit · Randburg") }
-    var day by remember { mutableIntStateOf(0) }
-    var slot by remember { mutableStateOf("09:00") }
-    var payment by remember { mutableStateOf("Card") }
+    val draft = remember(service.id) { store.bookingDrafts.getOrPut(service.id) { BookingDraft() } }
+    var step by draft::step
+    var person by draft::person
+    var address by draft::address
+    var day by draft::day
+    var slot by draft::slot
+    var payment by draft::payment
+    var kind by draft::kind
     var consent by remember { mutableStateOf(false) }
-    var kind by remember { mutableStateOf("scheduled") }
-    /* Computed once per booking rather than typed. The strip used to be five hand-written triples
-       beginning Triple("FRI", "12", "SEP") — a weekday that had not matched its date in months. */
+    val haptic = LocalHapticFeedback.current
     val days = remember { Scheduling.offeredDays() }
-    val slots = SchedulingData.slots
-    val labels = listOf("Who & where", "When", "Payment", "Review")
     val scheduled = kind == "scheduled"
     val chosen = days.getOrElse(day) { days.first() }
     val endTime = Scheduling.endTime(slot, service.duration)
-    AlertDialog(
-        onDismissRequest = close,
-        /* White, like every other surface in the app. Material derives a dialog's ground from the
-           primary colour, which under Deep Indigo comes out a pale lavender — a colour that appears
-           nowhere else in this design and reads as a different product the moment it opens. */
-        containerColor = Color.White,
-        shape = RoundedCornerShape(ThusoRadius.card),
-        title = { Text(if (step == 4) "Your demo visit is booked" else "Your home visit", style = MaterialTheme.typography.titleLarge, color = Charcoal) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (step < 4) StepDots(step + 1, 4, labels[step])
+    val labels = listOf("Who is the visit for?", "Where should we come?", "Choose your time", "Choose payment", "Review your visit")
+    val finished = step == 5
+    ModalBottomSheet(onDismissRequest = close, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = SurfaceWhite, contentColor = Charcoal) {
+        Column(Modifier.fillMaxWidth().imePadding().padding(horizontal = 24.dp).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(if (finished) "Your demo visit is booked" else labels[step], style = MaterialTheme.typography.titleLarge, color = Charcoal)
+            if (!finished) {
+                StepDots(step + 1, 5, labels[step])
+                Column(Modifier.fillMaxWidth().background(StudioPaper, RoundedCornerShape(16.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(service.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
+                    Text("R${service.price} · ${service.duration} minutes · Registered nurse", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    if (step > 0) Text(person, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                }
+            }
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 when (step) {
-                    0 -> {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            TileIcon(serviceIcon(service.id))
-                            Column(Modifier.weight(1f)) {
-                                Text(service.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                                Text("Registered nurse", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                            }
-                            Text("R${service.price}", style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                        }
-                        Text("Who is this visit for?", style = MaterialTheme.typography.labelMedium, color = Charcoal)
-                        (listOf("Lerato Molefe") + store.family).forEach { name ->
-                            Row(
-                                Modifier.fillMaxWidth().clickable { person = name }.semantics { selected = person == name },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) { RadioButton(person == name, { person = name }); Text(name, style = MaterialTheme.typography.bodyMedium) }
-                        }
-                        OutlinedTextField(address, { address = it }, label = { Text("Visit location") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    0 -> (listOf("Lerato Molefe") + store.family).forEach { name ->
+                        CareChoice(name, if (name == "Lerato Molefe") "For yourself" else "For someone in your family", person == name) { person = name }
                     }
                     1 -> {
-                        Text(SchedulingData.chooseWhen, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                        /* Two different promises, chosen rather than inferred: an arrival estimate
-                           answers "when will somebody get here", which is only a question for one. */
-                        SchedulingData.kinds.forEach { option ->
-                            Row(
-                                Modifier.fillMaxWidth().clickable { kind = option.id }.semantics { selected = kind == option.id },
-                                verticalAlignment = Alignment.Top
-                            ) {
-                                RadioButton(kind == option.id, { kind = option.id })
-                                Column(Modifier.weight(1f).padding(top = 12.dp)) {
-                                    Text(option.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                                    Text(option.detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                                }
-                            }
-                        }
-                        if (scheduled) {
-                            VisitTimePicker(
-                                days, day, { day = it }, slots, slot, { slot = it },
-                                "${Scheduling.longDate(chosen.date)} · $slot – $endTime (${service.duration} minutes)"
-                            )
-                        } else {
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.Bolt, null, tint = MangoInk, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Note("We look for the nearest nurse who is free. Nobody is dispatched in this preview.")
-                            }
-                        }
+                        OutlinedTextField(address, { address = it }, label = { Text("Visit location") }, supportingText = { Text("Enter at least 5 characters. Your draft stays here if you close this sheet.") }, modifier = Modifier.fillMaxWidth())
+                        Note("Choose a location where the person receiving care can welcome the clinician. Coverage is checked separately; this preview does not dispatch anyone.")
                     }
                     2 -> {
-                        Text("How would you like to pay?", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                        listOf("Card" to "Visa ending 4242", "Cash" to "Pay the nurse after the visit", "Thuso Wallet" to "Demo balance R500.00").forEach { (name, detail) ->
-                            Row(
-                                Modifier.fillMaxWidth().clickable { payment = name }.semantics { selected = payment == name },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(payment == name, { payment = name })
-                                Column(Modifier.weight(1f)) {
-                                    Text(name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                                    Text(detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                                }
-                            }
-                        }
-                        Note("No card is stored and no payment is taken. Production payments run through a regulated provider.")
+                        SchedulingData.kinds.forEach { option -> CareChoice(option.name, option.detail, kind == option.id) { kind = option.id } }
+                        if (scheduled) VisitTimePicker(days, day, { day = it }, SchedulingData.slots, slot, { slot = it },
+                            "${Scheduling.longDate(chosen.date)} · $slot – $endTime (${service.duration} minutes)")
+                        else Note("We look for the nearest nurse who is free. Nobody is dispatched in this preview.")
                     }
                     3 -> {
+                        listOf("Card" to "Visa ending 4242", "Cash" to "Pay the nurse after the visit", "Thuso Wallet" to "Demo balance R500.00").forEach { (name, detail) -> CareChoice(name, detail, payment == name) { payment = name } }
+                        Note("No card is stored and no payment is taken.")
+                    }
+                    4 -> {
                         ReviewLine("Service", service.name)
                         ReviewLine("Date", if (scheduled) Scheduling.longDate(chosen.date) else Scheduling.kind("asap").name)
                         if (scheduled) ReviewLine("Time", "$slot – $endTime")
                         ReviewLine("Location", address)
                         ReviewLine("Patient", person)
                         ReviewLine("Payment", if (payment == "Card") "•••• 4242" else payment)
-                        NurseRow { Text("★ 4.9", style = MaterialTheme.typography.labelMedium, color = StudioInkMuted) }
-                        /* The row is the control and the sentence is its name. This was a bare
-                           `Checkbox` beside a separate `Text`, which TalkBack reads as "not
-                           checked, checkbox" with nothing to say what would be agreed to — and the
-                           thing being agreed to here is that none of this is real. The shape is
-                           `Setting` in Components.kt: the row owns the toggle semantics, the box is
-                           drawn rather than clicked, and the whole sentence is the tap target. */
-                        Row(
-                            Modifier.fillMaxWidth().heightIn(min = TouchTarget)
-                                .toggleable(value = consent, onValueChange = { consent = it }, role = Role.Checkbox),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        ReviewLine("Total", "R${service.price}")
+                        Note("A registered nurse provides this service. A doctor may decide that a home visit is needed after reviewing your care; it is not booked through this selection.")
+                        Row(Modifier.fillMaxWidth().heightIn(min = TouchTarget).toggleable(consent, role = Role.Checkbox, onValueChange = { consent = it }), verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(consent, null)
-                            Spacer(Modifier.width(ThusoSpacing.space8))
-                            Text("I understand this is a UI preview using fictional information.",
-                                 style = MaterialTheme.typography.bodySmall, color = StudioInkMuted,
-                                 modifier = Modifier.weight(1f))
+                            Text("I understand this is a UI preview using fictional information.", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                         }
-                        /* The window, from packages/catalog/cancellation.json rather than typed
-                           here. This sentence was a hand-written string in this file and another in
-                           Swift, promising a right the app then offered no way to exercise — the two
-                           hours had no contract behind them, so nothing could notice when they
-                           disagreed. */
                         Note(CancellationData.windowSentence)
                     }
                     else -> Note("No nurse has been dispatched and no payment was taken. Your demo visit is now in the Visits tab.")
                 }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (!finished) TextButton(onClick = { if (step == 0) close() else step -= 1 }, shape = ThusoButtonShape) { Text(if (step == 0) "Save & close" else "Back") }
+                StudioButton(onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     when (step) {
-                        /* The whole choice, not a time with the day dropped off it. */
-                        3 -> { store.visits.add(0, BookedVisit(service, person, address, kind,
-                                   if (scheduled) chosen.date else null, if (scheduled) slot else null, payment)); step = 4 }
-                        4 -> close()
+                        4 -> {
+                            store.visits.add(0, BookedVisit(service, person, address.trim(), kind, if (scheduled) chosen.date else null, if (scheduled) slot else null, payment))
+                            store.bookingDrafts.remove(service.id)
+                            step = 5
+                        }
+                        5 -> close()
                         else -> step += 1
                     }
-                },
-                enabled = when (step) { 0 -> address.trim().length >= 5; 3 -> consent; else -> true }
-            , shape = ThusoButtonShape) { Text(if (step == 3) "Confirm & book" else if (step == 4) "Done" else "Continue") }
-        },
-        dismissButton = { if (step < 4) TextButton(onClick = { if (step == 0) close() else step -= 1 }, shape = ThusoButtonShape) { Text(if (step == 0) "Cancel" else "Back") } }
-    )
+                }, modifier = Modifier.weight(1f), enabled = when(step) { 1 -> address.trim().length >= 5; 4 -> consent; else -> true }) {
+                    Text(if (step == 4) "Confirm & book" else if (finished) "Done" else "Continue")
+                }
+            }
+            if (!finished) Text("Draft kept for this session · No payment taken", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+        }
+    }
+}
+
+@Composable private fun CareChoice(title: String, detail: String, chosen: Boolean, choose: () -> Unit) {
+    val haptic = LocalHapticFeedback.current
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (chosen) StudioLime.copy(alpha = .35f) else StudioPaper)
+        .clickable(role = Role.RadioButton) { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); choose() }.semantics { selected = chosen }.padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        RadioButton(chosen, null)
+        Column(Modifier.weight(1f).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+        }
+    }
 }
 /* The one date-and-time picker in this app.
  *
@@ -655,6 +669,7 @@ fun serviceIcon(id: String) = when (id) {
     onSlot: (String) -> Unit,
     footer: String
 ) {
+    val haptic = LocalHapticFeedback.current
     Text(SchedulingData.scheduledHeading, style = MaterialTheme.typography.titleSmall, color = Charcoal)
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         days.forEachIndexed { index, offered ->
@@ -662,7 +677,7 @@ fun serviceIcon(id: String) = when (id) {
                 Modifier.widthIn(min = 66.dp).heightIn(min = 72.dp).padding(vertical = 4.dp)
                     .background(if (day == index) StudioNight else SurfaceWhite, RoundedCornerShape(ThusoRadius.card))
                     .border(1.dp, if (day == index) Indigo else StudioLine, RoundedCornerShape(ThusoRadius.card))
-                    .clickable { onDay(index) }
+                    .clickable { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onDay(index) }
                     .semantics { selected = day == index; contentDescription = Scheduling.longDate(offered.date) },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -683,7 +698,7 @@ fun serviceIcon(id: String) = when (id) {
                            15.3:1, and it is the only object on the screen wearing it. */
                         .background(if (slot == time) StudioLime else SurfaceWhite, RoundedCornerShape(ThusoRadius.control))
                         .border(1.dp, if (slot == time) Indigo else StudioLine, RoundedCornerShape(ThusoRadius.control))
-                        .clickable { onSlot(time) }.semantics { selected = slot == time },
+                        .clickable { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onSlot(time) }.semantics { selected = slot == time },
                     Alignment.Center
                 ) { Text(time, style = MaterialTheme.typography.titleSmall, color = if (slot == time) Color.White else StudioInkMuted) }
             }
@@ -831,7 +846,7 @@ fun serviceIcon(id: String) = when (id) {
                                         shape = ThusoButtonShape
                                     ) { Text("Reschedule") }
                                     if (row.nurse) StudioButton(
-                                        onClick = { open("Visit: ${row.title} · ${row.time}") },
+                                        onClick = { open("Upcoming visit: ${visit.reference}") },
                                         Modifier.weight(1f).heightIn(min = TouchTarget),
                                         shape = ThusoButtonShape
                                     ) { Text("View details") }

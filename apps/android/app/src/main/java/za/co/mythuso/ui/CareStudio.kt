@@ -5,12 +5,23 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalWindowInfo
+import kotlin.math.sin
+import kotlin.math.PI
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -42,10 +53,8 @@ import androidx.compose.ui.unit.sp
  * health rather than a tool for managing one. The two tones of the headline are two INKS — Charcoal
  * then StudioOlive, both on the paper — rather than two faces or two grounds.
  *
- * No infinite rotation and no pause control for one. That cut had a sparkle turning on a 24-second
- * loop with a play/pause button beside it, which is two problems at once: a box that never stops
- * changing under somebody's thumb, and a control whose only purpose is to stop the thing we chose to
- * start. What animates here is what Compose already animates for a state change.
+ * Requested editorial motion is confined to decorative artwork and brief chart entrances.
+ * Readings remain steady; Remove animations presents the complete, still artwork.
  *
  * studioLime IS A FILL AND NEVER A WORD ON A LIGHT GROUND. It measures 1.05:1 against paper, so no
  * such pair is declared and one would fail the build. Everything below spends it as a ground under
@@ -243,9 +252,81 @@ val StudioNightInkQuiet = StudioPaper.copy(alpha = 0.78f)
     Button(
         onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = StudioLime, contentColor = StudioInkDeep,
+            containerColor = StudioInk, contentColor = SurfaceWhite,
             disabledContainerColor = Cloud, disabledContentColor = StudioInkMuted
         ),
         contentPadding = contentPadding, content = content
     )
+}
+
+// Shared pacing: decorative motion only; clinical figures, prices and safety states stay still.
+object StudioMotion {
+    const val orbitMillis = 16000
+    const val revealMillis = 650
+    const val loadingMillis = 1200
+}
+
+// Decorative native drawing. It carries no measurement or wellbeing score.
+@Composable fun MoonArtwork(modifier: Modifier = Modifier) {
+    var visible by remember { mutableStateOf(false) }
+    val reducedMotion = prefersReducedMotion()
+    val phase = if (visible && !reducedMotion) {
+        val transition = rememberInfiniteTransition(label = "Wellbeing moon")
+        val angle by transition.animateFloat(0f, (4 * PI).toFloat(),
+            infiniteRepeatable(tween(StudioMotion.orbitMillis, easing = LinearEasing)), label = "Gentle orbit")
+        angle
+    } else 0f
+    androidx.compose.foundation.Canvas(modifier.studioVisibility { visible = it }) {
+        translate(top = 3.dp.toPx() * sin(phase)) {
+        val radius = size.minDimension * 0.36f
+        drawCircle(brush = Brush.radialGradient(listOf(SurfaceWhite, StudioLilac, StudioInkMuted),
+            center = androidx.compose.ui.geometry.Offset(size.width * 0.28f, size.height * 0.25f),
+            radius = size.minDimension * 0.8f), radius = radius * (1 + 0.02f * sin(phase)))
+        rotate(-28f + 12f * sin(phase * 0.5f)) {
+        drawOval(color = StudioInkMuted.copy(alpha = 0.4f),
+            topLeft = androidx.compose.ui.geometry.Offset(0f, size.height * 0.32f),
+            size = androidx.compose.ui.geometry.Size(size.width, size.height * 0.36f),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()))
+        }
+        }
+    }
+}
+
+// Trigger artwork entrances in the viewport; layout coordinates remain stable during animation.
+fun Modifier.studioVisibility(changed: (Boolean) -> Unit): Modifier = composed {
+    val window = LocalWindowInfo.current.containerSize
+    onGloballyPositioned { coordinates ->
+        val position = coordinates.positionInWindow()
+        changed(position.y < window.height && position.y + coordinates.size.height > 0 &&
+            position.x < window.width && position.x + coordinates.size.width > 0)
+    }
+}
+
+@Composable fun rememberStudioReveal(visible: Boolean, delayMillis: Int = 0, identity: Any? = Unit): State<Float> {
+    val reducedMotion = prefersReducedMotion()
+    val progress = remember(identity) { Animatable(if (reducedMotion) 1f else 0f) }
+    LaunchedEffect(visible, reducedMotion, identity) {
+        if (reducedMotion) progress.snapTo(1f)
+        else if (visible && progress.value < 1f) progress.animateTo(1f,
+            tween(StudioMotion.revealMillis, delayMillis = delayMillis, easing = FastOutSlowInEasing))
+    }
+    return progress.asState()
+}
+
+/** A plot-only reveal: layout, accessibility values and adjacent labels do not animate. */
+fun Modifier.studioChartEntrance(identity: Any?): Modifier = composed {
+    var visible by remember { mutableStateOf(false) }
+    val progress = rememberStudioReveal(visible, identity = identity)
+    studioVisibility { visible = it }.drawWithContent {
+        clipRect(left = -8f, top = -8f, right = (size.width + 8f) * progress.value, bottom = size.height + 8f) { this@drawWithContent.drawContent() }
+    }
+}
+
+fun Modifier.studioBarEntrance(delayMillis: Int, identity: Any? = Unit): Modifier = composed {
+    var visible by remember { mutableStateOf(false) }
+    val progress = rememberStudioReveal(visible, delayMillis, identity)
+    studioVisibility { visible = it }.graphicsLayer {
+        scaleY = progress.value
+        transformOrigin = TransformOrigin(0.5f, 1f)
+    }
 }

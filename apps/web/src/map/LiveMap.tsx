@@ -96,6 +96,7 @@ export function LiveMap({ markers, summary, height = 340, link = null }: Props) 
 
  return (
   <div className="livemap">
+   <div className="livemap-heading"><strong>Service area</strong><span>{live ? 'Street map' : 'Schematic'}</span></div>
    <div className="livemap-frame" style={{ height }}>
     {live
      ? <TilesOrSchematic onFailed={giveUp} fallback={<Schematic markers={markers} summary={summary} link={link}/>}>

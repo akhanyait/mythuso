@@ -145,11 +145,12 @@ export function roleFromSearch(search: string): RoleId {
  const asked = new URLSearchParams(search).get(ROLE_PARAM);
  return roles.some(r => r.id === asked) ? asked as RoleId : 'patient';
 }
-export function searchForRole(search: string, id: RoleId): string {
+export function searchForRole(search: string, id: RoleId, explicitPatient = false): string {
  const params = new URLSearchParams(search);
- /* The patient app is what the bare address means, so it does not carry a parameter. A door that
-    rewrites / into /?role=patient has made its own default look like somebody's choice. */
- if (id === 'patient') params.delete(ROLE_PARAM); else params.set(ROLE_PARAM, id);
+ // /app/ keeps its legacy patient default. At the main address the explicit patient
+ // parameter distinguishes a dashboard from the public site. A new role starts at home.
+ params.delete('open');
+ if (id === 'patient' && !explicitPatient) params.delete(ROLE_PARAM); else params.set(ROLE_PARAM, id);
  const query = params.toString();
  return query ? `?${query}` : '';
 }

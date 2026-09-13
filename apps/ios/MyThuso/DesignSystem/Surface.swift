@@ -513,6 +513,7 @@ struct SegmentBar: View {
         }
         .accessibilityElement()
         .accessibilityLabel("\(label): \(done) of \(total)")
+        .studioChartEntrance(identity: "\(done)/\(total)/\(now ?? -1)")
     }
 }
 

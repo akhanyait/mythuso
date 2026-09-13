@@ -1,5 +1,8 @@
 package za.co.mythuso.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -82,7 +85,15 @@ private val habitMarks = mapOf(
 
     ScreenColumn {
         DemoBadge()
-        FramingData.byId("live-well")?.let { StudioHeadline(it.lead, it.accent, WellbeingData.statement) }
+        FramingData.byId("live-well")?.let { framing ->
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).background(StudioLilac).padding(ThusoSpacing.space24),
+                verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
+                MoonArtwork(Modifier.size(130.dp).align(Alignment.CenterHorizontally))
+                Text(framing.lead, style = MaterialTheme.typography.labelLarge, color = StudioInkMuted)
+                Text(framing.accent, style = MaterialTheme.typography.headlineLarge, color = StudioInkDeep)
+                Text(WellbeingData.statement, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+            }
+        }
         /* The standing disclosure, and it is clinical-records rather than a capability of this
            feature's own — there is no wellbeing supplier to be blocked on, and inventing one would
            be inventing a gap. */
