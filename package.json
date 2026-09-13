@@ -37,7 +37,9 @@
     "passport": "node scripts/emit-passport.mjs",
     "capture": "node scripts/emit-capture.mjs",
     "framing": "node scripts/emit-framing.mjs",
-    "wellbeing": "node scripts/emit-wellbeing.mjs"
+    "wellbeing": "node scripts/emit-wellbeing.mjs",
+    "banners": "python3 scripts/prepare-banners.py && node scripts/render-illustrations.mjs",
+    "appicon": "python3 scripts/emit-appicon.py"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",

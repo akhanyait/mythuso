@@ -454,6 +454,65 @@ for (const name of heroCutouts) {
   if (statSync(f).mtimeMs < statSync(source).mtimeMs) throw new Error(`${f} is older than ${source}. Run: node scripts/render-illustrations.mjs`);
  }
 }
+/* The app icon is one drawing stated three times, and until today one of those statements was
+   missing. apps/ios had no AppIcon.appiconset and no ASSETCATALOG_COMPILER_APPICON_NAME, so every
+   build produced an app with a blank tile on the home screen — the kind of gap that survives because
+   a simulator shows the springboard for about a second.
+
+   The other two statements are Android's adaptive drawables, which restate the SVG's paths by hand.
+   That copy is what this checks: the heart, the pulse and the two ends of the gradient are read out
+   of Documentation/MyThuso_AppIcon.svg and looked for in the drawables, so a brand change made in
+   the drawing cannot quietly leave Android on the old one. The iOS square is generated rather than
+   compared, by scripts/emit-appicon.py, so it has nothing to drift from. */
+const iconSvg = readFileSync('Documentation/MyThuso_AppIcon.svg', 'utf8');
+const iconOnly = (pattern, what) => {
+ const found = iconSvg.match(pattern);
+ if (!found) throw new Error(`Documentation/MyThuso_AppIcon.svg no longer holds ${what}. Three icons are drawn from it; the pattern that finds it is in scripts/check-boundaries.mjs and in scripts/emit-appicon.py.`);
+ return found;
+};
+const iconHeart = iconOnly(/<path d="(M[^"]*)" fill="none" stroke="(#[0-9A-Fa-f]{6})" stroke-width="(\d+)"/, 'the heart path');
+const iconPulse = iconOnly(/<polyline points="([^"]+)" fill="none" stroke="(#[0-9A-Fa-f]{6})" stroke-width="(\d+)"/, 'the pulse polyline');
+const iconStops = [...iconOnly(/<linearGradient id="bg".*?<\/linearGradient>/s, 'the background gradient')[0]
+ .matchAll(/stop-color="(#[0-9A-Fa-f]{6})"/g)].map(m => m[1]);
+if (iconStops.length !== 2) throw new Error('The app icon background gradient no longer has exactly two stops, which is what both platforms draw.');
+
+const appicon = 'apps/ios/MyThuso/Assets.xcassets/AppIcon.appiconset';
+for (const f of [`${appicon}/AppIcon-1024.png`, `${appicon}/Contents.json`]) {
+ if (!existsSync(f)) throw new Error(`${f} is missing, so the iOS app ships with a blank home-screen tile. Run: python3 scripts/emit-appicon.py`);
+}
+if (statSync(`${appicon}/AppIcon-1024.png`).mtimeMs < statSync('Documentation/MyThuso_AppIcon.svg').mtimeMs)
+ throw new Error('The iOS app icon is older than the drawing it comes from. Run: python3 scripts/emit-appicon.py');
+/* Generating the square is not enough on its own: Xcode ignores an asset catalogue's AppIcon unless
+   the target is told its name, and it says nothing when it does. Both configurations of the app
+   target — not the UI test target, which has no icon of its own — must name it. */
+const pbxproj = readFileSync('apps/ios/MyThuso.xcodeproj/project.pbxproj', 'utf8');
+const iconNamed = (pbxproj.match(/ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;/g) ?? []).length;
+if (iconNamed !== 2) throw new Error(`ASSETCATALOG_COMPILER_APPICON_NAME is set in ${iconNamed} build configurations rather than the app target's 2. Without it Xcode builds the catalogue and ships no icon, silently.`);
+
+/* Android's two drawables are the hand-written copy, so they are the ones held to the source. The
+   path data is compared with whitespace and the SVG's optional commas removed, because the two
+   formats spell the same curve slightly differently and neither spelling is the drawing. */
+const iconPathData = d => d.replace(/,/g, ' ').replace(/([A-Za-z])/g, ' $1 ').replace(/\s+/g, ' ').trim();
+const iconForeground = readFileSync('apps/android/app/src/main/res/drawable/ic_launcher_foreground.xml', 'utf8');
+const iconBackground = readFileSync('apps/android/app/src/main/res/drawable/ic_launcher_background.xml', 'utf8');
+const androidPaths = [...iconForeground.matchAll(/android:pathData="([^"]+)"/g)].map(m => iconPathData(m[1]));
+if (!androidPaths.includes(iconPathData(iconHeart[1])))
+ throw new Error('The Android launcher foreground no longer draws the heart in Documentation/MyThuso_AppIcon.svg. Two platforms would show different icons. Update apps/android/app/src/main/res/drawable/ic_launcher_foreground.xml.');
+/* The polyline's points become an L-command path on Android, so the numbers are what is compared. */
+const iconPulseNumbers = iconPulse[1].replace(/[, ]+/g, ' ').trim();
+const androidPulse = androidPaths.find(d => d.replace(/[ML]/g, ' ').replace(/\s+/g, ' ').trim() === iconPulseNumbers);
+if (!androidPulse) throw new Error('The Android launcher foreground no longer draws the pulse in Documentation/MyThuso_AppIcon.svg. Update ic_launcher_foreground.xml.');
+for (const [i, stop] of iconStops.entries()) {
+ if (!iconBackground.includes(`#FF${stop.slice(1).toUpperCase()}`))
+  throw new Error(`The Android launcher background is missing gradient stop ${i + 1}, ${stop}, which Documentation/MyThuso_AppIcon.svg and the iOS square both use. Update ic_launcher_background.xml.`);
+}
+for (const [name, colour, width] of [['heart', iconHeart[2], iconHeart[3]], ['pulse', iconPulse[2], iconPulse[3]]]) {
+ if (!iconForeground.includes(`#FF${colour.slice(1).toUpperCase()}`))
+  throw new Error(`The Android launcher foreground no longer strokes the ${name} in ${colour}. Update ic_launcher_foreground.xml.`);
+ if (!iconForeground.includes(`android:strokeWidth="${width}"`))
+  throw new Error(`The Android launcher foreground no longer strokes the ${name} at ${width}. Update ic_launcher_foreground.xml.`);
+}
+
 /* The banner copy used to be checked substring by substring across three files, because it was
    written out three times. It is one set of keys in packages/catalog/locales.json now, so what is
    left to check is that a slide has all of its parts in every locale that claims the set — the
