@@ -1,6 +1,6 @@
 """Prepare the hero banner artwork.
 
-Two kinds of thing come out of `Documentation/app banners/`:
+Two kinds of thing come out of `Documentation/Backup/app banners/`:
 
 * the **flat compositions** (RGB) become `<slide>.jpg`, cropped to their photograph alone. Headline,
   call to action and trust marks are baked into those pixels; the app draws its own, translated and
@@ -26,7 +26,7 @@ from PIL import Image
 import os
 import sys
 
-BANNERS = 'Documentation/app banners'
+BANNERS = 'Documentation/Backup/app banners'
 OUT = 'packages/banners'
 
 # ── The flat compositions ─────────────────────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@
 `apps/ios` had no `AppIcon.appiconset` and no `ASSETCATALOG_COMPILER_APPICON_NAME`, so the build
 produced an app with a blank white tile on the home screen. Android has had an icon since the first
 week — an adaptive vector whose two drawables restate, by hand, the paths in
-`Documentation/MyThuso_AppIcon.svg`.
+`packages/illustrations/app-icon.svg`.
 
 A second hand-typed copy on iOS would have been the third statement of the same heart. So this reads
 the geometry out of the SVG and draws it, and `scripts/check-boundaries.mjs` holds the Android
@@ -29,7 +29,7 @@ import os
 import re
 import sys
 
-SVG = 'Documentation/MyThuso_AppIcon.svg'
+SVG = 'packages/illustrations/app-icon.svg'
 SET = 'apps/ios/MyThuso/Assets.xcassets/AppIcon.appiconset'
 SIDE = 1024
 SS = 4                      # supersample, reduced back down at the end

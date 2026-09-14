@@ -464,13 +464,13 @@ for (const name of heroCutouts) {
 
    The other two statements are Android's adaptive drawables, which restate the SVG's paths by hand.
    That copy is what this checks: the heart, the pulse and the two ends of the gradient are read out
-   of Documentation/MyThuso_AppIcon.svg and looked for in the drawables, so a brand change made in
+   of packages/illustrations/app-icon.svg and looked for in the drawables, so a brand change made in
    the drawing cannot quietly leave Android on the old one. The iOS square is generated rather than
    compared, by scripts/emit-appicon.py, so it has nothing to drift from. */
-const iconSvg = readFileSync('Documentation/MyThuso_AppIcon.svg', 'utf8');
+const iconSvg = readFileSync('packages/illustrations/app-icon.svg', 'utf8');
 const iconOnly = (pattern, what) => {
  const found = iconSvg.match(pattern);
- if (!found) throw new Error(`Documentation/MyThuso_AppIcon.svg no longer holds ${what}. Three icons are drawn from it; the pattern that finds it is in scripts/check-boundaries.mjs and in scripts/emit-appicon.py.`);
+ if (!found) throw new Error(`packages/illustrations/app-icon.svg no longer holds ${what}. Three icons are drawn from it; the pattern that finds it is in scripts/check-boundaries.mjs and in scripts/emit-appicon.py.`);
  return found;
 };
 const iconHeart = iconOnly(/<path d="(M[^"]*)" fill="none" stroke="(#[0-9A-Fa-f]{6})" stroke-width="(\d+)"/, 'the heart path');
@@ -483,7 +483,7 @@ const appicon = 'apps/ios/MyThuso/Assets.xcassets/AppIcon.appiconset';
 for (const f of [`${appicon}/AppIcon-1024.png`, `${appicon}/Contents.json`]) {
  if (!existsSync(f)) throw new Error(`${f} is missing, so the iOS app ships with a blank home-screen tile. Run: python3 scripts/emit-appicon.py`);
 }
-if (statSync(`${appicon}/AppIcon-1024.png`).mtimeMs < statSync('Documentation/MyThuso_AppIcon.svg').mtimeMs)
+if (statSync(`${appicon}/AppIcon-1024.png`).mtimeMs < statSync('packages/illustrations/app-icon.svg').mtimeMs)
  throw new Error('The iOS app icon is older than the drawing it comes from. Run: python3 scripts/emit-appicon.py');
 /* Generating the square is not enough on its own: Xcode ignores an asset catalogue's AppIcon unless
    the target is told its name, and it says nothing when it does. Both configurations of the app
@@ -500,14 +500,14 @@ const iconForeground = readFileSync('apps/android/app/src/main/res/drawable/ic_l
 const iconBackground = readFileSync('apps/android/app/src/main/res/drawable/ic_launcher_background.xml', 'utf8');
 const androidPaths = [...iconForeground.matchAll(/android:pathData="([^"]+)"/g)].map(m => iconPathData(m[1]));
 if (!androidPaths.includes(iconPathData(iconHeart[1])))
- throw new Error('The Android launcher foreground no longer draws the heart in Documentation/MyThuso_AppIcon.svg. Two platforms would show different icons. Update apps/android/app/src/main/res/drawable/ic_launcher_foreground.xml.');
+ throw new Error('The Android launcher foreground no longer draws the heart in packages/illustrations/app-icon.svg. Two platforms would show different icons. Update apps/android/app/src/main/res/drawable/ic_launcher_foreground.xml.');
 /* The polyline's points become an L-command path on Android, so the numbers are what is compared. */
 const iconPulseNumbers = iconPulse[1].replace(/[, ]+/g, ' ').trim();
 const androidPulse = androidPaths.find(d => d.replace(/[ML]/g, ' ').replace(/\s+/g, ' ').trim() === iconPulseNumbers);
-if (!androidPulse) throw new Error('The Android launcher foreground no longer draws the pulse in Documentation/MyThuso_AppIcon.svg. Update ic_launcher_foreground.xml.');
+if (!androidPulse) throw new Error('The Android launcher foreground no longer draws the pulse in packages/illustrations/app-icon.svg. Update ic_launcher_foreground.xml.');
 for (const [i, stop] of iconStops.entries()) {
  if (!iconBackground.includes(`#FF${stop.slice(1).toUpperCase()}`))
-  throw new Error(`The Android launcher background is missing gradient stop ${i + 1}, ${stop}, which Documentation/MyThuso_AppIcon.svg and the iOS square both use. Update ic_launcher_background.xml.`);
+  throw new Error(`The Android launcher background is missing gradient stop ${i + 1}, ${stop}, which packages/illustrations/app-icon.svg and the iOS square both use. Update ic_launcher_background.xml.`);
 }
 for (const [name, colour, width] of [['heart', iconHeart[2], iconHeart[3]], ['pulse', iconPulse[2], iconPulse[3]]]) {
  if (!iconForeground.includes(`#FF${colour.slice(1).toUpperCase()}`))

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The heart and the pulse from Documentation/MyThuso_AppIcon.svg, on the 512 grid that file uses.
+<!-- The heart and the pulse from packages/illustrations/app-icon.svg, on the 512 grid that file uses.
      The group scales the drawing to 62% about the centre so it sits inside the adaptive icon's safe
      zone rather than being cropped by whichever mask the launcher applies. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"

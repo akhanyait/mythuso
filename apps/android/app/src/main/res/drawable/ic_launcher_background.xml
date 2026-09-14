@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The brand's own two ends: Vital Teal into Deep Indigo, the same pair as Documentation/MyThuso_AppIcon.svg.
+<!-- The brand's own two ends: Vital Teal into Deep Indigo, the same pair as packages/illustrations/app-icon.svg.
      A vector rather than five rendered PNGs, because an icon that is two colours and one corner
      radius has no business being a bitmap on a metered connection. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
