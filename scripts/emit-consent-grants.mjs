@@ -32,6 +32,8 @@ export function emitConsentGrants(root = '') {
  for (const role of grants.recipientRoles) {
   if (!Number.isInteger(role.defaultExpiryDays) || role.defaultExpiryDays < 1) throw new Error(`The grant role ${role.id} has no default expiry. Every grant ends.`);
   if (!role.defaultScope.length && role.identifiable !== false) throw new Error(`The grant role ${role.id} names a recipient and opens nothing.`);
+  if (!Number.isInteger(role.maxExpiryDays) || role.maxExpiryDays < role.defaultExpiryDays) throw new Error(`The grant role ${role.id} has no ceiling on how long a grant may last, or one shorter than its own default.`);
+  if (!Array.isArray(role.allowedPurposes)) throw new Error(`The grant role ${role.id} does not list the purposes a grant to it may name.`);
  }
 
  const banner = [
@@ -52,6 +54,8 @@ enum ConsentGrantsData {
         let id: String; let name: String; let engine: String; let defaultScope: [String]
         let defaultExpiryDays: Int; let sealed: Bool; let boundTo: String?; let identifiable: Bool
         let defaultPurpose: String?
+        /// The longest a grant to this role may run, and the purposes it may name. The gateway refuses past either.
+        let maxExpiryDays: Int; let allowedPurposes: [String]
     }
     struct Refusal: Identifiable { let id: String; let statement: String }
 
@@ -63,7 +67,8 @@ enum ConsentGrantsData {
 ${grants.recipientRoles.map(r => `        RecipientRole(id: ${swift(r.id)}, name: ${swift(r.name)}, engine: ${swift(r.engine)},
                       defaultScope: [${r.defaultScope.map(swift).join(', ')}],
                       defaultExpiryDays: ${r.defaultExpiryDays}, sealed: ${r.sealed === true}, boundTo: ${optional(r.boundTo, swift, 'nil')},
-                      identifiable: ${r.identifiable !== false}, defaultPurpose: ${optional(r.defaultPurpose, swift, 'nil')})`).join(',\n')}
+                      identifiable: ${r.identifiable !== false}, defaultPurpose: ${optional(r.defaultPurpose, swift, 'nil')},
+                      maxExpiryDays: ${r.maxExpiryDays}, allowedPurposes: [${r.allowedPurposes.map(swift).join(', ')}])`).join(',\n')}
     ]
 
     static let refusals: [Refusal] = [
@@ -83,7 +88,9 @@ object ConsentGrantsData {
     data class RecipientRole(
         val id: String, val name: String, val engine: String, val defaultScope: List<String>,
         val defaultExpiryDays: Int, val sealed: Boolean, val boundTo: String?, val identifiable: Boolean,
-        val defaultPurpose: String?
+        val defaultPurpose: String?,
+        // The longest a grant to this role may run, and the purposes it may name. The gateway refuses past either.
+        val maxExpiryDays: Int, val allowedPurposes: List<String>
     )
     data class Refusal(val id: String, val statement: String)
 
@@ -93,7 +100,8 @@ object ConsentGrantsData {
     val roles = listOf(
 ${grants.recipientRoles.map(r => `        RecipientRole(${kotlin(r.id)}, ${kotlin(r.name)}, ${kotlin(r.engine)},
             listOf(${r.defaultScope.map(kotlin).join(', ')}),
-            ${r.defaultExpiryDays}, ${r.sealed === true}, ${optional(r.boundTo, kotlin, 'null')}, ${r.identifiable !== false}, ${optional(r.defaultPurpose, kotlin, 'null')})`).join(',\n')}
+            ${r.defaultExpiryDays}, ${r.sealed === true}, ${optional(r.boundTo, kotlin, 'null')}, ${r.identifiable !== false}, ${optional(r.defaultPurpose, kotlin, 'null')},
+            ${r.maxExpiryDays}, listOf${r.allowedPurposes.length ? '' : '<String>'}(${r.allowedPurposes.map(kotlin).join(', ')}))`).join(',\n')}
     )
 
     val refusals = listOf(

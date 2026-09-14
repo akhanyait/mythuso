@@ -4,8 +4,9 @@
  * Record categories are packages/catalog/records.json's, so a grant's scope is never a free-text
  * promise and "protected" means the same thing here as it does on every screen. The resource set,
  * the sealed rule, break-glass and every sentence are packages/catalog/passport-gateway.json's. The
- * eight recipient roles, and what each may do here, are packages/catalog/consent.json's `grants` —
- * the same list a grant sheet offers, so the gateway cannot honour a role the patient was never shown.
+ * eight recipient roles, what each may do here, how long a grant to each may run and which purposes
+ * it may name are packages/catalog/consent.json's `grants` — the same list a grant sheet offers, so
+ * the gateway cannot honour a role, a purpose or a length the patient was never shown.
  */
 import consent from '../../../packages/catalog/consent.json' with { type: 'json' };
 import gateway from '../../../packages/catalog/passport-gateway.json' with { type: 'json' };
@@ -22,9 +23,18 @@ export type GrantRole = {
  writes: boolean;
  sealedMayBeIncluded: boolean;
  clinician: boolean;
+ defaultScope: readonly string[];
+ defaultPurpose: string | null;
+ allowedPurposes: readonly string[];
+ maxExpiryDays: number;
+ boundTo: string | null;
 };
 
-const GRANT_ROLES: readonly GrantRole[] = consent.grants.recipientRoles.map(role => ({ id: role.id, ...role.gateway }) as GrantRole);
+const GRANT_ROLES: readonly GrantRole[] = consent.grants.recipientRoles.map(role => ({
+ id: role.id, ...role.gateway,
+ defaultScope: role.defaultScope, defaultPurpose: role.defaultPurpose, allowedPurposes: role.allowedPurposes,
+ maxExpiryDays: role.maxExpiryDays, boundTo: role.boundTo
+}) as GrantRole);
 
 export { refusalOf } from './config.ts';
 export const GATEWAY = gateway;
@@ -39,4 +49,29 @@ export const sensitivityOf = (category: string): string | null => SENSITIVITY.ge
 export const isProtectedCategory = (category: string): boolean => SENSITIVITY.get(category) === gateway.sealed.sensitivity;
 export const resourceRule = (type: string): ResourceRule | null => gateway.resources.find(rule => rule.type === type) ?? null;
 export const roleRule = (id: string): GrantRole | null => GRANT_ROLES.find(role => role.id === id) ?? null;
+export const grantRoles = (): readonly GrantRole[] => GRANT_ROLES;
 export const statement = (id: StatementId): string => gateway.statements[id];
+
+export type ScopeRefusalId = 'aggregate-only' | 'unknown-category' | 'emergency-only' | 'clinical-detail' | 'sealed-never' | 'sealed-tick-names-nothing' | 'sealed-not-ticked';
+
+/**
+ * Whether a scope, with or without the sealed tick, may be granted to a role — and if not, which
+ * refusal. One function, read by the gateway when a grant is made and by scripts/check-boundaries.mjs
+ * against every role's default scope, so a grant sheet can never start from a scope the gateway refuses.
+ *
+ * The sealed tick is not a switch. It opens the sealed categories the scope names, so a tick that
+ * names none is refused — otherwise it would open whatever sealed thing happened to sit behind an
+ * ordinary category, which is how a caregiver's grant for vital signs came to open a reading the
+ * patient had marked private.
+ */
+export function grantScopeRefusal(role: GrantRole, scope: readonly string[], sealedIncluded: boolean): ScopeRefusalId | null {
+ if (role.reads === 'aggregate') return 'aggregate-only';
+ if (!scope.length || !scope.every(knownCategory)) return 'unknown-category';
+ if (role.reads === 'emergency-summary' && !scope.every(category => role.defaultScope.includes(category))) return 'emergency-only';
+ if (role.reads === 'routine' && scope.some(category => sensitivityOf(category) !== 'routine')) return 'clinical-detail';
+ const sealedNamed = scope.filter(isProtectedCategory);
+ if (sealedIncluded && !role.sealedMayBeIncluded) return 'sealed-never';
+ if (sealedIncluded && !sealedNamed.length) return 'sealed-tick-names-nothing';
+ if (!sealedIncluded && sealedNamed.length) return 'sealed-not-ticked';
+ return null;
+}

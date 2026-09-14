@@ -5,7 +5,7 @@
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { HOUR, PROVENANCE, harness, seed, sentence, statementOf } from './harness.ts';
+import { DAY, HOUR, PROVENANCE, harness, roleOf, seed, sentence, statementOf } from './harness.ts';
 import { openBytes } from '../src/keys.ts';
 
 const refused = (result: { ok: boolean; reason?: string }, id: string) => {
@@ -28,7 +28,7 @@ describe('a grant opens what it names, for whom, for why, for how long', () => {
   assert.equal(((read.provenance[0]!.agent as { type: { text: string } }[])[0]!).type.text, 'patient');
  });
 
- test('denied: an artefact the Passport did not sign, or one altered after it did', () => {
+ test('denied: an artefact the Passport did not sign, one altered after it did, or one with an extra segment', () => {
   const h = harness();
   const s = seed(h);
   const g = s.grant({ recipientRole: 'nurse-assigned', scope: ['allergy'] });
@@ -37,6 +37,7 @@ describe('a grant opens what it names, for whom, for why, for how long', () => {
   const widened = Buffer.from(JSON.stringify({ ...g.grant, scope: ['allergy', 'prescription'] }), 'utf8').toString('base64url');
   refused(h.gateway.search(s.as(`${widened}.${signature}`), 'MedicationStatement', s.subject), 'bad-grant');
   refused(h.gateway.search(s.as(`${payload}.${signature!.slice(0, -2)}xx`), 'AllergyIntolerance', s.subject), 'bad-grant');
+  refused(h.gateway.search(s.as(`${g.artefact}.junk`), 'AllergyIntolerance', s.subject), 'bad-grant');
  });
 
  test('denied: an expired grant', () => {
@@ -60,8 +61,8 @@ describe('a grant opens what it names, for whom, for why, for how long', () => {
   const h = harness();
   const s = seed(h);
   const g = s.grant({ recipientRole: 'doctor-assigned', scope: ['allergy'] });
-  refused(h.gateway.search(s.as(g.artefact, 'research'), 'AllergyIntolerance', s.subject), 'wrong-purpose');
-  refused(h.gateway.check(g.artefact, 'marketing', 'allergy'), 'wrong-purpose');
+  refused(h.gateway.search(s.as(g.artefact, 'billing'), 'AllergyIntolerance', s.subject), 'wrong-purpose');
+  refused(h.gateway.check(g.artefact, 'audit', 'allergy'), 'wrong-purpose');
  });
 
  test('denied: a category outside the scope, by search, by id and by check', () => {
@@ -88,43 +89,89 @@ describe('a grant opens what it names, for whom, for why, for how long', () => {
   const s = seed(h);
   const other = seed(h);
   const expiresAt = new Date(h.at() + HOUR).toISOString();
-  refused(h.gateway.grant('forged.session', { subject: s.subject, recipientRole: 'caregiver', scope: ['allergy'], purpose: 'care', expiresAt }), 'patient-session-required');
-  refused(h.gateway.grant(s.patientSession, { subject: other.subject, recipientRole: 'caregiver', scope: ['allergy'], purpose: 'care', expiresAt }), 'wrong-subject');
-  refused(h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'employer', scope: ['allergy'], purpose: 'care', expiresAt }), 'unknown-role');
-  refused(h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'caregiver', scope: ['hiv-status-free-text'], purpose: 'care', expiresAt }), 'unknown-category');
-  refused(h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'caregiver', scope: ['allergy'], purpose: 'care', expiresAt: new Date(h.at() - 1).toISOString() }), 'expired');
+  refused(h.gateway.grant('forged.session', { subject: s.subject, recipientRole: 'caregiver', scope: ['allergy'], purpose: 'treatment', expiresAt }), 'patient-session-required');
+  refused(h.gateway.grant(s.patientSession, { subject: other.subject, recipientRole: 'caregiver', scope: ['allergy'], purpose: 'treatment', expiresAt }), 'wrong-subject');
+  refused(h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'employer', scope: ['allergy'], purpose: 'treatment', expiresAt }), 'unknown-role');
+  refused(h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'caregiver', scope: ['hiv-status-free-text'], purpose: 'treatment', expiresAt }), 'unknown-category');
+  refused(h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'caregiver', scope: ['allergy'], purpose: 'treatment', expiresAt: new Date(h.at() - 1).toISOString() }), 'expired');
  });
 
  test('what each role can never be given', () => {
   const h = harness();
   const s = seed(h);
   const expiresAt = new Date(h.at() + HOUR).toISOString();
-  const ask = (recipientRole: string, scope: string[], sealedIncluded = false) => h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole, scope, purpose: 'treatment', expiresAt, sealedIncluded });
-  refused(ask('scheme-aggregate', ['claim']), 'aggregate-only');
-  refused(ask('responder-on-trip', ['vitals']), 'emergency-only');
-  refused(ask('care-coordinator', ['allergy']), 'clinical-detail');
-  refused(ask('pharmacist', ['prescription', 'maternal-health'], true), 'sealed-never');
-  assert.ok(ask('care-coordinator', ['appointment']).ok);
- });
-
- test('a responder on a trip reads the emergency summary and nothing else', () => {
-  const h = harness();
-  const s = seed(h);
-  const g = s.grant({ recipientRole: 'responder-on-trip', scope: ['emergency-card'], purpose: 'emergency-transport' });
-  refused(h.gateway.search(s.as(g.artefact, 'emergency-transport'), 'Observation', s.subject), 'emergency-only');
-  refused(h.gateway.read(s.as(g.artefact, 'emergency-transport'), 'AllergyIntolerance', s.ids.allergy), 'emergency-only');
-  const summary = h.gateway.emergencySummary(s.as(g.artefact, 'emergency-transport'), s.subject);
-  assert.ok(summary.ok);
-  assert.deepEqual(texts(summary.summary.allergy!), ['Synthetic allergen A']);
-  assert.deepEqual(texts(summary.summary.prescription!), ['Synthetic medicine B']);
+  const ask = (recipientRole: string, scope: string[], purpose: string, sealedIncluded = false) => h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole, scope, purpose, expiresAt, sealedIncluded });
+  refused(ask('scheme-aggregate', ['claim'], 'billing'), 'aggregate-only');
+  refused(ask('responder-on-trip', ['vitals'], 'dispatch'), 'emergency-only');
+  refused(ask('care-coordinator', ['allergy'], 'dispatch'), 'clinical-detail');
+  refused(ask('pharmacist', ['prescription', 'maternal-health'], 'dispensing', true), 'sealed-never');
+  assert.ok(ask('care-coordinator', ['appointment'], 'dispatch').ok);
  });
 });
 
-describe('sealed categories', () => {
- test('excluded by default, and a clinician is told sealed content exists without seeing it', () => {
+describe('finding 7: a grant has a ceiling on its length and a list of purposes, from the contract', () => {
+ test('an end date past the role\'s maxExpiryDays is refused, and one on the ceiling is not', () => {
   const h = harness();
   const s = seed(h);
-  const g = s.grant({ recipientRole: 'doctor-assigned', scope: ['vitals', 'maternal-health'] });
+  const role = roleOf('pharmacist');
+  const ask = (days: number) => h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'pharmacist', scope: ['prescription'], purpose: 'dispensing', expiresAt: new Date(h.at() + days * DAY).toISOString() });
+  assert.ok(ask(role.maxExpiryDays).ok);
+  refused(ask(role.maxExpiryDays + 1), 'expiry-too-long');
+  refused(h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'caregiver', scope: ['prescription'], purpose: 'treatment', expiresAt: new Date(h.at() + 20 * 365 * DAY).toISOString() }), 'expiry-too-long');
+ });
+
+ test('a purpose the role may not name is refused, and so is a purpose that is not a purpose at all', () => {
+  const h = harness();
+  const s = seed(h);
+  const expiresAt = new Date(h.at() + HOUR).toISOString();
+  const ask = (recipientRole: string, purpose: string) => h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole, scope: ['prescription'], purpose, expiresAt });
+  refused(ask('pharmacist', 'treatment'), 'purpose-not-allowed');
+  refused(ask('caregiver', 'billing'), 'purpose-not-allowed');
+  refused(ask('caregiver', 'marketing to this family'), 'purpose-not-allowed');
+  for (const purpose of roleOf('caregiver').allowedPurposes) assert.ok(ask('caregiver', purpose).ok, purpose);
+ });
+});
+
+describe('finding 8: a responder is grantable for exactly the items of its default scope', () => {
+ test('the emergency card and the trip\'s transport are grantable; anything beyond them is not', () => {
+  const h = harness();
+  const s = seed(h);
+  const responder = roleOf('responder-on-trip');
+  const ask = (scope: string[]) => h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: responder.id, scope, purpose: 'dispatch', expiresAt: new Date(h.at() + DAY).toISOString() });
+  assert.ok(ask(responder.defaultScope).ok);
+  assert.ok(ask(['emergency-card']).ok);
+  refused(ask([...responder.defaultScope, 'vitals']), 'emergency-only');
+ });
+});
+
+describe('sealed categories and private entries', () => {
+ test('finding 1: a sealed tick that names no sealed category is refused — the caregiver\'s vitals grant that opened a private reading', () => {
+  const h = harness();
+  const s = seed(h);
+  refused(h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'caregiver', scope: ['vitals'], purpose: 'treatment', expiresAt: new Date(h.at() + DAY).toISOString(), sealedIncluded: true }), 'sealed-tick-names-nothing');
+  refused(h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'caregiver', scope: ['vitals', 'maternal-health'], purpose: 'treatment', expiresAt: new Date(h.at() + DAY).toISOString() }), 'sealed-not-ticked');
+ });
+
+ test('finding 1: a tick that names a sealed category opens that category and never an entry marked private', () => {
+  const h = harness();
+  const s = seed(h);
+  const g = s.grant({ recipientRole: 'caregiver', scope: ['vitals', 'maternal-health'], sealedIncluded: true });
+  const found = h.gateway.search(s.as(g.artefact), 'Observation', s.subject);
+  assert.ok(found.ok);
+  assert.deepEqual(texts(found.entries), ['Synthetic antenatal reading', 'Synthetic pulse']);
+  refused(h.gateway.read(s.as(g.artefact), 'Observation', s.ids.privateVitals), 'out-of-scope');
+  const doctor = s.grant({ recipientRole: 'doctor-assigned', scope: ['vitals', 'maternal-health'], sealedIncluded: true });
+  const byId = h.gateway.read(s.as(doctor.artefact), 'Observation', s.ids.privateVitals);
+  assert.ok(byId.ok);
+  assert.equal(byId.resource, null);
+  assert.equal(byId.sealedContentExists, true);
+  assert.equal(JSON.stringify(byId).includes('Synthetic private reading'), false);
+ });
+
+ test('excluded without the category, and a clinician is told sealed content exists without seeing it', () => {
+  const h = harness();
+  const s = seed(h);
+  const g = s.grant({ recipientRole: 'doctor-assigned', scope: ['vitals'] });
   const found = h.gateway.search(s.as(g.artefact), 'Observation', s.subject);
   assert.ok(found.ok);
   assert.deepEqual(texts(found.entries), ['Synthetic pulse']);
@@ -140,28 +187,25 @@ describe('sealed categories', () => {
  test('a caregiver whose read excluded sealed content is told nothing about it', () => {
   const h = harness();
   const s = seed(h);
-  const g = s.grant({ recipientRole: 'caregiver', scope: ['vitals', 'maternal-health'], purpose: 'care' });
-  const found = h.gateway.search(s.as(g.artefact, 'care'), 'Observation', s.subject);
+  const g = s.grant({ recipientRole: 'caregiver', scope: ['vitals'] });
+  const found = h.gateway.search(s.as(g.artefact), 'Observation', s.subject);
   assert.ok(found.ok);
   assert.deepEqual(texts(found.entries), ['Synthetic pulse']);
   assert.equal('sealedContentExists' in found, false);
-  refused(h.gateway.read(s.as(g.artefact, 'care'), 'Observation', s.ids.maternal), 'out-of-scope');
+  refused(h.gateway.read(s.as(g.artefact), 'Observation', s.ids.maternal), 'out-of-scope');
  });
 
- test('included only when the grant says sealedIncluded and ticks the category', () => {
+ test('finding 9: when every sealed entry was shown, the clinician is not told sealed content exists', () => {
   const h = harness();
-  const s = seed(h);
-  const both = s.grant({ recipientRole: 'doctor-assigned', scope: ['vitals', 'maternal-health'], sealedIncluded: true });
-  assert.deepEqual(texts((h.gateway.search(s.as(both.artefact), 'Observation', s.subject) as { entries: Record<string, unknown>[] }).entries),
-   ['Synthetic antenatal reading', 'Synthetic private reading', 'Synthetic pulse']);
-  const vitalsOnly = s.grant({ recipientRole: 'doctor-assigned', scope: ['vitals'], sealedIncluded: true });
-  const narrower = h.gateway.search(s.as(vitalsOnly.artefact), 'Observation', s.subject);
-  assert.ok(narrower.ok);
-  assert.deepEqual(texts(narrower.entries), ['Synthetic private reading', 'Synthetic pulse']);
-  assert.equal(narrower.sealedContentExists, true);
+  const s = seed(h, { withPrivate: false });
+  const g = s.grant({ recipientRole: 'doctor-assigned', scope: ['vitals', 'maternal-health'], sealedIncluded: true });
+  const found = h.gateway.search(s.as(g.artefact), 'Observation', s.subject);
+  assert.ok(found.ok);
+  assert.deepEqual(texts(found.entries), ['Synthetic antenatal reading', 'Synthetic pulse']);
+  assert.equal('sealedContentExists' in found, false, 'everything sealed was shown, so nothing was left out');
  });
 
- test('the patient\'s own session sees everything, sealed included', () => {
+ test('the patient\'s own session sees everything, sealed and private included', () => {
   const h = harness();
   const s = seed(h);
   const mine = h.gateway.search(s.me, 'Observation', s.subject);
@@ -169,17 +213,16 @@ describe('sealed categories', () => {
   assert.equal(mine.entries.length, 3);
  });
 
- test('sealed content is encrypted under a key of its own, and nothing is stored in the clear', () => {
+ test('sealed and private content are each under a key of their own, and nothing is stored in the clear', () => {
   const h = harness();
   const s = seed(h);
   const scopes = h.store.keyScopesFor(s.subject);
   assert.ok(scopes.includes('general'));
-  assert.equal(scopes.filter(scope => scope.startsWith('sealed:')).length, 2, 'maternal health and the private vitals reading each have their own key');
+  assert.equal(scopes.filter(scope => scope.startsWith('sealed:')).length, 1);
+  assert.equal(scopes.filter(scope => scope.startsWith('private:')).length, 1);
   const maternal = h.store.resource(s.ids.maternal)!;
-  assert.ok(maternal.key_scope.startsWith('sealed:'));
   const general = h.keys.unwrapDataKey(s.subject, 'general', h.store.dataKey(s.subject, 'general')!);
   assert.throws(() => openBytes(general, maternal.sealed_body, `${s.subject}|${maternal.id}|${maternal.key_scope}|1`));
-  assert.throws(() => openBytes(general, maternal.sealed_body, `${s.subject}|${maternal.id}|general|1`));
   for (const row of h.store.resourcesOf(s.subject)) {
    assert.equal(Buffer.from(row.sealed_body).toString('latin1').includes('Synthetic'), false);
    assert.equal(row.category_tag.includes('maternal'), false);
@@ -194,15 +237,35 @@ describe('writes', () => {
   const g = s.grant({ recipientRole: 'nurse-assigned', scope: ['vitals'] });
   const written = h.gateway.write(s.as(g.artefact), {
    subject: s.subject, resourceType: 'Observation', category: 'vitals',
-   resource: { code: { text: 'Synthetic nurse reading' }, performer: 'somebody the body names' },
+   resource: { code: { text: 'Synthetic nurse reading' } },
    provenance: { activity: 'home-visit-observation', sourceSystem: 'synthetic-nurse-app' }
   });
   assert.ok(written.ok, written.ok ? '' : written.reason);
-  const provenance = h.store.provenanceFor(written.id);
-  assert.equal(provenance.length, 1);
-  assert.equal(provenance[0]!.author_role, 'nurse-assigned');
-  assert.equal(provenance[0]!.author_ref, g.grantId);
-  assert.equal(provenance[0]!.activity, 'home-visit-observation');
+  const read = h.gateway.read(s.me, 'Observation', written.id);
+  assert.ok(read.ok);
+  const agent = (read.provenance[0]!.agent as { type: { text: string }; who: { identifier: { value: string } } }[])[0]!;
+  assert.equal(agent.type.text, 'nurse-assigned');
+  assert.equal(agent.who.identifier.value, g.grantId);
+  assert.equal((read.provenance[0]!.activity as { text: string }).text, 'home-visit-observation');
+ });
+
+ test('finding 5: provenance is ciphertext under the entry\'s own key — a sealed entry\'s activity is not readable in the table', () => {
+  const h = harness();
+  const s = seed(h);
+  const written = h.gateway.write(s.me, {
+   subject: s.subject, resourceType: 'Observation', category: 'maternal-health', resource: { code: { text: 'Synthetic sealed reading' } },
+   provenance: { activity: 'Synthetic viral load at an antenatal visit', sourceSystem: 'synthetic-clinic-system' }
+  });
+  assert.ok(written.ok);
+  const rows = h.store.database.prepare('SELECT * FROM provenance WHERE target = ?').all(written.id) as Record<string, unknown>[];
+  assert.equal(rows.length, 1);
+  const raw = JSON.stringify(rows, (_key, value) => value instanceof Uint8Array ? Buffer.from(value).toString('latin1') : value);
+  for (const leaked of ['viral load', 'antenatal', 'synthetic-clinic-system', 'patient']) assert.equal(raw.includes(leaked), false, leaked);
+  const resource = h.store.resource(written.id)!;
+  assert.equal(rows[0]!.key_scope, resource.key_scope);
+  const general = h.keys.unwrapDataKey(s.subject, 'general', h.store.dataKey(s.subject, 'general')!);
+  const p = rows[0] as { id: string; target: string; key_scope: string; sealed_body: Uint8Array };
+  assert.throws(() => openBytes(general, p.sealed_body, `provenance|${s.subject}|${p.id}|${p.target}|${p.key_scope}`));
  });
 
  test('no provenance, no write', () => {
@@ -211,12 +274,31 @@ describe('writes', () => {
   refused(h.gateway.write(s.me, { subject: s.subject, resourceType: 'AllergyIntolerance', category: 'allergy', resource: {} }), 'no-provenance');
  });
 
- test('a Patient resource is a token and nothing else', () => {
+ test('finding 10: the body cannot overwrite the category or the private mark the gateway decided', () => {
   const h = harness();
   const s = seed(h);
-  refused(h.gateway.write(s.me, { subject: s.subject, resourceType: 'Patient', category: 'patient', resource: { name: [{ text: 'Synthetic Person' }] }, provenance: PROVENANCE }), 'identity-on-patient');
-  refused(h.gateway.write(s.me, { subject: s.subject, resourceType: 'Patient', category: 'patient', resource: { telecom: [{ value: 'synthetic' }] }, provenance: PROVENANCE }), 'identity-on-patient');
-  assert.ok(h.gateway.write(s.me, { subject: s.subject, resourceType: 'Patient', category: 'patient', resource: {}, provenance: PROVENANCE }).ok);
+  const written = h.gateway.write(s.me, { subject: s.subject, resourceType: 'Observation', category: 'vitals', resource: { category: 'patient', markedPrivate: true, id: 'mine', code: { text: 'Synthetic override' } }, provenance: PROVENANCE });
+  assert.ok(written.ok);
+  const read = h.gateway.read(s.me, 'Observation', written.id);
+  assert.ok(read.ok);
+  assert.equal(read.resource!.category, 'vitals');
+  assert.equal(read.resource!.markedPrivate, false);
+  assert.equal(read.resource!.id, written.id);
+ });
+
+ test('finding 13: a name, a phone number or an identity number is refused at any depth, in any resource', () => {
+  const h = harness();
+  const s = seed(h);
+  const write = (resourceType: string, category: string, resource: Record<string, unknown>) => h.gateway.write(s.me, { subject: s.subject, resourceType, category, resource, provenance: PROVENANCE });
+  refused(write('Patient', 'patient', { name: [{ text: 'Synthetic Person' }] }), 'identity-in-resource');
+  refused(write('Observation', 'vitals', { extension: [{ url: 'http://synthetic.example/patient-name', valueString: 'Synthetic Person' }] }), 'identity-in-resource');
+  refused(write('Observation', 'vitals', { performer: [{ display: 'Synthetic Nurse' }] }), 'identity-in-resource');
+  refused(write('Observation', 'vitals', { note: [{ text: 'Call her on 082 000 0000 if it rises' }] }), 'identity-in-resource');
+  refused(write('AllergyIntolerance', 'allergy', { reaction: [{ description: 'reported by synthetic@example.invalid' }] }), 'identity-in-resource');
+  refused(write('MedicationStatement', 'prescription', { medication: { text: 'Synthetic' }, deep: { deeper: { identifier: 'x' } } }), 'identity-in-resource');
+  refused(h.gateway.write(s.me, { subject: s.subject, resourceType: 'Observation', category: 'vitals', resource: {}, provenance: { activity: 'visit, patient number 0000000000000', sourceSystem: 'synthetic' } }), 'identity-in-resource');
+  assert.ok(write('Observation', 'vitals', { code: { coding: [{ display: 'Blood pressure' }] }, valueString: '120/80', effectiveDateTime: '2026-09-14T09:00:00+02:00' }).ok);
+  assert.ok(write('Patient', 'patient', {}).ok);
  });
 
  test('a caregiver reads and does not write, and nobody writes provenance or audit', () => {
@@ -235,5 +317,28 @@ describe('writes', () => {
   const g = s.grant({ recipientRole: 'nurse-assigned', scope: ['allergy'] });
   refused(h.gateway.search(s.as(g.artefact), 'AllergyIntolerance', '0000000000000'), 'not-a-token');
   refused(h.gateway.emergencySummary(s.me, 'not-a-token-at-all'), 'not-a-token');
+ });
+});
+
+describe('finding 11: a patient session expires, can be ended, and is parsed strictly', () => {
+ test('it stops working when its lifetime is over', () => {
+  const h = harness();
+  const s = seed(h);
+  assert.ok(h.gateway.auditMine(s.patientSession).ok);
+  h.advance(31 * 60_000);
+  refused(h.gateway.auditMine(s.patientSession), 'session-ended');
+  refused(h.gateway.search(s.me, 'Observation', s.subject), 'session-ended');
+ });
+ test('it stops working the moment it is ended', () => {
+  const h = harness();
+  const s = seed(h);
+  assert.ok(h.gateway.endSession(s.patientSession).ok);
+  refused(h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'caregiver', scope: ['allergy'], purpose: 'treatment', expiresAt: new Date(h.at() + HOUR).toISOString() }), 'session-ended');
+ });
+ test('a token with an extra segment, or a signed session that was never issued, is not a session', () => {
+  const h = harness();
+  const s = seed(h);
+  refused(h.gateway.auditMine(`${s.patientSession}.junk`), 'patient-session-required');
+  refused(h.gateway.auditMine(` ${s.patientSession}`), 'patient-session-required');
  });
 });

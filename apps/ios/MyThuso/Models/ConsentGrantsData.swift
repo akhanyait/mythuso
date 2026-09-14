@@ -12,6 +12,8 @@ enum ConsentGrantsData {
         let id: String; let name: String; let engine: String; let defaultScope: [String]
         let defaultExpiryDays: Int; let sealed: Bool; let boundTo: String?; let identifiable: Bool
         let defaultPurpose: String?
+        /// The longest a grant to this role may run, and the purposes it may name. The gateway refuses past either.
+        let maxExpiryDays: Int; let allowedPurposes: [String]
     }
     struct Refusal: Identifiable { let id: String; let statement: String }
 
@@ -23,35 +25,43 @@ enum ConsentGrantsData {
         RecipientRole(id: "caregiver", name: "Caregiver or delegate", engine: "access",
                       defaultScope: ["prescription", "appointment", "care-plan"],
                       defaultExpiryDays: 90, sealed: false, boundTo: nil,
-                      identifiable: true, defaultPurpose: "treatment"),
+                      identifiable: true, defaultPurpose: "treatment",
+                      maxExpiryDays: 90, allowedPurposes: ["treatment", "emergency"]),
         RecipientRole(id: "next-of-kin", name: "Next of kin", engine: "access",
                       defaultScope: ["emergency-card"],
                       defaultExpiryDays: 365, sealed: false, boundTo: nil,
-                      identifiable: true, defaultPurpose: "emergency"),
+                      identifiable: true, defaultPurpose: "emergency",
+                      maxExpiryDays: 365, allowedPurposes: ["emergency"]),
         RecipientRole(id: "nurse-assigned", name: "Assigned MyThuso nurse", engine: "care",
                       defaultScope: ["patient", "allergy", "vitals", "chronic-condition", "medical-history", "immunisation", "child-health", "care-plan", "emergency-card", "prescription", "dispense", "referral", "home-visit"],
                       defaultExpiryDays: 14, sealed: false, boundTo: "episode",
-                      identifiable: true, defaultPurpose: "treatment"),
+                      identifiable: true, defaultPurpose: "treatment",
+                      maxExpiryDays: 14, allowedPurposes: ["treatment", "emergency"]),
         RecipientRole(id: "doctor-assigned", name: "Assigned MyThuso doctor", engine: "care",
                       defaultScope: ["patient", "household", "allergy", "vitals", "chronic-condition", "diagnosis", "medical-history", "immunisation", "child-health", "care-plan", "emergency-card", "consultation", "procedure", "prescription", "medication-catalogue", "dispense", "laboratory", "imaging", "referral", "admission", "home-visit"],
                       defaultExpiryDays: 14, sealed: false, boundTo: "episode",
-                      identifiable: true, defaultPurpose: "treatment"),
+                      identifiable: true, defaultPurpose: "treatment",
+                      maxExpiryDays: 14, allowedPurposes: ["treatment", "diagnostics", "emergency"]),
         RecipientRole(id: "pharmacist", name: "Pharmacist", engine: "medicines",
                       defaultScope: ["prescription", "dispense", "allergy", "chronic-condition"],
                       defaultExpiryDays: 7, sealed: false, boundTo: "episode",
-                      identifiable: true, defaultPurpose: "dispensing"),
+                      identifiable: true, defaultPurpose: "dispensing",
+                      maxExpiryDays: 7, allowedPurposes: ["dispensing"]),
         RecipientRole(id: "care-coordinator", name: "Care coordinator", engine: "core",
                       defaultScope: ["task", "appointment", "transport"],
                       defaultExpiryDays: 30, sealed: false, boundTo: "episode",
-                      identifiable: true, defaultPurpose: "dispatch"),
+                      identifiable: true, defaultPurpose: "dispatch",
+                      maxExpiryDays: 30, allowedPurposes: ["dispatch"]),
         RecipientRole(id: "responder-on-trip", name: "Thuso Ride responder, during a trip", engine: "movement",
                       defaultScope: ["emergency-card", "transport"],
                       defaultExpiryDays: 1, sealed: false, boundTo: "trip",
-                      identifiable: true, defaultPurpose: "dispatch"),
+                      identifiable: true, defaultPurpose: "dispatch",
+                      maxExpiryDays: 1, allowedPurposes: ["dispatch", "emergency"]),
         RecipientRole(id: "scheme-aggregate", name: "Medical scheme, aggregate only", engine: "money",
                       defaultScope: [],
                       defaultExpiryDays: 365, sealed: false, boundTo: nil,
-                      identifiable: false, defaultPurpose: nil)
+                      identifiable: false, defaultPurpose: nil,
+                      maxExpiryDays: 365, allowedPurposes: [])
     ]
 
     static let refusals: [Refusal] = [

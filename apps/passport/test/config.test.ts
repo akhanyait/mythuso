@@ -1,5 +1,6 @@
 /**
- * The service refuses to start anywhere it should not, and refuses a key it shares with identity.
+ * The service refuses to start anywhere it should not, and refuses a key or a file it shares with
+ * identity — and createPassport() and the gateway refuse exactly as the process does.
  *
  * The last test runs the real entry point in a child process, because a refusal that only exists in
  * loadPassportConfig() and not at the door of the process is a refusal nobody running the service meets.
@@ -8,8 +9,14 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createHash, createHmac, hkdfSync, randomBytes } from 'node:crypto';
+import { mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadPassportConfig } from '../src/config.ts';
+import { PassportGateway } from '../src/gateway.ts';
+import { createPassport } from '../src/server.ts';
+import { PassportStore } from '../src/store.ts';
 import { sentence } from './harness.ts';
 
 const KEY = randomBytes(32).toString('hex');
@@ -20,11 +27,20 @@ const refusedWith = (env: Record<string, string>, id: string) =>
 describe('development only', () => {
  test('no development flag, no start', () => refusedWith({ MYTHUSO_PASSPORT_MASTER_KEY: KEY }, 'not-development'));
  test('a flag set to anything but the phrase is not the flag', () => refusedWith({ ...DEV, MYTHUSO_PASSPORT_DEVELOPMENT: 'true' }, 'not-development'));
- test('a production environment is refused even with the flag set', () => {
-  refusedWith({ ...DEV, MYTHUSO_ENV: 'production' }, 'production-environment');
-  refusedWith({ ...DEV, NODE_ENV: 'production' }, 'production-environment');
+ test('finding 12: a production environment is refused in any spelling, even with the flag set', () => {
+  for (const value of ['production', 'Production', 'PRODUCTION', ' production ', 'prod', 'live', 'staging']) {
+   refusedWith({ ...DEV, MYTHUSO_ENV: value }, 'production-environment');
+   refusedWith({ ...DEV, NODE_ENV: value }, 'production-environment');
+  }
+  for (const value of ['development', 'Development', 'test']) assert.ok(loadPassportConfig({ ...DEV, MYTHUSO_ENV: value } as NodeJS.ProcessEnv));
  });
  test('the loopback and only the loopback', () => refusedWith({ ...DEV, MYTHUSO_PASSPORT_HOST: '0.0.0.0' }, 'not-loopback'));
+ test('finding 12: createPassport() and the gateway ask the same questions, so importing them skips nothing', () => {
+  assert.throws(() => createPassport({ MYTHUSO_PASSPORT_MASTER_KEY: KEY } as NodeJS.ProcessEnv), { message: sentence('not-development') });
+  assert.throws(() => createPassport({ ...DEV, MYTHUSO_PROTECTION_KEYS: `1:${KEY}` } as NodeJS.ProcessEnv), { message: sentence('shared-key') });
+  const handBuilt = { port: 8797, host: '127.0.0.1', databasePath: ':memory:', masterKey: Buffer.from(KEY, 'hex') };
+  assert.throws(() => new PassportGateway({ config: handBuilt, store: new PassportStore(':memory:') }), { message: sentence('not-development') });
+ });
 });
 
 describe('its own key, and its own store', () => {
@@ -58,8 +74,18 @@ describe('its own key, and its own store', () => {
   assert.equal(config.masterKey.toString('hex'), KEY);
  });
 
- test('the identity service\'s database file is refused', () => {
-  refusedWith({ ...DEV, MYTHUSO_DB: '/tmp/synthetic-identity.db', MYTHUSO_PASSPORT_DB: '/tmp/synthetic-identity.db' }, 'shared-database');
+ test('finding 12: the identity service\'s database is refused however it is spelled', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'passport-synthetic-'));
+  const identity = join(dir, 'identity.db');
+  writeFileSync(identity, '');
+  const link = join(dir, 'looks-different.db');
+  symlinkSync(identity, link);
+  refusedWith({ ...DEV, MYTHUSO_DB: identity, MYTHUSO_PASSPORT_DB: identity }, 'shared-database');
+  refusedWith({ ...DEV, MYTHUSO_DB: identity, MYTHUSO_PASSPORT_DB: relative(process.cwd(), identity) }, 'shared-database');
+  refusedWith({ ...DEV, MYTHUSO_DB: identity, MYTHUSO_PASSPORT_DB: link }, 'shared-database');
+  refusedWith({ ...DEV, MYTHUSO_DB: `${dir}/./identity.db`, MYTHUSO_PASSPORT_DB: identity }, 'shared-database');
+  refusedWith({ ...DEV, MYTHUSO_PASSPORT_DB: '/var/lib/mythuso/identity.db' }, 'shared-database');
+  assert.ok(loadPassportConfig({ ...DEV, MYTHUSO_DB: identity, MYTHUSO_PASSPORT_DB: join(dir, 'passport.db') } as NodeJS.ProcessEnv));
  });
 });
 
