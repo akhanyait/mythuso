@@ -1394,6 +1394,9 @@ for(const {source,command,files} of generated) {
    case 'operator-credential': return [...credentialRoles];
    case 'supplier-callback': return r.legacyCallback && e.supplier ? [e.supplier] : [];
    case 'development-token': return ['developer'];
+   /* The engine runtime's binder reads a route's callers from this contract and admits them before the
+      handler runs, except the callers it cannot tell apart from anybody — which the contract lists. */
+   case 'engines-runtime:callers': return r.callers.filter(c => c.startsWith('engine:') ? engineIds.includes(c.slice('engine:'.length)) : apiCallers.has(c) && !apiContract.engineRuntime.binderCannotAdmit.includes(c));
    default: return [];
   }
  };
@@ -6033,3 +6036,76 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
 
  console.log(`MyThuso for Mom has ${momContract.tiers.length} tiers priced once, ${momContract.tiers.reduce((n, t) => n + t.includes.length, 0)} inclusions each beside the capability it waits on, and ${momContract.refusals.length} refusals — and no plans screen on any platform types a price.`);
 }
+/* ==== Engine Runtime & Core (Wave 3): packages/engines ==============================================
+
+   Added by the Engine Runtime & Core lead. Self-contained; the one edit inside the Wave 2 API section is
+   the engines-runtime:callers case in deriveCallers. The engines run on a development runtime that binds
+   handlers to the frozen API contract and carries their events on a bus held to the event contract.
+   What this block holds it to: the runtime refuses to start without its flag in the factory, serves
+   loopback only and checks the Host header, and nothing in deploy/ names it; one engine's code never
+   reaches another engine's directory or opens a database of its own; and a route marked built on the
+   runtime names a handler file in its own engine's directory that registers exactly that route. */
+{
+ const runtimeSettings = JSON.parse(read('packages/catalog/apis.json')).engineRuntime;
+ const { posix } = await import('node:path');
+ const runtimeRefusalOf = id => runtimeSettings?.refusals?.find(x => x.id === id);
+ const enginesFail = (id, detail) => { const r = runtimeRefusalOf(id); throw new Error(`${detail}${r ? ` ${r.statement} ${r.why}` : ''}`); };
+ if (!runtimeSettings || runtimeSettings.package !== 'packages/engines' || runtimeSettings.flag !== 'MYTHUSO_ENGINES' || runtimeSettings.flagValue !== 'synthetic-data-only' || !Array.isArray(runtimeSettings.binderCannotAdmit) || !runtimeSettings.why?.trim()) throw new Error('packages/catalog/apis.json no longer describes the engine runtime: its package, its synthetic-data flag, the callers its binder cannot admit and why it exists.');
+ for (const id of ['route-not-in-the-contract', 'route-withdrawn', 'route-belongs-to-another-engine', 'subscription-not-declared', 'engine-fault', 'field-of-the-wrong-type']) if (!runtimeRefusalOf(id)?.statement?.trim() || !runtimeRefusalOf(id)?.why?.trim()) throw new Error(`packages/catalog/apis.json#engineRuntime has lost the refusal "${id}", or its sentence or its reasoning.`);
+
+ /* 1. Registered, zero-dependency, and every suite under src/ run — including each engine's domain tests. */
+ const rootForEngines = JSON.parse(read('package.json'));
+ if (!rootForEngines.workspaces.includes('packages/engines') || !/-w @mythuso\/engines/.test(rootForEngines.scripts.check) || !/-w @mythuso\/engines/.test(rootForEngines.scripts.test)) throw new Error('The root package.json no longer typechecks and tests packages/engines. A runtime whose refusals nobody has seen fire is a runtime that says yes.');
+ const enginesPackage = JSON.parse(read('packages/engines/package.json'));
+ if (enginesPackage.dependencies || enginesPackage.devDependencies) throw new Error('packages/engines declares dependencies; it is zero-dependency, like the services it stands in for.');
+ if (enginesPackage.scripts?.test !== 'node --test "src/**/*.test.ts"') throw new Error('packages/engines no longer runs every src/**/*.test.ts, so an engine\'s domain suite could stop running without anybody noticing.');
+
+ /* 2. Not a service: the flag in the factory, loopback and Host at the door, and nothing in deploy/. */
+ const runtimeSource = read('packages/engines/src/runtime/runtime.ts');
+ if (!/if \(options\.env\[settings\.flag\] !== settings\.flagValue\) throw new RuntimeRefusedToStart/.test(runtimeSource)) throw new Error(`createRuntime() in packages/engines/src/runtime/runtime.ts no longer refuses without ${runtimeSettings.flag}=${runtimeSettings.flagValue}, so importing the library skips the door the server goes through.`);
+ const enginesServer = read('packages/engines/src/server.ts');
+ if (!/const HOST = '127\.0\.0\.1'/.test(enginesServer) || !/server\.listen\(port, host\)/.test(enginesServer) || !/LOOPBACK\.has\(req\.socket\.remoteAddress/.test(enginesServer) || !/loopbackHosts\.has\(hostName\(req\.headers\.host\)\)/.test(enginesServer)) throw new Error('packages/engines/src/server.ts no longer binds to 127.0.0.1 and refuses a request that did not arrive on loopback, addressed to a loopback name.');
+ for (const file of files('deploy')) if (/packages\/engines|@mythuso\/engines|MYTHUSO_ENGINES|npm run engines/.test(read(file))) throw new Error(`${file} names the development engine runtime. It answers with synthetic data, believes a role from a header, and is never deployed.`);
+
+ /* 3. Store isolation. One module opens databases; an engine's code imports its own directory, the
+       runtime's interface and the catalog, and nothing else — not another engine, not a package. */
+ const engineIdsForRuntime = JSON.parse(read('packages/catalog/events.json')).engines.map(e => e.id);
+ const engineSources = files('packages/engines/src').filter(f => f.endsWith('.ts'));
+ let importsRead = 0;
+ for (const file of engineSources) {
+  const source = read(file);
+  const [top] = posix.relative('packages/engines/src', file).split('/');
+  /* The trail's own test opens the trail file to tamper with it, which is the point of the test. */
+  const opensDatabase = /new DatabaseSync\(/.test(source) || /^import (?!type)[^;]*from 'node:sqlite'/m.test(source);
+  if (opensDatabase && file !== 'packages/engines/src/runtime/store.ts' && file !== 'packages/engines/src/runtime/runtime.test.ts') throw new Error(`${file} opens a SQLite database itself. Only packages/engines/src/runtime/store.ts opens a store, and it hands each engine its own.`);
+  if (engineIdsForRuntime.includes(top) && /_runtime_/.test(source)) throw new Error(`${file} names a _runtime_ table. The replay table in an engine's store is the binder's, and an engine that edits it can make a second charge look like a replay.`);
+  for (const m of source.matchAll(/(?:^|\n)\s*(?:import|export)\s[^;]*?from\s+'([^']+)'|import\(\s*'([^']+)'\s*\)/g)) {
+   const spec = m[1] ?? m[2];
+   importsRead++;
+   if (spec.startsWith('node:')) continue;
+   if (!spec.startsWith('.')) throw new Error(`${file} imports "${spec}". packages/engines is zero-dependency.`);
+   const target = posix.normalize(posix.join(posix.dirname(file), spec));
+   const [targetTop] = posix.relative('packages/engines/src', target).split('/');
+   const inside = !target.startsWith('packages/engines/src/') ? null : targetTop;
+   if (engineIdsForRuntime.includes(top)) {
+    if (inside !== top && inside !== 'runtime' && !target.startsWith('packages/catalog/')) enginesFail('route-belongs-to-another-engine', `${file} imports ${target}. An engine's code reaches its own directory, the runtime and the catalog; another engine is reached through a route or an event, and its store not at all.`);
+   } else if (top === 'runtime' && engineIdsForRuntime.includes(inside)) {
+    throw new Error(`${file} imports ${target}. The runtime knows no engine by name; engines are discovered and bound.`);
+   }
+  }
+ }
+
+ /* 4. A route built on the runtime names a handler in its own engine's directory that registers it. */
+ const { routes: routesForRuntime } = loadApis();
+ const onRuntime = routesForRuntime.filter(r => r.status === 'built' && r.enforcedBy?.mechanism === runtimeSettings.mechanism);
+ for (const r of onRuntime) {
+  const where = `${routeKey(r)} in ${r.file}`;
+  const directory = `packages/engines/src/${r.engine}/`;
+  if (!r.evidence?.file?.startsWith(directory)) enginesFail('route-belongs-to-another-engine', `${where} is built on the engine runtime and its evidence is ${JSON.stringify(r.evidence?.file)}, not a file under ${directory}.`);
+  if (!existsSync(r.evidence.file) || r.evidence.handler !== `'${routeKey(r)}'` || !read(r.evidence.file).includes(r.evidence.handler)) enginesFail('route-not-in-the-contract', `${where} is built on the engine runtime and ${r.evidence.file} does not register '${routeKey(r)}' by that exact key.`);
+ }
+ for (const r of routesForRuntime.filter(r => r.enforcedBy?.mechanism === runtimeSettings.mechanism && r.status !== 'built')) throw new Error(`${routeKey(r)} claims the engine runtime's enforcement and is not built.`);
+
+ console.log(`The engine runtime refuses to start without ${runtimeSettings.flag}=${runtimeSettings.flagValue} in its factory, answers on loopback to a loopback Host only, and nothing in deploy/ names it. ${engineSources.length} source files under packages/engines/src read, ${importsRead} imports among them, and no engine reaches another engine's directory or opens a database; ${onRuntime.length} ${onRuntime.length === 1 ? 'route is' : 'routes are'} built on the runtime, each registered by exactly its key in its own engine's directory.`);
+}
+/* ==== end of Engine Runtime & Core (Wave 3) ========================================================= */
