@@ -2,17 +2,26 @@
 // Do not edit by hand — run `npm run events`. The build fails if this file and its sources
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// Event types, their owning engine and their version. Nothing in this app publishes to a bus, and
-// no payload shape is written here: a frozen shape compiled into a phone is a copy nobody regenerates.
-// Withdrawn versions are left out, so no code in this app can name one.
+// One sealed constant per live event version, carrying the engine that owns it. Nothing in this app
+// publishes to a bus, and no payload shape is written here. A withdrawn version has no constant and
+// an EventKey cannot be made outside this file, so no code in this app can name one.
 
 import Foundation
 
 enum EventsData {
     struct Engine: Identifiable { let id: String; let name: String; let productName: String }
-    struct Event: Identifiable {
-        let type: String; let version: Int; let owner: String
+
+    /* A live event version. The initialiser is fileprivate: only this generated file makes one. */
+    struct EventKey: Identifiable, Hashable {
+        let type: String
+        let version: Int
+        let owner: String
         var id: String { "\(type)@\(version)" }
+        fileprivate init(_ type: String, _ version: Int, _ owner: String) {
+            self.type = type
+            self.version = version
+            self.owner = owner
+        }
     }
 
     static let contractVersion = 1
@@ -33,111 +42,109 @@ enum EventsData {
         Engine(id: "money", name: "Money", productName: "Thuso Money")
     ]
 
-    static let events: [Event] = [
-        Event(type: "appointment.requested", version: 1, owner: "care"),
-        Event(type: "appointment.offered", version: 1, owner: "care"),
-        Event(type: "appointment.booked", version: 1, owner: "care"),
-        Event(type: "appointment.confirmed", version: 1, owner: "care"),
-        Event(type: "appointment.en_route", version: 1, owner: "care"),
-        Event(type: "appointment.in_progress", version: 1, owner: "care"),
-        Event(type: "appointment.completed", version: 1, owner: "care"),
-        Event(type: "appointment.no_show", version: 1, owner: "care"),
-        Event(type: "appointment.cancelled", version: 1, owner: "care"),
-        Event(type: "appointment.follow_up_required", version: 1, owner: "care"),
-        Event(type: "person.verified", version: 1, owner: "trust"),
-        Event(type: "person.probation", version: 1, owner: "trust"),
-        Event(type: "person.trust_updated", version: 2, owner: "trust"),
-        Event(type: "person.under_review", version: 1, owner: "trust"),
-        Event(type: "person.suspended", version: 1, owner: "trust"),
-        Event(type: "person.reinstated", version: 1, owner: "trust"),
-        Event(type: "person.deactivated", version: 1, owner: "trust"),
-        Event(type: "credential.expiring", version: 1, owner: "trust"),
-        Event(type: "credential.lapsed", version: 1, owner: "trust"),
-        Event(type: "partner.verified", version: 1, owner: "trust"),
-        Event(type: "partner.suspended", version: 1, owner: "trust"),
-        Event(type: "passport.record.created", version: 1, owner: "record"),
-        Event(type: "passport.entry.written", version: 1, owner: "record"),
-        Event(type: "passport.entry.superseded", version: 1, owner: "record"),
-        Event(type: "passport.consent.granted", version: 2, owner: "record"),
-        Event(type: "passport.consent.revoked", version: 2, owner: "record"),
-        Event(type: "passport.access.read", version: 1, owner: "record"),
-        Event(type: "passport.access.breakglass", version: 1, owner: "record"),
-        Event(type: "passport.export.generated", version: 1, owner: "record"),
-        Event(type: "alert.raised", version: 1, owner: "core"),
-        Event(type: "alert.acknowledged", version: 1, owner: "core"),
-        Event(type: "alert.escalated", version: 1, owner: "core"),
-        Event(type: "alert.closed", version: 1, owner: "core"),
-        Event(type: "market.order.placed", version: 1, owner: "money"),
-        Event(type: "market.order.paid", version: 1, owner: "money"),
-        Event(type: "market.order.shipped", version: 1, owner: "money"),
-        Event(type: "market.order.delivered", version: 1, owner: "money"),
-        Event(type: "market.order.returned", version: 1, owner: "money"),
-        Event(type: "pulse.session.started", version: 1, owner: "pulse"),
-        Event(type: "pulse.listening.started", version: 1, owner: "pulse"),
-        Event(type: "pulse.utterance.finalised", version: 1, owner: "pulse"),
-        Event(type: "pulse.thinking.started", version: 1, owner: "pulse"),
-        Event(type: "pulse.device.highlight", version: 1, owner: "pulse"),
-        Event(type: "pulse.guidance.presented", version: 1, owner: "pulse"),
-        Event(type: "pulse.escalation.started", version: 1, owner: "pulse"),
-        Event(type: "pulse.handover.completed", version: 1, owner: "pulse"),
-        Event(type: "trust.weight.decided", version: 2, owner: "trust"),
-        Event(type: "trust.dispatch.withheld", version: 1, owner: "trust"),
-        Event(type: "record.breakglass.review_due", version: 1, owner: "record"),
-        Event(type: "record.audit.chain_broken", version: 1, owner: "record")
-    ]
+    static let appointmentRequestedV1 = EventKey("appointment.requested", 1, "care")
+    static let appointmentOfferedV1 = EventKey("appointment.offered", 1, "care")
+    static let appointmentBookedV1 = EventKey("appointment.booked", 1, "care")
+    static let appointmentConfirmedV1 = EventKey("appointment.confirmed", 1, "care")
+    static let appointmentEnRouteV1 = EventKey("appointment.en_route", 1, "care")
+    static let appointmentInProgressV1 = EventKey("appointment.in_progress", 1, "care")
+    static let appointmentCompletedV1 = EventKey("appointment.completed", 1, "care")
+    static let appointmentNoShowV1 = EventKey("appointment.no_show", 1, "care")
+    static let appointmentCancelledV1 = EventKey("appointment.cancelled", 1, "care")
+    static let appointmentFollowUpRequiredV1 = EventKey("appointment.follow_up_required", 1, "care")
+    static let personVerifiedV1 = EventKey("person.verified", 1, "trust")
+    static let personProbationV1 = EventKey("person.probation", 1, "trust")
+    static let personTrustUpdatedV2 = EventKey("person.trust_updated", 2, "trust")
+    static let personUnderReviewV1 = EventKey("person.under_review", 1, "trust")
+    static let personSuspendedV1 = EventKey("person.suspended", 1, "trust")
+    static let personReinstatedV1 = EventKey("person.reinstated", 1, "trust")
+    static let personDeactivatedV1 = EventKey("person.deactivated", 1, "trust")
+    static let credentialExpiringV1 = EventKey("credential.expiring", 1, "trust")
+    static let credentialLapsedV1 = EventKey("credential.lapsed", 1, "trust")
+    static let partnerVerifiedV1 = EventKey("partner.verified", 1, "trust")
+    static let partnerSuspendedV1 = EventKey("partner.suspended", 1, "trust")
+    static let passportRecordCreatedV1 = EventKey("passport.record.created", 1, "record")
+    static let passportEntryWrittenV1 = EventKey("passport.entry.written", 1, "record")
+    static let passportEntrySupersededV1 = EventKey("passport.entry.superseded", 1, "record")
+    static let passportConsentGrantedV3 = EventKey("passport.consent.granted", 3, "record")
+    static let passportConsentRevokedV3 = EventKey("passport.consent.revoked", 3, "record")
+    static let passportAccessReadV1 = EventKey("passport.access.read", 1, "record")
+    static let passportAccessBreakglassV1 = EventKey("passport.access.breakglass", 1, "record")
+    static let passportExportGeneratedV1 = EventKey("passport.export.generated", 1, "record")
+    static let alertRaisedV1 = EventKey("alert.raised", 1, "core")
+    static let alertAcknowledgedV1 = EventKey("alert.acknowledged", 1, "core")
+    static let alertEscalatedV1 = EventKey("alert.escalated", 1, "core")
+    static let alertClosedV1 = EventKey("alert.closed", 1, "core")
+    static let marketOrderPlacedV1 = EventKey("market.order.placed", 1, "money")
+    static let marketOrderPaidV1 = EventKey("market.order.paid", 1, "money")
+    static let marketOrderShippedV1 = EventKey("market.order.shipped", 1, "money")
+    static let marketOrderDeliveredV1 = EventKey("market.order.delivered", 1, "money")
+    static let marketOrderReturnedV1 = EventKey("market.order.returned", 1, "money")
+    static let pulseSessionStartedV1 = EventKey("pulse.session.started", 1, "pulse")
+    static let pulseListeningStartedV1 = EventKey("pulse.listening.started", 1, "pulse")
+    static let pulseUtteranceFinalisedV1 = EventKey("pulse.utterance.finalised", 1, "pulse")
+    static let pulseThinkingStartedV1 = EventKey("pulse.thinking.started", 1, "pulse")
+    static let pulseDeviceHighlightV1 = EventKey("pulse.device.highlight", 1, "pulse")
+    static let pulseGuidancePresentedV1 = EventKey("pulse.guidance.presented", 1, "pulse")
+    static let pulseEscalationStartedV1 = EventKey("pulse.escalation.started", 1, "pulse")
+    static let pulseHandoverCompletedV1 = EventKey("pulse.handover.completed", 1, "pulse")
+    static let trustWeightDecidedV2 = EventKey("trust.weight.decided", 2, "trust")
+    static let trustDispatchWithheldV1 = EventKey("trust.dispatch.withheld", 1, "trust")
+    static let recordBreakglassReviewDueV1 = EventKey("record.breakglass.review_due", 1, "record")
+    static let recordAuditChainBrokenV1 = EventKey("record.audit.chain_broken", 1, "record")
 
-    enum Types {
-        static let appointmentRequested = "appointment.requested"
-        static let appointmentOffered = "appointment.offered"
-        static let appointmentBooked = "appointment.booked"
-        static let appointmentConfirmed = "appointment.confirmed"
-        static let appointmentEnRoute = "appointment.en_route"
-        static let appointmentInProgress = "appointment.in_progress"
-        static let appointmentCompleted = "appointment.completed"
-        static let appointmentNoShow = "appointment.no_show"
-        static let appointmentCancelled = "appointment.cancelled"
-        static let appointmentFollowUpRequired = "appointment.follow_up_required"
-        static let personVerified = "person.verified"
-        static let personProbation = "person.probation"
-        static let personTrustUpdated = "person.trust_updated"
-        static let personUnderReview = "person.under_review"
-        static let personSuspended = "person.suspended"
-        static let personReinstated = "person.reinstated"
-        static let personDeactivated = "person.deactivated"
-        static let credentialExpiring = "credential.expiring"
-        static let credentialLapsed = "credential.lapsed"
-        static let partnerVerified = "partner.verified"
-        static let partnerSuspended = "partner.suspended"
-        static let passportRecordCreated = "passport.record.created"
-        static let passportEntryWritten = "passport.entry.written"
-        static let passportEntrySuperseded = "passport.entry.superseded"
-        static let passportConsentGranted = "passport.consent.granted"
-        static let passportConsentRevoked = "passport.consent.revoked"
-        static let passportAccessRead = "passport.access.read"
-        static let passportAccessBreakglass = "passport.access.breakglass"
-        static let passportExportGenerated = "passport.export.generated"
-        static let alertRaised = "alert.raised"
-        static let alertAcknowledged = "alert.acknowledged"
-        static let alertEscalated = "alert.escalated"
-        static let alertClosed = "alert.closed"
-        static let marketOrderPlaced = "market.order.placed"
-        static let marketOrderPaid = "market.order.paid"
-        static let marketOrderShipped = "market.order.shipped"
-        static let marketOrderDelivered = "market.order.delivered"
-        static let marketOrderReturned = "market.order.returned"
-        static let pulseSessionStarted = "pulse.session.started"
-        static let pulseListeningStarted = "pulse.listening.started"
-        static let pulseUtteranceFinalised = "pulse.utterance.finalised"
-        static let pulseThinkingStarted = "pulse.thinking.started"
-        static let pulseDeviceHighlight = "pulse.device.highlight"
-        static let pulseGuidancePresented = "pulse.guidance.presented"
-        static let pulseEscalationStarted = "pulse.escalation.started"
-        static let pulseHandoverCompleted = "pulse.handover.completed"
-        static let trustWeightDecided = "trust.weight.decided"
-        static let trustDispatchWithheld = "trust.dispatch.withheld"
-        static let recordBreakglassReviewDue = "record.breakglass.review_due"
-        static let recordAuditChainBroken = "record.audit.chain_broken"
-    }
+    static let events: [EventKey] = [
+        appointmentRequestedV1,
+        appointmentOfferedV1,
+        appointmentBookedV1,
+        appointmentConfirmedV1,
+        appointmentEnRouteV1,
+        appointmentInProgressV1,
+        appointmentCompletedV1,
+        appointmentNoShowV1,
+        appointmentCancelledV1,
+        appointmentFollowUpRequiredV1,
+        personVerifiedV1,
+        personProbationV1,
+        personTrustUpdatedV2,
+        personUnderReviewV1,
+        personSuspendedV1,
+        personReinstatedV1,
+        personDeactivatedV1,
+        credentialExpiringV1,
+        credentialLapsedV1,
+        partnerVerifiedV1,
+        partnerSuspendedV1,
+        passportRecordCreatedV1,
+        passportEntryWrittenV1,
+        passportEntrySupersededV1,
+        passportConsentGrantedV3,
+        passportConsentRevokedV3,
+        passportAccessReadV1,
+        passportAccessBreakglassV1,
+        passportExportGeneratedV1,
+        alertRaisedV1,
+        alertAcknowledgedV1,
+        alertEscalatedV1,
+        alertClosedV1,
+        marketOrderPlacedV1,
+        marketOrderPaidV1,
+        marketOrderShippedV1,
+        marketOrderDeliveredV1,
+        marketOrderReturnedV1,
+        pulseSessionStartedV1,
+        pulseListeningStartedV1,
+        pulseUtteranceFinalisedV1,
+        pulseThinkingStartedV1,
+        pulseDeviceHighlightV1,
+        pulseGuidancePresentedV1,
+        pulseEscalationStartedV1,
+        pulseHandoverCompletedV1,
+        trustWeightDecidedV2,
+        trustDispatchWithheldV1,
+        recordBreakglassReviewDueV1,
+        recordAuditChainBrokenV1
+    ]
 
     static func owner(of type: String) -> String? { events.first { $0.type == type }?.owner }
 }

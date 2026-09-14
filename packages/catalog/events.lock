@@ -63,3 +63,5 @@ trust.weight.decided@2 9979d07852e17e62
 trust.dispatch.withheld@1 4c49c316a9628f4a
 record.breakglass.review_due@1 5188c8a7f3bb1424
 record.audit.chain_broken@1 cc682ddba72a90ff
+passport.consent.granted@3 d80fd2d70ee4cb6f
+passport.consent.revoked@3 2cbd917e7bfa2d84

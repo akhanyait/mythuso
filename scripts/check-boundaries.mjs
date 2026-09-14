@@ -6,7 +6,7 @@ import { emitRecords } from './emit-records.mjs';
 import { emitEarnings } from './emit-earnings.mjs';
 import { emitSos } from './emit-sos.mjs';
 import { emitTeleconsult } from './emit-teleconsult.mjs';
-import { emitEvents, collectEvents, eventFingerprint } from './emit-events.mjs';
+import { emitEvents, collectEvents, eventFingerprint, swiftKeyName, kotlinKeyName } from './emit-events.mjs';
 import { emitConsentGrants } from './emit-consent-grants.mjs';
 import { emitProtocols } from './emit-protocols.mjs';
 import { emitLocales } from './emit-locales.mjs';
@@ -941,9 +941,21 @@ for(const {source,command,files} of generated) {
   }
   return null;
  };
- for (const word of ['score', 'trustScore', 'scoreBand', 'points', 'rank', 'rating', 'weight']) {
+ for (const word of ['score', 'trustScore', 'scoreBand', 'points', 'rank', 'rating', 'weight', 'level', 'band', 'stars', 'grade', 'percentile']) {
   if (!refusedField(word)) throw new Error(`neverInEnvelope no longer refuses a field named ${word}. ${coreRefusal('a-score-never-leaves-verify').statement} ${coreRefusal('a-score-never-leaves-verify').why}`);
  }
+
+ /* A word list is walked round by the next word — trustLevel and band passed the first one — so a
+    field named for trust, a badge, a standing or a tier is held to something no synonym escapes:
+    it is the badge tier, a string whose values packages/catalog/trust.json holds, or it is refused.
+    An alert's tier is the escalation ladder's rung and is left alone, because it is about how urgent
+    a concern is and not about anybody's standing; that exception is written in the contract. */
+ const trustNames = eventsContract.trustNames;
+ const badgeEnum = eventsContract.badgeEnum;
+ if (!Array.isArray(trustNames?.words) || !['trust', 'badge', 'tier'].every(w => trustNames.words.includes(w)) || trustNames.only !== badgeEnum?.field || !trustNames.why?.trim()) throw new Error(`packages/catalog/events.json no longer holds trust-named fields to the badge enum. ${coreRefusal('a-trust-name-is-the-badge-or-nothing').why}`);
+ const badgeValues = existsSync(badgeEnum.valuesFrom ?? '') ? (JSON.parse(read(badgeEnum.valuesFrom))[badgeEnum.path] ?? []).map(t => t.id).filter(Boolean) : [];
+ if (badgeEnum.type !== 'string' || !badgeValues.length) throw new Error(`The badge enum in packages/catalog/events.json does not resolve to string tier ids in ${badgeEnum.valuesFrom}#${badgeEnum.path}. The badge's values live in the Trust contract; an enum that points nowhere is a string anybody can put a number in.`);
+ const trustNamed = (e, field) => coreWords(field).some(w => trustNames.words.includes(w) && !(w === trustNames.except?.word && e.type.startsWith(trustNames.except.inTypesStartingWith)));
 
  const checkFields = (where, fields, { refuse = true } = {}) => {
   if (!Array.isArray(fields)) throw new Error(`${where} has no field list.`);
@@ -985,6 +997,9 @@ for(const {source,command,files} of generated) {
   if (!e.summary?.trim()) throw new Error(`${where} has no summary.`);
   const withdrawn = e.withdrawn !== undefined;
   checkFields(where, e.payload, { refuse: !withdrawn });
+  if (!withdrawn) for (const f of e.payload) {
+   if (trustNamed(e, f.field) && (f.field !== badgeEnum.field || f.type !== badgeEnum.type)) throw new Error(`${where} carries "${f.field}" as ${['integer', 'number'].includes(f.type) ? `a number (${f.type})` : f.type}. ${coreRefusal('a-trust-name-is-the-badge-or-nothing').statement} ${coreRefusal('a-trust-name-is-the-badge-or-nothing').why}`);
+  }
   for (const f of e.payload) if (envelopeNames.has(coreNorm(f.field))) throw new Error(`${where} repeats the envelope's "${f.field}" in its payload. Two copies of one fact on one event disagree the first time a publisher fills in only one.`);
   if (!Array.isArray(e.neverCarries)) throw new Error(`${where} does not say what it never carries. The valuable part of an event contract is what it will not put on the bus.`);
   for (const n of e.neverCarries) {
@@ -1020,9 +1035,21 @@ for(const {source,command,files} of generated) {
  }
  /* The newest version of a type that has not been withdrawn — the one an engine is built against. */
  const live = type => [...byKey.values()].filter(e => e.type === type && !e.withdrawn).sort((a, b) => b.version - a.version)[0];
+ /* A withdrawn version names the version that corrected it, and that one may itself be withdrawn
+    later: passport.consent.granted@1 was corrected by @2 on the first review pass and @2 by @3 on the
+    second. Pointing @1 straight at @3 would rewrite what the first withdrawal said, so the history is
+    kept as written and the chain is followed instead — every link a later version of the same event,
+    and the last link live. */
  for (const e of [...byKey.values()].filter(e => e.withdrawn)) {
-  const next = byKey.get(e.withdrawn.supersededBy);
-  if (!next || next.type !== e.type || next.version <= e.version || next.withdrawn) throw new Error(`${e.type}@${e.version} is withdrawn in favour of ${e.withdrawn.supersededBy}, which is not a later, live version of the same event. ${coreRefusal('withdrawn-means-silent').statement}`);
+  let from = e, next = byKey.get(e.withdrawn.supersededBy);
+  const path = [`${e.type}@${e.version}`];
+  while (true) {
+   if (!next || next.type !== e.type || next.version <= from.version) throw new Error(`${e.type}@${e.version} is withdrawn in favour of ${e.withdrawn.supersededBy}, and following its corrections — ${path.join(' → ')} → ${from.withdrawn.supersededBy} — does not lead through later versions of the same event to a live one. ${coreRefusal('withdrawn-means-silent').statement}`);
+   path.push(`${next.type}@${next.version}`);
+   if (!next.withdrawn) break;
+   from = next;
+   next = byKey.get(next.withdrawn.supersededBy);
+  }
  }
  const closed = live('alert.closed');
  if (!closed?.payload.some(f => f.field === 'outcomeRef' && f.required === true)) throw new Error(`alert.closed no longer requires outcomeRef. ${coreRefusal('an-alert-closes-on-an-outcome').why}`);
@@ -1060,6 +1087,33 @@ for(const {source,command,files} of generated) {
   for (const { e, patterns } of namingWithdrawn) {
    if (patterns.some(p => p.test(source))) throw new Error(`${file} names ${e.type}@${e.version}, which was withdrawn on ${e.withdrawn.on}: ${e.withdrawn.why} ${coreRefusal('withdrawn-means-silent').statement} Use ${e.withdrawn.supersededBy}.`);
   }
+ }
+
+ /* The first line against a withdrawn version is that the generated API cannot express one. Both
+    files are held to the shape the generator promises: an EventKey only the generated file can make,
+    no type constant without a version, nothing that takes a version as a parameter, and exactly one
+    constant for every live type@version under the name the generator gives it. The pattern search
+    above stays, for hand-written code that types a type and a version out itself. */
+ const liveKeys = new Map([...byKey.values()].filter(e => !e.withdrawn).map(e => [`${e.type}@${e.version}`, e]));
+ for (const [platform, file, keyPattern, nameOf, sealed, unsealed] of [
+  ['Swift', 'apps/ios/MyThuso/Models/EventsData.swift', /static let (\w+) = EventKey\("([^"]+)", (\d+), "([^"]+)"\)/g, swiftKeyName,
+   source => /struct EventKey\b/.test(source) && (source.match(/\binit\(/g) ?? []).length === 1 && /fileprivate init\(/.test(source),
+   source => /static let \w+\s*=\s*"[a-z]+(\.[a-z_]+)+"/.test(source) || /func \w+\([^)]*\bversion\b/.test(source)],
+  ['Kotlin', 'apps/android/app/src/main/java/za/co/mythuso/model/EventsData.kt', /val ([A-Z0-9_]+) = EventKey\("([^"]+)", (\d+), "([^"]+)"\)/g, kotlinKeyName,
+   source => /\bclass EventKey private constructor\(/.test(source) && !/data class EventKey\b/.test(source) && !/fun copy\(/.test(source),
+   source => /const val \w+\s*=\s*"[a-z]+(\.[a-z_]+)+"/.test(source) || /fun \w+\([^)]*\bversion\b/.test(source)]
+ ]) {
+  const source = read(file);
+  if (!sealed(source)) throw new Error(`${file} lets an EventKey be made outside the generated file. ${coreRefusal('the-generated-api-names-live-versions-only').statement} ${coreRefusal('the-generated-api-names-live-versions-only').why}`);
+  if (unsealed(source)) throw new Error(`${file} exposes an event type without its version, or something that takes a version as a parameter. ${coreRefusal('the-generated-api-names-live-versions-only').statement} ${coreRefusal('the-generated-api-names-live-versions-only').why}`);
+  const emitted = [...source.matchAll(keyPattern)].map(([, name, type, version, owner]) => ({ name, type, version: Number(version), owner }));
+  for (const k of emitted) {
+   const e = liveKeys.get(`${k.type}@${k.version}`);
+   if (!e) throw new Error(`${file} holds a ${platform} constant for ${k.type}@${k.version}, which is not a live version. ${coreRefusal('the-generated-api-names-live-versions-only').why}`);
+   if (k.name !== nameOf(e) || k.owner !== e.owner) throw new Error(`${file} names ${k.type}@${k.version} "${k.name}" owned by ${k.owner}; the generator names it ${nameOf(e)}, owned by ${e.owner}.`);
+  }
+  const missing = [...liveKeys.keys()].filter(key => !emitted.some(k => `${k.type}@${k.version}` === key));
+  if (missing.length) throw new Error(`${file} does not expose ${missing.join(', ')}. Every live version is one constant, or an app has to type it out by hand — which is how a withdrawn one gets typed.`);
  }
 
  /* 3. Frozen means frozen. The lock is every type@version ever published with the fingerprint of its
@@ -1156,11 +1210,30 @@ for(const {source,command,files} of generated) {
    if (e.type.startsWith('passport.consent.') || carried.length) throw new Error(`${e.type}@${e.version} in ${e.source} ${how} ${engine}, which serves only a non-identifiable grant role, and ${carried.length ? `it carries ${carried.join(', ')}` : "it is about a person's grant"}. ${coreRefusal('no-grant-news-for-an-aggregate-engine').statement} ${coreRefusal('no-grant-news-for-an-aggregate-engine').why}`);
   }
  }
+ /* A grant is news for the one engine serving its recipient's role. Any live event that carries a
+    grant's recipient is routed by recipientRole, and the routing is held to consent.json in both
+    directions: every identifiable role has its engine among the subscribers, so no grant goes
+    undelivered, and every subscriber serves at least one identifiable role, so no engine is on the
+    list only to hear grants that are never meant for it. Why this is a routing rule and not one event
+    type per engine is written in events.json under _routingMeans. */
+ const servingEngine = new Map(grants.recipientRoles.filter(r => r.identifiable !== false).map(r => [r.id, r.engine]));
+ for (const e of coreEvents.filter(x => !x.withdrawn)) {
+  const where = `${e.type}@${e.version} in ${e.source}`;
+  const carriesRecipient = e.payload.some(f => ['recipientRole', 'recipientRef'].some(g => namedLike(f.field, g)));
+  if (!carriesRecipient && !e.routing) continue;
+  const r = e.routing;
+  if (!r || r.by !== 'recipientRole' || r.from !== 'packages/catalog/consent.json' || !r.why?.trim()) throw new Error(`${where} carries a grant's recipient and is not routed by recipientRole from packages/catalog/consent.json, so every subscriber hears every grant. ${coreRefusal('a-grant-reaches-only-its-recipients-engine').statement} ${coreRefusal('a-grant-reaches-only-its-recipients-engine').why}`);
+  const key = e.payload.find(f => f.field === r.by);
+  if (!key || key.type !== 'string' || key.required !== true) throw new Error(`${where} is routed by ${r.by}, which it does not carry as a required string. A grant with no role on it cannot be delivered to the engine serving that role, and the bus's only other choice is everybody.`);
+  const unrouted = [...servingEngine].filter(([, engine]) => engine !== e.owner && !e.subscribers.includes(engine));
+  if (unrouted.length) throw new Error(`${where} has no route for ${unrouted.map(([role, engine]) => `${role} (served by ${engine})`).join(', ')}. ${e.type === grants.revocation.event ? grantRefusal('revocation-is-immediate').why : 'An engine that is never told about a grant to a role it serves has to be told some other way, and that other way is a direct call the bus exists to prevent.'}`);
+  const strangers = e.subscribers.filter(s => ![...servingEngine.values()].includes(s));
+  if (strangers.length) throw new Error(`${where} is subscribed to by ${strangers.join(', ')}, which ${strangers.length === 1 ? 'serves' : 'serve'} no identifiable grant role, so no grant is routed to ${strangers.length === 1 ? 'it' : 'them'}. ${coreRefusal('a-grant-reaches-only-its-recipients-engine').statement}`);
+ }
  for (const type of [grants.revocation.event, 'passport.consent.granted']) {
   const e = live(type);
   if (!e) throw new Error(`${type} has no live version in packages/catalog/events.json, so nothing tells an engine that a grant has ${type.endsWith('revoked') ? 'ended' : 'begun'}.`);
-  const deaf = [...identifiableEngines].filter(engine => engine !== e.owner && !e.subscribers.includes(engine));
-  if (deaf.length) throw new Error(`${type}@${e.version} is not subscribed to by ${deaf.join(', ')}, which ${deaf.length === 1 ? 'serves' : 'serve'} an identifiable grant recipient. ${type.endsWith('revoked') ? grantRefusal('revocation-is-immediate').why : 'An engine that is never told about a grant has to be told some other way, and that other way is a direct call the bus exists to prevent.'}`);
+  if (!e.routing) throw new Error(`${type}@${e.version} is not routed. ${coreRefusal('a-grant-reaches-only-its-recipients-engine').statement}`);
   /* What a grant opens is the gateway's filter. Announcing it tells every subscriber what this patient
      has let somebody see, and whether something sealed is among it. */
   for (const field of ['scope', 'sealedIncluded']) {
@@ -1232,7 +1305,7 @@ for(const {source,command,files} of generated) {
   }
  }
 
- console.log(`ThusoIQ Core's event contract is frozen at version ${eventsContract.version}, and the build refuses one that says otherwise: ${coreEvents.length} events from ${eventsContract.sources.length - skippedSources.length} of ${eventsContract.sources.length} source files, owned by ${new Set(coreEvents.map(e => e.owner)).size} of ${engineIds.size} engines, every one of them in ${eventsContract.lock} under a fingerprint of its type and shape that no other line shares. ${withdrawnEvents.length} withdrawn versions keep their lines, have no subscribers and are named by none of ${eventCode.length} code files. None of the live events carries a field whose words name any of the ${neverOnBus.reduce((n, b) => n + b.names.length, 0)} things the bus refuses — a score, points, a rank, a rating and a weight among them — no engine listens to itself, no alert carries a reading, no alert closes without an outcome, and Money is never told a person was suspended. Grant news reaches the ${identifiableEngines.size} engines serving an identifiable recipient, carries no scope and no sealed flag, and never reaches ${[...aggregateOnlyEngines].join(', ')}, which serves only the scheme's aggregate role. ${grants.recipientRoles.length} consent grant roles, each one expiring within a year, none opening a sealed category by default, a responder's ending with the trip, and revocation with no grace. ${protocolContract.protocols.length} protocols registered, ${protocolContract.protocols.filter(p => p.status === 'ratified').length} ratified, and not a number in any draft; ${citing.length} files read to make sure none of them cites a version the registry does not hold.`);
+ console.log(`ThusoIQ Core's event contract is frozen at version ${eventsContract.version}, and the build refuses one that says otherwise: ${coreEvents.length} events from ${eventsContract.sources.length - skippedSources.length} of ${eventsContract.sources.length} source files, owned by ${new Set(coreEvents.map(e => e.owner)).size} of ${engineIds.size} engines, every one of them in ${eventsContract.lock} under a fingerprint of its type and shape that no other line shares. ${withdrawnEvents.length} withdrawn versions keep their lines, have no subscribers and are named by none of ${eventCode.length} code files. None of the live events carries a field whose words name any of the ${neverOnBus.reduce((n, b) => n + b.names.length, 0)} things the bus refuses — a score, points, a rank, a level, a band and a weight among them — or names trust, a badge, a standing or a tier outside the escalation ladder as anything but the badge tier, a string; both apps hold one sealed constant per live version and nothing that takes a version; no engine listens to itself, no alert carries a reading, no alert closes without an outcome, and Money is never told a person was suspended. Each grant is routed by its recipient's role to the one engine of ${identifiableEngines.size} that serves it, carries no scope and no sealed flag, and never reaches ${[...aggregateOnlyEngines].join(', ')}, which serves only the scheme's aggregate role. ${grants.recipientRoles.length} consent grant roles, each one expiring within a year, none opening a sealed category by default, a responder's ending with the trip, and revocation with no grace. ${protocolContract.protocols.length} protocols registered, ${protocolContract.protocols.filter(p => p.status === 'ratified').length} ratified, and not a number in any draft; ${citing.length} files read to make sure none of them cites a version the registry does not hold.`);
 }
 /* ==== end of Contracts & Core (Wave 1) ============================================================ */
 

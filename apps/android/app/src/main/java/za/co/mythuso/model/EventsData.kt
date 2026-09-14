@@ -2,15 +2,128 @@
 // Do not edit by hand — run `npm run events`. The build fails if this file and its sources
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// Event types, their owning engine and their version. Nothing in this app publishes to a bus, and
-// no payload shape is written here: a frozen shape compiled into a phone is a copy nobody regenerates.
-// Withdrawn versions are left out, so no code in this app can name one.
+// One sealed constant per live event version, carrying the engine that owns it. Nothing in this app
+// publishes to a bus, and no payload shape is written here. A withdrawn version has no constant and
+// an EventKey cannot be made outside this file, so no code in this app can name one.
 
 package za.co.mythuso.model
 
 object EventsData {
     data class Engine(val id: String, val name: String, val productName: String)
-    data class Event(val type: String, val version: Int, val owner: String)
+
+    // A live event version. The constructor is private: only the constants below make one, and it is
+    // not a data class, so there is no copy() to change its version with.
+    class EventKey private constructor(val type: String, val version: Int, val owner: String) {
+        override fun toString() = "$type@$version"
+        override fun equals(other: Any?) = other is EventKey && other.type == type && other.version == version
+        override fun hashCode() = 31 * type.hashCode() + version
+
+        companion object {
+            val APPOINTMENT_REQUESTED_V1 = EventKey("appointment.requested", 1, "care")
+            val APPOINTMENT_OFFERED_V1 = EventKey("appointment.offered", 1, "care")
+            val APPOINTMENT_BOOKED_V1 = EventKey("appointment.booked", 1, "care")
+            val APPOINTMENT_CONFIRMED_V1 = EventKey("appointment.confirmed", 1, "care")
+            val APPOINTMENT_EN_ROUTE_V1 = EventKey("appointment.en_route", 1, "care")
+            val APPOINTMENT_IN_PROGRESS_V1 = EventKey("appointment.in_progress", 1, "care")
+            val APPOINTMENT_COMPLETED_V1 = EventKey("appointment.completed", 1, "care")
+            val APPOINTMENT_NO_SHOW_V1 = EventKey("appointment.no_show", 1, "care")
+            val APPOINTMENT_CANCELLED_V1 = EventKey("appointment.cancelled", 1, "care")
+            val APPOINTMENT_FOLLOW_UP_REQUIRED_V1 = EventKey("appointment.follow_up_required", 1, "care")
+            val PERSON_VERIFIED_V1 = EventKey("person.verified", 1, "trust")
+            val PERSON_PROBATION_V1 = EventKey("person.probation", 1, "trust")
+            val PERSON_TRUST_UPDATED_V2 = EventKey("person.trust_updated", 2, "trust")
+            val PERSON_UNDER_REVIEW_V1 = EventKey("person.under_review", 1, "trust")
+            val PERSON_SUSPENDED_V1 = EventKey("person.suspended", 1, "trust")
+            val PERSON_REINSTATED_V1 = EventKey("person.reinstated", 1, "trust")
+            val PERSON_DEACTIVATED_V1 = EventKey("person.deactivated", 1, "trust")
+            val CREDENTIAL_EXPIRING_V1 = EventKey("credential.expiring", 1, "trust")
+            val CREDENTIAL_LAPSED_V1 = EventKey("credential.lapsed", 1, "trust")
+            val PARTNER_VERIFIED_V1 = EventKey("partner.verified", 1, "trust")
+            val PARTNER_SUSPENDED_V1 = EventKey("partner.suspended", 1, "trust")
+            val PASSPORT_RECORD_CREATED_V1 = EventKey("passport.record.created", 1, "record")
+            val PASSPORT_ENTRY_WRITTEN_V1 = EventKey("passport.entry.written", 1, "record")
+            val PASSPORT_ENTRY_SUPERSEDED_V1 = EventKey("passport.entry.superseded", 1, "record")
+            val PASSPORT_CONSENT_GRANTED_V3 = EventKey("passport.consent.granted", 3, "record")
+            val PASSPORT_CONSENT_REVOKED_V3 = EventKey("passport.consent.revoked", 3, "record")
+            val PASSPORT_ACCESS_READ_V1 = EventKey("passport.access.read", 1, "record")
+            val PASSPORT_ACCESS_BREAKGLASS_V1 = EventKey("passport.access.breakglass", 1, "record")
+            val PASSPORT_EXPORT_GENERATED_V1 = EventKey("passport.export.generated", 1, "record")
+            val ALERT_RAISED_V1 = EventKey("alert.raised", 1, "core")
+            val ALERT_ACKNOWLEDGED_V1 = EventKey("alert.acknowledged", 1, "core")
+            val ALERT_ESCALATED_V1 = EventKey("alert.escalated", 1, "core")
+            val ALERT_CLOSED_V1 = EventKey("alert.closed", 1, "core")
+            val MARKET_ORDER_PLACED_V1 = EventKey("market.order.placed", 1, "money")
+            val MARKET_ORDER_PAID_V1 = EventKey("market.order.paid", 1, "money")
+            val MARKET_ORDER_SHIPPED_V1 = EventKey("market.order.shipped", 1, "money")
+            val MARKET_ORDER_DELIVERED_V1 = EventKey("market.order.delivered", 1, "money")
+            val MARKET_ORDER_RETURNED_V1 = EventKey("market.order.returned", 1, "money")
+            val PULSE_SESSION_STARTED_V1 = EventKey("pulse.session.started", 1, "pulse")
+            val PULSE_LISTENING_STARTED_V1 = EventKey("pulse.listening.started", 1, "pulse")
+            val PULSE_UTTERANCE_FINALISED_V1 = EventKey("pulse.utterance.finalised", 1, "pulse")
+            val PULSE_THINKING_STARTED_V1 = EventKey("pulse.thinking.started", 1, "pulse")
+            val PULSE_DEVICE_HIGHLIGHT_V1 = EventKey("pulse.device.highlight", 1, "pulse")
+            val PULSE_GUIDANCE_PRESENTED_V1 = EventKey("pulse.guidance.presented", 1, "pulse")
+            val PULSE_ESCALATION_STARTED_V1 = EventKey("pulse.escalation.started", 1, "pulse")
+            val PULSE_HANDOVER_COMPLETED_V1 = EventKey("pulse.handover.completed", 1, "pulse")
+            val TRUST_WEIGHT_DECIDED_V2 = EventKey("trust.weight.decided", 2, "trust")
+            val TRUST_DISPATCH_WITHHELD_V1 = EventKey("trust.dispatch.withheld", 1, "trust")
+            val RECORD_BREAKGLASS_REVIEW_DUE_V1 = EventKey("record.breakglass.review_due", 1, "record")
+            val RECORD_AUDIT_CHAIN_BROKEN_V1 = EventKey("record.audit.chain_broken", 1, "record")
+
+            val all = listOf(
+                APPOINTMENT_REQUESTED_V1,
+                APPOINTMENT_OFFERED_V1,
+                APPOINTMENT_BOOKED_V1,
+                APPOINTMENT_CONFIRMED_V1,
+                APPOINTMENT_EN_ROUTE_V1,
+                APPOINTMENT_IN_PROGRESS_V1,
+                APPOINTMENT_COMPLETED_V1,
+                APPOINTMENT_NO_SHOW_V1,
+                APPOINTMENT_CANCELLED_V1,
+                APPOINTMENT_FOLLOW_UP_REQUIRED_V1,
+                PERSON_VERIFIED_V1,
+                PERSON_PROBATION_V1,
+                PERSON_TRUST_UPDATED_V2,
+                PERSON_UNDER_REVIEW_V1,
+                PERSON_SUSPENDED_V1,
+                PERSON_REINSTATED_V1,
+                PERSON_DEACTIVATED_V1,
+                CREDENTIAL_EXPIRING_V1,
+                CREDENTIAL_LAPSED_V1,
+                PARTNER_VERIFIED_V1,
+                PARTNER_SUSPENDED_V1,
+                PASSPORT_RECORD_CREATED_V1,
+                PASSPORT_ENTRY_WRITTEN_V1,
+                PASSPORT_ENTRY_SUPERSEDED_V1,
+                PASSPORT_CONSENT_GRANTED_V3,
+                PASSPORT_CONSENT_REVOKED_V3,
+                PASSPORT_ACCESS_READ_V1,
+                PASSPORT_ACCESS_BREAKGLASS_V1,
+                PASSPORT_EXPORT_GENERATED_V1,
+                ALERT_RAISED_V1,
+                ALERT_ACKNOWLEDGED_V1,
+                ALERT_ESCALATED_V1,
+                ALERT_CLOSED_V1,
+                MARKET_ORDER_PLACED_V1,
+                MARKET_ORDER_PAID_V1,
+                MARKET_ORDER_SHIPPED_V1,
+                MARKET_ORDER_DELIVERED_V1,
+                MARKET_ORDER_RETURNED_V1,
+                PULSE_SESSION_STARTED_V1,
+                PULSE_LISTENING_STARTED_V1,
+                PULSE_UTTERANCE_FINALISED_V1,
+                PULSE_THINKING_STARTED_V1,
+                PULSE_DEVICE_HIGHLIGHT_V1,
+                PULSE_GUIDANCE_PRESENTED_V1,
+                PULSE_ESCALATION_STARTED_V1,
+                PULSE_HANDOVER_COMPLETED_V1,
+                TRUST_WEIGHT_DECIDED_V2,
+                TRUST_DISPATCH_WITHHELD_V1,
+                RECORD_BREAKGLASS_REVIEW_DUE_V1,
+                RECORD_AUDIT_CHAIN_BROKEN_V1
+            )
+        }
+    }
 
     const val CONTRACT_VERSION = 1
     const val FROZEN = true
@@ -30,111 +143,7 @@ object EventsData {
         Engine("money", "Money", "Thuso Money")
     )
 
-    val events = listOf(
-        Event("appointment.requested", 1, "care"),
-        Event("appointment.offered", 1, "care"),
-        Event("appointment.booked", 1, "care"),
-        Event("appointment.confirmed", 1, "care"),
-        Event("appointment.en_route", 1, "care"),
-        Event("appointment.in_progress", 1, "care"),
-        Event("appointment.completed", 1, "care"),
-        Event("appointment.no_show", 1, "care"),
-        Event("appointment.cancelled", 1, "care"),
-        Event("appointment.follow_up_required", 1, "care"),
-        Event("person.verified", 1, "trust"),
-        Event("person.probation", 1, "trust"),
-        Event("person.trust_updated", 2, "trust"),
-        Event("person.under_review", 1, "trust"),
-        Event("person.suspended", 1, "trust"),
-        Event("person.reinstated", 1, "trust"),
-        Event("person.deactivated", 1, "trust"),
-        Event("credential.expiring", 1, "trust"),
-        Event("credential.lapsed", 1, "trust"),
-        Event("partner.verified", 1, "trust"),
-        Event("partner.suspended", 1, "trust"),
-        Event("passport.record.created", 1, "record"),
-        Event("passport.entry.written", 1, "record"),
-        Event("passport.entry.superseded", 1, "record"),
-        Event("passport.consent.granted", 2, "record"),
-        Event("passport.consent.revoked", 2, "record"),
-        Event("passport.access.read", 1, "record"),
-        Event("passport.access.breakglass", 1, "record"),
-        Event("passport.export.generated", 1, "record"),
-        Event("alert.raised", 1, "core"),
-        Event("alert.acknowledged", 1, "core"),
-        Event("alert.escalated", 1, "core"),
-        Event("alert.closed", 1, "core"),
-        Event("market.order.placed", 1, "money"),
-        Event("market.order.paid", 1, "money"),
-        Event("market.order.shipped", 1, "money"),
-        Event("market.order.delivered", 1, "money"),
-        Event("market.order.returned", 1, "money"),
-        Event("pulse.session.started", 1, "pulse"),
-        Event("pulse.listening.started", 1, "pulse"),
-        Event("pulse.utterance.finalised", 1, "pulse"),
-        Event("pulse.thinking.started", 1, "pulse"),
-        Event("pulse.device.highlight", 1, "pulse"),
-        Event("pulse.guidance.presented", 1, "pulse"),
-        Event("pulse.escalation.started", 1, "pulse"),
-        Event("pulse.handover.completed", 1, "pulse"),
-        Event("trust.weight.decided", 2, "trust"),
-        Event("trust.dispatch.withheld", 1, "trust"),
-        Event("record.breakglass.review_due", 1, "record"),
-        Event("record.audit.chain_broken", 1, "record")
-    )
-
-    object Types {
-        const val APPOINTMENT_REQUESTED = "appointment.requested"
-        const val APPOINTMENT_OFFERED = "appointment.offered"
-        const val APPOINTMENT_BOOKED = "appointment.booked"
-        const val APPOINTMENT_CONFIRMED = "appointment.confirmed"
-        const val APPOINTMENT_EN_ROUTE = "appointment.en_route"
-        const val APPOINTMENT_IN_PROGRESS = "appointment.in_progress"
-        const val APPOINTMENT_COMPLETED = "appointment.completed"
-        const val APPOINTMENT_NO_SHOW = "appointment.no_show"
-        const val APPOINTMENT_CANCELLED = "appointment.cancelled"
-        const val APPOINTMENT_FOLLOW_UP_REQUIRED = "appointment.follow_up_required"
-        const val PERSON_VERIFIED = "person.verified"
-        const val PERSON_PROBATION = "person.probation"
-        const val PERSON_TRUST_UPDATED = "person.trust_updated"
-        const val PERSON_UNDER_REVIEW = "person.under_review"
-        const val PERSON_SUSPENDED = "person.suspended"
-        const val PERSON_REINSTATED = "person.reinstated"
-        const val PERSON_DEACTIVATED = "person.deactivated"
-        const val CREDENTIAL_EXPIRING = "credential.expiring"
-        const val CREDENTIAL_LAPSED = "credential.lapsed"
-        const val PARTNER_VERIFIED = "partner.verified"
-        const val PARTNER_SUSPENDED = "partner.suspended"
-        const val PASSPORT_RECORD_CREATED = "passport.record.created"
-        const val PASSPORT_ENTRY_WRITTEN = "passport.entry.written"
-        const val PASSPORT_ENTRY_SUPERSEDED = "passport.entry.superseded"
-        const val PASSPORT_CONSENT_GRANTED = "passport.consent.granted"
-        const val PASSPORT_CONSENT_REVOKED = "passport.consent.revoked"
-        const val PASSPORT_ACCESS_READ = "passport.access.read"
-        const val PASSPORT_ACCESS_BREAKGLASS = "passport.access.breakglass"
-        const val PASSPORT_EXPORT_GENERATED = "passport.export.generated"
-        const val ALERT_RAISED = "alert.raised"
-        const val ALERT_ACKNOWLEDGED = "alert.acknowledged"
-        const val ALERT_ESCALATED = "alert.escalated"
-        const val ALERT_CLOSED = "alert.closed"
-        const val MARKET_ORDER_PLACED = "market.order.placed"
-        const val MARKET_ORDER_PAID = "market.order.paid"
-        const val MARKET_ORDER_SHIPPED = "market.order.shipped"
-        const val MARKET_ORDER_DELIVERED = "market.order.delivered"
-        const val MARKET_ORDER_RETURNED = "market.order.returned"
-        const val PULSE_SESSION_STARTED = "pulse.session.started"
-        const val PULSE_LISTENING_STARTED = "pulse.listening.started"
-        const val PULSE_UTTERANCE_FINALISED = "pulse.utterance.finalised"
-        const val PULSE_THINKING_STARTED = "pulse.thinking.started"
-        const val PULSE_DEVICE_HIGHLIGHT = "pulse.device.highlight"
-        const val PULSE_GUIDANCE_PRESENTED = "pulse.guidance.presented"
-        const val PULSE_ESCALATION_STARTED = "pulse.escalation.started"
-        const val PULSE_HANDOVER_COMPLETED = "pulse.handover.completed"
-        const val TRUST_WEIGHT_DECIDED = "trust.weight.decided"
-        const val TRUST_DISPATCH_WITHHELD = "trust.dispatch.withheld"
-        const val RECORD_BREAKGLASS_REVIEW_DUE = "record.breakglass.review_due"
-        const val RECORD_AUDIT_CHAIN_BROKEN = "record.audit.chain_broken"
-    }
+    val events get() = EventKey.all
 
     fun ownerOf(type: String) = events.firstOrNull { it.type == type }?.owner
 }

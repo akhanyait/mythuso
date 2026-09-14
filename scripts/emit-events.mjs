@@ -3,8 +3,19 @@
    packages/catalog/events.json declares the engines and the envelope, and lists the files that
    contribute an `events` array — itself, the assistant contract and the trust contract, which are
    written by other people against the same shape. This generator reads every one of those that
-   exists and emits the three things a native app needs to talk about an event without typing its
-   name: the type as a constant, the engine that owns it, and the version.
+   exists and emits what a native app needs to name an event without typing it: one constant per
+   live type@version, carrying the engine that owns it.
+
+   ONE CONSTANT PER LIVE VERSION, AND NOTHING ELSE THAT NAMES AN EVENT. Until the second review pass
+   on 14 September this file emitted a type-name constant and, separately, a list of versions. That
+   is an API in which `publish(EventsData.Types.personTrustUpdated, version: v)` compiles for any v,
+   including a withdrawn one, and a pattern search over the source cannot see a version held in a
+   variable. So the type constants are gone. What is emitted is `EventKey`, whose initialiser only
+   this generated file can call — `fileprivate` in Swift, a private constructor in Kotlin — and one
+   constant per live version, `personTrustUpdatedV2` and `PERSON_TRUST_UPDATED_V2`. There is no
+   function taking a version. A withdrawn version is not a constant, so it cannot be named at all.
+   scripts/check-boundaries.mjs holds the generated files to that shape, and keeps its pattern search
+   for hand-written code as the second line.
 
    WHAT IS DELIBERATELY NOT EMITTED. The payloads. A native app does not publish to the bus — no
    app in this repository does — and a payload description compiled into a phone is a second copy
@@ -23,10 +34,6 @@
    a field is. The type and version were not in it until 14 September, when person.under_review@1 and
    person.deactivated@1 were found sharing one fingerprint: same owner, same payload, so the lock could
    not tell one from the other. Every line was re-locked in that one change.
-
-   Withdrawn versions are not emitted. A version withdrawn from the contract stays in events.json and
-   in the lock as the record of what was frozen, and nothing may publish or subscribe to it — leaving
-   it out of both apps is how neither of them can.
 
    Escaping: Swift needs its quotes escaped; Kotlin needs backslash, quote and dollar, because a
    lone $ starts a template. */
@@ -60,20 +67,21 @@ export function collectEvents(root = '') {
  return { contract, events, skipped };
 }
 
-const camel = type => type.split(/[._]/).map((part, i) => (i ? part[0].toUpperCase() + part.slice(1) : part)).join('');
-const upper = type => type.replace(/[.]/g, '_').toUpperCase();
+/* The constant names, exported so the check reads the same names the apps are given. */
+export const swiftKeyName = e => e.type.split(/[._]/).map((part, i) => (i ? part[0].toUpperCase() + part.slice(1) : part)).join('') + `V${e.version}`;
+export const kotlinKeyName = e => `${e.type.replace(/[.]/g, '_').toUpperCase()}_V${e.version}`;
 
 export function emitEvents(root = '') {
  const { contract, events: declared } = collectEvents(root);
- const events = declared.filter(e => !e.withdrawn);
- const types = [...new Set(events.map(e => e.type))];
- /* Two types that differ only in punctuation would collapse into one constant and one of them would
-    silently vanish from both apps. */
- for (const [name, of] of [['Swift', camel], ['Kotlin', upper]]) {
+ const live = declared.filter(e => !e.withdrawn);
+ /* Two versions that differ only in punctuation would collapse into one constant and one of them
+    would silently vanish from both apps. */
+ for (const [name, of] of [['Swift', swiftKeyName], ['Kotlin', kotlinKeyName]]) {
   const seen = new Map();
-  for (const type of types) {
-   if (seen.has(of(type))) throw new Error(`${type} and ${seen.get(of(type))} become the same ${name} constant. Rename one of them in its contract.`);
-   seen.set(of(type), type);
+  for (const e of live) {
+   const key = `${e.type}@${e.version}`;
+   if (seen.has(of(e))) throw new Error(`${key} and ${seen.get(of(e))} become the same ${name} constant. Rename one of them in its contract.`);
+   seen.set(of(e), key);
   }
  }
 
@@ -82,9 +90,9 @@ export function emitEvents(root = '') {
   'Do not edit by hand — run `npm run events`. The build fails if this file and its sources',
   'disagree, so an edit here is lost rather than merely wrong.',
   '',
-  'Event types, their owning engine and their version. Nothing in this app publishes to a bus, and',
-  'no payload shape is written here: a frozen shape compiled into a phone is a copy nobody regenerates.',
-  'Withdrawn versions are left out, so no code in this app can name one.'
+  'One sealed constant per live event version, carrying the engine that owns it. Nothing in this app',
+  'publishes to a bus, and no payload shape is written here. A withdrawn version has no constant and',
+  'an EventKey cannot be made outside this file, so no code in this app can name one.'
  ].map(line => (line ? `// ${line}` : '//')).join('\n');
 
  const swiftFile = `${banner}
@@ -93,9 +101,18 @@ import Foundation
 
 enum EventsData {
     struct Engine: Identifiable { let id: String; let name: String; let productName: String }
-    struct Event: Identifiable {
-        let type: String; let version: Int; let owner: String
+
+    /* A live event version. The initialiser is fileprivate: only this generated file makes one. */
+    struct EventKey: Identifiable, Hashable {
+        let type: String
+        let version: Int
+        let owner: String
         var id: String { "\\(type)@\\(version)" }
+        fileprivate init(_ type: String, _ version: Int, _ owner: String) {
+            self.type = type
+            self.version = version
+            self.owner = owner
+        }
     }
 
     static let contractVersion = ${contract.version}
@@ -105,13 +122,11 @@ enum EventsData {
 ${contract.engines.map(e => `        Engine(id: ${swift(e.id)}, name: ${swift(e.name)}, productName: ${swift(e.productName)})`).join(',\n')}
     ]
 
-    static let events: [Event] = [
-${events.map(e => `        Event(type: ${swift(e.type)}, version: ${e.version}, owner: ${swift(e.owner)})`).join(',\n')}
-    ]
+${live.map(e => `    static let ${swiftKeyName(e)} = EventKey(${swift(e.type)}, ${e.version}, ${swift(e.owner)})`).join('\n')}
 
-    enum Types {
-${types.map(t => `        static let ${camel(t)} = ${swift(t)}`).join('\n')}
-    }
+    static let events: [EventKey] = [
+${live.map(e => `        ${swiftKeyName(e)}`).join(',\n')}
+    ]
 
     static func owner(of type: String) -> String? { events.first { $0.type == type }?.owner }
 }
@@ -123,7 +138,22 @@ package za.co.mythuso.model
 
 object EventsData {
     data class Engine(val id: String, val name: String, val productName: String)
-    data class Event(val type: String, val version: Int, val owner: String)
+
+    // A live event version. The constructor is private: only the constants below make one, and it is
+    // not a data class, so there is no copy() to change its version with.
+    class EventKey private constructor(val type: String, val version: Int, val owner: String) {
+        override fun toString() = "$type@$version"
+        override fun equals(other: Any?) = other is EventKey && other.type == type && other.version == version
+        override fun hashCode() = 31 * type.hashCode() + version
+
+        companion object {
+${live.map(e => `            val ${kotlinKeyName(e)} = EventKey(${kotlin(e.type)}, ${e.version}, ${kotlin(e.owner)})`).join('\n')}
+
+            val all = listOf(
+${live.map(e => `                ${kotlinKeyName(e)}`).join(',\n')}
+            )
+        }
+    }
 
     const val CONTRACT_VERSION = ${contract.version}
     const val FROZEN = ${contract.frozen === true}
@@ -132,13 +162,7 @@ object EventsData {
 ${contract.engines.map(e => `        Engine(${kotlin(e.id)}, ${kotlin(e.name)}, ${kotlin(e.productName)})`).join(',\n')}
     )
 
-    val events = listOf(
-${events.map(e => `        Event(${kotlin(e.type)}, ${e.version}, ${kotlin(e.owner)})`).join(',\n')}
-    )
-
-    object Types {
-${types.map(t => `        const val ${upper(t)} = ${kotlin(t)}`).join('\n')}
-    }
+    val events get() = EventKey.all
 
     fun ownerOf(type: String) = events.firstOrNull { it.type == type }?.owner
 }
