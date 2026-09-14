@@ -1023,8 +1023,12 @@ for(const {source,command,files} of generated) {
   for (const s of e.subscribers) if (!engineIds.has(s)) throw new Error(`${where} is subscribed to by "${s}", which is not an engine in packages/catalog/events.json.`);
   if (e.subscribers.includes(e.owner)) throw new Error(`${where} is subscribed to by its own owner, ${e.owner}. ${coreRefusal('no-subscribing-to-yourself').why}`);
 
-  /* An alert points at the record; it never is the record. */
-  if (e.type.startsWith('alert.')) {
+  /* An alert points at the record; it never is the record. The rule follows what the event is —
+     alert: true — and not what it is called, because sentinel.tier_raised carried a reading reference
+     past it under another name; and every alert. type must say so, so a rename cannot slip one out. */
+  if (e.alert !== undefined && e.alert !== true) throw new Error(`${where} has alert set to ${JSON.stringify(e.alert)}. An event is an alert or it is not: alert is true or absent.`);
+  if (e.type.startsWith('alert.') && e.alert !== true) throw new Error(`${where} is an alert. type without alert: true. ${coreRefusal('an-alert-is-an-alert-by-role').statement} ${coreRefusal('an-alert-is-an-alert-by-role').why}`);
+  if (e.alert === true) {
    for (const f of e.payload) {
     const n = coreNorm(f.field);
     if (f.type === 'number' || CLINICAL_ON_ALERT.test(n) || measureNames.some(m => n.includes(m))) {
@@ -1048,7 +1052,9 @@ for(const {source,command,files} of generated) {
   let from = e, next = byKey.get(e.withdrawn.supersededBy);
   const path = [`${e.type}@${e.version}`];
   while (true) {
-   if (!next || next.type !== e.type || next.version <= from.version) throw new Error(`${e.type}@${e.version} is withdrawn in favour of ${e.withdrawn.supersededBy}, and following its corrections — ${path.join(' → ')} → ${from.withdrawn.supersededBy} — does not lead through later versions of the same event to a live one. ${coreRefusal('withdrawn-means-silent').statement}`);
+   const renamed = from.withdrawn.renamed === true;
+   if (from.withdrawn.renamed !== undefined && !renamed) throw new Error(`${from.type}@${from.version} has renamed set to ${JSON.stringify(from.withdrawn.renamed)}; a rename says renamed: true.`);
+   if (!next || (renamed ? next.type === from.type || next.owner !== from.owner : next.type !== from.type || next.version <= from.version)) throw new Error(`${e.type}@${e.version} is withdrawn in favour of ${e.withdrawn.supersededBy}, and following its corrections — ${path.join(' → ')} → ${from.withdrawn.supersededBy} — does not lead through later versions of the same event, or a rename to a type the same engine owns, to a live one. ${coreRefusal('withdrawn-means-silent').statement}${renamed ? ` ${coreRefusal('a-rename-is-a-withdrawal').statement}` : ''}`);
    path.push(`${next.type}@${next.version}`);
    if (!next.withdrawn) break;
    from = next;
@@ -1356,7 +1362,7 @@ for(const {source,command,files} of generated) {
   if (vettingRoleIds.includes(c.id) || grantRoleIds.includes(c.id)) throw new Error(`packages/catalog/apis.json defines the caller "${c.id}", which already exists as a vetting or grant role. A role is defined in one place.`);
   if (!c.why?.trim()) throw new Error(`packages/catalog/apis.json defines the caller "${c.id}" without saying why it exists.`);
  }
- const apiCallers = new Set([...vettingRoleIds, ...grantRoleIds, ...apiContract.callers.map(c => c.id)]);
+ const apiCallers = new Set([...vettingRoleIds, ...grantRoleIds, ...JSON.parse(read('packages/catalog/passport-gateway.json')).breakGlass.roles, ...apiContract.callers.map(c => c.id)]);
  const supplierIds = new Set(apiContract.supplierCallers.map(s => s.id));
  for (const id of supplierIds) if (apiCallers.has(id)) throw new Error(`"${id}" is both a caller and a supplier. A supplier is never a caller.`);
  const sectionIds = new Set(apiContract.documentSections.map(s => s.id));
@@ -1365,6 +1371,49 @@ for(const {source,command,files} of generated) {
  const liveEventVersions = new Map(apiEvents.filter(e => !e.withdrawn).map(e => [`${e.type}@${e.version}`, e]));
  const anyEventVersions = new Map(apiEvents.map(e => [`${e.type}@${e.version}`, e]));
  const gateways = new Map(apiContract.gateways.map(g => [g.id, g]));
+
+ /* Built routes: who a handler actually lets in, worked out from the contracts it enforces rather than
+    written down. The third review found twelve routes whose written callers their handlers did not
+    enforce — admin-only routes said to be an operator's, Passport routes narrower than the gateway. */
+ const vettingForApis = JSON.parse(read('packages/catalog/vetting.json'));
+ const grantRolesForApis = JSON.parse(read('packages/catalog/consent.json')).grants.recipientRoles;
+ const credentialRoles = JSON.parse(read('packages/catalog/passport-gateway.json')).breakGlass.roles;
+ const mechanisms = new Map(apiContract.enforcementMechanisms.map(m => [m.id, m]));
+ const withCapability = cap => vettingForApis.roles.filter(role => role.grants.some(g => g.capability === cap)).map(role => role.id);
+ const deriveCallers = (e, r) => {
+  switch (e.mechanism) {
+   case 'anonymous': return ['anonymous'];
+   case 'identity-session': case 'vetting-register-self': return ['self'];
+   case 'vetting-register': return vettingForApis.roles.map(role => role.id);
+   case 'vetting-capability': return withCapability(e.capability);
+   case 'vetting-capability-or-self': return [...withCapability(e.capability), 'self'];
+   case 'vetting-capability-or-reporter': return [...withCapability(e.capability), 'incident-reporter'];
+   case 'loopback': return ['loopback'];
+   case 'passport-patient-session': return ['patient'];
+   case 'passport-grant': return [...(e.patientToo ? ['patient'] : []), ...grantRolesForApis.filter(role => role.gateway.reads !== 'aggregate' && (e.grantWrites ? role.gateway.writes === true && role.gateway.reads !== 'emergency-summary' : (e.grantReads ?? []).includes(role.gateway.reads))).map(role => role.id)];
+   case 'operator-credential': return [...credentialRoles];
+   case 'supplier-callback': return r.legacyCallback && e.supplier ? [e.supplier] : [];
+   case 'development-token': return ['developer'];
+   default: return [];
+  }
+ };
+ /* The handler as written: an identity-service route runs to the next routes.set, a Passport form to the
+    next top-level branch. The mechanism has to be visible in it. */
+ const handlerBlock = r => {
+  if (!r.evidence?.file || !existsSync(r.evidence.file)) return '';
+  const source = read(r.evidence.file);
+  const at = source.indexOf(r.evidence.handler);
+  if (at < 0) return '';
+  const rest = source.slice(at + r.evidence.handler.length);
+  const next = r.evidence.file === 'apps/api/src/server.ts' ? rest.search(/routes\.set\(/) : rest.search(/\n  (if \(|return refuse\(res, 404)/);
+  return r.evidence.handler + (next < 0 ? rest : rest.slice(0, next));
+ };
+ const contractIds = new Map(apiContract.contractIds.map(c => {
+  if (!existsSync(c.contract)) throw new Error(`packages/catalog/apis.json declares ${c.field} as an entry in ${c.contract}, which does not exist.`);
+  return [c.field, c.contract];
+ }));
+ const missingEnforcement = [];
+ const quoteChecks = [];
  const records = JSON.parse(read('packages/catalog/records.json'));
 
  /* Words, as the event contract matches them: by ending for names, anywhere for the score family. */
@@ -1412,8 +1461,10 @@ for(const {source,command,files} of generated) {
    if (feedIds.includes(d.id)) throw new Error(`${file} lists "${d.id}" as a door to add, and it already exists in packages/catalog/feeds.json. Link it.`);
    if (d.namedInDocuments !== undefined) throw new Error(`${file} still uses namedInDocuments on the door "${d.id}". A door names the capability it serves with capabilityNamed.`);
    if (d.capabilityNamed !== null && (!sectionIds.has(d.capabilityNamed?.section) || !d.capabilityNamed?.what?.trim() || d.capabilityNamed.what.length > 90)) fail('named-means-a-section-exists', `${file} says the door "${d.id}" serves ${JSON.stringify(d.capabilityNamed)}.`);
+   if (d.capabilityNamed) quoteChecks.push({ where: `${file}, the door ${d.id},`, named: d.capabilityNamed });
   }
   if (!doc.routes.length && !doc.noRoutesBecause?.trim()) throw new Error(`${file} has no routes and does not say why.`);
+  for (const own of doc.ownIds ?? []) if (!/Ids?$/.test(own.field ?? '') || !own.why?.trim() || contractIds.has(own.field)) throw new Error(`${file} declares the identifier ${JSON.stringify(own)} as its own without a name ending Id, without a reason, or when it is really a contract entry.`);
  }
  for (const id of feedIds) if (!doorOwner.has(id)) fail('suppliers-arrive-through-doors', `The door "${id}" in packages/catalog/feeds.json is linked to no engine's API contract.`);
  const resourceOf = stem => resourceOwner.get(stem) ?? resourceOwner.get(`${stem}s`) ?? resourceOwner.get(`${stem}es`);
@@ -1454,12 +1505,22 @@ for(const {source,command,files} of generated) {
 
   if (!Array.isArray(r.callers) || !r.callers.length || !Array.isArray(r.purpose) || !r.purpose.length) fail('every-route-names-its-scope', `${where} names ${r.callers?.length ?? 0} callers and ${r.purpose?.length ?? 0} purposes.`);
   for (const caller of r.callers) {
+   if ((doc.forbiddenCallers ?? []).includes(caller)) throw new Error(`${where} takes calls from "${caller}", which ${r.file} forbids.`);
+   if (caller === 'engine') fail('engine-callers-are-named', `${where} takes calls from any engine.`);
+   const engineCaller = caller.match(/^engine:([a-z]+)$/);
+   if (engineCaller) {
+    if (!engineIds.includes(engineCaller[1])) fail('engine-callers-are-named', `${where} names the caller "${caller}", and there is no such engine.`);
+    const because = r.callerJustifications?.[caller];
+    const justifying = liveEventVersions.get(because ?? '');
+    if (!justifying || (justifying.owner !== engineCaller[1] && !justifying.subscribers.includes(engineCaller[1]))) fail('engine-callers-are-named', `${where} takes calls from ${caller}, justified by ${JSON.stringify(because ?? null)}, which is not a live event that engine owns or hears.`);
+    continue;
+   }
    if (supplierIds.has(caller)) {
     const door = r.legacyCallback?.door;
     if (r.status !== 'built' || !door || !r.legacyCallback.why?.trim() || !doc.doorsToAdd.some(d => d.id === door)) fail('suppliers-arrive-through-doors', `${where} is called by the supplier "${caller}".`);
-   } else if (!apiCallers.has(caller)) fail('every-route-names-its-scope', `${where} names the caller "${caller}", which is not a vetting role, a grant role or a caller in packages/catalog/apis.json.`);
-   if ((doc.forbiddenCallers ?? []).includes(caller)) throw new Error(`${where} takes calls from "${caller}", which ${r.file} forbids.`);
+   } else if (!apiCallers.has(caller)) fail('every-route-names-its-scope', `${where} names the caller "${caller}", which is not a vetting role, a grant role, a Passport credential role or a caller in packages/catalog/apis.json.`);
   }
+  for (const justified of Object.keys(r.callerJustifications ?? {})) if (!r.callers.includes(justified)) throw new Error(`${where} justifies ${justified}, which is not one of its callers.`);
   for (const p of r.purpose) if (!apiPurposes.has(p)) fail('every-route-names-its-scope', `${where} serves the purpose "${p}", which is not in the gate's Purpose union.`);
 
   for (const [side, list] of [['request', r.request], ['response', r.response]]) {
@@ -1476,7 +1537,7 @@ for(const {source,command,files} of generated) {
     if (trustNamed && (['integer', 'number'].includes(f.type) || (doc.engine !== trustRule.outsideEngine && (f.field !== trustRule.only || f.type !== 'string')))) fail('nothing-identifying-or-sealed-crosses-an-api', `${where} carries the trust-named ${side} field "${f.field}" as ${f.type}. ${trustRule.why}`);
     const sealed = sealedNames.find(name => containsWords(f.field, name));
     if (sealed) fail('nothing-identifying-or-sealed-crosses-an-api', `${where} carries the ${side} field "${f.field}", named for the sealed category "${sealed}".`);
-    if (doc.engine !== 'record' && r.through !== apiContract.clinicalContent.onlyThrough && !anyReference(f.field)) {
+    if (doc.engine !== 'record' && (r.through !== apiContract.clinicalContent.onlyThrough || apiContract.clinicalContent.alwaysForEngines.includes(doc.engine)) && !anyReference(f.field)) {
      const clinical = clinicalNames.find(name => containsWords(f.field, name));
      if (clinical) fail('clinical-content-only-through-the-record', `${where} carries the ${side} field "${f.field}" ("${clinical}") without going through the Passport gateway.`);
     }
@@ -1484,6 +1545,7 @@ for(const {source,command,files} of generated) {
      const owner = resourceOf(apiWords(f.field.replace(/(Refs|Ref)$/, '')).join('-'));
      if (owner && owner !== doc.engine && !r.through) fail('no-engine-reads-another-engines-store', `${where} carries "${f.field}", a reference into the ${owner} engine's store.`);
     }
+    if (/Ids?$/.test(f.field) && !contractIds.has(f.field) && !(doc.ownIds ?? []).some(own => own.field === f.field)) fail('references-are-declared', `${where} carries "${f.field}", which is neither an entry in a contract listed in contractIds nor an identifier ${r.file} declares as its own.`);
    }
   }
 
@@ -1517,14 +1579,34 @@ for(const {source,command,files} of generated) {
   if (r.endpointNamed !== null && (!onPassportPath || r.endpointNamed?.section !== passportPaths.namedIn)) fail('named-means-a-section-exists', `${where} says a document names its endpoint (${JSON.stringify(r.endpointNamed)}), and only the ${passportPaths.namedIn} Passport paths are named as endpoints.`);
   if (onPassportPath && r.endpointNamed === null) fail('named-means-a-section-exists', `${where} is on a ${passportPaths.namedIn} path and does not say the document names it.`);
   if (r.capabilityNamed !== null && (!sectionIds.has(r.capabilityNamed?.section) || !r.capabilityNamed?.what?.trim() || r.capabilityNamed.what.length > 90)) fail('named-means-a-section-exists', `${where} says it serves ${JSON.stringify(r.capabilityNamed)}.`);
+  if (r.capabilityNamed) quoteChecks.push({ where, named: r.capabilityNamed });
   if (r.endpointNamed !== null && r.capabilityNamed !== null) throw new Error(`${where} claims both a named endpoint and a named capability; a named endpoint already says what the document names.`);
   if (r.endpointNamed) endpointCount++;
   else if (r.capabilityNamed) capabilityCount++;
 
   if (r.status === 'built') {
    builtCount++;
+   const enforced = r.enforcedBy;
+   const mechanism = mechanisms.get(enforced?.mechanism);
+   if (!mechanism) fail('built-callers-are-enforced', `${where} is built and does not say, in enforcedBy, how its handler decides who may call it.`);
+   if (enforced.capability !== undefined && !vettingForApis.capabilities.some(c => c.id === enforced.capability)) throw new Error(`${where} is enforced by the capability "${enforced.capability}", which packages/catalog/vetting.json does not have.`);
+   const derived = deriveCallers(enforced, r);
+   if (derived.length !== r.callers.length || !derived.every(c => r.callers.includes(c))) fail('built-callers-are-enforced', `${where} names the callers ${JSON.stringify([...r.callers].sort())}, and its handler's ${enforced.mechanism} admits ${JSON.stringify([...derived].sort())}.`);
+   if (r.enforcement === 'missing') {
+    if (!r.finding?.trim()) throw new Error(`${where} says its enforcement is missing without the finding.`);
+    missingEnforcement.push(`${where}: ${r.finding}`);
+   } else if (r.enforcement !== undefined) {
+    throw new Error(`${where} has the enforcement ${JSON.stringify(r.enforcement)}; it is missing or absent.`);
+   } else {
+    const block = handlerBlock(r);
+    if (mechanism.handlerMarks?.length && !mechanism.handlerMarks.some(mark => block.includes(mark))) fail('built-callers-are-enforced', `${where} says its handler enforces ${enforced.mechanism}, and ${r.evidence?.file} shows none of ${JSON.stringify(mechanism.handlerMarks)} in it.`);
+    const asks = (mechanism.forbiddenMarks ?? []).find(mark => block.includes(mark));
+    if (asks) fail('built-callers-are-enforced', `${where} says anybody may call it, and its handler asks for ${asks}.`);
+    if (mechanism.pathPrefix && !String(r.evidence?.handler).includes(mechanism.pathPrefix)) fail('built-callers-are-enforced', `${where} says it is answered on loopback only, and its handler is not under ${mechanism.pathPrefix}.`);
+   }
    if (!r.evidence?.file || !existsSync(r.evidence.file) || !read(r.evidence.file).includes(r.evidence.handler ?? ' ')) fail('built-means-a-handler-exists', `${where} is marked built, and ${r.evidence?.file ?? 'no file'} does not hold ${JSON.stringify(r.evidence?.handler)}.`);
   } else if (r.status !== 'proposed' || r.evidence) throw new Error(`${where} has the status "${r.status}"${r.evidence ? ' and evidence, which only a built route has' : ''}.`);
+  if (r.status !== 'built' && (r.enforcedBy || r.enforcement || r.finding)) throw new Error(`${where} is proposed and claims an enforcement; only a built route has a handler that enforces anything.`);
 
   if (r.through) {
    const gateway = gateways.get(r.through);
@@ -1552,12 +1634,84 @@ for(const {source,command,files} of generated) {
  const apiPrints = [...apiLocked.values()];
  if (new Set(apiPrints).size !== apiPrints.length) throw new Error(`${apiContract.lock} has two lines with one fingerprint.`);
 
+ /* What Money may hear, as the event contract states it: billing-relevant state changes with a
+    reference and a code, and never a reference into the clinical record, heard or published. */
+ const moneyHears = apiEventsContract.moneyHears;
+ const eventRefusal = id => {
+  const found = apiEventsContract.refusals.find(x => x.id === id);
+  if (!found) throw new Error(`packages/catalog/events.json has lost the refusal "${id}".`);
+  return found;
+ };
+ if (!moneyHears || moneyHears.engine !== 'money' || !moneyHears.why?.trim() || !Array.isArray(moneyHears.events) || !Array.isArray(moneyHears.neverReferences) || !moneyHears.neverReferencesSuffix) throw new Error('packages/catalog/events.json no longer states what Money may hear.');
+ const moneyMay = new Map(moneyHears.events.map(x => {
+  if (!x.type || !x.why?.trim()) throw new Error(`packages/catalog/events.json lets Money hear ${JSON.stringify(x)} without saying why.`);
+  return [x.type, x];
+ }));
+ const moneyFail = detail => { throw new Error(`${detail} ${eventRefusal('money-hears-billing-not-care').statement} ${eventRefusal('money-hears-billing-not-care').why}`); };
+ for (const e of apiEvents.filter(x => !x.withdrawn)) {
+  const hears = e.subscribers.includes(moneyHears.engine), publishes = e.owner === moneyHears.engine;
+  if (!hears && !publishes) continue;
+  if (hears && !moneyMay.has(e.type)) moneyFail(`${e.type}@${e.version} is subscribed to by money and is not among the events moneyHears lets it hear.`);
+  const clinicalReference = e.payload.find(f => moneyHears.neverReferences.includes(f.field) || f.field.endsWith(moneyHears.neverReferencesSuffix));
+  if (clinicalReference) moneyFail(`${e.type}@${e.version} ${hears ? 'reaches' : 'is published by'} money carrying "${clinicalReference.field}".`);
+ }
+ for (const type of moneyMay.keys()) if (!apiEvents.some(e => !e.withdrawn && e.type === type && e.subscribers.includes(moneyHears.engine))) throw new Error(`moneyHears lets Money hear ${type}, which Money does not subscribe to. A permission nobody uses is one somebody uses later without reading it.`);
+
+ /* Capability quotes, against the documents themselves when they are in this checkout. They are
+    untracked, so their absence is said in a sentence rather than failed. */
+ const quoteNorm = t => String(t).toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/[^a-z0-9]+/g, ' ').trim();
+ const quoteFiles = apiContract.documentQuotes.files;
+ const absentDocuments = Object.values(quoteFiles).filter(file => !existsSync(file));
+ const documentTexts = {};
+ let quoteNote = null, quotesFound = 0, paraphrases = 0;
+ if (absentDocuments.length) quoteNote = `${absentDocuments.join(' and ')} ${absentDocuments.length === 1 ? 'is' : 'are'} not in this checkout — Documentation/ is untracked — so ${quoteChecks.length} capability quotes were not compared with the documents`;
+ else {
+  try {
+   const { execFileSync } = await import('node:child_process');
+   for (const [name, file] of Object.entries(quoteFiles)) documentTexts[name] = execFileSync('textutil', ['-convert', 'txt', '-stdout', file], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  } catch (error) {
+   quoteNote = `the documents are here and could not be converted (${String(error.message).split('\n')[0]}), so ${quoteChecks.length} capability quotes were not compared`;
+  }
+ }
+ const sectionOf = (document, id) => {
+  const text = documentTexts[document] ?? '';
+  if (id.startsWith('FS-')) {
+   if (id === 'FS-2') { const a = text.indexOf('\n2. ThusoIQ Core'), b = text.indexOf('\n3. Engine scope'); return a < 0 ? '' : text.slice(a, b < 0 ? undefined : b); }
+   const k = Number(id.slice(4));
+   const a = text.indexOf(`\nEngine ${k} —`);
+   if (a < 0) return '';
+   const b = k < 10 ? text.indexOf(`\nEngine ${k + 1} —`) : text.indexOf('\n4. ', a);
+   return text.slice(a, b < 0 ? undefined : b);
+  }
+  let key = id.slice(1);
+  if (/^\d$/.test(key)) key = `0${key}`;
+  const start = text.search(new RegExp(`^${key.replace('.', '\\.')}  \\S`, 'm'));
+  if (start < 0) return '';
+  const lineEnd = text.indexOf('\n', start);
+  const next = text.slice(lineEnd).search(/^(\d{2}|\d+\.\d+|\d+[A-F])  \S/m);
+  return text.slice(start, next < 0 ? undefined : lineEnd + next);
+ };
+ const sectionDocuments = new Map(apiContract.documentSections.map(section => [section.id, section.document]));
+ for (const { where, named } of quoteChecks) {
+  if (named.paraphrase !== undefined && named.paraphrase !== true) throw new Error(`${where} marks paraphrase as ${JSON.stringify(named.paraphrase)}; it is true or absent.`);
+  if (named.paraphrase === true) { paraphrases++; continue; }
+  if (quoteNote) continue;
+  const document = sectionDocuments.get(named.section);
+  if (!quoteFiles[document]) throw new Error(`${where} cites ${named.section}, in ${document}, which documentQuotes names no file for.`);
+  const body = sectionOf(document, named.section);
+  if (!body) fail('quotes-are-quotes', `${where} cites ${named.section}, and no such section was found in ${quoteFiles[document]}.`);
+  if (!quoteNorm(body).includes(quoteNorm(named.what))) fail('quotes-are-quotes', `${where} quotes "${named.what}" from ${named.section}, and those words are not in it. Quote the section as written, or mark the phrase paraphrase: true.`);
+  quotesFound++;
+ }
+
  /* The mock is not a service. */
  const mockPackage = JSON.parse(read('packages/mock-api/package.json'));
  if (mockPackage.dependencies || mockPackage.devDependencies) fail('the-mock-is-not-a-service', 'packages/mock-api declares dependencies; it is zero-dependency, like the services it stands in for.');
  const mockServer = read('packages/mock-api/src/server.ts');
- if (!/const HOST = '127\.0\.0\.1'/.test(mockServer) || !/server\.listen\(port, host\)/.test(mockServer) || !/LOOPBACK\.has\(req\.socket\.remoteAddress/.test(mockServer)) fail('the-mock-is-not-a-service', 'packages/mock-api/src/server.ts no longer binds to 127.0.0.1 and refuses requests that did not arrive on loopback.');
- if (!/env\[mock\.flag\] !== mock\.flagValue\) throw new MockRefusedToStart/.test(mockServer)) fail('the-mock-is-not-a-service', `packages/mock-api/src/server.ts no longer refuses to start without ${apiContract.mock.flag}=${apiContract.mock.flagValue}.`);
+ if (!/const HOST = '127\.0\.0\.1'/.test(mockServer) || !/server\.listen\(port, host\)/.test(mockServer) || !/LOOPBACK\.has\(req\.socket\.remoteAddress/.test(mockServer) || !/LOOPBACK_HOSTS\.has\(hostName\(req\.headers\.host\)\)/.test(mockServer)) fail('the-mock-is-not-a-service', 'packages/mock-api/src/server.ts no longer binds to 127.0.0.1 and refuses a request that did not arrive on loopback, addressed to a loopback name.');
+ const mockLibrary = read('packages/mock-api/src/mock.ts');
+ if (!/if \(options\.env\[contract\.mock\.flag\] !== contract\.mock\.flagValue\) throw new MockRefusedToStart/.test(mockLibrary)) fail('the-mock-is-not-a-service', `createMock() in packages/mock-api/src/mock.ts no longer refuses without ${apiContract.mock.flag}=${apiContract.mock.flagValue}, so importing the library skips the door the server goes through.`);
+ if (!sharedIds.has('malformed-path') || !/shared\('malformed-path'\)/.test(mockLibrary)) fail('the-mock-is-not-a-service', 'The mock no longer answers a path it cannot decode with the declared malformed-path refusal.');
  for (const file of files('deploy')) {
   if (/mock-api|MYTHUSO_MOCK/.test(read(file))) fail('the-mock-is-not-a-service', `${file} names the development mock.`);
  }
@@ -1568,6 +1722,8 @@ for(const {source,command,files} of generated) {
 
  const perEngine = apiEngines.map(({ doc }) => `${doc.engine} ${doc.routes.filter(r => !r.withdrawn).length}`).join(', ');
  console.log(`ThusoIQ's engine API contract is frozen at version ${apiContract.version} and marked as the programme's delegated decision, awaiting a Head of Engineering: ${apiRoutes.length} routes over twelve engine files (${perEngine}), ${builtCount} of them built and found in their handlers, ${apiRoutes.length - builtCount} proposed; ${endpointCount} on an endpoint the documents name (§26), ${capabilityCount} serving a capability or message set the documents name, and ${apiRoutes.length - endpointCount - capabilityCount} ours. Every one names its callers and purposes, refuses something, says what it emits — only live events its own engine owns — and is in ${apiContract.lock} under a fingerprint no other line shares. No route names another engine's store outside a gateway, carries clinical content outside the Passport gateway, lets a supplier call it except the one legacy callback that names the door it should become, or carries an identity number, a transcript, a card number, a score or a sealed category; every money and dispatch write needs an idempotency key; and all ${feedIds.length} supplier doors are linked to the engine they serve. The development mock answers every route on loopback only, behind ${apiContract.mock.flag}, and nothing in deploy/ names it.`);
+ console.log(`Built routes name exactly the callers their handlers enforce, worked out from vetting.json capabilities, consent.json grant gateways and the Passport's credential roles${missingEnforcement.length ? `, except ${missingEnforcement.length} whose enforcement is still missing` : ''}; every engine caller is one engine with the event that justifies it; Money hears ${moneyMay.size} billing events and no reference into the clinical record; ${quoteNote ?? `${quotesFound} capability quotes were found word for word in their sections and ${paraphrases} say they are paraphrases`}.`);
+ if (missingEnforcement.length) fail('built-callers-are-enforced', `${missingEnforcement.length} built ${missingEnforcement.length === 1 ? 'route names callers its handler does' : 'routes name callers their handlers do'} not enforce yet:\n${missingEnforcement.join('\n')}\nThe contract keeps the intended callers; the build passes when the handler enforces them.`);
 }
 /* ==== end of Contracts & Core (Wave 2) ============================================================ */
 
