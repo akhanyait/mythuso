@@ -1161,7 +1161,7 @@ for(const {source,command,files} of generated) {
   roleIds.add(role.id);
   if (!role.why?.trim()) throw new Error(`${where} does not say why it gets what it gets.`);
   if (!engineIds.has(role.engine)) throw new Error(`${where} is served by "${role.engine}", which is not an engine in packages/catalog/events.json.`);
-  if (!Number.isInteger(role.defaultExpiryDays) || role.defaultExpiryDays < 1 || role.defaultExpiryDays > 365) throw new Error(`${where} has a default expiry of ${role.defaultExpiryDays} days. ${grantRefusal('every-grant-expires').statement} A default is a whole number of days from one to a year.`);
+  if (!Number.isInteger(role.defaultExpiryDays) || role.defaultExpiryDays < 1 || !(role.defaultExpiryDays <= grants.maximumExpiryDays)) throw new Error(`${where} has a default expiry of ${role.defaultExpiryDays} days. ${grantRefusal('every-grant-expires').statement} A default is a whole number of days from one to the contract-wide ceiling of ${grants.maximumExpiryDays}.`);
   if (role.sealed !== false) throw new Error(`${where} opens sealed categories by default. ${grantRefusal('sealed-needs-an-explicit-tick').statement}`);
   for (const id of role.defaultScope) {
    const record = coreRecordById.get(id);
@@ -1772,12 +1772,19 @@ for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants
      and a default purpose the role may not name is a grant sheet that starts refused. And a role
      whose default scope the gateway itself would refuse is a grant sheet offering a door that does
      not open — which is what the responder's emergency card and transport were until this landed. */
+  /* The founder's ceiling, 14 September 2026: no grant lasts longer than grants.maximumExpiryDays. The
+     number lives in consent.json once and is read here, never restated, so a role cannot be given
+     longer than it by editing one side. A ceiling with no recorded decision is a guess with a field name. */
+  const ceiling = consentContract.grants.maximumExpiryDays;
+  const decision = consentContract.grants.maximumExpiryDecision;
+  if (!Number.isInteger(ceiling) || ceiling < 1) throw new Error(`packages/catalog/consent.json has no contract-wide grant ceiling (grants.maximumExpiryDays is ${JSON.stringify(ceiling)}). The founder decided on 14 September 2026 that no consent grant may last longer than a set number of days, and every role's ceiling is measured against it.`);
+  if (!decision || !['decidedBy', 'decidedOn', 'why'].every(field => typeof decision[field] === 'string' && decision[field].trim()) || !/^\d{4}-\d{2}-\d{2}$/.test(decision.decidedOn)) throw new Error('packages/catalog/consent.json carries a grant ceiling without its decision: who decided it, on what day, and why. A number with no author is a number the next person changes.');
   const grantPurposes = new Set([...((read('apps/api/src/protection/contract.ts').match(/export type Purpose =([^;]+);/) ?? [])[1] ?? '').matchAll(/'([^']+)'/g)].map(m => m[1]));
   if (!grantPurposes.size) throw new Error('scripts/check-boundaries.mjs can no longer read the Purpose union out of apps/api/src/protection/contract.ts, so nothing checks a grant role\'s allowed purposes.');
   const { grantRoles: passportGrantRoles, grantScopeRefusal } = await import('../apps/passport/src/contract.ts');
   for (const role of consentContract.grants.recipientRoles) {
    const where = `The grant role ${role.id} in packages/catalog/consent.json`;
-   if (!Number.isInteger(role.maxExpiryDays) || role.maxExpiryDays < role.defaultExpiryDays || role.maxExpiryDays > 365) throw new Error(`${where} lets a grant run ${role.maxExpiryDays} days against a default of ${role.defaultExpiryDays}. The ceiling is a whole number of days, no shorter than the default and no longer than a year.`);
+   if (!Number.isInteger(role.maxExpiryDays) || role.maxExpiryDays < role.defaultExpiryDays || role.maxExpiryDays > ceiling) throw new Error(`${where} lets a grant run ${role.maxExpiryDays} days against a default of ${role.defaultExpiryDays} and a contract-wide ceiling of ${ceiling}. A role's ceiling is a whole number of days, no shorter than its default and no longer than the ceiling the founder decided (${decision.decidedOn}).`);
    if (role.boundTo === 'trip' && role.maxExpiryDays !== 1) throw new Error(`${where} is bound to a trip and may be granted for ${role.maxExpiryDays} days. A trip-bound grant lasts at most a day.`);
    if (!Array.isArray(role.allowedPurposes) || role.allowedPurposes.some(p => !grantPurposes.has(p)) || new Set(role.allowedPurposes).size !== role.allowedPurposes.length) throw new Error(`${where} allows the purposes ${JSON.stringify(role.allowedPurposes)}. Each is one purpose, once, from the gate's Purpose union in apps/api/src/protection/contract.ts.`);
    if (role.defaultPurpose === null ? role.allowedPurposes.length !== 0 : !role.allowedPurposes.includes(role.defaultPurpose)) throw new Error(`${where} defaults to the purpose ${JSON.stringify(role.defaultPurpose)} and allows ${JSON.stringify(role.allowedPurposes)}. The default purpose is one the role may name, and a role with no default purpose — the scheme — may name none.`);

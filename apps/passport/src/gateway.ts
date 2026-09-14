@@ -53,7 +53,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { AuditLog, type AuditEntry } from './audit.ts';
 import { PassportRefusedToStart, wasLoaded, type PassportConfig } from './config.ts';
-import { GATEWAY, grantScopeRefusal, isProtectedCategory, knownCategory, refusalOf, resourceRule, roleRule, sensitivityOf, statement, type GrantRole } from './contract.ts';
+import { GATEWAY, expiryCeilingDays, grantScopeRefusal, isProtectedCategory, knownCategory, refusalOf, resourceRule, roleRule, sensitivityOf, statement, type GrantRole } from './contract.ts';
 import { PassportKeys, openBytes, readToken, sealBytes, signToken } from './keys.ts';
 import { operatorOf } from './operator.ts';
 import { identityShaped } from './screen.ts';
@@ -175,7 +175,8 @@ export class PassportGateway {
   if (!purpose || !role.allowedPurposes.includes(purpose)) return this.#refuse(403, 'purpose-not-allowed', who);
   const expiresAt = Date.parse(String(fields.expiresAt));
   if (!Number.isFinite(expiresAt) || expiresAt <= this.#now()) return this.#refuse(400, 'expired', who);
-  if (expiresAt > this.#now() + role.maxExpiryDays * DAY) return this.#refuse(403, 'expiry-too-long', who);
+  /* The shorter of the role's own ceiling and the founder's contract-wide one. */
+  if (expiresAt > this.#now() + expiryCeilingDays(role) * DAY) return this.#refuse(403, 'expiry-too-long', who);
   const sealedIncluded = fields.sealedIncluded === true;
   const scopeRefusal = grantScopeRefusal(role, fields.scope, sealedIncluded);
   if (scopeRefusal) return this.#refuse(scopeRefusal === 'unknown-category' ? 400 : 403, scopeRefusal, who);

@@ -20,6 +20,8 @@ enum ConsentGrantsData {
     /* Revocation has no grace period. The number is here so that a screen saying "takes effect
        immediately" is reading it rather than asserting it. */
     static let revocationGraceSeconds = 0
+    /* No consent grant lasts longer than this, for any role — the founder's decision of 2026-09-14. A grant sheet caps its end-date picker here. */
+    static let maximumExpiryDays = 90
 
     static let roles: [RecipientRole] = [
         RecipientRole(id: "caregiver", name: "Caregiver or delegate", engine: "access",
@@ -29,9 +31,9 @@ enum ConsentGrantsData {
                       maxExpiryDays: 90, allowedPurposes: ["treatment", "emergency"]),
         RecipientRole(id: "next-of-kin", name: "Next of kin", engine: "access",
                       defaultScope: ["emergency-card"],
-                      defaultExpiryDays: 365, sealed: false, boundTo: nil,
+                      defaultExpiryDays: 90, sealed: false, boundTo: nil,
                       identifiable: true, defaultPurpose: "emergency",
-                      maxExpiryDays: 365, allowedPurposes: ["emergency"]),
+                      maxExpiryDays: 90, allowedPurposes: ["emergency"]),
         RecipientRole(id: "nurse-assigned", name: "Assigned MyThuso nurse", engine: "care",
                       defaultScope: ["patient", "allergy", "vitals", "chronic-condition", "medical-history", "immunisation", "child-health", "care-plan", "emergency-card", "prescription", "dispense", "referral", "home-visit"],
                       defaultExpiryDays: 14, sealed: false, boundTo: "episode",
@@ -59,9 +61,9 @@ enum ConsentGrantsData {
                       maxExpiryDays: 1, allowedPurposes: ["dispatch", "emergency"]),
         RecipientRole(id: "scheme-aggregate", name: "Medical scheme, aggregate only", engine: "money",
                       defaultScope: [],
-                      defaultExpiryDays: 365, sealed: false, boundTo: nil,
+                      defaultExpiryDays: 90, sealed: false, boundTo: nil,
                       identifiable: false, defaultPurpose: nil,
-                      maxExpiryDays: 365, allowedPurposes: [])
+                      maxExpiryDays: 90, allowedPurposes: [])
     ]
 
     static let refusals: [Refusal] = [

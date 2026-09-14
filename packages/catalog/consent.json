@@ -305,9 +305,15 @@
    "event": "passport.consent.revoked",
    "why": "Revoking a grant stops the next read, not the next sync. Every engine serving the recipient's role subscribes to the revocation and drops what it holds."
   },
-  "limits": {
-  "why": "Every role carries a ceiling and a list, and the Passport gateway enforces both when a grant is made. maxExpiryDays is the longest a grant to the role may run, whatever the patient picks; it is never shorter than the default and never longer than a year, and a grant bound to a trip lasts at most a day. allowedPurposes are the purposes from the gate's Purpose union a grant to the role may name; the default purpose is always one of them, and the scheme, which opens no record, has none.",
-  "source": "The ceilings equal each role's default expiry, because every role's own reasoning below already states its renewal cadence — a quarter, a year, an episode, a week, a trip. The purposes follow Master section 21's default read for each role, with emergency added where the role is somebody a patient in an emergency would reach the record through. Both are MyThuso's proposal until the Information Officer confirms them."
+  "maximumExpiryDays": 90,
+  "maximumExpiryDecision": {
+   "decidedBy": "Founder",
+   "decidedOn": "2026-09-14",
+   "why": "No consent grant lasts longer than ninety days, for any recipient, whatever the patient picks. A grant is a door somebody else holds onto a person's record, and a door nobody has looked at for a quarter is one the patient has stopped deciding about. Ninety days is the longest any role's own reasoning needed — a caregiver renewed each quarter — so the ceiling takes nothing a role was built around; next of kin and a scheme came down from a year to meet it. The number lives here once: every role's maxExpiryDays sits under it, the Passport gateway enforces it on top of the role's own ceiling, the grant sheets on the phones are generated from it, and scripts/check-boundaries.mjs reads it rather than restating it."
+  },
+ "limits": {
+  "why": "Every role carries a ceiling and a list, and the Passport gateway enforces both when a grant is made. maxExpiryDays is the longest a grant to the role may run, whatever the patient picks; it is never shorter than the default and never longer than maximumExpiryDays above, and a grant bound to a trip lasts at most a day. allowedPurposes are the purposes from the gate's Purpose union a grant to the role may name; the default purpose is always one of them, and the scheme, which opens no record, has none.",
+  "source": "The ceilings equal each role's default expiry, because every role's own reasoning below already states its renewal cadence — a quarter, an episode, a week, a trip — and none of them is longer than the founder's ceiling. The purposes follow Master section 21's default read for each role, with emergency added where the role is somebody a patient in an emergency would reach the record through. Both are MyThuso's proposal until the Information Officer confirms them."
  },
  "recipientRoles": [
    {
@@ -336,15 +342,15 @@
     "defaultScope": [
      "emergency-card"
     ],
-    "defaultExpiryDays": 365,
-    "maxExpiryDays": 365,
+    "defaultExpiryDays": 90,
+    "maxExpiryDays": 90,
     "sealed": false,
     "boundTo": null,
     "identifiable": true,
     "defaultPurpose": "emergency",
     "allowedPurposes": ["emergency"],
     "gateway": { "reads": "records", "writes": false, "sealedMayBeIncluded": true, "clinician": false },
-    "why": "Next of kin are told when something is wrong. They need the emergency card, which the patient configures, and not the record behind it. Renewed yearly so that an estranged relative does not stay on a card nobody reviewed."
+    "why": "Next of kin are told when something is wrong. They need the emergency card, which the patient configures, and not the record behind it. Renewed every ninety days, like every grant, so that an estranged relative does not stay on a card nobody has looked at since the patient last chose them."
    },
    {
     "id": "nurse-assigned",
@@ -474,15 +480,15 @@
     "name": "Medical scheme, aggregate only",
     "engine": "money",
     "defaultScope": [],
-    "defaultExpiryDays": 365,
-    "maxExpiryDays": 365,
+    "defaultExpiryDays": 90,
+    "maxExpiryDays": 90,
     "sealed": false,
     "boundTo": null,
     "identifiable": false,
     "defaultPurpose": null,
     "allowedPurposes": [],
     "gateway": { "reads": "aggregate", "writes": false, "sealedMayBeIncluded": false, "clinician": false },
-    "why": "A scheme receives counts and outcomes across many members for a programme it funds. It opens no record, so its scope is empty and it has no purpose from the gate's list: none of those purposes is a reason for a scheme to read one person's record. Renewed with the contract year."
+    "why": "A scheme receives counts and outcomes across many members for a programme it funds. It opens no record, so its scope is empty and it has no purpose from the gate's list: none of those purposes is a reason for a scheme to read one person's record. Renewed every ninety days like every other grant, so a programme that has ended stops receiving figures within a quarter rather than at the end of a contract year."
    }
   ],
   "refusals": [

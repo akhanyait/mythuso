@@ -7,6 +7,8 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { DAY, HOUR, PROVENANCE, harness, roleOf, seed, sentence, statementOf } from './harness.ts';
 import { openBytes } from '../src/keys.ts';
+import { GRANT_CEILING_DAYS, expiryCeilingDays } from '../src/contract.ts';
+import consent from '../../../packages/catalog/consent.json' with { type: 'json' };
 
 const refused = (result: { ok: boolean; reason?: string }, id: string) => {
  assert.equal(result.ok, false, `expected a refusal: ${id}`);
@@ -118,6 +120,21 @@ describe('finding 7: a grant has a ceiling on its length and a list of purposes,
   assert.ok(ask(role.maxExpiryDays).ok);
   refused(ask(role.maxExpiryDays + 1), 'expiry-too-long');
   refused(h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'caregiver', scope: ['prescription'], purpose: 'treatment', expiresAt: new Date(h.at() + 20 * 365 * DAY).toISOString() }), 'expiry-too-long');
+ });
+
+ test('the founder\'s contract-wide ceiling holds every role, and the gateway applies it on top of a role\'s own', () => {
+  const ceiling = consent.grants.maximumExpiryDays;
+  assert.equal(GRANT_CEILING_DAYS, ceiling);
+  for (const role of consent.grants.recipientRoles) assert.ok(role.maxExpiryDays <= ceiling && role.defaultExpiryDays <= ceiling, role.id);
+  /* A role somebody edited past the ceiling is still held to it. */
+  assert.equal(expiryCeilingDays({ maxExpiryDays: 365 }), ceiling);
+  assert.equal(expiryCeilingDays({ maxExpiryDays: 7 }), 7);
+  const h = harness();
+  const s = seed(h);
+  const ask = (days: number) => h.gateway.grant(s.patientSession, { subject: s.subject, recipientRole: 'next-of-kin', scope: ['emergency-card'], purpose: 'emergency', expiresAt: new Date(h.at() + days * DAY).toISOString() });
+  assert.ok(ask(ceiling).ok);
+  refused(ask(ceiling + 1), 'expiry-too-long');
+  refused(ask(365), 'expiry-too-long');
  });
 
  test('a purpose the role may not name is refused, and so is a purpose that is not a purpose at all', () => {

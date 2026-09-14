@@ -19,6 +19,8 @@ object ConsentGrantsData {
 
     // Revocation has no grace period. See the Swift file for why the number is emitted at all.
     const val REVOCATION_GRACE_SECONDS = 0
+    // No consent grant lasts longer than this, for any role — the founder's decision of 2026-09-14.
+    const val MAXIMUM_EXPIRY_DAYS = 90
 
     val roles = listOf(
         RecipientRole("caregiver", "Caregiver or delegate", "access",
@@ -27,8 +29,8 @@ object ConsentGrantsData {
             90, listOf("treatment", "emergency")),
         RecipientRole("next-of-kin", "Next of kin", "access",
             listOf("emergency-card"),
-            365, false, null, true, "emergency",
-            365, listOf("emergency")),
+            90, false, null, true, "emergency",
+            90, listOf("emergency")),
         RecipientRole("nurse-assigned", "Assigned MyThuso nurse", "care",
             listOf("patient", "allergy", "vitals", "chronic-condition", "medical-history", "immunisation", "child-health", "care-plan", "emergency-card", "prescription", "dispense", "referral", "home-visit"),
             14, false, "episode", true, "treatment",
@@ -51,8 +53,8 @@ object ConsentGrantsData {
             1, listOf("dispatch", "emergency")),
         RecipientRole("scheme-aggregate", "Medical scheme, aggregate only", "money",
             listOf(),
-            365, false, null, false, null,
-            365, listOf<String>())
+            90, false, null, false, null,
+            90, listOf<String>())
     )
 
     val refusals = listOf(

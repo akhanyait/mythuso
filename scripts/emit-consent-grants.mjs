@@ -34,6 +34,7 @@ export function emitConsentGrants(root = '') {
   if (!role.defaultScope.length && role.identifiable !== false) throw new Error(`The grant role ${role.id} names a recipient and opens nothing.`);
   if (!Number.isInteger(role.maxExpiryDays) || role.maxExpiryDays < role.defaultExpiryDays) throw new Error(`The grant role ${role.id} has no ceiling on how long a grant may last, or one shorter than its own default.`);
   if (!Array.isArray(role.allowedPurposes)) throw new Error(`The grant role ${role.id} does not list the purposes a grant to it may name.`);
+  if (!Number.isInteger(grants.maximumExpiryDays) || role.maxExpiryDays > grants.maximumExpiryDays) throw new Error(`The grant role ${role.id} may run ${role.maxExpiryDays} days, past the contract-wide ceiling of ${grants.maximumExpiryDays}. No grant lasts longer than that ceiling.`);
  }
 
  const banner = [
@@ -62,6 +63,8 @@ enum ConsentGrantsData {
     /* Revocation has no grace period. The number is here so that a screen saying "takes effect
        immediately" is reading it rather than asserting it. */
     static let revocationGraceSeconds = ${grants.revocation.graceSeconds}
+    /* No consent grant lasts longer than this, for any role — the founder's decision of ${grants.maximumExpiryDecision.decidedOn}. A grant sheet caps its end-date picker here. */
+    static let maximumExpiryDays = ${grants.maximumExpiryDays}
 
     static let roles: [RecipientRole] = [
 ${grants.recipientRoles.map(r => `        RecipientRole(id: ${swift(r.id)}, name: ${swift(r.name)}, engine: ${swift(r.engine)},
@@ -96,6 +99,8 @@ object ConsentGrantsData {
 
     // Revocation has no grace period. See the Swift file for why the number is emitted at all.
     const val REVOCATION_GRACE_SECONDS = ${grants.revocation.graceSeconds}
+    // No consent grant lasts longer than this, for any role — the founder's decision of ${grants.maximumExpiryDecision.decidedOn}.
+    const val MAXIMUM_EXPIRY_DAYS = ${grants.maximumExpiryDays}
 
     val roles = listOf(
 ${grants.recipientRoles.map(r => `        RecipientRole(${kotlin(r.id)}, ${kotlin(r.name)}, ${kotlin(r.engine)},

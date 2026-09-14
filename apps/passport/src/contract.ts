@@ -50,6 +50,12 @@ export const isProtectedCategory = (category: string): boolean => SENSITIVITY.ge
 export const resourceRule = (type: string): ResourceRule | null => gateway.resources.find(rule => rule.type === type) ?? null;
 export const roleRule = (id: string): GrantRole | null => GRANT_ROLES.find(role => role.id === id) ?? null;
 export const grantRoles = (): readonly GrantRole[] => GRANT_ROLES;
+
+/* The founder's contract-wide ceiling (14 September 2026): no grant lasts longer than this, whatever a
+   role's own maxExpiryDays says. Read from consent.json, never typed, and applied on top of the role's
+   ceiling rather than trusted to agree with it — a role edited past the ceiling is still held to it. */
+export const GRANT_CEILING_DAYS: number = consent.grants.maximumExpiryDays;
+export const expiryCeilingDays = (role: Pick<GrantRole, 'maxExpiryDays'>, ceiling: number = GRANT_CEILING_DAYS): number => Math.min(role.maxExpiryDays, ceiling);
 export const statement = (id: StatementId): string => gateway.statements[id];
 
 export type ScopeRefusalId = 'aggregate-only' | 'unknown-category' | 'emergency-only' | 'clinical-detail' | 'sealed-never' | 'sealed-tick-names-nothing' | 'sealed-not-ticked';
