@@ -370,7 +370,7 @@ struct MoreView: View {
                 }.buttonStyle(.plain)
                 group("Your care") {
                     row("Live well", "What you did, in your own words — and the ten things this will never say about it", "book.closed") { LiveWellView() }
-                    row(Gilbert.name, Gilbert.descriptor, "sparkles") { AssistantView() }
+                    row(Gilbert.name, Gilbert.descriptorLine, "sparkles") { AssistantView() }
                     row("My family", "Manage your loved ones", "person.2") { FamilyView() }
                     row("Care you pay for", "What sponsoring somebody's care shows you, and what it never will", "hand.raised.fingers.spread") { SponsoredCareView() }
                     row("Care plans", "Ongoing care and subscriptions", "heart.text.square") { PlansView() }

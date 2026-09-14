@@ -28,6 +28,17 @@ import AVFAudio
    zero when the microphone closes. The transcript is a string on this object for the length of one
    turn and is handed to the screen to be corrected and sent, or discarded.
 
+   LISTENING ENDS WHEN THE PHONE TAKES THE MICROPHONE. A call arriving, Siri, another app, a headset
+   plugged in or pulled out, or the engine reconfiguring itself can each leave the engine stopped while
+   this object still says Listening. So all three notifications are observed for as long as the
+   microphone is open, and any of them closes it, clears Listening and says why in the contract's
+   `interrupted` sentence. The route changes our own start causes — the category being set, an override
+   — are the only ones ignored, because they arrive as a consequence of opening the microphone.
+
+   EVERY RECOGNITION REQUEST IS MADE BY ONE FUNCTION. onDeviceRequest() is the only place a request is
+   constructed, and it sets requiresOnDeviceRecognition before returning it; the build refuses any
+   other construction, so a second request cannot be added that forgets.
+
    PERMISSION ON FIRST USE, AFTER THE CONTRACT HAS SPOKEN. Nothing is asked when this object is made.
    The first tap moves to `.explaining`, where the screen shows voice.sentences.beforePermission;
    only `consent()` asks the system, and a refusal is said in the contract's `refused` sentence. */
@@ -44,6 +55,8 @@ final class GilbertListener: ObservableObject {
         case unavailable
         case refused
         case failed
+        /// The phone took the microphone for something else, or the microphone changed, while listening.
+        case interrupted
     }
 
     @Published private(set) var phase: Phase = .idle
@@ -56,6 +69,7 @@ final class GilbertListener: ObservableObject {
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private var limit: Task<Void, Never>?
+    private var observers: [NSObjectProtocol] = []
 
     init() {
         recogniser = Self.onDeviceEnglish()
@@ -131,10 +145,7 @@ final class GilbertListener: ObservableObject {
             try session.setActive(true, options: .notifyOthersOnDeactivation)
         } catch { fail(); return }
 
-        let request = SFSpeechAudioBufferRecognitionRequest()
-        request.requiresOnDeviceRecognition = true
-        request.shouldReportPartialResults = true
-        request.addsPunctuation = true
+        let request = Self.onDeviceRequest()
         self.request = request
         captions = ""
 
@@ -152,6 +163,7 @@ final class GilbertListener: ObservableObject {
         engine.prepare()
         do { try engine.start() } catch { input.removeTap(onBus: 0); fail(); return }
         phase = .listening
+        observeInterruptions()
 
         task = recogniser.recognitionTask(with: request) { [weak self] result, error in
             let words = result?.bestTranscription.formattedString
@@ -166,7 +178,52 @@ final class GilbertListener: ObservableObject {
         }
     }
 
+    /// The only construction of a recognition request in this app, and it is on-device or nothing.
+    private static func onDeviceRequest() -> SFSpeechAudioBufferRecognitionRequest {
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.requiresOnDeviceRecognition = true
+        request.shouldReportPartialResults = true
+        request.addsPunctuation = true
+        return request
+    }
+
+    private func observeInterruptions() {
+        let centre = NotificationCenter.default
+        let session = AVAudioSession.sharedInstance()
+        observers = [
+            centre.addObserver(forName: AVAudioSession.interruptionNotification, object: session, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.interrupt() }
+            },
+            centre.addObserver(forName: AVAudioSession.routeChangeNotification, object: session, queue: .main) { [weak self] note in
+                let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+                let reason = raw.flatMap(AVAudioSession.RouteChangeReason.init(rawValue:))
+                guard reason != .categoryChange, reason != .override else { return }
+                Task { @MainActor in self?.interrupt() }
+            },
+            centre.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.interrupt() }
+            }
+        ]
+    }
+
+    private func stopObserving() {
+        observers.forEach(NotificationCenter.default.removeObserver)
+        observers = []
+    }
+
+    /// Something else took the microphone, or it changed. Listening ends now, and the screen says why.
+    private func interrupt() {
+        guard phase == .listening else { return }
+        task?.cancel()
+        closeMicrophone()
+        task = nil
+        request = nil
+        captions = ""
+        phase = .interrupted
+    }
+
     private func closeMicrophone() {
+        stopObserving()
         limit?.cancel()
         limit = nil
         engine.inputNode.removeTap(onBus: 0)

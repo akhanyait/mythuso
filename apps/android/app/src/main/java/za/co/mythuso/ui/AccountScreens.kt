@@ -364,7 +364,7 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Weekly payouts" || title == "Earnings & payouts" -> EarningsScreen(store, open)
         title == "Thuso SOS" || title == "Emergency & urgent care" -> SosScreen(store)
         /* Gilbert full screen, for a link; the orb on the patient shell opens the same content in a sheet. */
-        title == za.co.mythuso.model.GilbertData.name -> GilbertScreen(open)
+        title == za.co.mythuso.model.GilbertData.name -> GilbertScreen(store, open)
         /* The clinician-facing file and the encounter that writes into it. They are one route each
            because both are read about somebody else: the Passport is the patient's own view, and
            putting them behind the same door would blur whose record is whose. */

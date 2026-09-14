@@ -27,6 +27,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -45,6 +49,8 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -55,6 +61,7 @@ import za.co.mythuso.model.GilbertData
 import za.co.mythuso.model.GilbertLine
 import za.co.mythuso.model.GilbertReply
 import za.co.mythuso.model.GilbertTurn
+import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.Pulse
 import kotlin.math.PI
 import kotlin.math.cos
@@ -94,16 +101,16 @@ import kotlin.math.sin
  * never as text. */
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable fun GilbertSheet(onDismiss: () -> Unit, open: (String) -> Unit) {
+@Composable fun GilbertSheet(store: PreviewStore, onDismiss: () -> Unit, open: (String) -> Unit) {
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet, containerColor = BrandInk, contentColor = SurfaceWhite) {
-        GilbertContent(open = { onDismiss(); open(it) }, close = onDismiss)
+        GilbertContent(store, open = { onDismiss(); open(it) }, close = onDismiss)
     }
 }
 
 /** The route in AccountScreens.kt, for a link or a More row that opens Gilbert full screen. */
-@Composable fun GilbertScreen(open: (String) -> Unit) {
-    Box(Modifier.fillMaxSize().background(BrandInk)) { GilbertContent(open = open, close = null) }
+@Composable fun GilbertScreen(store: PreviewStore, open: (String) -> Unit) {
+    Box(Modifier.fillMaxSize().background(BrandInk)) { GilbertContent(store, open = open, close = null) }
 }
 
 @Composable fun GilbertOrb(modifier: Modifier = Modifier, onClick: () -> Unit) {
@@ -122,7 +129,8 @@ import kotlin.math.sin
     }
 }
 
-@Composable private fun GilbertContent(open: (String) -> Unit, close: (() -> Unit)?) {
+/* `store` is the one the home reads its next visit from, so Gilbert names the same visit. */
+@Composable private fun GilbertContent(store: PreviewStore, open: (String) -> Unit, close: (() -> Unit)?) {
     val context = LocalContext.current
     val listener = remember { GilbertListener(context) }
     val reduced = prefersReducedMotion()
@@ -141,8 +149,16 @@ import kotlin.math.sin
         onDispose { lifecycle?.removeObserver(observer); listener.cancel() }
     }
     LaunchedEffect(listener.phase) { if (listener.phase == GilbertListener.Phase.HEARD) correction = listener.heard }
+    /* After Send the sheet used to scroll to its foot — the refusals and the field — and leave the question
+       and its answer far above. Now the top of the new exchange is brought into view, measured once it
+       has been laid out, and TalkBack is told what Gilbert said. */
+    var latestTop by remember { mutableIntStateOf(0) }
+    val view = LocalView.current
     LaunchedEffect(turns.lastOrNull()?.id) {
-        if (turns.size > 1) { if (reduced) scroll.scrollTo(scroll.maxValue) else scroll.animateScrollTo(scroll.maxValue) }
+        if (turns.size <= 1) return@LaunchedEffect
+        withFrameNanos { }
+        if (reduced) scroll.scrollTo(latestTop) else scroll.animateScrollTo(latestTop)
+        @Suppress("DEPRECATION") view.announceForAccessibility(spoken(turns.last()))
     }
 
     val asked = turns.size > 1
@@ -152,8 +168,8 @@ import kotlin.math.sin
         GilbertListener.Phase.FINISHING -> Pulse.THINKING
         else -> if (asked) Gilbert.pulse(latest) else Pulse.IDLE
     }
-    val sendDraft = { if (draft.isNotBlank()) { turns = Gilbert.send(draft, GilbertChannel.TYPED, turns); draft = "" } }
-    val sendCorrection = { turns = Gilbert.send(correction, GilbertChannel.SPOKEN, turns); correction = ""; listener.sent() }
+    val sendDraft = { if (draft.isNotBlank()) { turns = Gilbert.send(draft, GilbertChannel.TYPED, turns, store.visits.firstOrNull()); draft = "" } }
+    val sendCorrection = { turns = Gilbert.send(correction, GilbertChannel.SPOKEN, turns, store.visits.firstOrNull()); correction = ""; listener.sent() }
 
     CompositionLocalProvider(LocalOnStudioNight provides true, LocalContentColor provides SurfaceWhite) {
         Column(Modifier.fillMaxWidth().fillMaxHeight().imePadding()) {
@@ -164,15 +180,19 @@ import kotlin.math.sin
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(GilbertData.name, style = MaterialTheme.typography.titleLarge, color = SurfaceWhite, modifier = Modifier.semantics { heading() })
-                        Text(GilbertData.descriptor, style = MaterialTheme.typography.bodySmall, color = BrandMint)
+                        Text(GilbertData.descriptorLine, style = MaterialTheme.typography.bodySmall, color = BrandMint)
                     }
                 }
                 Stage(listener, pulse, latest, asked, reduced)
                 VoiceArea(listener, correction, { correction = it }, sendCorrection) { ask.launch(Manifest.permission.RECORD_AUDIO) }
                 NotConnected("voice")
                 if (largeType) Silence()
-                turns.forEach { turn -> TurnView(turn, open, onHandOver = { turns = Gilbert.handOver(turns) }, sayUnavailable = !listener.available) }
-                Suggestions(asked, choose = { turns = Gilbert.choose(it, turns) }, again = { turns = Gilbert.opening() })
+                turns.forEach { turn ->
+                    Box(Modifier.onGloballyPositioned { if (turn.id == turns.last().id) latestTop = it.positionInParent().y.toInt() }) {
+                        TurnView(turn, open, onHandOver = { turns = Gilbert.handOver(turns) }, sayUnavailable = !listener.available)
+                    }
+                }
+                Suggestions(asked, choose = { turns = Gilbert.choose(it, turns, store.visits.firstOrNull()) }, again = { turns = Gilbert.opening() })
                 Refusals()
             }
             Composer(draft, { draft = it }, sendDraft, largeType)
@@ -251,6 +271,7 @@ import kotlin.math.sin
             Text(GilbertData.voice.correctLabel, style = MaterialTheme.typography.labelMedium, color = BrandMint)
             OutlinedTextField(
                 value = correction, onValueChange = onCorrection, modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = plainKeyboard(ImeAction.Default),
                 colors = fieldColours(), shape = RoundedCornerShape(ThusoRadius.control)
             )
             FilledButton(GilbertData.conversation.sendLabel, enabled = correction.isNotBlank()) { send() }
@@ -319,8 +340,43 @@ import kotlin.math.sin
                     Body(GilbertData.handover.notSent, strong = true)
                 }
             }
+            /* Words Gilbert did not read are said to be unread, with the numbers beside them, rather than
+               answered around. See readEverything in the contract. */
+            if (turn.unread) Unread(open, onHandOver)
         }
     }
+}
+
+/* The unread answer. Guiding, never a calm Idle: the words Gilbert could not read may be the ones that mattered. */
+@Composable private fun Unread(open: (String) -> Unit, onHandOver: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+        Box(Modifier.fillMaxWidth().height(2.dp).background(BrandOrange).clearAndSetSemantics {})
+        Body(GilbertData.unread.sentence, strong = true)
+        Body(GilbertData.unread.detail)
+        Body(GilbertData.unread.ifUrgent)
+        Lines(GilbertData.unread.lines)
+        FilledButton(GilbertData.unread.handoverLabel) { onHandOver() }
+        QuietButton(GilbertData.unread.sosLabel, urgent = true) { open("Thuso SOS") }
+    }
+}
+
+/* Autocorrection off, which is what the app controls; suggestions are the keyboard's, and a keyboard that
+   learns from what is typed may send it somewhere. The dictation key cannot be removed by an app, so the
+   keyboard note beside the field says whose it is rather than the screen pretending it is not there. */
+private fun plainKeyboard(ime: ImeAction) =
+    KeyboardOptions(autoCorrectEnabled = false, keyboardType = KeyboardType.Text, capitalization = KeyboardCapitalization.None, imeAction = ime)
+
+/* What TalkBack is told when a reply arrives: its first sentence, and that words were left unread. */
+private fun spoken(turn: GilbertTurn): String {
+    val first = when (val reply = turn.reply) {
+        is GilbertReply.Situation -> reply.situation.sentence
+        GilbertReply.Identity -> GilbertData.whatItIs
+        GilbertReply.Voice -> GilbertData.voice.howItWorks
+        is GilbertReply.Emergency -> GilbertData.emergency.headline
+        GilbertReply.Unmatched -> GilbertData.unmatched.sentence
+        is GilbertReply.Handover -> GilbertData.handover.title
+    }
+    return if (turn.unread) "${GilbertData.name}: $first ${GilbertData.unread.sentence}" else "${GilbertData.name}: $first"
 }
 
 /* The numbers in a real column, printed and never dialled: the SOS screen says nothing here dials. */
@@ -367,25 +423,34 @@ import kotlin.math.sin
     Text(GilbertData.silenceIsNotSafety, style = MaterialTheme.typography.bodySmall, color = BrandMint)
 }
 
+/* The keyboard note shows while the field has the keyboard, which is when the keyboard's microphone key
+   is on the screen; pinned all the time it took the conversation's room, which iOS's accessibility audit
+   caught on the same layout. */
 @Composable private fun Composer(draft: String, onDraft: (String) -> Unit, send: () -> Unit, largeType: Boolean) {
+    var typing by remember { mutableStateOf(false) }
     Column(
         Modifier.fillMaxWidth().background(BrandInk).navigationBarsPadding()
             .padding(horizontal = ThusoSpacing.space20, vertical = ThusoSpacing.space12),
         verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)
     ) {
         HorizontalDivider(color = BrandMint.copy(alpha = 0.22f))
+        Text(GilbertData.conversation.inputLabel, style = MaterialTheme.typography.labelLarge, color = SurfaceWhite, modifier = Modifier.clearAndSetSemantics {})
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            /* No floating label. On the night ground a label cut a dark notch in the field's top border
+               with nothing visible in it; the heading above is the field's name instead, and TalkBack
+               reads the same words. */
             OutlinedTextField(
                 value = draft, onValueChange = onDraft, singleLine = true,
-                label = { Text(GilbertData.conversation.inputLabel) },
                 placeholder = { Text(GilbertData.conversation.inputHint) },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardOptions = plainKeyboard(ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { send() }),
                 colors = fieldColours(), shape = RoundedCornerShape(ThusoRadius.control),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).onFocusChanged { typing = it.isFocused }
+                    .semantics { contentDescription = GilbertData.conversation.inputLabel }
             )
             FilledButton(GilbertData.conversation.sendLabel, Modifier.wrapContentWidth(), fill = false) { send() }
         }
+        if (typing) Text(GilbertData.conversation.keyboardNote, style = MaterialTheme.typography.bodySmall, color = BrandMint)
         if (!largeType) Silence()
     }
 }

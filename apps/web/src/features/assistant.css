@@ -413,7 +413,11 @@
  cursor: pointer;
 }
 .as-send:hover { background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface)); }
-.as-silence { margin: 0; font-size: 13px; line-height: 1.45; color: var(--brand-mint); }
+.as-silence, .as-keyboard { margin: 0; font-size: 13px; line-height: 1.45; color: var(--brand-mint); }
+/* The unread answer sits inside the reply it follows, set apart by an orange rule: the words Gilbert
+   could not read are the part of the message most worth a second look. */
+.as-unread { display: grid; gap: var(--space-12); margin-top: var(--space-16); padding: var(--space-12) 0 0 var(--space-12); border-left: 2px solid var(--brand-orange); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
+.as-unread p { margin: 0; }
 
 .as-noticed { padding-left: var(--space-12); border-left: 2px solid var(--brand-orange); }
 .as-noticed p { margin: 0; }

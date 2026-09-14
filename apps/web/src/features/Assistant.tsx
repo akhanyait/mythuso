@@ -4,11 +4,12 @@ import { NotConnected } from '../components/NotConnected';
 import { MotionPause } from '../components/MotionPause';
 import { AssistantSphere } from './AssistantSphere';
 import {
- answers, choose, conversation, depthOf, emergencyAnswer, handOver, identity, lines, opening, pulseOf, questionGroups,
+ answers, choose, conversation, depthOf, emergencyAnswer, handOver, identity, lines, opening, outcomeOf, pulseOf, questionGroups,
  questions, refusals, say, send, silenceIsNotSafety, stateSpec, voice, type Question, type Reply, type Turn
 } from '../lib/assistant';
 import { refusal } from '../lib/assistant';
 import { useReducedMotion } from '../lib/motion';
+import type { Visit } from '../lib/scheduling';
 import './assistant.css';
 
 /* Gilbert's panel on the web.
@@ -40,9 +41,11 @@ import './assistant.css';
    into ink) measure 4.14:1, over the 3:1 a boundary needs. Orange marks the emergency question and
    the escalated sphere as a fill and an edge only — never as text. */
 
-export type PanelProps = { open: boolean; dismiss: () => void; openModal: (modal: string) => void };
+/* `visit` is the patient's next booked visit — the one the home card shows — so Gilbert's answer to
+   "When is my nurse coming?" is the same day the home names. */
+export type PanelProps = { open: boolean; dismiss: () => void; openModal: (modal: string) => void; visit: Visit | null };
 
-export default function Assistant({ open, dismiss, openModal }: PanelProps) {
+export default function Assistant({ open, dismiss, openModal, visit }: PanelProps) {
  const dialog = useRef<HTMLDialogElement>(null);
  const close = useRef<HTMLButtonElement>(null);
  const latest = useRef<HTMLLIElement>(null);
@@ -70,7 +73,9 @@ export default function Assistant({ open, dismiss, openModal }: PanelProps) {
  /* The new reply brought into view without taking focus off what was pressed or typed. */
  useEffect(() => {
   if (!asked) return;
-  latest.current?.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+  /* The top of the new exchange rather than its nearest edge: a long answer brought in by its foot
+     hides the question it answers. The log is a live region, so a screen reader hears it either way. */
+  latest.current?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
  }, [turns, asked, reduced]);
 
  /* A modal dialog already makes the page inert; this closes the one gap left, tabbing past the last
@@ -84,11 +89,11 @@ export default function Assistant({ open, dismiss, openModal }: PanelProps) {
  };
 
  const moved = (next: Turn[]) => { setTurns(next); setGatheredAt(performance.now()); };
- const put = (question: Question) => moved(choose(turns, question));
+ const put = (question: Question) => moved(choose(turns, question, visit));
  const submit = (event: FormEvent) => {
   event.preventDefault();
   if (!draft.trim()) { field.current?.focus(); return; }
-  moved(send(turns, draft));
+  moved(send(turns, draft, visit));
   setDraft('');
  };
  const again = () => moved(opening());
@@ -107,7 +112,7 @@ export default function Assistant({ open, dismiss, openModal }: PanelProps) {
     <div className="as-bar">
      <div className="as-titles">
       <h2 id="as-title">{identity.name}</h2>
-      <p className="as-descriptor">{identity.descriptor}</p>
+      <p className="as-descriptor">{identity.descriptorLine}</p>
      </div>
      <MotionPause className="as-pause"/>
      <button ref={close} type="button" className="as-close" aria-label="Close Gilbert" onClick={dismiss}><X size={20} aria-hidden="true"/></button>
@@ -128,8 +133,13 @@ export default function Assistant({ open, dismiss, openModal }: PanelProps) {
      <ol>{turns.map((turn, index) =>
       <li key={turn.id} className="as-turn" ref={index === turns.length - 1 ? latest : undefined}>
        {turn.asked && <p className="as-said"><span className="as-sr">{conversation.youAsked}: </span>{turn.asked}</p>}
-       <div className={`as-reply as-reply-${turn.reply.kind}`}><span className="as-who">{identity.name}</span>
-        <ReplyBody reply={turn.reply} sos={sos} handOver={() => moved(handOver(turns))}/></div>
+       <div className={`as-reply as-reply-${turn.reply.kind}`} data-outcome={outcomeOf(turn)} data-question={turn.matched?.id} data-groups={turn.groups.map(g => g.id).join(' ') || undefined}>
+        <span className="as-who">{identity.name}</span>
+        <ReplyBody reply={turn.reply} sos={sos} handOver={() => moved(handOver(turns))}/>
+        {/* Words Gilbert did not read are said to be unread, with the numbers beside them, rather than
+            answered around. See readEverything in the contract. */}
+        {turn.unread && <Unread sos={sos} handOver={() => moved(handOver(turns))}/>}
+       </div>
       </li>)}
      </ol>
     </div>
@@ -153,10 +163,15 @@ export default function Assistant({ open, dismiss, openModal }: PanelProps) {
    <form className="as-compose" onSubmit={submit}>
     <label htmlFor="as-input">{conversation.inputLabel}</label>
     <div className="as-field">
+     {/* Nothing the browser offers to do with what is typed: no spell-check, which some browsers send to
+         a server, no autocorrect, no autocomplete history. The keyboard's own dictation is the
+         keyboard's, and the note below says so rather than claiming what a page cannot control. */}
      <input ref={field} id="as-input" type="text" value={draft} onChange={event => setDraft(event.target.value)}
-      placeholder={conversation.inputHint} autoComplete="off" autoCorrect="on" spellCheck enterKeyHint="send" maxLength={500}/>
+      placeholder={conversation.inputHint} autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+      enterKeyHint="send" maxLength={500} aria-describedby="as-keyboard"/>
      <button type="submit" className="as-send"><Send size={17} aria-hidden="true"/>{conversation.sendLabel}</button>
     </div>
+    <p id="as-keyboard" className="as-keyboard">{conversation.webKeyboardNote}</p>
     <p className="as-silence">{silenceIsNotSafety}</p>
    </form>
   </div>
@@ -172,6 +187,21 @@ function stageOf(reply: Reply, asked: boolean): { name: string; figure: string |
  /* Anything else is named by the state pill above it; a second label saying "Gilbert Pulse" under
     every answer was a word with nothing to say. */
  return { name: asked ? '' : identity.callToAction, figure: null, figureLabel: null };
+}
+
+/* The unread answer, after an answer that left words unread. Guiding, never a calm Idle: the words
+   Gilbert could not read may be the ones that mattered. */
+function Unread({ sos, handOver }: { sos: () => void; handOver: () => void }) {
+ return <div className="as-unread">
+  <p className="as-headline">{answers.unread.sentence}</p>
+  <p>{answers.unread.detail}</p>
+  <p>{say(answers.unread.ifUrgent)}</p>
+  <Lines ids={answers.unread.numbers}/>
+  <div className="as-actions">
+   <button type="button" className="as-go" onClick={handOver}><UserRound size={17} aria-hidden="true"/>{answers.unread.handoverLabel}</button>
+   <button type="button" className="as-ask urgent" onClick={sos}><Ambulance size={17} aria-hidden="true"/>{answers.unread.sosLabel}</button>
+  </div>
+ </div>;
 }
 
 function Lines({ ids }: { ids: string[] }) {

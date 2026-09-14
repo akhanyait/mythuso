@@ -13,7 +13,8 @@ object GilbertData {
     const val contractVersion = 1
 
     const val name = "Gilbert"
-    const val descriptor = "Your Thuso AI Doctor"
+    const val disclosure = "not a person, and not a doctor"
+    const val descriptorLine = "Your Thuso AI Doctor · not a person, and not a doctor"
     const val pulseName = "Gilbert Pulse"
     const val callToAction = "Ask Gilbert"
     const val poweredBy = "Powered by ThusoIQ"
@@ -86,8 +87,8 @@ object GilbertData {
         ),
         GilbertSituationTemplate(
             id = "visit", name = "Visit confirmed",
-            sentence = "A nurse is expected on {firstDay}. You will be told who is coming before they leave.",
-            figure = "{day}", figureLabel = "{month} · {slot}", depth = 1
+            sentence = "A nurse is expected on {visitWhen}. You will be told who is coming before they leave.",
+            figure = null, figureLabel = null, depth = 1
         ),
         GilbertSituationTemplate(
             id = "result", name = "Result ready",
@@ -100,7 +101,8 @@ object GilbertData {
             figure = "{expiryWarningDays}", figureLabel = "days before it stops carrying anything", depth = 3
         )
     )
-    const val fallbackFirstDay = "the first day offered"
+    val visitNone = "Nothing booked yet" to "When you book a visit it will show here, with who is coming and when."
+    val visitPending = "Looking for a nurse" to "Your visit is booked and a nurse is being found for it. You will be told who is coming before they leave."
     const val fallbackLaboratory = "Laboratory"
 
     val questionGroups = listOf(
@@ -149,19 +151,19 @@ object GilbertData {
     val emergencyGroups = listOf(
         GilbertEmergencyGroup(
             id = "chest-pain", condition = "chest-pain", name = "Chest pain or pressure",
-            words = listOf("chest pain", "chest hurts", "chest is tight", "tight chest", "chest tightness", "pressure in my chest", "heart attack", "crushing pain")
+            words = listOf("chest pain", "chest hurts", "chest tight", "tight chest", "chest tightness", "pressure in my chest", "chest pressure", "heart attack", "crushing pain")
         ),
         GilbertEmergencyGroup(
             id = "breathing", condition = "breathing", name = "Difficulty breathing",
-            words = listOf("cant breathe", "cannot breathe", "can not breathe", "struggling to breathe", "short of breath", "shortness of breath", "breathless", "gasping", "choking", "not breathing", "blue lips")
+            words = listOf("cant breathe", "cannot breathe", "can not breathe", "struggling to breathe", "hard to breathe", "difficulty breathing", "trouble breathing", "short of breath", "shortness of breath", "breathless", "gasping", "choking", "not breathing", "stopped breathing", "blue lips", "lips are blue")
         ),
         GilbertEmergencyGroup(
             id = "bleeding", condition = "bleeding", name = "Bleeding that will not stop",
-            words = listOf("bleeding", "haemorrhage", "hemorrhage", "spurting blood", "blood everywhere")
+            words = listOf("bleeding", "bled", "haemorrhage", "hemorrhage", "spurting blood", "blood everywhere", "lot of blood")
         ),
         GilbertEmergencyGroup(
             id = "unresponsive", condition = "unresponsive", name = "Not responding",
-            words = listOf("unconscious", "unresponsive", "not responding", "collapsed", "passed out", "fainted", "wont wake", "cant wake", "not waking")
+            words = listOf("unconscious", "unresponsive", "not responding", "collapsed", "passed out", "passing out", "blacked out", "blacking out", "fainted", "fainting", "wont wake", "cant wake", "not waking")
         ),
         GilbertEmergencyGroup(
             id = "stroke", condition = "stroke", name = "Signs of a stroke",
@@ -169,7 +171,7 @@ object GilbertData {
         ),
         GilbertEmergencyGroup(
             id = "seizure", condition = "seizure", name = "A fit or seizure",
-            words = listOf("seizure", "fitting", "having a fit", "convulsing", "convulsion", "epileptic fit")
+            words = listOf("seizure", "seizures", "fitting", "having a fit", "fits", "convulsing", "convulsion", "convulsions", "epileptic fit")
         ),
         GilbertEmergencyGroup(
             id = "infant", condition = "infant", name = "A baby under two who is floppy or not feeding",
@@ -177,16 +179,34 @@ object GilbertData {
         ),
         GilbertEmergencyGroup(
             id = "obstetric", condition = "obstetric", name = "A pregnancy emergency",
-            words = listOf("pregnant and bleeding", "waters broke", "baby is coming", "in labour", "in labor", "contractions")
+            words = listOf("pregnant and bleeding", "waters broke", "waters broken", "baby is coming", "in labour", "in labor", "contraction", "contractions")
         ),
         GilbertEmergencyGroup(
             id = "crisis", condition = null, name = "Words about harming yourself",
-            words = listOf("kill myself", "suicide", "suicidal", "end my life", "want to die", "hurt myself", "harm myself", "overdose", "overdosed", "took too many pills", "poisoned")
+            words = listOf("kill myself", "suicide", "suicidal", "end my life", "want to die", "hurt myself", "harm myself", "overdose", "overdosed", "overdosing", "took too many pills", "poisoned")
         ),
         GilbertEmergencyGroup(
             id = "general", condition = null, name = "Words about an emergency",
-            words = listOf("emergency", "ambulance", "dying", "severe pain", "worst headache")
+            words = listOf("emergency", "ambulance", "ambulans", "dying", "severe pain", "worst headache")
         )
+    )
+
+    /* The matcher's own data; the arithmetic is in model/Assistant.kt, identical to the web's and iOS's. */
+    val foldings = listOf("æ" to "ae", "œ" to "oe", "ß" to "ss", "ø" to "o", "đ" to "d", "ł" to "l", "þ" to "th", "ð" to "d")
+    val apostrophes = listOf("'", "’", "‘", "`", "ʼ")
+    val irregular = mapOf("bled" to "bleed", "dying" to "die", "died" to "die", "dies" to "die", "lying" to "lie", "fell" to "fall", "fallen" to "fall", "broke" to "break", "broken" to "break", "felt" to "feel", "took" to "take", "taken" to "take", "swallowed" to "swallow", "ate" to "eat", "threw" to "throw", "thrown" to "throw", "lost" to "lose", "shaking" to "shake")
+    const val maxGap = 2
+    val filler = listOf("hi", "hello", "hey", "please", "thanks", "thank", "you", "ok", "okay", "so", "and", "but", "or", "also", "just", "i", "im", "me", "my", "mine", "we", "our", "us", "is", "are", "am", "was", "were", "be", "been", "the", "a", "an", "to", "of", "for", "on", "in", "at", "it", "its", "this", "that", "there", "here", "what", "whats", "when", "whens", "where", "wheres", "who", "whos", "how", "hows", "why", "can", "could", "would", "will", "do", "does", "did", "have", "has", "had", "gilbert", "tell", "know", "let", "still", "yet", "already", "now", "today", "soon", "again", "yes", "sure", "any", "anything", "about")
+    val neverWithUnread = listOf("settled")
+
+    val unread = GilbertUnmatched(
+        state = "guiding",
+        sentence = "I can't assess the rest of what you said.",
+        detail = "I answered the part I recognised. The rest is not something I can read, and that is not a judgement that it is minor.",
+        ifUrgent = "If any of it might be an emergency, do not wait for me. Call one of these now:",
+        lines = listOf(GilbertLine("10177", "Ambulance"), GilbertLine("112", "Emergency, from a mobile")),
+        sosLabel = "Open Thuso SOS",
+        handoverLabel = "Talk to a nurse"
     )
 
     val unmatched = GilbertUnmatched(
@@ -238,6 +258,7 @@ object GilbertData {
         youSaid = "You said",
         logLabel = "Conversation with Gilbert",
         refusalsHeading = "What Gilbert will not do",
+        keyboardNote = "The microphone on your keyboard belongs to the keyboard, not to Gilbert: whoever made the keyboard — Apple, Google or another company — may send what you say through it to their servers. Gilbert's own Tap to talk button is the one that keeps your voice on this phone.",
         turnLimit = 24
     )
 
@@ -258,11 +279,48 @@ object GilbertData {
         unavailable = "Speaking to Gilbert is not available on this phone. It needs English speech recognition that runs on the phone itself, and this phone does not offer it, so what you said could not be kept on the phone. You can still type.",
         refused = "The microphone or speech recognition is switched off for MyThuso, so Gilbert cannot hear you. You can still type, and you can change this in your phone's Settings.",
         failed = "Gilbert did not catch that. Nothing was kept. Try again, or type instead.",
+        interrupted = "Gilbert stopped listening because the phone needed its microphone for something else, or the microphone changed. Nothing was kept. Tap to talk again, or type.",
         talkLabel = "Tap to talk to Gilbert",
         stopLabel = "Stop",
         captionsLabel = "What Gilbert has heard so far",
         correctLabel = "Check what Gilbert heard, and correct it before you send it",
         discardLabel = "Discard"
+    )
+
+    /* The shared fixtures every platform runs its own matcher against. */
+    val stemFixtures = listOf(
+        GilbertStemFixture("Hæmorrhage — she BLED!", listOf("haemorrhag", "she", "bleed")),
+        GilbertStemFixture("I have chest pains", listOf("i", "hav", "chest", "pain")),
+        GilbertStemFixture("my dad stopped breathing", listOf("my", "dad", "stop", "breath")),
+        GilbertStemFixture("convulsions, seizures, fits, fitting", listOf("convulsion", "seizur", "fit", "fit")),
+        GilbertStemFixture("passing out / blacked out", listOf("pass", "out", "black", "out")),
+        GilbertStemFixture("When’s my nurse coming?", listOf("when", "my", "nurs", "com")),
+        GilbertStemFixture("overdosing on difficulties", listOf("overdos", "on", "difficulty")),
+        GilbertStemFixture("hémorragie 2026", listOf("hemorragi", "2026"))
+    )
+    val messageFixtures = listOf(
+        GilbertMessageFixture("When is my nurse coming? I have chest pains", "emergency", null, listOf("chest-pain")),
+        GilbertMessageFixture("my visit today, my chest feels tight", "emergency", null, listOf("chest-pain")),
+        GilbertMessageFixture("are my results back, I had seizures last night", "emergency", null, listOf("seizure")),
+        GilbertMessageFixture("nurse coming, my baby is having convulsions", "emergency", null, listOf("seizure")),
+        GilbertMessageFixture("any updates, my dad stopped breathing", "emergency", null, listOf("breathing")),
+        GilbertMessageFixture("my visit — she bled a lot", "emergency", null, listOf("bleeding")),
+        GilbertMessageFixture("he keeps passing out", "emergency", null, listOf("unresponsive")),
+        GilbertMessageFixture("she blacked out", "emergency", null, listOf("unresponsive")),
+        GilbertMessageFixture("difficulty breathing", "emergency", null, listOf("breathing")),
+        GilbertMessageFixture("trouble breathing since this morning", "emergency", null, listOf("breathing")),
+        GilbertMessageFixture("the contractions have started", "emergency", null, listOf("obstetric")),
+        GilbertMessageFixture("I think he is overdosing", "emergency", null, listOf("crisis")),
+        GilbertMessageFixture("she has fits", "emergency", null, listOf("seizure")),
+        GilbertMessageFixture("hæmorrhage after the birth", "emergency", null, listOf("bleeding")),
+        GilbertMessageFixture("my visit, call an ambulans", "emergency", null, listOf("general")),
+        GilbertMessageFixture("when is my nurse coming", "answer", "visit", emptyList()),
+        GilbertMessageFixture("hi, when’s my nurse coming??", "answer", "visit", emptyList()),
+        GilbertMessageFixture("are my results back", "answer", "result", emptyList()),
+        GilbertMessageFixture("when is my nurse coming, my knee is sore", "answer-and-unread", "visit", emptyList()),
+        GilbertMessageFixture("any updates? my knee aches", "unmatched", null, emptyList()),
+        GilbertMessageFixture("does anything need me", "answer", "settled", emptyList()),
+        GilbertMessageFixture("my knee has been sore since tuesday", "unmatched", null, emptyList())
     )
 
     val refusals = listOf(

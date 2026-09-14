@@ -277,6 +277,13 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                 }
             ) { padding ->
                 Box(Modifier.padding(padding)) {
+                    /* Gilbert's orb floats on every patient page, and it used to float over whatever was
+                       there — on the home it sat on the end of the search field. The web keeps it clear by
+                       reserving room; here the patient pages stop 80dp short of the bar and the orb stands
+                       in that band, so there is no scroll position on any patient screen where it covers a
+                       control. The cost is 80dp of height on those pages, and it is paid on purpose. */
+                    val orbBand = if (role == null && detail == null) 80.dp else 0.dp
+                    Box(Modifier.fillMaxSize().padding(bottom = orbBand)) {
                     if (detail != null) DetailScreen(detail!!, store, go, { onboarding = true })
                     else if (role != null) WorkspaceScreen(role, section, store, go)
                     else when (page) {
@@ -288,12 +295,13 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                         "Passport" -> PassportScreen(go)
                         else -> MoreScreen(go, { onboarding = true })
                     }
+                    }
                     /* Gilbert floats bottom right on every patient page and only on them, as on the web: its
                        questions are a patient's. It asks the phone for nothing; the sheet asks for the
                        microphone the first time somebody taps to talk. */
                     if (role == null && detail == null) GilbertOrb(Modifier.align(androidx.compose.ui.Alignment.BottomEnd)) { askingGilbert = true }
                 }
-                if (askingGilbert) GilbertSheet(onDismiss = { askingGilbert = false }, open = go)
+                if (askingGilbert) GilbertSheet(store, onDismiss = { askingGilbert = false }, open = go)
             }
         }
     }
