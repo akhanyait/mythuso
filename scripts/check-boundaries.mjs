@@ -6,6 +6,9 @@ import { emitRecords } from './emit-records.mjs';
 import { emitEarnings } from './emit-earnings.mjs';
 import { emitSos } from './emit-sos.mjs';
 import { emitTeleconsult } from './emit-teleconsult.mjs';
+import { emitEvents, collectEvents, eventFingerprint } from './emit-events.mjs';
+import { emitConsentGrants } from './emit-consent-grants.mjs';
+import { emitProtocols } from './emit-protocols.mjs';
 import { emitLocales } from './emit-locales.mjs';
 import { emitDispensing } from './emit-dispensing.mjs';
 import { emitProgrammes } from './emit-programmes.mjs';
@@ -840,6 +843,9 @@ const generated = [
  { source: 'packages/catalog/earnings.json', command: 'npm run earnings', files: emitEarnings() },
  { source: 'packages/catalog/sos.json', command: 'npm run sos', files: emitSos() },
  { source: 'packages/catalog/teleconsult.json', command: 'npm run teleconsult', files: emitTeleconsult() },
+ { source: 'packages/catalog/events.json', command: 'npm run events', files: emitEvents() },
+ { source: 'packages/catalog/consent.json', command: 'npm run consent-grants', files: emitConsentGrants() },
+ { source: 'packages/catalog/protocols.json', command: 'npm run protocols', files: emitProtocols() },
  { source: 'packages/catalog/locales.json', command: 'npm run locales', files: emitLocales() },
  { source: 'packages/catalog/dispensing.json', command: 'npm run dispensing', files: emitDispensing() },
  { source: 'packages/catalog/programmes.json', command: 'npm run programmes', files: emitProgrammes() },
@@ -863,6 +869,260 @@ for(const {source,command,files} of generated) {
   if(read(file.path)!==file.content) throw new Error(`${file.path} is not what ${source} generates. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: ${command}`);
  }
 }
+
+/* ==== Contracts & Core (Wave 1) ==================================================================
+
+   Added by the Contracts & Core lead for three contracts other engines are being written against
+   at the same time: packages/catalog/events.json (ThusoIQ Core's event contracts, frozen),
+   the `grants` section of packages/catalog/consent.json, and packages/catalog/protocols.json.
+   Everything in this block is new and self-contained, so it can be moved or merged without touching
+   the checks around it.
+
+   The events are read from every file events.json lists under `sources`, not only from events.json,
+   because the assistant and trust contracts declare their own events in the same shape. A listed
+   file that does not exist yet is noted and skipped, so this block passes before those land and
+   holds them to every rule below the moment they do. */
+{
+ const coreFieldTypes = new Set(JSON.parse(read('packages/catalog/feeds.json')).fieldTypes.map(t => t.id));
+ const coreRecords = JSON.parse(read('packages/catalog/records.json')).records;
+ const coreRecordById = new Map(coreRecords.map(r => [r.id, r]));
+ /* The gate's purposes are a TypeScript union in apps/api, and that union is the one place they are
+    written. Read it, rather than list them again here. */
+ const gatePurposes = new Set([...((read('apps/api/src/protection/contract.ts').match(/export type Purpose =([^;]+);/) ?? [])[1] ?? '').matchAll(/'([^']+)'/g)].map(m => m[1]));
+ if (!gatePurposes.size) throw new Error('scripts/check-boundaries.mjs can no longer read the Purpose union out of apps/api/src/protection/contract.ts, so nothing checks that an event or a grant names a purpose the gate knows.');
+
+ const { contract: eventsContract, events: coreEvents, skipped: skippedSources } = collectEvents();
+ for (const source of skippedSources) console.log(`${source} is listed as a source of events in packages/catalog/events.json and declares none on this branch yet. It is read, and held to the same rules, the moment it does.`);
+ const engineIds = new Set(eventsContract.engines.map(e => e.id));
+ if (engineIds.size !== eventsContract.engines.length) throw new Error('packages/catalog/events.json declares the same engine twice. An engine id is who an event is owned by; two of them is two owners.');
+ const coreNorm = s => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+ const neverOnBus = eventsContract.neverInEnvelope.map(b => ({ ...b, n: coreNorm(b.field) }));
+ for (const b of neverOnBus) if (!b.why?.trim()) throw new Error(`neverInEnvelope lists "${b.field}" without saying why. A refusal with no reasoning is the one somebody deletes.`);
+ /* A field is refused when its name ends in a refused word, so patientName and contactPhone are
+    caught along with name and phone. */
+ const refusedField = field => neverOnBus.find(b => coreNorm(field).endsWith(b.n));
+
+ const checkFields = (where, fields) => {
+  if (!Array.isArray(fields)) throw new Error(`${where} has no field list.`);
+  const seen = new Set();
+  for (const f of fields) {
+   if (!f.field?.trim()) throw new Error(`${where} has a field with no name.`);
+   if (seen.has(coreNorm(f.field))) throw new Error(`${where} declares "${f.field}" twice.`);
+   seen.add(coreNorm(f.field));
+   if (!coreFieldTypes.has(f.type)) throw new Error(`${where} gives "${f.field}" the type "${f.type}", which is not a field type in packages/catalog/feeds.json. One vocabulary of types, so a feed and an event cannot disagree about what an instant is.`);
+   if (typeof f.required !== 'boolean') throw new Error(`${where} does not say whether "${f.field}" is required.`);
+   if (!f.why?.trim()) throw new Error(`${where} declares "${f.field}" without saying why it is there.`);
+   const refused = refusedField(f.field);
+   if (refused) throw new Error(`${where} carries "${f.field}", which the bus refuses as "${refused.field}": ${refused.why}`);
+  }
+ };
+
+ /* 1. The envelope. Every event carries these, and the ones a subscriber cannot do without are named. */
+ checkFields('The event envelope in packages/catalog/events.json', eventsContract.envelope);
+ const envelopeNames = new Set(eventsContract.envelope.map(f => coreNorm(f.field)));
+ for (const need of ['eventId', 'type', 'version', 'occurredAt', 'owner', 'actorRole', 'subjectRef', 'purposeOfUse', 'protocolVersion']) {
+  if (!envelopeNames.has(coreNorm(need))) throw new Error(`The event envelope has lost "${need}". Every engine is being built against an envelope that carries it.`);
+ }
+
+ /* 2. Every event, from every source. */
+ const byKey = new Map();
+ const versionsByType = new Map();
+ const measureNames = measures.map(m => coreNorm(m.id));
+ const CLINICAL_ON_ALERT = /(value|reading|result|measure|metric|threshold|baseline|deviation|trend|score|finding|diagnos)/;
+ for (const e of coreEvents) {
+  const where = `The event ${e.type}@${e.version} in ${e.source}`;
+  if (!/^[a-z]+(\.[a-z_]+)+$/.test(e.type ?? '')) throw new Error(`${e.source} declares an event type "${e.type}" that is not dotted lower-case words. Subscribers dispatch on the string, so there is one way to spell one.`);
+  if (!Number.isInteger(e.version) || e.version < 1) throw new Error(`${where} has no whole-number version.`);
+  const key = `${e.type}@${e.version}`;
+  if (byKey.has(key)) throw new Error(`${e.type} at version ${e.version} is declared in both ${byKey.get(key).source} and ${e.source}. ${eventsContract.refusals.find(r => r.id === 'one-type-one-version-one-entry').why}`);
+  byKey.set(key, e);
+  versionsByType.set(e.type, [...(versionsByType.get(e.type) ?? []), e.version]);
+  if (!engineIds.has(e.owner)) throw new Error(`${where} is owned by "${e.owner}", which is not an engine in packages/catalog/events.json.`);
+  if (!e.summary?.trim()) throw new Error(`${where} has no summary.`);
+  checkFields(where, e.payload);
+  for (const f of e.payload) if (envelopeNames.has(coreNorm(f.field))) throw new Error(`${where} repeats the envelope's "${f.field}" in its payload. Two copies of one fact on one event disagree the first time a publisher fills in only one.`);
+  if (!Array.isArray(e.neverCarries)) throw new Error(`${where} does not say what it never carries. The valuable part of an event contract is what it will not put on the bus.`);
+  for (const n of e.neverCarries) {
+   if (!n.field?.trim() || !n.why?.trim()) throw new Error(`${where} refuses a field without naming it or saying why.`);
+   if (e.payload.some(f => coreNorm(f.field) === coreNorm(n.field))) throw new Error(`${where} carries "${n.field}" and says it never carries it.`);
+  }
+  if (!Array.isArray(e.subscribers) || !e.subscribers.length) throw new Error(`${where} has no subscribers. An event nobody reads is noise on a bus every engine has to filter.`);
+  if (new Set(e.subscribers).size !== e.subscribers.length) throw new Error(`${where} lists a subscriber twice.`);
+  for (const s of e.subscribers) if (!engineIds.has(s)) throw new Error(`${where} is subscribed to by "${s}", which is not an engine in packages/catalog/events.json.`);
+  if (e.subscribers.includes(e.owner)) throw new Error(`${where} is subscribed to by its own owner, ${e.owner}. ${eventsContract.refusals.find(r => r.id === 'no-subscribing-to-yourself').why}`);
+
+  /* An alert points at the record; it never is the record. */
+  if (e.type.startsWith('alert.')) {
+   for (const f of e.payload) {
+    const n = coreNorm(f.field);
+    if (f.type === 'number' || CLINICAL_ON_ALERT.test(n) || measureNames.some(m => n.includes(m))) {
+     throw new Error(`${where} carries "${f.field}". ${eventsContract.refusals.find(r => r.id === 'an-alert-points-at-the-record').statement} ${eventsContract.refusals.find(r => r.id === 'an-alert-points-at-the-record').why}`);
+    }
+   }
+  }
+ }
+ for (const [type, versions] of versionsByType) {
+  const sorted = [...versions].sort((a, b) => a - b);
+  if (sorted.some((v, i) => v !== i + 1)) throw new Error(`${type} is declared at versions ${sorted.join(', ')}. Versions start at one and a new one is the next number, so no subscriber is left looking for a version that was skipped.`);
+ }
+ const closed = byKey.get('alert.closed@1');
+ if (!closed?.payload.some(f => f.field === 'outcomeRef' && f.required === true)) throw new Error(`alert.closed no longer requires outcomeRef. ${eventsContract.refusals.find(r => r.id === 'an-alert-closes-on-an-outcome').why}`);
+ for (const type of ['person.suspended', 'person.deactivated']) {
+  const e = byKey.get(`${type}@1`);
+  if (!e) throw new Error(`${type} is no longer declared, and Verify's events are part of the frozen contract.`);
+  if (e.subscribers.includes('money')) throw new Error(`Money subscribes to ${type}. ${eventsContract.refusals.find(r => r.id === 'a-suspension-never-reaches-money').why}`);
+ }
+ for (const need of ['appointment.requested', 'appointment.offered', 'appointment.booked', 'appointment.confirmed', 'appointment.en_route', 'appointment.in_progress', 'appointment.completed', 'appointment.no_show', 'appointment.cancelled', 'appointment.follow_up_required', 'passport.access.breakglass', 'passport.consent.revoked', 'alert.raised', 'alert.escalated']) {
+  if (!versionsByType.has(need)) throw new Error(`${need} is not declared. It is named by the Master document with an owner, and engines are being built to subscribe to it.`);
+ }
+
+ /* 3. Frozen means frozen. The lock is every type@version ever published with the fingerprint of its
+       shape; an event that disappears, changes version or changes shape fails here unless the lock
+       line was changed in the same commit, where a reviewer can see it. */
+ const lockLines = read(eventsContract.lock).split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+ const locked = new Map();
+ for (const line of lockLines) {
+  const [key, print] = line.split(/\s+/);
+  if (locked.has(key)) throw new Error(`${eventsContract.lock} lists ${key} twice.`);
+  locked.set(key, print);
+ }
+ if (eventsContract.frozen === true) {
+  const gone = [...locked.keys()].filter(key => !byKey.has(key));
+  if (gone.length) throw new Error(`${gone.join(', ')} ${gone.length === 1 ? 'is' : 'are'} frozen in ${eventsContract.lock} and no longer declared. ${eventsContract.refusals.find(r => r.id === 'frozen-means-frozen').why} Restore the entry, and add the next version as a new one.`);
+  const unlocked = [...byKey.values()].filter(e => !locked.has(`${e.type}@${e.version}`));
+  if (unlocked.length) throw new Error(`${unlocked.length} declared ${unlocked.length === 1 ? 'event is' : 'events are'} not in ${eventsContract.lock}. A new event joins the frozen contract deliberately — append:\n${unlocked.map(e => `${e.type}@${e.version} ${eventFingerprint(e)}`).join('\n')}`);
+  for (const [key, e] of byKey) {
+   if (locked.get(key) !== eventFingerprint(e)) throw new Error(`${key} has changed shape since it was frozen: its owner, or a payload field's name, type or requiredness, is not what ${eventsContract.lock} recorded. Put it back and declare ${e.type}@${e.version + 1} as a new entry. ${eventsContract.refusals.find(r => r.id === 'frozen-means-frozen').statement}`);
+  }
+ }
+
+ /* 4. Consent grants. The shape is fixed because the Passport gateway validates against it. */
+ const grants = JSON.parse(read('packages/catalog/consent.json')).grants;
+ if (!grants) throw new Error('packages/catalog/consent.json has no grants section, so nothing says who else may be let into a record, for what, or for how long.');
+ const grantRefusal = id => {
+  const r = grants.refusals.find(x => x.id === id);
+  if (!r?.statement?.trim() || !r.why?.trim()) throw new Error(`packages/catalog/consent.json has lost the grant refusal "${id}", or its statement or its reasoning.`);
+  return r;
+ };
+ checkFields('The consent grant shape in packages/catalog/consent.json', grants.shape);
+ const shapeFields = grants.shape.map(f => f.field).join(',');
+ if (shapeFields !== 'subject,recipientRole,scope,purpose,expiresAt,sealedIncluded') throw new Error(`The consent grant shape is now ${shapeFields}. The Passport gateway validates exactly subject, recipientRole, scope, purpose, expiresAt and sealedIncluded; a change here is a change to it.`);
+ const shapeOf = field => grants.shape.find(f => f.field === field);
+ if (shapeOf('expiresAt').required !== true) throw new Error(`A consent grant's expiresAt is no longer required. ${grantRefusal('every-grant-expires').statement}`);
+ if (shapeOf('sealedIncluded').type !== 'boolean' || shapeOf('sealedIncluded').default !== false) throw new Error(`A consent grant no longer starts with sealedIncluded false. ${grantRefusal('sealed-needs-an-explicit-tick').statement}`);
+ if (grants.revocation?.graceSeconds !== 0) throw new Error(`Grant revocation has a grace period of ${grants.revocation?.graceSeconds} seconds. ${grantRefusal('revocation-is-immediate').statement} ${grantRefusal('revocation-is-immediate').why}`);
+
+ const roleIds = new Set();
+ for (const role of grants.recipientRoles) {
+  const where = `The grant role ${role.id} in packages/catalog/consent.json`;
+  if (roleIds.has(role.id)) throw new Error(`${where} is declared twice.`);
+  roleIds.add(role.id);
+  if (!role.why?.trim()) throw new Error(`${where} does not say why it gets what it gets.`);
+  if (!engineIds.has(role.engine)) throw new Error(`${where} is served by "${role.engine}", which is not an engine in packages/catalog/events.json.`);
+  if (!Number.isInteger(role.defaultExpiryDays) || role.defaultExpiryDays < 1 || role.defaultExpiryDays > 365) throw new Error(`${where} has a default expiry of ${role.defaultExpiryDays} days. ${grantRefusal('every-grant-expires').statement} A default is a whole number of days from one to a year.`);
+  if (role.sealed !== false) throw new Error(`${where} opens sealed categories by default. ${grantRefusal('sealed-needs-an-explicit-tick').statement}`);
+  for (const id of role.defaultScope) {
+   const record = coreRecordById.get(id);
+   if (!record) throw new Error(`${where} scopes "${id}", which is not a record in packages/catalog/records.json. The gateway filters to record ids and would silently open nothing — or, worse, somebody would map it to something.`);
+   if (record.sensitivity === 'protected') throw new Error(`${where} has ${id}, a sealed category, in its default scope. ${grantRefusal('sealed-needs-an-explicit-tick').why}`);
+  }
+  if (role.defaultPurpose !== null && !gatePurposes.has(role.defaultPurpose)) throw new Error(`${where} defaults to the purpose "${role.defaultPurpose}", which is not in the gate's Purpose union in apps/api/src/protection/contract.ts.`);
+  if (/(^|-)(ops|operations|support|engineer|engineering|admin|operator)(-|$)/.test(role.id)) throw new Error(`${where} makes operations, support or engineering a grant recipient. ${grantRefusal('operations-and-engineering-receive-no-grant').why}`);
+  if (/(scheme|insur|employ|advertis|funder|medical-aid)/.test(role.id)) {
+   if (role.id !== 'scheme-aggregate' || role.identifiable !== false || role.defaultScope.length || role.defaultPurpose !== null) throw new Error(`${where} lets a payer, employer or advertiser into an identifiable record. ${grantRefusal('scheme-receives-aggregate-only').statement}`);
+  } else if (role.identifiable !== true) throw new Error(`${where} is marked non-identifiable. Only the scheme's aggregate role is, and a second one is a place an identifiable grant can hide.`);
+ }
+ const scheme = grantRefusal('scheme-receives-aggregate-only').statement.toLowerCase();
+ for (const word of ['scheme', 'insurer', 'employer', 'advertiser']) if (!scheme.includes(word)) throw new Error(`The grant refusal scheme-receives-aggregate-only no longer names ${word}s. The contract has to say in words that no such grant exists, not leave it to be inferred from a list.`);
+ const roleById = id => {
+  const role = grants.recipientRoles.find(r => r.id === id);
+  if (!role) throw new Error(`packages/catalog/consent.json has lost the grant role ${id}, which Master section 21 names.`);
+  return role;
+ };
+ for (const id of ['caregiver', 'next-of-kin', 'nurse-assigned', 'doctor-assigned', 'pharmacist', 'care-coordinator', 'responder-on-trip', 'scheme-aggregate']) roleById(id);
+ const responder = roleById('responder-on-trip');
+ if (responder.boundTo !== 'trip' || responder.defaultExpiryDays !== 1) throw new Error(`The responder's grant is bound to "${responder.boundTo}" for ${responder.defaultExpiryDays} days. ${grantRefusal('responder-grant-ends-with-the-trip').statement}`);
+ /* A doctor reviewing a nurse's assessment reads what she read, and the full clinical record means
+    every record in the patients and clinical areas that is not sealed — derived, not listed again. */
+ const doctorScope = new Set(roleById('doctor-assigned').defaultScope);
+ const unseen = [...roleById('nurse-assigned').defaultScope, ...coreRecords.filter(r => ['patients', 'clinical'].includes(r.area) && r.sensitivity !== 'protected').map(r => r.id)].filter(id => !doctorScope.has(id));
+ if (unseen.length) throw new Error(`The assigned doctor's default scope is missing ${[...new Set(unseen)].join(', ')}. Master section 21 gives the doctor the full clinical record, and a doctor who cannot read what the nurse read is signing off an assessment half-blind.`);
+ const clinicalForCoordinator = roleById('care-coordinator').defaultScope.filter(id => coreRecordById.get(id).sensitivity !== 'routine');
+ if (clinicalForCoordinator.length) throw new Error(`The care coordinator's default scope includes ${clinicalForCoordinator.join(', ')}, which records.json marks as more than routine. Master section 21: tasks, appointments, summaries — not clinical detail.`);
+ /* Revocation reaches every engine that serves a recipient, and so does the grant. */
+ for (const type of [grants.revocation.event, 'passport.consent.granted']) {
+  const e = [...byKey.values()].find(x => x.type === type);
+  if (!e) throw new Error(`${type} is not declared in packages/catalog/events.json, so nothing tells an engine that a grant has ${type.endsWith('revoked') ? 'ended' : 'begun'}.`);
+  const deaf = [...new Set(grants.recipientRoles.map(r => r.engine))].filter(engine => engine !== e.owner && !e.subscribers.includes(engine));
+  if (deaf.length) throw new Error(`${type} is not subscribed to by ${deaf.join(', ')}, which ${deaf.length === 1 ? 'serves' : 'serve'} a grant recipient. ${type.endsWith('revoked') ? grantRefusal('revocation-is-immediate').why : 'An engine that is never told about a grant has to be told some other way, and that other way is a direct call the bus exists to prevent.'}`);
+ }
+ const grantEvent = byKey.get('passport.consent.granted@1');
+ for (const f of grants.shape.filter(f => f.field !== 'subject')) {
+  const carried = grantEvent.payload.find(p => p.field === f.field);
+  if (!carried || carried.type !== f.type) throw new Error(`passport.consent.granted does not carry the grant's ${f.field} as ${f.type}. The event and the grant it announces must be the same shape.`);
+ }
+
+ /* 5. The protocol registry. Names and numbers, and nothing that could be mistaken for a protocol. */
+ const protocolContract = JSON.parse(read('packages/catalog/protocols.json'));
+ const protocolRefusal = id => {
+  const r = protocolContract.refusals.find(x => x.id === id);
+  if (!r?.statement?.trim() || !r.why?.trim()) throw new Error(`packages/catalog/protocols.json has lost the refusal "${id}", or its statement or its reasoning.`);
+  return r;
+ };
+ const protocolStatuses = new Set(protocolContract.statuses.map(s => s.id));
+ if ([...protocolStatuses].sort().join() !== 'draft,ratified,retired') throw new Error('packages/catalog/protocols.json has statuses other than draft, ratified and retired.');
+ const PROTOCOL_KEYS = 'contentRef,engine,id,name,ratifiedBy,ratifiedOn,status,supersedes,version';
+ const registered = new Set();
+ for (const p of protocolContract.protocols) {
+  const where = `The protocol ${p.id}@${p.version} in packages/catalog/protocols.json`;
+  if (Object.keys(p).sort().join() !== PROTOCOL_KEYS) throw new Error(`${where} has the fields ${Object.keys(p).sort().join(', ')}. A registry entry holds ${PROTOCOL_KEYS.split(',').join(', ')} and nothing else — a threshold or a dose in the registry is clinical content that no board ratified.`);
+  if (!/^[a-z]+(-[a-z]+)*$/.test(p.id)) throw new Error(`${where} has an id that is not lower-case words joined by hyphens.`);
+  if (!Number.isInteger(p.version) || p.version < 1) throw new Error(`${where} has no whole-number version.`);
+  if (registered.has(`${p.id}@${p.version}`)) throw new Error(`${where} is registered twice.`);
+  registered.add(`${p.id}@${p.version}`);
+  if (!engineIds.has(p.engine)) throw new Error(`${where} belongs to "${p.engine}", which is not an engine in packages/catalog/events.json.`);
+  if (!protocolStatuses.has(p.status)) throw new Error(`${where} has the status "${p.status}".`);
+  if (p.status === 'ratified') {
+   if (!p.ratifiedBy?.role?.trim() || !p.ratifiedBy?.name?.trim() || !Number.isInteger(p.ratifiedOn) || p.ratifiedOn > 0) throw new Error(`${where} is ratified without a named role, a named person and a day that has happened. ${protocolRefusal('no-ratification-without-a-signature').why}`);
+  }
+  if (p.status === 'draft') {
+   if (p.ratifiedBy !== null || p.ratifiedOn !== null) throw new Error(`${where} is a draft that says who ratified it. ${protocolRefusal('no-ratification-without-a-signature').statement}`);
+   if (p.contentRef !== null) throw new Error(`${where} is a draft with content. ${protocolRefusal('a-draft-carries-nothing').why}`);
+   for (const [key, value] of Object.entries(p)) {
+    if (['version', 'supersedes'].includes(key)) continue;
+    if (typeof value === 'number' || /\d/.test(JSON.stringify(value))) throw new Error(`${where} carries a number in ${key}. ${protocolRefusal('a-draft-carries-nothing').statement} ${protocolRefusal('a-draft-carries-nothing').why}`);
+   }
+  }
+ }
+ for (const p of protocolContract.protocols) {
+  if (p.supersedes === null) { if (p.version !== 1) throw new Error(`packages/catalog/protocols.json registers ${p.id}@${p.version} without saying which version it supersedes. ${protocolRefusal('a-new-version-is-a-new-row').statement}`); continue; }
+  const [id, v] = String(p.supersedes).split('@');
+  if (id !== p.id || Number(v) !== p.version - 1 || !registered.has(p.supersedes)) throw new Error(`${p.id}@${p.version} supersedes "${p.supersedes}", which is not the previous registered version of the same protocol. ${protocolRefusal('a-new-version-is-a-new-row').why}`);
+ }
+ const blueprintProtocols = 12;
+ const protocolIds = new Set(protocolContract.protocols.map(p => p.id));
+ if (protocolIds.size !== blueprintProtocols) throw new Error(`packages/catalog/protocols.json registers ${protocolIds.size} protocols. The Master Blueprint Part F names twelve launch protocols; one added or lost here is a launch scope nobody agreed.`);
+
+ /* Nothing outside the registry invents a version. A reference is an id@number token: any whose id is
+    a registered protocol, and any on a line that says "protocol" — so a new protocol cannot be cited
+    before it is registered just because its id is new. */
+ const protocolReference = /\b([a-z][a-z0-9]*(?:-[a-z0-9]+)+)@(\d+)\b/g;
+ const citing = [
+  ...files('apps/web/src'), ...files('apps/api/src'), ...files('apps/ios/MyThuso'), ...files('apps/android/app/src/main'),
+  ...files('packages/catalog'), ...files('packages/thusoiq'), ...files('packages/commerce'), ...files('scripts'), ...files('tests'), ...files('docs')
+ ].filter(f => /\.(tsx?|mjs|json|swift|kt|md|lock)$/.test(f) && f !== 'packages/catalog/protocols.json');
+ for (const file of citing) {
+  for (const line of read(file).split('\n')) {
+   for (const [token, id, v] of line.matchAll(protocolReference)) {
+    if (!protocolIds.has(id) && !/protocol/i.test(line)) continue;
+    if (!registered.has(`${id}@${v}`)) throw new Error(`${file} cites the protocol version ${token}, which packages/catalog/protocols.json does not register. ${protocolRefusal('no-version-outside-the-register').why}`);
+   }
+  }
+ }
+
+ console.log(`ThusoIQ Core's event contract is frozen at version ${eventsContract.version}: ${coreEvents.length} events from ${eventsContract.sources.length - skippedSources.length} of ${eventsContract.sources.length} source files, owned by ${new Set(coreEvents.map(e => e.owner)).size} of ${engineIds.size} engines, every one of them in ${eventsContract.lock} under the fingerprint of its shape — so a subscriber built against one never finds it changed. None carries any of the ${neverOnBus.length} fields the bus refuses, no engine listens to itself, no alert carries a reading, no alert closes without an outcome, and Money is never told a person was suspended. ${grants.recipientRoles.length} consent grant roles, each one expiring within a year, none opening a sealed category by default, a responder's ending with the trip, revocation with no grace, and the scheme's the only non-identifiable role there is. ${protocolContract.protocols.length} protocols registered, ${protocolContract.protocols.filter(p => p.status === 'ratified').length} ratified, and not a number in any draft; ${citing.length} files read to make sure none of them cites a version the registry does not hold.`);
+}
+/* ==== end of Contracts & Core (Wave 1) ============================================================ */
 
 /* ---- The Health Passport's own record ----------------------------------------------------------
 

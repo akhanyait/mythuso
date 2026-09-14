@@ -1,0 +1,576 @@
+{
+ "_note": "ThusoIQ Core's event contracts, version one, frozen. The Full Scope's first governing principle is to freeze these before anything else, because every engine publishes to the same bus and reads from it: an event whose shape changes under a subscriber is a subscriber quietly doing the wrong thing. So the shape is data, the refusals are data, and scripts/check-boundaries.mjs holds every file listed in `sources` to both. Nothing here is a running bus. No event is published, delivered or stored anywhere in this repository.",
+ "_whatFrozenMeans": "An event type at a version never changes and never disappears while `frozen` is true. packages/catalog/events.lock lists every type@version this contract has ever published; the build fails if one in the lock is no longer declared, or if one is declared and not in the lock. Changing an event's payload means adding the same type at the next version as a new entry and adding its line to the lock, and leaving the old one exactly as it was so that subscribers still reading it keep working.",
+ "_kernelNote": "packages/catalog/thusoiq.json holds the appointment kernel's four states — scheduled, arrived, completed, cancelled — which is what the preview enforces today. The events below follow the Master's nine-state Appointment Engine instead, because that is what the engines subscribing to them will be built against. The kernel is a subset of it rather than a rival: scheduled is booked-or-confirmed, arrived is in-progress.",
+ "version": 1,
+ "frozen": true,
+ "lock": "packages/catalog/events.lock",
+
+ "engines": [
+  { "id": "core", "name": "ThusoIQ Core", "productName": "ThusoIQ", "owns": "The bus, the closed loop, the alert router, the protocol registry and the audit trail. The spine every other engine is replaceable around." },
+  { "id": "access", "name": "Access", "productName": "Gilbert", "owns": "The patient's way in: intake, guidance and routing to a person. It routes; it never decides a clinical question." },
+  { "id": "pulse", "name": "Gilbert Pulse Interaction Engine", "productName": "Gilbert Pulse", "owns": "The visible and audible layer of Gilbert: voice, session and the sphere's states. It makes no clinical decision." },
+  { "id": "care", "name": "Care", "productName": "Thuso Nurse", "owns": "Appointments, dispatch of nurses to a door, and the visit itself." },
+  { "id": "clinical", "name": "Clinical Intelligence", "productName": "Thuso AI", "owns": "Decision support under a ratified protocol, always with a doctor's sign-off." },
+  { "id": "safety", "name": "Safety", "productName": "Sentinel", "owns": "Deterioration detection and the five-tier escalation ladder." },
+  { "id": "movement", "name": "Movement", "productName": "Thuso Ride", "owns": "Transport and responder dispatch. Transport, not emergency medical care." },
+  { "id": "trust", "name": "Trust", "productName": "Verify", "owns": "Vetting, credential monitoring and the Trust Score behind every person and partner." },
+  { "id": "record", "name": "Record", "productName": "Health Passport", "owns": "The patient-owned record, its consent grants and its access log." },
+  { "id": "medicines", "name": "Medicines & Labs", "productName": "Thuso Pharmacy", "owns": "Prescriptions, dispensing and laboratory orders." },
+  { "id": "devices", "name": "Devices", "productName": "Thuso Kit", "owns": "The device registry: serial, firmware, calibration and recall linkage." },
+  { "id": "money", "name": "Money", "productName": "Thuso Money", "owns": "Payments, payouts, claims and Thuso Market orders." }
+ ],
+
+ "envelope": [
+  { "field": "eventId", "type": "string", "required": true, "why": "Unique per event, so a subscriber that receives the same event twice can tell, and an audit entry can point at exactly one." },
+  { "field": "type", "type": "string", "required": true, "why": "One of the types declared in a source file. A subscriber dispatches on it, so an undeclared type is an event nobody is listening for." },
+  { "field": "version", "type": "integer", "required": true, "why": "The version of the type's payload. A subscriber reading version one must never be handed version two's shape under the same number." },
+  { "field": "occurredAt", "type": "instant", "required": true, "why": "When it happened, with an offset, by the publisher's clock. Not when it was delivered, which the bus records separately." },
+  { "field": "owner", "type": "string", "required": true, "why": "The engine that publishes this type. Only the owner may publish it; a second publisher is a second source of truth." },
+  { "field": "actorRole", "type": "string", "required": true, "why": "The role that caused the event — nurse, doctor, patient, system. A role and never a person's name, because a bus is read by every subscriber and a name on it is a name in every one of their logs." },
+  { "field": "subjectRef", "type": "string", "required": true, "why": "An opaque token for the person or partner the event is about, issued by identity and meaningless outside it. The South African identity number is never the key: it encodes a date of birth and a sex, and it joins every system that has ever stored it." },
+  { "field": "purposeOfUse", "type": "string", "required": true, "why": "Why the actor was doing this, from the gate's Purpose union in apps/api/src/protection/contract.ts. POPIA section 13 ties processing to a purpose, and an event without one cannot be checked against the purpose it was allowed for." },
+  { "field": "protocolVersion", "type": "string", "required": false, "why": "On any event carrying a recommendation, the protocol it was made under as id@version from packages/catalog/protocols.json. Optional on the envelope because most events recommend nothing; a recommendation without it is not published." },
+  { "field": "causationId", "type": "string", "required": false, "why": "The eventId of the event that caused this one, so the closed loop can follow a concern from its first event to its outcome without guessing." }
+ ],
+
+ "neverInEnvelope": [
+  { "field": "idNumber", "why": "The South African identity number. It encodes a date of birth and a sex, it cannot be changed when it leaks, and it is the key that joins one system's copy of a person to every other's. The subject is an opaque token." },
+  { "field": "passportNumber", "why": "A travel document number is an identity number with the same problems, held by the people least able to replace one." },
+  { "field": "name", "why": "Every subscriber writes what it receives into a log. A name on the bus is a name in a dozen logs nobody set out to keep." },
+  { "field": "phone", "why": "A contact route belongs to identity, which releases it to the one engine that needs to call and records that it did." },
+  { "field": "email", "why": "The same as a phone number, for the same reason." },
+  { "field": "address", "why": "A home address beside a visit type tells anyone reading the bus which house has an ill person in it, and when nobody else is there." },
+  { "field": "dateOfBirth", "why": "Together with a suburb it identifies most people uniquely, which is what the opaque subject token exists to avoid." },
+  { "field": "medicalAidNumber", "why": "A scheme membership number is an identifier the scheme can join to its own claims history. Money reads it from the record under a grant." },
+  { "field": "value", "why": "A raw clinical value on the bus is health information in every subscriber's hands. A reading is written to the record, and events point at the entry." },
+  { "field": "reading", "why": "The same refusal under the other word people use for it." },
+  { "field": "diagnosis", "why": "A diagnosis is special personal information and a reserved clinical act. It lives in the record under the doctor who made it, not in a message every engine receives." },
+  { "field": "note", "why": "Free text is where health information goes when there is no field for it. An event has no free text so that nothing can be written into one by accident." },
+  { "field": "transcript", "why": "What a patient says to Gilbert is health information the moment it describes a symptom. A transcript is held by the engine that took it, under the record's rules, and never broadcast." },
+  { "field": "image", "why": "A wound photograph is a clinical record, and a photograph of a door is an address." },
+  { "field": "cardNumber", "why": "No payment is taken in this repository, and when one is, a card number never leaves the payment provider." },
+  { "field": "bankAccount", "why": "A nurse's payout account is her financial information. Money holds it; nothing else needs it." }
+ ],
+
+ "sources": [
+  "packages/catalog/events.json",
+  "packages/catalog/assistant.json",
+  "packages/catalog/trust.json"
+ ],
+
+ "refusals": [
+  { "id": "nothing-identifying-on-the-bus", "statement": "No event carries a field listed under neverInEnvelope, in its envelope or in its payload.", "why": "Every engine subscribes to something, and every subscriber keeps what it receives. The bus is the widest audience in the platform, so it carries references and never the thing referred to." },
+  { "id": "one-type-one-version-one-entry", "statement": "No two events share a type at the same version, across every source file.", "why": "Two declarations of one event are two shapes a subscriber could be handed under the same name, and it cannot tell which one arrived." },
+  { "id": "only-declared-engines", "statement": "Every owner and every subscriber is an engine declared in this file.", "why": "An event owned by an engine that does not exist has no publisher anyone can be held to, and a subscriber that does not exist is a consequence nobody will build." },
+  { "id": "no-subscribing-to-yourself", "statement": "An engine never subscribes to its own event.", "why": "An engine that listens to itself to re-publish is a loop with one member and no owner, and it is how one event becomes a storm. What an engine does next after its own event it does in its own code." },
+  { "id": "an-alert-points-at-the-record", "statement": "An alert event never carries a clinical value. It carries a reference to the record entry the value lives in.", "why": "Alerts are routed, copied into digests, snoozed and escalated to people who were never on the patient's care team. A reading travels through the record, where the grant decides who may open it." },
+  { "id": "an-alert-closes-on-an-outcome", "statement": "An alert is not closed without a reference to the outcome that was recorded.", "why": "The closed loop's rule is that no alert is done until the outcome is documented. An alert.closed with nowhere to point is a loop closed by somebody pressing a button." },
+  { "id": "a-suspension-never-reaches-money", "statement": "Money does not subscribe to a person being suspended or deactivated.", "why": "A suspension withdraws future work. It never touches money already earned, and the simplest way to make that true is for the engine that pays to never be told." },
+  { "id": "frozen-means-frozen", "statement": "While the contract is frozen, no type@version in the lock may disappear or change. A new version is a new entry.", "why": "A subscriber built against version one is still running somewhere. Editing version one in place breaks it silently; adding version two breaks nothing and lets it move when it is ready." }
+ ],
+
+ "events": [
+  {
+   "type": "appointment.requested", "version": 1, "owner": "care",
+   "summary": "A patient, or somebody booking for them, has asked for a visit. Nothing is held yet.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment every later event in the state machine refers to." },
+    { "field": "serviceId", "type": "string", "required": true, "why": "An id from packages/catalog/services.json, so price and duration are read from the catalogue rather than carried." },
+    { "field": "mode", "type": "string", "required": true, "why": "home or video, from the modes in packages/catalog/thusoiq.json." },
+    { "field": "preferredFrom", "type": "instant", "required": false, "why": "The earliest time the patient asked for, when they asked for one." }
+   ],
+   "neverCarries": [
+    { "field": "reasonForVisit", "why": "What is wrong is the start of a clinical record, and it is written into the record at intake rather than broadcast with the booking." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "appointment.offered", "version": 1, "owner": "care",
+   "summary": "The visit has been offered to an eligible clinician, who may accept or let it lapse.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment being offered." },
+    { "field": "clinicianRef", "type": "string", "required": true, "why": "The opaque reference of the clinician it was offered to, who must hold a current person.verified." },
+    { "field": "offerExpiresAt", "type": "instant", "required": true, "why": "When the offer lapses and goes to the next eligible clinician, so an unanswered offer cannot hold a patient's visit." }
+   ],
+   "neverCarries": [
+    { "field": "patientLocation", "why": "An offer goes to clinicians who may decline it. Where the patient lives is released to the one who accepts, not to everyone who was asked." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "appointment.booked", "version": 1, "owner": "care",
+   "summary": "A clinician has accepted and a time is held.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment now held." },
+    { "field": "clinicianRef", "type": "string", "required": true, "why": "Who accepted it." },
+    { "field": "scheduledFor", "type": "instant", "required": true, "why": "The time held, so the closed loop can open its expectation of an outcome." }
+   ],
+   "neverCarries": [
+    { "field": "priceCents", "why": "The price belongs to packages/catalog/services.json and the charge to Money. A price on the booking event is a second copy that disagrees the day the catalogue changes." }
+   ],
+   "subscribers": ["core", "record", "money"]
+  },
+  {
+   "type": "appointment.confirmed", "version": 1, "owner": "care",
+   "summary": "The patient has confirmed they will be there.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment confirmed." },
+    { "field": "scheduledFor", "type": "instant", "required": true, "why": "The time confirmed, which may differ from the one first booked." }
+   ],
+   "neverCarries": [
+    { "field": "confirmationCode", "why": "The visit code the nurse checks at the door is a secret between the patient and the visit. On the bus it would prove nothing at the door." }
+   ],
+   "subscribers": ["core", "access"]
+  },
+  {
+   "type": "appointment.en_route", "version": 1, "owner": "care",
+   "summary": "The clinician has set off.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment being travelled to." },
+    { "field": "clinicianRef", "type": "string", "required": true, "why": "Who is travelling." },
+    { "field": "expectedArrivalAt", "type": "instant", "required": true, "why": "An estimate the patient can be told, which is all the patient needs." }
+   ],
+   "neverCarries": [
+    { "field": "clinicianPosition", "why": "A live position is not an event. Tracking is governed by packages/catalog/geography.json and shown only on the day; a position on the bus is a nurse tracked by every subscriber." }
+   ],
+   "subscribers": ["core", "access"]
+  },
+  {
+   "type": "appointment.in_progress", "version": 1, "owner": "care",
+   "summary": "The clinician is with the patient and the visit code matched.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment under way." },
+    { "field": "visitCodeMatched", "type": "boolean", "required": true, "why": "Always true when published. A failed visit code stops the visit, so there is no in-progress event for one; the field is here so a subscriber can refuse an event that says otherwise." }
+   ],
+   "neverCarries": [
+    { "field": "visitCode", "why": "The code itself is the proof the right person is at the right door. Broadcasting it would make it worthless for the next visit." }
+   ],
+   "subscribers": ["core", "record", "safety"]
+  },
+  {
+   "type": "appointment.completed", "version": 1, "owner": "care",
+   "summary": "The visit is finished and the encounter is signed.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment completed." },
+    { "field": "encounterRef", "type": "string", "required": true, "why": "The signed encounter in the record, which is where what happened is kept." },
+    { "field": "serviceId", "type": "string", "required": true, "why": "What was delivered, so Money pays the nurse's share from packages/catalog/services.json rather than from a number on the event." }
+   ],
+   "neverCarries": [
+    { "field": "findings", "why": "What the nurse found is the encounter. The event says the encounter exists and where; it does not repeat it." }
+   ],
+   "subscribers": ["core", "record", "money", "trust"]
+  },
+  {
+   "type": "appointment.no_show", "version": 1, "owner": "care",
+   "summary": "Somebody who was meant to be there was not.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment missed." },
+    { "field": "absentParty", "type": "string", "required": true, "why": "patient or clinician. Verify counts a clinician's no-shows; it must never count a patient's against a nurse." },
+    { "field": "reasonCode", "type": "string", "required": false, "why": "A code, when one is known. Never free text." }
+   ],
+   "neverCarries": [
+    { "field": "absenceExplanation", "why": "Why somebody was not home is often a health reason, and it is written in the record if at all." }
+   ],
+   "subscribers": ["core", "money", "trust"]
+  },
+  {
+   "type": "appointment.cancelled", "version": 1, "owner": "care",
+   "summary": "The appointment has been called off, with a reason code.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The appointment cancelled." },
+    { "field": "cancelledByRole", "type": "string", "required": true, "why": "Who called it off, by role, because what the patient owes depends on it." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "A code for analytics and for the cancellation rules. Never free text." },
+    { "field": "scheduledFor", "type": "instant", "required": true, "why": "The time that was held, so Money applies packages/catalog/cancellation.json against it rather than guessing the notice given." }
+   ],
+   "neverCarries": [
+    { "field": "cancellationReasonText", "why": "A patient's own words about why they cancelled are free text, and free text is where health information goes when nobody meant it to." }
+   ],
+   "subscribers": ["core", "money"]
+  },
+  {
+   "type": "appointment.follow_up_required", "version": 1, "owner": "care",
+   "summary": "The visit ended with something still to do, and the closed loop now owns it.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The visit the follow-up came out of." },
+    { "field": "followUpKind", "type": "string", "required": true, "why": "visit, teleconsult, referral or result — what kind of thing the loop is waiting for." },
+    { "field": "followUpDueBy", "type": "instant", "required": true, "why": "The time after which the loop escalates. A follow-up with no deadline is a follow-up nobody is waiting for." }
+   ],
+   "neverCarries": [
+    { "field": "clinicalReason", "why": "Why a follow-up is needed is a clinical judgement in the encounter. The loop needs an owner and a deadline, not the diagnosis." }
+   ],
+   "subscribers": ["core", "record"]
+  },
+
+  {
+   "type": "person.verified", "version": 1, "owner": "trust",
+   "summary": "A person has passed every onboarding gate and may be offered work in their role.",
+   "payload": [
+    { "field": "role", "type": "string", "required": true, "why": "A role id from packages/catalog/vetting.json. Verification is per role; a verified driver is not a verified nurse." },
+    { "field": "badgeTier", "type": "string", "required": true, "why": "Verified, Trusted or Senior — the only form of the Trust Score a patient is ever shown." },
+    { "field": "verifiedUntil", "type": "iso-date", "required": true, "why": "The day the earliest credential expires. A verification with no end date is one nobody re-checks." }
+   ],
+   "neverCarries": [
+    { "field": "backgroundCheckResult", "why": "Criminal history is special personal information held in the segregated Verify store. Every other engine needs to know the gate passed, not what was behind it." }
+   ],
+   "subscribers": ["care", "movement", "access", "medicines"]
+  },
+  {
+   "type": "person.probation", "version": 1, "owner": "trust",
+   "summary": "A newly activated person is on probation for their first jobs.",
+   "payload": [
+    { "field": "role", "type": "string", "required": true, "why": "The role on probation." },
+    { "field": "jobsRemaining", "type": "integer", "required": true, "why": "How many completed jobs remain before probation ends, so dispatch can apply probation rules without keeping its own count." }
+   ],
+   "neverCarries": [
+    { "field": "assessmentScore", "why": "The skills test result is vetting evidence. Dispatch needs to know probation applies, not how close the person came to failing." }
+   ],
+   "subscribers": ["care", "movement"]
+  },
+  {
+   "type": "person.trust_updated", "version": 1, "owner": "trust",
+   "summary": "A person's Trust Score has been recomputed.",
+   "payload": [
+    { "field": "score", "type": "integer", "required": true, "why": "The whole-number score dispatch ranks eligible people by, after proximity. Never shown to a patient." },
+    { "field": "badgeTier", "type": "string", "required": true, "why": "The tier a patient may be shown, derived by Verify so no screen derives its own." }
+   ],
+   "neverCarries": [
+    { "field": "scoreInputs", "why": "Complaints, incidents and ratings are what the score is explained from, to the person it is about. A roster that can read them is a roster that starts judging on them." }
+   ],
+   "subscribers": ["care", "movement"]
+  },
+  {
+   "type": "person.under_review", "version": 1, "owner": "trust",
+   "summary": "Something about a person is being looked at by the review panel.",
+   "payload": [
+    { "field": "role", "type": "string", "required": true, "why": "The role under review." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "A code the person can read on their own status screen. Never the complaint itself." }
+   ],
+   "neverCarries": [
+    { "field": "complaintDetail", "why": "A complaint names a patient and describes a visit. Neither belongs in front of the engines that dispatch." }
+   ],
+   "subscribers": ["care", "movement", "access"]
+  },
+  {
+   "type": "person.suspended", "version": 1, "owner": "trust",
+   "summary": "A person may not be offered work until a decision is made.",
+   "payload": [
+    { "field": "role", "type": "string", "required": true, "why": "The role suspended." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "Why, as a code — credential lapsed, panel decision, face match failed." },
+    { "field": "reviewBy", "type": "instant", "required": false, "why": "When the panel has undertaken to decide, where a panel is involved." }
+   ],
+   "neverCarries": [
+    { "field": "payoutInstruction", "why": "A suspension never touches money already earned. The event has nowhere to say otherwise, and Money does not subscribe to it." }
+   ],
+   "subscribers": ["care", "movement", "access", "record", "medicines"]
+  },
+  {
+   "type": "person.reinstated", "version": 1, "owner": "trust",
+   "summary": "A suspension has ended and the person may be offered work again.",
+   "payload": [
+    { "field": "role", "type": "string", "required": true, "why": "The role reinstated." },
+    { "field": "badgeTier", "type": "string", "required": true, "why": "The tier they return at, which the panel may have changed." }
+   ],
+   "neverCarries": [
+    { "field": "panelMinutes", "why": "The panel's reasoning is the person's to read and the Verify store's to keep." }
+   ],
+   "subscribers": ["care", "movement", "access", "record", "medicines"]
+  },
+  {
+   "type": "person.deactivated", "version": 1, "owner": "trust",
+   "summary": "A person is no longer part of the network in this role.",
+   "payload": [
+    { "field": "role", "type": "string", "required": true, "why": "The role ended." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "Why, as a code, including the person leaving of their own accord." }
+   ],
+   "neverCarries": [
+    { "field": "payoutInstruction", "why": "What a person earned before they left is owed to them. Deactivation does not reach it." }
+   ],
+   "subscribers": ["care", "movement", "access", "record", "medicines"]
+  },
+  {
+   "type": "credential.expiring", "version": 1, "owner": "trust",
+   "summary": "A credential a person relies on to work will expire soon.",
+   "payload": [
+    { "field": "credentialKind", "type": "string", "required": true, "why": "Which credential — registration, indemnity, licence, clearance — so the reminder says what to renew." },
+    { "field": "expiresOn", "type": "iso-date", "required": true, "why": "The day it stops being valid." }
+   ],
+   "neverCarries": [
+    { "field": "registrationNumber", "why": "The number itself is vetting evidence held by Verify. A reminder needs the kind and the day." }
+   ],
+   "subscribers": ["core", "care"]
+  },
+  {
+   "type": "credential.lapsed", "version": 1, "owner": "trust",
+   "summary": "A credential has expired. Verify suspends the person the same day and says so separately.",
+   "payload": [
+    { "field": "credentialKind", "type": "string", "required": true, "why": "Which credential lapsed." },
+    { "field": "lapsedOn", "type": "iso-date", "required": true, "why": "The day it lapsed. Dispatch withdraws by arithmetic against it, not by waiting to be told twice." }
+   ],
+   "neverCarries": [
+    { "field": "registrationNumber", "why": "As for credential.expiring." }
+   ],
+   "subscribers": ["core", "care", "movement"]
+  },
+  {
+   "type": "partner.verified", "version": 1, "owner": "trust",
+   "summary": "A pharmacy, laboratory or supplier has passed its gates.",
+   "payload": [
+    { "field": "partnerKind", "type": "string", "required": true, "why": "pharmacy, lab or supplier — which gates it passed." },
+    { "field": "verifiedUntil", "type": "iso-date", "required": true, "why": "The day its earliest licence or registration expires." }
+   ],
+   "neverCarries": [
+    { "field": "complianceDocuments", "why": "The documents are evidence in the Verify store. Engines need the result." }
+   ],
+   "subscribers": ["medicines", "money", "movement"]
+  },
+  {
+   "type": "partner.suspended", "version": 1, "owner": "trust",
+   "summary": "A partner may not receive new work or orders.",
+   "payload": [
+    { "field": "partnerKind", "type": "string", "required": true, "why": "Which kind of partner." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "Why, as a code." }
+   ],
+   "neverCarries": [
+    { "field": "auditFindings", "why": "Findings are between Verify and the partner until a decision is made." }
+   ],
+   "subscribers": ["medicines", "money", "movement"]
+  },
+
+  {
+   "type": "passport.record.created", "version": 1, "owner": "record",
+   "summary": "A Health Passport now exists for this person.",
+   "payload": [
+    { "field": "recordRef", "type": "string", "required": true, "why": "The record's own reference inside the Passport service, which no other engine can open without a grant." }
+   ],
+   "neverCarries": [
+    { "field": "demographics", "why": "Who the person is lives in identity. The record's existence is the only fact the bus needs." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "passport.entry.written", "version": 1, "owner": "record",
+   "summary": "Something was added to the record.",
+   "payload": [
+    { "field": "entryRef", "type": "string", "required": true, "why": "The entry, which a subscriber with a grant can read through the gateway." },
+    { "field": "resourceType", "type": "string", "required": true, "why": "The FHIR resource type — Observation, Condition, MedicationRequest — so a subscriber knows whether it is interested before it asks." },
+    { "field": "authorRole", "type": "string", "required": true, "why": "The role that wrote it." },
+    { "field": "authorRef", "type": "string", "required": true, "why": "The opaque reference of the author, so provenance survives without a name on the bus." },
+    { "field": "provenance", "type": "string", "required": true, "why": "Which engine or partner feed it came from — a nurse at the door, a laboratory, a device." }
+   ],
+   "neverCarries": [
+    { "field": "recordCategory", "why": "A category such as HIV or mental health names what the entry is about. Sealed categories are closed by default, and naming one on the bus would disclose it to every subscriber." },
+    { "field": "content", "why": "The entry is read through the gateway, under a grant, and logged. A copy on the bus would be read by nobody's permission." }
+   ],
+   "subscribers": ["core", "clinical", "care"]
+  },
+  {
+   "type": "passport.entry.superseded", "version": 1, "owner": "record",
+   "summary": "An entry was corrected by a newer one. The old one is kept.",
+   "payload": [
+    { "field": "entryRef", "type": "string", "required": true, "why": "The entry superseded, which stays in the record." },
+    { "field": "supersededByRef", "type": "string", "required": true, "why": "The entry that replaces it." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "Why — entered in error, amended, result corrected." }
+   ],
+   "neverCarries": [
+    { "field": "previousContent", "why": "What the entry used to say is in the record, where the correction is visible to anyone allowed to see both." }
+   ],
+   "subscribers": ["core", "clinical", "care"]
+  },
+  {
+   "type": "passport.consent.granted", "version": 1, "owner": "record",
+   "summary": "The patient, or their delegate, has granted a recipient access to part of the record, for a purpose, until a time.",
+   "payload": [
+    { "field": "grantRef", "type": "string", "required": true, "why": "The signed consent artefact the gateway validates on every call." },
+    { "field": "recipientRole", "type": "string", "required": true, "why": "A role id from grants.recipientRoles in packages/catalog/consent.json." },
+    { "field": "recipientRef", "type": "string", "required": false, "why": "The opaque reference of the recipient. Absent for scheme-aggregate, which has no identifiable recipient because it receives no identifiable data." },
+    { "field": "scope", "type": "list", "required": true, "why": "Record ids from packages/catalog/records.json. Sealed categories are never listed here by name." },
+    { "field": "purpose", "type": "string", "required": true, "why": "The purpose the grant is for, from the gate's Purpose union." },
+    { "field": "expiresAt", "type": "instant", "required": true, "why": "Every grant ends. There is no grant without this field." },
+    { "field": "sealedIncluded", "type": "boolean", "required": true, "why": "Whether the patient ticked a sealed category in, which is all the bus is told about it." }
+   ],
+   "neverCarries": [
+    { "field": "sealedCategories", "why": "Which sealed categories a grant opens discloses that the patient has something in them. The gateway knows; the bus is told only that some are included." }
+   ],
+   "subscribers": ["core", "access", "care", "medicines", "movement", "money"]
+  },
+  {
+   "type": "passport.consent.revoked", "version": 1, "owner": "record",
+   "summary": "A grant has been revoked. It stops working at once.",
+   "payload": [
+    { "field": "grantRef", "type": "string", "required": true, "why": "The grant that no longer opens anything." },
+    { "field": "recipientRole", "type": "string", "required": true, "why": "Whose access ended, so every engine serving that role drops what it cached." }
+   ],
+   "neverCarries": [
+    { "field": "revocationReason", "why": "A patient never has to say why, and nothing downstream is entitled to ask." }
+   ],
+   "subscribers": ["core", "access", "care", "medicines", "movement", "money"]
+  },
+  {
+   "type": "passport.access.read", "version": 1, "owner": "record",
+   "summary": "Somebody asked to read part of the record, and was allowed or refused.",
+   "payload": [
+    { "field": "accessRef", "type": "string", "required": true, "why": "The access-log entry the patient can read." },
+    { "field": "requesterRole", "type": "string", "required": true, "why": "The role that asked." },
+    { "field": "requesterRef", "type": "string", "required": true, "why": "The opaque reference of who asked, so anomaly detection can see a nurse reading a patient who is not hers." },
+    { "field": "purpose", "type": "string", "required": true, "why": "The purpose the read was made under." },
+    { "field": "grantRef", "type": "string", "required": false, "why": "The grant relied on, when one was." },
+    { "field": "outcome", "type": "string", "required": true, "why": "granted or refused, from accessLog.outcomes in packages/catalog/consent.json. A refusal is published as surely as a success." }
+   ],
+   "neverCarries": [
+    { "field": "entryContent", "why": "An access event holding what was read would be a second copy of the record with the widest audience in the platform." }
+   ],
+   "subscribers": ["core", "trust"]
+  },
+  {
+   "type": "passport.access.breakglass", "version": 1, "owner": "record",
+   "summary": "A clinician or the dispatch desk opened the emergency summary without a grant, giving a justification.",
+   "payload": [
+    { "field": "accessRef", "type": "string", "required": true, "why": "The access-log entry." },
+    { "field": "requesterRole", "type": "string", "required": true, "why": "A registered clinician or the Sentinel dispatch desk; nobody else can break glass." },
+    { "field": "requesterRef", "type": "string", "required": true, "why": "Who broke it. Repeated or unjustified use is a Verify matter, and Verify needs to know whose." },
+    { "field": "justificationRef", "type": "string", "required": true, "why": "Where the justification is recorded. A break-glass with no justification is not permitted." },
+    { "field": "reviewDueBy", "type": "instant", "required": true, "why": "Twenty-four hours from the event, by which the governance board must have reviewed it." }
+   ],
+   "neverCarries": [
+    { "field": "justificationText", "why": "A justification usually describes the patient's condition in the moment. It is held in the record for the reviewers, not broadcast." }
+   ],
+   "subscribers": ["core", "trust", "access"]
+  },
+  {
+   "type": "passport.export.generated", "version": 1, "owner": "record",
+   "summary": "A full export of the record was produced for the patient.",
+   "payload": [
+    { "field": "exportRef", "type": "string", "required": true, "why": "The export, which only the patient's session can collect." },
+    { "field": "format", "type": "string", "required": true, "why": "FHIR bundle, IPS or PDF." }
+   ],
+   "neverCarries": [
+    { "field": "downloadLink", "why": "A link to a whole record is the whole record. It goes to the patient's session and nowhere else." }
+   ],
+   "subscribers": ["core"]
+  },
+
+  {
+   "type": "alert.raised", "version": 1, "owner": "core",
+   "summary": "A concern has been raised, given a tier and an owner, and started its clock.",
+   "payload": [
+    { "field": "alertRef", "type": "string", "required": true, "why": "The alert every later event in its loop refers to." },
+    { "field": "tier", "type": "integer", "required": true, "why": "The rung on the escalation ladder, one to five." },
+    { "field": "sourceEngine", "type": "string", "required": true, "why": "The engine the concern came from — safety, care, medicines." },
+    { "field": "ownerRole", "type": "string", "required": true, "why": "The role that owns it now. Every concern has an owner." },
+    { "field": "acknowledgeBy", "type": "instant", "required": true, "why": "The deadline after which it escalates to the next person on the rota." },
+    { "field": "recordEntryRef", "type": "string", "required": false, "why": "The record entry that prompted it, which the owner reads through the gateway. This is where the reading is, instead of on the alert." }
+   ],
+   "neverCarries": [
+    { "field": "trendChart", "why": "The owner sees the trend in the record view. An alert copied into a digest must not take the patient's readings with it." }
+   ],
+   "subscribers": ["care", "safety", "access"]
+  },
+  {
+   "type": "alert.acknowledged", "version": 1, "owner": "core",
+   "summary": "The owner has seen the alert and taken it on.",
+   "payload": [
+    { "field": "alertRef", "type": "string", "required": true, "why": "The alert acknowledged." },
+    { "field": "acknowledgedByRole", "type": "string", "required": true, "why": "The role that acknowledged it." },
+    { "field": "acknowledgedByRef", "type": "string", "required": true, "why": "The opaque reference of who did, for the audit trail." }
+   ],
+   "neverCarries": [
+    { "field": "snoozeReasonText", "why": "A snooze has a reason code. The clinician's own words go in the record, not on the bus." }
+   ],
+   "subscribers": ["care", "safety"]
+  },
+  {
+   "type": "alert.escalated", "version": 1, "owner": "core",
+   "summary": "An alert moved up the ladder, because its deadline passed or because somebody escalated it.",
+   "payload": [
+    { "field": "alertRef", "type": "string", "required": true, "why": "The alert escalated." },
+    { "field": "fromTier", "type": "integer", "required": true, "why": "The rung it left." },
+    { "field": "toTier", "type": "integer", "required": true, "why": "The rung it reached. Tier four hands to dispatch and tier five tells the family." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "Deadline passed, clinician escalated, SOS tapped." },
+    { "field": "ownerRole", "type": "string", "required": true, "why": "The role that owns it now." },
+    { "field": "acknowledgeBy", "type": "instant", "required": true, "why": "The new deadline." }
+   ],
+   "neverCarries": [
+    { "field": "patientCondition", "why": "Whoever receives the escalation opens the record under the rules for their role. Movement gets the emergency summary through a responder grant, not through the alert." }
+   ],
+   "subscribers": ["care", "safety", "movement", "access"]
+  },
+  {
+   "type": "alert.closed", "version": 1, "owner": "core",
+   "summary": "The outcome has been recorded and the loop is closed.",
+   "payload": [
+    { "field": "alertRef", "type": "string", "required": true, "why": "The alert closed." },
+    { "field": "outcomeRef", "type": "string", "required": true, "why": "The record entry holding the outcome. There is no alert.closed without one." },
+    { "field": "closedByRole", "type": "string", "required": true, "why": "The role that closed it." }
+   ],
+   "neverCarries": [
+    { "field": "outcomeSummary", "why": "The outcome is in the record. A summary of it on the bus is the outcome, with none of the record's protections." }
+   ],
+   "subscribers": ["care", "safety", "record"]
+  },
+
+  {
+   "type": "market.order.placed", "version": 1, "owner": "money",
+   "summary": "A Thuso Market order was placed.",
+   "payload": [
+    { "field": "orderRef", "type": "string", "required": true, "why": "The order every later event refers to, and the one the closed loop can hold open as a task." },
+    { "field": "itemCount", "type": "integer", "required": true, "why": "How many lines, which is enough to track fulfilment." },
+    { "field": "totalCents", "type": "integer", "required": true, "why": "The total in cents, as an integer, as every amount in this platform is." }
+   ],
+   "neverCarries": [
+    { "field": "productIds", "why": "What somebody bought can say what they live with — test strips, a pregnancy test. The care team reads an order through Money under a grant; the bus is told an order exists." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "market.order.paid", "version": 1, "owner": "money",
+   "summary": "Payment for an order was confirmed.",
+   "payload": [
+    { "field": "orderRef", "type": "string", "required": true, "why": "The order paid for." },
+    { "field": "amountCents", "type": "integer", "required": true, "why": "The amount confirmed, in cents." },
+    { "field": "method", "type": "string", "required": true, "why": "card, EFT, wallet or scheme savings — never cash on delivery, which the Market does not take." }
+   ],
+   "neverCarries": [
+    { "field": "walletBalance", "why": "A balance after a payment is a person's financial position, and no engine needs it to fulfil an order." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "market.order.shipped", "version": 1, "owner": "money",
+   "summary": "An order left the warehouse or the supplier.",
+   "payload": [
+    { "field": "orderRef", "type": "string", "required": true, "why": "The order shipped." },
+    { "field": "carrier", "type": "string", "required": true, "why": "Courier, pick-up point or Thuso Ride." },
+    { "field": "expectedBy", "type": "instant", "required": true, "why": "When it should arrive, after which an undelivered kit becomes an open task." }
+   ],
+   "neverCarries": [
+    { "field": "deliveryAddress", "why": "The courier receives it from Money directly. It is not published." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "market.order.delivered", "version": 1, "owner": "money",
+   "summary": "An order reached the patient.",
+   "payload": [
+    { "field": "orderRef", "type": "string", "required": true, "why": "The order delivered, which closes the task the loop held open." }
+   ],
+   "neverCarries": [
+    { "field": "proofOfDeliveryPhoto", "why": "A photograph at a door is a picture of somebody's home." }
+   ],
+   "subscribers": ["core", "devices"]
+  },
+  {
+   "type": "market.order.returned", "version": 1, "owner": "money",
+   "summary": "An order, or part of one, came back.",
+   "payload": [
+    { "field": "orderRef", "type": "string", "required": true, "why": "The order returned." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "Why, as a code. A device returned faulty starts a registry check." },
+    { "field": "refundCents", "type": "integer", "required": true, "why": "The refund in cents." }
+   ],
+   "neverCarries": [
+    { "field": "returnReasonText", "why": "A customer's own words about a return are free text, and free text does not travel on the bus." }
+   ],
+   "subscribers": ["core", "devices"]
+  }
+ ]
+}

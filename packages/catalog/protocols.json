@@ -1,0 +1,49 @@
+{
+ "_note": "The protocol registry, and nothing else. The Master Blueprint's Core has a component whose whole job is to say which version of which clinical protocol a recommendation was made under, and the Full Scope's acceptance test for it is \"every recommendation references a protocol version; board sign-off recorded\". This file is that register: twelve names, twelve version numbers, and for each one who ratified it and when. It holds no clinical content and it is not going to. A protocol's content is written by the Clinical Lead and the Medical Director, ratified by the clinical governance board, and referenced here by contentRef once it exists — until then contentRef is null and the build refuses a draft that carries anything else.",
+ "_whyEveryOneIsDraft": "Nothing has been ratified. There is no governance board sitting yet, no Medical Director signed on, and no protocol text written. A registry seeded with \"ratified\" rows to make a screen look ready would be the first recommendation in this codebase referencing a sign-off that did not happen, which is the precise failure the registry exists to prevent.",
+ "_source": "The twelve launch protocols are the list in the Master Blueprint v4, Part F, in the order given there. The engine each belongs to is this file's reading of which engine performs the act the protocol governs; the board may move one.",
+
+ "statuses": [
+  { "id": "draft", "name": "Draft", "detail": "Named and numbered. Not ratified, not in use, and carrying no content of any kind." },
+  { "id": "ratified", "name": "Ratified", "detail": "Signed off by the clinical governance board, with the role and name of the person who signed and the day they did it." },
+  { "id": "retired", "name": "Retired", "detail": "No longer used for a new recommendation. Kept, because a recommendation made under it still has to be traceable to the version it was made under." }
+ ],
+
+ "protocols": [
+  { "id": "injection-administration", "name": "Injection administration", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
+  { "id": "wound-care", "name": "Wound care", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
+  { "id": "vitals-and-chronic-check", "name": "Vitals and chronic check", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
+  { "id": "phlebotomy", "name": "Phlebotomy", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
+  { "id": "post-operative-assessment", "name": "Post-operative assessment", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
+  { "id": "mother-and-baby-check", "name": "Mother-and-baby check", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
+  { "id": "elderly-assessment", "name": "Elderly assessment", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
+  { "id": "medical-certificate-criteria", "name": "Medical certificate criteria", "engine": "clinical", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
+  { "id": "infection-control-and-sharps", "name": "Infection control and sharps", "engine": "care", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
+  { "id": "emergency-escalation-and-referral", "name": "Emergency escalation and referral", "engine": "safety", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
+  { "id": "device-use-and-ai-result-handling", "name": "Device use and AI result handling", "engine": "devices", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null },
+  { "id": "safeguarding-and-mandatory-reporting", "name": "Safeguarding and mandatory reporting", "engine": "safety", "version": 1, "status": "draft", "ratifiedBy": null, "ratifiedOn": null, "supersedes": null, "contentRef": null }
+ ],
+
+ "refusals": [
+  {
+   "id": "no-ratification-without-a-signature",
+   "statement": "A protocol is not ratified until the register names the role and the person who signed it off, and the day they did.",
+   "why": "A recommendation that says it follows a ratified protocol is borrowing the board's authority. If the register cannot say whose authority it was, or when it was given, the recommendation is citing nobody, and the first time that matters is an inquest."
+  },
+  {
+   "id": "a-draft-carries-nothing",
+   "statement": "A draft protocol holds a name and a version number. It holds no content, no threshold, no dose and no number of any other kind.",
+   "why": "A threshold written into a draft is used. Somebody wires it into a screen because it is there, and from that moment an unratified number is deciding who a nurse escalates. The only way to make sure nobody acts on a draft's numbers is for a draft to have none."
+  },
+  {
+   "id": "no-version-outside-the-register",
+   "statement": "Nothing outside this file may name a protocol version that this file does not hold.",
+   "why": "A recommendation citing wound-care at a version the register has never heard of cannot be traced to anything a board looked at. The register is the only place a version comes into existence, so it is the only place one may be invented."
+  },
+  {
+   "id": "a-new-version-is-a-new-row",
+   "statement": "Changing a ratified protocol means adding a new version that names the one it supersedes. The ratified row is never edited.",
+   "why": "Recommendations already made under version one were made under version one's words. Editing the row in place would silently re-attribute every one of them to wording that did not exist when they were made."
+  }
+ ]
+}

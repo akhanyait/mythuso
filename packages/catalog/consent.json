@@ -256,5 +256,238 @@
   ],
   "subjectMayRead": "You can read your own access log, in full, without asking anybody and without giving a reason. Your own reading of it is recorded in it, which is how you would notice somebody signed in as you.",
   "retention": "Kept for six years from the day the entry was written. Six is MyThuso's own setting, chosen to match the period a health record is kept for so that a question about care and a question about who read it do not stop being answerable on different days. No statute names a period for an access log."
+ },
+
+ "grants": {
+  "why": "Consent to a purpose is about a person's own account. A grant is the other half: letting somebody else into part of the record, for a reason, until a time. The Health Passport's consent manager validates a grant on every call, so the grant has a fixed shape and every recipient role has a default a patient starts from rather than a blank they must fill in. The defaults are narrow on purpose. A patient can widen a grant with a tick; nobody should have to notice that a default was wide and narrow it.",
+  "source": "Recipient roles and default scopes follow the Roles and default scopes table in ThusoIQ Master section 21, with scope ids taken from the record list in packages/catalog/records.json. The default expiries are not in any document and are MyThuso's own proposal until the Information Officer confirms them.",
+  "shape": [
+   {
+    "field": "subject",
+    "type": "string",
+    "required": true,
+    "why": "The opaque token of the person whose record it is. Never the identity number."
+   },
+   {
+    "field": "recipientRole",
+    "type": "string",
+    "required": true,
+    "why": "One of the recipientRoles below. A grant to a role that is not listed cannot be validated, so it cannot be made."
+   },
+   {
+    "field": "scope",
+    "type": "list",
+    "required": true,
+    "why": "Record ids from packages/catalog/records.json. The gateway filters every read to this list."
+   },
+   {
+    "field": "purpose",
+    "type": "string",
+    "required": true,
+    "why": "The purpose the grant is for, from the gate's Purpose union in apps/api/src/protection/contract.ts. A grant for treatment does not reach billing."
+   },
+   {
+    "field": "expiresAt",
+    "type": "instant",
+    "required": true,
+    "why": "When it stops working. Required, with no value meaning never."
+   },
+   {
+    "field": "sealedIncluded",
+    "type": "boolean",
+    "required": true,
+    "default": false,
+    "why": "Whether a sealed category is in the scope. False unless the patient ticked one in, on the grant itself."
+   }
+  ],
+  "revocation": {
+   "graceSeconds": 0,
+   "event": "passport.consent.revoked",
+   "why": "Revoking a grant stops the next read, not the next sync. Every engine serving the recipient's role subscribes to the revocation and drops what it holds."
+  },
+  "recipientRoles": [
+   {
+    "id": "caregiver",
+    "name": "Caregiver or delegate",
+    "engine": "access",
+    "defaultScope": [
+     "prescription",
+     "appointment",
+     "care-plan"
+    ],
+    "defaultExpiryDays": 90,
+    "sealed": false,
+    "boundTo": null,
+    "identifiable": true,
+    "defaultPurpose": "treatment",
+    "why": "Master section 21 gives the typical caregiver scope as medicines, appointments and the care plan — enough to help somebody keep to their treatment, and nothing about why they are on it. A caregiver's grant is renewed each quarter because families change faster than records do."
+   },
+   {
+    "id": "next-of-kin",
+    "name": "Next of kin",
+    "engine": "access",
+    "defaultScope": [
+     "emergency-card"
+    ],
+    "defaultExpiryDays": 365,
+    "sealed": false,
+    "boundTo": null,
+    "identifiable": true,
+    "defaultPurpose": "emergency",
+    "why": "Next of kin are told when something is wrong. They need the emergency card, which the patient configures, and not the record behind it. Renewed yearly so that an estranged relative does not stay on a card nobody reviewed."
+   },
+   {
+    "id": "nurse-assigned",
+    "name": "Assigned MyThuso nurse",
+    "engine": "care",
+    "defaultScope": [
+     "patient",
+     "allergy",
+     "vitals",
+     "chronic-condition",
+     "medical-history",
+     "immunisation",
+     "child-health",
+     "care-plan",
+     "emergency-card",
+     "prescription",
+     "dispense",
+     "referral",
+     "home-visit"
+    ],
+    "defaultExpiryDays": 14,
+    "sealed": false,
+    "boundTo": "episode",
+    "identifiable": true,
+    "defaultPurpose": "treatment",
+    "why": "The care-relevant record for a patient she is assigned to, bound to the episode of care. Sealed categories are not in it: Master section 21 says a nurse must request them. Fourteen days covers a visit and its follow-up; a longer episode is a new grant, not a longer one."
+   },
+   {
+    "id": "doctor-assigned",
+    "name": "Assigned MyThuso doctor",
+    "engine": "care",
+    "defaultScope": [
+     "patient",
+     "household",
+     "allergy",
+     "vitals",
+     "chronic-condition",
+     "diagnosis",
+     "medical-history",
+     "immunisation",
+     "child-health",
+     "care-plan",
+     "emergency-card",
+     "consultation",
+     "procedure",
+     "prescription",
+     "medication-catalogue",
+     "dispense",
+     "laboratory",
+     "imaging",
+     "referral",
+     "admission",
+     "home-visit"
+    ],
+    "defaultExpiryDays": 14,
+    "sealed": false,
+    "boundTo": "episode",
+    "identifiable": true,
+    "defaultPurpose": "treatment",
+    "why": "The full clinical record for an assigned patient, bound to the episode — every record in the patients and clinical areas that is not sealed, and everything the assigned nurse can see, because a doctor reviewing a nurse's assessment must be able to read what she read. Sealed categories still need a request."
+   },
+   {
+    "id": "pharmacist",
+    "name": "Pharmacist",
+    "engine": "medicines",
+    "defaultScope": [
+     "prescription",
+     "dispense",
+     "allergy",
+     "chronic-condition"
+    ],
+    "defaultExpiryDays": 7,
+    "sealed": false,
+    "boundTo": "episode",
+    "identifiable": true,
+    "defaultPurpose": "dispensing",
+    "why": "Medicines, allergies and the conditions a dispensing decision depends on. A week covers a dispense and its counselling call; a repeat is a new grant."
+   },
+   {
+    "id": "care-coordinator",
+    "name": "Care coordinator",
+    "engine": "core",
+    "defaultScope": [
+     "task",
+     "appointment",
+     "transport"
+    ],
+    "defaultExpiryDays": 30,
+    "sealed": false,
+    "boundTo": "episode",
+    "identifiable": true,
+    "defaultPurpose": "dispatch",
+    "why": "Tasks, appointments and transport, and no clinical detail. A coordinator gets the right person to the right door and does not need to know why they are going."
+   },
+   {
+    "id": "responder-on-trip",
+    "name": "Thuso Ride responder, during a trip",
+    "engine": "movement",
+    "defaultScope": [
+     "emergency-card",
+     "transport"
+    ],
+    "defaultExpiryDays": 1,
+    "sealed": false,
+    "boundTo": "trip",
+    "identifiable": true,
+    "defaultPurpose": "dispatch",
+    "why": "The emergency summary and the mobility note, for the length of one trip. A responder provides transport, not medical care, and the grant ends when the trip does — the day's expiry is only the backstop for a trip that is never closed."
+   },
+   {
+    "id": "scheme-aggregate",
+    "name": "Medical scheme, aggregate only",
+    "engine": "money",
+    "defaultScope": [],
+    "defaultExpiryDays": 365,
+    "sealed": false,
+    "boundTo": null,
+    "identifiable": false,
+    "defaultPurpose": null,
+    "why": "A scheme receives counts and outcomes across many members for a programme it funds. It opens no record, so its scope is empty and it has no purpose from the gate's list: none of those purposes is a reason for a scheme to read one person's record. Renewed with the contract year."
+   }
+  ],
+  "refusals": [
+   {
+    "id": "every-grant-expires",
+    "statement": "Every grant has an end date. There is no default of forever, and no role whose grant does not expire.",
+    "why": "A grant nobody remembers giving is still a door open onto somebody's record. Expiry is how a patient's decision stays a decision they are still making."
+   },
+   {
+    "id": "sealed-needs-an-explicit-tick",
+    "statement": "A sealed category is never in a default scope. It is included only when the patient ticks it in on the grant itself.",
+    "why": "HIV, mental health and reproductive health are closed by default because disclosure can cost somebody their safety at home. A default that includes them is a disclosure the patient did not make."
+   },
+   {
+    "id": "scheme-receives-aggregate-only",
+    "statement": "A medical scheme receives aggregate data only. There is no grant that lets a scheme, insurer, employer or advertiser read an identifiable record, and none can be made.",
+    "why": "Each of these has a financial interest in what the record says about one person. The Master's consent model gives a scheme aggregate access and nothing more, and the only way to keep that true is for the identifiable grant to not exist."
+   },
+   {
+    "id": "revocation-is-immediate",
+    "statement": "Revoking a grant takes effect immediately. There is no grace period and no cached copy that keeps working.",
+    "why": "A patient revokes a grant because something has changed, often at home. An hour's grace is an hour in which the person they just shut out can still read."
+   },
+   {
+    "id": "responder-grant-ends-with-the-trip",
+    "statement": "A responder's grant ends when the trip ends, and never lasts longer than a day.",
+    "why": "A responder needed the emergency summary to move somebody safely. After the trip they are a stranger who once drove the patient, and they have no reason to be able to look again."
+   },
+   {
+    "id": "operations-and-engineering-receive-no-grant",
+    "statement": "Operations, support and engineering are not grant recipients. They see metadata, or synthetic data, and never a record.",
+    "why": "Master section 21 gives both roles no clinical content at all. A grant role for them would be a superuser read path with a consent form in front of it."
+   }
+  ]
  }
 }

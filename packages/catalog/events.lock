@@ -1,0 +1,46 @@
+# packages/catalog/events.lock — every event type@version ThusoIQ Core has frozen, with the fingerprint of its shape.
+#
+# scripts/check-boundaries.mjs fails the build when a line here is no longer declared, when a declared event is
+# missing from here, or when an event has changed shape under a line that was not updated in the same change.
+# A new event, or a new version of one, is a new line. Removing or rewriting a line is a decision about every
+# subscriber already built against it, and it should be the only thing that commit does.
+#
+# type@version fingerprint
+appointment.requested@1 828e599122804aa6
+appointment.offered@1 a5112faf73416acf
+appointment.booked@1 d8d995cada5d15a3
+appointment.confirmed@1 bf9ba9ed2c2a0087
+appointment.en_route@1 a3080f562338de9b
+appointment.in_progress@1 7bda7a859bdc3bd9
+appointment.completed@1 611f717d0cff565f
+appointment.no_show@1 a911332214a74e0b
+appointment.cancelled@1 c0231660dc54f234
+appointment.follow_up_required@1 9dad74419de14342
+person.verified@1 a3093cc819c61bce
+person.probation@1 f7a793839dfaf49d
+person.trust_updated@1 50a06b9d1a74871d
+person.under_review@1 02240b712115fba6
+person.suspended@1 f0476cbdf7909f0c
+person.reinstated@1 38320245d1d171c4
+person.deactivated@1 02240b712115fba6
+credential.expiring@1 8a9e684877523db2
+credential.lapsed@1 9be67c65584828b1
+partner.verified@1 780c23317d9c223d
+partner.suspended@1 7a83f59fde68440d
+passport.record.created@1 f0ad1123db97f084
+passport.entry.written@1 d825d548a0f9d979
+passport.entry.superseded@1 b8c0799d23d55c40
+passport.consent.granted@1 d99e52b098808917
+passport.consent.revoked@1 189666f4a9df5a5a
+passport.access.read@1 cc0c37b1b142debe
+passport.access.breakglass@1 c34822ee4d0eff54
+passport.export.generated@1 75006ce3fbf99015
+alert.raised@1 7d1aa7ecb9ba6106
+alert.acknowledged@1 5b47dc256624f102
+alert.escalated@1 5ef7eae455c02951
+alert.closed@1 c1db2e1e45656918
+market.order.placed@1 d263a7906a4ff99c
+market.order.paid@1 35685247bf01654b
+market.order.shipped@1 5f322ee9641994a6
+market.order.delivered@1 b59e84c35cd47387
+market.order.returned@1 521cf93a22985e3b
