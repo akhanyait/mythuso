@@ -5019,17 +5019,25 @@ for(const file of Object.values(GILBERT_FILES).flat()) {
 const PULSE_EVENTS = ['pulse.session.started', 'pulse.listening.started', 'pulse.utterance.finalised', 'pulse.thinking.started', 'pulse.device.highlight', 'pulse.guidance.presented', 'pulse.escalation.started', 'pulse.handover.completed'];
 const ENGINES = ['core', 'access', 'pulse', 'care', 'clinical', 'safety', 'movement', 'trust', 'record', 'medicines', 'devices', 'money'];
 const eventFieldTypes = new Set(feedContract.fieldTypes.map(t => t.id));
-if(gilbertContract.events.map(e => e.type).join() !== PULSE_EVENTS.join()) throw new Error(`packages/catalog/assistant.json declares the Pulse events ${gilbertContract.events.map(e => e.type).join(', ')}. Section 15F.4 names eight, and the Contracts & Core architect's event shape expects exactly those.`);
+const liveGilbertEvents = gilbertContract.events.filter(e => !e.withdrawn);
+if(liveGilbertEvents.map(e => e.type).join() !== PULSE_EVENTS.join()) throw new Error(`packages/catalog/assistant.json declares the live Pulse events ${liveGilbertEvents.map(e => e.type).join(', ')}. Section 15F.4 names eight, and the Contracts & Core architect's event shape expects exactly those.`);
 /* Nothing a person said leaves the conversation, on any event. utterance.finalised carries the
    length, the channel and ids; the words stay on the device until consent and retention exist. */
 /* Stems rather than names, because the words arrive under many: utteranceText, heardWords, rawTranscript. */
 const NEVER_A_PAYLOAD = ['audio', 'transcript', 'utterance', 'text', 'words', 'heard', 'voiceprint', 'recording', 'embedding', 'diagnos', 'caption'];
+/* A withdrawn version keeps the shape it was frozen with — that shape is why it was withdrawn — so the
+   payload rules below are for live versions. Withdrawal itself is held by the events contract's own
+   check: a day, a reason, the subscribers it had, an empty subscriber list and a later live version. */
 for(const event of gilbertContract.events) {
- if(event.version !== 1 || event.owner !== 'pulse' || !event.summary) throw new Error(`Pulse event "${event.type}" is not version 1, owned by pulse, with a summary.`);
+ if(!Number.isInteger(event.version) || event.version < 1 || event.owner !== 'pulse' || !event.summary) throw new Error(`Pulse event "${event.type}@${event.version}" does not have a whole version, pulse as its owner and a summary.`);
+ if(event.withdrawn) continue;
  if(!event.subscribers.length || event.subscribers.some(s => !ENGINES.includes(s))) throw new Error(`Pulse event "${event.type}" names subscribers ${event.subscribers.join(', ')}. Subscribers are engine ids: ${ENGINES.join(', ')}.`);
  if(event.subscribers.includes(event.owner)) throw new Error(`Pulse event "${event.type}" is subscribed to by its own owner. An engine that listens to itself has a function call, not an event.`);
  for(const field of event.payload) {
   if(!eventFieldTypes.has(field.type) || typeof field.required !== 'boolean' || !field.why) throw new Error(`Pulse event "${event.type}" carries "${field.field}" without a type from feeds.json's fieldTypes, a required flag and a reason.`);
+  /* Which emergency group or which question is a fact about a person once a session is joined to one —
+     a crisis group is a self-harm mention. A live event may say whether, never which. */
+  if(['emergencygroups', 'groups', 'matchedquestion', 'questionid', 'conditions', 'condition'].includes(gilbertCanon(field.field))) throw new Error(`Pulse event "${event.type}@${event.version}" carries "${field.field}". A group id can be crisis and a question id is what somebody asked; joined to a person, either is a record of it. Carry a boolean — escalated, questionMatched — and never which.`);
   if(NEVER_A_PAYLOAD.some(stem => gilbertCanon(field.field).includes(stem)) || gilbertCanon(field.field) === 'value') throw new Error(`Pulse event "${event.type}" carries "${field.field}". No audio, no words a person said and no clinical value leaves a Gilbert conversation on an event.`);
   if(event.neverCarries.some(n => gilbertCanon(n.field) === gilbertCanon(field.field))) throw new Error(`Pulse event "${event.type}" both carries and refuses "${field.field}".`);
  }
@@ -5129,6 +5137,110 @@ for(const file of files('apps/web/src').filter(f => /\.(ts|tsx)$/.test(f))) {
 const launcherLabel = (read('apps/web/src/components/AssistantLauncher.tsx').match(/className="as-launcher" aria-label="([^"]+)"/) ?? [])[1];
 if(launcherLabel !== gilbertContract.identity.callToAction) throw new Error(`The floating orb on the web is called "${launcherLabel}", and the contract's call to action is "${gilbertContract.identity.callToAction}". It is typed there only to keep the contract out of the patient's first load, and it is held to the contract here instead.`);
 if(!/\{silenceIsNotSafety\}/.test(read('apps/web/src/features/Assistant.tsx')) || !/<NotConnected of="voice"\/>/.test(read('apps/web/src/features/Assistant.tsx'))) throw new Error('apps/web/src/features/Assistant.tsx no longer renders the voice notice and silenceIsNotSafety beside the conversation.');
+
+/* ---- Wave 1 review fixes, 14 September 2026 ------------------------------------------------ */
+
+/* The matcher reads word forms and reads everything. The fixtures in the contract are what every
+   platform's tests run; this makes sure each platform's tests still do, and that the contract still
+   says the things the fixes rest on. */
+const readEverything = gilbertContract.matcher.readEverything;
+if(!readEverything?.statement || !readEverything?.why || !readEverything.neverWithUnread?.includes('settled') || !readEverything.filler?.length) throw new Error('packages/catalog/assistant.json has lost matcher.readEverything, its reason, its filler list or "settled" from neverWithUnread. Without it a missed emergency word is followed by a calm answer, which is the defect the Wave 1 review found.');
+if(!Number.isInteger(gilbertContract.matcher.maxGap) || gilbertContract.matcher.maxGap < 1) throw new Error('matcher.maxGap is missing or zero, so "my chest feels tight" no longer matches "chest tight".');
+if(!gilbertContract.answers.unread?.sentence || gilbertContract.answers.unread.state === 'idle' || gilbertContract.answers.unread.numbers?.[0] !== 'ambulance') throw new Error('The unread answer is missing, calm, or does not lead with the ambulance. Words Gilbert could not read are exactly where a missed emergency is.');
+const fixtureKinds = new Set(['emergency', 'answer', 'answer-and-unread', 'unmatched']);
+if(!gilbertContract.fixtures?.stems?.length || !gilbertContract.fixtures?.messages?.length) throw new Error('packages/catalog/assistant.json has no shared fixtures, so nothing proves the three matchers agree.');
+for(const fixture of gilbertContract.fixtures.messages) {
+ if(!fixtureKinds.has(fixture.expect)) throw new Error(`Fixture "${fixture.says}" expects "${fixture.expect}", which no platform reports.`);
+ if(fixture.question && !gilbertContract.questions.some(q => q.id === fixture.question)) throw new Error(`Fixture "${fixture.says}" names a question that does not exist.`);
+ for(const group of fixture.groups ?? []) if(!gilbertWords.groups.some(g => g.id === group)) throw new Error(`Fixture "${fixture.says}" names an emergency group that does not exist.`);
+}
+for(const [file, needs, why] of [
+ ['tests/assistant.spec.ts', /fixtures\.messages[\s\S]*fixtures\.stems|fixtures\.stems[\s\S]*fixtures\.messages/, 'the web runs the shared fixtures in Playwright'],
+ ['apps/ios/MyThuso/Models/Assistant.swift', /static func selfTest\(\)[\s\S]*stemFixtures[\s\S]*messageFixtures/, 'iOS runs the shared fixtures in its debug self-test'],
+ ['apps/ios/MyThusoUITests/AssistantTests.swift', /-GilbertSelfTest/, 'the iOS UI tests read the self-test'],
+ ['apps/android/app/src/test/java/za/co/mythuso/GilbertFixturesTest.kt', /GilbertData\.stemFixtures[\s\S]*GilbertData\.messageFixtures/, 'Android runs the shared fixtures in a JVM test']
+]) {
+ if(!existsSync(file) || !needs.test(read(file))) throw new Error(`${file} no longer shows that ${why}. Three matchers that are never run against one list are three matchers that disagree about an emergency.`);
+}
+
+/* The descriptor never travels without its disclosure. */
+const { descriptor, disclosure, descriptorLine } = gilbertContract.identity;
+if(!descriptorLine?.includes(descriptor) || !descriptorLine.includes(disclosure) || !/not a person/.test(disclosure) || !/not a doctor/.test(disclosure)) throw new Error('identity.descriptorLine no longer carries "Your Thuso AI Doctor" together with the disclosure that Gilbert is not a person and not a doctor.');
+for(const [file, bare] of [
+ ...files('apps/web/src').filter(f => /\.(ts|tsx)$/.test(f)).map(f => [f, /\bidentity\.descriptor\b(?!Line)|\bdescriptor\s*\}/]),
+ ...iosSources.filter(f => !/Data\.swift$/.test(f)).map(f => [f, /\bGilbert\.descriptor\b(?!Line)/]),
+ ...native.filter(f => f.endsWith('.kt') && !/Data\.kt$/.test(f)).map(f => [f, /\bGilbertData\.descriptor\b(?!Line)/])
+]) {
+ if(bare.test(gilbertCode(read(file)))) throw new Error(`${file} shows or speaks Gilbert's descriptor on its own. ${gilbertContract.identity.descriptorRule}`);
+}
+for(const phrase of [descriptor]) {
+ for(const file of [...files('apps/web/src').filter(f => /\.(ts|tsx)$/.test(f)), ...handWrittenNative]) {
+  if(gilbertCode(read(file)).includes(phrase)) throw new Error(`${file} types "${phrase}". It is rendered from descriptorLine, which carries the disclosure; a typed copy is the name without the correction.`);
+ }
+}
+
+/* The keyboard's microphone is the keyboard's. What the app controls is off, and the rest is said. */
+const webPanel = read('apps/web/src/features/Assistant.tsx');
+for(const input of webPanel.match(/<input\b[\s\S]*?\/>/g) ?? []) {
+ for(const [attribute, why] of [[/spellCheck=\{false\}/, 'spell-check, which some browsers send to a server'], [/autoCorrect="off"/, 'autocorrect'], [/autoComplete="off"/, 'autocomplete history']]) {
+  if(!attribute.test(input)) throw new Error(`apps/web/src/features/Assistant.tsx has a text field that leaves ${why} on. The contract says the web only reads what is typed.`);
+ }
+}
+if(!/conversation\.webKeyboardNote/.test(webPanel)) throw new Error('apps/web/src/features/Assistant.tsx no longer says, beside the field, that a browser or keyboard dictation is theirs and not Gilbert\'s.');
+const iosScreen = gilbertCode(read(assistant));
+const iosFields = iosScreen.match(/TextField\([\s\S]*?(?=\n\s*\n|\n\s*(?:private |fileprivate |\}))/g) ?? [];
+if(!iosFields.length || iosFields.some(field => !/\.autocorrectionDisabled\(true\)/.test(field))) throw new Error(`${assistant} has a text field without .autocorrectionDisabled(true).`);
+if(!/Gilbert\.conversation\.keyboardNote/.test(iosScreen)) throw new Error(`${assistant} no longer says, beside the field, that the keyboard's microphone belongs to the keyboard and may send speech to its maker.`);
+const androidScreen = gilbertCode(read(`${ANDROID_ROOT}/ui/GilbertScreens.kt`));
+const androidFields = androidScreen.match(/OutlinedTextField\([\s\S]*?\n\s{12}\)/g) ?? [];
+if(!androidFields.length || androidFields.some(field => !/keyboardOptions = plainKeyboard\(/.test(field)) || !/autoCorrectEnabled = false/.test(androidScreen)) throw new Error('apps/android/.../ui/GilbertScreens.kt has a text field that leaves autocorrection on.');
+if(!/GilbertData\.conversation\.keyboardNote/.test(androidScreen)) throw new Error('apps/android/.../ui/GilbertScreens.kt no longer says, beside the field, that the keyboard\'s microphone belongs to the keyboard.');
+
+/* iOS: Listening cannot outlive the microphone, and every request is made on-device by one helper. */
+for(const notification of ['AVAudioSession.interruptionNotification', 'AVAudioSession.routeChangeNotification', 'AVAudioEngineConfigurationChange']) {
+ if(!iosVoice.includes(notification)) throw new Error(`${IOS_VOICE} does not observe ${notification}. A call, Siri or a headset can take the microphone while the screen goes on saying Listening.`);
+}
+if(!/SceneNote\(text: Gilbert\.voice\.interrupted\)/.test(gilbertCode(read(assistant)))) throw new Error(`${assistant} no longer says why listening stopped when the phone took the microphone.`);
+const constructions = [...iosVoice.matchAll(/SF\w*RecognitionRequest\s*\(/g)];
+const helper = iosVoice.match(/static func onDeviceRequest\(\)[^{]*\{([\s\S]*?)\n    \}/);
+if(/SFSpeechURLRecognitionRequest/.test(iosVoice)) throw new Error(`${IOS_VOICE} names SFSpeechURLRecognitionRequest. Nothing here recognises a file, because nothing here keeps one.`);
+if(constructions.length !== 1 || !helper || !/SFSpeechAudioBufferRecognitionRequest\s*\(\)/.test(helper[1]) || !/requiresOnDeviceRecognition\s*=\s*true/.test(helper[1])) throw new Error(`${IOS_VOICE} constructs ${constructions.length} recognition request(s), or not inside onDeviceRequest() beside requiresOnDeviceRecognition = true. One helper makes every request, so none can be added that forgets.`);
+
+/* Android: no speech activity, no speech action and no voice interaction, anywhere. */
+const ANDROID_SPEECH_BYPASS = /\b(ACTION_RECOGNIZE_SPEECH|ACTION_WEB_SEARCH|ACTION_VOICE_SEARCH_HANDS_FREE|getVoiceDetailsIntent|VoiceInteraction\w*|ACTION_VOICE_COMMAND)\b|"[^"\n]*android\.speech[^"\n]*"/;
+for(const file of native.filter(f => /\.(kt|xml)$/.test(f))) {
+ const bypass = gilbertCode(read(file)).match(ANDROID_SPEECH_BYPASS);
+ if(bypass) throw new Error(`${file} reaches for ${bypass[0]}. A recognition action starts whichever speech activity the phone has, which is usually a server; only the on-device recogniser in ${ANDROID_VOICE} may hear anybody.`);
+}
+
+/* Web: a file picker is a microphone too. */
+for(const file of files('apps/web/src').filter(f => /\.(ts|tsx)$/.test(f))) {
+ const code = gilbertCode(read(file));
+ const picker = code.match(/<input\b[^>]*\bcapture\b[^>]*>|accept\s*[=:]\s*[{'"`][^}'"`]*\b(audio|video)\b/);
+ if(picker) throw new Error(`${file} offers ${picker[0].slice(0, 60)}. A file input that accepts audio or captures from a device is a recorder, and the web has no microphone in this release.`);
+}
+
+/* One visit, one day. Gilbert answered "When is my nurse coming?" with the first day scheduling.json
+   offers while the home card showed the visit actually booked — two dates for the same visit on the
+   same phone. Every platform now writes Gilbert's visit with the home card's own formatter, from the
+   same first booked visit, and none of them asks the calendar what it could offer instead. */
+if(!gilbertContract.situations.find(s => s.id === 'visit')?.sentence.includes('{visitWhen}') || !gilbertContract.visitStates?.none || !gilbertContract.visitStates?.pending) throw new Error('packages/catalog/assistant.json no longer writes the visit situation from {visitWhen} with a sentence for nothing booked and for a nurse still being found. Gilbert would be naming a day the home card does not.');
+for(const [file, from, why] of [
+ ['apps/web/src/lib/assistant.ts', /shortWhenText\(visit\)/, 'the web matcher'],
+ ['apps/ios/MyThuso/Models/Assistant.swift', /visit\.shortWhenText/, 'the iOS matcher'],
+ ['apps/android/app/src/main/java/za/co/mythuso/model/Assistant.kt', /visit\.shortWhenText/, 'the Android matcher']
+]) {
+ const code = gilbertCode(read(file));
+ if(/offeredDays/.test(code) || !from.test(code)) throw new Error(`${file} does not write Gilbert's visit with shortWhenText, or asks offeredDays for a day. ${why} must name the visit the home card names, written the way the home card writes it.`);
+}
+for(const [file, passes, why] of [
+ ['apps/web/src/App.tsx', /<AssistantLauncher\b[^>]*visit=\{booked\[0\]\?\.visit/, 'the web shell must give Gilbert the booked visit the dashboard gets'],
+ ['apps/web/src/features/Assistant.tsx', /send\(turns, draft, visit\)[\s\S]*|choose\(turns, question, visit\)/, 'the web panel must pass that visit to the matcher'],
+ [assistant, /visit: store\.visits\.first\b/, 'the iOS screen must pass the store\'s first visit, which HomeView shows'],
+ [`${ANDROID_ROOT}/ui/GilbertScreens.kt`, /store\.visits\.firstOrNull\(\)/, 'the Android sheet must pass the store\'s first visit, which the home shows']
+]) {
+ if(!passes.test(gilbertCode(read(file)))) throw new Error(`${file}: ${why}. Without it Gilbert and the home card read two different visits.`);
+}
 
 /* ---- Listening, in words, only from the contract ------------------------------------------ */
 const LISTENING_WORDS = /\blisten(s|ing)?\b|\b(tap|hold|press|touch|swipe) to (speak|talk|record|dictate)\b|\bspeak now\b/i;

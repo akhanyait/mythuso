@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { noticeFor } from './notices';
-import { goSection } from './nav';
+import { confirmBooking, goSection } from './nav';
 /* Gilbert on the web.
 
    What is held here, in the order a person meets it.
@@ -39,6 +39,9 @@ const number = (id: string) => sos.emergency.numbers.find((n: { id: string }) =>
 const say = (text: string) => text.replace('{ambulance}', number('ambulance')).replace('{mobile}', number('mobile')).replace('{seconds}', String(gilbert.voice.maxListeningSeconds));
 const cue = (id: string) => gilbert.states.find((s: { id: string }) => s.id === id).cue;
 const condition = (id: string) => sos.redFlags.conditions.find((c: { id: string }) => c.id === id).name;
+/* With nothing booked, Gilbert says what the home card says about nothing booked, in scheduling.json's words. */
+const schedulingLabels = json('../packages/catalog/scheduling.json').labels;
+const nothingBooked = { name: gilbert.visitStates.none.name.replace('{noUpcoming}', schedulingLabels.noUpcoming), sentence: gilbert.visitStates.none.sentence.replace('{noUpcomingDetail}', schedulingLabels.noUpcomingDetail) };
 
 const launcher = (page: Page) => page.getByRole('button', { name: gilbert.identity.callToAction, exact: true });
 const panel = (page: Page) => page.getByRole('dialog', { name: gilbert.identity.name });
@@ -89,11 +92,14 @@ test('the orb floats on every patient page, and Gilbert is fetched only when it 
  await expect(panel(page)).toBeVisible();
  expect(fetched.length).toBeGreaterThan(0);
  await expect(launcher(page)).toHaveAttribute('aria-expanded', 'true');
- await expect(panel(page).getByText(gilbert.identity.descriptor, { exact: true })).toBeVisible();
+ // the descriptor is never shown without the disclosure that goes with it
+ await expect(panel(page).getByText(gilbert.identity.descriptorLine, { exact: true })).toBeVisible();
+ await expect(panel(page).getByText(gilbert.identity.descriptor, { exact: true })).toHaveCount(0);
  // the contract's own sentences, word for word
  await expect(panel(page).locator('.not-connected')).toHaveText(noticeFor('voice'));
  await expect(panel(page).locator('.as-silence')).toHaveText(say(gilbert.silenceIsNotSafety));
  await expect(panel(page).locator('.as-silence')).toBeInViewport();
+ await expect(panel(page).locator('.as-keyboard')).toHaveText(gilbert.conversation.webKeyboardNote);
  await expect(panel(page).locator('.orb')).toHaveAttribute('aria-hidden', 'true');
  await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'idle');
  await expect(panel(page).locator('.as-state')).toHaveText(cue('idle'));
@@ -191,10 +197,12 @@ test('a suggested question gets the contract’s answer, and the emergency answe
 test('a typed question in a person’s own words gets the same contract answer', async ({ page }) => {
  await page.goto('/app/?open=assistant');
  await ask(page, 'hi, when’s my nurse coming??');
- // nothing matched "when’s", but "nurse coming" is a trigger, so the visit answer arrives
+ // "nurse coming" is a trigger and every other word is filler, so the visit answer arrives on its own —
+ // and with nothing booked on the web, it is the home card's own sentence for nothing booked
  await expect(log(page).locator('.as-said').last()).toContainText('hi, when’s my nurse coming??');
- await expect(log(page).locator('.as-reply').last()).toContainText('A nurse is expected on');
- await expect(panel(page).locator('.as-name')).toHaveText('Visit confirmed');
+ await expect(log(page).locator('.as-reply').last()).toContainText(nothingBooked.sentence);
+ await expect(log(page).locator('.as-reply').last()).toHaveAttribute('data-outcome', 'answer');
+ await expect(panel(page).locator('.as-name')).toHaveText(nothingBooked.name);
  await expect(panel(page).locator('.as-state')).toHaveText(cue('guiding'));
  await expect(field(page)).toHaveValue('');
  // an empty message sends nothing
@@ -274,9 +282,15 @@ test('nothing about Gilbert on the web offers to listen or reaches for a way to 
  await ask(page, 'can you hear me');
  await ask(page, 'my shoulder aches');
  await expect(page.locator('[class*="lucide-mic"], [class*="lucide-audio"], [class*="waveform"], audio')).toHaveCount(0);
- // one text box, and it is a text box
+ // one text box, and it is a text box that hands nothing to the browser's own services
  await expect(panel(page).locator('input, textarea, [contenteditable="true"]')).toHaveCount(1);
  await expect(field(page)).toHaveAttribute('type', 'text');
+ await expect(field(page)).toHaveAttribute('spellcheck', 'false');
+ await expect(field(page)).toHaveAttribute('autocorrect', 'off');
+ await expect(field(page)).toHaveAttribute('autocomplete', 'off');
+ await expect(field(page)).toHaveAttribute('autocapitalize', 'off');
+ await expect(field(page)).toHaveAttribute('aria-describedby', 'as-keyboard');
+ await expect(page.locator('input[capture], input[accept*="audio"], input[accept*="video"]')).toHaveCount(0);
  const controls = [panel(page).getByRole('button'), launcher(page)];
  const names = (await Promise.all(controls.map(c => c.evaluateAll(buttons => buttons.map(b => `${b.getAttribute('aria-label') ?? ''} ${b.textContent ?? ''}`.trim()))))).flat();
  const offers = names.filter(name => /microphone|\bmic\b|voice input|dictat|speak now|(tap|hold|press) to (speak|talk)|start listening|listening|record/i.test(name));
@@ -351,4 +365,122 @@ test('the open panel does not scroll sideways at 320px, with a long word typed a
  expect(overflow.page).toBeLessThanOrEqual(1);
  expect(overflow.panel).toBeLessThanOrEqual(1);
  expect(overflow.compose).toBeLessThanOrEqual(1);
+});
+
+/* ---- The Wave 1 review's findings, each as a journey -------------------------------------------
+
+   The matcher used to match emergency words exactly and then let an ordinary question answer calmly.
+   Every sentence below was answered wrongly before the fix — a visit date, "Nothing needs you" — and
+   must now raise, or say what it did not read. */
+const reviewScenarios: [string, string][] = [
+ ['When is my nurse coming? I have chest pains', 'chest-pain'],
+ ['my visit today, my chest feels tight', 'chest-pain'],
+ ['are my results back, I had seizures last night', 'seizure'],
+ ['nurse coming, my baby is having convulsions', 'seizure'],
+ ['any updates, my dad stopped breathing', 'breathing'],
+ ['my visit — she bled a lot', 'bleeding'],
+ ['he keeps passing out', 'unresponsive'],
+ ['she blacked out', 'unresponsive'],
+ ['difficulty breathing', 'breathing'],
+ ['trouble breathing since this morning', 'breathing'],
+ ['the contractions have started', 'obstetric'],
+ ['I think he is overdosing', 'crisis'],
+ ['she has fits', 'seizure'],
+ ['hæmorrhage after the birth', 'bleeding'],
+ ['my visit, call an ambulans', 'general']
+];
+
+test('every sentence the review found answered calmly now raises the emergency answer', async ({ page }) => {
+ test.setTimeout(90_000);
+ await page.goto('/app/?open=assistant');
+ for (const [says, group] of reviewScenarios) {
+  await ask(page, says);
+  const reply = log(page).locator('.as-reply').last();
+  await expect(reply, says).toHaveAttribute('data-outcome', 'emergency');
+  await expect(reply, says).toHaveAttribute('data-groups', new RegExp(`\\b${group}\\b`));
+  await expect(reply.locator('.as-numbers li').first(), says).toContainText('10177');
+  await expect(reply, says).not.toContainText('A nurse is expected on');
+  await expect(reply, says).not.toContainText('Nothing needs you');
+  await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'escalate');
+ }
+});
+
+test('a question with words Gilbert could not read answers, and then says what it did not read', async ({ page }) => {
+ await page.goto('/app/?open=assistant');
+ await ask(page, 'when is my nurse coming, my knee is sore');
+ const reply = log(page).locator('.as-reply').last();
+ await expect(reply).toHaveAttribute('data-outcome', 'answer-and-unread');
+ await expect(reply).toContainText(nothingBooked.sentence);
+ const unread = reply.locator('.as-unread');
+ await expect(unread.locator('.as-headline')).toHaveText(gilbert.answers.unread.sentence);
+ await expect(unread).toContainText(gilbert.answers.unread.detail);
+ await expect(unread.locator('.as-numbers li').nth(0)).toContainText('10177');
+ await expect(unread.locator('.as-numbers li').nth(1)).toContainText('112');
+ await expect(unread.getByRole('button', { name: gilbert.answers.unread.sosLabel })).toBeVisible();
+ await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'guiding');
+
+ // "Nothing needs you" is never said to a message Gilbert did not read all of
+ await ask(page, 'any updates? my knee aches');
+ const settled = log(page).locator('.as-reply').last();
+ await expect(settled).toHaveAttribute('data-outcome', 'unmatched');
+ await expect(settled).not.toContainText('Nothing needs you');
+ await expect(settled).toContainText(gilbert.answers.unmatched.sentence);
+
+ // and the question alone, in a person's own words, still answers on its own
+ await ask(page, 'does anything need me');
+ await expect(log(page).locator('.as-reply').last()).toHaveAttribute('data-outcome', 'answer');
+ await expect(log(page).locator('.as-reply').last().locator('.as-unread')).toHaveCount(0);
+});
+
+/* The shared fixtures in packages/catalog/assistant.json, run against the module the browser actually
+   loads. iOS runs the same list in its debug self-test and Android in a JVM test, so the three
+   normalisers and matchers are held to one list rather than to each other. */
+test('the web matcher agrees with the contract’s shared fixtures', async ({ page, isMobile }) => {
+ test.skip(isMobile, 'Arithmetic, not layout: once is enough.');
+ await page.goto('/app/');
+ const disagreements = await page.evaluate(async ({ stemsFixtures, messageFixtures }) => {
+  const lib = await import('/src/lib/assistant.ts');
+  const found: string[] = [];
+  for (const f of stemsFixtures) {
+   const got = lib.stems(f.says);
+   if (JSON.stringify(got) !== JSON.stringify(f.stems)) found.push(`stems of "${f.says}" were ${JSON.stringify(got)}`);
+  }
+  for (const f of messageFixtures) {
+   const turn = lib.send(lib.opening(), f.says, null).at(-1);
+   const kind = lib.outcomeOf(turn);
+   const question = kind.startsWith('answer') ? turn.matched?.id ?? null : null;
+   const groups = turn.groups.map((g: { id: string }) => g.id);
+   if (kind !== f.expect || question !== (f.question ?? null) || JSON.stringify(groups) !== JSON.stringify(f.groups ?? [])) found.push(`"${f.says}" gave ${kind} ${question} ${JSON.stringify(groups)}`);
+  }
+  return found;
+ }, { stemsFixtures: gilbert.fixtures.stems, messageFixtures: gilbert.fixtures.messages });
+ expect(disagreements).toEqual([]);
+});
+
+/* One visit, one day. Gilbert named the first day the calendar offers while the home card showed the visit
+   actually booked. A visit is booked here the way the booking journey books one, the home card's date is
+   read off the screen, and Gilbert's answer must name the same day and time. */
+test('Gilbert names the visit the home card shows, not a day of its own', async ({ page }) => {
+ test.setTimeout(90_000);
+ await page.goto('/app/');
+ await expect(page.getByText(nothingBooked.name).first()).toBeVisible();
+ const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
+ if (await sidebar.isVisible()) await sidebar.getByRole('button', { name: 'Book a nurse', exact: true }).click();
+ else await page.locator('.tabbar button').nth(1).click();
+ await page.getByRole('button', { name: /Elderly care/ }).first().click();
+ const d = page.getByRole('dialog');
+ for (let step = 0; step < 4; step++) await d.getByRole('button', { name: 'Continue' }).click();
+ await d.getByRole('checkbox').check();
+ await confirmBooking(d);
+ await d.getByRole('button', { name: 'View my visits' }).click();
+ if (await sidebar.isVisible()) await sidebar.getByRole('button', { name: 'Overview', exact: true }).click();
+ else await page.locator('.tabbar button').nth(0).click();
+ const card = page.locator('.visit-card small').first();
+ await expect(card).toContainText('09:00');
+ const cardWhen = (await card.innerText()).split(' – ')[0].trim();
+ await launcher(page).click();
+ await ask(page, 'when is my nurse coming');
+ const reply = log(page).locator('.as-reply').last();
+ await expect(reply).toHaveAttribute('data-outcome', 'answer');
+ await expect(reply).toContainText(`A nurse is expected on ${cardWhen}.`);
 });

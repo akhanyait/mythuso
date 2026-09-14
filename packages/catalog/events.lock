@@ -65,3 +65,5 @@ record.breakglass.review_due@1 5188c8a7f3bb1424
 record.audit.chain_broken@1 cc682ddba72a90ff
 passport.consent.granted@3 d80fd2d70ee4cb6f
 passport.consent.revoked@3 2cbd917e7bfa2d84
+pulse.escalation.started@2 27811c610e4f71a8
+pulse.utterance.finalised@2 731fbc69346198ec

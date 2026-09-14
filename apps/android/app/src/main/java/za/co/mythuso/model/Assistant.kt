@@ -1,21 +1,23 @@
 package za.co.mythuso.model
 
-import java.time.LocalDate
+import java.text.Normalizer
 
 /* Gilbert's reasoning, without a screen attached to it.
  *
- * The sentences, trigger phrases, emergency words and voice policy are generated into
- * AssistantData.kt from packages/catalog/assistant.json. This is the arithmetic beside them, and it
- * is the same arithmetic as apps/web/src/lib/assistant.ts and apps/ios/MyThuso/Models/Assistant.swift:
- * normalise, look for an emergency word, then for the longest trigger phrase, and give every other
- * message the one honest answer. The same words get the same answer on all three platforms.
+ * The sentences, trigger phrases, emergency words, the matcher's data and the shared fixtures are
+ * generated into AssistantData.kt from packages/catalog/assistant.json. This is the arithmetic beside
+ * them, and it is the same arithmetic as apps/web/src/lib/assistant.ts and
+ * apps/ios/MyThuso/Models/Assistant.swift: fold to plain letters, reduce to stems, look for an emergency
+ * term with small gaps, then for the longest trigger, and say so when words are left unread.
  *
- * The order is the safety property. Emergency words are checked before any question, and a match
- * ends the matching, so nothing found in the same message can lower it.
+ * The order is the safety property. Emergency words are checked before any question, and a match ends
+ * the matching. A question may answer on its own only if every word is its own trigger or filler: the
+ * Wave 1 review showed that a missed word followed by a calm answer is the miss presented as
+ * reassurance. app/src/test/.../GilbertFixturesTest.kt runs the contract's fixtures against this file.
  *
  * No network, no model, no timer, and nothing written to the disk. The only Thinking the screen may
- * show is the recogniser finishing a transcript, which lives in ui/GilbertVoice.kt; the matcher
- * answers in the same frame and never pretends to deliberate.
+ * show is the recogniser finishing a transcript, which lives in ui/GilbertVoice.kt; the matcher answers
+ * in the same frame and never pretends to deliberate.
  */
 
 data class GilbertState(
@@ -33,6 +35,7 @@ data class GilbertQuestion(val id: String, val asks: String, val group: String, 
 /** [condition] is the sos.json condition this group raises, or null; [name] is resolved at generation. */
 data class GilbertEmergencyGroup(val id: String, val condition: String?, val name: String, val words: List<String>)
 data class GilbertLine(val number: String, val name: String)
+/** The unmatched answer, and the unread answer that follows a question with words left over. */
 data class GilbertUnmatched(
     val state: String, val sentence: String, val detail: String, val ifUrgent: String,
     val lines: List<GilbertLine>, val sosLabel: String, val handoverLabel: String
@@ -49,17 +52,20 @@ data class GilbertHandover(
 )
 data class GilbertConversation(
     val inputLabel: String, val inputHint: String, val sendLabel: String, val startAgainLabel: String,
-    val youAsked: String, val youSaid: String, val logLabel: String, val refusalsHeading: String, val turnLimit: Int
+    val youAsked: String, val youSaid: String, val logLabel: String, val refusalsHeading: String,
+    val keyboardNote: String, val turnLimit: Int
 )
 data class GilbertVoicePolicy(
     val mode: String, val gesture: String, val maxListeningSeconds: Int, val recognitionLocales: List<String>,
     val recognition: String, val audioStored: Boolean, val transcriptLifetime: String,
     val correctionBeforeSend: Boolean, val wakeWord: Boolean,
     val howItWorks: String, val beforePermission: String, val askPermissionLabel: String, val notNowLabel: String,
-    val unavailable: String, val refused: String, val failed: String, val talkLabel: String, val stopLabel: String,
-    val captionsLabel: String, val correctLabel: String, val discardLabel: String
+    val unavailable: String, val refused: String, val failed: String, val interrupted: String,
+    val talkLabel: String, val stopLabel: String, val captionsLabel: String, val correctLabel: String, val discardLabel: String
 )
 data class GilbertRefusal(val id: String, val statement: String, val why: String)
+data class GilbertStemFixture(val says: String, val stems: List<String>)
+data class GilbertMessageFixture(val says: String, val expect: String, val question: String?, val groups: List<String>)
 
 /** The six Pulse states, by the contract's ids. */
 enum class Pulse(val id: String) {
@@ -83,69 +89,112 @@ sealed interface GilbertReply {
     data class Handover(val rows: List<SummaryRow>) : GilbertReply
 }
 
+/** [unread] is true when the answer came with words Gilbert could not read; the unread answer follows it. */
 data class GilbertTurn(
     val id: Int, val asked: String?, val channel: GilbertChannel?, val reply: GilbertReply,
-    val matched: GilbertQuestion?, val groups: List<GilbertEmergencyGroup>
+    val matched: GilbertQuestion?, val groups: List<GilbertEmergencyGroup>, val unread: Boolean = false
 )
 
 object Gilbert {
-    fun situations(from: LocalDate = Scheduling.today()): List<GilbertSituation> {
-        val first = Scheduling.offeredDays(from).firstOrNull()
-        val values = mapOf(
-            "firstDay" to (first?.let { Scheduling.longDate(it.date) } ?: GilbertData.fallbackFirstDay),
-            "day" to (first?.dayNumber ?: ""),
-            "month" to (first?.month ?: ""),
-            "slot" to (SchedulingData.slots.firstOrNull() ?: ""),
+    /* The visit is the one the home card shows — the store's first upcoming visit, written by the same
+       shortWhenText — so Gilbert and the home cannot name two days for one visit. With nothing booked, or
+       a nurse still being found, it says scheduling.json's own words for that. */
+    fun situations(visit: BookedVisit? = null): List<GilbertSituation> {
+        val values = mutableMapOf(
             "laboratory" to (recordTypeById("laboratory")?.name ?: GilbertData.fallbackLaboratory),
             "expiryWarningDays" to EXPIRY_WARNING_DAYS.toString()
         )
         return GilbertData.situationTemplates.map { t ->
-            GilbertSituation(t.id, t.name, fill(t.sentence, values), t.figure?.let { fill(it, values) }, t.figureLabel?.let { fill(it, values) }, t.depth)
+            if (t.id == "visit" && (visit == null || !visit.isScheduled)) {
+                val (name, sentence) = if (visit == null) GilbertData.visitNone else GilbertData.visitPending
+                GilbertSituation(t.id, name, sentence, null, null, t.depth)
+            } else {
+                if (t.id == "visit" && visit != null) values["visitWhen"] = visit.shortWhenText
+                GilbertSituation(t.id, t.name, fill(t.sentence, values), t.figure?.let { fill(it, values) }, t.figureLabel?.let { fill(it, values) }, t.depth)
+            }
         }
     }
 
     fun fill(text: String, values: Map<String, String>): String =
         values.entries.fold(text) { result, (key, value) -> result.replace("{$key}", value) }
 
-    /* Lower case, apostrophes removed, everything outside a–z and 0–9 a space, padded so a phrase is
-       matched as whole words. ASCII on purpose, as on the web and iOS: an accented letter becomes a
-       space on all three platforms rather than a letter on two of them. */
-    fun normalise(text: String): String {
-        val out = StringBuilder()
-        var lastWasSpace = true
-        for (c in text.lowercase()) {
-            if (c == '\'' || c == '’' || c == '‘' || c == '`') continue
-            if (c in 'a'..'z' || c in '0'..'9') { out.append(c); lastWasSpace = false }
-            else if (!lastWasSpace) { out.append(' '); lastWasSpace = true }
-        }
-        return " " + out.toString().trim() + " "
+    // Words into stems. The same steps in the same order as the web's and iOS's.
+
+    private val marks = Regex("\\p{M}+")
+    private val outside = Regex("[^a-z0-9]+")
+
+    fun tokens(text: String): List<String> {
+        var folded = text.lowercase()
+        for ((from, to) in GilbertData.foldings) folded = folded.replace(from, to)
+        folded = marks.replace(Normalizer.normalize(folded, Normalizer.Form.NFD), "")
+        for (mark in GilbertData.apostrophes) folded = folded.replace(mark, "")
+        return outside.replace(folded, " ").trim().split(" ").filter { it.isNotEmpty() }
     }
 
-    private fun contains(normalised: String, phrase: String) = normalised.contains(normalise(phrase))
+    private fun undouble(word: String): String =
+        if (word.length >= 3 && word[word.length - 1] == word[word.length - 2] && word.last() !in "aeiouslz") word.dropLast(1) else word
+
+    fun stem(word: String): String {
+        var t = GilbertData.irregular[word] ?: word
+        if (t.length >= 5 && t.endsWith("ing")) t = undouble(t.dropLast(3))
+        else if (t.length >= 4 && (t.endsWith("ied") || t.endsWith("ies"))) t = t.dropLast(3) + "y"
+        else if (t.length >= 4 && t.endsWith("ed") && !t.endsWith("eed")) t = undouble(t.dropLast(2))
+        else if (t.length >= 4 && listOf("ses", "xes", "zes", "ches", "shes").any { t.endsWith(it) }) t = t.dropLast(2)
+        else if (t.length >= 4 && t.endsWith("s") && !t.endsWith("ss") && !t.endsWith("us") && !t.endsWith("is")) t = t.dropLast(1)
+        if (t.length >= 4 && t.endsWith("e")) t = t.dropLast(1)
+        return t
+    }
+
+    fun stems(text: String): List<String> = tokens(text).map(::stem)
+
+    /** A term's words in order, each within [gap] words of the one before; greedy from each start. */
+    private fun hasSequence(said: List<String>, term: List<String>, gap: Int): Boolean {
+        if (term.isEmpty()) return false
+        for (start in said.indices) {
+            if (said[start] != term[0]) continue
+            var at = start
+            var whole = true
+            for (k in 1 until term.size) {
+                var found = -1
+                var j = at + 1
+                while (j < said.size && j <= at + 1 + gap) { if (said[j] == term[k]) { found = j; break }; j++ }
+                if (found < 0) { whole = false; break }
+                at = found
+            }
+            if (whole) return true
+        }
+        return false
+    }
 
     fun emergencyGroups(text: String): List<GilbertEmergencyGroup> {
-        val said = normalise(text)
-        return GilbertData.emergencyGroups.filter { group -> group.words.any { contains(said, it) } }
+        val said = stems(text)
+        return GilbertData.emergencyGroups.filter { group -> group.words.any { hasSequence(said, stems(it), GilbertData.maxGap) } }
     }
 
-    /** The longest trigger phrase wins; a tie goes to the question listed first. */
+    /** The longest trigger (in words, adjacent) wins; a tie goes to the question listed first. */
     fun question(text: String): GilbertQuestion? {
-        val said = normalise(text)
+        val said = stems(text)
         var best: GilbertQuestion? = null
-        var length = -1
+        var length = 0
         for (question in GilbertData.questions) for (trigger in question.triggers) {
-            if (!contains(said, trigger)) continue
-            val size = normalise(trigger).length
-            if (size > length) { best = question; length = size }
+            val term = stems(trigger)
+            if (term.size > length && hasSequence(said, term, 0)) { best = question; length = term.size }
         }
         return best
     }
 
-    fun reply(question: GilbertQuestion, from: LocalDate = Scheduling.today()): GilbertReply = when (question.answer) {
-        "situation" -> situations(from).firstOrNull { it.id == question.id }?.let { GilbertReply.Situation(it) } ?: GilbertReply.Unmatched
+    /** A word that is neither one of the question's own trigger words nor filler is a word Gilbert did not read. */
+    fun leavesUnread(text: String, question: GilbertQuestion): Boolean {
+        val covered = GilbertData.filler.map(::stem).toSet() + question.triggers.flatMap(::stems)
+        return stems(text).any { it !in covered }
+    }
+
+    fun reply(question: GilbertQuestion, turns: List<GilbertTurn>, visit: BookedVisit?): GilbertReply = when (question.answer) {
+        "situation" -> situations(visit).firstOrNull { it.id == question.id }?.let { GilbertReply.Situation(it) } ?: GilbertReply.Unmatched
         "identity" -> GilbertReply.Identity
         "voice" -> GilbertReply.Voice
         "emergency" -> GilbertReply.Emergency(emptyList())
+        "handover" -> GilbertReply.Handover(summary(turns))
         else -> GilbertReply.Unmatched
     }
 
@@ -165,39 +214,39 @@ object Gilbert {
         else -> 0
     }
 
-    fun opening(from: LocalDate = Scheduling.today()): List<GilbertTurn> =
-        listOf(GilbertTurn(0, null, null, GilbertReply.Situation(situations(from).first()), null, emptyList()))
+    fun opening(): List<GilbertTurn> =
+        listOf(GilbertTurn(0, null, null, GilbertReply.Situation(situations().first()), null, emptyList()))
 
     private fun append(turns: List<GilbertTurn>, make: (Int) -> GilbertTurn): List<GilbertTurn> =
         (turns + make((turns.lastOrNull()?.id ?: 0) + 1)).takeLast(GilbertData.conversation.turnLimit)
 
     /** A message in a person's own words, typed or spoken and checked. */
-    fun send(text: String, channel: GilbertChannel, turns: List<GilbertTurn>): List<GilbertTurn> {
+    fun send(text: String, channel: GilbertChannel, turns: List<GilbertTurn>, visit: BookedVisit?): List<GilbertTurn> {
         val words = text.trim()
         if (words.isEmpty()) return turns
         val groups = emergencyGroups(words)
         /* The emergency words first, and a match ends it. */
         if (groups.isNotEmpty()) return append(turns) { GilbertTurn(it, words, channel, GilbertReply.Emergency(groups), null, groups) }
         val question = question(words)
-        if (question != null) {
-            if (question.answer == "handover") return handingOver(words, channel, question, turns)
-            return append(turns) { GilbertTurn(it, words, channel, reply(question), question, emptyList()) }
+            ?: return append(turns) { GilbertTurn(it, words, channel, GilbertReply.Unmatched, null, emptyList()) }
+        val unread = question.answer != "emergency" && leavesUnread(words, question)
+        /* A claim about everything is not made to a message Gilbert did not read all of. */
+        if (unread && question.id in GilbertData.neverWithUnread) {
+            return append(turns) { GilbertTurn(it, words, channel, GilbertReply.Unmatched, null, emptyList()) }
         }
-        return append(turns) { GilbertTurn(it, words, channel, GilbertReply.Unmatched, null, emptyList()) }
+        val answer = reply(question, turns, visit)
+        return append(turns) { GilbertTurn(it, words, channel, answer, question, emptyList(), unread) }
     }
 
-    /** One of the suggested questions, pressed. */
-    fun choose(question: GilbertQuestion, turns: List<GilbertTurn>): List<GilbertTurn> {
-        if (question.answer == "handover") return handingOver(question.asks, GilbertChannel.CHOSEN, question, turns)
-        return append(turns) { GilbertTurn(it, question.asks, GilbertChannel.CHOSEN, reply(question), question, emptyList()) }
+    /** One of the suggested questions, pressed. Its own words, so nothing is unread. */
+    fun choose(question: GilbertQuestion, turns: List<GilbertTurn>, visit: BookedVisit?): List<GilbertTurn> {
+        val answer = reply(question, turns, visit)
+        return append(turns) { GilbertTurn(it, question.asks, GilbertChannel.CHOSEN, answer, question, emptyList()) }
     }
 
-    /** "Talk to a nurse", pressed from the unmatched answer: a summary of the last thing asked. */
+    /** "Talk to a nurse", pressed from the unmatched or unread answer: a summary of the last thing asked. */
     fun handOver(turns: List<GilbertTurn>): List<GilbertTurn> =
         append(turns) { GilbertTurn(it, null, null, GilbertReply.Handover(summary(turns)), null, emptyList()) }
-
-    private fun handingOver(asked: String, channel: GilbertChannel, matched: GilbertQuestion, turns: List<GilbertTurn>): List<GilbertTurn> =
-        append(turns) { GilbertTurn(it, asked, channel, GilbertReply.Handover(summary(turns)), matched, emptyList()) }
 
     /* What a nurse would be handed: the last thing asked before this, in the person's words, how it
        arrived, what it matched and which emergency words were in it. A request for a nurse is not
@@ -220,5 +269,13 @@ object Gilbert {
             SummaryRow(label("matched"), matched),
             SummaryRow(label("flags"), flags)
         )
+    }
+
+    /** How a turn came out, in the words the shared fixtures use. */
+    fun outcome(turn: GilbertTurn): String = when {
+        turn.reply is GilbertReply.Emergency -> "emergency"
+        turn.reply == GilbertReply.Unmatched && turn.matched == null -> "unmatched"
+        turn.unread -> "answer-and-unread"
+        else -> "answer"
     }
 }

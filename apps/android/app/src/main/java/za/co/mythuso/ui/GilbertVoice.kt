@@ -109,7 +109,10 @@ class GilbertListener(private val context: Context) : RecognitionListener {
         val created = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
         created.setRecognitionListener(this)
         recogniser = created
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        /* No recognition action on the intent. The on-device recogniser takes its parameters from the
+           extras; an action is what would let the same intent start a recognition activity, which may be
+           a server, and the build refuses the action by name everywhere. */
+        val intent = Intent().apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, GilbertData.voice.recognitionLocales[localeIndex])
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)

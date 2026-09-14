@@ -51,4 +51,7 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.test:core:1.6.1")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+    /* A JVM unit test, for model code with no Android in it: Gilbert's matcher run against the shared
+       fixtures in packages/catalog/assistant.json. `testImplementation` compiles into nothing shipped. */
+    testImplementation("junit:junit:4.13.2")
 }

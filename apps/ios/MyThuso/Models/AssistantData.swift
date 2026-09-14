@@ -13,7 +13,8 @@ extension Gilbert {
     static let contractVersion = 1
 
     static let name = "Gilbert"
-    static let descriptor = "Your Thuso AI Doctor"
+    static let disclosure = "not a person, and not a doctor"
+    static let descriptorLine = "Your Thuso AI Doctor · not a person, and not a doctor"
     static let pulseName = "Gilbert Pulse"
     static let callToAction = "Ask Gilbert"
     static let poweredBy = "Powered by ThusoIQ"
@@ -71,8 +72,8 @@ extension Gilbert {
                                  sentence: "Nothing needs you. This is the state a well person is in most of the time, and it is the one the drawing is quietest in.",
                                  figure: nil, figureLabel: nil, depth: 0),
         GilbertSituationTemplate(id: "visit", name: "Visit confirmed",
-                                 sentence: "A nurse is expected on {firstDay}. You will be told who is coming before they leave.",
-                                 figure: "{day}", figureLabel: "{month} · {slot}", depth: 1),
+                                 sentence: "A nurse is expected on {visitWhen}. You will be told who is coming before they leave.",
+                                 figure: nil, figureLabel: nil, depth: 1),
         GilbertSituationTemplate(id: "result", name: "Result ready",
                                  sentence: "{laboratory} results have been released to your record. A doctor reads them before you are asked to do anything about them.",
                                  figure: nil, figureLabel: nil, depth: 2),
@@ -80,7 +81,8 @@ extension Gilbert {
                                  sentence: "A registration on your team is inside its last weeks. When it lapses, the work it carried is withdrawn by arithmetic rather than by anybody remembering to.",
                                  figure: "{expiryWarningDays}", figureLabel: "days before it stops carrying anything", depth: 3)
     ]
-    static let fallbackFirstDay = "the first day offered"
+    static let visitNone = (name: "Nothing booked yet", sentence: "When you book a visit it will show here, with who is coming and when.")
+    static let visitPending = (name: "Looking for a nurse", sentence: "Your visit is booked and a nurse is being found for it. You will be told who is coming before they leave.")
     static let fallbackLaboratory = "Laboratory"
 
     static let questionGroups: [GilbertQuestionGroup] = [
@@ -112,26 +114,44 @@ extension Gilbert {
 
     static let emergencyGroups: [GilbertEmergencyGroup] = [
         GilbertEmergencyGroup(id: "chest-pain", condition: "chest-pain", name: "Chest pain or pressure",
-                              words: ["chest pain", "chest hurts", "chest is tight", "tight chest", "chest tightness", "pressure in my chest", "heart attack", "crushing pain"]),
+                              words: ["chest pain", "chest hurts", "chest tight", "tight chest", "chest tightness", "pressure in my chest", "chest pressure", "heart attack", "crushing pain"]),
         GilbertEmergencyGroup(id: "breathing", condition: "breathing", name: "Difficulty breathing",
-                              words: ["cant breathe", "cannot breathe", "can not breathe", "struggling to breathe", "short of breath", "shortness of breath", "breathless", "gasping", "choking", "not breathing", "blue lips"]),
+                              words: ["cant breathe", "cannot breathe", "can not breathe", "struggling to breathe", "hard to breathe", "difficulty breathing", "trouble breathing", "short of breath", "shortness of breath", "breathless", "gasping", "choking", "not breathing", "stopped breathing", "blue lips", "lips are blue"]),
         GilbertEmergencyGroup(id: "bleeding", condition: "bleeding", name: "Bleeding that will not stop",
-                              words: ["bleeding", "haemorrhage", "hemorrhage", "spurting blood", "blood everywhere"]),
+                              words: ["bleeding", "bled", "haemorrhage", "hemorrhage", "spurting blood", "blood everywhere", "lot of blood"]),
         GilbertEmergencyGroup(id: "unresponsive", condition: "unresponsive", name: "Not responding",
-                              words: ["unconscious", "unresponsive", "not responding", "collapsed", "passed out", "fainted", "wont wake", "cant wake", "not waking"]),
+                              words: ["unconscious", "unresponsive", "not responding", "collapsed", "passed out", "passing out", "blacked out", "blacking out", "fainted", "fainting", "wont wake", "cant wake", "not waking"]),
         GilbertEmergencyGroup(id: "stroke", condition: "stroke", name: "Signs of a stroke",
                               words: ["stroke", "face drooping", "face dropped", "slurred", "cant move my arm", "numb on one side", "cant speak"]),
         GilbertEmergencyGroup(id: "seizure", condition: "seizure", name: "A fit or seizure",
-                              words: ["seizure", "fitting", "having a fit", "convulsing", "convulsion", "epileptic fit"]),
+                              words: ["seizure", "seizures", "fitting", "having a fit", "fits", "convulsing", "convulsion", "convulsions", "epileptic fit"]),
         GilbertEmergencyGroup(id: "infant", condition: "infant", name: "A baby under two who is floppy or not feeding",
                               words: ["floppy baby", "baby is floppy", "baby not feeding", "baby wont feed", "baby is limp", "rash does not fade", "rash doesnt fade"]),
         GilbertEmergencyGroup(id: "obstetric", condition: "obstetric", name: "A pregnancy emergency",
-                              words: ["pregnant and bleeding", "waters broke", "baby is coming", "in labour", "in labor", "contractions"]),
+                              words: ["pregnant and bleeding", "waters broke", "waters broken", "baby is coming", "in labour", "in labor", "contraction", "contractions"]),
         GilbertEmergencyGroup(id: "crisis", condition: nil, name: "Words about harming yourself",
-                              words: ["kill myself", "suicide", "suicidal", "end my life", "want to die", "hurt myself", "harm myself", "overdose", "overdosed", "took too many pills", "poisoned"]),
+                              words: ["kill myself", "suicide", "suicidal", "end my life", "want to die", "hurt myself", "harm myself", "overdose", "overdosed", "overdosing", "took too many pills", "poisoned"]),
         GilbertEmergencyGroup(id: "general", condition: nil, name: "Words about an emergency",
-                              words: ["emergency", "ambulance", "dying", "severe pain", "worst headache"])
+                              words: ["emergency", "ambulance", "ambulans", "dying", "severe pain", "worst headache"])
     ]
+
+    /* The matcher's own data: how a message becomes stems, and what reading all of it means. The rules
+       themselves are arithmetic in Models/Assistant.swift, identical to the web's and Android's. */
+    static let foldings: [(String, String)] = [("æ", "ae"), ("œ", "oe"), ("ß", "ss"), ("ø", "o"), ("đ", "d"), ("ł", "l"), ("þ", "th"), ("ð", "d")]
+    static let apostrophes: [String] = ["'", "’", "‘", "`", "ʼ"]
+    static let irregular: [String: String] = ["bled": "bleed", "dying": "die", "died": "die", "dies": "die", "lying": "lie", "fell": "fall", "fallen": "fall", "broke": "break", "broken": "break", "felt": "feel", "took": "take", "taken": "take", "swallowed": "swallow", "ate": "eat", "threw": "throw", "thrown": "throw", "lost": "lose", "shaking": "shake"]
+    static let maxGap = 2
+    static let filler: [String] = ["hi", "hello", "hey", "please", "thanks", "thank", "you", "ok", "okay", "so", "and", "but", "or", "also", "just", "i", "im", "me", "my", "mine", "we", "our", "us", "is", "are", "am", "was", "were", "be", "been", "the", "a", "an", "to", "of", "for", "on", "in", "at", "it", "its", "this", "that", "there", "here", "what", "whats", "when", "whens", "where", "wheres", "who", "whos", "how", "hows", "why", "can", "could", "would", "will", "do", "does", "did", "have", "has", "had", "gilbert", "tell", "know", "let", "still", "yet", "already", "now", "today", "soon", "again", "yes", "sure", "any", "anything", "about"]
+    static let neverWithUnread: [String] = ["settled"]
+
+    static let unread = GilbertUnmatched(
+        state: "guiding",
+        sentence: "I can't assess the rest of what you said.",
+        detail: "I answered the part I recognised. The rest is not something I can read, and that is not a judgement that it is minor.",
+        ifUrgent: "If any of it might be an emergency, do not wait for me. Call one of these now:",
+        lines: [GilbertLine(number: "10177", name: "Ambulance"), GilbertLine(number: "112", name: "Emergency, from a mobile")],
+        sosLabel: "Open Thuso SOS",
+        handoverLabel: "Talk to a nurse")
 
     static let unmatched = GilbertUnmatched(
         state: "guiding",
@@ -182,6 +202,7 @@ extension Gilbert {
         youSaid: "You said",
         logLabel: "Conversation with Gilbert",
         refusalsHeading: "What Gilbert will not do",
+        keyboardNote: "The microphone on your keyboard belongs to the keyboard, not to Gilbert: whoever made the keyboard — Apple, Google or another company — may send what you say through it to their servers. Gilbert's own Tap to talk button is the one that keeps your voice on this phone.",
         turnLimit: 24)
 
     static let voice = GilbertVoicePolicy(
@@ -201,11 +222,48 @@ extension Gilbert {
         unavailable: "Speaking to Gilbert is not available on this phone. It needs English speech recognition that runs on the phone itself, and this phone does not offer it, so what you said could not be kept on the phone. You can still type.",
         refused: "The microphone or speech recognition is switched off for MyThuso, so Gilbert cannot hear you. You can still type, and you can change this in your phone's Settings.",
         failed: "Gilbert did not catch that. Nothing was kept. Try again, or type instead.",
+        interrupted: "Gilbert stopped listening because the phone needed its microphone for something else, or the microphone changed. Nothing was kept. Tap to talk again, or type.",
         talkLabel: "Tap to talk to Gilbert",
         stopLabel: "Stop",
         captionsLabel: "What Gilbert has heard so far",
         correctLabel: "Check what Gilbert heard, and correct it before you send it",
         discardLabel: "Discard")
+
+    /* The shared fixtures every platform runs its own matcher against. */
+    static let stemFixtures: [GilbertStemFixture] = [
+        GilbertStemFixture(says: "Hæmorrhage — she BLED!", stems: ["haemorrhag", "she", "bleed"]),
+        GilbertStemFixture(says: "I have chest pains", stems: ["i", "hav", "chest", "pain"]),
+        GilbertStemFixture(says: "my dad stopped breathing", stems: ["my", "dad", "stop", "breath"]),
+        GilbertStemFixture(says: "convulsions, seizures, fits, fitting", stems: ["convulsion", "seizur", "fit", "fit"]),
+        GilbertStemFixture(says: "passing out / blacked out", stems: ["pass", "out", "black", "out"]),
+        GilbertStemFixture(says: "When’s my nurse coming?", stems: ["when", "my", "nurs", "com"]),
+        GilbertStemFixture(says: "overdosing on difficulties", stems: ["overdos", "on", "difficulty"]),
+        GilbertStemFixture(says: "hémorragie 2026", stems: ["hemorragi", "2026"])
+    ]
+    static let messageFixtures: [GilbertMessageFixture] = [
+        GilbertMessageFixture(says: "When is my nurse coming? I have chest pains", expect: "emergency", question: nil, groups: ["chest-pain"]),
+        GilbertMessageFixture(says: "my visit today, my chest feels tight", expect: "emergency", question: nil, groups: ["chest-pain"]),
+        GilbertMessageFixture(says: "are my results back, I had seizures last night", expect: "emergency", question: nil, groups: ["seizure"]),
+        GilbertMessageFixture(says: "nurse coming, my baby is having convulsions", expect: "emergency", question: nil, groups: ["seizure"]),
+        GilbertMessageFixture(says: "any updates, my dad stopped breathing", expect: "emergency", question: nil, groups: ["breathing"]),
+        GilbertMessageFixture(says: "my visit — she bled a lot", expect: "emergency", question: nil, groups: ["bleeding"]),
+        GilbertMessageFixture(says: "he keeps passing out", expect: "emergency", question: nil, groups: ["unresponsive"]),
+        GilbertMessageFixture(says: "she blacked out", expect: "emergency", question: nil, groups: ["unresponsive"]),
+        GilbertMessageFixture(says: "difficulty breathing", expect: "emergency", question: nil, groups: ["breathing"]),
+        GilbertMessageFixture(says: "trouble breathing since this morning", expect: "emergency", question: nil, groups: ["breathing"]),
+        GilbertMessageFixture(says: "the contractions have started", expect: "emergency", question: nil, groups: ["obstetric"]),
+        GilbertMessageFixture(says: "I think he is overdosing", expect: "emergency", question: nil, groups: ["crisis"]),
+        GilbertMessageFixture(says: "she has fits", expect: "emergency", question: nil, groups: ["seizure"]),
+        GilbertMessageFixture(says: "hæmorrhage after the birth", expect: "emergency", question: nil, groups: ["bleeding"]),
+        GilbertMessageFixture(says: "my visit, call an ambulans", expect: "emergency", question: nil, groups: ["general"]),
+        GilbertMessageFixture(says: "when is my nurse coming", expect: "answer", question: "visit", groups: []),
+        GilbertMessageFixture(says: "hi, when’s my nurse coming??", expect: "answer", question: "visit", groups: []),
+        GilbertMessageFixture(says: "are my results back", expect: "answer", question: "result", groups: []),
+        GilbertMessageFixture(says: "when is my nurse coming, my knee is sore", expect: "answer-and-unread", question: "visit", groups: []),
+        GilbertMessageFixture(says: "any updates? my knee aches", expect: "unmatched", question: nil, groups: []),
+        GilbertMessageFixture(says: "does anything need me", expect: "answer", question: "settled", groups: []),
+        GilbertMessageFixture(says: "my knee has been sore since tuesday", expect: "unmatched", question: nil, groups: [])
+    ]
 
     static let refusals: [GilbertRefusal] = [
         GilbertRefusal(id: "no-diagnosis",

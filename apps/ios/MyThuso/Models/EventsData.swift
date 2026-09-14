@@ -82,11 +82,11 @@ enum EventsData {
     static let marketOrderReturnedV1 = EventKey("market.order.returned", 1, "money")
     static let pulseSessionStartedV1 = EventKey("pulse.session.started", 1, "pulse")
     static let pulseListeningStartedV1 = EventKey("pulse.listening.started", 1, "pulse")
-    static let pulseUtteranceFinalisedV1 = EventKey("pulse.utterance.finalised", 1, "pulse")
+    static let pulseUtteranceFinalisedV2 = EventKey("pulse.utterance.finalised", 2, "pulse")
     static let pulseThinkingStartedV1 = EventKey("pulse.thinking.started", 1, "pulse")
     static let pulseDeviceHighlightV1 = EventKey("pulse.device.highlight", 1, "pulse")
     static let pulseGuidancePresentedV1 = EventKey("pulse.guidance.presented", 1, "pulse")
-    static let pulseEscalationStartedV1 = EventKey("pulse.escalation.started", 1, "pulse")
+    static let pulseEscalationStartedV2 = EventKey("pulse.escalation.started", 2, "pulse")
     static let pulseHandoverCompletedV1 = EventKey("pulse.handover.completed", 1, "pulse")
     static let trustWeightDecidedV2 = EventKey("trust.weight.decided", 2, "trust")
     static let trustDispatchWithheldV1 = EventKey("trust.dispatch.withheld", 1, "trust")
@@ -134,11 +134,11 @@ enum EventsData {
         marketOrderReturnedV1,
         pulseSessionStartedV1,
         pulseListeningStartedV1,
-        pulseUtteranceFinalisedV1,
+        pulseUtteranceFinalisedV2,
         pulseThinkingStartedV1,
         pulseDeviceHighlightV1,
         pulseGuidancePresentedV1,
-        pulseEscalationStartedV1,
+        pulseEscalationStartedV2,
         pulseHandoverCompletedV1,
         trustWeightDecidedV2,
         trustDispatchWithheldV1,

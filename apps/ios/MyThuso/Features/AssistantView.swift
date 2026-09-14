@@ -38,12 +38,16 @@ import SwiftUI
 
 struct AssistantView: View {
     @StateObject private var listener = GilbertListener()
+    /// The store the home reads its next visit from, so Gilbert names the same one.
+    @EnvironmentObject private var store: PreviewStore
     @State private var turns = Gilbert.opening()
     @State private var draft = ""
     @State private var correction = ""
     @State private var gatheredAt: Date?
     @State private var showingSos = false
     @FocusState private var correcting: Bool
+    /// Whether the composer has the keyboard, and so whether the keyboard's own microphone key is on screen.
+    @FocusState private var typing: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.scenePhase) private var scenePhase
@@ -88,15 +92,36 @@ struct AssistantView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .navigationDestination(isPresented: $showingSos) { SosView() }
         .onAppear { gather() }
-        .onChange(of: turns.last?.id) { _, _ in gather() }
+        .onChange(of: turns.last?.id) { _, _ in
+            gather()
+            /* A second answer in the same state changes nothing VoiceOver is told about, so the reply
+               itself is announced. The scroll above already brings its top into view. */
+            if let last = turns.last, turns.count > 1 { AccessibilityNotification.Announcement(spoken(last)).post() }
+        }
         .onChange(of: pulse) { _, now in
             AccessibilityNotification.Announcement(Gilbert.spec(now).announcement).post()
         }
         .onChange(of: listener.phase) { _, phase in
             if case .heard(let words) = phase { correction = words; correcting = true }
+            /* Listening ending because something else took the microphone is news, and a VoiceOver user
+               would otherwise hear only that the state went back to Ready. */
+            if phase == .interrupted { AccessibilityNotification.Announcement(Gilbert.voice.interrupted).post() }
         }
         .onChange(of: scenePhase) { _, phase in if phase != .active { listener.cancel() } }
         .onDisappear { listener.cancel() }
+    }
+
+    private func spoken(_ turn: Gilbert.Turn) -> String {
+        let first: String
+        switch turn.reply {
+        case .situation(let situation): first = situation.sentence
+        case .identity: first = Gilbert.whatItIs
+        case .voice: first = Gilbert.voice.howItWorks
+        case .emergency: first = Gilbert.emergency.headline
+        case .unmatched: first = Gilbert.unmatched.sentence
+        case .handover: first = Gilbert.handover.title
+        }
+        return turn.unread ? "\(Gilbert.name): \(first) \(Gilbert.unread.sentence)" : "\(Gilbert.name): \(first)"
     }
 
     /// Reduce Motion is answered by never starting the reaction, not by shortening it.
@@ -105,11 +130,11 @@ struct AssistantView: View {
     private func sendDraft() {
         let words = draft
         draft = ""
-        turns = Gilbert.send(words, channel: .typed, to: turns)
+        turns = Gilbert.send(words, channel: .typed, to: turns, visit: store.visits.first)
     }
 
     private func sendCorrection() {
-        turns = Gilbert.send(correction, channel: .spoken, to: turns)
+        turns = Gilbert.send(correction, channel: .spoken, to: turns, visit: store.visits.first)
         correction = ""
         listener.sent()
     }
@@ -128,6 +153,17 @@ struct AssistantView: View {
 
     private var stage: some View {
         VStack(spacing: ThusoSpacing.space16) {
+            #if DEBUG
+            /* The contract's shared fixtures, run against this platform's matcher when the UI tests ask for
+               it. "agrees" or the disagreements, read off the screen by AssistantTests. Not in a release
+               build, and never drawn unless the launch argument is present. */
+            if ProcessInfo.processInfo.arguments.contains("-GilbertSelfTest") {
+                let disagreements = Gilbert.selfTest()
+                Text(disagreements.isEmpty ? "agrees" : disagreements.joined(separator: " | "))
+                    .font(.footnote).foregroundStyle(ThusoTheme.surface)
+                    .accessibilityIdentifier("gilbert-self-test")
+            }
+            #endif
             sphere
             VStack(spacing: ThusoSpacing.space8) {
                 Text(Gilbert.spec(pulse).cue)
@@ -148,7 +184,7 @@ struct AssistantView: View {
                     Text(figure).font(.system(.largeTitle, design: .default, weight: .ultraLight))
                         .foregroundStyle(ThusoTheme.surface)
                 }
-                Text(Gilbert.descriptor)
+                Text(Gilbert.descriptorLine)
                     .thusoFont(ThusoType.caption)
                     .foregroundStyle(ThusoTheme.brandMint)
             }
@@ -177,7 +213,7 @@ struct AssistantView: View {
 
     private var canTalk: Bool {
         switch listener.phase {
-        case .idle, .failed: return true
+        case .idle, .failed, .interrupted: return true
         default: return false
         }
     }
@@ -210,9 +246,10 @@ struct AssistantView: View {
             SceneNote(text: Gilbert.voice.unavailable)
         case .refused:
             SceneNote(text: Gilbert.voice.refused)
-        case .idle, .failed:
+        case .idle, .failed, .interrupted:
             VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
                 if listener.phase == .failed { SceneNote(text: Gilbert.voice.failed) }
+                if listener.phase == .interrupted { SceneNote(text: Gilbert.voice.interrupted) }
                 Button { listener.talk() } label: {
                     Label(Gilbert.voice.talkLabel, systemImage: "mic.fill")
                         .font(.body.weight(.semibold))
@@ -260,6 +297,8 @@ struct AssistantView: View {
                     .foregroundStyle(ThusoTheme.brandMint)
                     .fixedSize(horizontal: false, vertical: true)
                 TextField(Gilbert.conversation.inputHint, text: $correction, axis: .vertical)
+                    .autocorrectionDisabled(true)
+                    .textInputAutocapitalization(.never)
                     .lineLimit(1...6)
                     .focused($correcting)
                     .foregroundStyle(ThusoTheme.brandInk)
@@ -312,6 +351,9 @@ struct AssistantView: View {
                             .foregroundStyle(ThusoTheme.brandMint)
                             .accessibilityHidden(true)
                         replyBody(turn.reply)
+                        /* Words Gilbert did not read are said to be unread, with the numbers beside them,
+                           rather than answered around. See readEverything in the contract. */
+                        if turn.unread { unreadBlock }
                     }
                     .accessibilityElement(children: .contain)
                 }
@@ -379,6 +421,27 @@ struct AssistantView: View {
         }
     }
 
+    /// The unread answer. Guiding, never a calm Idle: the words Gilbert could not read may be the ones that mattered.
+    private var unreadBlock: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            Rectangle().fill(ThusoTheme.brandOrange).frame(height: 2).accessibilityHidden(true)
+            SceneText(Gilbert.unread.sentence, weight: .semibold)
+            SceneText(Gilbert.unread.detail)
+            SceneText(Gilbert.unread.ifUrgent)
+            lines(Gilbert.unread.lines)
+            Button { turns = Gilbert.handOver(turns: turns) } label: {
+                Label(Gilbert.unread.handoverLabel, systemImage: "person.fill").frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(SceneButtonStyle(filled: true))
+            Button { showingSos = true } label: {
+                Label(Gilbert.unread.sosLabel, systemImage: "cross.case.fill").frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(SceneButtonStyle(filled: false, urgent: true))
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("gilbert-unread")
+    }
+
     /* The numbers in a real column: one width for the digits, so the names start at the same edge.
        Printed, never dialled — the SOS screen says nothing here dials. */
     private func lines(_ lines: [GilbertLine]) -> some View {
@@ -406,7 +469,7 @@ struct AssistantView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     ForEach(Gilbert.questions.filter { $0.group == group.id }) { question in
-                        Button { turns = Gilbert.choose(question, turns: turns) } label: {
+                        Button { turns = Gilbert.choose(question, turns: turns, visit: store.visits.first) } label: {
                             Text(question.asks).frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                                 .multilineTextAlignment(.leading)
                         }
@@ -453,10 +516,16 @@ struct AssistantView: View {
        not a label, and the reader who asked for the largest type is the one who cannot guess it. */
     private var composer: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+            /* The keyboard note is shown while the field has the keyboard, which is exactly when the
+               keyboard's microphone key is on the screen. Pinned all the time it took half of the screen
+               from the conversation, and the accessibility audit found questions that could no longer be
+               scrolled to a place a finger could reach. VoiceOver hears it as the field's hint either way. */
             if typeSize.isAccessibilitySize {
                 VStack(spacing: ThusoSpacing.space8) { composerField; composerSend(fill: true) }
+                if typing { keyboardNote }
             } else {
                 HStack(spacing: ThusoSpacing.space8) { composerField; composerSend(fill: false) }
+                if typing { keyboardNote }
                 silence
             }
         }
@@ -468,16 +537,31 @@ struct AssistantView: View {
 }
 
 extension AssistantView {
+    /* Autocorrection and capitalisation off, which is what the app controls. The dictation key on the
+       system keyboard is not something any app may remove, so keyboardNote says whose it is instead of
+       the screen pretending it is not there. */
     fileprivate var composerField: some View {
         TextField(Gilbert.conversation.inputHint, text: $draft)
+            .autocorrectionDisabled(true)
+            .textInputAutocapitalization(.never)
             .submitLabel(.send)
             .onSubmit(sendDraft)
             .foregroundStyle(ThusoTheme.brandInk)
             .padding(.horizontal, ThusoSpacing.space12)
             .frame(minHeight: 44)
             .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            .focused($typing)
             .accessibilityLabel(Gilbert.conversation.inputLabel)
+            .accessibilityHint(Gilbert.conversation.keyboardNote)
             .accessibilityIdentifier("gilbert-input")
+    }
+
+    fileprivate var keyboardNote: some View {
+        Text(Gilbert.conversation.keyboardNote)
+            .font(.footnote).foregroundStyle(ThusoTheme.brandMint)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("gilbert-keyboard-note")
     }
 
     fileprivate func composerSend(fill: Bool) -> some View {

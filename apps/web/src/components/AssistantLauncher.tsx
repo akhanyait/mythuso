@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { OPEN_PARAM } from '../lib/roles';
 import type { PanelProps } from '../features/Assistant';
+import type { Visit } from '../lib/scheduling';
 
 /* The floating way into Gilbert, bottom right, on every patient page.
 
@@ -25,7 +26,7 @@ const load = () => import('../features/Assistant');
 let pending: ReturnType<typeof load> | null = null;
 const prefetch = () => (pending ??= load());
 
-export function AssistantLauncher({ openModal }: { openModal: (modal: string) => void }) {
+export function AssistantLauncher({ openModal, visit }: { openModal: (modal: string) => void; visit: Visit | null }) {
  /* `/app/?open=assistant` opens the panel over the home. Read once, like every `open=` link. */
  const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).get(OPEN_PARAM) === 'assistant');
  const [opened, setOpened] = useState(open);
@@ -53,7 +54,7 @@ export function AssistantLauncher({ openModal }: { openModal: (modal: string) =>
    <span className="al-glow"/><span className="al-orb"/><span className="al-ring"/><span className="al-spark"><i/></span>
   </button>
   {opened && <Suspense fallback={open ? <p className="al-note" role="status">Opening Gilbert.</p> : null}>
-   <Panel open={open} dismiss={() => setOpen(false)} openModal={modal => { setOpen(false); openModal(modal); }}/>
+   <Panel open={open} dismiss={() => setOpen(false)} openModal={modal => { setOpen(false); openModal(modal); }} visit={visit}/>
   </Suspense>}
  </div>;
 }

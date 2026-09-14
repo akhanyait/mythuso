@@ -27,7 +27,7 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Gilbert.callToAction)
-                .accessibilityHint(Gilbert.descriptor)
+                .accessibilityHint(Gilbert.descriptorLine)
                 .padding(.trailing, ThusoSpacing.space16)
                 .padding(.bottom, ThusoSpacing.space12)
             }

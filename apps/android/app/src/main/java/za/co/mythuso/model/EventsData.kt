@@ -59,11 +59,11 @@ object EventsData {
             val MARKET_ORDER_RETURNED_V1 = EventKey("market.order.returned", 1, "money")
             val PULSE_SESSION_STARTED_V1 = EventKey("pulse.session.started", 1, "pulse")
             val PULSE_LISTENING_STARTED_V1 = EventKey("pulse.listening.started", 1, "pulse")
-            val PULSE_UTTERANCE_FINALISED_V1 = EventKey("pulse.utterance.finalised", 1, "pulse")
+            val PULSE_UTTERANCE_FINALISED_V2 = EventKey("pulse.utterance.finalised", 2, "pulse")
             val PULSE_THINKING_STARTED_V1 = EventKey("pulse.thinking.started", 1, "pulse")
             val PULSE_DEVICE_HIGHLIGHT_V1 = EventKey("pulse.device.highlight", 1, "pulse")
             val PULSE_GUIDANCE_PRESENTED_V1 = EventKey("pulse.guidance.presented", 1, "pulse")
-            val PULSE_ESCALATION_STARTED_V1 = EventKey("pulse.escalation.started", 1, "pulse")
+            val PULSE_ESCALATION_STARTED_V2 = EventKey("pulse.escalation.started", 2, "pulse")
             val PULSE_HANDOVER_COMPLETED_V1 = EventKey("pulse.handover.completed", 1, "pulse")
             val TRUST_WEIGHT_DECIDED_V2 = EventKey("trust.weight.decided", 2, "trust")
             val TRUST_DISPATCH_WITHHELD_V1 = EventKey("trust.dispatch.withheld", 1, "trust")
@@ -111,11 +111,11 @@ object EventsData {
                 MARKET_ORDER_RETURNED_V1,
                 PULSE_SESSION_STARTED_V1,
                 PULSE_LISTENING_STARTED_V1,
-                PULSE_UTTERANCE_FINALISED_V1,
+                PULSE_UTTERANCE_FINALISED_V2,
                 PULSE_THINKING_STARTED_V1,
                 PULSE_DEVICE_HIGHLIGHT_V1,
                 PULSE_GUIDANCE_PRESENTED_V1,
-                PULSE_ESCALATION_STARTED_V1,
+                PULSE_ESCALATION_STARTED_V2,
                 PULSE_HANDOVER_COMPLETED_V1,
                 TRUST_WEIGHT_DECIDED_V2,
                 TRUST_DISPATCH_WITHHELD_V1,

@@ -21,6 +21,14 @@ import XCTest
  * prompt: the microphone is asked for after the contract's explanation, on the first tap to talk.
  * SpringBoard is where that prompt would appear, so it is asked directly.
  *
+ * The matcher agrees with the contract. The app is launched with -GilbertSelfTest, which makes a debug
+ * build run the shared fixtures in packages/catalog/assistant.json against Models/Assistant.swift and
+ * put the result on the screen; the web runs the same list in Playwright and Android in a JVM test. And
+ * the review's own sentence — an ordinary question with words Gilbert cannot read — is typed, and must
+ * be followed by the unread answer.
+ *
+ * The keyboard's microphone is said to be the keyboard's, beside the field.
+ *
  * And the screen is usable at both ends of the text-size scale. Whether the simulator can recognise
  * English on the device is its own business; this file does not tap to talk, because a test that
  * depends on a simulator's speech assets would be a test of the simulator.
@@ -92,6 +100,33 @@ final class AssistantTests: XCTestCase {
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Open Thuso SOS")).firstMatch.waitForExistence(timeout: 10),
                       "an emergency word in an ordinary question did not raise the emergency answer")
         keep(app, "gilbert-escalate")
+    }
+
+    func testTheMatcherAgreesWithTheContractsFixtures() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-GilbertSelfTest"]
+        app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 60), "the app did not reach its tab bar")
+        openGilbert(app)
+        let result = app.staticTexts["gilbert-self-test"]
+        XCTAssertTrue(result.waitForExistence(timeout: 20), "the debug self-test did not render")
+        XCTAssertEqual(result.label, "agrees", "iOS Gilbert disagrees with packages/catalog/assistant.json's fixtures: \(result.label)")
+    }
+
+    func testWordsGilbertCannotReadAreSaidToBeUnread() {
+        let app = launchApp()
+        openGilbert(app)
+        let field = app.textFields["gilbert-input"]
+        XCTAssertTrue(field.waitForExistence(timeout: 20), "Gilbert has no text field")
+        field.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["gilbert-keyboard-note"].waitForExistence(timeout: 5), "the keyboard note is not beside the field while the keyboard is up")
+        field.typeText("when is my nurse coming, my knee is sore")
+        app.buttons["gilbert-send"].tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "A nurse is expected on")).firstMatch.waitForExistence(timeout: 10),
+                      "the recognised question was not answered")
+        XCTAssertTrue(app.descendants(matching: .any)["gilbert-unread"].waitForExistence(timeout: 10),
+                      "an answer with words Gilbert could not read was not followed by the unread answer")
+        keep(app, "gilbert-unread")
     }
 
     func testTheScreenIsUsableAtBothTextSizes() {

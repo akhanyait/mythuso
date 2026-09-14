@@ -2,22 +2,25 @@ import Foundation
 
 /* Gilbert's reasoning, without a screen attached to it.
 
-   The sentences, the trigger phrases, the emergency words and the voice policy are generated into
-   AssistantData.swift from packages/catalog/assistant.json. This file is the arithmetic beside that
-   data, and it is the same arithmetic as apps/web/src/lib/assistant.ts and model/Assistant.kt:
-   normalise a message, look for an emergency word, then for the longest trigger phrase, and give
-   every other message the one honest answer. The same words get the same answer on all three.
+   The sentences, trigger phrases, emergency words, the matcher's data and the shared fixtures are
+   generated into AssistantData.swift from packages/catalog/assistant.json. This file is the arithmetic
+   beside that data, and it is the same arithmetic as apps/web/src/lib/assistant.ts and
+   model/Assistant.kt: fold a message to plain letters, reduce it to stems, look for an emergency term
+   with small gaps, then for the longest trigger, and give every word Gilbert did not read an honest
+   sentence with the ambulance numbers beside it.
 
    The order is the safety property. Emergency words are checked before any question, and a match
-   ends the matching: "when is my nurse coming, my chest hurts" is an emergency, not a visit date.
-   Nothing found in the same message can lower it, and nothing about a later message reaches back
-   and changes an answer already given.
+   ends the matching: "when is my nurse coming, I have chest pains" is an emergency, not a visit date.
+   And a question may answer on its own only if every word of the message is its own trigger or ordinary
+   filler — the Wave 1 review showed that a missed word followed by a calm answer is the miss presented
+   as reassurance. selfTest() runs all of it against the contract's fixtures in a debug build, and
+   AssistantTests reads the result.
 
-   What this file does not do is as deliberate. It has no network, no model and no timer. Nothing
-   here waits before answering, because a pause added to look thoughtful is the Thinking state lying
-   — the only Thinking the screen may show is the recogniser finishing, which lives in
-   GilbertVoice.swift. And nothing here is written anywhere: a conversation is an array of turns held
-   by the screen, capped, and gone when the screen is. */
+   What this file does not do is as deliberate. It has no network, no model and no timer. Nothing here
+   waits before answering, because a pause added to look thoughtful is the Thinking state lying — the
+   only Thinking the screen may show is the recogniser finishing, which lives in GilbertVoice.swift. And
+   nothing here is written anywhere: a conversation is an array of turns held by the screen, capped, and
+   gone when the screen is. */
 
 struct GilbertState: Identifiable, Hashable {
     let id: String
@@ -77,6 +80,7 @@ struct GilbertLine: Hashable {
     let name: String
 }
 
+/// The unmatched answer, and the unread answer that follows a question with words left over.
 struct GilbertUnmatched {
     let state: String
     let sentence: String
@@ -126,6 +130,7 @@ struct GilbertConversation {
     let youSaid: String
     let logLabel: String
     let refusalsHeading: String
+    let keyboardNote: String
     let turnLimit: Int
 }
 
@@ -146,6 +151,7 @@ struct GilbertVoicePolicy {
     let unavailable: String
     let refused: String
     let failed: String
+    let interrupted: String
     let talkLabel: String
     let stopLabel: String
     let captionsLabel: String
@@ -157,6 +163,18 @@ struct GilbertRefusal: Identifiable, Hashable {
     let id: String
     let statement: String
     let why: String
+}
+
+struct GilbertStemFixture {
+    let says: String
+    let stems: [String]
+}
+
+struct GilbertMessageFixture {
+    let says: String
+    let expect: String
+    let question: String?
+    let groups: [String]
 }
 
 enum Gilbert {
@@ -188,6 +206,8 @@ enum Gilbert {
         let reply: Reply
         let matched: GilbertQuestion?
         let groups: [GilbertEmergencyGroup]
+        /// True when the answer came with words Gilbert could not read; the unread answer follows it.
+        let unread: Bool
     }
 
     static func spec(_ pulse: Pulse) -> GilbertState {
@@ -196,22 +216,27 @@ enum Gilbert {
 
     // MARK: - Situations, dated today
 
-    static func situations(from now: Date = Date()) -> [GilbertSituation] {
-        let first = Scheduling.offeredDays(from: now).first
-        let values: [String: String] = [
-            "firstDay": first.map { Scheduling.longDate($0.date) } ?? fallbackFirstDay,
-            "day": first?.day ?? "",
-            "month": first?.month ?? "",
-            "slot": Scheduling.slots.first ?? "",
+    /* The visit is the one the home card shows — the store's first upcoming visit, written by the same
+       shortWhenText — so Gilbert and the home cannot name two days for one visit. With nothing booked, or a
+       nurse still being found, it says scheduling.json's own words for that. */
+    static func situations(visit: BookedVisit? = nil) -> [GilbertSituation] {
+        var values: [String: String] = [
             "laboratory": Records.type("laboratory")?.name ?? fallbackLaboratory,
             "expiryWarningDays": "\(VettingClock.expiryWarningDays)"
         ]
         return situationTemplates.map { template in
-            GilbertSituation(id: template.id, name: template.name,
-                             sentence: fill(template.sentence, values),
-                             figure: template.figure.map { fill($0, values) },
-                             figureLabel: template.figureLabel.map { fill($0, values) },
-                             depth: template.depth)
+            if template.id == "visit" {
+                guard let visit, visit.isScheduled else {
+                    let state = visit == nil ? visitNone : visitPending
+                    return GilbertSituation(id: template.id, name: state.name, sentence: state.sentence, figure: nil, figureLabel: nil, depth: template.depth)
+                }
+                values["visitWhen"] = visit.shortWhenText
+            }
+            return GilbertSituation(id: template.id, name: template.name,
+                                    sentence: fill(template.sentence, values),
+                                    figure: template.figure.map { fill($0, values) },
+                                    figureLabel: template.figureLabel.map { fill($0, values) },
+                                    depth: template.depth)
         }
     }
 
@@ -219,53 +244,104 @@ enum Gilbert {
         values.reduce(text) { result, pair in result.replacingOccurrences(of: "{\(pair.key)}", with: pair.value) }
     }
 
+    // MARK: - Words into stems
+
+    /* Lower case, the contract's foldings (æ is ae), combining marks removed (é is e), apostrophes
+       removed, anything outside a–z and 0–9 a space. The same steps in the same order as the web's and
+       Android's, and held to fixtures.stems by selfTest(). */
+    static func tokens(_ text: String) -> [String] {
+        var folded = text.lowercased()
+        for (from, to) in foldings { folded = folded.replacingOccurrences(of: from, with: to) }
+        folded = String(String.UnicodeScalarView(folded.decomposedStringWithCanonicalMapping.unicodeScalars.filter { scalar in
+            switch scalar.properties.generalCategory {
+            case .nonspacingMark, .spacingMark, .enclosingMark: return false
+            default: return true
+            }
+        }))
+        for mark in apostrophes { folded = folded.replacingOccurrences(of: mark, with: "") }
+        var words: [String] = []
+        var current = ""
+        for scalar in folded.unicodeScalars {
+            if ("a"..."z").contains(scalar) || ("0"..."9").contains(scalar) { current.unicodeScalars.append(scalar) }
+            else if !current.isEmpty { words.append(current); current = "" }
+        }
+        if !current.isEmpty { words.append(current) }
+        return words
+    }
+
+    private static func undouble(_ word: String) -> String {
+        let letters = Array(word)
+        guard letters.count >= 3, let last = letters.last, letters[letters.count - 2] == last, !"aeiouslz".contains(last) else { return word }
+        return String(letters.dropLast())
+    }
+
+    static func stem(_ word: String) -> String {
+        var t = irregular[word] ?? word
+        if t.count >= 5 && t.hasSuffix("ing") { t = undouble(String(t.dropLast(3))) }
+        else if t.count >= 4 && (t.hasSuffix("ied") || t.hasSuffix("ies")) { t = String(t.dropLast(3)) + "y" }
+        else if t.count >= 4 && t.hasSuffix("ed") && !t.hasSuffix("eed") { t = undouble(String(t.dropLast(2))) }
+        else if t.count >= 4 && ["ses", "xes", "zes", "ches", "shes"].contains(where: { t.hasSuffix($0) }) { t = String(t.dropLast(2)) }
+        else if t.count >= 4 && t.hasSuffix("s") && !t.hasSuffix("ss") && !t.hasSuffix("us") && !t.hasSuffix("is") { t = String(t.dropLast()) }
+        if t.count >= 4 && t.hasSuffix("e") { t = String(t.dropLast()) }
+        return t
+    }
+
+    static func stems(_ text: String) -> [String] { tokens(text).map(stem) }
+
+    /// A term's words in order, each within `gap` words of the one before; greedy from each start.
+    private static func hasSequence(_ said: [String], _ term: [String], gap: Int) -> Bool {
+        guard let head = term.first else { return false }
+        for start in said.indices where said[start] == head {
+            var at = start
+            var whole = true
+            for word in term.dropFirst() {
+                var found: Int?
+                var j = at + 1
+                while j < said.count && j <= at + 1 + gap { if said[j] == word { found = j; break }; j += 1 }
+                guard let next = found else { whole = false; break }
+                at = next
+            }
+            if whole { return true }
+        }
+        return false
+    }
+
     // MARK: - The matcher
 
-    /* Lower case, apostrophes removed, everything outside a–z and 0–9 a space, padded so a phrase can
-       be matched as whole words. Deliberately ASCII, as the web's regular expression is: an accented
-       letter becomes a space on all three platforms rather than a letter on two of them. */
-    static func normalise(_ text: String) -> String {
-        var out = ""
-        var lastWasSpace = true
-        for scalar in text.lowercased().unicodeScalars {
-            if scalar == "'" || scalar == "\u{2019}" || scalar == "\u{2018}" || scalar == "`" { continue }
-            let keep = ("a"..."z").contains(scalar) || ("0"..."9").contains(scalar)
-            if keep { out.unicodeScalars.append(scalar); lastWasSpace = false }
-            else if !lastWasSpace { out.append(" "); lastWasSpace = true }
-        }
-        return " " + out.trimmingCharacters(in: .whitespaces) + " "
-    }
-
-    private static func contains(_ normalised: String, _ phrase: String) -> Bool {
-        normalised.contains(normalise(phrase))
-    }
-
     static func emergencyGroups(in text: String) -> [GilbertEmergencyGroup] {
-        let said = normalise(text)
-        return emergencyGroups.filter { group in group.words.contains { contains(said, $0) } }
+        let said = stems(text)
+        return emergencyGroups.filter { group in group.words.contains { hasSequence(said, stems($0), gap: maxGap) } }
     }
 
-    /// The longest trigger phrase wins; a tie goes to the question listed first.
+    /// The longest trigger (in words, adjacent) wins; a tie goes to the question listed first.
     static func question(for text: String) -> GilbertQuestion? {
-        let said = normalise(text)
-        var best: (question: GilbertQuestion, length: Int)?
+        let said = stems(text)
+        var best: GilbertQuestion?
+        var length = 0
         for question in questions {
-            for trigger in question.triggers where contains(said, trigger) {
-                let length = normalise(trigger).count
-                if best == nil || length > best!.length { best = (question, length) }
+            for trigger in question.triggers {
+                let term = stems(trigger)
+                if term.count > length && hasSequence(said, term, gap: 0) { best = question; length = term.count }
             }
         }
-        return best?.question
+        return best
     }
 
-    static func reply(to question: GilbertQuestion, from now: Date = Date()) -> Reply {
+    /// A word that is neither one of the question's own trigger words nor filler is a word Gilbert did not read.
+    static func leavesUnread(_ text: String, _ question: GilbertQuestion) -> Bool {
+        let covered = Set(filler.map(stem)).union(question.triggers.flatMap(stems))
+        return stems(text).contains { !covered.contains($0) }
+    }
+
+    static func reply(to question: GilbertQuestion, turns: [Turn] = [], visit: BookedVisit?) -> Reply {
         switch question.answer {
         case "situation":
-            if let situation = situations(from: now).first(where: { $0.id == question.id }) { return .situation(situation) }
+            if let situation = situations(visit: visit).first(where: { $0.id == question.id }) { return .situation(situation) }
             return .unmatched
         case "identity": return .identity
         case "voice": return .voice
         case "emergency": return .emergency([])
+        case "handover": return .handover(summary(of: turns))
         default: return .unmatched
         }
     }
@@ -292,8 +368,8 @@ enum Gilbert {
 
     // MARK: - The conversation
 
-    static func opening(from now: Date = Date()) -> [Turn] {
-        [Turn(id: 0, asked: nil, channel: nil, reply: .situation(situations(from: now)[0]), matched: nil, groups: [])]
+    static func opening() -> [Turn] {
+        [Turn(id: 0, asked: nil, channel: nil, reply: .situation(situations()[0]), matched: nil, groups: [], unread: false)]
     }
 
     private static func appending(_ turn: (Int) -> Turn, to turns: [Turn]) -> [Turn] {
@@ -302,40 +378,40 @@ enum Gilbert {
     }
 
     /// A message in a person's own words, typed or spoken and checked.
-    static func send(_ text: String, channel: Channel, to turns: [Turn], from now: Date = Date()) -> [Turn] {
+    static func send(_ text: String, channel: Channel, to turns: [Turn], visit: BookedVisit?) -> [Turn] {
         let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !words.isEmpty else { return turns }
         let groups = emergencyGroups(in: words)
         /* The emergency words first, and a match ends it. */
         if !groups.isEmpty {
-            return appending({ Turn(id: $0, asked: words, channel: channel, reply: .emergency(groups), matched: nil, groups: groups) }, to: turns)
+            return appending({ Turn(id: $0, asked: words, channel: channel, reply: .emergency(groups), matched: nil, groups: groups, unread: false) }, to: turns)
         }
-        if let question = question(for: words) {
-            if question.answer == "handover" { return handingOver(asked: words, channel: channel, matched: question, turns: turns) }
-            return appending({ Turn(id: $0, asked: words, channel: channel, reply: reply(to: question, from: now), matched: question, groups: []) }, to: turns)
+        guard let question = question(for: words) else {
+            return appending({ Turn(id: $0, asked: words, channel: channel, reply: .unmatched, matched: nil, groups: [], unread: false) }, to: turns)
         }
-        return appending({ Turn(id: $0, asked: words, channel: channel, reply: .unmatched, matched: nil, groups: []) }, to: turns)
+        let unread = question.answer != "emergency" && leavesUnread(words, question)
+        /* A claim about everything is not made to a message Gilbert did not read all of. */
+        if unread && neverWithUnread.contains(question.id) {
+            return appending({ Turn(id: $0, asked: words, channel: channel, reply: .unmatched, matched: nil, groups: [], unread: false) }, to: turns)
+        }
+        let answer = reply(to: question, turns: turns, visit: visit)
+        return appending({ Turn(id: $0, asked: words, channel: channel, reply: answer, matched: question, groups: [], unread: unread) }, to: turns)
     }
 
-    /// One of the suggested questions, pressed.
-    static func choose(_ question: GilbertQuestion, turns: [Turn], from now: Date = Date()) -> [Turn] {
-        if question.answer == "handover" { return handingOver(asked: question.asks, channel: .chosen, matched: question, turns: turns) }
-        return appending({ Turn(id: $0, asked: question.asks, channel: .chosen, reply: reply(to: question, from: now), matched: question, groups: []) }, to: turns)
+    /// One of the suggested questions, pressed. Its own words, so nothing is unread.
+    static func choose(_ question: GilbertQuestion, turns: [Turn], visit: BookedVisit?) -> [Turn] {
+        let answer = reply(to: question, turns: turns, visit: visit)
+        return appending({ Turn(id: $0, asked: question.asks, channel: .chosen, reply: answer, matched: question, groups: [], unread: false) }, to: turns)
     }
 
-    /// "Talk to a nurse", pressed from the unmatched answer: a summary of the last thing asked.
+    /// "Talk to a nurse", pressed from the unmatched or unread answer: a summary of the last thing asked.
     static func handOver(turns: [Turn]) -> [Turn] {
-        appending({ Turn(id: $0, asked: nil, channel: nil, reply: .handover(summary(of: turns)), matched: nil, groups: []) }, to: turns)
+        appending({ Turn(id: $0, asked: nil, channel: nil, reply: .handover(summary(of: turns)), matched: nil, groups: [], unread: false) }, to: turns)
     }
 
-    private static func handingOver(asked: String, channel: Channel, matched: GilbertQuestion, turns: [Turn]) -> [Turn] {
-        let rows = summary(of: turns)
-        return appending({ Turn(id: $0, asked: asked, channel: channel, reply: .handover(rows), matched: matched, groups: []) }, to: turns)
-    }
-
-    /* What a nurse would be handed. The last thing the person asked before this, in their words, how
-       it arrived, what it matched and which emergency words were in it. A request for a nurse is not
-       itself the thing a nurse needs to read, so it is skipped when looking back. */
+    /* What a nurse would be handed. The last thing the person asked before this, in their words, how it
+       arrived, what it matched and which emergency words were in it. A request for a nurse is not itself
+       the thing a nurse needs to read, so it is skipped when looking back. */
     static func summary(of turns: [Turn]) -> [SummaryRow] {
         let label = { (id: String) in handover.fields.first { $0.id == id }?.label ?? id }
         guard let last = turns.last(where: { $0.asked != nil && $0.matched?.answer != "handover" }), let asked = last.asked else {
@@ -356,4 +432,35 @@ enum Gilbert {
             SummaryRow(label: label("flags"), value: flags)
         ]
     }
+
+    /// How a turn came out, in the words the shared fixtures use.
+    static func outcome(of turn: Turn) -> String {
+        switch turn.reply {
+        case .emergency: return "emergency"
+        case .unmatched where turn.matched == nil: return "unmatched"
+        default: return turn.unread ? "answer-and-unread" : "answer"
+        }
+    }
+
+    #if DEBUG
+    /* The contract's shared fixtures, run against this platform's matcher. The web runs the same list in
+       Playwright and Android in a JVM unit test; AssistantTests launches with -GilbertSelfTest and reads
+       what this returns off the screen. An empty list is agreement. Compiled out of a release build. */
+    static func selfTest() -> [String] {
+        var disagreements: [String] = []
+        for fixture in stemFixtures where stems(fixture.says) != fixture.stems {
+            disagreements.append("stems of \"\(fixture.says)\" were \(stems(fixture.says))")
+        }
+        for fixture in messageFixtures {
+            guard let turn = send(fixture.says, channel: .typed, to: opening(), visit: nil).last else { continue }
+            let kind = outcome(of: turn)
+            let question = kind.hasPrefix("answer") ? turn.matched?.id : nil
+            let groups = turn.groups.map(\.id)
+            if kind != fixture.expect || question != fixture.question || groups != fixture.groups {
+                disagreements.append("\"\(fixture.says)\" gave \(kind) \(question ?? "-") \(groups)")
+            }
+        }
+        return disagreements
+    }
+    #endif
 }

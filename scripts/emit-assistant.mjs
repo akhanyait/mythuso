@@ -20,10 +20,15 @@
      - Each emergency word group carries the name of the sos.json condition it maps to, resolved
        here, so the escalation names the condition in the SOS screen's own words.
      - {seconds} is voice.maxListeningSeconds.
-     - The situation tokens — {firstDay}, {day}, {month}, {slot}, {laboratory}, {expiryWarningDays} —
-       are left in. They are dates and counts from other contracts, and a date resolved when this file
-       was generated would be wrong by the next morning. Models/Assistant.swift and model/Assistant.kt
+     - The situation tokens — {visitWhen}, {laboratory}, {expiryWarningDays} — are left in. They are a
+       booked visit and counts from other contracts, and a date resolved when this file was generated
+       would be wrong by the next morning. scheduling.json's labels for no visit and a pending one are
+       filled here. Models/Assistant.swift and model/Assistant.kt
        fill them at runtime.
+     - The matcher's data — foldings, irregular forms, filler words, the gap, the unread answer — and
+       the shared fixtures are emitted, so each platform's own tests run against the same list.
+     - The descriptor is not emitted on its own, only descriptorLine with its disclosure, so no native
+       screen can say "Your Thuso AI Doctor" without saying what Gilbert is not.
      - The Pulse events are not emitted. They are a contract between engines, no phone emits one in
        this release, and a Kotlin copy of an event schema nobody publishes would be a second place for
        it to drift.
@@ -41,6 +46,7 @@ import { fileURLToPath } from 'node:url';
 
 const SOURCE = 'packages/catalog/assistant.json';
 const SOS = 'packages/catalog/sos.json';
+const SCHEDULING = 'packages/catalog/scheduling.json';
 
 const swift = value => {
  if (value.includes('\\')) throw new Error(`Cannot write ${JSON.stringify(value)} as a Swift literal here`);
@@ -66,6 +72,10 @@ const banner = () => [
 export function emitAssistant(root = '') {
  const contract = JSON.parse(readFileSync(root + SOURCE, 'utf8'));
  const sos = JSON.parse(readFileSync(root + SOS, 'utf8'));
+ const schedulingLabels = JSON.parse(readFileSync(root + SCHEDULING, 'utf8')).labels;
+ /* scheduling.json's own words for a visit that is not booked or not yet given a nurse, filled here so
+    the native apps say exactly what their home cards say. */
+ const scheduled = text => text.replace(/\{(noUpcoming|noUpcomingDetail|asapPending)\}/g, (_, key) => schedulingLabels[key]);
 
  const line = id => {
   const found = sos.emergency.numbers.find(n => n.id === id);
@@ -85,7 +95,7 @@ export function emitAssistant(root = '') {
    if (typeof object?.[field] !== 'string' || !object[field]) throw new Error(`${what} has no ${field}. ${SOURCE} is not complete enough to write two native apps from.`);
   }
  };
- need(contract.identity, ['name', 'descriptor', 'pulseName', 'callToAction', 'poweredBy', 'whatItIs', 'whatItIsNot', 'poweredByMeans'], 'Gilbert\'s identity');
+ need(contract.identity, ['name', 'descriptor', 'disclosure', 'descriptorLine', 'pulseName', 'callToAction', 'poweredBy', 'whatItIs', 'whatItIsNot', 'poweredByMeans'], 'Gilbert\'s identity');
  for (const state of contract.states) need(state, ['id', 'name', 'visual', 'meaning', 'cue', 'announcement', 'shownWhen'], `Pulse state "${state.id}"`);
  for (const refusal of contract.refusals) need(refusal, ['id', 'statement', 'why'], `Refusal "${refusal.id}"`);
  const conditionName = group => {
@@ -98,9 +108,20 @@ export function emitAssistant(root = '') {
   return found.name;
  };
 
- const { identity, answers, voice, conversation } = contract;
+ /* The matcher's data and the fixtures are required, not defaulted: a generator that quietly wrote an
+    empty filler list would give every native app a matcher that reads nothing as unread. */
+ for (const [value, what] of [[contract.matcher?.readEverything?.filler, 'matcher.readEverything.filler'], [contract.matcher?.readEverything?.neverWithUnread, 'matcher.readEverything.neverWithUnread'], [contract.matcher?.stemming?.irregular, 'matcher.stemming.irregular'], [contract.matcher?.normalisation?.foldings, 'matcher.normalisation.foldings'], [contract.answers?.unread, 'answers.unread'], [contract.fixtures?.messages, 'fixtures.messages']]) {
+  if (!value) throw new Error(`${SOURCE} has no ${what}, so the matcher cannot be written out without deciding what reading everything means. It is refused here rather than defaulted.`);
+ }
+ const { identity, answers, voice, conversation, matcher, fixtures } = contract;
+ /* The descriptor is not written out on its own. A native screen that wants to say "Your Thuso AI
+    Doctor" has only descriptorLine to say it with, and descriptorLine carries the disclosure. */
+ const dictSwift = entries => entries.length ? `[${entries.map(([k, v]) => `${swift(k)}: ${swift(v)}`).join(', ')}]` : '[:]';
+ const pairsKotlin = entries => entries.length ? `listOf(${entries.map(([k, v]) => `${kotlin(k)} to ${kotlin(v)}`).join(', ')})` : 'emptyList()';
+ const mapKotlin = entries => entries.length ? `mapOf(${entries.map(([k, v]) => `${kotlin(k)} to ${kotlin(v)}`).join(', ')})` : 'emptyMap()';
  const handover = answers.handover;
  const lines = ids => ids.map(line);
+ const kLine = n => `GilbertLine(${kotlin(n.number)}, ${kotlin(n.name)})`;
 
  const swiftFile = `${banner()}
 
@@ -110,7 +131,8 @@ extension Gilbert {
     static let contractVersion = ${contract.version}
 
     static let name = ${swift(identity.name)}
-    static let descriptor = ${swift(identity.descriptor)}
+    static let disclosure = ${swift(identity.disclosure)}
+    static let descriptorLine = ${swift(identity.descriptorLine)}
     static let pulseName = ${swift(identity.pulseName)}
     static let callToAction = ${swift(identity.callToAction)}
     static let poweredBy = ${swift(identity.poweredBy)}
@@ -133,7 +155,8 @@ ${contract.situations.map(s => `        GilbertSituationTemplate(id: ${swift(s.i
                                  sentence: ${swift(s.sentence)},
                                  figure: ${optSwift(s.figure)}, figureLabel: ${optSwift(s.figureLabel)}, depth: ${s.depth})`).join(',\n')}
     ]
-    static let fallbackFirstDay = ${swift(contract.situationsFallback.firstDay)}
+    static let visitNone = (name: ${swift(scheduled(contract.visitStates.none.name))}, sentence: ${swift(scheduled(contract.visitStates.none.sentence))})
+    static let visitPending = (name: ${swift(scheduled(contract.visitStates.pending.name))}, sentence: ${swift(scheduled(contract.visitStates.pending.sentence))})
     static let fallbackLaboratory = ${swift(contract.situationsFallback.laboratory)}
 
     static let questionGroups: [GilbertQuestionGroup] = [
@@ -152,6 +175,24 @@ ${contract.questions.map(q => `        GilbertQuestion(id: ${swift(q.id)}, asks:
 ${contract.matcher.emergencyWords.groups.map(g => `        GilbertEmergencyGroup(id: ${swift(g.id)}, condition: ${optSwift(g.condition)}, name: ${swift(conditionName(g))},
                               words: ${listSwift(g.words)})`).join(',\n')}
     ]
+
+    /* The matcher's own data: how a message becomes stems, and what reading all of it means. The rules
+       themselves are arithmetic in Models/Assistant.swift, identical to the web's and Android's. */
+    static let foldings: [(String, String)] = [${Object.entries(matcher.normalisation.foldings).map(([k, v]) => `(${swift(k)}, ${swift(v)})`).join(', ')}]
+    static let apostrophes: [String] = ${listSwift(matcher.normalisation.apostrophes)}
+    static let irregular: [String: String] = ${dictSwift(Object.entries(matcher.stemming.irregular))}
+    static let maxGap = ${matcher.maxGap}
+    static let filler: [String] = ${listSwift(matcher.readEverything.filler)}
+    static let neverWithUnread: [String] = ${listSwift(matcher.readEverything.neverWithUnread)}
+
+    static let unread = GilbertUnmatched(
+        state: ${swift(answers.unread.state)},
+        sentence: ${swift(answers.unread.sentence)},
+        detail: ${swift(answers.unread.detail)},
+        ifUrgent: ${swift(say(answers.unread.ifUrgent))},
+        lines: [${lines(answers.unread.numbers).map(n => `GilbertLine(number: ${swift(n.number)}, name: ${swift(n.name)})`).join(', ')}],
+        sosLabel: ${swift(answers.unread.sosLabel)},
+        handoverLabel: ${swift(answers.unread.handoverLabel)})
 
     static let unmatched = GilbertUnmatched(
         state: ${swift(answers.unmatched.state)},
@@ -199,6 +240,7 @@ ${contract.matcher.emergencyWords.groups.map(g => `        GilbertEmergencyGroup
         youSaid: ${swift(conversation.youSaid)},
         logLabel: ${swift(conversation.logLabel)},
         refusalsHeading: ${swift(conversation.refusalsHeading)},
+        keyboardNote: ${swift(conversation.keyboardNote)},
         turnLimit: ${conversation.turnLimit})
 
     static let voice = GilbertVoicePolicy(
@@ -218,11 +260,20 @@ ${contract.matcher.emergencyWords.groups.map(g => `        GilbertEmergencyGroup
         unavailable: ${swift(voice.sentences.unavailable)},
         refused: ${swift(voice.sentences.refused)},
         failed: ${swift(voice.sentences.failed)},
+        interrupted: ${swift(voice.sentences.interrupted)},
         talkLabel: ${swift(voice.sentences.talkLabel)},
         stopLabel: ${swift(voice.sentences.stopLabel)},
         captionsLabel: ${swift(voice.sentences.captionsLabel)},
         correctLabel: ${swift(voice.sentences.correctLabel)},
         discardLabel: ${swift(voice.sentences.discardLabel)})
+
+    /* The shared fixtures every platform runs its own matcher against. */
+    static let stemFixtures: [GilbertStemFixture] = [
+${fixtures.stems.map(f => `        GilbertStemFixture(says: ${swift(f.says)}, stems: ${listSwift(f.stems)})`).join(',\n')}
+    ]
+    static let messageFixtures: [GilbertMessageFixture] = [
+${fixtures.messages.map(f => `        GilbertMessageFixture(says: ${swift(f.says)}, expect: ${swift(f.expect)}, question: ${optSwift(f.question ?? null)}, groups: ${listSwift(f.groups ?? [])})`).join(',\n')}
+    ]
 
     static let refusals: [GilbertRefusal] = [
 ${contract.refusals.map(r => `        GilbertRefusal(id: ${swift(r.id)},
@@ -232,7 +283,6 @@ ${contract.refusals.map(r => `        GilbertRefusal(id: ${swift(r.id)},
 }
 `;
 
- const kLine = n => `GilbertLine(${kotlin(n.number)}, ${kotlin(n.name)})`;
  const kotlinFile = `${banner()}
 
 package za.co.mythuso.model
@@ -241,7 +291,8 @@ object GilbertData {
     const val contractVersion = ${contract.version}
 
     const val name = ${kotlin(identity.name)}
-    const val descriptor = ${kotlin(identity.descriptor)}
+    const val disclosure = ${kotlin(identity.disclosure)}
+    const val descriptorLine = ${kotlin(identity.descriptorLine)}
     const val pulseName = ${kotlin(identity.pulseName)}
     const val callToAction = ${kotlin(identity.callToAction)}
     const val poweredBy = ${kotlin(identity.poweredBy)}
@@ -268,7 +319,8 @@ ${contract.situations.map(s => `        GilbertSituationTemplate(
             figure = ${optKotlin(s.figure)}, figureLabel = ${optKotlin(s.figureLabel)}, depth = ${s.depth}
         )`).join(',\n')}
     )
-    const val fallbackFirstDay = ${kotlin(contract.situationsFallback.firstDay)}
+    val visitNone = ${kotlin(scheduled(contract.visitStates.none.name))} to ${kotlin(scheduled(contract.visitStates.none.sentence))}
+    val visitPending = ${kotlin(scheduled(contract.visitStates.pending.name))} to ${kotlin(scheduled(contract.visitStates.pending.sentence))}
     const val fallbackLaboratory = ${kotlin(contract.situationsFallback.laboratory)}
 
     val questionGroups = listOf(
@@ -290,6 +342,24 @@ ${contract.matcher.emergencyWords.groups.map(g => `        GilbertEmergencyGroup
             id = ${kotlin(g.id)}, condition = ${optKotlin(g.condition)}, name = ${kotlin(conditionName(g))},
             words = ${listKotlin(g.words)}
         )`).join(',\n')}
+    )
+
+    /* The matcher's own data; the arithmetic is in model/Assistant.kt, identical to the web's and iOS's. */
+    val foldings = ${pairsKotlin(Object.entries(matcher.normalisation.foldings))}
+    val apostrophes = ${listKotlin(matcher.normalisation.apostrophes)}
+    val irregular = ${mapKotlin(Object.entries(matcher.stemming.irregular))}
+    const val maxGap = ${matcher.maxGap}
+    val filler = ${listKotlin(matcher.readEverything.filler)}
+    val neverWithUnread = ${listKotlin(matcher.readEverything.neverWithUnread)}
+
+    val unread = GilbertUnmatched(
+        state = ${kotlin(answers.unread.state)},
+        sentence = ${kotlin(answers.unread.sentence)},
+        detail = ${kotlin(answers.unread.detail)},
+        ifUrgent = ${kotlin(say(answers.unread.ifUrgent))},
+        lines = listOf(${lines(answers.unread.numbers).map(kLine).join(', ')}),
+        sosLabel = ${kotlin(answers.unread.sosLabel)},
+        handoverLabel = ${kotlin(answers.unread.handoverLabel)}
     )
 
     val unmatched = GilbertUnmatched(
@@ -341,6 +411,7 @@ ${contract.matcher.emergencyWords.groups.map(g => `        GilbertEmergencyGroup
         youSaid = ${kotlin(conversation.youSaid)},
         logLabel = ${kotlin(conversation.logLabel)},
         refusalsHeading = ${kotlin(conversation.refusalsHeading)},
+        keyboardNote = ${kotlin(conversation.keyboardNote)},
         turnLimit = ${conversation.turnLimit}
     )
 
@@ -361,11 +432,20 @@ ${contract.matcher.emergencyWords.groups.map(g => `        GilbertEmergencyGroup
         unavailable = ${kotlin(voice.sentences.unavailable)},
         refused = ${kotlin(voice.sentences.refused)},
         failed = ${kotlin(voice.sentences.failed)},
+        interrupted = ${kotlin(voice.sentences.interrupted)},
         talkLabel = ${kotlin(voice.sentences.talkLabel)},
         stopLabel = ${kotlin(voice.sentences.stopLabel)},
         captionsLabel = ${kotlin(voice.sentences.captionsLabel)},
         correctLabel = ${kotlin(voice.sentences.correctLabel)},
         discardLabel = ${kotlin(voice.sentences.discardLabel)}
+    )
+
+    /* The shared fixtures every platform runs its own matcher against. */
+    val stemFixtures = listOf(
+${fixtures.stems.map(f => `        GilbertStemFixture(${kotlin(f.says)}, ${listKotlin(f.stems)})`).join(',\n')}
+    )
+    val messageFixtures = listOf(
+${fixtures.messages.map(f => `        GilbertMessageFixture(${kotlin(f.says)}, ${kotlin(f.expect)}, ${optKotlin(f.question ?? null)}, ${listKotlin(f.groups ?? [])})`).join(',\n')}
     )
 
     val refusals = listOf(
