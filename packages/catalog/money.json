@@ -1,0 +1,79 @@
+{
+ "_note": "Thuso Money's own contract: the ways a person may pay, the four states a payment can be in and the words a patient reads for each, the cash code, and the doctor's per-case fee. Read by packages/engines/src/money and the web; generated into Swift and Kotlin by scripts/emit-money.mjs. It holds no price. A visit's price and a nurse's share are packages/catalog/services.json's, a plan's price is packages/catalog/mom-plans.json's or packages/catalog/business-model.json's, the payout cycle and its sentences are packages/catalog/earnings.json's, and every refusal with a status is packages/catalog/apis/money.json's. Nothing here is a real service: no card is charged, no bank is contacted and no money moves.",
+ "_honestyNote": "The valuable half of this file is what it will not state. The doctor's fee is null because the documents give a range and not a price, and a number typed here to make a screen look finished would be a promise about somebody's income that nobody made.",
+ "currency": "ZAR",
+
+ "methods": [
+  {"id": "card", "name": "Card", "detail": "On the provider's own page. MyThuso never sees the number.", "for": ["visit", "plan"], "offered": true, "settledBy": "payment-result"},
+  {"id": "eft", "name": "EFT", "detail": "From your bank to the provider, with the visit reference.", "for": ["visit", "plan"], "offered": true, "settledBy": "payment-result"},
+  {"id": "debit-order", "name": "Debit order", "detail": "Taken each month for a plan, under a mandate you give your bank.", "for": ["plan"], "offered": true, "settledBy": "payment-result"},
+  {"id": "cash-otp", "name": "Cash, with a code", "detail": "You pay the nurse at the door and give her the code this screen shows you.", "for": ["visit"], "offered": true, "settledBy": "cash-code"},
+  {"id": "wallet", "name": "Thuso Wallet", "detail": "A prepaid balance.", "for": ["visit", "plan"], "offered": false, "notOfferedBecause": "A wallet is built in a later wave. A balance that nothing holds cannot pay for a visit, so it is not offered as a way to."}
+ ],
+ "methodsNote": "The route's method field names five ways to pay, and this is where each one says what it is. Debit order is for plans only, because a mandate for one visit is a mandate somebody forgets to cancel. Cash is for visits only, because a plan paid in cash at the door is a plan paid to whichever nurse arrives.",
+
+ "states": [
+  {"id": "pending", "name": "Waiting", "words": "We are waiting for your bank to answer. Nothing is booked until it does."},
+  {"id": "succeeded", "name": "Paid", "words": "Your payment went through."},
+  {"id": "failed", "name": "Did not go through", "words": "Nothing is booked. You can try again, or choose another way to pay."},
+  {"id": "refunded", "name": "Refunded", "words": "The visit did not go ahead, so the money is going back to the account it came from."}
+ ],
+ "statesNote": "pending, succeeded and failed are the route's own stateCode values. refunded is reached later, through the payment-result door, when a reversal names the payment it reverses.",
+
+ "outcomes": [
+  {"outcome": "authorised", "state": "succeeded", "settled": false},
+  {"outcome": "settled", "state": "succeeded", "settled": true},
+  {"outcome": "declined", "state": "failed", "settled": false},
+  {"outcome": "reversed", "state": "refunded", "settled": false}
+ ],
+ "outcomesNote": "The payment-result door's four outcomes, translated once, here. Authorised and settled both mean the patient has paid; only settled means the money has arrived, and a nurse's payout is arithmetic on money that has arrived.",
+
+ "declines": [
+  "Your bank did not approve the payment. Nothing has been taken.",
+  "There was not enough in the account. Nothing has been taken.",
+  "Your bank asked you to confirm the payment and the confirmation did not come back. Nothing has been taken."
+ ],
+ "declinesNote": "What the simulated provider says when it declines, in words a person reads. apps/api/src/simulation/payments.ts carries the same three sentences, and scripts/check-boundaries.mjs holds them to these until it reads them from here.",
+
+ "cash": {
+  "codeLength": 6,
+  "pendingWords": "Nothing has been paid yet. You pay the nurse at the door, and it is recorded as paid when she enters this code after the visit.",
+  "reconciledOn": "visit.billable@1",
+  "why": "Cash leakage is a pilot measure, and a nurse's word that she was paid is not a record. The code is issued by Money to the patient and entered by the nurse, so a cash payment is recorded only when the person who paid and the person who was paid agree — and only against a visit Care has said was completed. It is not the visit code the nurse checks at the door: that one belongs to Care and never reaches Money."
+ },
+
+ "providerless": {
+  "words": "Nothing was charged. A payment made here would go to the provider's own page, and no provider is connected to this phone.",
+  "why": "The native apps do not run the simulated provider, so they say what did not happen rather than drawing a receipt for something nobody asked."
+ },
+
+ "payouts": {
+  "cycleFrom": "packages/catalog/earnings.json#cycle",
+  "shareFrom": "packages/catalog/services.json#nurseShare",
+  "platformShareFrom": "packages/catalog/business-model.json#unitEconomics.platformShare",
+  "why": "A nurse's weekly payout is the sum of her share of every visit Care said was billable in the week, less any reversal that names the visit and the reason. No share is written here, and no payout line for a visit carries an amount of its own."
+ },
+
+ "doctorFees": [
+  {
+   "feeCode": "review-per-case",
+   "name": "A doctor's review, per case",
+   "amount": null,
+   "decidedBy": null,
+   "decidedOn": null,
+   "rangeFrom": {"file": "packages/catalog/business-model.json", "path": "unitEconomics.doctorReviewFee"},
+   "source": "The Master Blueprint and the funding proposal give a range for a doctor's per-case review fee. They do not give a price.",
+   "undecided": "The fee for a doctor's review has not been decided, so no doctor's payout is scheduled. Every case you sign is recorded, and each one is paid once the fee is set.",
+   "whoDecides": "The founder, with the lead of the doctor review panel."
+  }
+ ],
+ "doctorFeesNote": "A range is not a price. The engine refuses to schedule a doctor's payout while amount is null, and the build refuses an amount without decidedBy and decidedOn, or one outside the cited range.",
+
+ "sampleCases": [
+  {"reviewRef": "RV-3107", "onDays": -1},
+  {"reviewRef": "RV-3104", "onDays": -2},
+  {"reviewRef": "RV-3098", "onDays": -4}
+ ],
+ "casesWords": "Each case is a reference and the day you signed it. Money is never told who the patient was or why the review was needed.",
+ "sampleCasesNote":"Three signed reviews, as review.billable@1 carries them: a reference, a doctor and a fee code. No patient and no reason, because Money never hears either — which is why the doctor's fee screen names none."
+}
