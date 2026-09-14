@@ -484,3 +484,18 @@ test('Gilbert names the visit the home card shows, not a day of its own', async 
  await expect(reply).toHaveAttribute('data-outcome', 'answer');
  await expect(reply).toContainText(`A nurse is expected on ${cardWhen}.`);
 });
+
+/* The false positives in packages/catalog/gilbert-emergency-terms.json: ordinary sentences the terms raise
+   today. Reported as an annotation, never a failure — a list that only ever raises accepts these, and
+   tuning one out is a change to that file alone. */
+test('false positives in the emergency terms are reported, not blocking', async ({ page, isMobile }) => {
+ test.skip(isMobile, 'Arithmetic, not layout: once is enough.');
+ await page.goto('/app/');
+ const raised = await page.evaluate(async () => {
+  const lib = await import('/src/lib/assistant.ts');
+  return lib.falsePositives.messages.filter((m: { says: string }) => lib.emergencyGroupsIn(m.says).length > 0).map((m: { says: string }) => m.says);
+ });
+ const total = json('../packages/catalog/gilbert-emergency-terms.json').falsePositives.messages.length;
+ test.info().annotations.push({ type: 'gilbert-false-positives', description: `${raised.length} of ${total} still raise: ${raised.join(' | ') || 'none'}` });
+ console.log(`Gilbert emergency terms: ${raised.length} of ${total} false-positive fixtures still raise`);
+});

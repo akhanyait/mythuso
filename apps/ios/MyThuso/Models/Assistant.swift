@@ -462,5 +462,11 @@ enum Gilbert {
         }
         return disagreements
     }
+
+    /// Ordinary sentences the emergency terms raise today. Reported, never a failure: see falsePositives
+    /// in packages/catalog/gilbert-emergency-terms.json.
+    static func falsePositiveReport() -> [String] {
+        falsePositiveFixtures.filter { !emergencyGroups(in: $0).isEmpty }
+    }
     #endif
 }

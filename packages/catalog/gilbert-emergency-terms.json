@@ -1,0 +1,309 @@
+{
+ "_note": "The words that make Gilbert show the ambulance numbers instead of answering. Read by apps/web/src/lib/assistant.ts, generated into Swift and Kotlin by scripts/emit-assistant.mjs, and checked by scripts/check-boundaries.mjs. The matching rules — stems, gaps, folded diacritics, reading everything — are in packages/catalog/assistant.json; this file is only the list, and the record of every change to it.",
+ "_whyItsOwnFile": "The founder decided on 14 September 2026 that the list is to be proposed and then configured as MyThuso goes. A list that changes on that rhythm, and that a clinician will one day review line by line, reads better in a file that holds nothing else: a change to a term is a change to this file, with its own version and changelog entry, and never a change to Gilbert's contract. The rules that decide how a term is matched stay with Gilbert, because changing those is a change to how Gilbert reads, not to what it listens for.",
+ "version": 1,
+ "status": "proposed-starting-configuration",
+ "acceptedBy": {
+  "role": "Founder",
+  "on": "2026-09-14",
+  "decision": "Propose it; we can configure as we go."
+ },
+ "clinicalReview": {
+  "reviewedBy": null,
+  "reviewedOn": null,
+  "why": "required before real patients"
+ },
+ "use": "These words only ever raise. A match turns the answer into the emergency answer; the absence of a match lowers nothing, decides nothing and is never shown as reassurance. False positives are acceptable — somebody asking about a stroke they had years ago is shown the ambulance numbers — and a miss is not made safe by Gilbert being silent about it, which is why the sentence under silenceIsNotSafety stays on the screen beside every conversation.",
+ "groups": [
+  {
+   "id": "chest-pain",
+   "condition": "chest-pain",
+   "words": [
+    "chest pain",
+    "chest hurts",
+    "chest tight",
+    "tight chest",
+    "chest tightness",
+    "pressure in my chest",
+    "chest pressure",
+    "heart attack",
+    "crushing pain"
+   ]
+  },
+  {
+   "id": "breathing",
+   "condition": "breathing",
+   "words": [
+    "cant breathe",
+    "cannot breathe",
+    "can not breathe",
+    "struggling to breathe",
+    "hard to breathe",
+    "difficulty breathing",
+    "trouble breathing",
+    "short of breath",
+    "shortness of breath",
+    "breathless",
+    "gasping",
+    "choking",
+    "not breathing",
+    "stopped breathing",
+    "blue lips",
+    "lips are blue"
+   ]
+  },
+  {
+   "id": "bleeding",
+   "condition": "bleeding",
+   "words": [
+    "bleeding",
+    "bled",
+    "haemorrhage",
+    "hemorrhage",
+    "spurting blood",
+    "blood everywhere",
+    "lot of blood"
+   ]
+  },
+  {
+   "id": "unresponsive",
+   "condition": "unresponsive",
+   "words": [
+    "unconscious",
+    "unresponsive",
+    "not responding",
+    "collapsed",
+    "passed out",
+    "passing out",
+    "blacked out",
+    "blacking out",
+    "fainted",
+    "fainting",
+    "wont wake",
+    "cant wake",
+    "not waking"
+   ]
+  },
+  {
+   "id": "stroke",
+   "condition": "stroke",
+   "words": [
+    "stroke",
+    "face drooping",
+    "face dropped",
+    "slurred",
+    "cant move my arm",
+    "numb on one side",
+    "cant speak"
+   ]
+  },
+  {
+   "id": "seizure",
+   "condition": "seizure",
+   "words": [
+    "seizure",
+    "seizures",
+    "fitting",
+    "having a fit",
+    "fits",
+    "convulsing",
+    "convulsion",
+    "convulsions",
+    "epileptic fit"
+   ]
+  },
+  {
+   "id": "infant",
+   "condition": "infant",
+   "words": [
+    "floppy baby",
+    "baby is floppy",
+    "baby not feeding",
+    "baby wont feed",
+    "baby is limp",
+    "rash does not fade",
+    "rash doesnt fade"
+   ]
+  },
+  {
+   "id": "obstetric",
+   "condition": "obstetric",
+   "words": [
+    "pregnant and bleeding",
+    "waters broke",
+    "waters broken",
+    "baby is coming",
+    "in labour",
+    "in labor",
+    "contraction",
+    "contractions"
+   ]
+  },
+  {
+   "id": "crisis",
+   "condition": null,
+   "name": "Words about harming yourself",
+   "words": [
+    "kill myself",
+    "suicide",
+    "suicidal",
+    "end my life",
+    "want to die",
+    "hurt myself",
+    "harm myself",
+    "overdose",
+    "overdosed",
+    "overdosing",
+    "took too many pills",
+    "poisoned"
+   ]
+  },
+  {
+   "id": "general",
+   "condition": null,
+   "name": "Words about an emergency",
+   "words": [
+    "emergency",
+    "ambulance",
+    "ambulans",
+    "dying",
+    "severe pain",
+    "worst headache"
+   ]
+  }
+ ],
+ "changelog": [
+  {
+   "version": 1,
+   "on": "2026-09-14",
+   "by": "Engineering (the Gilbert and Voice build), accepted by the Founder",
+   "added": [
+    "chest-pain: chest pain",
+    "chest-pain: chest hurts",
+    "chest-pain: chest tight",
+    "chest-pain: tight chest",
+    "chest-pain: chest tightness",
+    "chest-pain: pressure in my chest",
+    "chest-pain: chest pressure",
+    "chest-pain: heart attack",
+    "chest-pain: crushing pain",
+    "breathing: cant breathe",
+    "breathing: cannot breathe",
+    "breathing: can not breathe",
+    "breathing: struggling to breathe",
+    "breathing: hard to breathe",
+    "breathing: difficulty breathing",
+    "breathing: trouble breathing",
+    "breathing: short of breath",
+    "breathing: shortness of breath",
+    "breathing: breathless",
+    "breathing: gasping",
+    "breathing: choking",
+    "breathing: not breathing",
+    "breathing: stopped breathing",
+    "breathing: blue lips",
+    "breathing: lips are blue",
+    "bleeding: bleeding",
+    "bleeding: bled",
+    "bleeding: haemorrhage",
+    "bleeding: hemorrhage",
+    "bleeding: spurting blood",
+    "bleeding: blood everywhere",
+    "bleeding: lot of blood",
+    "unresponsive: unconscious",
+    "unresponsive: unresponsive",
+    "unresponsive: not responding",
+    "unresponsive: collapsed",
+    "unresponsive: passed out",
+    "unresponsive: passing out",
+    "unresponsive: blacked out",
+    "unresponsive: blacking out",
+    "unresponsive: fainted",
+    "unresponsive: fainting",
+    "unresponsive: wont wake",
+    "unresponsive: cant wake",
+    "unresponsive: not waking",
+    "stroke: stroke",
+    "stroke: face drooping",
+    "stroke: face dropped",
+    "stroke: slurred",
+    "stroke: cant move my arm",
+    "stroke: numb on one side",
+    "stroke: cant speak",
+    "seizure: seizure",
+    "seizure: seizures",
+    "seizure: fitting",
+    "seizure: having a fit",
+    "seizure: fits",
+    "seizure: convulsing",
+    "seizure: convulsion",
+    "seizure: convulsions",
+    "seizure: epileptic fit",
+    "infant: floppy baby",
+    "infant: baby is floppy",
+    "infant: baby not feeding",
+    "infant: baby wont feed",
+    "infant: baby is limp",
+    "infant: rash does not fade",
+    "infant: rash doesnt fade",
+    "obstetric: pregnant and bleeding",
+    "obstetric: waters broke",
+    "obstetric: waters broken",
+    "obstetric: baby is coming",
+    "obstetric: in labour",
+    "obstetric: in labor",
+    "obstetric: contraction",
+    "obstetric: contractions",
+    "crisis: kill myself",
+    "crisis: suicide",
+    "crisis: suicidal",
+    "crisis: end my life",
+    "crisis: want to die",
+    "crisis: hurt myself",
+    "crisis: harm myself",
+    "crisis: overdose",
+    "crisis: overdosed",
+    "crisis: overdosing",
+    "crisis: took too many pills",
+    "crisis: poisoned",
+    "general: emergency",
+    "general: ambulance",
+    "general: ambulans",
+    "general: dying",
+    "general: severe pain",
+    "general: worst headache"
+   ],
+   "removed": [],
+   "why": "The proposed starting list: drafted from the eight conditions in packages/catalog/sos.json, a crisis group and a general group, and widened the same day after the Wave 1 review found word forms it missed. Not reviewed by a clinician.",
+   "termsHash": "4ad44d7666d291c7"
+  }
+ ],
+ "howToChange": [
+  "Edit the words under `groups`. Words are lower-case letters and digits with single spaces, and a word belongs to one group only.",
+  "Raise `version` by one and add a changelog entry with the same version, the day, who made the change by role, every term added and every term removed as \"group: term\", and why.",
+  "Put the entry's termsHash in: node scripts/check-boundaries.mjs prints the hash the new list has when it does not match.",
+  "The shared fixtures in packages/catalog/assistant.json must still pass on the web, iOS and Android, so a change cannot silence a listed emergency. The falsePositives below are reported and never block: tuning out an over-trigger is a change to this file alone."
+ ],
+ "falsePositives": {
+  "blocking": false,
+  "why": "Ordinary sentences the list raises today. False positives are the accepted cost of a list that only ever raises, so these are reported by every platform's tests and never fail a build; they are here so that tuning one out is a visible, reviewable change rather than a guess.",
+  "messages": [
+   {
+    "says": "I feel fit and well today",
+    "why": "\"fits\" is a seizure term and its stem is fit."
+   },
+   {
+    "says": "I had a stroke of luck with the parking",
+    "why": "\"stroke\" is raised wherever it appears."
+   },
+   {
+    "says": "I am dying to know when my nurse is coming",
+    "why": "\"dying\" is a general emergency term."
+   },
+   {
+    "says": "the plumber is fitting a new geyser",
+    "why": "\"fitting\" is a seizure term."
+   }
+  ]
+ }
+}

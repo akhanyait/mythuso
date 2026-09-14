@@ -111,6 +111,12 @@ final class AssistantTests: XCTestCase {
         let result = app.staticTexts["gilbert-self-test"]
         XCTAssertTrue(result.waitForExistence(timeout: 20), "the debug self-test did not render")
         XCTAssertEqual(result.label, "agrees", "iOS Gilbert disagrees with packages/catalog/assistant.json's fixtures: \(result.label)")
+        /* The false positives are reported and never fail: tuning one out is a change to the terms file. */
+        let raised = app.staticTexts["gilbert-false-positives"]
+        let report = XCTAttachment(string: raised.exists ? raised.label : "")
+        report.name = "gilbert-false-positives-still-raised"
+        report.lifetime = .keepAlways
+        add(report)
     }
 
     func testWordsGilbertCannotReadAreSaidToBeUnread() {

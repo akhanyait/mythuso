@@ -30,4 +30,11 @@ class GilbertFixturesTest {
         }
         assertEquals(emptyList<String>(), disagreements)
     }
+
+    /* Reported, never a failure: ordinary sentences the emergency terms raise today, from falsePositives in
+       packages/catalog/gilbert-emergency-terms.json. Tuning one out is a change to that file alone. */
+    @Test fun falsePositivesAreReportedNotBlocking() {
+        val raised = GilbertData.falsePositiveFixtures.filter { Gilbert.emergencyGroups(it).isNotEmpty() }
+        println("Gilbert emergency terms v${GilbertData.emergencyTermsVersion} still raise ${raised.size} of ${GilbertData.falsePositiveFixtures.size} false-positive fixtures: $raised")
+    }
 }
