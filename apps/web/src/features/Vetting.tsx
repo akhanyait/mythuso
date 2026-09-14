@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, ArrowRight, BadgeCheck, CalendarClock, Check, CircleAlert, ClipboardList, Clock3, FileText, RotateCcw, ScrollText, ShieldCheck, ShieldX, UserRoundCheck, UserRoundX, Users } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
 import { Metric, Metrics } from '../surface/Surface';
@@ -12,6 +12,9 @@ import {
  type CheckRecord, type CheckState, type SubjectStatus, type VettingCheck, type VettingEvent, type VettingEventKind, type VettingSubject
 } from '../lib/vetting';
 import { seededLog, seededSubjects, subjectById } from '../lib/vetting-fixtures';
+import { ClinicalDeck, type DeckFigure } from './ClinicalDeck';
+import './nurse-kit.css';
+import './nurse-tools.css';
 
 /* Vetting is the gate the whole marketplace rests on, so this is a real queue with real refusals
    rather than a list of names. Every decision recomputes what the party may do, and is written to a
@@ -112,11 +115,40 @@ export type VettingState = ReturnType<typeof useVettingState>;
    label, and the chip carries the one word that says whether the number is a problem.
    The wrapper keeps `panel metric` as well as its own name: the console journeys assert against
    `.panel.metric`, and a class is part of the contract with them as much as any export is. */
-function Figure({ label, value, note, flagged }: { label: string; value: string; note: string; flagged?: boolean }) {
- return <div className="c-figure panel metric">
-  <Metric label={label} value={value} chip={flagged ? 'Needs attention' : undefined} flagged={flagged}/>
+function Figure({ label, value, note, flagged, visual, lead }: { label: string; value: string; note: string; flagged?: boolean; visual?: ReactNode; lead?: boolean }) {
+ return <div className={`c-figure panel metric nt-instrument${visual ? ' nt-instrument-ring' : ''}${lead ? ' lead' : ''}`}>
+  <Metric label={label} value={value} chip={flagged ? 'Needs attention' : undefined} flagged={flagged} visual={visual}/>
   <small>{note}</small>
  </div>;
+}
+
+/* ---- One arc per party ---------------------------------------------------------------------
+ *
+ * The register, drawn from the register. Every arc on the ring below is one of the parties in the
+ * list under it and the lit ones are the ones the figure counts, so a reader who distrusts the
+ * drawing can count the rows and a reader who distrusts the numeral can count the arcs. Nothing
+ * here introduces a number.
+ *
+ * Turns rather than degrees, clockwise from twelve, because every arc in here is "this many of that
+ * many" and a fraction of a circle is what that means.
+ */
+const TAU = Math.PI * 2;
+const at = (r: number, turn: number): [number, number] => [50 + r * Math.sin(turn * TAU), 50 - r * Math.cos(turn * TAU)];
+const arc = (r: number, from: number, to: number) => {
+ const [x1, y1] = at(r, from), [x2, y2] = at(r, to);
+ return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${to - from > 0.5 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+};
+function Ring({ segments }: { segments: readonly boolean[] }) {
+ const count = Math.max(segments.length, 1);
+ const step = 1 / count;
+ /* Wide enough to count the arcs across and never wider than a third of one — a ring of thirty-two
+    parties must not dissolve into a dotted line. Butt caps, because a round cap grows half a stroke
+    past each end of its arc and closes the gap it was drawn beside. */
+ const gap = Math.min(0.02, step / 3);
+ return <svg className="c-plot nt-plot nt-ring" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+  <circle className="nt-ring-track" cx="50" cy="50" r="39"/>
+  {segments.map((on, i) => <path key={i} className={`c-mark nt-arc${on ? ' on' : ''}`} d={arc(39, i * step + gap / 2, (i + 1) * step - gap / 2)}/>)}
+ </svg>;
 }
 const stateTone = (state: CheckState) => state === 'verified' ? 'check-verified' : state === 'expiring' ? 'check-in-review'
  : state === 'lapsed' || state === 'declined' ? 'check-declined' : state === 'in-review' || state === 'submitted' ? 'check-in-review' : 'check-outstanding';
@@ -186,17 +218,33 @@ export function VettingConsole({ vetting, open }: { vetting: VettingState; open:
  }, {} as Record<string, number>), [subjects]);
  const shown = rows.find(r => r.subject.id === selected) ?? rows[0];
  const views: [View, string][] = [['queue', t('vetting.queue')], ['renewals', t('vetting.renewals')], ['audit', t('vetting.audit')]];
- return <>
-  <NotConnected of="credential-verification"/>
-  <div className="c-figures"><Metrics>
-   <Figure label="Cleared" value={String((counts.cleared ?? 0) + (counts.expiring ?? 0))} note={`${counts.expiring ?? 0} of them with a renewal due`}/>
-   <Figure label="In progress" value={String(counts['in-progress'] ?? 0)} note="Refused the work of the role until every check passes"/>
-   <Figure label="Awaiting a second reviewer" value={String(counts.awaiting ?? 0)} note="One reviewer is never enough on a high-risk check" flagged={!!(counts.awaiting)}/>
-   {/* Not flagged, and the one beside it is. A filled chip means "this one", so two of them on one
-       strip point at nothing: a party awaiting a second reviewer is work this console owes today,
-       and a suspension is a settled state that the register is already refusing on. */}
-   <Figure label="Suspended or declined" value={String((counts.suspended ?? 0) + (counts.declined ?? 0))} note="Lapsed automatically, or declined with a reason"/>
-  </Metrics></div>
+ /* One arc per party on the register, lit for the ones that are cleared today. It is the same list
+    the column below draws, in the same order, so the ring cannot drift from the rows. */
+ const clearedArcs = subjects.map(s => { const status = summarise(s).status; return status === 'cleared' || status === 'expiring'; });
+ return <div className="nt-screen nt-console">
+  {/* ONE NIGHT GROUND, carrying the state of the register. Everything below it is the register
+      itself and the decision being taken on one party, which is paperwork and reads as paperwork. */}
+  <section className="nt-deck" aria-label="The register, and what it owes today">
+   <div className="nt-deck-head">
+    <span className="nt-eyebrow">The register</span>
+    <span className="nt-deck-note nt-deck-note-inline">{subjects.length} parties, {roles.length} roles. Every figure is a count of the rows below it.</span>
+   </div>
+   <NotConnected of="credential-verification"/>
+   <div className="nt-deck-figures c-figures">
+    <div className="nt-deck-lead">
+     <Figure lead label="Cleared" value={String((counts.cleared ?? 0) + (counts.expiring ?? 0))} note={`${counts.expiring ?? 0} of them with a renewal due`}
+      visual={<Ring segments={clearedArcs}/>}/>
+    </div>
+    <div className="nt-deck-rest">
+     <Figure label="In progress" value={String(counts['in-progress'] ?? 0)} note="Refused the work of the role until every check passes"/>
+     <Figure label="Awaiting a second reviewer" value={String(counts.awaiting ?? 0)} note="One reviewer is never enough on a high-risk check" flagged={!!(counts.awaiting)}/>
+     {/* Not flagged, and the one beside it is. A filled chip means "this one", so two of them on one
+         deck point at nothing: a party awaiting a second reviewer is work this console owes today,
+         and a suspension is a settled state that the register is already refusing on. */}
+     <Figure label="Suspended or declined" value={String((counts.suspended ?? 0) + (counts.declined ?? 0))} note="Lapsed automatically, or declined with a reason"/>
+    </div>
+   </div>
+  </section>
   <div className="vetting-bar">
    <div className="tabs" role="group" aria-label={t('vetting.views')}>
     {views.map(([id, label]) => <button key={id} className={view === id ? 'selected' : ''} aria-pressed={view === id} onClick={() => setView(id)}>{label}</button>)}
@@ -241,7 +289,7 @@ export function VettingConsole({ vetting, open }: { vetting: VettingState; open:
      {shown && <SubjectDetail key={shown.subject.id} subject={shown.subject} vetting={vetting}/>}
     </div> : <EmptyState title="Nobody matches those filters" body="Widen the role or the status to see the rest of the queue. Nothing has been hidden from you."/>}
   </> : view === 'renewals' ? <RenewalsDue subjects={subjects} onOpen={id => { setSelected(id); setView('queue'); setRoleFilter('all'); setStatusFilter('all'); }}/> : <AuditTrail log={log}/>}
- </>;
+ </div>;
 }
 
 function SubjectDetail({ subject, vetting }: { subject: VettingSubject; vetting: VettingState }) {
@@ -249,14 +297,26 @@ function SubjectDetail({ subject, vetting }: { subject: VettingSubject; vetting:
  const [action, setAction] = useState<'' | 'suspend' | 'appeal'>('');
  const summary = summarise(subject);
  const role = roleById(subject.roleId)!;
+ const anchor = anchorFor(subject.roleId);
+ /* The party's name at the size of a name, the role as its eyebrow, and the standing as a chip that
+    carries its own word. Nothing else is a header chip — a scope of practice is a fact about what
+    somebody may do and belongs in the record below, and a protected category is never a chip on
+    anybody's header at all: it appears once, in the table of what the checks refuse, where it is a
+    capability being decided rather than a label somebody reads first. */
  return <div className="panel">
-  <div className="section-title"><h2>{subject.name}</h2><Pill tone={statusTone(summary.status)}>{subjectStatusLabels[summary.status]}</Pill></div>
-  <div className="review-line"><span>Role</span><strong>{role.name}</strong></div>
-  <div className="review-line"><span>Credential</span><strong>{subject.reference}</strong></div>
-  {subject.zone && <div className="review-line"><span>Area</span><strong>{subject.zone}</strong></div>}
-  {subject.scope?.length ? <div className="review-line"><span>Scope</span><strong>{subject.scope.join(' · ')}</strong></div> : null}
-  <div className="review-line"><span>Checks passing</span><strong>{summary.passed} of {summary.total}</strong></div>
-  <Progress passed={summary.passed} total={summary.total}/>
+  <div className="nt-subject-head">
+   <div><div className="nt-eyebrow">{role.name}</div><h2>{subject.name}</h2></div>
+   <Pill tone={statusTone(summary.status)}>{subjectStatusLabels[summary.status]}</Pill>
+  </div>
+  <div className="nt-subject-meter">
+   <strong>{summary.passed} <small>of {summary.total} checks passing</small></strong>
+   <Progress passed={summary.passed} total={summary.total}/>
+  </div>
+  <dl className="nt-facts">
+   <div><dt>Credential</dt><dd>{subject.reference}</dd></div>
+   {subject.zone ? <div><dt>Area</dt><dd>{subject.zone}</dd></div> : null}
+   {subject.scope?.length ? <div><dt>Scope</dt><dd>{subject.scope.join(' · ')}</dd></div> : null}
+  </dl>
   <p className="helper" role="status">
    {summary.lapsed.length ? `${summary.lapsed.map(l => l.check.name).join(' and ')} lapsed. This party was removed from the work of the role automatically.`
     : summary.awaitingSecond.length ? `${summary.awaitingSecond.map(a => a.check.name).join(' and ')} is waiting on a second reviewer.`
@@ -280,7 +340,7 @@ function SubjectDetail({ subject, vetting }: { subject: VettingSubject; vetting:
    const authority = authorityById(check.authority)!;
    const second = needsSecondReviewer(subject, check.id);
    const ownDecision = record.decidedBy === vetting.reviewer;
-   return <div className="record-row static admin-row" key={check.id}>
+   return <div className={`record-row static admin-row${anchor?.id === check.id ? ' is-anchor' : ''}`} key={check.id}>
     <span className={`service-icon ${stateTone(state)}`}>{state === 'verified' ? <BadgeCheck size={20}/> : state === 'declined' || state === 'lapsed' ? <CircleAlert size={20}/> : <Clock3 size={20}/>}</span>
     <span>
      <strong>{check.name}{check.risk === 'high' && <span className="required-mark">High risk</span>}</strong>
@@ -424,10 +484,33 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
   <div className="button-row"><button className="secondary" onClick={() => { setSent(false); setStep(0); }}><ArrowLeft size={16}/>Walk it again</button>
    <button className="primary" onClick={onClose}>Close<ArrowRight size={16}/></button></div>
  </div>;
- return <div className="form-stack">
+ /* Three facts the contract already holds, and the applicant is the party with the most at stake and
+    the least information — so they are the first thing on the screen rather than something found on
+    step four. The ring has one arc per check and lights the ones she has marked a document ready
+    for, which is the only thing on this screen she can move; the dial is the high-risk share of
+    the same list. */
+ const highRisk = role ? role.checks.filter(c => c.risk === 'high').length : 0;
+ const deckFigures: DeckFigure[] = role ? [
+  { label: 'Checks to pass', value: String(role.checks.length), flagged: false,
+    chip: `${ready.length} of ${role.checks.length} documents marked ready`,
+    shape: { kind: 'ring', segments: role.checks.map(c => ready.includes(c.id)) } },
+  { label: 'Decided by two reviewers', value: String(highRisk), flagged: false, chip: 'Where one judgement is not enough',
+    shape: { kind: 'gauge', part: highRisk, whole: role.checks.length } },
+  { label: 'Refused until they pass', value: String(role.grants.length), flagged: false,
+    chip: `${role.grants.length === 1 ? 'One thing' : 'Things'} this role cannot do until every check is verified` }
+ ] : [];
+ return <div className="nt-screen nt-apply c-page">
+  <ClinicalDeck role={role ? `Applying as ${role.name}` : 'Applying'} title="Vetting" eyebrow={role?.name} figures={deckFigures}
+   headline={role
+    ? [`${role.checks.length} checks stand between this form`, { glyph: 'shield' }, 'and a patient’s front door.']
+    : ['Thirteen parties are vetted here,', { glyph: 'shield' }, 'and not one of them is only a nurse.']}
+   note={role ? role.summary : 'Each one is refused something specific until its own checks pass.'}>
+   <NotConnected of="credential-verification"/>
+   <p className="c-deck-aside">Nothing on this screen is submitted, uploaded or sent. Passing is not something you can do for yourself.</p>
+  </ClinicalDeck>
+  <div className="c-sheet form-stack">
   {steps.length > 1 && <StepHead step={Math.min(step, steps.length - 1) + 1} total={steps.length} label={stepLabels[now]}/>}
-  <NotConnected of="credential-verification"/>
-  {now === 'role' ? <>
+  <div className="nt-step-card">{now === 'role' ? <>
    <h3>Who is applying?</h3>
    <p className="muted">Thirteen parties are vetted, not only nurses. Each one is refused something specific until its checks pass.</p>
    {roles.map(r => <button className="record-row" key={r.id} aria-pressed={chosen === r.id} onClick={() => { setChosen(r.id); setCredential(''); setTouched(false); setScope([]); setReady([]); setStep(1); }}>
@@ -497,7 +580,8 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
     : 'Re-vetting runs on a schedule, not once at sign-up. A lapsed registration, licence or clearance withdraws this role’s permissions automatically, without anyone here having to notice.'}</div>
    <div className="button-row"><button className="secondary" onClick={back}><ArrowLeft size={16}/>Back</button>
     <button className="primary" disabled={!attested} onClick={() => setSent(true)}><Check size={16}/>Submit application</button></div>
-  </> : null}
+  </> : null}</div>
+  </div>
  </div>;
 }
 

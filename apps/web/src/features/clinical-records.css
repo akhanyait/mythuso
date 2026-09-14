@@ -1,0 +1,761 @@
+/* THE THREE SCREENS THE PORTALS LEFT BEHIND.
+ *
+ * The deck and the workbench were redrawn and these three were not, so a clinician crossed from an
+ * instrument deck into a column of white boxes and a stack of textareas without anything on the way
+ * explaining the change of dialect. This sheet is the deck's grammar restated for the three screens
+ * where a clinical value is entered, the reference it is read against, and the record it ends up in:
+ * an eyebrow over a hairline, one night ground per screen carrying the one figure the screen is
+ * about, big numerals with small quiet labels, marks drawn from the rows they sit above, and a
+ * document read down a spine rather than down a scrollbar.
+ *
+ * WHAT THIS SHEET REFUSES TO DO, AND IT IS THE POINT OF IT.
+ *   A reference range may be drawn. It may not move, and nothing drawn from a reading concludes
+ *   anything about the reading. So there is no animation anywhere in this file: the nurse's ruler,
+ *   the protocol's band and the record's fill are the finished picture on the first painted frame,
+ *   with motion allowed or refused, because every one of them is either a clinical value or the
+ *   range a clinical value is judged against. The reference direction asked for choreographed
+ *   arrival; on a screen where a number decides whether somebody sees a doctor, the arrival is the
+ *   one thing that may not be choreographed. The marks that do move in this product are counts of
+ *   rows — the deck's rings — and they are on the screens above these.
+ *
+ * EVERY PAIR BELOW IS COMPUTED with the sRGB relative-luminance formula scripts/check-boundaries.mjs
+ * runs over the declared pairs. Tokens are named; the rest are color-mix()es of two tokens, which is
+ * the practice studio.css, clinical-deck.css and clinical-workbench.css already follow and for the
+ * same reason — the palette has no muted tone for a dark ground, and adding one regenerates the iOS
+ * and Android token files.
+ *
+ *   THE NIGHT GROUND IS NOT THIS SHEET'S ANY MORE. The visit, the record and the protocols each had
+ *   a dark head of their own, drawn here, and each was a slightly different dark head from the
+ *   portal above it. All three open on features/ClinicalDeck.tsx now, and the pairs on that ground
+ *   are measured in clinical-deck.css beside the rules that use them. What is left here is the
+ *   light ground, and the one thing of this sheet's that stands on the deck: the visit's rail, on
+ *   the pale panel, measured where it is drawn below.
+ *
+ *   ON THE LIGHT GROUND
+ *     charcoal on surface              17.04      charcoal on studioPaper      15.48
+ *     studioInk on surface             11.66      studioInk on studioPaper     10.59
+ *     studioInkMuted on surface         6.93      on studioPaper                6.29
+ *     surface on studioInk             11.66 — the chosen pill in the view rail
+ *     mangoInk on mangoSoft             6.52 — a flagged field's own sentence on its own ground
+ *     charcoal on mangoSoft            15.66      studioInkMuted on mangoSoft   6.37
+ *     studioInk on studioPeach          8.91      danger on studioPeach         5.02
+ *     inkMuted at 78% over surface      4.04 — the outline every control here is drawn with.
+ *                                              --studio-line is 1.31 and is a divider, never a
+ *                                              control's boundary: SC 1.4.11 holds that to 3:1.
+ *
+ *   THE RULER, which is the one new drawing in this sheet
+ *     studioOlive band on the groove    5.60      on surface                    6.46
+ *     the groove (ink at 8% over surface) is 1.15 and owes no ratio — it is the ruler's empty part,
+ *     the same reasoning the deck's track is drawn under. The band is the mark and clears 3:1.
+ *     charcoal needle on the groove    14.78      on the olive band             2.64, which is why
+ *     the needle carries a 2px --surface halo: surface on olive is 6.46, so the needle is separated
+ *     from the band it stands in rather than swallowed by it. A needle in one colour would have
+ *     been the kind of mark that clears on the ground it was chosen against and not on the one it
+ *     lands on.
+ *     studioPaper on studioOlive        5.86 — the only text ever set on a band
+ *
+ * AND COLOUR IS NEVER THE ONLY DIFFERENCE. A flagged reading is a needle outside the band AND a
+ * sentence naming the range AND a peach field; a refused permission is a struck disc AND the word
+ * "nobody"; a written section is a filled mark AND a tick AND a count at the foot of the document. */
+
+/* ---- Shared -------------------------------------------------------------------------------------
+   One scope, so nothing here reaches a screen that did not ask for it: every rule in this sheet is
+   under .cr, which the three components put on their own root. */
+.cr {
+ --cr-edge: color-mix(in srgb, var(--studio-ink-muted) 78%, var(--surface));
+ --cr-groove: color-mix(in srgb, var(--studio-ink) 8%, var(--surface));
+ --cr-on: var(--studio-paper);
+ --cr-on-quiet: color-mix(in srgb, var(--studio-paper) 72%, var(--studio-night));
+ --cr-on-mark: color-mix(in srgb, var(--studio-paper) 40%, var(--studio-night));
+ --cr-on-edge: color-mix(in srgb, var(--studio-paper) 14%, var(--studio-night));
+}
+/* Two classes, on purpose. Each of these roots also carries a shared class — .assessment on the
+   visit, .form-stack on the record — and a single-class rule here would be at the same specificity
+   as the one in surface/app.css, leaving the layout to whichever sheet the bundler happened to put
+   second. */
+.cr.cr-visit,
+.cr.cr-doc,
+.cr.cr-protocols {
+ display: grid;
+ gap: var(--space-20);
+ align-content: start;
+ min-width: 0;
+}
+/* core.css resets h1, h2, h3 and p and stops there, so every h4 and h5 in this sheet would arrive
+   carrying the browser's own em-based margin — which is what puts a chip half a line above the
+   heading it is the status of. */
+.cr h4, .cr h5 { margin: 0; }
+/* Read by a screen reader, gone from the page. Used where a heading has already said the thing the
+   label says, and where a drawing needs its sentence. */
+.cr-vh {
+ position: absolute;
+ width: 1px;
+ height: 1px;
+ margin: -1px;
+ padding: 0;
+ overflow: hidden;
+ clip-path: inset(50%);
+ white-space: nowrap;
+ border: 0;
+}
+/* The deck's own eyebrow, so the band at the top of a sub-page and the band at the top of the
+   workspace above it are recognisably one family. 13 is the floor of the type scale, not the
+   smallest size that fitted. */
+.cr-eyebrow {
+ display: flex;
+ align-items: center;
+ gap: var(--space-8);
+ font-size: 13px;
+ font-weight: 600;
+ letter-spacing: 1.4px;
+ line-height: 1.5;
+ color: var(--studio-lime);
+}
+.cr-eyebrow > svg { flex: 0 0 auto; }
+
+/* ---- The visit, and where in it a nurse is ------------------------------------------------------
+   Five stages were a line of identical dots and a counter. A nurse standing in somebody's kitchen is
+   asking what she has done and what is left, and a row of dots answers neither: the rail names every
+   stage, fills the ones behind her and lifts the one she is on. */
+/* The rail stands on the deck's pale panel, so it speaks the panel's palette: the indigo family as
+   the studio surface resolves it, and never lime, which is 1.05 against this ground.
+     charcoal on indigoSoft 10.25     body on indigoSoft 5.71     indigoSoft on indigo 10.25
+     indigoDeep on surface 15.08      the next stage's edge, ink-muted at 78% over the panel, 3.9
+   Done is filled, now is a heavy white ring, next is a thin outline — three shapes before they are
+   three tones, and the word "done" is in the accessible name of every stage behind her. */
+.cr-rail { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+.cr-rail > li {
+ display: grid;
+ grid-template-columns: 32px minmax(0, 1fr);
+ align-items: center;
+ gap: var(--space-12);
+ padding: var(--space-4) 0;
+ font-size: 15px;
+ line-height: 1.4;
+ color: var(--body);
+ position: relative;
+}
+.cr-rail > li::before {
+ content: '';
+ position: absolute;
+ left: 16px;
+ top: calc(50% + 16px);
+ height: calc(100% - 32px);
+ width: 2px;
+ margin-left: -1px;
+ background: color-mix(in srgb, var(--indigo) 30%, var(--indigo-soft));
+}
+.cr-rail > li:last-child::before { display: none; }
+.cr-rail > li.done::before { background: var(--indigo); }
+.cr-rail-mark {
+ width: 32px;
+ height: 32px;
+ border-radius: 50%;
+ display: grid;
+ place-items: center;
+ font-size: 13px;
+ font-weight: 600;
+ font-variant-numeric: tabular-nums;
+ border: 2px solid color-mix(in srgb, var(--studio-ink-muted) 78%, var(--indigo-soft));
+ color: var(--body);
+ background: var(--indigo-soft);
+ position: relative;
+ z-index: 1;
+}
+.cr-rail > li.done { color: var(--charcoal); }
+.cr-rail > li.done .cr-rail-mark { background: var(--indigo); border-color: var(--indigo); color: var(--indigo-soft); }
+.cr-rail > li.now { color: var(--charcoal); font-weight: 600; font-size: 18px; }
+.cr-rail > li.now .cr-rail-mark { background: var(--surface); border: 3px solid var(--indigo-deep); color: var(--indigo-deep); }
+
+/* ---- A stage ------------------------------------------------------------------------------------
+   Each stage is one card on the light ground, so the dark head above it reads as the visit and the
+   card as the thing being done in it. */
+.cr .cr-stage {
+ background: var(--surface);
+ border: 1px solid var(--studio-line);
+ border-radius: var(--r-panel);
+ padding: var(--space-24);
+ gap: var(--space-16);
+ min-width: 0;
+}
+.cr .cr-stage > h3 { font-size: 22px; line-height: 1.25; letter-spacing: -.4px; color: var(--charcoal); }
+.cr .cr-stage > p.muted { max-width: 70ch; }
+/* A head with a figure in it: what the stage is, and the one count that says how far through it is.
+   Held on one line at the top of the card rather than under the fields, because a nurse checks it
+   between readings rather than at the end. */
+.cr-stage-head {
+ display: flex;
+ flex-wrap: wrap;
+ align-items: flex-start;
+ justify-content: space-between;
+ gap: var(--space-12) var(--space-24);
+ padding-bottom: var(--space-16);
+ border-bottom: 1px solid var(--studio-line);
+}
+.cr-stage-head > div { min-width: 0; flex: 1 1 280px; display: grid; gap: var(--space-4); }
+.cr-tally {
+ display: flex;
+ align-items: baseline;
+ gap: var(--space-8);
+ flex: 0 1 auto;
+ margin: 0;
+ color: var(--studio-ink-muted);
+ font-size: 13px;
+ line-height: 1.4;
+}
+.cr-tally strong {
+ font-size: 40px;
+ font-weight: 500;
+ line-height: 1;
+ letter-spacing: -1px;
+ color: var(--charcoal);
+ font-variant-numeric: tabular-nums;
+}
+.cr-tally small { font-size: 13px; max-width: 22ch; }
+
+/* ---- The readings, and the range each is read against -------------------------------------------
+   Seven fields in a grid, each one a card that carries its own number, its own origin and its own
+   range drawn under it. It was a label, a box and a line of grey text; what was missing was the only
+   thing a nurse is actually doing — putting a number against a range. */
+/* Wider than the shared three-up, because each field is a card now: a 24px numeral, a ruler and an
+   origin do not fit in a third of the work column at 1440. auto-fit decides the count from the width
+   the screen actually has, so a phone, a tablet and a reader at 200% get the same rule rather than a
+   breakpoint guessed for one of them. */
+.cr .cr-obs { gap: var(--space-16); grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
+.cr .cr-obs .obs-field {
+ background: var(--surface);
+ border: 1px solid var(--studio-line);
+ border-radius: var(--r-card);
+ padding: var(--space-16);
+ gap: var(--space-12);
+ min-width: 0;
+}
+.cr .cr-obs .obs-field > label { gap: var(--space-8); }
+.cr .cr-obs .obs-field label > span { font-size: 14px; color: var(--studio-ink); align-items: baseline; }
+.cr .cr-obs .obs-field label > span em { font-size: 13px; color: var(--studio-ink-muted); }
+.cr .cr-obs .obs-field input {
+ width: 100%;
+ min-height: 52px;
+ border-radius: var(--r-control);
+ border: 1px solid var(--cr-edge);
+ background: var(--surface);
+ padding: var(--space-12) var(--space-16);
+ font-size: 24px;
+ font-weight: 500;
+ letter-spacing: -.5px;
+ color: var(--charcoal);
+ font-variant-numeric: tabular-nums;
+}
+/* A placeholder at the size and weight of a reading is a reading, and on this field that is a number
+   a nurse could believe somebody measured. It keeps the shell's own placeholder colour — faint, 5.75
+   on white — and loses the weight, and the ruler under it stays empty: three channels saying the
+   field is blank. */
+.cr .cr-obs .obs-field input::placeholder { font-weight: 400; letter-spacing: 0; }
+.cr .cr-obs .obs-field small { color: var(--studio-ink-muted); }
+/* A flagged field: a peach ground, the mango outline the shared sheet already gives it, the needle
+   standing outside the band, and the sentence naming the range. Four channels, one of which is a
+   colour. */
+.cr .cr-obs .obs-field.low,
+.cr .cr-obs .obs-field.high { background: var(--mango-soft); border-color: var(--mango-ink); }
+.cr .cr-obs .obs-field.low small,
+.cr .cr-obs .obs-field.high small { color: var(--mango-ink); font-weight: 600; }
+.cr .cr-obs .obs-field.invalid { border-color: var(--danger); }
+.cr .cr-obs .obs-field.invalid small { color: var(--danger); font-weight: 600; }
+
+/* The ruler. The band is the contract's own low and high; the groove runs one band-width either
+   side of it, so an in-range reading falls in the middle third and one a little outside is still
+   on the ruler rather than pinned to the end. It never moves — see the top of this file. */
+.cr-ruler {
+ position: relative;
+ display: block;
+ height: 10px;
+ border-radius: var(--r-pill);
+ background: var(--cr-groove);
+}
+.cr-ruler-band {
+ position: absolute;
+ left: 33.333%;
+ right: 33.333%;
+ top: 0;
+ bottom: 0;
+ border-radius: var(--r-pill);
+ background: var(--studio-olive);
+}
+.cr-ruler-at {
+ position: absolute;
+ top: -4px;
+ bottom: -4px;
+ width: 4px;
+ margin-left: -2px;
+ border-radius: var(--r-pill);
+ background: var(--charcoal);
+ /* Two pixels of the page either side of the needle, so it is separated from the band it stands in
+    rather than swallowed by it: charcoal on olive measures 2.64 and surface on olive 6.46. */
+ box-shadow: 0 0 0 2px var(--surface);
+}
+.cr .cr-obs .obs-field.low .cr-ruler-at,
+.cr .cr-obs .obs-field.high .cr-ruler-at { box-shadow: 0 0 0 2px var(--mango-soft); }
+
+/* ---- A value worked out from two others ----------------------------------------------------------
+   Not a card like the seven: it is the one figure on the stage nobody typed, and it is drawn as a
+   figure with its inputs named beside it. */
+.cr-derived {
+ display: grid;
+ grid-template-columns: minmax(0, 1fr) auto;
+ align-items: center;
+ gap: var(--space-8) var(--space-16);
+ padding: var(--space-16) var(--space-20);
+ border-radius: var(--r-card);
+ background: var(--studio-paper);
+ border: 1px solid var(--studio-line);
+}
+.cr-derived-say { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); min-width: 0; font-size: 15px; color: var(--studio-ink); }
+.cr-derived > strong {
+ display: flex;
+ align-items: baseline;
+ gap: var(--space-4);
+ font-size: 36px;
+ font-weight: 500;
+ line-height: 1;
+ letter-spacing: -1px;
+ color: var(--charcoal);
+ font-variant-numeric: tabular-nums;
+}
+.cr-derived > strong small { font-size: 15px; font-weight: 400; color: var(--studio-ink-muted); }
+.cr-derived > .helper { grid-column: 1 / -1; }
+
+/* What the escalation she has just chosen commits somebody to, in the protocol's own words. */
+.cr-meaning {
+ display: flex;
+ gap: var(--space-8);
+ align-items: flex-start;
+ margin: 0;
+ padding: var(--space-12) var(--space-16);
+ border-left: 3px solid var(--studio-olive);
+ border-radius: 0 var(--r-control) var(--r-control) 0;
+ background: var(--studio-paper);
+ font-size: 14px;
+ line-height: 1.6;
+ color: var(--studio-ink);
+ max-width: 70ch;
+}
+.cr-meaning > svg { flex: 0 0 auto; margin-top: 3px; color: var(--studio-ink-muted); }
+
+/* ---- What the visit produced ---------------------------------------------------------------------
+   The sign-off was a run of hairline rows between the notes around them. It is a ledger now: one
+   card, numbers in a column on the right, tabular, so four readings are read down rather than
+   across. */
+.cr-ledger {
+ border: 1px solid var(--studio-line);
+ border-radius: var(--r-card);
+ background: var(--surface);
+ padding: 2px var(--space-16);
+}
+.cr .cr-ledger .review-line { padding: var(--space-12) 0; color: var(--studio-ink-muted); border-bottom-color: var(--studio-line); }
+.cr .cr-ledger .review-line:last-child { border-bottom: 0; }
+.cr .cr-ledger .review-line strong { color: var(--charcoal); font-variant-numeric: tabular-nums; font-size: 16px; }
+.cr .cr-ledger .review-line strong.flagged { color: var(--mango-ink); font-weight: 600; }
+/* Sealed. The tick, the word and the sentence together, on the sage the shell already uses for a
+   completed act. */
+.cr-sealed {
+ display: grid;
+ justify-items: center;
+ text-align: center;
+ gap: var(--space-12);
+ padding: var(--space-24) var(--space-20);
+ border-radius: var(--r-card);
+ background: var(--pale-sage);
+}
+.cr .cr-sealed h3 { font-size: 24px; letter-spacing: -.5px; color: var(--charcoal); }
+.cr .cr-sealed p.muted { color: var(--charcoal-muted-on-pale-sage); max-width: 62ch; }
+.cr .cr-sealed .success-icon { background: var(--surface); color: var(--studio-olive); }
+
+/* ---- The record, as a document -------------------------------------------------------------------
+   Eleven textareas in a column with their labels over them, and no way to tell how far through it
+   you were. It is a document now: a head that says whose record it is and how much of it is written,
+   and the sections down a spine whose marks fill as they are written. */
+.cr-writer { display: grid; gap: var(--space-8); max-width: 420px; font-size: 14px; }
+.cr-writer > span { font-weight: 600; color: var(--studio-ink); }
+.cr .cr-writer select {
+ width: 100%;
+ min-height: 48px;
+ border-radius: var(--r-control);
+ border: 1px solid var(--cr-edge);
+ background: var(--surface);
+ padding: var(--space-12) var(--space-16);
+ font: inherit;
+ font-size: 15px;
+ color: var(--studio-ink);
+}
+
+/* Three readings of one record, on one rail, rather than three underlined words that look like
+   three destinations. The chosen one is filled and lifted; the rail is recessed. */
+.cr-views {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 3px;
+ padding: 5px;
+ border: 1px solid var(--studio-line);
+ border-radius: var(--r-panel);
+ background: var(--studio-paper);
+ align-self: start;
+}
+.cr .cr-views button {
+ min-height: 44px;
+ padding: var(--space-8) var(--space-16);
+ border: 1px solid transparent;
+ border-radius: var(--r-pill);
+ background: transparent;
+ color: var(--studio-ink);
+ font-size: 14px;
+ font-weight: 500;
+ transition: background var(--t-settle) var(--ease-soft);
+}
+.cr .cr-views button:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.cr .cr-views button.selected {
+ background: var(--studio-ink);
+ border-color: var(--studio-ink);
+ color: var(--surface);
+ font-weight: 600;
+ box-shadow: var(--shadow-raised);
+}
+/* core.css draws :focus-visible as an outline AND a box-shadow ring at the lowest possible
+   specificity, so any rule here that sets a box-shadow on something focusable silently deletes half
+   the focus indicator. The one focusable element in this sheet with a resting shadow restates the
+   ring in front of its own. */
+.cr .cr-views button.selected:focus-visible { box-shadow: 0 0 0 7px var(--focus-edge), var(--shadow-raised); }
+
+.cr-panes { display: grid; }
+.cr-pane {
+ display: grid;
+ grid-template-columns: 38px minmax(0, 1fr);
+ gap: 0 var(--space-16);
+ position: relative;
+ padding-bottom: var(--space-24);
+}
+/* The spine, drawn between the marks. It fills behind a written section, so how far through the
+   record a clinician is, is a shape down the left of it — and the count at the head of the document
+   is the same thing said as a number, because a mark is a summary and somebody about to be refused
+   a signature deserves the figure. */
+.cr-pane::before {
+ content: '';
+ position: absolute;
+ left: 19px;
+ top: 42px;
+ bottom: 0;
+ width: 2px;
+ margin-left: -1px;
+ background: var(--studio-line);
+}
+.cr-pane:last-child::before { display: none; }
+.cr-pane.written::before { background: var(--studio-olive); }
+.cr-pane-mark {
+ width: 38px;
+ height: 38px;
+ border-radius: 50%;
+ display: grid;
+ place-items: center;
+ font-size: 15px;
+ font-weight: 600;
+ font-variant-numeric: tabular-nums;
+ border: 2px solid var(--cr-edge);
+ background: var(--surface);
+ color: var(--studio-ink-muted);
+ position: relative;
+ z-index: 1;
+}
+.cr-pane.written .cr-pane-mark { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); }
+.cr-pane.locked .cr-pane-mark { border-style: dashed; }
+.cr-pane-mark.letter { font-size: 16px; background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); }
+/* Measured rather than full-width. A clinical note set across a thousand pixels is a line a reader
+   loses their place in, and it is what left the Required chip stranded at the far edge of the screen
+   from the heading it belongs to. */
+.cr-pane-body { min-width: 0; max-width: 780px; display: grid; gap: var(--space-12); align-content: start; padding-top: var(--space-4); }
+.cr-pane-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-8) var(--space-16); }
+.cr .cr-pane-head h4 { font-size: 18px; line-height: 1.3; color: var(--charcoal); }
+.cr-tag {
+ font-size: 13px;
+ line-height: 1.4;
+ color: var(--studio-ink-muted);
+ border: 1px solid var(--studio-line);
+ border-radius: var(--r-pill);
+ padding: 3px var(--space-12);
+ white-space: nowrap;
+}
+.cr-tag.required { color: var(--studio-ink); border-color: var(--cr-edge); font-weight: 600; }
+.cr-pane label,
+.cr-sub label { display: grid; gap: var(--space-8); font-size: 14px; min-width: 0; max-width: none; }
+.cr-field-label { font-weight: 600; color: var(--studio-ink); }
+.cr .cr-pane textarea,
+.cr .cr-sub textarea {
+ width: 100%;
+ min-width: 0;
+ min-height: 96px;
+ border: 1px solid var(--cr-edge);
+ border-radius: var(--r-control);
+ background: var(--surface);
+ padding: var(--space-12) var(--space-16);
+ font: inherit;
+ font-size: 15px;
+ line-height: 1.7;
+ color: var(--studio-ink);
+ resize: vertical;
+}
+.cr .cr-pane textarea:disabled,
+.cr .cr-sub textarea:disabled { background: var(--studio-paper); color: var(--studio-ink); -webkit-text-fill-color: var(--studio-ink); opacity: 1; }
+/* A section the writer's clearance closes, and a diagnosis a nurse is never offered. Drawn as a
+   closed row rather than as a disabled box, because a greyed-out textarea invites somebody to try
+   to type in it. */
+.cr-locked {
+ display: flex;
+ align-items: center;
+ gap: var(--space-8);
+ padding: var(--space-12) var(--space-16);
+ border: 1px dashed var(--cr-edge);
+ border-radius: var(--r-control);
+ background: var(--studio-paper);
+ font-size: 14px;
+ color: var(--studio-ink);
+}
+.cr-locked > svg { flex: 0 0 auto; color: var(--studio-ink-muted); }
+.cr-note {
+ margin: 0;
+ padding-left: var(--space-12);
+ border-left: 3px solid var(--studio-line);
+ font-size: 13px;
+ line-height: 1.6;
+ color: var(--studio-ink-muted);
+ max-width: 66ch;
+}
+/* The readings carried into a record, above the box where somebody writes about them. */
+.cr-readings { border: 1px solid var(--studio-line); border-radius: var(--r-card); background: var(--studio-paper); padding: 2px var(--space-16); }
+.cr .cr-readings .review-line { padding: var(--space-12) 0; color: var(--studio-ink-muted); border-bottom-color: var(--studio-line); }
+.cr .cr-readings .review-line:last-of-type { border-bottom: 0; }
+.cr .cr-readings .review-line strong { color: var(--charcoal); font-variant-numeric: tabular-nums; }
+.cr .cr-readings .review-line strong.flagged { color: var(--mango-ink); font-weight: 600; }
+
+/* SOAP: the same fields under four headings, so the letter is the mark on the spine and the
+   sections are nested under it rather than repeating the spine four times. */
+.cr-pane.soap { padding-bottom: var(--space-32); }
+.cr-sub { display: grid; gap: var(--space-12); padding: var(--space-16); border: 1px solid var(--studio-line); border-radius: var(--r-card); background: var(--surface); }
+.cr .cr-sub h5 { font-size: 15px; color: var(--charcoal); }
+
+/* As it reads: the record as prose, which is what somebody else will read it as. */
+.cr-read { display: grid; gap: var(--space-16); }
+.cr-read-block { border: 1px solid var(--studio-line); border-radius: var(--r-card); background: var(--surface); padding: var(--space-20); display: grid; gap: var(--space-12); }
+.cr-read-head { display: flex; align-items: center; gap: var(--space-12); padding-bottom: var(--space-12); border-bottom: 1px solid var(--studio-line); }
+.cr .cr-read-head h4 { font-size: 18px; color: var(--charcoal); }
+.cr-read-line { display: grid; gap: var(--space-4); margin: 0; }
+.cr-read-line dt { font-size: 13px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--studio-ink-muted); }
+.cr-read-line dd { margin: 0; font-size: 15px; line-height: 1.7; color: var(--studio-ink); white-space: pre-wrap; }
+
+.cr-appendix { border: 1px solid var(--studio-line); border-radius: var(--r-card); background: var(--studio-paper); padding: var(--space-16) var(--space-20); display: grid; gap: var(--space-8); }
+.cr-appendix-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-8); }
+.cr .cr-appendix-head h4 { font-size: 16px; color: var(--charcoal); }
+.cr .cr-appendix .review-line { padding: var(--space-12) 0; color: var(--studio-ink-muted); border-bottom-color: var(--studio-line); }
+.cr .cr-appendix .review-line strong { color: var(--charcoal); }
+
+/* The foot of the document: what is still outstanding, and the one action that ends it. */
+.cr-foot,
+.cr-signed {
+ display: grid;
+ gap: var(--space-16);
+ padding: var(--space-20) var(--space-24);
+ border-radius: var(--r-card);
+ border: 1px solid var(--studio-line);
+ background: var(--surface);
+}
+@media (min-width: 820px) {
+ .cr-foot { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+ .cr-foot .button-row { margin: 0; }
+}
+.cr-foot-say { display: grid; gap: var(--space-4); min-width: 0; }
+.cr-foot-line { display: flex; align-items: center; gap: var(--space-8); margin: 0; font-size: 15px; font-weight: 600; color: var(--charcoal); }
+.cr-signed { background: var(--studio-paper); padding: 2px var(--space-24) var(--space-20); }
+.cr-signed-head { display: flex; align-items: flex-start; gap: var(--space-16); padding: var(--space-20) 0 var(--space-16); }
+.cr-signed-head > div { min-width: 0; display: grid; gap: var(--space-4); }
+.cr .cr-signed-head h4 { font-size: 20px; color: var(--charcoal); }
+.cr .cr-signed-head p { font-size: 14px; color: var(--studio-ink-muted); max-width: 62ch; }
+.cr .cr-signed .success-icon { background: var(--pale-sage); color: var(--studio-ink); flex: 0 0 auto; }
+.cr .cr-signed .review-line { padding: var(--space-12) 0; color: var(--studio-ink-muted); border-bottom-color: var(--studio-line); }
+.cr .cr-signed .review-line strong { color: var(--charcoal); }
+.cr .cr-signed .primary { margin-top: var(--space-16); }
+
+/* ---- The protocols -------------------------------------------------------------------------------
+   The screen has no service behind it and needs none: every figure on it is read from the thing that
+   enforces it. What it was missing was a shape — a table, five hairline rows and five more, all at
+   one weight. The lead carries the count and the sentence that qualifies every range under it. */
+.cr-panel {
+ border: 1px solid var(--studio-line);
+ border-radius: var(--r-card);
+ background: var(--surface);
+ padding: var(--space-8) var(--space-20) var(--space-16);
+ /* Five columns and a drawing on a 320px screen: the table scrolls inside its own box rather than
+    taking the page with it. */
+ overflow-x: auto;
+}
+.cr-ranges { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.cr-ranges caption { text-align: left; padding: var(--space-16) 0; font-size: 13px; line-height: 1.6; color: var(--studio-ink-muted); max-width: 80ch; }
+.cr-ranges thead th {
+ font-size: 13px;
+ font-weight: 600;
+ letter-spacing: .4px;
+ text-transform: uppercase;
+ color: var(--studio-ink-muted);
+ padding: var(--space-8) var(--space-12) var(--space-12) 0;
+ border-bottom: 1px solid var(--studio-line);
+ white-space: nowrap;
+}
+.cr-ranges tbody th {
+ font-size: 15px;
+ font-weight: 500;
+ color: var(--charcoal);
+ padding: var(--space-16) var(--space-24) var(--space-16) 0;
+ min-width: 160px;
+}
+.cr-ranges td {
+ padding: var(--space-16) var(--space-12) var(--space-16) 0;
+ color: var(--studio-ink);
+ font-variant-numeric: tabular-nums;
+ white-space: nowrap;
+}
+.cr-ranges tbody tr + tr th,
+.cr-ranges tbody tr + tr td { border-top: 1px solid var(--studio-line); }
+.cr-ranges-plot { width: 46%; min-width: 220px; position: relative; }
+/* The same ruler the nurse's fields carry, drawn from the same two numbers, with nothing standing
+   in it — there is no reading on this screen to stand in it. The groove is the whole width, the
+   band is the middle third, and the three labels sit under the three zones they name. */
+.cr-ruler.protocol {
+ position: relative;
+ display: grid;
+ grid-template-columns: 1fr 1fr 1fr;
+ align-items: center;
+ gap: var(--space-8) 0;
+ height: auto;
+ background: none;
+}
+.cr-ruler.protocol::before {
+ content: '';
+ grid-row: 1;
+ grid-column: 1 / -1;
+ height: 10px;
+ border-radius: var(--r-pill);
+ background: var(--cr-groove);
+}
+.cr-ruler.protocol .cr-ruler-band {
+ position: static;
+ grid-row: 1;
+ grid-column: 2;
+ height: 10px;
+ z-index: 1;
+}
+.cr-ruler.protocol .cr-ruler-zone,
+.cr-ruler.protocol .cr-ruler-figure {
+ grid-row: 2;
+ font-size: 13px;
+ line-height: 1.4;
+ text-align: center;
+ font-style: normal;
+ white-space: nowrap;
+}
+.cr-ruler.protocol .cr-ruler-zone { color: var(--studio-ink-muted); }
+.cr-ruler.protocol .cr-ruler-zone.low { grid-column: 1; }
+.cr-ruler.protocol .cr-ruler-zone.high { grid-column: 3; }
+.cr-ruler.protocol .cr-ruler-figure { grid-column: 2; font-weight: 600; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+
+/* Who may do what. Two kinds of row, told apart by the mark before the sentence and by the word in
+   it — never by a colour. */
+/* Measured, not the full width of the work column: the table above is data and earns the width, and
+   five sentences about who may do what are read rather than scanned. */
+.cr-rules { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-8); max-width: 880px; }
+.cr-rules > li {
+ display: grid;
+ grid-template-columns: 38px minmax(0, 1fr);
+ gap: var(--space-16);
+ align-items: center;
+ padding: var(--space-16) var(--space-20);
+ border: 1px solid var(--studio-line);
+ border-radius: var(--r-card);
+ background: var(--surface);
+}
+.cr-rules > li.refused { background: var(--studio-peach); border-color: transparent; }
+.cr-rules-mark {
+ width: 38px;
+ height: 38px;
+ border-radius: 50%;
+ display: grid;
+ place-items: center;
+ background: var(--studio-ink);
+ color: var(--surface);
+}
+.cr-rules > li.refused .cr-rules-mark { background: transparent; border: 2px solid var(--studio-ink); color: var(--studio-ink); }
+.cr-rules strong { display: block; font-size: 16px; line-height: 1.4; font-weight: 500; color: var(--charcoal); }
+.cr-rules small { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-8); margin-top: var(--space-4); font-size: 13px; color: var(--studio-ink-muted); }
+.cr-rules small em { font-style: normal; font-weight: 600; color: var(--studio-ink); }
+.cr-rules > li.refused small em { color: var(--studio-ink); }
+
+/* The ladder. The order is the whole of the information and five cards of equal weight hid it. */
+.cr-ladder { list-style: none; margin: 0; padding: 0; display: grid; }
+.cr-ladder > li {
+ display: grid;
+ grid-template-columns: 34px minmax(0, 1fr);
+ gap: 0 var(--space-16);
+ position: relative;
+ padding-bottom: var(--space-16);
+}
+.cr-ladder > li::before {
+ content: '';
+ position: absolute;
+ left: 17px;
+ top: 38px;
+ bottom: 0;
+ width: 2px;
+ margin-left: -1px;
+ background: var(--studio-line);
+}
+.cr-ladder > li:last-child::before { display: none; }
+.cr-ladder-no {
+ width: 34px;
+ height: 34px;
+ border-radius: 50%;
+ display: grid;
+ place-items: center;
+ font-size: 14px;
+ font-weight: 600;
+ font-variant-numeric: tabular-nums;
+ background: var(--studio-ink);
+ color: var(--surface);
+ position: relative;
+ z-index: 1;
+}
+.cr-ladder > li > div { min-width: 0; padding-top: var(--space-4); }
+.cr-ladder strong { display: block; font-size: 16px; line-height: 1.4; font-weight: 500; color: var(--charcoal); }
+.cr-ladder p { margin-top: var(--space-4); font-size: 14px; line-height: 1.6; color: var(--studio-ink-muted); max-width: 74ch; }
+
+/* ---- Narrow, and at twice the text size ----------------------------------------------------------
+   Nothing is dropped on a phone: the same rail, the same ruler under the same fields, the same
+   spine. What changes is that the figures come down a step and the two-column heads stack, because
+   a 40px numeral beside a wrapping label on a 320px screen is two columns of nothing. */
+@media (max-width: 600px) {
+ .cr { gap: var(--space-16); }
+ .cr-stage { padding: var(--space-16) var(--space-16) var(--space-20); border-radius: var(--r-card); }
+ .cr-tally strong { font-size: 28px; }
+ .cr-derived { grid-template-columns: minmax(0, 1fr); }
+ .cr-derived > strong { font-size: 28px; }
+ .cr .cr-stage > h3 { font-size: 20px; }
+ .cr-pane { grid-template-columns: 32px minmax(0, 1fr); gap: 0 var(--space-12); }
+ .cr-pane::before { left: 16px; top: 36px; }
+ .cr-pane-mark { width: 32px; height: 32px; font-size: 14px; }
+ .cr-panel { padding: var(--space-4) var(--space-16) var(--space-12); }
+ .cr-rules > li { padding: var(--space-16); gap: var(--space-12); }
+ .cr-signed { padding: 2px var(--space-16) var(--space-16); }
+ .cr-foot { padding: var(--space-16); }
+}
+/* The rail is the one thing that reflows rather than shrinks. At twice the text size five stage
+   names down the side of a phone are five wrapped lines, so below 760 it is already a column under
+   the visit rather than a panel beside it — which is the arrangement that holds when the text
+   doubles, because it was never relying on the width. */
+@media (max-width: 759px) {
+ .cr-rail > li { font-size: 14px; }
+ .cr-rail > li.now { font-size: 16px; }
+}

@@ -285,7 +285,7 @@ struct VisitAssessmentView: View {
                     }
                 }
                 NavigationLink { ThusoKitView(operatorId: subject.id, visitReference: reference, patient: patient) } label: {
-                    NavPillLabel(title: "Pair an instrument", symbol: "sensor.tag.radiowave.forward")
+                    NavPillLabel(title: "Pair an instrument", symbol: "sensor.tag.radiowaves.forward")
                 }
                 .buttonStyle(.plain)
             }

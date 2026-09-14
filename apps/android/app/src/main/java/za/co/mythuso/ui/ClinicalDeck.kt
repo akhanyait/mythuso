@@ -30,6 +30,27 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import java.time.LocalTime
 import za.co.mythuso.model.Scheduling
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowOutward
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.material.icons.outlined.Straighten
+import za.co.mythuso.model.ObservationRange
+import za.co.mythuso.model.observationRanges
+import za.co.mythuso.model.observationsNote
 
 /* The instrument deck a nurse and a doctor open a workspace on, as Compose.
  *
@@ -94,6 +115,8 @@ sealed interface DeckShape {
     data class Day(val visits: List<DeckVisit>, val from: Int, val to: Int) : DeckShape
     /** The weeks behind a headline figure. Never the week the figure itself states. */
     data class Spark(val weeks: List<Int>) : DeckShape
+    /** One column per row, oldest first; `lit` marks the rows the figure beside it adds up. */
+    data class Columns(val values: List<Int>, val lit: List<Boolean>) : DeckShape
 }
 
 /* Alphas over StudioPaper rather than flattened greys, for the reason ThusoOpacity's own comment
@@ -113,6 +136,20 @@ object DeckInk {
     val track = StudioPaper.copy(alpha = 0.24f)
     val edge = StudioPaper.copy(alpha = 0.14f)
     val leadGround = StudioPaper.copy(alpha = 0.06f)
+
+    /* The grounds the screens behind the deck add: the glass the lead figure stands on, the edge of
+       anything pressable on the night, the one ink a refusal may use there, and the pale indigo panel.
+       Every ratio is in the table above the section that spends them, at the foot of this file. */
+    val glass = StudioPaper.copy(alpha = 0.08f)
+    val glassEdge = StudioPaper.copy(alpha = 0.16f)
+    val control = StudioPaper.copy(alpha = 0.44f)
+    val refusal = StudioPeach
+    val panel = IndigoSoft
+    val panelInk = Charcoal
+    val panelQuiet = StudioInkMuted
+    val panelLit = Indigo
+    val panelMark = Indigo.copy(alpha = 0.58f)
+    val panelTrack = Indigo.copy(alpha = 0.18f)
 }
 
 /** Minutes since midnight and back again, so a day can be drawn to scale rather than as three equal
@@ -146,7 +183,7 @@ private fun turnToDegrees(turn: Float) = turn * 360f - 90f
 /** The queue, or the day, as arcs — one per row, the marked ones brighter and heavier. Colour is
  *  never the only difference between the two states: a marked arc is also the thicker one. */
 @Composable private fun DeckRing(
-    segments: List<Boolean>, lit: Color, unlit: Color, progress: Float, side: Dp
+    segments: List<Boolean>, lit: Color, unlit: Color, progress: Float, side: Dp, track: Color = DeckInk.track
 ) {
     Canvas(Modifier.size(side)) {
         val span = size.minDimension
@@ -155,7 +192,7 @@ private fun turnToDegrees(turn: Float) = turn * 360f - 90f
         val box = Size(radius * 2, radius * 2)
         val corner = Offset(centre.x - radius, centre.y - radius)
         drawArc(
-            DeckInk.track, 0f, 360f, useCenter = false, topLeft = corner, size = box,
+            track, 0f, 360f, useCenter = false, topLeft = corner, size = box,
             style = Stroke(width = span * 0.10f)
         )
         val count = maxOf(segments.size, 1)
@@ -183,7 +220,7 @@ private fun turnToDegrees(turn: Float) = turn * 360f - 90f
 }
 
 /** A part of a whole as a dial: how much of the queue is pressing rather than merely waiting. */
-@Composable private fun DeckGauge(part: Int, whole: Int, lit: Color, progress: Float, side: Dp) {
+@Composable private fun DeckGauge(part: Int, whole: Int, lit: Color, progress: Float, side: Dp, track: Color = DeckInk.track) {
     Canvas(Modifier.size(side)) {
         val span = size.minDimension
         val radius = span * 0.39f
@@ -193,7 +230,7 @@ private fun turnToDegrees(turn: Float) = turn * 360f - 90f
         val sweep = 0.75f
         val filled = if (whole > 0) (part.toFloat() / whole).coerceIn(0f, 1f) else 0f
         drawArc(
-            DeckInk.track, turnToDegrees(from), sweep * 360f, useCenter = false,
+            track, turnToDegrees(from), sweep * 360f, useCenter = false,
             topLeft = corner, size = box, style = Stroke(width = span * 0.10f, cap = StrokeCap.Round)
         )
         if (filled > 0f) drawArc(
@@ -494,6 +531,545 @@ private fun spokenFor(figure: WorkspaceFigure): String {
                         modifier = Modifier.weight(1f).fillMaxHeight())
                 }
             }
+        }
+    }
+}
+
+// MARK: - The deck, spent on a whole screen
+
+/* THE SEVEN SCREENS BEHIND THE DECK, IN THE DECK'S OWN GRAMMAR.
+ *
+ * The founder opened the doctor's deck and then Patient file, Consultation record and Protocols, and
+ * on the nurse's side Assessments, Thuso Kit, Earnings and Vetting, and said every one of them was
+ * boring. The emulator agreed: a clinician crossed from a night canvas with a ring of her own rows on
+ * it into a column of white cards at one elevation, and nothing on the way explained the change of
+ * dialect. The web had the same fault and fixed it in clinical-records.css and nurse-tools.css; this
+ * is Android's half, and the twin of the same section of Features/ClinicalDeckView.swift.
+ *
+ * What follows is the deck's composition lifted off the landing and made into parts a screen is built
+ * from, the composition apps/web/src/features/clinical-deck.css draws: a night canvas carrying a
+ * headline with circular glyph badges set inside the sentence; the one figure the screen is about on
+ * dark glass, the only place lime is spent; a pale indigo panel with its chart drawn BEHIND its
+ * numeral, and a night card crossing that panel's edge; pill clusters for the choice a design review
+ * turns on; circular affordances; and a light sheet standing on the canvas's lower edge, one elevation
+ * above it.
+ *
+ * INDIGO WHERE THE REFERENCE WAS VIOLET. The reference draws its quiet half in lavender; MyThuso ships
+ * an indigo family, so the panel is IndigoSoft and its marks are Indigo. No colour token was added.
+ *
+ * THE RULE THE DECK ABOVE IS BUILT ON HOLDS UNCHANGED. Nothing drawn introduces a number — every
+ * ring, gauge, bar and line is counted off rows the same screen lists — and no clinical value moves: a
+ * reading's trend is the finished drawing on the first frame whatever the animator scale says, and
+ * only a count of rows draws itself in, and not even that when animations are off.
+ *
+ * MEASURED ON THE GROUND EACH PAIR ACTUALLY LANDS ON, with the sRGB formula the build runs:
+ *   the flat night            paper 13.59   lime 12.03   quiet 7.75   StudioPeach 11.43
+ *                             Danger is 2.28 here and is never written on the dark
+ *   the glass, paper at 8%    paper 10.78   lime 9.54   quiet 6.45   peach 9.06   unlit mark at 44% 3.45
+ *   a control's edge          paper at 44%: 3.84 on the night, 3.45 on the glass
+ *   IndigoSoft                Charcoal 15.24   StudioInkMuted 6.19   IndigoDeep 11.23
+ *                             Indigo 9.26, the lit mark   Indigo at 58% 3.15, the unlit one
+ *   the badge                 IndigoSoft on StudioNight 13.39, IndigoDeep inside it 11.23
+ * Colour is never the only difference between two states: a lit arc is thicker, the longest bar is
+ * taller, a chosen pill is filled and heavier and carries a tick, and a refusal says so in words. */
+
+enum class DeckGround { GLASS, NIGHT, PANEL }
+
+/** tokens.json's one raised elevation — `0 4px 16px` of ink at ten per cent — and never a second. */
+fun Modifier.deckRaised(shape: Shape): Modifier =
+    shadow(8.dp, shape, clip = false, ambientColor = Ink.copy(alpha = 0.10f), spotColor = Ink.copy(alpha = 0.10f))
+
+/* One thing standing on the lower edge of another. The upper one is given the overlap back as padding
+   by its caller first, so what the lower one covers is empty ground and never a figure; the lower one
+   is drawn second, so it is the one on top. Measured rather than offset, because an offset moves the
+   drawing and leaves the gap in the layout. */
+@Composable private fun DeckStraddle(overlap: Dp, upper: @Composable () -> Unit, lower: @Composable () -> Unit) {
+    Layout(content = { Box { upper() }; Box { lower() } }) { measurables, constraints ->
+        val loose = constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
+        val top = measurables[0].measure(loose)
+        val bottom = measurables[1].measure(loose)
+        val cross = overlap.roundToPx().coerceAtMost(top.height)
+        layout(constraints.maxWidth, top.height + bottom.height - cross) {
+            top.place(0, 0)
+            bottom.place(0, top.height - cross)
+        }
+    }
+}
+
+/* Padding that gives width back once the type is large. Past a 1.6 font scale the app moves to its
+   navigation rail and the deck is left a column a little over two hundred dp wide; twenty either side
+   of the canvas and sixteen inside the glass spent a fifth of it on ground, and the words it held broke
+   one to a line. Twelve is the next step on the spacing scale, not a number chosen for this. */
+@Composable private fun deckInset(roomy: Dp): Dp =
+    if (LocalDensity.current.fontScale >= 1.6f) ThusoSpacing.space12 else roomy
+
+/** The overlap grows with the reader's type, capped where a larger crossing would start to cover words. */
+@Composable private fun scaledOverlap(base: Dp): Dp = base * LocalDensity.current.fontScale.coerceIn(1f, 1.6f)
+
+/* The night canvas: flat StudioNight for the reason this file's header gives, the one raised
+   elevation, and the composition locals that tell the metrics inside it they are on the dark. */
+@Composable fun DeckCanvas(overhang: Dp = 0.dp, content: @Composable ColumnScope.() -> Unit) {
+    val shape = RoundedCornerShape(ThusoRadius.panel)
+    val side = deckInset(ThusoSpacing.space20)
+    CompositionLocalProvider(LocalOnStudioNight provides true, LocalSecondaryText provides DeckInk.quiet) {
+        Column(
+            Modifier.fillMaxWidth().deckRaised(shape).clip(shape).background(DeckInk.ground)
+                .padding(start = side, end = side, top = ThusoSpacing.space20, bottom = ThusoSpacing.space24 + overhang),
+            verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space20), content = content
+        )
+    }
+}
+
+/* A canvas and the light sheet that stands on its lower edge. The sheet is inset from the canvas's
+   sides, so the night shows either side of it and reads as the ground it stands on rather than as a
+   card that has slipped. */
+@Composable fun DeckHero(
+    wrap: Boolean = true,
+    sheetFill: Color = SurfaceWhite,
+    content: @Composable ColumnScope.() -> Unit,
+    sheet: @Composable ColumnScope.() -> Unit
+) {
+    val overlap = scaledOverlap(36.dp)
+    DeckStraddle(
+        overlap,
+        upper = { DeckCanvas(overhang = overlap, content = content) },
+        /* `wrap` is off where what stands on the edge is already a card of its own — a destination
+           carries its own elevation, and a card inside a card is two edges saying one thing. */
+        lower = {
+            Box(Modifier.padding(horizontal = ThusoSpacing.space12)) {
+                if (wrap) DeckSheet(fill = sheetFill, content = sheet)
+                else Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), content = sheet)
+            }
+        }
+    )
+}
+
+/** The light card that stands on the canvas: white, the card radius, the one elevation. */
+@Composable fun DeckSheet(modifier: Modifier = Modifier, fill: Color = SurfaceWhite, content: @Composable ColumnScope.() -> Unit) {
+    val shape = RoundedCornerShape(ThusoRadius.card)
+    CompositionLocalProvider(LocalOnStudioNight provides false, LocalSecondaryText provides StudioInkMuted) {
+        Column(
+            modifier.fillMaxWidth().deckRaised(shape).clip(shape).background(fill).padding(ThusoSpacing.space16),
+            verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), content = content
+        )
+    }
+}
+
+/** The lead's own card: the night lifted eight per cent — depth by one step of the same colour rather
+    than by a second shadow inside a shadowed card. */
+@Composable fun DeckGlassCard(content: @Composable ColumnScope.() -> Unit) {
+    val shape = RoundedCornerShape(ThusoRadius.card)
+    Column(
+        Modifier.fillMaxWidth().clip(shape).background(DeckInk.glass).border(1.dp, DeckInk.glassEdge, shape).padding(deckInset(ThusoSpacing.space16)),
+        verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), content = content
+    )
+}
+
+/* The pale half of the deck, and the night card that crosses its lower edge. The dot grid is the
+   panel's own ink at a fifth of its strength: it carries nothing, and it is what stops a block of one
+   pale colour reading as a hole in the canvas. */
+@Composable fun DeckPanel(float: (@Composable ColumnScope.() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+    val shape = RoundedCornerShape(ThusoRadius.card)
+    val overlap = if (float != null) scaledOverlap(28.dp) else 0.dp
+    val panel = @Composable {
+        CompositionLocalProvider(LocalOnStudioNight provides false, LocalSecondaryText provides DeckInk.panelQuiet) {
+            Column(
+                Modifier.fillMaxWidth().clip(shape).background(DeckInk.panel)
+                    .drawBehind {
+                        val step = 14.dp.toPx()
+                        val radius = 1.dp.toPx()
+                        var x = step / 2
+                        while (x < size.width) {
+                            var y = step / 2
+                            while (y < size.height) { drawCircle(Indigo.copy(alpha = 0.22f), radius, Offset(x, y)); y += step }
+                            x += step
+                        }
+                    }
+                    .padding(start = deckInset(ThusoSpacing.space16), end = deckInset(ThusoSpacing.space16), top = ThusoSpacing.space16, bottom = ThusoSpacing.space16 + overlap),
+                verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), content = content
+            )
+        }
+    }
+    if (float == null) { panel(); return }
+    DeckStraddle(overlap, upper = panel, lower = {
+        CompositionLocalProvider(LocalOnStudioNight provides true, LocalSecondaryText provides DeckInk.quiet) {
+            Column(
+                Modifier.padding(start = ThusoSpacing.space16).fillMaxWidth().deckRaised(shape).clip(shape)
+                    .background(DeckInk.ground).border(1.dp, DeckInk.glassEdge, shape)
+                    .padding(horizontal = ThusoSpacing.space16, vertical = ThusoSpacing.space12),
+                verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8), content = float
+            )
+        }
+    })
+}
+
+/** A word of a deck headline, or the circular badge set inside the sentence in place of one. The
+    sentence must read correctly with every badge removed, which is what lets TalkBack skip them. */
+sealed interface DeckWord {
+    data class Words(val text: String) : DeckWord
+    data class Glyph(val icon: ImageVector) : DeckWord
+}
+
+/* The headline. `metric` rather than `metricLarge`: it is a sentence and not a figure, and the figure on
+   the glass below has to stay the largest thing on the screen. Past a 1.5 font scale it drops to
+   `screenTitle`, still scaled, for StudioHeadline's reason — a display line one word per row has
+   stopped being a headline. One node to TalkBack, announced as a heading, with no badge in it. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable fun DeckHeadline(eyebrow: String, words: List<DeckWord>, tail: String = "") {
+    val density = LocalDensity.current
+    val size = if (density.fontScale >= 1.5f) ThusoType.screenTitle else ThusoType.metric
+    val spoken = words.filterIsInstance<DeckWord.Words>().joinToString(" ") { it.text }
+    val line = with(density) { (size * 1.18f).toDp() }
+    val disc = with(density) { (size * 0.92f).toDp() }
+    Column(
+        Modifier.fillMaxWidth().clearAndSetSemantics { heading(); contentDescription = if (tail.isEmpty()) spoken else "$spoken. $tail" },
+        verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
+    ) {
+        Text(eyebrow.uppercase(), color = DeckInk.accent, style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.4.sp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(with(density) { (size * 0.24f).toDp() })) {
+            words.forEach { word ->
+                when (word) {
+                    is DeckWord.Words -> word.text.split(" ").forEach { piece ->
+                        Text(
+                            piece, color = DeckInk.ink,
+                            style = TextStyle(fontSize = size, lineHeight = size * 1.18f, fontWeight = FontWeight.Medium, letterSpacing = (-0.6).sp)
+                        )
+                    }
+                    is DeckWord.Glyph -> Box(Modifier.height(line), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(disc).background(IndigoSoft, CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(word.icon, null, tint = IndigoDeep, modifier = Modifier.size(disc * 0.5f))
+                        }
+                    }
+                }
+            }
+        }
+        if (tail.isNotEmpty()) Text(tail, style = MaterialTheme.typography.bodyMedium, color = DeckInk.quiet)
+    }
+}
+
+/** DemoBadge's words, unchanged, on the dark: outlined in the control edge rather than a pale lozenge
+    pulling the eye off the headline. */
+@Composable fun DeckPreviewMark() {
+    Row(
+        Modifier.border(1.dp, DeckInk.control, RoundedCornerShape(ThusoRadius.control))
+            .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space4)
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)
+    ) {
+        Box(Modifier.size(6.dp).background(DeckInk.ink, CircleShape))
+        Text("Design preview · Fictional data", style = MaterialTheme.typography.labelMedium, color = DeckInk.ink)
+    }
+}
+
+/** A refusal on the canvas: peach, a glyph and the sentence the contract wrote. */
+@Composable fun DeckRefusal(reason: String?) {
+    if (reason.isNullOrEmpty()) return
+    Row(
+        Modifier.semantics(mergeDescendants = true) { contentDescription = "Refused. $reason" },
+        verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)
+    ) {
+        Icon(Icons.Outlined.Block, null, tint = DeckInk.refusal, modifier = Modifier.size(18.dp))
+        Text(reason, style = MaterialTheme.typography.bodyMedium, color = DeckInk.refusal)
+    }
+}
+
+/** A status on any of the three grounds: outlined in the ground's quiet ink, filled for the one thing
+    that is not as it should be, with the word on it doing the telling. */
+@Composable fun DeckTag(text: String, flagged: Boolean = false, ground: DeckGround = DeckGround.GLASS) {
+    val shape = RoundedCornerShape(if (LocalDensity.current.fontScale >= 1.3f) ThusoRadius.control else ThusoRadius.pill)
+    val (ink, fill, edge) = when {
+        ground == DeckGround.PANEL && flagged -> Triple(DeckInk.panel, DeckInk.panelLit, DeckInk.panelLit)
+        ground == DeckGround.PANEL -> Triple(IndigoDeep, Color.Transparent, DeckInk.panelLit)
+        flagged -> Triple(DeckInk.ground, DeckInk.ink, DeckInk.ink)
+        else -> Triple(DeckInk.quiet, Color.Transparent, DeckInk.mark)
+    }
+    Text(
+        text, style = MaterialTheme.typography.labelSmall, color = ink,
+        modifier = Modifier.background(fill, shape).border(1.dp, edge, shape)
+            .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space4)
+    )
+}
+
+/* A pill cluster: the choice a design review turns on, laid out so every option is visible at once. A
+   chip row of Material FilterChips was the same idea in the platform's shape and the wrong ground —
+   a pale chip on the night is a lozenge nobody can read. Every pill is a 48dp target and grows with the
+   words; past a 1.3 font scale it stops being a capsule, whose ends would cut a wrapped label. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable fun <T> DeckPills(label: String, selected: T, options: List<Pair<T, String>>, onNight: Boolean = true, choose: (T) -> Unit) {
+    val shape = RoundedCornerShape(if (LocalDensity.current.fontScale >= 1.3f) ThusoRadius.control else ThusoRadius.pill)
+    Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+        if (label.isNotEmpty()) Text(label, style = MaterialTheme.typography.labelLarge, color = if (onNight) DeckInk.quiet else StudioInkMuted)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            options.forEach { (value, title) ->
+                val on = value == selected
+                val ink = if (on) (if (onNight) DeckInk.ground else StudioPaper) else (if (onNight) DeckInk.ink else Charcoal)
+                val fill = if (on) (if (onNight) DeckInk.ink else StudioNight) else (if (onNight) DeckInk.glass else SurfaceWhite)
+                val edge = if (on) Color.Transparent else (if (onNight) DeckInk.control else StudioInkMuted)
+                Row(
+                    Modifier.heightIn(min = TouchTarget).clip(shape).background(fill, shape).border(1.dp, edge, shape)
+                        .clickable(role = Role.Button) { choose(value) }
+                        .semantics { this.selected = on }
+                        .padding(horizontal = ThusoSpacing.space16, vertical = ThusoSpacing.space8),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)
+                ) {
+                    if (on) Icon(Icons.Outlined.Check, null, tint = ink, modifier = Modifier.size(16.dp))
+                    Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, color = ink)
+                }
+            }
+        }
+    }
+}
+
+/** The circular affordance: filled and inverted against its ground, so it reads as the thing that
+    moves you. Decorative to TalkBack — the row it sits on is the control. */
+@Composable fun DeckCircle(icon: ImageVector = Icons.Outlined.ArrowOutward, onNight: Boolean = false) {
+    Box(Modifier.size(44.dp).background(if (onNight) DeckInk.ink else StudioNight, CircleShape), contentAlignment = Alignment.Center) {
+        Icon(icon, null, tint = if (onNight) DeckInk.ground else StudioPaper, modifier = Modifier.size(18.dp))
+    }
+}
+
+/* A destination in a section, as a card with a circle rather than a grey pill in a column of grey
+   pills. The first on a section is `raised` and carries the badge; the rest keep a hairline and a plain
+   icon, because a badge on every row is a colour that has stopped meaning anything. */
+@Composable fun DeckDestination(title: String, subtitle: String, icon: ImageVector, raised: Boolean = false, click: () -> Unit) {
+    val shape = RoundedCornerShape(ThusoRadius.card)
+    val roomy = LocalDensity.current.fontScale < 1.5f
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 68.dp)
+            .then(if (raised) Modifier.deckRaised(shape) else Modifier)
+            .clip(shape).background(SurfaceWhite, shape)
+            .then(if (raised) Modifier else Modifier.border(1.dp, StudioLine, shape))
+            .clickable(role = Role.Button, onClick = click)
+            .semantics(mergeDescendants = true) {}
+            .padding(start = ThusoSpacing.space16, end = ThusoSpacing.space12, top = ThusoSpacing.space12, bottom = ThusoSpacing.space12),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
+    ) {
+        if (roomy) {
+            if (raised) Box(Modifier.size(44.dp).background(IndigoSoft, CircleShape), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = IndigoDeep, modifier = Modifier.size(22.dp))
+            } else Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = Charcoal, modifier = Modifier.size(22.dp))
+            }
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
+            if (subtitle.isNotEmpty()) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+        }
+        DeckCircle()
+    }
+}
+
+/* The head of a section on paper: a tracked eyebrow over a hairline, with the section's own count at
+   the trailing edge where there is one. */
+@Composable fun DeckSectionHead(title: String, count: String? = null, note: String = "") {
+    Column(
+        Modifier.fillMaxWidth().padding(top = ThusoSpacing.space8).semantics(mergeDescendants = true) { heading() },
+        verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)
+    ) {
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            Text(
+                title.uppercase(), style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp),
+                fontWeight = FontWeight.SemiBold, color = StudioInkMuted, modifier = Modifier.weight(1f)
+            )
+            if (count != null) Text(count, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Charcoal)
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(StudioLine))
+        if (note.isNotEmpty()) Text(note, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+    }
+}
+
+/* One figure on glass, on the night or on the panel, with the drawing that belongs to it. A dial puts
+   the numeral inside itself; a line or a set of bars is drawn behind the numeral in the same box,
+   because the drawing and the numeral are the same arithmetic.
+
+   `still` is for a clinical value: its trend is the finished picture on the first frame and never
+   draws itself in, whatever the reader's animation setting. */
+@Composable fun DeckFigure(
+    value: String, label: String,
+    prefix: String = "", unit: String = "", chip: String? = null, flagged: Boolean = false,
+    shape: DeckShape? = null, ground: DeckGround = DeckGround.GLASS, still: Boolean = false
+) {
+    var visible by remember { mutableStateOf(false) }
+    val reveal by rememberStudioReveal(visible, identity = shape)
+    val progress = if (still) 1f else reveal
+    val ink = if (ground == DeckGround.PANEL) DeckInk.panelInk else DeckInk.ink
+    val quiet = if (ground == DeckGround.PANEL) DeckInk.panelQuiet else DeckInk.quiet
+    /* Lime is the glass's alone. On the night a lit mark is the quiet tone, and on the panel indigo. */
+    val lit = when (ground) { DeckGround.GLASS -> DeckInk.accent; DeckGround.PANEL -> DeckInk.panelLit; else -> DeckInk.quiet }
+    val unlit = when (ground) { DeckGround.GLASS -> DeckInk.leadMark; DeckGround.PANEL -> DeckInk.panelMark; else -> DeckInk.mark }
+    val track = if (ground == DeckGround.PANEL) DeckInk.panelTrack else DeckInk.track
+    val scale = LocalDensity.current.fontScale
+    val stacked = scale >= 1.3f
+    val numeralSize = if (ground == DeckGround.GLASS && shape !is DeckShape.Ring && shape !is DeckShape.Gauge) ThusoType.metricLarge else ThusoType.metric
+    val numeral = @Composable {
+        /* On one baseline. Aligned to the bottom of their boxes, a 16sp "R" sat below a 40sp figure
+           whose line box is its own size, and read as a subscript rather than a currency. */
+        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            if (prefix.isNotEmpty()) Text(prefix, style = MaterialTheme.typography.bodyLarge, color = quiet, modifier = Modifier.alignByBaseline())
+            Text(
+                value, color = ink, maxLines = 1, modifier = Modifier.alignByBaseline(),
+                style = TextStyle(fontSize = numeralSize, lineHeight = numeralSize, fontWeight = FontWeight.Light, fontFeatureSettings = "tnum")
+            )
+            if (unit.isNotEmpty()) Text(unit, style = MaterialTheme.typography.bodyLarge, color = quiet, modifier = Modifier.alignByBaseline())
+        }
+    }
+    val words = @Composable {
+        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            if (chip != null) DeckTag(chip, flagged, ground)
+            Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = quiet)
+        }
+    }
+    val spoken = listOf(label, "$prefix$value $unit".trim(), chip.orEmpty()).filter { it.isNotEmpty() }.joinToString(", ")
+    Box(Modifier.fillMaxWidth().studioVisibility { visible = it }.clearAndSetSemantics { contentDescription = spoken }) {
+        when (shape) {
+            is DeckShape.Ring, is DeckShape.Gauge -> {
+                val dial = 112.dp * scale.coerceIn(1f, 1.8f)
+                val drawn = @Composable {
+                    Box(Modifier.size(dial), contentAlignment = Alignment.Center) {
+                        if (shape is DeckShape.Ring) DeckRing(shape.segments, lit, unlit, progress, dial, track)
+                        else if (shape is DeckShape.Gauge) DeckGauge(shape.part, shape.whole, lit, progress, dial, track)
+                        numeral()
+                    }
+                }
+                if (stacked) Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) { drawn(); words() }
+                else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space20)) {
+                    drawn(); Box(Modifier.weight(1f)) { words() }
+                }
+            }
+            is DeckShape.Bars, is DeckShape.Spark, is DeckShape.Columns -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+                if (chip != null) DeckTag(chip, flagged, ground)
+                /* Tall enough that a plot drawn behind the figure starts under its lower edge rather than
+                   through its digits: at 96 the panel's outlined columns cut the numeral in two. */
+                Box(Modifier.fillMaxWidth().heightIn(min = 104.dp)) {
+                    Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(64.dp)) {
+                        if (shape is DeckShape.Bars) Box(Modifier.align(Alignment.BottomStart)) { DeckBars(shape.values, lit, unlit, progress) }
+                        else if (shape is DeckShape.Spark) DeckPlotLine(shape.weeks, lit, progress)
+                        else if (shape is DeckShape.Columns) DeckColumns(shape.values, shape.lit, lit, unlit, progress)
+                    }
+                    numeral()
+                }
+                Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = quiet)
+            }
+            else -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+                if (chip != null) DeckTag(chip, flagged, ground)
+                numeral()
+                Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = quiet)
+            }
+        }
+    }
+}
+
+/** A line under a numeral, drawn to whatever height it is given, with no caption of its own. */
+@Composable private fun DeckPlotLine(values: List<Int>, lit: Color, progress: Float) {
+    val high = values.maxOrNull() ?: 1
+    val low = values.minOrNull() ?: 0
+    val spread = maxOf(high - low, 1)
+    Canvas(Modifier.fillMaxSize()) {
+        fun x(index: Int) = if (values.size > 1) size.width * index / (values.size - 1) else size.width / 2
+        fun y(value: Int) = size.height * (0.92f - 0.72f * (value - low) / spread)
+        val line = Path().apply { values.forEachIndexed { index, value -> if (index == 0) moveTo(x(index), y(value)) else lineTo(x(index), y(value)) } }
+        val area = Path().apply { addPath(line); lineTo(size.width, size.height); lineTo(0f, size.height); close() }
+        clipRect(right = size.width * progress) {
+            drawPath(area, lit.copy(alpha = 0.18f))
+            drawPath(line, lit, style = Stroke(width = 2.5.dp.toPx()))
+        }
+    }
+}
+
+/** Columns, one per row, oldest first. A lit column is filled and an unlit one is only outlined, so the
+    rows the figure adds up are told apart by fill as well as by tone. */
+@Composable private fun DeckColumns(values: List<Int>, lit: List<Boolean>, on: Color, off: Color, progress: Float) {
+    val high = maxOf(values.maxOrNull() ?: 1, 1)
+    Canvas(Modifier.fillMaxSize()) {
+        val count = maxOf(values.size, 1)
+        val gap = 8.dp.toPx()
+        val width = (size.width - gap * (count - 1)) / count
+        val edge = 1.5.dp.toPx()
+        values.forEachIndexed { index, value ->
+            /* A floor of six per cent, for DeckBars' reason: a week that paid little is still a week. */
+            val height = size.height * (value.toFloat() / high).coerceIn(0.06f, 1f) * staggered(progress, index, count)
+            val left = index * (width + gap)
+            /* Square: the radius scale starts at the control's sixteen, which on a column twenty dp wide
+               is a capsule, and a capsule is DeckBars' shape rather than a column's. */
+            if (lit.getOrElse(index) { false }) drawRect(on, Offset(left, size.height - height), Size(width, height))
+            else drawRect(
+                off, Offset(left + edge / 2, size.height - height + edge / 2), Size(width - edge, maxOf(height - edge, 0f)),
+                style = Stroke(edge)
+            )
+        }
+    }
+}
+
+// MARK: - Protocols
+
+/* THE REFERENCE A CASE IS READ AGAINST.
+ *
+ * "Clinical protocols" was a row in the doctor's tools that opened the roadmap's placeholder. It is
+ * the one screen in that workspace that needs no service behind it to be real: the indicative ranges
+ * are already in the record contract, generated into RecordsData.kt, and the sentence that qualifies
+ * every one of them is that contract's own note on the observations section. Nothing on this screen is
+ * new information. What was missing was a screen that says it in one place, which is what a protocol
+ * is — and the web has drawn it since the clinical-records pass.
+ *
+ * WHAT IT REFUSES. The escalation ladder the web draws beside the ranges is typed into a React
+ * component rather than into a contract, and a third copy of it here would be the drift this project
+ * generates code to avoid; it stays off this screen until it is contract. The "screening" capability's
+ * own sentence stands on the canvas, because a reference range read on a phone is exactly the thing a
+ * reader might take for a triage tool. And nothing here moves: a range a clinical value is judged
+ * against is drawn finished, whatever the animator scale says. */
+@Composable fun ClinicalProtocolsScreen() {
+    ScreenColumn {
+        DeckHero(
+            content = {
+                DeckPreviewMark()
+                DeckHeadline(
+                    "Doctor workspace · protocols",
+                    listOf(DeckWord.Words("The reference a case"), DeckWord.Glyph(Icons.Outlined.Straighten), DeckWord.Words("is read against"))
+                )
+                NotConnected("screening")
+                DeckGlassCard {
+                    DeckFigure(value = "${observationRanges.size}", label = "readings, and the indicative adult range each is flagged against")
+                }
+            },
+            sheet = {
+                Text(observationsNote, style = MaterialTheme.typography.titleSmall, color = Charcoal)
+                Text("AI is decision support. Clinical decisions require an authorised clinician’s sign-off.",
+                    style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+            }
+        )
+        DeckSectionHead("Where a reading is flagged", count = "${observationRanges.size}")
+        observationRanges.forEach { ProtocolRange(it) }
+    }
+}
+
+/* One range as a ruler: the band is the indicative range and either side of it is where a reading is
+   flagged. It is a schematic rather than a scale — seven readings in six units cannot share one axis
+   honestly — so the numbers are written on the band and read out in full, because a chart in this
+   product is always also a table. studioPaper on studioOlive is 5.86. */
+@Composable private fun ProtocolRange(range: ObservationRange) {
+    fun figure(value: Double) = if (range.step < 1) "%.1f".format(value) else "%.0f".format(value)
+    val low = figure(range.low)
+    val high = figure(range.high)
+    val shape = RoundedCornerShape(ThusoRadius.card)
+    val pill = RoundedCornerShape(ThusoRadius.pill)
+    Column(
+        Modifier.fillMaxWidth().clip(shape).background(SurfaceWhite).border(1.dp, StudioLine, shape).padding(ThusoSpacing.space16)
+            .clearAndSetSemantics {
+                contentDescription = "${range.label}. Below $low ${range.unit} is flagged low, $low to $high is inside the indicative range, above $high is flagged high."
+            },
+        verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
+    ) {
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            Text(range.label, style = MaterialTheme.typography.titleSmall, color = Charcoal, modifier = Modifier.weight(1f))
+            Text(range.unit, style = MaterialTheme.typography.labelMedium, color = StudioInkMuted)
+        }
+        Row(Modifier.fillMaxWidth().heightIn(min = 32.dp).clip(pill).background(Cloud), verticalAlignment = Alignment.CenterVertically) {
+            Text("Low", style = MaterialTheme.typography.labelMedium, color = StudioInkMuted, modifier = Modifier.weight(1f).padding(start = ThusoSpacing.space12))
+            Box(Modifier.weight(2f).heightIn(min = 32.dp).background(StudioOlive, pill), contentAlignment = Alignment.Center) {
+                Text("$low–$high", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = StudioPaper)
+            }
+            Text("High", style = MaterialTheme.typography.labelMedium, color = StudioInkMuted, textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                modifier = Modifier.weight(1f).padding(end = ThusoSpacing.space12))
         }
     }
 }

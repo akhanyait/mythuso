@@ -2,6 +2,10 @@ package za.co.mythuso.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -83,42 +87,62 @@ private fun grantSentence(roleId: String, capability: String): String? =
     val status = summarise(viewer).status
     val move: (String) -> Unit = { name -> tabName = name; notice = "" }
 
+    val clinical = can(viewer, "view-clinical-record")
+    val latest = patient.vitals.last()
+
     ScreenColumn {
-        DemoBadge()
-        Heading(
-            "Clinical", thuso(Phrase.PATIENT_FILE, store.locale),
-            "The file a nurse or a doctor opens about somebody else. Fictional patients, fictional numbers; nothing here is a record and nothing reaches a service."
-        )
-        CareCard {
-            Text("The same file, through different eyes", style = MaterialTheme.typography.titleMedium)
-            Note("Every tab, action and field group below asks the vetting module whether this party may see it. Change the viewer and watch the file change shape — that is the demonstration, and it is the only way to tell whether a refusal was designed or assumed.")
-            Text("Open the file of", style = MaterialTheme.typography.labelLarge, color = Charcoal)
-            FlowRowChips(filePatients.map { it.name }, setOf(patient.name)) { name ->
-                patientId = filePatients.first { it.name == name }.id; notice = ""
-            }
-            Text(thuso(Phrase.VIEWING_AS, store.locale), style = MaterialTheme.typography.labelLarge, color = Charcoal)
-            /* The chip carries the role as well as the name, because “Kagiso Molefe” does not tell a
-               reviewer that the next tap is a Control Tower operator, and that is the whole point of
-               the switch. */
-            FlowRowChips(viewers.map(::viewerLabel), setOf(viewerLabel(viewer))) { label ->
-                viewerId = viewers.first { viewerLabel(it) == label }.id; notice = ""
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatusPill(
-                    status.label,
-                    when (status) {
-                        SubjectStatus.CLEARED -> "teal"
-                        SubjectStatus.EXPIRING -> "amber"
-                        SubjectStatus.IN_PROGRESS -> "sky"
-                        else -> "danger"
-                    }
+        /* THE FILE OPENS ON A DECK, AND THE HEADLINE IS THE FILE'S NAME RATHER THAN THE PATIENT'S.
+           A viewer refused the patient summary is told "The file is open. The person is not." — so the
+           patient's name may not be the largest word on the screen above that sentence. The name stays
+           where it always was, inside the summary, which is the sheet standing on the canvas's edge and
+           asks the vetting module before it draws a single fact.
+           The two choices a design review turns on are pill clusters directly under it. The ring is the file's eight sections with the open ones
+           lit, counted by the same canOpenTab the tabs below are drawn from; the panel is the last
+           blood pressure with the systolic trend behind it, drawn finished, and it is a refusal in
+           words for anybody the clinical record is refused to. */
+        DeckHero(
+            content = {
+                DeckPreviewMark()
+                DeckHeadline(
+                    "Clinical",
+                    listOf(DeckWord.Words(thuso(Phrase.PATIENT_FILE, store.locale)), DeckWord.Glyph(Icons.Outlined.FolderShared)),
+                    tail = "The file a nurse or a doctor opens about somebody else. Fictional patients, fictional numbers; nothing here is a record and nothing reaches a service."
                 )
-                Note("${role?.name} · ${viewer.reference}")
-            }
-        }
-        /* One line a screen reader can read instead of eight chips and a lock: who is looking, what
-           they are looking at, and how much of the file is closed to them. It is a live region
-           because changing the viewer is the whole point of this screen. */
+                DeckGlassCard {
+                    DeckFigure(
+                        value = "${fileTabs.size - refused}", label = "of ${fileTabs.size} sections open to ${viewer.name}",
+                        chip = "${status.label} · ${role?.name ?: viewer.roleId}",
+                        flagged = status != SubjectStatus.CLEARED && status != SubjectStatus.EXPIRING,
+                        shape = DeckShape.Ring(fileTabs.map { canOpenTab(viewer, it).allowed })
+                    )
+                }
+                DeckPanel {
+                    if (clinical.allowed) DeckFigure(
+                        value = "${latest.systolic}/${latest.diastolic}", unit = "mmHg",
+                        label = "Blood pressure, ${longDate(latest.at)}",
+                        chip = provenanceById(latest.bloodPressureFrom)?.label,
+                        shape = DeckShape.Spark(patient.vitals.map { it.systolic }), ground = DeckGround.PANEL, still = true
+                    ) else {
+                        Text("Observations are not open to this viewer", style = MaterialTheme.typography.titleSmall, color = DeckInk.panelInk)
+                        Text(clinical.reason.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = DeckInk.panelQuiet)
+                    }
+                }
+            },
+            sheet = { SummaryHeaderBody(patient, viewer) }
+        )
+        /* The review controls, directly under the file rather than on its canvas. Eight viewers set as
+           pills on the night made the deck nearly two screens tall before the file began, and the file is
+           what the deck is for. Nothing about the demonstration moved: every option is still visible at
+           once, and the ring on the glass above answers the moment a pill is pressed. */
+        DeckSectionHead(
+            "The same file, through different eyes",
+            note = "Every tab, action and field group below asks the vetting module whether this party may see it. Change the viewer and watch the file change shape — that is the demonstration, and it is the only way to tell whether a refusal was designed or assumed."
+        )
+        DeckPills("Open the file of", patient.id, filePatients.map { it.id to it.name }, onNight = false) { patientId = it; notice = "" }
+        /* The pill carries the role as well as the name, because “Kagiso Molefe” does not tell a
+           reviewer that the next tap is a Control Tower operator, and that is the whole point of the
+           switch. */
+        DeckPills(thuso(Phrase.VIEWING_AS, store.locale), viewer.id, viewers.map { it.id to viewerLabel(it) }, onNight = false) { viewerId = it; notice = "" }
         Text(
             "$refused of ${fileTabs.size} sections are refused to this viewer.",
             style = MaterialTheme.typography.labelLarge, color = StudioInkMuted,
@@ -129,8 +153,7 @@ private fun grantSentence(roleId: String, capability: String): String? =
                     "$refused of ${fileTabs.size} sections are refused to this viewer."
             }
         )
-
-        SummaryHeader(patient, viewer)
+        WithheldNotice(viewer)
         FileTabRow(viewer, tabName, move)
         StatePicker("Preview how this file behaves when the record service is unavailable", state) { state = it }
         StateBlock(state, "This patient file", "clinical record access", { state = LoadState.READY }) {
@@ -156,21 +179,31 @@ private fun grantSentence(roleId: String, capability: String): String? =
 /* ---- The tabs --------------------------------------------------------------------------------
    A refused tab is still a tab. Hiding it would teach a clinician that this file has six sections,
    which is a quieter kind of lie than a lock. */
+/* Pills in the deck's own shape rather than Material FilterChips, so the tab row and the two clusters
+   on the canvas above it read as one family of control. The chosen tab is the night filled; a refused
+   tab carries a lock AND says so to TalkBack, never only a tint. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable private fun FileTabRow(viewer: VettingSubject, current: String, move: (String) -> Unit) {
+    val shape = RoundedCornerShape(if (LocalDensity.current.fontScale >= 1.3f) ThusoRadius.control else ThusoRadius.pill)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         fileTabs.forEach { tab ->
             val unlocked = canOpenTab(viewer, tab).allowed
-            FilterChip(
-                selected = tab.name == current,
-                onClick = { move(tab.name) },
-                label = { Text(tab.name) },
-                leadingIcon = if (unlocked) null else { { Icon(Icons.Outlined.Lock, null, Modifier.size(15.dp)) } },
-                modifier = Modifier.semantics {
-                    selected = tab.name == current
-                    contentDescription = if (unlocked) tab.name else "${tab.name} — refused to this viewer"
-                }
-            )
+            val on = tab.name == current
+            Row(
+                Modifier.heightIn(min = TouchTarget).clip(shape).background(if (on) StudioNight else SurfaceWhite, shape)
+                    .border(1.dp, if (on) Color.Transparent else StudioInkMuted, shape)
+                    .clickable(role = Role.Tab) { move(tab.name) }
+                    .semantics {
+                        selected = on
+                        contentDescription = if (unlocked) tab.name else "${tab.name} — refused to this viewer"
+                    }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                if (!unlocked) Icon(Icons.Outlined.Lock, null, tint = if (on) StudioPaper else Danger, modifier = Modifier.size(15.dp))
+                Text(tab.name, style = MaterialTheme.typography.labelLarge, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (on) StudioPaper else Charcoal)
+            }
         }
     }
 }
@@ -202,7 +235,7 @@ private fun grantSentence(roleId: String, capability: String): String? =
    Above every tab, because the thing a nurse needs at a glance is not on the tab she happens to
    have open. */
 @OptIn(ExperimentalLayoutApi::class)
-@Composable private fun SummaryHeader(patient: PatientRecord, viewer: VettingSubject) {
+@Composable private fun ColumnScope.SummaryHeaderBody(patient: PatientRecord, viewer: VettingSubject) {
     val decision = can(viewer, "view-patient-summary")
     val profile = headerProfileFor(viewer.roleId)
     val scope = grantSentence(viewer.roleId, "view-patient-summary")
@@ -229,7 +262,7 @@ private fun grantSentence(roleId: String, capability: String): String? =
         Triple("chronic", "Chronic conditions" to (chronic.takeIf { it.isNotEmpty() }?.joinToString(" · ") ?: "None recorded"), ""),
         Triple("aid", "Medical aid status" to patient.medicalAid.status, patient.medicalAid.tone)
     )
-    CareCard {
+    run {
         if (!decision.allowed) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TileIcon(Icons.Outlined.PersonOutline)
@@ -263,7 +296,6 @@ private fun grantSentence(roleId: String, capability: String): String? =
             if (scope != null) Note("The header is cut to this role’s own words in the vetting contract: “$scope”")
         }
     }
-    WithheldNotice(viewer)
 }
 /** A chip is read aloud as one sentence, because “Allergies” and “Penicillin” in two swipes is two
     facts a clinician has to reassemble. */
@@ -373,7 +405,7 @@ private val withheldCategorySentence: String = run {
         }
     }
 
-    Text("Latest observations", style = MaterialTheme.typography.titleMedium, color = Charcoal)
+    DeckSectionHead("Latest observations")
     if (clinical.allowed) {
         /* Every tile wears where its number came from. It is the difference between a file that can
            be read in a hurry and one that will be read wrongly in a hurry: the last set here was
@@ -410,7 +442,7 @@ private val withheldCategorySentence: String = run {
         )
     } else RefusalCard("Observations are not open to this viewer", clinical)
 
-    Text("Clinical summary", style = MaterialTheme.typography.titleMedium, color = Charcoal)
+    DeckSectionHead("Clinical summary")
     if (clinical.allowed) CareCard {
         patient.summaryPoints.forEach { point -> Text("· $point", style = MaterialTheme.typography.bodyMedium) }
     } else RefusalCard("The clinical summary is not open to this viewer", clinical)
@@ -424,7 +456,7 @@ private val withheldCategorySentence: String = run {
         else recent.forEach { entry -> EntryRow(entry, canOpen(viewer, entry), full = false) }
     }
 
-    Text("Actions", style = MaterialTheme.typography.titleMedium, color = Charcoal)
+    DeckSectionHead("Actions")
     CareCard {
         fileActions.forEachIndexed { index, action ->
             val allowed = can(viewer, action.capability)
@@ -591,7 +623,7 @@ private val withheldCategorySentence: String = run {
             style = MaterialTheme.typography.bodyMedium
         )
     }
-    Text("Current medicine", style = MaterialTheme.typography.titleMedium, color = Charcoal)
+    DeckSectionHead("Current medicine")
     if (current.isEmpty()) Note("No current medicine is open to this viewer.")
     else CareCard {
         current.forEachIndexed { index, medicine ->
@@ -601,7 +633,7 @@ private val withheldCategorySentence: String = run {
         }
     }
     if (past.isNotEmpty()) {
-        Text("Stopped", style = MaterialTheme.typography.titleMedium, color = Charcoal)
+        DeckSectionHead("Stopped")
         CareCard {
             past.forEachIndexed { index, medicine ->
                 MedicineRow(medicine, "Stopped ${medicine.stopped} · started ${medicine.started}", medicine.prescriber)

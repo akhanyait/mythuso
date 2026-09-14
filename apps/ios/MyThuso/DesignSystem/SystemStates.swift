@@ -159,17 +159,25 @@ struct EmptyStateCard: View {
 struct CapabilityNotice: View {
     /// An id in packages/catalog/capabilities.json.
     let of: String
+    /* Which ground it stands on. The clinical decks put this notice on the night canvas, where the cloud
+       plate it wears on paper is a pale lozenge pulling the eye off the headline; there it takes the
+       glass the deck's lead figure stands on, and paper ink, which reads 10.78 on it. It is still this
+       component rather than a second one drawn for the dark, so the sentence, the identifier and the
+       rule that it draws nothing once the capability is connected stay in one place. */
+    @Environment(\.onStudioNight) private var onNight
     var body: some View {
         if let notice = Capabilities.notice(for: of) {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                Image(systemName: "info.circle").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Image(systemName: "info.circle").font(.footnote)
+                    .foregroundStyle(onNight ? ThusoTheme.studioPaper : ThusoTheme.charcoal)
                     .accessibilityHidden(true)
-                Text(notice).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Text(notice).font(.footnote).foregroundStyle(onNight ? ThusoTheme.studioPaper : ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(ThusoSpacing.space12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+            .background(onNight ? ThusoTheme.studioPaper.opacity(0.08) : ThusoTheme.cloud,
+                        in: RoundedRectangle(cornerRadius: onNight ? ThusoRadius.control : ThusoRadius.panel, style: .continuous))
             /* A note rather than a status: it is true when the screen opens and does not change, so
                announcing it as a live update would interrupt a reader mid-sentence for old news. */
             .accessibilityElement(children: .combine)

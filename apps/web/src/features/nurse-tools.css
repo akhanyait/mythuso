@@ -1,0 +1,478 @@
+/* THE NURSE'S EARNINGS AND VETTING, AND THE CONTROL TOWER'S REGISTER.
+ *
+ * Thuso Kit's rules, and the two that every nurse screen shares, moved to nurse-kit.css. Kit is the
+ * one of these screens a patient opens as well, so everything it imported rode into the patient's
+ * entry — which is how a patient came to download the vetting console's deck and four weeks of
+ * payout styling, 3.3 kB gzipped of rules no patient screen draws. Nothing in this file is imported
+ * by a module a patient loads any more, and it must stay that way: tests/states.spec.ts watches the
+ * modules, and a stylesheet is the part of a module that watch cannot see.
+ *
+ * What follows is the note this sheet was written under, for all three screens. The deck it
+ * describes is now the Control Tower's register's alone; the nurse's screens open on
+ * features/ClinicalDeck.tsx. */
+/* THE NURSE'S THREE TOOLS, IN THE LANGUAGE THE PORTAL AROUND THEM ALREADY SPEAKS.
+ *
+ * Thuso Kit, Earnings & payouts and Vetting were the three sub-screens the instrument deck pass did
+ * not reach. A nurse left a portal with a night ground, a day drawn to scale and a ring of her own
+ * rows, and arrived at a column of white rounded boxes with identical shadows — the defect this
+ * codebase names first, because a screen where every card looks the same has no hierarchy and
+ * therefore says nothing about what it is for.
+ *
+ * The grammar is the deck's, restated here rather than reached for across a file boundary:
+ *
+ *   ONE NIGHT GROUND PER SCREEN, and it carries the single live instrument. Kit's is what is still
+ *   on the phone; Earnings' is this week's money and the four weeks behind it; Vetting's is how many
+ *   parties are cleared. Everything below each deck is a record of something that has happened, and
+ *   records live on paper.
+ *
+ *   AN EYEBROW OVER A HAIRLINE, one shadow and never two, tokened radii, big numerals with small
+ *   quiet labels, and marks counted off the rows underneath them — so a reader who distrusts a
+ *   drawing can count the list and a reader who distrusts a numeral can count the drawing.
+ *
+ *   CHIPS NEVER REST ON COLOUR ALONE. A state is a word and a mark and a weight before it is a
+ *   tone: a week that failed carries a rail AND a sentence, a check that lapsed carries a glyph AND
+ *   the number of days, a state with nothing in it is drawn hollow AND says nought.
+ *
+ * EVERY PAIR ON THE NIGHT GROUND IS COMPUTED with the sRGB relative-luminance formula
+ * scripts/check-boundaries.mjs runs over the ninety-two declared pairs. Two are in the token
+ * contract and the rest are color-mix()es of two tokens, which is the practice studio.css and
+ * clinical-deck.css established for exactly this case and for exactly the same reason: the palette
+ * has no muted tone for a dark ground, and adding one regenerates the iOS and Android token files.
+ *
+ *   studioPaper on studioNight   13.59      studioLime on studioNight   12.03
+ *   paper at 72% over night      7.73   — quiet text: labels, notes, the deck's own sentence
+ *   paper at 40% over night      3.42   — an unlit mark. 3.52 against lime, so it clears SC 1.4.11
+ *                                         against the ground and against the mark beside it.
+ *   paper at 24% over night      2.11   — the groove a bar runs in. It carries nothing and owes no
+ *                                         ratio; the unlit bars drawn on it at 40% are the marks.
+ *   paper at 14% over night      1.52   — the hairline under the eyebrow. A divider, not a control
+ *                                         boundary: SC 1.4.11 holds a boundary to 3:1 and this is
+ *                                         not one. Every control on the dark ground carries 44%.
+ *   paper at 44% over night      3.24 on the lifted lead, 3.14 against lime — the control edge, and
+ *                                         the one that must be measured on the LIGHTER ground it
+ *                                         actually lands on. 40% reads 2.89 there and would have
+ *                                         been the failure this project keeps finding: a colour
+ *                                         that clears where it was chosen and not where it sits.
+ *   the lead's own ground, paper at 6% over night: paper 11.47, lime 10.16, quiet 6.53
+ *   studioPeach on studioNight  11.43   — a refusal on the dark ground. `danger` is 2.28 there and
+ *                                         is never written on it.
+ *   focus (mango) on studioNight 8.40   — so nothing in a deck sets a box-shadow on anything
+ *                                         focusable. core.css draws :focus-visible as an outline
+ *                                         AND a 7px edge ring at the lowest possible specificity,
+ *                                         and a resting shadow silently deletes half of it; the
+ *                                         three rules here that do carry one restate the ring in
+ *                                         front of their own.
+ *
+ * AND ON THE LIGHT GROUND, the same formula over the same tokens:
+ *
+ *   charcoal on surface 17.04   charcoal on studioPaper 15.48   charcoal on studioPeach 13.01
+ *   studioInk on surface 11.66  studioInk on studioPaper 10.59  studioInk on studioLime 9.38
+ *   studioInkMuted on surface 6.93   on studioPaper 6.29   on studioPeach 5.29
+ *   surface on studioInk 11.66   surface on studioOlive 6.46   studioOlive on surface 6.46
+ *   danger on surface 6.57   danger on studioPeach 5.02   danger on dangerSoft 6.05
+ *   ink-muted at 78% over the surface it sits on: 4.04 on white, 3.83 on paper, 3.08 on peach —
+ *     the boundary every control drawn here carries. --studio-line is 1.31 against white and is a
+ *     divider only, which is what the token file says out loud beside `faint`.
+ *
+ * NOTHING HERE ANIMATES A CLINICAL VALUE, AND ONLY ONE THING COUNTS. The bars and the week line are
+ * drawn on arrival by components/ChartMotion.tsx — which settles every one of them the instant a
+ * reader asks for less motion, and because no mark is hidden by a rule in this sheet, stillness is
+ * the finished picture rather than an empty box. One figure counts up and it is money, on the same
+ * hook the clinical deck uses: a rand total that spends half a second being wrong is a flourish, a
+ * queue length that does is a nurse reading the wrong number. The count lands on money()'s own
+ * string, so the figure that arrives is the figure the contract worked out. */
+
+/* ---- The deck ---------------------------------------------------------------------------------- */
+.nt-deck {
+ --nt-ink: var(--studio-paper);
+ --nt-quiet: color-mix(in srgb, var(--studio-paper) 72%, var(--studio-night));
+ --nt-accent: var(--studio-lime);
+ --nt-mark: color-mix(in srgb, var(--studio-paper) 40%, var(--studio-night));
+ --nt-track: color-mix(in srgb, var(--studio-paper) 24%, var(--studio-night));
+ --nt-edge: color-mix(in srgb, var(--studio-paper) 14%, var(--studio-night));
+ --nt-control: color-mix(in srgb, var(--studio-paper) 44%, var(--studio-night));
+ /* The deck is the only class in this sheet that redeclares the clinical deck's own custom
+    properties under different names. It is deliberate: `.c-mark` and `.c-plot` are global rules in
+    clinical-deck.css and a mark drawn here must not depend on that sheet having been loaded, so the
+    marks below restate every property they need rather than inheriting one. */
+ background: var(--studio-night);
+ color: var(--nt-ink);
+ border-radius: var(--r-panel);
+ padding: var(--space-20) var(--space-24) var(--space-24);
+ margin: 0 0 var(--space-24);
+ /* One shadow. The token file declares one raised elevation and this is it. */
+ box-shadow: var(--shadow-raised);
+}
+.nt-deck-head {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ flex-wrap: wrap;
+ gap: var(--space-8) var(--space-16);
+ padding-bottom: var(--space-16);
+ border-bottom: 1px solid var(--nt-edge);
+}
+/* 13, not 12: the type scale in packages/design-tokens/tokens.json starts at 13, and at twice the
+   text size an eyebrow is the line a reader most needs to survive. */
+.nt-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; text-transform: uppercase; color: var(--nt-accent); }
+.nt-deck-say { padding-top: var(--space-20); max-width: 62ch; }
+/* The workspace shell styles every .clinical h1/h2/h3 charcoal, which on this ground is a 1.28:1
+   headline nobody can read — it has shipped here once. Same specificity loses on source order, so
+   these rules carry the extra class rather than !important. */
+.nt-screen .nt-deck-say h1 { font-size: clamp(28px, 3vw, 40px); line-height: 1.1; letter-spacing: -1px; margin: 0 0 var(--space-12); color: var(--nt-ink); }
+.nt-screen .nt-deck-say h2 { font-size: 24px; line-height: 1.2; margin: 0 0 var(--space-8); color: var(--nt-ink); }
+.nt-screen .nt-deck-say p { font-size: 15px; line-height: 1.6; margin: 0; color: var(--nt-quiet); }
+.nt-screen .nt-deck .nt-deck-note { font-size: 14px; line-height: 1.6; margin: var(--space-20) 0 0; padding-top: var(--space-16); border-top: 1px solid var(--nt-edge); color: var(--nt-quiet); max-width: 72ch; }
+
+/* The capability's own sentence, on the ground rather than under it. It is never a disclosure that
+   has to be opened: it is the first thing under the headline, at reading size, in the words
+   packages/catalog/capabilities.json wrote. */
+/* Three classes, because `.clinical .not-connected` is two and paints the light ground's grey on
+   this one — which it did, on the kit and the applicant's screen, until they moved to the clinical
+   deck. The Control Tower's register still stands on this deck, so the fix stays here too. */
+.nt-screen .nt-deck .not-connected {
+ margin: var(--space-20) 0 0;
+ background: color-mix(in srgb, var(--studio-paper) 10%, var(--studio-night));
+ border: 1px solid var(--nt-control);
+ border-radius: var(--r-card);
+ padding: var(--space-12) var(--space-16);
+ color: var(--nt-ink);
+ font-size: 14px;
+ line-height: 1.55;
+}
+.nt-screen .nt-deck .not-connected svg { color: var(--nt-accent); }
+
+/* The connection, as a floating pill in the deck's head rather than a grey button four sections
+   down. Two channels and never one: the word says which state it is in and the fill says it again,
+   so a reader who cannot separate the two tones still reads the switch. No box-shadow anywhere on
+   it — core.css's focus ring is worth more than a lift on a control this small. */
+.nt-switch {
+ display: inline-flex;
+ align-items: center;
+ gap: var(--space-8);
+ min-height: 44px;
+ padding: var(--space-8) var(--space-16);
+ border-radius: var(--r-pill);
+ border: 1px solid var(--nt-control);
+ background: transparent;
+ color: var(--nt-ink);
+ font-size: 14px;
+ font-weight: 500;
+ line-height: 1.4;
+ cursor: pointer;
+ transition: background var(--t-settle) var(--ease-soft), border-color var(--t-settle) var(--ease-soft);
+}
+.nt-switch:hover { background: color-mix(in srgb, var(--studio-paper) 14%, var(--studio-night)); }
+.nt-switch.on { background: var(--nt-ink); border-color: var(--nt-ink); color: var(--studio-night); }
+.nt-switch.on:hover { background: var(--nt-ink); }
+
+/* ---- The instruments ----------------------------------------------------------------------------
+   Not a row of equal cells. The lead takes its own column on a ground one step lighter than the
+   deck — depth by one step of the same colour rather than by a second shadow inside a shadowed
+   card — and the rest share the next. A strip of identical boxes is the composition this whole
+   piece of work exists to replace. */
+.nt-deck-figures { display: grid; gap: var(--space-16); padding-top: var(--space-20); align-items: stretch; }
+.nt-deck-lead {
+ background: color-mix(in srgb, var(--studio-paper) 6%, var(--studio-night));
+ --nt-mark: color-mix(in srgb, var(--studio-paper) 44%, var(--studio-night));
+ border-radius: var(--r-card);
+ padding: var(--space-16) var(--space-20) var(--space-20);
+}
+.nt-deck-rest { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: var(--space-20) var(--space-24); align-items: stretch; }
+@media (min-width: 900px) {
+ .nt-deck-figures { grid-template-columns: minmax(300px, 1.05fr) minmax(0, 1.3fr); gap: var(--space-24); }
+ /* The two columns' interiors line up rather than their boxes: the lead is a padded panel, so the
+    pair beside it is inset by the same amount and the chips across the deck sit on one line. */
+ .nt-deck-rest { padding: var(--space-16) 0 var(--space-20) var(--space-8); }
+}
+.nt-instrument { min-width: 0; display: flex; }
+.nt-instrument .s-metric { gap: var(--space-8); width: 100%; align-items: stretch; flex: 1; }
+/* The labels sit on one line across the deck whatever height the drawing above each takes. Three
+   figures at three heights is the one thing a row of numerals must never do. */
+.nt-instrument .s-metric-label { margin-top: auto; padding-top: var(--space-4); color: var(--nt-quiet); font-weight: 500; }
+.nt-instrument .s-metric-value { color: var(--nt-ink); }
+.nt-instrument .s-metric-value small { color: var(--nt-quiet); }
+.nt-instrument .s-metric-chip-line { min-height: 26px; }
+.nt-deck .nt-instrument .s-metric-chip {
+ background: transparent;
+ border: 1px solid var(--nt-control);
+ color: var(--nt-quiet);
+ white-space: normal;
+ line-height: 1.4;
+ font-size: 13px;
+ padding: 3px 10px;
+ font-weight: 500;
+}
+/* The one figure that is out of range inverts. Not lime — lime is the lead's, and a chip that took
+   it would leave the deck with two accents and therefore with none. */
+.nt-deck .nt-instrument .s-metric-chip.flagged { background: var(--nt-ink); border-color: var(--nt-ink); color: var(--studio-night); font-weight: 500; }
+.nt-instrument .s-metric-figure { display: grid; gap: var(--space-12); }
+.nt-instrument .s-metric-figure > .c-bars,
+.nt-instrument .s-metric-figure > .nt-plot { order: 1; }
+/* The vetting console's figure carries a sentence under its label as well — "4" means nothing beside
+   "Suspended or declined" and everything is in "lapsed automatically, or declined with a reason".
+   The wrapper keeps `panel metric`, which the console journeys assert against and which is part of
+   the contract with them as much as any export is; on the dark ground the panel's own white card
+   would be a card inside a card, so it is unpainted here and nowhere else. */
+.nt-deck .c-figure { background: transparent; border: 0; box-shadow: none; padding: 0; margin: 0; display: flex; flex-direction: column; min-width: 0; }
+.nt-deck .c-figure > small { display: block; font-size: 13px; line-height: 1.5; margin-top: var(--space-4); color: var(--nt-quiet); }
+.nt-deck .c-figure .s-metric { flex: 1; }
+/* One line of the deck's head, beside the eyebrow: what the figures are counted from, so a reader
+   who thinks one looks wrong knows where to go and count. */
+.nt-deck-note-inline { padding: 0; margin: 0; border: 0; font-size: 13px; line-height: 1.5; color: var(--nt-quiet); max-width: 46ch; }
+.nt-screen .nt-deck .nt-deck-note-inline { padding-top: 0; margin-top: 0; border-top: 0; }
+
+/* ---- The marks ----------------------------------------------------------------------------------
+   Brighter AND heavier, never one of the two. Either channel on its own would be a state told in
+   colour only, which this design does not permit anywhere else either. */
+.nt-waits { flex-direction: column; gap: 7px; }
+.nt-waits i { display: block; height: 9px; border-radius: var(--r-pill); background: var(--nt-mark); transform-origin: left center; }
+.nt-waits i.on { background: var(--nt-accent); height: 11px; }
+/* Off the lead, the accent is spent: a lit mark is the quiet tone, still the brightest thing in its
+   own drawing at 7.73 on this ground and still two channels from an unlit one at 3.42. */
+.nt-instrument:not(.lead) .nt-waits i.on { background: var(--nt-quiet); }
+
+.nt-plot { display: block; width: 100%; overflow: hidden; }
+.nt-plot .nt-track-line { fill: none; stroke: var(--nt-track); stroke-width: 2; }
+.nt-plot .c-mark { fill: none; stroke: var(--nt-mark); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.nt-plot .c-mark.on { stroke: var(--nt-ink); stroke-width: 2.5; }
+.nt-plot .nt-area {
+ fill: var(--nt-accent);
+ stroke: none;
+ opacity: .32;
+ mask-image: linear-gradient(to bottom, #000, transparent);
+ -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
+}
+.nt-plot .nt-dot { fill: var(--nt-ink); stroke: none; }
+.nt-spark { height: 56px; }
+/* The two ends of a line, so a series is a span of time rather than a shape. 13px, the floor of the
+   scale rather than the smallest size that would have fitted. */
+.nt-scale { display: flex; justify-content: space-between; gap: var(--space-8); font-size: 13px; line-height: 1.4; color: var(--nt-quiet); font-variant-numeric: tabular-nums; order: 2; margin-top: -4px; }
+
+/* ---- Narrow -------------------------------------------------------------------------------------
+   One column, and nothing is dropped: a phone gets the same instruments at the same figures. */
+@media (max-width: 899px) {
+ .nt-deck { padding: var(--space-16) var(--space-16) var(--space-20); border-radius: var(--r-card); }
+ .nt-deck-rest { gap: var(--space-20) var(--space-16); }
+ .nt-deck .nt-instrument .s-metric-value { font-size: 36px; }
+ .nt-deck .nt-instrument .s-metric-value small { font-size: 16px; }
+}
+
+/* ================================================================================================
+   EARNINGS & PAYOUTS
+   ================================================================================================ */
+/* The standing, first and unmissable, because a nurse whose clearance has lapsed needs to read that
+   before she reads a figure — and because the rule this screen exists to prove is that the two are
+   not connected. Two channels: the fill AND the glyph AND the sentence under it. */
+.earnings .earn-standing { border-radius: var(--r-card); padding: var(--space-16) var(--space-20); gap: var(--space-16); align-items: flex-start; }
+.earnings .earn-standing.ok { background: var(--studio-lime); color: var(--studio-ink); }
+.earnings .earn-standing.held { background: var(--studio-peach); color: var(--studio-ink); }
+.earnings .earn-standing strong { font-size: 16px; line-height: 1.35; color: var(--charcoal); }
+.earnings .earn-standing small { display: block; font-size: 14px; line-height: 1.55; margin-top: var(--space-4); color: var(--studio-ink); }
+.earnings .earn-standing .earn-rule { margin-top: var(--space-8); font-size: 13px; line-height: 1.6; color: var(--studio-ink); }
+.earnings .earn-standing > svg { flex: 0 0 auto; margin-top: 2px; }
+
+/* Whose earnings. A segmented control rather than two loose labels: the two are alternatives, and a
+   pair of radio buttons drawn as separate cards reads as two things you could have both of. */
+.earnings .earn-preview-switch { display: flex; flex-wrap: wrap; gap: 3px; padding: 5px; margin: 0; border: 1px solid var(--studio-line); border-radius: var(--r-panel); background: var(--studio-paper); }
+.earnings .earn-preview-switch > label { display: inline-flex; align-items: center; min-height: 44px; padding: var(--space-8) var(--space-16); border-radius: var(--r-pill); border: 1px solid transparent; background: transparent; color: var(--studio-ink); font-size: 14px; cursor: pointer; }
+.earnings .earn-preview-switch > label.selected { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); box-shadow: var(--shadow-raised); }
+/* core.css draws :focus-visible as an outline AND a ring at the lowest possible specificity, so a
+   resting box-shadow deletes half of the indicator. Restated in front of its own. */
+.earnings .earn-preview-switch > label.selected:focus-within { box-shadow: 0 0 0 7px var(--focus-edge), var(--shadow-raised); }
+.earnings .earn-preview-switch > .helper { flex-basis: 100%; margin: var(--space-8) var(--space-12) var(--space-4); }
+
+/* Where the money goes. The bar is the figure; the legend under it is a real three-column table of
+   amounts with the keys aligned, not three sentences wearing dots. */
+.earnings .earn-split { padding: var(--space-20) var(--space-24) var(--space-24); }
+.earnings .earn-bar { height: 18px; border-radius: var(--r-pill); overflow: hidden; gap: 3px; background: transparent; margin: var(--space-16) 0 var(--space-16); }
+.earnings .earn-bar i { border-radius: var(--r-pill); }
+.earnings .earn-bar i.yours { background: var(--studio-ink); }
+.earnings .earn-bar i.fee { background: var(--studio-olive); }
+.earnings .earn-bar i.platform { background: var(--studio-lime); }
+.earnings .earn-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: var(--space-16); }
+.earnings .earn-legend > div { display: grid; grid-template-columns: 12px minmax(0, 1fr); column-gap: var(--space-8); row-gap: 2px; align-items: center; }
+.earnings .earn-legend .key { width: 12px; height: 12px; border-radius: 3px; grid-row: 1 / span 2; align-self: start; margin-top: 6px; }
+.earnings .earn-legend .key.yours { background: var(--studio-ink); }
+.earnings .earn-legend .key.fee { background: var(--studio-olive); }
+.earnings .earn-legend .key.platform { background: var(--studio-lime); }
+.earnings .earn-legend strong { font-size: 24px; line-height: 1.2; letter-spacing: -.6px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+.earnings .earn-legend small { font-size: 13px; line-height: 1.5; color: var(--studio-ink-muted); grid-column: 2; }
+
+/* ---- If you take a shift ------------------------------------------------------------------------
+   The one part of this screen that helps somebody decide something. Everything on it is a
+   difference and the difference is bounded rather than predicted, so nothing in here may be drawn
+   as a single confident number — the range is the instrument and the tick on it is where her own
+   mix falls between the two ends. */
+.earnings .fc { padding: var(--space-20) var(--space-24) var(--space-24); }
+.earnings .date-strip { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.earnings .date-chip { display: grid; justify-items: center; align-content: center; gap: 1px; min-width: 68px; min-height: 72px; padding: var(--space-8) var(--space-12); border-radius: var(--r-control); border: 1px solid color-mix(in srgb, var(--studio-ink-muted) 78%, var(--surface)); background: var(--surface); color: var(--studio-ink); cursor: pointer; }
+.earnings .date-chip span { font-size: 13px; line-height: 1.3; color: var(--studio-ink-muted); text-transform: uppercase; letter-spacing: .6px; }
+.earnings .date-chip strong { font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; color: var(--charcoal); }
+.earnings .date-chip.selected { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); }
+.earnings .date-chip.selected span,
+.earnings .date-chip.selected strong { color: var(--surface); }
+.earnings .time-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: var(--space-8); }
+.earnings .time-chip { min-height: 44px; border-radius: var(--r-pill); border: 1px solid color-mix(in srgb, var(--studio-ink-muted) 78%, var(--surface)); background: var(--surface); color: var(--studio-ink); font-size: 14px; font-variant-numeric: tabular-nums; cursor: pointer; }
+/* An hour that is offered is filled AND holds a tick's worth of extra weight, so the set of chosen
+   hours is legible without separating two greens. */
+.earnings .time-chip.selected { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); font-weight: 600; }
+
+.earnings .fc-empty { display: flex; gap: var(--space-16); align-items: flex-start; padding: var(--space-20); border: 1px dashed color-mix(in srgb, var(--studio-ink-muted) 78%, var(--studio-paper)); border-radius: var(--r-card); background: var(--studio-paper); color: var(--studio-ink); }
+.earnings .fc-empty > svg { flex: 0 0 auto; color: var(--studio-olive); }
+.earnings .fc-empty strong { font-size: 18px; line-height: 1.3; color: var(--charcoal); }
+.earnings .fc-empty p { font-size: 14px; line-height: 1.6; margin-top: var(--space-4); color: var(--studio-ink); max-width: 62ch; }
+
+/* The added figure and the range it sits in, as one instrument on the paper ground: the difference
+   set large, the three stops under it as a real column each, and the tick where her own mix lands. */
+.earnings .fc-lead { display: grid; gap: var(--space-20); padding: var(--space-20); border-radius: var(--r-card); background: var(--studio-paper); }
+@media (min-width: 760px) { .earnings .fc-lead { grid-template-columns: minmax(200px, auto) minmax(0, 1fr); gap: var(--space-32); align-items: center; } }
+.earnings .fc-lead .s-metric-value { color: var(--charcoal); }
+.earnings .fc-lead .s-metric-label { color: var(--studio-ink-muted); }
+.earnings .fc-lead .s-metric-chip { background: var(--surface); border: 1px solid var(--studio-line); color: var(--studio-ink); white-space: normal; }
+.earnings .fc-range { display: grid; gap: var(--space-12); min-width: 0; }
+.earnings .fc-track { position: relative; height: 12px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--studio-ink) 16%, var(--studio-paper)); overflow: visible; }
+.earnings .fc-track i { display: block; height: 100%; border-radius: var(--r-pill); background: var(--studio-olive); transform-origin: left center; }
+/* The tick carries no word: a marker with a label on it becomes a label that has to stay legible at
+   every width it can land at. It is a shape and a position, and the three stops under it say what
+   the positions mean. */
+.earnings .fc-track b { position: absolute; top: -6px; bottom: -6px; width: 3px; margin-left: -1.5px; border-radius: var(--r-pill); background: var(--charcoal); }
+.earnings .fc-stops { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-12); }
+.earnings .fc-stops > div { min-width: 0; }
+.earnings .fc-stops > div:nth-child(2) { text-align: center; }
+.earnings .fc-stops > div:nth-child(3) { text-align: right; }
+.earnings .fc-stops strong { display: block; font-size: 18px; line-height: 1.25; color: var(--studio-ink-muted); font-variant-numeric: tabular-nums; }
+/* Her own mix is the one of the three that is not a bound, so it is the one that is set in the ink
+   and carries the weight. The other two are the ends of the range and say so. */
+.earnings .fc-stop-typical strong { font-size: 22px; color: var(--charcoal); }
+.earnings .fc-stops small { display: block; font-size: 13px; line-height: 1.5; margin-top: 3px; color: var(--studio-ink-muted); }
+.earnings .fc-week { padding: var(--space-16) var(--space-20); border-radius: var(--r-card); background: var(--studio-paper); }
+.earnings .fc-week .review-line { border-color: color-mix(in srgb, var(--studio-ink) 16%, var(--studio-paper)); }
+
+/* A refusal is not an aside. It is the sentence the contract wrote and the reason this screen is
+   allowed to exist, so it is set at reading size with a mark that says what it is. */
+.earnings .earn-refusal { display: flex; gap: var(--space-12); align-items: flex-start; padding: var(--space-16) var(--space-20); border-radius: var(--r-card); background: var(--studio-peach); color: var(--studio-ink); }
+.earnings .earn-refusal > svg { flex: 0 0 auto; color: var(--danger); margin-top: 1px; }
+.earnings .earn-refusal p { font-size: 14px; line-height: 1.6; margin: 0; max-width: 68ch; }
+.earnings .earn-refusals { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: var(--space-12); }
+.earnings .earn-rule { display: flex; gap: var(--space-8); align-items: flex-start; font-size: 13px; line-height: 1.6; color: var(--studio-ink-muted); }
+.earnings .earn-rule > svg { flex: 0 0 auto; margin-top: 2px; color: var(--studio-olive); }
+
+/* ---- The weeks ---------------------------------------------------------------------------------
+   Four weeks, and the one thing a row of four must do is let a reader compare them. The amount is
+   the first thing on every row, tabular, at one size; the state is a rail and a chip; and only the
+   open one carries its detail. */
+.earnings .earn-weeks { display: grid; gap: var(--space-12); }
+.earnings .earn-week { border: 1px solid var(--studio-line); border-radius: var(--r-card); background: var(--surface); overflow: hidden; position: relative; }
+.earnings .earn-week::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--studio-line); }
+.earnings .earn-week.is-open { box-shadow: var(--shadow-raised); border-color: transparent; }
+.earnings .earn-week.failed { border-color: var(--danger); }
+.earnings .earn-week.failed::before { background: var(--danger); }
+.earnings .earn-week > button { min-height: 72px; padding: var(--space-16) var(--space-20) var(--space-16) var(--space-24); gap: var(--space-16); }
+.earnings .earn-week-head strong { font-size: 26px; line-height: 1.15; letter-spacing: -.8px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+.earnings .earn-week-head small { font-size: 13px; line-height: 1.5; margin-top: 3px; color: var(--studio-ink-muted); }
+.earnings .earn-week-body > div { padding: 0 var(--space-20) var(--space-20) var(--space-24); }
+.earnings .earn-lines { font-variant-numeric: tabular-nums; }
+.earnings .earn-lines td.earn-amount,
+.earnings .earn-lines tfoot td { text-align: right; }
+.earnings .earn-failure { background: var(--studio-peach); color: var(--studio-ink); border-radius: var(--r-card); padding: var(--space-16) var(--space-20); }
+.earnings .earn-failure > svg { color: var(--danger); }
+.earnings .earn-failure p { font-size: 14px; line-height: 1.6; }
+.earnings .earn-advice { background: var(--studio-paper); border-radius: var(--r-card); padding: var(--space-12) var(--space-16); margin-top: var(--space-12); }
+.earnings .earn-tax { padding: var(--space-20) var(--space-24) var(--space-24); }
+.earnings .earn-account { padding: var(--space-20) var(--space-24) var(--space-24); }
+.earnings .earn-pending { background: var(--studio-peach); color: var(--studio-ink); border-radius: var(--r-card); padding: var(--space-16) var(--space-20); gap: var(--space-16); }
+.earnings .earn-pending strong { color: var(--charcoal); font-size: 16px; }
+.earnings .earn-pending p { font-size: 14px; line-height: 1.6; margin-top: var(--space-4); }
+
+/* ================================================================================================
+   VETTING
+   ================================================================================================ */
+/* The register's four figures, off the flat strip and onto the deck: one ring per party, lit for the
+   ones that are cleared, so the number and the drawing are the same count of the same rows. */
+.nt-ring { width: 132px; max-width: 100%; aspect-ratio: 1; }
+.nt-instrument-ring .s-metric-figure,
+.nt-instrument-gauge .s-metric-figure { width: 132px; max-width: 100%; aspect-ratio: 1; display: grid; place-items: center; }
+.nt-deck-lead .nt-instrument-ring .s-metric-figure,
+.nt-deck-lead .nt-instrument-gauge .s-metric-figure { width: clamp(132px, 22vw, 156px); }
+.nt-instrument-ring .s-metric-figure > .nt-plot,
+.nt-instrument-gauge .s-metric-figure > .nt-plot { position: absolute; inset: 0; width: 100%; height: 100%; }
+.nt-instrument-ring .s-metric-figure,
+.nt-instrument-gauge .s-metric-figure { position: relative; }
+.nt-instrument-ring .s-metric-value,
+.nt-instrument-gauge .s-metric-value { position: relative; justify-content: center; }
+/* A dial opens at the bottom, so a numeral centred in the circle reads as sitting on the gap. */
+.nt-instrument-gauge .s-metric-value { transform: translateY(-4px); }
+.nt-plot .nt-ring-track { fill: none; stroke: var(--nt-track); stroke-width: 10; }
+.nt-plot .nt-arc { fill: none; stroke: var(--nt-mark); stroke-width: 10; stroke-linecap: butt; }
+/* Butt caps, not round: at a sixteen-wide stroke a round cap grows eight units into a seven-unit
+   gap, and a ring of twelve cases is drawn as one unbroken circle. The segments are the count. */
+.nt-plot .nt-arc.on { stroke: var(--nt-accent); stroke-width: 16; }
+.nt-instrument:not(.lead) .nt-plot .nt-arc.on { stroke: var(--nt-quiet); }
+.nt-gauge-track { fill: none; stroke: var(--nt-track); stroke-width: 10; stroke-linecap: round; }
+
+/* The console's own furniture. A rail of three views rather than three outlined buttons, the filters
+   on one line under it, and the register beside the party being worked. */
+.nt-console .vetting-bar { display: flex; flex-wrap: wrap; gap: var(--space-12); align-items: center; margin-bottom: var(--space-12); }
+.nt-console .vetting-bar .tabs { display: flex; gap: 3px; padding: 5px; border: 1px solid var(--studio-line); border-radius: var(--r-panel); background: var(--studio-paper); }
+.nt-console .vetting-bar .tabs button { min-height: 44px; padding: var(--space-8) var(--space-16); border: 1px solid transparent; border-radius: var(--r-pill); background: transparent; color: var(--studio-ink); font-size: 14px; }
+.nt-console .vetting-bar .tabs button.selected { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); box-shadow: var(--shadow-raised); }
+.nt-console .vetting-bar .tabs button.selected:focus-visible { box-shadow: 0 0 0 7px var(--focus-edge), var(--shadow-raised); }
+.nt-console .vetting-filters { display: flex; flex-wrap: wrap; gap: var(--space-12); margin-bottom: var(--space-16); }
+
+/* A party on the register. The name leads, the progress is a segmented meter under it — segments
+   rather than a continuous bar, because "six of eight checks" is a count and not a proportion — and
+   the standing is a chip that also carries its word. */
+.nt-console .vetting-progress { height: 8px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--studio-ink) 16%, var(--studio-paper)); overflow: hidden; margin: var(--space-8) 0 var(--space-4); }
+.nt-console .vetting-progress > div { background: var(--studio-olive); }
+.nt-console .record-row[aria-pressed='true'] { background: var(--studio-paper); box-shadow: var(--shadow-raised); }
+.nt-console .record-row[aria-pressed='true']:focus-visible { box-shadow: 0 0 0 7px var(--focus-edge), var(--shadow-raised); }
+
+/* The party being worked, and the header this screen must never put a protected category on: what a
+   party is refused is a table driven by the checks, and a header chip would turn a person's
+   protected characteristic into a label somebody reads first. */
+.nt-subject-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-12) var(--space-20); padding-bottom: var(--space-16); border-bottom: 1px solid var(--studio-line); margin-bottom: var(--space-16); }
+.nt-console .nt-subject-head h2 { font-size: 28px; line-height: 1.15; letter-spacing: -.8px; margin: 0; color: var(--charcoal); }
+.nt-subject-head .nt-eyebrow { color: var(--studio-ink-muted); }
+.nt-subject-meter { display: grid; gap: var(--space-4); margin-bottom: var(--space-16); }
+.nt-subject-meter strong { font-size: 32px; line-height: 1.1; letter-spacing: -1px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+.nt-subject-meter strong small { font-size: 15px; font-weight: 500; letter-spacing: 0; color: var(--studio-ink-muted); margin-left: 6px; }
+
+/* A check, as a row with a state mark down its own gutter. The anchor credential — the one a
+   reviewer looks up first — is the one that is lifted; the rest are flat. */
+.nt-console .admin-row { border-radius: var(--r-card); }
+.nt-console .admin-row.is-anchor { background: var(--studio-paper); box-shadow: var(--shadow-raised); }
+.nt-console .required-mark { font-size: 13px; }
+
+/* ---- The applicant's own screen ----------------------------------------------------------------
+   It opened as a bare form floating on an empty page: a label, an input and two buttons, with
+   nothing saying which role, which authority or how many checks stand between the applicant and a
+   visit. The deck says all three before the first field. */
+.nt-apply .nt-deck-figures { padding-top: var(--space-16); }
+.nt-apply .step-head { margin: 0; padding-bottom: var(--space-8); border-bottom: 1px solid var(--studio-line); }
+/* The five steps are one card rather than a column of loose fields on the page ground. A form needs
+   an edge to be a form; without one it reads as the page having run out of content. */
+.nt-apply .nt-step-card { border: 1px solid var(--studio-line); border-radius: var(--r-panel); background: var(--surface); padding: var(--space-24); display: grid; gap: var(--space-16); box-shadow: var(--shadow); }
+.nt-apply .nt-step-card > .record-row { margin: 0; }
+.nt-screen .nt-step-card h3 { font-size: 22px; line-height: 1.2; letter-spacing: -.4px; margin: 0; color: var(--charcoal); }
+@media (max-width: 599px) { .nt-apply .nt-step-card { padding: var(--space-16); border-radius: var(--r-card); } }
+
+/* ---- Narrow, again ------------------------------------------------------------------------------
+   Nothing above is allowed to need a wide screen. These are the four rules that stop being true at
+   390 and the smallest change that makes each one true again. */
+@media (max-width: 599px) {
+ .earnings .fc,
+ .earnings .earn-split,
+ .earnings .earn-tax,
+ .earnings .earn-account { padding: var(--space-16); }
+ .earnings .earn-week > button { min-height: 64px; padding: var(--space-12) var(--space-16) var(--space-12) var(--space-20); }
+ .earnings .earn-week-body > div { padding: 0 var(--space-16) var(--space-16) var(--space-20); }
+ .earnings .earn-week-head strong { font-size: 22px; }
+ .earnings .date-chip { min-width: 60px; }
+ .earnings .time-grid { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
+ /* Three stops across a 320px column is three two-word columns. They stack, and the labels keep
+    their alignment with the stop they belong to rather than all running left. */
+ .earnings .fc-stops { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
+ .earnings .fc-stops > div:nth-child(2),
+ .earnings .fc-stops > div:nth-child(3) { text-align: left; }
+}

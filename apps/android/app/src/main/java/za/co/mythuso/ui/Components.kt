@@ -92,10 +92,16 @@ import za.co.mythuso.model.Capabilities
  */
 @Composable fun NotConnected(of: String) {
     val notice = Capabilities.notice(of) ?: return
-    TonedCard {
+    /* Which ground it stands on. The clinical decks put this notice on the night canvas, where the cloud
+       plate it wears on paper is a pale lozenge pulling the eye off the headline; there it takes the
+       deck's glass and paper ink, which reads 10.78 on it. Still this one component rather than a second
+       drawn for the dark, so the sentence and the rule that it draws nothing once the capability is
+       connected stay in one place. */
+    val night = LocalOnStudioNight.current
+    TonedCard(background = if (night) StudioPaper.copy(alpha = 0.08f) else Cloud) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Info, null, tint = Charcoal, modifier = Modifier.size(18.dp))
-            Text(notice, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+            Icon(Icons.Outlined.Info, null, tint = if (night) StudioPaper else Charcoal, modifier = Modifier.size(18.dp))
+            Text(notice, style = MaterialTheme.typography.bodySmall, color = if (night) StudioPaper else StudioInkMuted)
         }
     }
 }

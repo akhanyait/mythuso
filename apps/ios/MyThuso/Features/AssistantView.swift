@@ -2,9 +2,10 @@ import SwiftUI
 
 /* A drawing of an assistant, and nothing else.
 
-   The founder saw PulseBuddy's soft luminous blob and wanted that visual language: a shape that
-   sits with you and changes with what is going on. This screen is that shape. What it is not — and
-   what nothing on it may ever imply it is — is a voice product.
+   The founder asked for the AI-sphere language: one luminous volumetric orb on a dark ground,
+   breathing at rest, reacting when it has something to work through, with minimal centred type
+   around it. This screen is that. What it is not — and what nothing on it may ever imply it is —
+   is a voice product.
 
    packages/catalog/capabilities.json carries `voice` with connected: false and three things
    blocking it: no speech model, vendor or licence; no microphone permission declared on either
@@ -15,31 +16,38 @@ import SwiftUI
         decorative one. A control that looks like it is listening and is not is worse than no
         control, and on a health product it is the kind of worse that gets believed."
 
-   So there is no microphone glyph here, no waveform, no listening ring, no tap-to-speak, and no
-   disabled control with an explanation attached. The reason a disabled one is refused as firmly as
-   an enabled one is that a person does not read the disabled state — they read the shape, learn
-   that this app listens, and one day say something to it that it never heard. On a health product
-   that sentence could be a symptom.
+   THE SPHERE IS THE ANSWER TO THAT RULE RATHER THAN A DECORATION ON TOP OF IT. Every shape a
+   person expects an assistant to be — the capsule, the bar meter, the ring around a glyph — is a
+   picture of hearing. A sphere is a picture of presence: it has no mouth and no aperture, it is lit
+   rather than listening, and there is nothing on it to press. So there is no microphone glyph here,
+   no waveform, no listening ring, no tap-to-speak, and no disabled control with an explanation
+   attached. The reason a disabled one is refused as firmly as an enabled one is that a person does
+   not read the disabled state — they read the shape, learn that this app listens, and one day say
+   something to it that it never heard. On a health product that sentence could be a symptom.
 
-   What is left is honest on its own terms. The orb reflects one of four situations, each of which
+   The contract's own notice sits directly under the sphere, rendered by CapabilityNotice from
+   packages/catalog/capabilities.json rather than typed here, on the light panel it has everywhere
+   else in the app. It is the second thing on the screen on purpose: the drawing is the first thing
+   a person sees and the sentence correcting what they assumed about it is the next.
+
+   What the orb shows is honest on its own terms. It reflects one of four situations, each of which
    is a real thing this product has a contract for: a visit on the first day the scheduling contract
    offers, a laboratory result released, a registration inside the forty-five days after which
    vetting withdraws dispatch by arithmetic, and nothing at all — which is the state a well person
-   should be in most of the time. Nothing on the screen is connected to any of them yet, which is
-   what the notice above the orb says, once, in the contract's own words.
+   should be in most of the time. Nothing on the screen is connected to any of them yet, which the
+   notice says once, in the contract's own words, and the chooser repeats in its own.
 
    Two things about how it is drawn.
 
-   Sage is a fill and never a label. The darkest of the four sages measures 2.54:1 as text on the
-   mist ground and clears nothing, so the orb is sage and every word on the screen is charcoal. The
-   state is never carried by the colour alone either: the chip above the orb says which state this
-   is, in words, for a reader who cannot tell the four greens apart or is listening to the screen.
+   Sage is a fill and never a label. The orb is sage; every word on this screen is studioPaper
+   (#F5F4EF, 13.6:1 on the ground) or paleSage (#C8D5BB, 9.8:1), and the state is never carried by
+   the colour alone either — the line under the sphere says which state this is, in words, for a
+   reader who cannot tell four greens apart or is listening to the screen.
 
-   The animation stops rather than slows. A shape that breathes forever is exactly what Reduce
-   Motion exists for, and it is also a battery cost on a phone somebody uses to book a nurse — so it
-   runs only while this screen is on screen, it stops when the screen goes away, and under Reduce
-   Motion it never starts. Nothing under it changes a box: the drift is scale and offset on layers
-   that nothing else is measured against. */
+   The animation stops rather than slows. Under Reduce Motion the sphere is a still object with
+   every layer still drawn, not a blank circle: AssistantSphere pauses its timeline and substitutes
+   one fixed moment. The gathering reaction is suppressed on the same setting, here, because it is
+   this screen that starts it. */
 
 // MARK: - The four things the drawing can say
 
@@ -89,65 +97,114 @@ extension AssistantState {
 
 struct AssistantView: View {
     @State private var showing = AssistantState.all[0]
+    /// The moment the sphere was last handed something new. It drives the gathering reaction and
+    /// nothing else; the sphere ignores it entirely under Reduce Motion.
+    @State private var gatheredAt: Date?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     private let states = AssistantState.all
-    /// The capability this screen depends on. Named once, here, so the sentence below it and the
-    /// reasons further down come from the same row of the contract.
+    /// The capability this screen depends on. Named once, here, so the sentence below the sphere
+    /// and the reasons further down come from the same row of the contract.
     private let capability = "voice"
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: ThusoSpacing.space20) {
+            VStack(spacing: ThusoSpacing.space32) {
+                stage
                 CapabilityNotice(of: capability)
-                orbCard
-                stateChooser
+                chooser
                 refusals
             }
-            .padding(.vertical, ThusoSpacing.space16)
+            .padding(.top, ThusoSpacing.space16)
+            .padding(.bottom, ThusoSpacing.space40)
         }
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
-        .background(ThusoTheme.mist)
-        .navigationTitle("Assistant").navigationBarTitleDisplayMode(.large)
+        .background(ground.ignoresSafeArea())
+        /* Inline rather than large, and the reason is legibility before taste. The system large
+           title ignores toolbarColorScheme on this OS and came out near-black on a night ground —
+           about 1.2:1, which is no title at all. The inline title answers the setting. A principal
+           toolbar item would have given this screen the colour outright and was tried first; it
+           takes the bar's name away with it, and AssistantTests asks the accessibility tree for a
+           navigation bar called Assistant to know the screen opened. The name is worth more than
+           the control. It also costs the drawing nothing: a hundred points of large title above a
+           shape meant to dominate is a hundred points spent arguing with it. */
+        .navigationTitle("Assistant").navigationBarTitleDisplayMode(.inline)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .onAppear { gather() }
+        .onChange(of: showing.id) { _, _ in gather() }
     }
 
-    /* The chip floats above the drawing and the figure sits under it — the reference's own
-       arrangement, and the reason it reads as calm is that only one thing on the card is large. */
-    private var orbCard: some View {
-        CareCard(padding: ThusoSpacing.space24, spacing: ThusoSpacing.space16) {
-            VStack(spacing: ThusoSpacing.space16) {
-                StateChip(showing.name)
-                AssistantOrb(state: showing)
-                if let figure = showing.figure {
-                    VStack(spacing: ThusoSpacing.space4) {
-                        /* A semantic style at a light weight, not a point size: the reference's big
-                           thin numeral, but one that still answers the text-size setting. */
-                        Text(figure).font(.system(.largeTitle, design: .default, weight: .light))
-                            .foregroundStyle(ThusoTheme.charcoal)
-                        if let label = showing.figureLabel {
-                            Text(label).font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.7))
-                                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .accessibilityElement(children: .combine)
-                }
-                Text(showing.sentence).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
-                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity)
-        }
+    /// Reduce Motion is answered by never starting the reaction, not by shortening it. A gathering
+    /// that runs for a third of a second is still a thing that moved.
+    private func gather() { gatheredAt = reduceMotion ? nil : Date() }
+
+    /* The ground the sphere is lit against. Two steps rather than one: a flat fill under a
+       luminous object is the thing that makes it look pasted on, and the darker top gives the
+       large title something to sit on. Every word on this screen was measured against the lighter
+       of the two — studioNight, #202923 — so the ratios below are the worst case rather than the
+       flattering one. */
+    private var ground: some View {
+        LinearGradient(colors: [ThusoTheme.studioInkDeep, ThusoTheme.studioNight, ThusoTheme.studioInkDeep],
+                       startPoint: .top, endPoint: .bottom)
     }
+
+    // MARK: - The sphere and the few words around it
+
+    /* One thing on this screen is large and it is the drawing. Everything under it is centred,
+       narrow and quiet: a label, a figure where the app genuinely has one, and a sentence. The
+       sphere gives up a little size at the accessibility text sizes so the words it is explaining
+       still fit on a screen with it. */
+    private var stage: some View {
+        VStack(spacing: ThusoSpacing.space24) {
+            AssistantSphere(size: typeSize.isAccessibilitySize ? 208 : 276,
+                            depth: showing.depth, gatheredAt: gatheredAt)
+            VStack(spacing: ThusoSpacing.space12) {
+                Text(showing.name)
+                    .thusoFont(ThusoType.caption, weight: .semibold)
+                    .tracking(1.4)
+                    .foregroundStyle(ThusoTheme.paleSage)
+                if let figure = showing.figure {
+                    /* A semantic style at the lightest weight, not a point size: the genre's big
+                       thin numeral, but one that still answers the text-size setting. */
+                    Text(figure).font(.system(.largeTitle, design: .default, weight: .ultraLight))
+                        .foregroundStyle(ThusoTheme.studioPaper)
+                    if let label = showing.figureLabel {
+                        Text(label).thusoFont(ThusoType.caption)
+                            .foregroundStyle(ThusoTheme.paleSage)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Text(showing.sentence)
+                    .thusoFont(ThusoType.cardTitle)
+                    .foregroundStyle(ThusoTheme.studioPaper)
+                    .lineSpacing(5)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            /* Read as one thing. Four fragments of text stacked under a drawing are four stops for
+               a listener and one thought for everybody else. */
+            .accessibilityElement(children: .combine)
+            .frame(maxWidth: 420)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - The legend
 
     /* Four pills rather than a segmented control: a segmented control is thirty-two points tall at
-       every text size, which is the defect that was just taken out of the Health Passport. The
-       button's own frame is the frame a thumb has to hit, and it is forty-four.
+       every text size, which is the defect that was taken out of the Health Passport. The button's
+       own frame is the frame a thumb has to hit, and it is forty-four.
 
        They choose which of the four the drawing is showing, and the screen says plainly that this
        is a legend rather than a status — nothing here is connected to a visit, a result or a
        register, so there is nothing for the app to work out on its own. */
-    private var stateChooser: some View {
-        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-            CareSectionHeader("What the drawing can say")
+    private var chooser: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            SceneHeading("What the drawing can say")
             Text("Four situations, and the shape each one takes. Nothing on this screen is watching for them yet — you are choosing which to look at.")
-                .font(.caption).foregroundStyle(ThusoTheme.charcoal.opacity(0.7))
+                .thusoFont(ThusoType.caption)
+                .foregroundStyle(ThusoTheme.paleSage)
                 .fixedSize(horizontal: false, vertical: true)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: ThusoSpacing.space8) { pills(filling: false) }
@@ -164,42 +221,52 @@ struct AssistantView: View {
             Button { showing = state } label: {
                 Text(state.name).font(.footnote.weight(.semibold))
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(chosen ? Color.white : ThusoTheme.charcoal)
+                    .foregroundStyle(chosen ? ThusoTheme.studioInkDeep : ThusoTheme.studioPaper)
                     .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8)
                     .frame(maxWidth: filling ? .infinity : nil, minHeight: 44)
-                    .background(chosen ? ThusoTheme.charcoal : ThusoTheme.surface,
+                    /* The unchosen fill is a seven-per-cent lift off the ground rather than a
+                       colour of its own: studioPaper still measures 11.0:1 on it, and mutedSage at
+                       seven-tenths gives the edge 3.9:1 against the ground — a control's boundary
+                       has a contrast floor of its own and translucency is the usual way it is
+                       missed. */
+                    .background(chosen ? AnyShapeStyle(ThusoTheme.studioPaper)
+                                       : AnyShapeStyle(Color.white.opacity(0.07)),
                                 in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
-                        .stroke(chosen ? ThusoTheme.charcoal : ThusoTheme.studioLine, lineWidth: 1))
+                        .stroke(chosen ? ThusoTheme.studioPaper : ThusoTheme.mutedSage.opacity(0.7), lineWidth: 1))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             /* Chosen is said, not only drawn — four identical buttons is what a listener gets
-               otherwise, and the charcoal fill means nothing to them. */
+               otherwise, and the pale fill means nothing to them. */
             .accessibilityAddTraits(chosen ? [.isButton, .isSelected] : .isButton)
         }
     }
 
     /* What is actually in the way, in the contract's own words rather than a summary of them. The
-       last line is the rule this screen is held to; it is written for whoever changes the screen
+       last block is the rule this screen is held to; it is written for whoever changes the screen
        next, and it is on the screen because a rule kept in a file is a rule somebody breaks by
        accident at eleven at night. */
     private var refusals: some View {
-        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-            CareSectionHeader("Why it cannot listen")
-            CareCard {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            SceneHeading("Why it cannot listen")
+            SceneCard {
                 ForEach(Array(Capabilities.blocking(capability).enumerated()), id: \.offset) { index, reason in
-                    if index > 0 { Divider().overlay(ThusoTheme.studioLine) }
-                    Text(reason).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    if index > 0 {
+                        Rectangle().fill(ThusoTheme.mutedSage.opacity(0.24)).frame(height: 1)
+                            .accessibilityHidden(true)
+                    }
+                    Text(reason).font(.footnote).foregroundStyle(ThusoTheme.studioPaper)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.vertical, ThusoSpacing.space4)
                 }
             }
             if let rule = Capabilities.neverSoften(capability) {
-                CareCard(weight: .quiet) {
-                    Text("The rule this screen is built to").font(.caption.weight(.semibold))
-                        .foregroundStyle(ThusoTheme.charcoal)
-                    Text(rule).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                SceneCard(spacing: ThusoSpacing.space8) {
+                    Text("The rule this screen is built to")
+                        .thusoFont(ThusoType.caption, weight: .semibold)
+                        .foregroundStyle(ThusoTheme.paleSage)
+                    Text(rule).font(.footnote).foregroundStyle(ThusoTheme.studioPaper)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -207,97 +274,33 @@ struct AssistantView: View {
     }
 }
 
-// MARK: - The orb
+// MARK: - Two small pieces this screen is the only user of
 
-/// The drawing itself: a bloom, a body and two soft masses moving slowly against each other inside
-/// it. Nothing in here is a control and nothing in here can be operated.
-private struct AssistantOrb: View {
-    let state: AssistantState
-    var size: CGFloat = 232
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var drifting = false
-
-    /* The four sages, in order. The state moves along this ramp and the shape tightens with it, so
-       the difference between "nothing waiting" and "something is lapsing" is visible as form as
-       well as tone — never as tone alone. */
-    private let ramp = [ThusoTheme.paleSage, ThusoTheme.softSage, ThusoTheme.mutedSage, ThusoTheme.sageSlate]
-    private var tint: Color { ramp[min(max(state.depth, 0), ramp.count - 1)] }
-    private var core: Color { ramp[min(max(state.depth, 0) + 1, ramp.count - 1)] }
-    /// A settled state blooms wide and soft; a state with something in it draws in on itself.
-    private var spread: CGFloat { 0.52 - CGFloat(state.depth) * 0.03 }
-
+/// A section title on the night ground. The shared CareSectionHeader sets charcoal, which is the
+/// right answer on every other screen in this app and unreadable on this one.
+private struct SceneHeading: View {
+    let text: String
+    init(_ text: String) { self.text = text }
     var body: some View {
-        ZStack {
-            /* The glow. This is the whole difference between a luminous shape and a green circle,
-               and it costs one gradient. */
-            Circle()
-                .fill(RadialGradient(colors: [tint.opacity(0.5), tint.opacity(0.16), tint.opacity(0)],
-                                     center: .center, startRadius: size * 0.16, endRadius: size * spread))
-                .scaleEffect(drifting ? 1.05 : 0.95)
-            ZStack {
-                Circle().fill(RadialGradient(colors: [ThusoTheme.paleSage.opacity(0.9), tint, core],
-                                             center: UnitPoint(x: 0.36, y: 0.30),
-                                             startRadius: size * 0.06, endRadius: size * 0.44))
-                Ellipse().fill(core.opacity(0.75))
-                    .frame(width: size * 0.52, height: size * 0.44).blur(radius: size * 0.08)
-                    .offset(x: drifting ? size * 0.08 : -size * 0.06, y: drifting ? size * 0.10 : size * 0.03)
-                Ellipse().fill(ThusoTheme.paleSage.opacity(0.85))
-                    .frame(width: size * 0.34, height: size * 0.30).blur(radius: size * 0.07)
-                    .offset(x: drifting ? -size * 0.12 : -size * 0.02, y: drifting ? -size * 0.09 : size * 0.06)
-                /* One highlight, well off centre. Centred it hollows the shape out into a ring —
-                   which is what a first pass at this looked like. */
-                Circle().fill(Color.white.opacity(0.42))
-                    .frame(width: size * 0.20, height: size * 0.20).blur(radius: size * 0.07)
-                    .offset(x: -size * 0.15, y: -size * 0.17)
-            }
-            .frame(width: size * 0.76, height: size * 0.76)
-            /* The edge is a gradient rather than a clip. A clipped circle reads as a ball with a
-               cut edge; a mask that falls away over the last tenth of the radius is what makes the
-               shape look lit from inside rather than drawn on top. */
-            .mask(RadialGradient(colors: [.black, .black, .black.opacity(0.86), .clear],
-                                 center: .center, startRadius: size * 0.10, endRadius: size * 0.38))
-            .scaleEffect(drifting ? 1.02 : 0.98)
-        }
-        .frame(width: size, height: size)
-        /* Hidden rather than described. Everything the drawing means is in the chip and the sentence
-           beside it, and "a soft green shape" read aloud is furniture rather than information. */
-        .accessibilityHidden(true)
-        .onAppear(perform: start)
-        /* Stopped when the screen goes away. A repeating animation left running behind a screen
-           nobody is looking at is the cost this app can least justify: a phone somebody keeps for
-           booking a nurse. */
-        .onDisappear { drifting = false }
-        .onChange(of: reduceMotion) { _, nowReduced in
-            if nowReduced { drifting = false } else { start() }
-        }
-    }
-
-    /* Reduce Motion stops it rather than slowing it, and the still arrangement is the one the layers
-       are laid out for — the two masses balanced rather than caught mid-drift. */
-    private func start() {
-        guard !reduceMotion else { return }
-        withAnimation(.easeInOut(duration: 7).repeatForever(autoreverses: true)) { drifting = true }
+        Text(text).font(.headline).foregroundStyle(ThusoTheme.studioPaper)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 
-// MARK: - One small piece this screen is the only user of
-
-/// The small charcoal chip that floats above the drawing and says, in words, which state this is.
-private struct StateChip: View {
-    let text: String
-    init(_ text: String) { self.text = text }
-    @Environment(\.dynamicTypeSize) private var typeSize
-    /* A capsule's ends curve in by half its height, so a label that has wrapped is cut off by its
-       own background. Past the accessibility sizes it becomes a rounded chip — the trade the rest
-       of this app's chips already make. */
-    private var shape: AnyShape {
-        typeSize.isAccessibilitySize ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)) : AnyShape(Capsule())
+/// A panel that belongs to the dark ground: a lift rather than a fill, and a hairline rather than a
+/// shadow — the same separation rule the light cards follow, spelled the other way up.
+private struct SceneCard<Content: View>: View {
+    var spacing: CGFloat = ThusoSpacing.space12
+    @ViewBuilder var content: Content
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)
     }
     var body: some View {
-        Text(text).font(.caption.weight(.semibold)).foregroundStyle(.white)
-            .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8)
-            .background(ThusoTheme.charcoal, in: shape)
+        VStack(alignment: .leading, spacing: spacing) { content }
+            .padding(ThusoSpacing.space16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white.opacity(0.06), in: shape)
+            .overlay(shape.stroke(ThusoTheme.mutedSage.opacity(0.26), lineWidth: 1))
     }
 }

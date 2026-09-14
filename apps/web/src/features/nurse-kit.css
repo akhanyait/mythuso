@@ -1,0 +1,92 @@
+/* THUSO KIT, AND THE TWO RULES EVERY NURSE SCREEN SHARES.
+ *
+ * Split out of nurse-tools.css for one reason: Thuso Kit is a screen a patient opens as well as a
+ * nurse, so whatever it imports is in the patient's entry. This file is therefore the whole of what
+ * a patient downloads for it, and it holds nothing a patient screen does not draw — the earnings,
+ * the vetting console and its deck stay in nurse-tools.css, which only the clinical workspace loads.
+ * Earnings and Vetting import this file too, for the section heads and the column of facts; they are
+ * already in the workspace chunk, so it costs them nothing.
+ *
+ * Pairs on this ground are measured in nurse-tools.css's note beside the same tokens: charcoal on
+ * surface 17.04, studioInkMuted on surface 6.93 and on studioPaper 6.29, studioInk on studioLime 9.38,
+ * charcoal on studioPeach 13.01, ink-muted at 78% over surface 4.04 for a boundary. */
+
+/* ---- Below the deck, everywhere ----------------------------------------------------------------
+   A section head is an eyebrow over a hairline here too, so the paper half of the screen is
+   recognisably the same family as the dark half rather than a second document. */
+.nt-screen .section-title { align-items: baseline; gap: var(--space-12); padding-bottom: var(--space-8); border-bottom: 1px solid var(--studio-line); margin-bottom: var(--space-16); }
+.nt-screen .section-title h2 { font-size: 20px; letter-spacing: -.3px; }
+
+/* A pair of facts, as a real column rather than as two runs of text that happen to end near each
+   other. The term wraps, the value does not move, and numbers line up under numbers. */
+.nt-facts { display: grid; gap: 0; margin: var(--space-12) 0 0; }
+.nt-facts > div {
+ display: grid;
+ grid-template-columns: minmax(0, 1fr) auto;
+ gap: var(--space-8) var(--space-16);
+ align-items: baseline;
+ padding: var(--space-8) 0;
+ border-top: 1px solid var(--studio-line);
+}
+.nt-facts dt { font-size: 13px; line-height: 1.5; color: var(--studio-ink-muted); min-width: 0; }
+.nt-facts dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--studio-ink); text-align: right; font-weight: 500; }
+.nt-facts .nt-clock { font-variant-numeric: tabular-nums; }
+
+/* ================================================================================================
+   THUSO KIT
+   ================================================================================================ */
+.kit-surface .nt-origins { padding: var(--space-20) var(--space-24); }
+.kit-surface .nt-capturer { padding: var(--space-20) var(--space-24); }
+
+/* One reading, as a record rather than as a row of labels. The value is the largest thing on it and
+   the observation's name is the quiet line above — it was the other way round, which put twelve
+   identical bold captions down the screen with the one number on each set smaller than its label. */
+.kit-surface .nt-entry { position: relative; overflow: hidden; padding: var(--space-16) var(--space-20) var(--space-20) var(--space-24); }
+/* The rail: a state told in a shape and a position before it is told in a tone. */
+.kit-surface .nt-entry::before { content: ''; position: absolute; left: 0; top: var(--space-12); bottom: var(--space-12); width: 4px; border-radius: 0 var(--r-pill) var(--r-pill) 0; background: var(--studio-line); }
+.kit-surface .nt-entry.tone-sky::before { background: var(--studio-olive); }
+.kit-surface .nt-entry.tone-stored::before { background: var(--studio-ink); }
+.kit-surface .nt-entry.tone-amber::before { background: var(--mango-ink); }
+.kit-surface .nt-entry.tone-danger::before { background: var(--danger); }
+.kit-surface .nt-entry-head { align-items: flex-start; gap: var(--space-12); }
+.kit-surface .nt-entry-value { min-width: 0; }
+.kit-surface .nt-entry-value small { display: block; font-size: 13px; line-height: 1.4; color: var(--studio-ink-muted); }
+.kit-surface .nt-entry-value strong { display: flex; align-items: baseline; gap: 6px; font-size: 32px; line-height: 1.15; letter-spacing: -1px; color: var(--charcoal); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.kit-surface .nt-entry-value strong i { font-style: normal; font-size: 15px; font-weight: 500; letter-spacing: 0; color: var(--studio-ink-muted); }
+/* A superseded reading is kept and is not hidden. It recedes and says so in words on the row. */
+.kit-surface .nt-entry.superseded .nt-entry-value strong { color: var(--studio-ink-muted); }
+
+/* The six states, as a board of six stations rather than six lines of the same grey. A station
+   holding nothing is drawn hollow and dashed: an empty state is a state that has not happened, and
+   filling all six the same way would put four false alarms on one screen. */
+.kit-surface .nt-states { padding: var(--space-20) var(--space-24) var(--space-24); }
+.nt-state-board { list-style: none; margin: 0 0 var(--space-16); padding: 0; display: grid; gap: var(--space-12); grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr)); }
+.nt-state { border-radius: var(--r-tile); padding: var(--space-12) var(--space-16) var(--space-16); background: var(--studio-paper); color: var(--studio-ink); min-width: 0; }
+.nt-state.empty { background: transparent; border: 1px dashed color-mix(in srgb, var(--studio-ink-muted) 78%, var(--surface)); }
+.nt-state-count { display: block; font-size: 28px; line-height: 1.1; letter-spacing: -1px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+.nt-state.empty .nt-state-count { color: var(--studio-ink-muted); }
+.nt-state .kit-state-name { display: block; font-size: 15px; line-height: 1.35; margin-top: var(--space-4); color: var(--charcoal); }
+.nt-state small { display: block; font-size: 13px; line-height: 1.5; margin-top: var(--space-4); color: var(--studio-ink-muted); }
+/* Two channels again: the fill says which kind of state it is and the count says how many. */
+.nt-state.tone-amber { background: var(--studio-peach); }
+.nt-state.tone-danger { background: var(--danger-soft); }
+.nt-state.tone-stored { background: var(--studio-lime); }
+
+.kit-surface .nt-queue { padding: var(--space-20) var(--space-24) var(--space-24); }
+/* Two readings of the same observation, at the same size, with everything a clinician would use to
+   choose between them — which is what makes it a decision rather than a prompt. */
+.kit-surface .kit-versus { gap: var(--space-16); }
+.kit-surface .kit-versus > .panel { padding: var(--space-16) var(--space-20) var(--space-20); background: var(--studio-paper); border: 0; box-shadow: none; }
+.kit-surface .kit-reading-value strong { font-size: 36px; letter-spacing: -1.2px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+
+
+/* ---- Narrow ------------------------------------------------------------------------------------ */
+@media (max-width: 599px) {
+ .kit-surface .nt-queue,
+ .kit-surface .nt-states,
+ .kit-surface .nt-origins,
+ .kit-surface .nt-capturer { padding: var(--space-16); }
+ .kit-surface .nt-entry { padding: var(--space-12) var(--space-16) var(--space-16) var(--space-20); }
+ .nt-facts > div { grid-template-columns: minmax(0, 1fr); }
+ .nt-facts dd { text-align: left; }
+}

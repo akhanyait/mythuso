@@ -42,12 +42,7 @@ struct ThusoKitView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
-                DemoBadge()
-                CareHeading(eyebrow: "Thuso Kit", title: "Connected diagnostic capture.",
-                            subtitle: "An instrument, a reading, and everything the record needs to know about where the number came from.")
-                CapabilityNotice(of: "devices")
-                nothingConnects
-                whoIsWorking
+                deck
                 if mayWrite.allowed {
                     discovery
                     pairedInstruments
@@ -82,7 +77,7 @@ struct ThusoKitView: View {
     /* The most important card on the screen, and it goes first. A preview that lets a reviewer
        believe a radio is involved has told them something false about how far the work has got. */
     @ViewBuilder private var nothingConnects: some View {
-        CareCard {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Label("Nothing here connects", systemImage: "antenna.radiowaves.left.and.right.slash")
                 .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
             Text("This build opens no Bluetooth session. There is no CoreBluetooth call in it, no scan is run, and no instrument is contacted. The six below are the six instruments in the capture contract, drawn on this phone from that list; their serial numbers are invented.")
@@ -92,31 +87,60 @@ struct ThusoKitView: View {
         }
     }
 
-    @ViewBuilder private var whoIsWorking: some View {
-        CareCard {
-            /* PickRow rather than a bare Picker with its label hidden. A menu picker publishes the
-               height of its own content, and this one came back thirty-four points — in front of
-               the choice of which nurse is holding the instrument, which is the choice the whole
-               screen's vetting gate hangs on. */
-            PickRow(label: "Working as", selection: $who,
-                    options: operators.map { ($0.id, "\($0.name) · \($0.reference)") })
+    /* THE KIT IS A DECK, AND "NOTHING HERE CONNECTS" STANDS ON IT.
+       The screen used to open on a badge, a heading, a notice and two white cards of equal weight, so the
+       one fact a reviewer most needs — nothing here reaches an instrument — sat at the height of the
+       choice of nurse. The capability's own sentence is on the canvas now at reading size, and "Nothing
+       here connects" is the sheet on the canvas's edge: the first thing under the deck and the most
+       raised thing on the screen.
+       The choice of nurse is a pill cluster rather than a menu, because the vetting gate on the cuff is
+       the whole demonstration and comparing the three is how a reviewer sees it; each pill is a
+       44-point target at every size, which is what PickRow existed to guarantee. The ring is the
+       contract's instruments with the paired ones lit; the panel counts what is still on this phone. */
+    private var deck: some View {
+        let paired = ThusoKit.devices.map { device in kit.instruments.contains { $0.deviceId == device.id } }
+        let outOfDate = kit.instruments.filter { $0.calibration.standing == .outOfDate }.count
+        let dueSoon = kit.instruments.filter { $0.calibration.standing == .dueSoon }.count
+        let standing = summarise(subject)
+        return DeckHero {
+            DeckPreviewMark()
+            DeckHeadline(eyebrow: "Thuso Kit",
+                         words: [.text("Connected"), .glyph("sensor.tag.radiowaves.forward"), .text("diagnostic capture.")],
+                         tail: "An instrument, a reading, and everything the record needs to know about where the number came from.")
+            CapabilityNotice(of: "devices")
+            DeckPills(label: "Working as", selection: $who,
+                      options: operators.map { ($0.id, "\($0.name) · \($0.reference)") })
             HStack(spacing: ThusoSpacing.space8) {
-                SubjectStatusPill(status: summarise(subject).status)
-                Text(subject.role?.name ?? subject.roleId).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                DeckTag(text: standing.status.label, flagged: !standing.cleared)
+                Text(subject.role?.name ?? subject.roleId).font(.footnote).foregroundStyle(DeckInk.quiet)
                 Spacer(minLength: 0)
             }
-            VettingRefusalNote(decision: mayWrite)
-            /* The height goes on the label, not on the link: a NavigationLink reports the frame of
-               what it is given, and two words at .caption came back fourteen points tall — a third
-               of a target, in front of the vetting record that explains why this kit will or will
-               not pair. Found by the audit, not by reading. */
+            .accessibilityElement(children: .combine)
+            DeckRefusal(decision: mayWrite)
             NavigationLink { VettingStatusView(subjectId: subject.id) } label: {
-                Text("Open this nurse’s vetting")
-                    .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(minHeight: 44).contentShape(Rectangle())
+                HStack(spacing: ThusoSpacing.space12) {
+                    Text("Open this nurse’s vetting")
+                        .font(.footnote.weight(.semibold)).foregroundStyle(DeckInk.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    DeckCircle(onNight: true)
+                }
+                .frame(minHeight: 44).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            DeckGlass {
+                DeckFigure(value: "\(kit.instruments.count)", label: "of \(ThusoKit.devices.count) instruments paired to this phone",
+                           chip: kit.instruments.isEmpty ? "Nothing paired"
+                               : outOfDate > 0 ? "\(outOfDate) out of calibration"
+                               : dueSoon > 0 ? "\(dueSoon) due for calibration" : "All in calibration",
+                           flagged: outOfDate > 0, shape: .ring(paired))
+            }
+            DeckPanel {
+                DeckFigure(value: "\(kit.onlyHereCount)", label: "readings held on this phone, not yet sent",
+                           chip: kit.conflictedCount > 0 ? "\(kit.conflictedCount) needing a decision" : "None needing a decision",
+                           flagged: kit.conflictedCount > 0, ground: .panel)
+            }
+        } sheet: {
+            nothingConnects
         }
     }
 
@@ -175,7 +199,7 @@ struct ThusoKitView: View {
     }
 
     @ViewBuilder private var pairedInstruments: some View {
-        SectionHeading(title: "Paired to this phone")
+        DeckSectionHead(title: "Paired to this phone", count: "\(kit.instruments.count)")
         if kit.instruments.isEmpty {
             EmptyStateCard(title: "No instrument is paired",
                            message: "Every reading taken in the assessment will be one a person typed, and it will say so. That is a complete answer, not a degraded one — most home visits in this country are done with a manual cuff and a nurse who knows how to use it.")
@@ -222,19 +246,18 @@ struct ThusoKitView: View {
     }
 
     @ViewBuilder private var whereItGoes: some View {
-        CareCard {
-            Label("Where a reading goes", systemImage: "arrow.down.doc")
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            DeckSectionHead(title: "Where a reading goes")
             Text("Into the visit assessment, with its origin, its instrument and the calibration it was taken under; then onto this phone’s store as captured; then sealed and queued when the nurse signs off. It is in the record only once a server has accepted it, and this build has no server.")
                 .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
             /* Both of these were eighteen points tall. They are the two doors off this screen, so
                they are pill rows now — the shape the rest of the product uses for a destination,
                and one that cannot be under 44 by construction. */
             NavigationLink { VisitAssessmentView(reference: visitReference, patient: patient) } label: {
-                NavPillLabel(title: "Open the visit assessment", symbol: "list.clipboard")
+                DeckDestination(title: "Open the visit assessment", symbol: "list.clipboard", raised: true)
             }.buttonStyle(.plain)
             NavigationLink { CaptureQueueView() } label: {
-                NavPillLabel(title: "Open what is waiting on this phone", symbol: "waveform.path.ecg")
+                DeckDestination(title: "Open what is waiting on this phone", symbol: "waveform.path.ecg")
             }.buttonStyle(.plain)
         }
     }

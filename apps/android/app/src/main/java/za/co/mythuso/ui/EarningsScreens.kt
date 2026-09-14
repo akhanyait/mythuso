@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
@@ -81,47 +82,82 @@ internal fun rand(amount: Int): String {
     var accountStage by remember { mutableStateOf("settled") }
     var code by remember { mutableStateOf("") }
 
-    ScreenColumn {
-        DemoBadge()
-        Heading("Nurse workspace", "Earnings & payouts", "Fictional visits, a fictional bank, and nothing transferred.")
+    /* Oldest week first, so the panel's columns run the way time does. The lit ones are the weeks the
+       figure over them adds up — settled nowhere and no longer accruing — which is exactly
+       Earnings.owedNotYetPaid's own filter, so the drawing and the number cannot disagree. */
+    val chronological = payWeeks.sortedBy { it.ends }
 
-        Column(
-            Modifier.fillMaxWidth()
-                .background(if (dispatchable.allowed) IndigoSoft else MangoSoft, RoundedCornerShape(ThusoRadius.card))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-                Icon(if (dispatchable.allowed) Icons.Outlined.Verified else Icons.Outlined.WarningAmber, null,
-                    tint = if (dispatchable.allowed) Indigo else MangoInk)
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(if (dispatchable.allowed) "Cleared for visits" else "You will not be sent new visits",
-                        style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                    Text(
-                        if (dispatchable.allowed) "Every check is verified and in date. Visits can be sent to you."
-                        else dispatchable.reason.orEmpty(),
-                        style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted
+    ScreenColumn {
+        /* THE MONEY IS THE DECK, AND THE STANDING STANDS ON IT.
+           Three white cards of equal weight used to hold this week, what is owed and the tax year, so
+           the one figure a nurse opens this screen for was the same size as the two she reads once a
+           month. This week is the lead now, on glass, with the four completed weeks drawn behind it;
+           what is owed is the pale panel, its columns the weeks themselves; and the tax year is the
+           night card crossing the panel's edge. The banner that reads the vetting register is the sheet
+           on the canvas's edge, tinted mango when it refuses, and switching the nurse on the canvas
+           changes the banner and not one figure — which is the rule, made visible. */
+        DeckHero(
+            sheetFill = if (dispatchable.allowed) SurfaceWhite else MangoSoft,
+            content = {
+                DeckPreviewMark()
+                DeckHeadline(
+                    "Nurse workspace",
+                    listOf(DeckWord.Words("Earnings"), DeckWord.Glyph(Icons.Outlined.Payments), DeckWord.Words("& payouts")),
+                    tail = "Fictional visits, a fictional bank, and nothing transferred."
+                )
+                DeckPills("Preview this screen as", nurse.id, nurses.map { it.id to it.name }) { nurseId = it }
+                Text(
+                    "The same earnings, seen by a cleared nurse and by one whose police clearance lapsed nine days ago. Only the banner changes — which is the rule.",
+                    style = MaterialTheme.typography.bodySmall, color = DeckInk.quiet
+                )
+                DeckGlassCard {
+                    DeckFigure(
+                        value = rand(Earnings.currentWeek.total).removePrefix("R "), prefix = "R", label = "This week so far",
+                        chip = "${Earnings.currentWeek.visits} visits · closes ${payCycle.closesOn}, pays ${payCycle.paysOn}",
+                        shape = DeckShape.Spark(chronological.filter { it.state != "accruing" }.map { it.total })
                     )
-                    if (!dispatchable.allowed) Text(Earnings.rule("suspension-is-not-confiscation").sentence,
-                        style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+                }
+                DeckPanel(float = {
+                    DeckFigure(
+                        value = rand(Earnings.paidThisTaxYear).removePrefix("R "), prefix = "R",
+                        label = "Reached your account this tax year",
+                        chip = "Since ${payTaxYear.startsOn} · ${payTaxYear.label}", ground = DeckGround.NIGHT
+                    )
+                }) {
+                    DeckFigure(
+                        value = rand(Earnings.owedNotYetPaid).removePrefix("R "), prefix = "R",
+                        label = "Owed, not yet in your account", chip = "On its way, or waiting on a bank",
+                        shape = DeckShape.Columns(
+                            chronological.map { it.total },
+                            chronological.map { !Earnings.state(it.state).settled && it.state != "accruing" }
+                        ),
+                        ground = DeckGround.PANEL
+                    )
+                }
+            },
+            sheet = {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+                    Icon(if (dispatchable.allowed) Icons.Outlined.Verified else Icons.Outlined.WarningAmber, null,
+                        tint = if (dispatchable.allowed) Indigo else MangoInk)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(if (dispatchable.allowed) "Cleared for visits" else "You will not be sent new visits",
+                            style = MaterialTheme.typography.titleMedium, color = Charcoal)
+                        Text(
+                            if (dispatchable.allowed) "Every check is verified and in date. Visits can be sent to you."
+                            else dispatchable.reason.orEmpty(),
+                            style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted
+                        )
+                        if (!dispatchable.allowed) Text(Earnings.rule("suspension-is-not-confiscation").sentence,
+                            style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+                    }
                 }
             }
-        }
-        FlowRowChips(nurses.map { it.name }, setOf(nurse.name)) { name -> nurseId = nurses.first { it.name == name }.id }
-        Note("The same earnings, seen by a cleared nurse and by one whose police clearance lapsed nine days ago. Only the banner changes — which is the rule.")
-
-        Metric("This week so far", rand(Earnings.currentWeek.total),
-            "${Earnings.currentWeek.visits} visits · closes ${payCycle.closesOn}, pays ${payCycle.paysOn}")
-        Metric("Owed, not yet in your account", rand(Earnings.owedNotYetPaid), "On its way, or waiting on a bank")
-        Metric("Reached your account this tax year", rand(Earnings.paidThisTaxYear),
-            "Since ${payTaxYear.startsOn} · ${payTaxYear.label}")
+        )
         Note(Earnings.rule("accrued-is-not-paid").sentence)
 
-        Text("Where the money goes", style = MaterialTheme.typography.titleLarge, color = Charcoal)
+        DeckSectionHead("Where the money goes")
         CareCard {
-            FlowRowChips(Earnings.pricedServices.map { it.name }, setOf(service.name)) { name ->
-                serviceId = Earnings.pricedServices.first { it.name == name }.id
-            }
+            DeckPills("Show the split for", service.id, Earnings.pricedServices.map { it.id to it.name }, onNight = false) { serviceId = it }
             val split = Earnings.split(service)
             Row(
                 Modifier.fillMaxWidth().height(16.dp).studioChartEntrance(service.id).semantics {
@@ -141,13 +177,12 @@ internal fun rand(amount: Int): String {
             Note("Across the nine services at launch that is ${rand(Earnings.shareLow)} to ${rand(Earnings.shareHigh)} a visit — the same range the public page advertises, read from the same catalogue.")
         }
 
-        Text("Your weeks", style = MaterialTheme.typography.titleLarge, color = Charcoal)
-        Note(payCycle.note)
+        DeckSectionHead("Your weeks", count = "${payWeeks.size}", note = payCycle.note)
         payWeeks.forEach { week ->
             WeekCard(week, openWeek == week.id) { openWeek = if (openWeek == week.id) null else week.id }
         }
 
-        Text("Tax", style = MaterialTheme.typography.titleLarge, color = Charcoal)
+        DeckSectionHead("Tax")
         CareCard {
             LabelledAmount("Reached your account since ${payTaxYear.startsOn}", rand(Earnings.paidThisTaxYear))
             LabelledAmount("Tax withheld by MyThuso", rand(0))
@@ -156,7 +191,7 @@ internal fun rand(amount: Int): String {
             Refusal(Earnings.refusal("advise-on-tax"))
         }
 
-        Text("Where you are paid", style = MaterialTheme.typography.titleLarge, color = Charcoal)
+        DeckSectionHead("Where you are paid")
         CareCard {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 TileIcon(Icons.Outlined.AccountBalance, size = 38.dp)
@@ -196,7 +231,7 @@ internal fun rand(amount: Int): String {
             }
         }
 
-        Text("What this screen will not do", style = MaterialTheme.typography.titleLarge, color = Charcoal)
+        DeckSectionHead("What this screen will not do", count = "${payRefusals.count { it.id != "advise-on-tax" }}")
         payRefusals.filter { it.id != "advise-on-tax" }.forEach { CareCard { Refusal(it) } }
         Note("No money moves in this preview. Payment runs, bank verification and a real ledger arrive with the payment provider, and every amount above is arithmetic on the demo catalogue.")
     }
@@ -213,14 +248,6 @@ internal fun rand(amount: Int): String {
             Text(amount, style = MaterialTheme.typography.titleMedium, color = Charcoal)
             Text(note, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
         }
-    }
-}
-
-@Composable private fun Metric(label: String, value: String, note: String) {
-    CareCard {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
-        Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Charcoal)
-        Text(note, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
     }
 }
 

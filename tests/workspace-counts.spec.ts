@@ -183,8 +183,14 @@ test("the doctor's strip counts the queue it sits above", async ({ page }) => {
  /* One bar per row on the wait instrument, and one on each row of the queue itself. */
  await expect(page.locator('.c-deck .c-waits > i')).toHaveCount(rowCount);
  await expect(page.locator('.review-list .review-pressure')).toHaveCount(rowCount);
- /* The longest wait has to be a wait that is on the queue, rather than a figure of its own. */
- const longest = (await page.locator('.s-metric', { hasText: 'Longest wait' }).textContent()) ?? '';
+ /* The longest wait has to be a wait that is on the queue, rather than a figure of its own.
+    The figure itself, and not the whole of the metric — which is the same narrowing the nurse's
+    assertion below already made, for the same reason, and this one was left behind. The instrument
+    round this figure is the queue drawn as one bar per row, and each bar now carries the reference
+    of the row it is, so the metric's own text runs "…TH-2045" straight into "3 h 20 m" and the
+    pattern below happily read "20453 h 20 m" out of the join. Nothing about the property changed:
+    the numeral the strip states still has to be a wait a row on the queue states too. */
+ const longest = (await page.locator('.s-metric', { hasText: 'Longest wait' }).locator('.s-metric-value').textContent()) ?? '';
  const stated = longest.match(/\d+\s*h\s*\d+\s*m|\d+\s*m/)?.[0];
  expect(stated).toBeTruthy();
  const rowText = (await rows.allTextContents()).join(' ').replace(/\s+/g, ' ');

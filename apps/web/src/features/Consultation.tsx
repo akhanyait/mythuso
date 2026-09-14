@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { BadgeCheck, Check, ClipboardList, Lock, NotebookPen, PenLine, ShieldX, Stethoscope, UserCheck } from 'lucide-react';
-import { Pill } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { CalibrationCaveat, CalibrationTag, ProvenanceTag, type Source } from '../components/Provenance';
 import { can, formatEventTime, roleById, type VettingSubject } from '../lib/vetting';
 import { subjectById } from '../lib/vetting-fixtures';
 import schema from '../../../../packages/catalog/records.json';
+import { ClinicalDeck, type DeckFigure } from './ClinicalDeck';
+import './clinical-records.css';
 
 /* One shape for every encounter. The sections, which of them are required, which capability each
    hangs on and the four SOAP headings all live in packages/catalog/records.json, because a
@@ -86,8 +87,8 @@ const roleGrants = (subject: VettingSubject, capability: string) =>
    sentence. */
 const sentence = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
-export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato Molefe', seed, readings = [], writer: initialWriter, onClose }:
- { reference?: string; patient?: string; seed?: ConsultationDraft; readings?: SeededObservation[]; writer?: string; onClose?: () => void }) {
+export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato Molefe', seed, readings = [], writer: initialWriter, title = 'Consultation record', onClose }:
+ { reference?: string; patient?: string; seed?: ConsultationDraft; readings?: SeededObservation[]; writer?: string; title?: string; onClose?: () => void }) {
  const [writerId, setWriterId] = useState(initialWriter ?? writers[0].id);
  const [view, setView] = useState<'record' | 'soap' | 'read'>('record');
  const [record, setRecord] = useState<ConsultationDraft>(seed ?? {});
@@ -116,94 +117,157 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
     the point of one structure is that the record does not change when the reader does. */
  const carried = everyField.filter(f => value(f.id) && !offeredFields.some(o => o.id === f.id));
 
- const field = (f: Field) => <label key={f.id}>{f.label}
+ const field = (f: Field, hideLabel = false) => <label key={f.id}>
+  <span className={hideLabel ? 'cr-vh' : 'cr-field-label'}>{f.label}</span>
   <textarea value={record[f.id] ?? ''} disabled={!!signature} placeholder={f.placeholder} maxLength={1200} onChange={e => set(f.id, e.target.value)}/>
  </label>;
+ /* Written, for the mark on the spine. A section is written when any field under it holds
+    something, which is the same test `outstanding` signs against — one definition, so the mark on
+    the document and the refusal at the foot of it can never disagree. */
+ const isWritten = (s: SectionSpec) => fields(s).some(f => value(f.id));
  /* Rendered as a call rather than a nested component, so a keystroke re-renders the textarea
     instead of replacing it and taking the caret with it. */
- const section = (s: SectionSpec) => {
-  if (s.id === 'clinician') return null;                           // rendered once, at the signature
+ const body = (s: SectionSpec) => {
   const decision = decisionFor(s);
-  return <div className="form-stack" key={s.id}>
-   {s.id === 'observations' && readings.map(r => <div className="review-line" key={r.id}>
-    <span>{r.label}<span className="prov-row"><ProvenanceTag source={r.source}/><CalibrationTag source={r.source}/></span></span>
-    <strong className={r.flagged ? 'flagged' : ''}>{r.value} {r.unit}{r.flagged ? ' ⚠' : ''}</strong>
-   </div>)}
-   {s.id === 'observations' && readings.map(r => <CalibrationCaveat key={r.id} source={r.source}/>)}
-   {decision.allowed ? fields(s).map(field)
-    : <><div className="review-line"><span>{s.name}</span><strong><Lock size={14}/>Locked</strong></div>
+  const own = fields(s);
+  /* One field whose label is the section's own name would print the name twice — once as the
+     pane's heading and once over the box. The label stays in the accessibility tree and leaves
+     the page, because a heading a sighted reader has already read is not a second instruction. */
+  const duplicated = own.length === 1 && own[0].label === s.name;
+  return <>
+   {s.id === 'observations' && readings.length > 0 && <div className="cr-readings">
+    {readings.map(r => <div className="review-line" key={r.id}>
+     <span>{r.label}<span className="prov-row"><ProvenanceTag source={r.source}/><CalibrationTag source={r.source}/></span></span>
+     <strong className={r.flagged ? 'flagged' : ''}>{r.value} {r.unit}{r.flagged ? ' ⚠' : ''}</strong>
+    </div>)}
+    {readings.map(r => <CalibrationCaveat key={r.id} source={r.source}/>)}
+   </div>}
+   {decision.allowed ? own.map(f => field(f, duplicated))
+    : <><div className="cr-locked"><Lock size={15}/><span>{s.name} — locked</span></div>
        {/* The reason is worth repeating only where it is this section's own. A form the writer may
            not use at all says so once, at the top, rather than twelve times down the page. */}
        {s.gatedBy && <p className="helper" role="status"><ShieldX size={13}/>{decision.reason}</p>}</>}
-   {s.note && <p className="helper">{s.note}</p>}
+   {s.note && <p className="cr-note">{s.note}</p>}
    {s.id === 'assessment' && !mayDiagnose && <>
-    <div className="review-line"><span>Diagnosis</span><strong><Lock size={14}/>Not recorded — a doctor’s</strong></div>
+    <div className="cr-locked"><Lock size={15}/><span>Diagnosis — not recorded. A doctor’s.</span></div>
     <div className="privacy-note"><UserCheck size={19}/>A nurse’s assessment is a different field from a diagnosis, not the same field written by somebody else. {can(writer, 'sign-clinical-review').reason} This record carries no diagnosis until a doctor writes one under their own HPCSA registration.</div>
    </>}
-  </div>;
+  </>;
+ };
+ /* A pane is one act of writing: its place in the document, its name, and what is under it. The
+    mark fills when the section is written, so how far through the record a clinician is, is a shape
+    down the left of it rather than a count they have to make for themselves. */
+ const pane = (s: SectionSpec, index: number) => {
+  const decision = decisionFor(s);
+  const done = isWritten(s);
+  return <section className={`cr-pane${done ? ' written' : ''}${decision.allowed ? '' : ' locked'}`} key={s.id}>
+   <span className="cr-pane-mark" aria-hidden="true">{!decision.allowed ? <Lock size={15}/> : done ? <Check size={17}/> : index}</span>
+   <div className="cr-pane-body">
+    <div className="cr-pane-head">
+     <h4>{s.name}</h4>
+     <span className={s.required ? 'cr-tag required' : 'cr-tag'}>{s.required ? 'Required' : 'Optional'}</span>
+    </div>
+    {body(s)}
+   </div>
+  </section>;
  };
 
- return <div className="form-stack">
-  <Pill tone={signature ? 'teal' : 'amber'}>{signature ? 'Signed' : 'Draft — not signed'}</Pill>
-  <h3>{reference} · {patient}</h3>
-  <NotConnected of="clinical-records"/>
-  <p className="muted">{spec.why}</p>
-  <label>Writing as<select value={writerId} disabled={!!signature} onChange={e => { setWriterId(e.target.value); setSignature(null); }}>
-   {writers.map(w => <option key={w.id} value={w.id}>{w.name} · {w.reference}</option>)}
-  </select></label>
+ /* The record counting itself. The ring has one arc per field this writer is offered, lit where the
+    field holds something — the same test the spine's marks and the refusal at the foot are drawn
+    from, so the three can never disagree. Nothing on it moves as somebody types: a mark that filled
+    itself under a clinician's hand would be the record animating her own words back at her. */
+ const figures: DeckFigure[] = [
+  { label: 'Fields written', value: String(filled), unit: `of ${offeredFields.length}`, flagged: false,
+    chip: signature ? 'Signed' : 'Draft — not signed',
+    shape: { kind: 'ring', segments: offeredFields.map(f => !!value(f.id)) } },
+  { label: 'Required sections still to write', value: String(outstanding.length), flagged: false,
+    chip: outstanding.length ? 'Before this can be signed' : 'Ready to sign' }
+ ];
+ return <div className="cr c-page">
+  {/* What a reader wants from a record before they read it is whose it is, who is writing it and
+      whether it has been signed. Whose is the pale panel; the count and the signature are the glass;
+      the sentence under the headline is the record contract's own reason for having one shape. */}
+  <ClinicalDeck role="Consultation record" title={title} figures={figures}
+   headline={['What this record holds,', { glyph: 'file' }, 'and who may sign it.']}
+   note={spec.why}
+   panel={<>
+    <span className="c-panel-eyebrow">{reference}</span>
+    <strong className="c-panel-name">{patient}</strong>
+    {/* Who is writing is a fact about whose record this is, so the choice of writer stands beside the
+        patient's name rather than floating on the sheet above the first section. */}
+    <label className="cr-writer"><span>Writing as</span><select value={writerId} disabled={!!signature} onChange={e => { setWriterId(e.target.value); setSignature(null); }}>
+     {writers.map(w => <option key={w.id} value={w.id}>{w.name} · {w.reference}</option>)}
+    </select></label>
+    <p className="c-panel-line">{role?.name ?? writer.reference}</p>
+   </>}>
+   <NotConnected of="clinical-records"/>
+  </ClinicalDeck>
+  <div className="c-sheet cr cr-doc">
   {!mayWrite.allowed && <div className="privacy-note alert" role="status"><ShieldX size={19}/>{mayWrite.reason} The form is read-only rather than merely unsignable: an entry nobody may put their registration against is not a record, it is a note that looks like one.</div>}
 
-  <div className="underline-tabs">{([['record', 'Full record'], ['soap', 'SOAP'], ['read', 'As it reads']] as const).map(([id, label]) =>
+  {/* One rail, lifted, rather than three underlined words: the same shape the workspace uses for
+      its tools, because these are three readings of one record and not three tabs of three. */}
+  <div className="cr-views" role="group" aria-label="How to read this record">{([['record', 'Full record'], ['soap', 'SOAP'], ['read', 'As it reads']] as const).map(([id, label]) =>
    <button key={id} aria-pressed={view === id} className={view === id ? 'selected' : ''} onClick={() => setView(id)}>{label}</button>)}</div>
   <p className="helper"><NotebookPen size={13}/>One record, {filled} of {offeredFields.length} fields written. SOAP and the long form are two arrangements of those same fields — switching loses nothing, because there is no second copy of the note to keep in step.</p>
 
-  {view === 'record' ? <div className="form-stack">{offered.map(section)}</div>
-   : view === 'soap' ? <div className="form-stack">
+  {view === 'record' ? <div className="cr-panes">{offered.filter(s => s.id !== 'clinician').map((s, i) => pane(s, i + 1))}</div>
+   : view === 'soap' ? <div className="cr-panes soap">
     {soapHeadings.map(h => {
      const covered = offered.filter(s => (soapCovers[h.id] ?? []).includes(s.id));
-     return <div className="panel form-stack" key={h.id}>
-      <span className="pill plain">{h.id} · {h.name}</span>
-      <p className="helper">{h.detail}</p>
-      {covered.length ? covered.map(section) : <p className="helper"><Lock size={13}/>Nothing under this heading is offered to a {role?.name.toLowerCase()}.</p>}
-     </div>;
+     return <section className="cr-pane soap" key={h.id}>
+      <span className="cr-pane-mark letter" aria-hidden="true">{h.id}</span>
+      <div className="cr-pane-body">
+       <div className="cr-pane-head"><h4>{h.name}</h4></div>
+       <p className="cr-note">{h.detail}</p>
+       {covered.length ? covered.map(s => <div className="cr-sub" key={s.id}><h5>{s.name}</h5>{body(s)}</div>)
+        : <p className="helper"><Lock size={13}/>Nothing under this heading is offered to a {role?.name.toLowerCase()}.</p>}
+      </div>
+     </section>;
     })}
-    {outsideSoap.filter(s => offered.includes(s)).map(s => <div className="panel form-stack" key={s.id}>
-     <span className="pill plain">No SOAP heading claims this</span>{section(s)}
-    </div>)}
-   </div> : <div className="form-stack">
+    {outsideSoap.filter(s => offered.includes(s)).map(s => <section className="cr-pane soap" key={s.id}>
+     <span className="cr-pane-mark letter" aria-hidden="true">—</span>
+     <div className="cr-pane-body">
+      <div className="cr-pane-head"><h4>{s.name}</h4><span className="cr-tag">No SOAP heading claims this</span></div>
+      {body(s)}
+     </div>
+    </section>)}
+   </div> : <div className="cr-read">
     {soapHeadings.map(h => {
      const lines = offered.filter(s => (soapCovers[h.id] ?? []).includes(s.id)).flatMap(fields).filter(f => value(f.id));
-     return <div className="panel" key={h.id}>
-      <span className="pill plain">{h.id} · {h.name}</span>
-      {lines.length ? lines.map(f => <div className="review-line" key={f.id}><span>{f.label}</span><strong>{value(f.id)}</strong></div>)
+     return <section className="cr-read-block" key={h.id}>
+      <div className="cr-read-head"><span className="cr-pane-mark letter" aria-hidden="true">{h.id}</span><h4>{h.name}</h4></div>
+      {lines.length ? lines.map(f => <div className="cr-read-line" key={f.id}><dt>{f.label}</dt><dd>{value(f.id)}</dd></div>)
        : <p className="helper">Nothing written under {h.name.toLowerCase()} yet.</p>}
-     </div>;
+     </section>;
     })}
     <div className="privacy-note"><ClipboardList size={19}/>Assembled from the fields above every time this view opens. It is a reading of the record rather than a copy of it, so there is nothing here to save and nothing to fall out of step.</div>
    </div>}
 
-  {carried.length > 0 && <div className="form-stack">
-   <span className="pill plain">Already in this record</span>
+  {carried.length > 0 && <div className="cr-appendix">
+   <div className="cr-appendix-head"><h4>Already in this record</h4><span className="cr-tag">Read-only</span></div>
    {carried.map(f => <div className="review-line" key={f.id}><span>{f.label}</span><strong>{value(f.id)}</strong></div>)}
    <p className="helper"><Lock size={13}/>Written on another clinician’s form and read-only here. The record does not change shape because the reader did.</p>
   </div>}
   {neverGranted.length > 0 && <div className="privacy-note"><Stethoscope size={19}/>{sentence(neverGranted.map(s => s.name.toLowerCase()).join(', '))} {neverGranted.length > 1 ? 'are' : 'is'} not on this form at all. A {role?.name.toLowerCase()} is never granted {neverGranted.length > 1 ? 'those capabilities' : 'that capability'}, so the section is absent rather than offered and refused after it has been written.</div>}
 
-  {signature ? <div className="form-stack">
-   <div className="success-icon"><BadgeCheck size={30}/></div>
-   <h3>Consultation signed.</h3>
+  {signature ? <div className="cr-signed">
+   <div className="cr-signed-head"><span className="success-icon"><BadgeCheck size={28}/></span>
+    <div><h4>Consultation signed.</h4><p>This is an append-only entry attributed to that registration. An encounter nobody signs stays a draft rather than quietly counting as a consultation.</p></div>
+   </div>
    <div className="review-line"><span>Clinician</span><strong>{signature.name}</strong></div>
    <div className="review-line"><span>Council registration</span><strong>{signature.reference}</strong></div>
    <div className="review-line"><span>Role</span><strong>{signature.role}</strong></div>
    <div className="review-line"><span>Signed</span><strong>{formatEventTime(signature.at)}</strong></div>
    <div className="review-line"><span>Diagnosis</span><strong>{signature.diagnosis ? 'Recorded by the signing doctor' : 'Not recorded — a nurse’s assessment is not a diagnosis'}</strong></div>
-   <p className="muted">This is an append-only entry attributed to that registration. An encounter nobody signs stays a draft rather than quietly counting as a consultation.</p>
    {onClose && <button className="primary full" onClick={onClose}>Close<Check size={17}/></button>}
-  </div> : <div className="form-stack">
-   <div className="review-line"><span>Signature</span><strong><PenLine size={14}/>Draft — {writer.name} has not signed</strong></div>
-   <p className="helper" role="status">{outstanding.length
-    ? `Outstanding before this can be signed: ${outstanding.map(s => s.name.toLowerCase()).join(', ')}.`
-    : 'Every required section is written. Signing attaches the name, the council registration and the moment of signing.'}</p>
+  </div> : <div className="cr-foot">
+   <div className="cr-foot-say">
+    <p className="cr-foot-line"><PenLine size={15}/>Draft — {writer.name} has not signed</p>
+    <p className="helper" role="status">{outstanding.length
+     ? `Outstanding before this can be signed: ${outstanding.map(s => s.name.toLowerCase()).join(', ')}.`
+     : 'Every required section is written. Signing attaches the name, the council registration and the moment of signing.'}</p>
+   </div>
    <div className="button-row">
     {onClose && <button className="secondary" onClick={onClose}>Close</button>}
     <button className="primary" disabled={!mayWrite.allowed || outstanding.length > 0}
@@ -212,11 +276,12 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
     </button>
    </div>
   </div>}
+  </div>
  </div>;
 }
 
 /* The structure on its own, for a review that wants the record rather than the flow that produces
    one. */
-export function ConsultationRecord({ onClose }: { onClose?: () => void }) {
- return <ConsultationComposer onClose={onClose}/>;
+export function ConsultationRecord({ title, onClose }: { title?: string; onClose?: () => void }) {
+ return <ConsultationComposer title={title} onClose={onClose}/>;
 }

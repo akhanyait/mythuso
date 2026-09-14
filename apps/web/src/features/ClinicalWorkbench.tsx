@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Activity, AlertTriangle, ArrowUpRight, CalendarDays, Check, ClipboardList, Cpu, HeartPulse, House, Lock, PackageCheck, PenLine, Radio, ShieldCheck, Stethoscope, Video } from 'lucide-react';
+import { Activity, AlertTriangle, ArrowRight, ArrowUpRight, CalendarDays, Check, ClipboardList, Cpu, HeartPulse, House, Lock, PackageCheck, PenLine, Radio, ShieldCheck, Stethoscope, Video } from 'lucide-react';
 import { useThusoIQ } from '../lib/thusoiq';
 import { bounds, label, latestSample, refusal, sampleFreshness, soapKeys, thusoiq, type Appointment, type Assessment, type Command, type Consultation, type MedicationRequest, type Notes, type Patient, type State } from '../../../../packages/thusoiq/index.ts';
 /* The four SOAP headings, the sentence under each of them and the one note that says who may
@@ -30,6 +30,16 @@ const contractRole: Record<Role, string> = { Nurse: 'nurse', Doctor: 'doctor', P
    nowhere else — there is no consultation state table in the contract to derive them from, and the
    day there is, this map is what gets deleted. */
 const encounterWord: Record<Consultation['status'], string> = { draft: 'Draft', 'awaiting-doctor': 'Awaiting doctor review', signed: 'Signed' };
+/* What the workspace is for, in each role's own terms, with a badge set inside the sentence the way
+   the instrument deck at the top of the screen sets one. The badge is decoration: every sentence
+   below reads correctly with it removed, which is what lets it be hidden from a screen reader
+   rather than described. Two of the three are a journey from one act to another and take the arrow;
+   a nurse's is about a visit that is joined up, and takes the signal. */
+const standing: Record<Role, { before: string; glyph: typeof ArrowRight; after: string }> = {
+ Doctor: { before: 'From evidence', glyph: ArrowRight, after: 'to a care decision.' },
+ Nurse: { before: 'Your next visit,', glyph: Radio, after: 'fully connected.' },
+ Partner: { before: 'From prescription', glyph: ArrowRight, after: 'to handover.' }
+};
 const freshnessWord = { missing: 'No reading yet', recent: 'Recent', stale: 'Stale' } as const;
 
 const modeName = (id: string) => visitModes.find(m => m.id === id)?.name ?? id;
@@ -476,6 +486,11 @@ function WearablesTool({ work, streaming, setStreaming, now }: { work: Work; str
  </>;
 }
 
+/** The badge the two dark bands on a clinical screen share. Pale rather than ink: the ink of this
+    family measures 1.28 on the night and a disc nobody can see is not a badge. */
+const Say = ({ of: Icon }: { of: typeof ArrowRight }) =>
+ <span className="iq-glyph" aria-hidden="true"><Icon size={20} strokeWidth={2.1}/></span>;
+
 /* `worklist` is the role's own board — a nurse's day, a doctor's queue, a partner's orders — folded
    into the top of this card rather than stacked above or below it. The three clinical roles used to
    land on the workbench *and* a second screen underneath it: the same person's work, drawn twice,
@@ -534,7 +549,7 @@ export function ClinicalWorkbench({ role, worklist }: { role: Role; worklist?: R
     <span className="iq-status"><span/>Fictional sandbox</span>
    </div>
    <div className="iq-heading-say">
-    <h2>{role === 'Doctor' ? 'From evidence to a care decision.' : role === 'Nurse' ? 'Your next visit, fully connected.' : 'From prescription to handover.'}</h2>
+    <h2>{standing[role].before} <Say of={standing[role].glyph}/> {standing[role].after}</h2>
     <p>One patient. Their appointments, clinical record and next action.</p>
    </div>
   </header>

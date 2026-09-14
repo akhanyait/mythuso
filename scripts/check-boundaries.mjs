@@ -1509,7 +1509,7 @@ if(!teleconsult.outcomes.some(o=>o.connectionLost&&o.countsAsConsultation)) thro
    counted with the rest: a glyph has no legibility floor, but separating them by regex is a guess,
    and a ratchet that guesses is a ratchet nobody trusts. */
 {
- const SMALL_TYPE_ON_IOS = 417;
+ const SMALL_TYPE_ON_IOS = 397;
  let found = 0;
  const worst = [];
  for(const file of files('apps/ios/MyThuso').filter(f => f.endsWith('.swift'))) {

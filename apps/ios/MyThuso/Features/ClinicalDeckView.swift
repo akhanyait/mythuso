@@ -70,6 +70,8 @@ enum DeckShape {
     case day(visits: [DeckVisit], from: Int, to: Int)
     /// The weeks behind a headline figure. Never the week the figure itself states.
     case spark(weeks: [Int])
+    /// One column per row, oldest first; `lit` marks the rows the figure beside it adds up.
+    case columns(values: [Int], lit: [Bool])
 }
 
 // MARK: - The ink on the deck's own ground
@@ -163,6 +165,7 @@ private struct DeckRing: View {
     let lit: Color
     let unlit: Color
     let progress: CGFloat
+    var track: Color = DeckInk.track
     var body: some View {
         GeometryReader { geo in
             let side = min(geo.size.width, geo.size.height)
@@ -172,7 +175,7 @@ private struct DeckRing: View {
                ring of twelve cases must not dissolve into a dotted line. */
             let gap = min(0.028, step / 3)
             ZStack {
-                RingTrack().stroke(DeckInk.track, lineWidth: side * 0.10)
+                RingTrack().stroke(track, lineWidth: side * 0.10)
                 ForEach(Array(segments.enumerated()), id: \.offset) { index, on in
                     /* Butt caps, and this was a bug worth writing down. A round cap extends half the
                        stroke past each end of its arc, so at the lit width the two caps either side
@@ -195,6 +198,7 @@ private struct DeckGauge: View {
     let whole: Int
     let lit: Color
     let progress: CGFloat
+    var track: Color = DeckInk.track
     var body: some View {
         GeometryReader { geo in
             let side = min(geo.size.width, geo.size.height)
@@ -202,7 +206,7 @@ private struct DeckGauge: View {
             let filled = whole > 0 ? min(1, max(0, Double(part) / Double(whole))) : 0
             ZStack {
                 ArcMark(from: from, to: from + sweep)
-                    .stroke(DeckInk.track, style: StrokeStyle(lineWidth: side * 0.10, lineCap: .round))
+                    .stroke(track, style: StrokeStyle(lineWidth: side * 0.10, lineCap: .round))
                 if filled > 0 {
                     ArcMark(from: from, to: from + sweep * filled)
                         .trim(from: 0, to: progress)
@@ -411,6 +415,8 @@ private struct DeckInstrument: View {
                 stacked { DeckDay(visits: visits, from: from, to: to, lit: lit, unlit: unlit, progress: progress) }
             case .spark(let weeks):
                 stacked { DeckSpark(weeks: weeks, lit: lit, progress: progress) }
+            case .columns(let values, let marks):
+                stacked { DeckColumns(values: values, marks: marks, lit: lit, unlit: unlit, progress: progress).frame(height: 52) }
             case .none:
                 numeral
             }
@@ -554,5 +560,818 @@ struct ClinicalDeck: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - The deck, spent on a whole screen
+
+/* THE SEVEN SCREENS BEHIND THE DECK, IN THE DECK'S OWN GRAMMAR.
+ *
+ * The founder opened the doctor's deck and then Patient file, Consultation record and Protocols, and
+ * on the nurse's side Assessments, Thuso Kit, Earnings & payouts and Vetting, and said every one of
+ * them was boring. The screenshots agreed: a clinician crossed from a night canvas with a ring of her
+ * own rows on it into a column of white boxes at one elevation, and nothing on the way explained the
+ * change of dialect. The web had the same fault and fixed it in clinical-records.css and
+ * nurse-tools.css; this is the native half.
+ *
+ * So what follows is the deck's composition lifted off the landing and made into parts a screen is
+ * built from — the composition apps/web/src/features/clinical-deck.css draws. A night canvas carrying
+ * a headline with circular glyph badges set inside the sentence. The one figure the screen is about,
+ * on dark glass, which is the only place lime is spent. A pale indigo panel with its chart drawn
+ * BEHIND its numeral rather than beside it, and a night card crossing that panel's edge. Pill
+ * clusters for the choice a design review turns on. Circular affordances. And a light sheet standing
+ * on the canvas's lower edge, one elevation above it.
+ *
+ * INDIGO WHERE THE REFERENCE WAS VIOLET. The reference draws its quiet half in lavender; MyThuso ships
+ * an indigo family, so the panel is indigoSoft and its marks are indigo. No colour token was added.
+ *
+ * THE RULE THE DECK ABOVE IS BUILT ON HOLDS UNCHANGED. Nothing drawn introduces a number: every ring,
+ * gauge, bar and line is counted off rows the same screen lists, so a reader who distrusts the picture
+ * can count the list. And no clinical value moves. A reading's trend is the finished drawing on the
+ * first frame whatever Reduce Motion says; only a count of rows draws itself in, and under Reduce
+ * Motion not even that.
+ *
+ * MEASURED ON THE GROUND EACH PAIR ACTUALLY LANDS ON, with the sRGB formula the build runs:
+ *   the flat night            paper 13.59   lime 12.03   quiet 7.75   studioPeach 11.43
+ *                             `danger` is 2.28 here and is never written on the dark; a refusal on
+ *                             the canvas is peach and a glyph and a word.
+ *   the glass, paper at 8% over night (#313933)
+ *                             paper 10.78   lime 9.54   quiet 6.45   peach 9.06
+ *                             an unlit mark at 44% 3.45 — 40% would be the colour that clears on the
+ *                             night it was chosen against and not on the glass it lands on
+ *   a control's edge          paper at 44%: 3.84 on the night, 3.45 on the glass
+ *   indigoSoft                charcoal 15.24   studioInkMuted 6.19   indigoDeep 11.23
+ *                             indigo 9.26 — the lit mark   indigo at 58% 3.15 — the unlit one
+ *   the badge                 indigoSoft on studioNight 13.39, indigoDeep inside it 11.23
+ *   the float card            studioNight against indigoSoft 13.39
+ * And colour is never the only difference between two states: a lit arc is thicker, the longest bar
+ * is taller, a chosen pill is filled and heavier, and a refusal says so in words beside its glyph. */
+
+extension DeckInk {
+    static let glass = ThusoTheme.studioPaper.opacity(0.08)
+    static let glassEdge = ThusoTheme.studioPaper.opacity(0.16)
+    /// The edge of anything pressable on the canvas. See the table above: 3.84 and 3.45.
+    static let control = ThusoTheme.studioPaper.opacity(0.44)
+    /// A refusal on the dark. `danger` measures 2.28 on studioNight and may not be a word there.
+    static let refusal = ThusoTheme.studioPeach
+    static let panel = ThusoTheme.indigoSoft
+    static let panelInk = ThusoTheme.charcoal
+    static let panelQuiet = ThusoTheme.studioInkMuted
+    static let panelLit = ThusoTheme.indigo
+    static let panelMark = ThusoTheme.indigo.opacity(0.58)
+    static let panelTrack = ThusoTheme.indigo.opacity(0.18)
+}
+
+/// The one raised elevation tokens.json declares — `0 4px 16px` of ink at ten per cent — and nothing
+/// stacks a second one under it.
+extension View {
+    func deckRaised() -> some View { shadow(color: ThusoTheme.ink.opacity(0.10), radius: 8, x: 0, y: 4) }
+}
+
+/// Which ground a figure is drawn on, because a palette belongs to a ground and not to a width.
+enum DeckGround { case glass, night, panel }
+
+// MARK: Layout
+
+/* Wraps what it holds onto as many lines as it needs, and centres each line on its tallest member.
+   The headline needs it because a badge is a view rather than a character and cannot sit inside a
+   Text; a pill cluster needs it because a row of choices that scrolls sideways hides the ones a
+   reviewer came to compare. */
+struct DeckFlow: Layout {
+    var spacing: CGFloat = ThusoSpacing.space8
+    var lineSpacing: CGFloat = ThusoSpacing.space8
+
+    private func lines(_ width: CGFloat, _ subviews: Subviews) -> [[(Int, CGSize)]] {
+        var rows: [[(Int, CGSize)]] = [[]]
+        var x: CGFloat = 0
+        for (index, view) in subviews.enumerated() {
+            let size = view.sizeThatFits(ProposedViewSize(width: width, height: nil))
+            if x > 0 && x + size.width > width {
+                rows.append([])
+                x = 0
+            }
+            rows[rows.count - 1].append((index, CGSize(width: min(size.width, width), height: size.height)))
+            x += size.width + spacing
+        }
+        return rows
+    }
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? .infinity
+        let rows = lines(width, subviews)
+        let height = rows.reduce(0) { $0 + ($1.map(\.1.height).max() ?? 0) } + lineSpacing * CGFloat(max(rows.count - 1, 0))
+        let widest = rows.map { row in row.reduce(0) { $0 + $1.1.width } + spacing * CGFloat(max(row.count - 1, 0)) }.max() ?? 0
+        return CGSize(width: proposal.width ?? widest, height: height)
+    }
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in lines(bounds.width, subviews) {
+            let tallest = row.map(\.1.height).max() ?? 0
+            var x = bounds.minX
+            for (index, size) in row {
+                subviews[index].place(at: CGPoint(x: x, y: y + (tallest - size.height) / 2),
+                                      proposal: ProposedViewSize(width: size.width, height: size.height))
+                x += size.width + spacing
+            }
+            y += tallest + lineSpacing
+        }
+    }
+}
+
+// MARK: The canvas and what stands on it
+
+/* The night canvas. Flat studioNight for the reason this file's header gives — every unlit mark on it
+   is measured against one ground rather than a gradient — with the one raised elevation, and the
+   environment flag that tells ThusoMetric and friends they are standing on the dark. */
+struct DeckCanvas<Content: View>: View {
+    /// Room left at the foot for the sheet that crosses the canvas's lower edge. Given back as padding
+    /// first, so what the sheet covers is empty ground and never a figure.
+    var overhang: CGFloat = 0
+    @ViewBuilder var content: Content
+    var body: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space20) { content }
+            .padding(.horizontal, ThusoSpacing.space20)
+            .padding(.top, ThusoSpacing.space20)
+            .padding(.bottom, ThusoSpacing.space24 + overhang)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DeckInk.ground, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+            .deckRaised()
+            .environment(\.onStudioNight, true)
+    }
+}
+
+/* A canvas, and the light sheet that stands on its lower edge.
+   The reference's panels sit at two elevations with one crossing the other's edge. On a phone that is
+   the one crossing that costs nothing: the sheet is inset from the canvas's sides, so the night shows
+   either side of it and reads as the ground the sheet is standing on rather than as a card that has
+   slipped. `wrap` is off where the sheet's own content is already a card. */
+struct DeckHero<Content: View, Sheet: View>: View {
+    var wrap = true
+    /// The sheet's ground. White, or mangoSoft where what stands on the edge is a refusal.
+    var sheetFill: Color = ThusoTheme.surface
+    @ViewBuilder var content: Content
+    @ViewBuilder var sheet: Sheet
+    @ScaledMetric(relativeTo: .body) private var overlap: CGFloat = 36
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            DeckCanvas(overhang: overlap) { content }
+            Group {
+                if wrap { DeckSheet(fill: sheetFill) { sheet } } else { sheet }
+            }
+            .padding(.horizontal, ThusoSpacing.space12)
+            .padding(.top, -overlap)
+        }
+    }
+}
+extension DeckHero where Sheet == EmptyView {
+    init(@ViewBuilder content: () -> Content) {
+        self.init(wrap: false, content: content) { EmptyView() }
+    }
+}
+
+/// The light card that stands on the canvas: white, the card radius, the one elevation.
+struct DeckSheet<Content: View>: View {
+    var padding: CGFloat = ThusoSpacing.space16
+    var fill: Color = ThusoTheme.surface
+    @ViewBuilder var content: Content
+    var body: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) { content }
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(fill, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+            .deckRaised()
+            .environment(\.onStudioNight, false)
+    }
+}
+
+/// The lead's own card: the night lifted eight per cent, which is depth by one step of the same colour
+/// rather than by a second shadow inside a shadowed card.
+struct DeckGlass<Content: View>: View {
+    var padding: CGFloat = ThusoSpacing.space16
+    @ViewBuilder var content: Content
+    var body: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) { content }
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DeckInk.glass, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(DeckInk.glassEdge, lineWidth: 1))
+    }
+}
+
+/* The pale half of the deck, and the card that crosses its lower edge.
+   indigoSoft with a dot grid of its own ink at a fifth of its strength: it carries nothing, and it is
+   what stops a block of one pale colour reading as a hole in the canvas. The float is a night card,
+   inset on the leading side, so it crosses from the panel back onto the night it came from. */
+struct DeckPanel<Content: View, Crossing: View>: View {
+    @ViewBuilder var content: Content
+    @ViewBuilder var float: Crossing
+    @ScaledMetric(relativeTo: .body) private var overlap: CGFloat = 28
+    private var floats: Bool { Crossing.self != EmptyView.self }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space12) { content }
+                .padding(.horizontal, ThusoSpacing.space16)
+                .padding(.top, ThusoSpacing.space16)
+                .padding(.bottom, ThusoSpacing.space16 + (floats ? overlap : 0))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background { ZStack { DeckInk.panel; DeckDots() } }
+                .clipShape(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+                .environment(\.onStudioNight, false)
+            if floats {
+                float
+                    .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(DeckInk.ground, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(DeckInk.glassEdge, lineWidth: 1))
+                    .deckRaised()
+                    .padding(.leading, ThusoSpacing.space16)
+                    .padding(.top, -overlap)
+            }
+        }
+    }
+}
+extension DeckPanel where Crossing == EmptyView {
+    init(@ViewBuilder content: () -> Content) { self.init(content: content) { EmptyView() } }
+}
+
+private struct DeckDots: View {
+    var body: some View {
+        Canvas { context, size in
+            let step: CGFloat = 14
+            var x: CGFloat = step / 2
+            while x < size.width {
+                var y: CGFloat = step / 2
+                while y < size.height {
+                    context.fill(Path(ellipseIn: CGRect(x: x - 1, y: y - 1, width: 2, height: 2)),
+                                 with: .color(ThusoTheme.indigo.opacity(0.22)))
+                    y += step
+                }
+                x += step
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: Words on the canvas
+
+/// A word of a deck headline, or the circular badge set inside the sentence in place of one. The
+/// sentence must read correctly with every badge removed, which is what lets VoiceOver skip them.
+enum DeckWord {
+    case text(String)
+    case glyph(String)
+}
+
+/* The headline. `metric` rather than `metricLarge`: it is a sentence and not a figure, and the figure
+   on the glass below it has to stay the largest thing on the screen. Past the accessibility sizes it
+   drops to `screenTitle` — still scaled, so it still grows, from a smaller start — for the reason
+   StudioHeadline gives: a display line one word per row has stopped being a headline. */
+struct DeckHeadline: View {
+    let eyebrow: String
+    let words: [DeckWord]
+    var tail: String = ""
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .largeTitle) private var display: CGFloat = ThusoType.metric
+    @ScaledMetric(relativeTo: .largeTitle) private var compact: CGFloat = ThusoType.screenTitle
+    private var size: CGFloat { typeSize.isAccessibilitySize ? compact : display }
+    private var tokens: [DeckWord] {
+        words.flatMap { word -> [DeckWord] in
+            if case .text(let text) = word { return text.split(separator: " ").map { .text(String($0)) } }
+            return [word]
+        }
+    }
+    private var spoken: String {
+        words.compactMap { if case .text(let text) = $0 { return text } else { return nil } }.joined(separator: " ")
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            Text(eyebrow.uppercased())
+                .thusoFont(ThusoType.caption, weight: .semibold).tracking(1.4)
+                .foregroundStyle(DeckInk.accent)
+                .fixedSize(horizontal: false, vertical: true)
+            DeckFlow(spacing: size * 0.24, lineSpacing: size * 0.1) {
+                ForEach(Array(tokens.enumerated()), id: \.offset) { _, token in
+                    switch token {
+                    case .text(let text):
+                        Text(text).font(.system(size: size, weight: .medium)).tracking(-0.6)
+                            .foregroundStyle(DeckInk.ink)
+                    case .glyph(let symbol):
+                        DeckGlyph(symbol: symbol, diameter: size * 0.92)
+                    }
+                }
+            }
+            if !tail.isEmpty {
+                Text(tail).thusoFont(ThusoType.body).foregroundStyle(DeckInk.quiet)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(tail.isEmpty ? spoken : "\(spoken). \(tail)")
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// Pale indigo rather than indigo: indigo on this ground measures 1.28, and a disc nobody can see is
+/// not a badge.
+struct DeckGlyph: View {
+    let symbol: String
+    let diameter: CGFloat
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: diameter * 0.46, weight: .semibold))
+            .foregroundStyle(ThusoTheme.indigoDeep)
+            .frame(width: diameter, height: diameter)
+            .background(ThusoTheme.indigoSoft, in: Circle())
+            .accessibilityHidden(true)
+    }
+}
+
+/* The preview disclosure, on the dark. The words are DemoBadge's, unchanged; only the ground moved,
+   because a cloud chip on studioNight is a pale lozenge pulling the eye off the headline. */
+struct DeckPreviewMark: View {
+    var body: some View {
+        Label("Design preview · Fictional data", systemImage: "info.circle")
+            .thusoFont(ThusoType.caption, weight: .medium)
+            .foregroundStyle(DeckInk.ink)
+            .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space4)
+            .fixedSize(horizontal: false, vertical: true)
+            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(DeckInk.control, lineWidth: 1))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Design preview · Fictional data")
+    }
+}
+
+/// A refusal on the canvas: peach, a glyph, and the sentence the contract wrote.
+struct DeckRefusal: View {
+    let decision: VettingDecision
+    var body: some View {
+        if !decision.allowed, let reason = decision.reason {
+            Label(reason, systemImage: "hand.raised")
+                .font(.footnote).foregroundStyle(DeckInk.refusal)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel("Refused. \(reason)")
+        }
+    }
+}
+
+/// A status on any of the three grounds. Outlined in the ground's quiet ink; filled for the one thing
+/// that is not as it should be, with the word on it doing the telling.
+struct DeckTag: View {
+    let text: String
+    var flagged = false
+    var ground: DeckGround = .glass
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private var shape: AnyShape {
+        typeSize.isAccessibilitySize
+            ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            : AnyShape(Capsule())
+    }
+    private var colours: (ink: Color, fill: Color, edge: Color) {
+        switch ground {
+        case .panel: return flagged ? (DeckInk.panel, DeckInk.panelLit, DeckInk.panelLit)
+                                    : (ThusoTheme.indigoDeep, .clear, DeckInk.panelLit)
+        default: return flagged ? (DeckInk.ground, DeckInk.ink, DeckInk.ink)
+                                : (DeckInk.quiet, .clear, DeckInk.mark)
+        }
+    }
+    var body: some View {
+        Text(text)
+            .thusoFont(ThusoType.caption, weight: .medium)
+            .foregroundStyle(colours.ink)
+            .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, 3)
+            .fixedSize(horizontal: false, vertical: true)
+            .background(colours.fill, in: shape)
+            .overlay(shape.stroke(colours.edge, lineWidth: 1))
+    }
+}
+
+// MARK: Choices and affordances
+
+/* A pill cluster: the choice a design review turns on — which nurse is holding the instrument, which
+   viewer is reading the file — laid out so every option is visible at once. A menu hides the
+   comparison the screen exists to make. Each pill is a 44-point target at the default size and grows
+   with the words; past the accessibility sizes it stops being a capsule, whose ends would cut a
+   wrapped label. */
+struct DeckPills<Value: Hashable>: View {
+    let label: String
+    @Binding var selection: Value
+    let options: [(value: Value, title: String)]
+    var onNight = true
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private var shape: AnyShape {
+        typeSize.isAccessibilitySize
+            ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            : AnyShape(Capsule())
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+            Text(label)
+                .thusoFont(ThusoType.caption, weight: .semibold)
+                .foregroundStyle(onNight ? DeckInk.quiet : ThusoTheme.studioInkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+            DeckFlow {
+                ForEach(options, id: \.value) { option in pill(option) }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(label)
+    }
+    private func pill(_ option: (value: Value, title: String)) -> some View {
+        let on = option.value == selection
+        let ink: Color = on ? (onNight ? DeckInk.ground : ThusoTheme.studioPaper) : (onNight ? DeckInk.ink : ThusoTheme.charcoal)
+        let fill: Color = on ? (onNight ? DeckInk.ink : ThusoTheme.studioNight) : (onNight ? DeckInk.glass : ThusoTheme.surface)
+        let edge: Color = on ? .clear : (onNight ? DeckInk.control : ThusoTheme.controlEdge)
+        return Button { selection = option.value } label: {
+            HStack(spacing: ThusoSpacing.space4) {
+                if on { Image(systemName: "checkmark").font(.footnote.weight(.bold)).accessibilityHidden(true) }
+                Text(option.title).thusoFont(ThusoType.minimumBody, weight: on ? .semibold : .regular)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .foregroundStyle(ink)
+            .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space8)
+            .frame(minHeight: 44)
+            .background(fill, in: shape)
+            .overlay(shape.stroke(edge, lineWidth: 1))
+            .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+    }
+}
+
+/// The circular affordance. Filled, and inverted against its ground, so it reads as the thing that
+/// moves you rather than as a decoration beside the words. Hidden from VoiceOver: the row it sits on
+/// is the control and already says where it goes.
+struct DeckCircle: View {
+    var symbol = "arrow.up.right"
+    var onNight = false
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(onNight ? DeckInk.ground : ThusoTheme.studioPaper)
+            .frame(width: 44, height: 44)
+            .background(onNight ? DeckInk.ink : ThusoTheme.studioNight, in: Circle())
+            .accessibilityHidden(true)
+    }
+}
+
+/* A destination in a section, as a card with a circle rather than a grey pill in a column of grey
+   pills. The first one on a section is `raised` — it stands on the canvas — and carries the badge; the
+   rest keep a hairline and a plain symbol, because a badge on every row is a colour that has stopped
+   meaning anything. */
+struct DeckDestination: View {
+    let title: String
+    var subtitle: String = ""
+    let symbol: String
+    var raised = false
+    @Environment(\.dynamicTypeSize) private var typeSize
+    var body: some View {
+        HStack(alignment: .center, spacing: ThusoSpacing.space12) {
+            if !typeSize.isAccessibilitySize {
+                if raised {
+                    DeckGlyph(symbol: symbol, diameter: 44)
+                } else {
+                    Image(systemName: symbol).font(.body).foregroundStyle(ThusoTheme.charcoal)
+                        .frame(width: 44).accessibilityHidden(true)
+                }
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !subtitle.isEmpty {
+                    Text(subtitle).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            DeckCircle()
+        }
+        .padding(.leading, ThusoSpacing.space16).padding(.trailing, ThusoSpacing.space12)
+        .padding(.vertical, ThusoSpacing.space12)
+        .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
+        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous)
+            .stroke(raised ? .clear : ThusoTheme.studioLine, lineWidth: 1))
+        .modifier(DeckRaisedIf(raised: raised))
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+}
+private struct DeckRaisedIf: ViewModifier {
+    let raised: Bool
+    func body(content: Content) -> some View {
+        if raised { content.deckRaised() } else { content }
+    }
+}
+
+/* The head of a section on paper: a tracked eyebrow over a hairline, with the section's own count at
+   the trailing edge where there is one. It replaces a bold title in a column of bold titles — the
+   count is the thing a reader scanning down the screen is looking for, and the hairline is what tells
+   them where one kind of record ends. */
+struct DeckSectionHead: View {
+    let title: String
+    var count: String?
+    var note: String = ""
+    var body: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+            HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
+                Text(title.uppercased())
+                    .thusoFont(ThusoType.caption, weight: .semibold).tracking(1.2)
+                    .foregroundStyle(ThusoTheme.studioInkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: ThusoSpacing.space8)
+                if let count {
+                    Text(count).thusoFont(ThusoType.caption, weight: .semibold).monospacedDigit()
+                        .foregroundStyle(ThusoTheme.charcoal)
+                }
+            }
+            Hairline()
+            if !note.isEmpty {
+                Text(note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.top, ThusoSpacing.space8)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
+// MARK: A figure on any ground
+
+/* One figure, on glass, on the night or on the panel, with the drawing that belongs to it. A dial puts
+   the numeral inside itself; a line or a set of bars is drawn BEHIND the numeral, filling the lower
+   part of the figure's box, which is the reference's move and the honest one — the drawing and the
+   numeral are the same arithmetic, so they belong in the same box.
+
+   `still` is for a clinical value: a reading's trend is the finished picture on the first frame and
+   never draws itself in, whatever the reader's motion setting. */
+struct DeckFigure: View {
+    let value: String
+    var prefix: String?
+    var unit: String?
+    let label: String
+    var chip: String?
+    var flagged = false
+    var shape: DeckShape?
+    var ground: DeckGround = .glass
+    var still = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var drawn = false
+    @ScaledMetric(relativeTo: .largeTitle) private var leadFigure: CGFloat = ThusoType.metricLarge
+    @ScaledMetric(relativeTo: .largeTitle) private var restFigure: CGFloat = ThusoType.metric
+    @ScaledMetric(relativeTo: .footnote) private var affix: CGFloat = ThusoType.cardTitle
+    @ScaledMetric(relativeTo: .largeTitle) private var dial: CGFloat = 112
+    @ScaledMetric(relativeTo: .body) private var plot: CGFloat = 64
+
+    private var ink: Color { ground == .panel ? DeckInk.panelInk : DeckInk.ink }
+    private var quiet: Color { ground == .panel ? DeckInk.panelQuiet : DeckInk.quiet }
+    /// Lime is the glass's alone. On the night a lit mark is the quiet tone, and on the panel indigo.
+    private var lit: Color { ground == .glass ? DeckInk.accent : ground == .panel ? DeckInk.panelLit : DeckInk.quiet }
+    private var unlit: Color { ground == .glass ? DeckInk.leadMark : ground == .panel ? DeckInk.panelMark : DeckInk.mark }
+    private var track: Color { ground == .panel ? DeckInk.panelTrack : DeckInk.track }
+    private var progress: CGFloat { still || reduceMotion || drawn ? 1 : 0 }
+
+    var body: some View {
+        Group {
+            switch shape {
+            case .ring, .gauge:
+                let layout = typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: ThusoSpacing.space12))
+                    : AnyLayout(HStackLayout(alignment: .center, spacing: ThusoSpacing.space20))
+                layout {
+                    ZStack {
+                        drawing
+                        numeral(size: restFigure)
+                    }
+                    .frame(width: dial, height: dial)
+                    words
+                }
+            case .bars, .spark, .columns:
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+                    if let chip { DeckTag(text: chip, flagged: flagged, ground: ground) }
+                    ZStack(alignment: .topLeading) {
+                        drawing
+                            .frame(height: plot)
+                            .frame(maxHeight: .infinity, alignment: .bottom)
+                            .opacity(ground == .panel ? 1 : 0.9)
+                        numeral(size: ground == .glass ? leadFigure : restFigure)
+                    }
+                    /* Tall enough that the plot starts under the numeral's lower edge rather than through
+                       its digits. At plot plus sixty per cent of the figure, the week line ran across
+                       "598" and the panel's outlined column cut "2 841" in two. */
+                    .frame(minHeight: plot + (ground == .glass ? leadFigure : restFigure) * 1.05)
+                    Text(label).thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(quiet)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            default:
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+                    if let chip { DeckTag(text: chip, flagged: flagged, ground: ground) }
+                    numeral(size: ground == .glass ? leadFigure : restFigure)
+                    Text(label).thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(quiet)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label), \(prefix ?? "")\(value)\(unit.map { " \($0)" } ?? "")\(chip.map { ", \($0)" } ?? "")")
+        .onAppear { withAnimation(reduceMotion || still ? nil : .easeOut(duration: 0.76)) { drawn = true } }
+    }
+
+    private var words: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+            if let chip { DeckTag(text: chip, flagged: flagged, ground: ground) }
+            Text(label).thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(quiet)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder private var drawing: some View {
+        switch shape {
+        case .ring(let segments): DeckRing(segments: segments, lit: lit, unlit: unlit, progress: progress, track: track)
+        case .gauge(let part, let whole): DeckGauge(part: part, whole: whole, lit: lit, progress: progress, track: track)
+        case .bars(let values): DeckBars(values: values, lit: lit, unlit: unlit, progress: progress)
+        case .spark(let weeks): DeckPlotLine(values: weeks, lit: lit, progress: progress)
+        case .columns(let values, let marks): DeckColumns(values: values, marks: marks, lit: lit, unlit: unlit, progress: progress)
+        default: EmptyView()
+        }
+    }
+
+    private func numeral(size: CGFloat) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            if let prefix {
+                Text(prefix).font(.system(size: affix, weight: .regular)).foregroundStyle(quiet)
+            }
+            Text(value).font(.system(size: size, weight: .light).monospacedDigit()).foregroundStyle(ink)
+            if let unit {
+                Text(unit).font(.system(size: affix, weight: .regular)).foregroundStyle(quiet)
+            }
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+    }
+}
+
+/* A line under a numeral, drawn to the height it is given rather than to DeckSpark's fixed 52 and its
+   caption. The caption is the screen's to write where it means something different from "weeks". */
+private struct DeckPlotLine: View {
+    let values: [Int]
+    let lit: Color
+    let progress: CGFloat
+    var body: some View {
+        GeometryReader { geo in
+            let high = values.max() ?? 1, low = values.min() ?? 0
+            let spread = CGFloat(max(high - low, 1))
+            let x = { (index: Int) in values.count > 1 ? geo.size.width * CGFloat(index) / CGFloat(values.count - 1) : geo.size.width / 2 }
+            let y = { (value: Int) in geo.size.height * (0.92 - 0.72 * CGFloat(value - low) / spread) }
+            let line = Path { path in
+                for (index, value) in values.enumerated() {
+                    let point = CGPoint(x: x(index), y: y(value))
+                    index == 0 ? path.move(to: point) : path.addLine(to: point)
+                }
+            }
+            ZStack {
+                Path { path in
+                    path.addPath(line)
+                    path.addLine(to: CGPoint(x: geo.size.width, y: geo.size.height))
+                    path.addLine(to: CGPoint(x: 0, y: geo.size.height))
+                    path.closeSubpath()
+                }
+                .fill(lit.opacity(0.18))
+                .opacity(Double(progress))
+                line.trim(from: 0, to: progress).stroke(lit, style: StrokeStyle(lineWidth: 2.5, lineJoin: .round))
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+/// Columns, one per row, oldest first. A lit column is filled and an unlit one only outlined, so the
+/// rows the figure adds up are told apart by fill as well as by tone.
+private struct DeckColumns: View {
+    let values: [Int]
+    let marks: [Bool]
+    let lit: Color
+    let unlit: Color
+    let progress: CGFloat
+    var body: some View {
+        GeometryReader { geo in
+            let high = CGFloat(max(values.max() ?? 1, 1))
+            let gap: CGFloat = 8
+            let count = CGFloat(max(values.count, 1))
+            let width = (geo.size.width - gap * (count - 1)) / count
+            HStack(alignment: .bottom, spacing: gap) {
+                ForEach(Array(values.enumerated()), id: \.offset) { index, value in
+                    let shape = RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    /* A floor of six per cent, for DeckBars' reason: a week that paid little is still a week. */
+                    let height = geo.size.height * min(1, max(0.06, CGFloat(value) / high))
+                    Group {
+                        if marks.indices.contains(index) && marks[index] {
+                            shape.fill(lit)
+                        } else {
+                            shape.inset(by: 0.75).stroke(unlit, lineWidth: 1.5)
+                        }
+                    }
+                    .frame(width: width, height: height)
+                    .scaleEffect(x: 1, y: staggered(progress, index: index, count: values.count), anchor: .bottom)
+                }
+            }
+            .frame(maxHeight: .infinity, alignment: .bottom)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Protocols
+
+/* THE REFERENCE A CASE IS READ AGAINST.
+ *
+ * "Clinical protocols" was a row in the doctor's tools that opened the roadmap's placeholder. It is the
+ * one screen in that workspace that needs no service behind it to be real: the indicative ranges are in
+ * the record contract, generated into RecordsData.swift, and the sentence that qualifies every one of
+ * them is that contract's own note on the observations section. Nothing here is new information; what
+ * was missing was one place that says it, which is what a protocol is.
+ *
+ * WHAT IT REFUSES. The escalation ladder the web draws beside the ranges is typed into a React component
+ * rather than into a contract, and a third copy of it here would be the drift this project generates
+ * code to avoid, so it stays off this screen until it is contract. The "screening" capability's own
+ * sentence stands on the canvas, because a reference range read on a phone is exactly what a reader
+ * might take for a triage tool. And nothing here moves: a range a clinical value is judged against is
+ * drawn finished, whatever Reduce Motion says. */
+struct ClinicalProtocolsView: View {
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
+                DeckHero {
+                    DeckPreviewMark()
+                    DeckHeadline(eyebrow: "Doctor workspace · protocols",
+                                 words: [.text("The reference a case"), .glyph("ruler"), .text("is read against")])
+                    CapabilityNotice(of: "screening")
+                    DeckGlass {
+                        DeckFigure(value: "\(Records.observations.count)",
+                                   label: "readings, and the indicative adult range each is flagged against")
+                    }
+                } sheet: {
+                    Text(Records.observationsNote)
+                        .thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("AI is decision support. An authorised clinician must sign off clinical decisions.")
+                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                DeckSectionHead(title: "Where a reading is flagged", count: "\(Records.observations.count)")
+                ForEach(Records.observations) { ProtocolRangeRow(range: $0) }
+            }
+            .padding(.vertical, ThusoSpacing.space16)
+        }
+        .contentMargins(.horizontal, ThusoSpacing.space16, for: .scrollContent)
+        .thusoGround()
+        .navigationTitle("Clinical protocols").navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/* One range as a ruler: the band is the indicative range and either side of it is where a reading is
+   flagged. A schematic rather than a scale — seven readings in six units cannot share one axis honestly
+   — so the numbers are on the band and read out in full, because a chart in this product is always
+   also a table. studioPaper on studioOlive is 5.86; studioInkMuted on cloud 5.46. */
+private struct ProtocolRangeRow: View {
+    let range: ObservationRange
+    private func figure(_ value: Double) -> String {
+        range.step < 1 ? String(format: "%.1f", value) : String(format: "%.0f", value)
+    }
+    var body: some View {
+        let low = figure(range.low), high = figure(range.high)
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
+                Text(range.label).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: ThusoSpacing.space8)
+                Text(range.unit).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            }
+            HStack(spacing: 0) {
+                Text("Low").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.leading, ThusoSpacing.space12)
+                Text("\(low)–\(high)").thusoFont(ThusoType.minimumBody, weight: .semibold).monospacedDigit()
+                    .foregroundStyle(ThusoTheme.studioPaper)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                    .frame(maxWidth: .infinity, minHeight: 32)
+                    .background(ThusoTheme.studioOlive, in: Capsule())
+                Text("High").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .frame(maxWidth: .infinity, alignment: .trailing).padding(.trailing, ThusoSpacing.space12)
+            }
+            .frame(minHeight: 32)
+            .background(ThusoTheme.cloud, in: Capsule())
+        }
+        .padding(ThusoSpacing.space16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.studioLine, lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(range.label). Below \(low) \(range.unit) is flagged low, \(low) to \(high) is inside the indicative range, above \(high) is flagged high.")
     }
 }

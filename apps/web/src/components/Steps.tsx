@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Check } from 'lucide-react';
 export function StepHead({ step, total, label }: { step: number; total: number; label: string }) {
  return <div className="step-head">
@@ -13,6 +13,11 @@ export function StepHead({ step, total, label }: { step: number; total: number; 
 export function CodeInput({ value, onChange, length = 6, label, describedBy, invalid, autoFocus }:
  { value: string; onChange: (v: string) => void; length?: number; label: string; describedBy?: string; invalid?: boolean; autoFocus?: boolean }) {
  const boxes = useRef<(HTMLInputElement | null)[]>([]);
+ /* Focused without scrolling to it. The native attribute scrolls the nearest scroller until the box
+    is in view, and on the nurse's visit that scroller is the work column: the visit's own deck — who
+    she is with, which stage she is on — was scrolled off the top of the screen before she had read it.
+    The caret still lands in the first box, so a keyboard and a screen reader lose nothing. */
+ useEffect(() => { if (autoFocus) boxes.current[0]?.focus({ preventScroll: true }); }, [autoFocus]);
  const set = (index: number, raw: string) => {
   const digits = raw.replace(/\D/g, '');
   if (!digits) { onChange(value.slice(0, index)); return; }
@@ -23,7 +28,7 @@ export function CodeInput({ value, onChange, length = 6, label, describedBy, inv
  return <div className="code-input" role="group" aria-label={label} aria-describedby={describedBy}>
   {Array.from({ length }, (_, i) => <input
    key={i} ref={el => { boxes.current[i] = el; }} inputMode="numeric" autoComplete={i === 0 ? 'one-time-code' : 'off'}
-   autoFocus={autoFocus && i === 0} maxLength={length} value={value[i] ?? ''} aria-label={`${label}, digit ${i + 1} of ${length}`}
+   maxLength={length} value={value[i] ?? ''} aria-label={`${label}, digit ${i + 1} of ${length}`}
    aria-invalid={invalid} className={invalid ? 'field-error' : ''}
    onChange={e => set(i, e.target.value)}
    onKeyDown={e => {

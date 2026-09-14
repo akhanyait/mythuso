@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import za.co.mythuso.model.*
+import kotlin.math.abs
 
 /*
  * Vetting is the gate the whole marketplace rests on, so it is a real pipeline with real refusals
@@ -203,34 +204,76 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
     var declining by remember { mutableStateOf<String?>(null) }
     var declineNote by remember { mutableStateOf("") }
     var refusedSecond by remember { mutableStateOf<String?>(null) }
+    val decisions = capabilityDecisions(subject)
+    val allowed = decisions.count { (_, _, decision) -> decision.allowed }
+    val renewal: (@Composable ColumnScope.() -> Unit)? = summary.nextDue?.let { (check, days) ->
+        {
+            DeckFigure(
+                value = "${abs(days)}", unit = if (abs(days) == 1L) "day" else "days",
+                label = when {
+                    days < 0 -> "since ${check.name} lapsed"
+                    days == 0L -> "${check.name} renews today"
+                    else -> "until ${check.name} renews — the soonest of ${summary.total} checks"
+                },
+                chip = if (days < 0) "Lapsed" else null, flagged = days < 0, ground = DeckGround.NIGHT
+            )
+        }
+    }
     ScreenColumn {
-        DemoBadge()
-        Heading(role?.name ?: "Vetting", subject.name, "${subject.reference}${subject.zone?.let { " · $it" } ?: ""} · ${role?.summary ?: ""}")
-        CareCard {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(thuso(Phrase.VETTING_STATUS, store.locale), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                StatusPill(summary.status.label, tone(summary.status))
+        /* ONE PARTY'S STANDING, AS A DECK.
+           The status used to be a white card holding a progress bar, and the bar was the single most
+           important drawing on the screen at twelve points tall. The deck counts the same arithmetic in
+           three places: the ring is this role's checks with the passing ones lit, the panel's dial is
+           the capabilities this party may use out of every one the role is granted, and the night card
+           crossing its edge is the soonest renewal in days — the countdown the old line spelled out.
+           Every one of them is counted off the lists below, and the sentence that says why is still
+           the first thing on the sheet. */
+        DeckHero(
+            content = {
+                DeckPreviewMark()
+                DeckHeadline(
+                    role?.name ?: "Vetting",
+                    listOf(DeckWord.Glyph(Icons.Outlined.VerifiedUser), DeckWord.Words(subject.name)),
+                    tail = "${subject.reference}${subject.zone?.let { " · $it" } ?: ""} · ${role?.summary ?: ""}"
+                )
+                DeckGlassCard {
+                    DeckFigure(
+                        value = "${summary.passed}", label = "of ${summary.total} ${thuso(Phrase.VETTING_PROGRESS, store.locale)}",
+                        chip = summary.status.label, flagged = !summary.cleared,
+                        shape = DeckShape.Ring(summary.states.map { it.second in passingStates })
+                    )
+                }
+                DeckPanel(float = renewal) {
+                    DeckFigure(
+                        value = "$allowed", label = "of ${decisions.size} capabilities this party may use",
+                        chip = if (allowed == decisions.size) "Nothing refused" else "${decisions.size - allowed} refused",
+                        flagged = allowed < decisions.size,
+                        shape = DeckShape.Gauge(allowed, decisions.size), ground = DeckGround.PANEL
+                    )
+                }
+            },
+            sheet = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(thuso(Phrase.VETTING_STATUS, store.locale), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    StatusPill(summary.status.label, tone(summary.status))
+                }
+                when {
+                    subject.declined -> Text(subject.declinedReason ?: "This application was declined.", style = MaterialTheme.typography.bodyMedium, color = Danger)
+                    subject.suspended -> Text(subject.suspendedReason ?: "This party is suspended.", style = MaterialTheme.typography.bodyMedium, color = Danger)
+                    summary.lapsed.isNotEmpty() -> Text("${summary.lapsed.joinToString(" and ") { it.name }} lapsed. Nothing was decided — the renewal date simply passed.", style = MaterialTheme.typography.bodyMedium, color = Danger)
+                    summary.awaitingSecond.isNotEmpty() -> Text("${summary.awaitingSecond.joinToString(" and ") { it.name }} is verified by one reviewer and still needs a second.", style = MaterialTheme.typography.bodyMedium)
+                    summary.blocking.isNotEmpty() -> Text("Still to pass: ${summary.blocking.joinToString(", ") { it.name }}.", style = MaterialTheme.typography.bodyMedium)
+                    else -> Text("Every check is in date. Re-vetting continues on a schedule.", style = MaterialTheme.typography.bodyMedium)
+                }
+                if (subject.appealed) Note("An appeal has been lodged. The decline stands until it is decided.")
+                if (subject.scope.isNotEmpty()) Note("Scope: ${subject.scope.joinToString(", ")}")
+                if (subject.declined || subject.suspended) OutlinedButton(onClick = { vetting.restore(subject.id, "Appeal upheld. The declined check still has to be decided again.") }, shape = ThusoButtonShape) { Text("Uphold the appeal") }
             }
-            VettingProgress(subject, summary, store.locale)
-            when {
-                subject.declined -> Text(subject.declinedReason ?: "This application was declined.", style = MaterialTheme.typography.bodyMedium, color = Danger)
-                subject.suspended -> Text(subject.suspendedReason ?: "This party is suspended.", style = MaterialTheme.typography.bodyMedium, color = Danger)
-                summary.lapsed.isNotEmpty() -> Text("${summary.lapsed.joinToString(" and ") { it.name }} lapsed. Nothing was decided — the renewal date simply passed.", style = MaterialTheme.typography.bodyMedium, color = Danger)
-                summary.awaitingSecond.isNotEmpty() -> Text("${summary.awaitingSecond.joinToString(" and ") { it.name }} is verified by one reviewer and still needs a second.", style = MaterialTheme.typography.bodyMedium)
-                summary.blocking.isNotEmpty() -> Text("Still to pass: ${summary.blocking.joinToString(", ") { it.name }}.", style = MaterialTheme.typography.bodyMedium)
-                else -> Text("Every check is in date. Re-vetting continues on a schedule.", style = MaterialTheme.typography.bodyMedium)
-            }
-            NextDueLine(summary)
-            if (subject.appealed) Note("An appeal has been lodged. The decline stands until it is decided.")
-            if (subject.scope.isNotEmpty()) Note("Scope: ${subject.scope.joinToString(", ")}")
-            if (subject.declined || subject.suspended) OutlinedButton(onClick = { vetting.restore(subject.id, "Appeal upheld. The declined check still has to be decided again.") }, shape = ThusoButtonShape) { Text("Uphold the appeal") }
-        }
-        CareCard {
-            Text("Acting as", style = MaterialTheme.typography.titleMedium)
-            FlowRowChips(vettingReviewers, setOf(vetting.reviewer)) { vetting.reviewer = it }
-            Note("A high-risk check needs two different reviewers. Change who you are acting as to second one — the same signature twice is one signature.")
-        }
-        Text("Checks", style = MaterialTheme.typography.titleMedium, color = Charcoal)
+        )
+        DeckSectionHead("Acting as")
+        DeckPills("", vetting.reviewer, vettingReviewers.map { it to it }, onNight = false) { vetting.reviewer = it }
+        Note("A high-risk check needs two different reviewers. Change who you are acting as to second one — the same signature twice is one signature.")
+        DeckSectionHead("Checks", count = "${summary.passed}/${summary.total}")
         summary.states.forEach { (check, state) ->
             val record = recordFor(subject, check.id)
             val authority = vettingAuthorityById(check.authority)
@@ -274,8 +317,8 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
         }
         /* The matrix is the module's whole argument: not a list of documents, but a refusal with a
            reason, in the words the applicant is owed. */
-        Text("What this party may do", style = MaterialTheme.typography.titleMedium, color = Charcoal)
-        capabilityDecisions(subject).forEach { (capability, _, decision) ->
+        DeckSectionHead("What this party may do", count = "$allowed of ${decisions.size}")
+        decisions.forEach { (capability, _, decision) ->
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(if (decision.allowed) Icons.Outlined.CheckCircle else Icons.Outlined.Block, null, tint = if (decision.allowed) Indigo else Danger)

@@ -165,43 +165,73 @@ struct ConsultationRecordView: View {
         .thusoGround()
         .navigationTitle("Consultation").navigationBarTitleDisplayMode(.inline)
         .onAppear { if writer.isEmpty { writer = writers.contains { $0.id == writerId } ? writerId : (writers.first?.id ?? "") } }
+        /* A signature belongs to the writer who put it there, so changing the writer takes it off. */
+        .onChange(of: writer) { _, _ in signature = nil }
     }
 
+    /* THE RECORD OPENS ON A DECK: who is writing, how much of the standard is written, and what the
+       visit already carried in. The standing is on the canvas where the eye lands, filled while the
+       record is a draft, because a draft is the state that must not be mistaken for a consultation. The
+       ring is this writer's own fields with the written ones lit — the same `offeredFields` the form
+       below is built from, so it fills as the form is typed into — and the panel's ring is the readings
+       carried from the capture store, lit where one carries a caveat. The choice of arrangement is the
+       sheet on the canvas's edge, because it rearranges everything under it and changes no value. */
     @ViewBuilder private var header: some View {
-        DemoBadge()
-        StatusPill(text: signature == nil ? "Draft — not signed" : "Signed · demo record", tone: signature == nil ? "amber" : "teal")
-        Text("\(reference) · \(patient)").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-        Text(Records.consultationWhy).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-        CareCard {
-            Text("Writing as").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-            Picker("Writing as", selection: $writer) {
-                ForEach(writers) { Text("\($0.name) · \($0.reference)").tag($0.id) }
-            }
-            .labelsHidden()
-            .disabled(signature != nil)
-            .onChange(of: writer) { _, _ in signature = nil }
+        let filled = offeredFields.filter { !value($0.id).isEmpty }.count
+        let standing = summarise(subject)
+        DeckHero {
+            DeckPreviewMark()
+            DeckHeadline(eyebrow: "Consultation record",
+                         words: [.text(reference), .glyph("square.and.pencil"), .text(patient)],
+                         tail: Records.consultationWhy)
+            DeckTag(text: signature == nil ? "Draft — not signed" : "Signed · demo record", flagged: signature == nil, ground: .night)
+            DeckPills(label: "Writing as", selection: $writer,
+                      options: writers.map { ($0.id, "\($0.name) · \($0.reference)") })
+                .disabled(signature != nil)
             HStack(spacing: ThusoSpacing.space8) {
-                SubjectStatusPill(status: summarise(subject).status)
-                Text(role?.name ?? subject.roleId).font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+                DeckTag(text: standing.status.label, flagged: !standing.cleared)
+                Text(role?.name ?? subject.roleId).font(.footnote).foregroundStyle(DeckInk.quiet)
+                Spacer(minLength: 0)
             }
             .accessibilityElement(children: .combine)
             if !mayWrite.allowed {
-                RefusalCard(title: "This form is read-only", decision: mayWrite)
-                Text("The form is read-only rather than merely unsignable: an entry nobody may put their registration against is not a record, it is a note that looks like one.")
-                    .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+                    Text("This form is read-only").font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.ink)
+                    DeckRefusal(decision: mayWrite)
+                    if !mayWrite.blockedBy.isEmpty {
+                        Text("Outstanding: \(mayWrite.blockedBy.map(\.name).joined(separator: " · "))")
+                            .font(.footnote).foregroundStyle(DeckInk.quiet)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Text("The form is read-only rather than merely unsignable: an entry nobody may put their registration against is not a record, it is a note that looks like one.")
+                        .font(.footnote).foregroundStyle(DeckInk.quiet)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+            DeckGlass {
+                DeckFigure(value: "\(filled)", label: "of \(offeredFields.count) fields written",
+                           chip: outstanding.isEmpty ? "Every required section written" : "\(outstanding.count) required still to write",
+                           flagged: !outstanding.isEmpty,
+                           shape: .ring(offeredFields.map { !value($0.id).isEmpty }))
+            }
+            DeckPanel {
+                DeckFigure(value: "\(visitReadings.count)", label: "readings carried from the visit, not retyped",
+                           chip: caveated.isEmpty ? "None carrying a caveat" : "\(caveated.count) carrying a caveat",
+                           flagged: !caveated.isEmpty,
+                           shape: .ring(visitReadings.map { $0.reading.hasCaveats }), ground: .panel)
+            }
+        } sheet: {
+            DeckPills(label: "View", selection: $view, options: RecordView.allCases.map { ($0, $0.rawValue) }, onNight: false)
+            Label("One record, \(filled) of \(offeredFields.count) fields written. SOAP and the long form are two arrangements of those same fields — switching loses nothing, because there is no second copy of the note to keep in step.",
+                  systemImage: "square.and.pencil")
+                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.updatesFrequently)
         }
     }
 
     @ViewBuilder private var editor: some View {
-        Picker("View", selection: $view) {
-            ForEach(RecordView.allCases) { Text($0.rawValue).tag($0) }
-        }
-        .pickerStyle(.segmented)
-        Label("One record, \(offeredFields.filter { !value($0.id).isEmpty }.count) of \(offeredFields.count) fields written. SOAP and the long form are two arrangements of those same fields — switching loses nothing, because there is no second copy of the note to keep in step.",
-              systemImage: "square.and.pencil")
-            .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
-            .accessibilityAddTraits(.updatesFrequently)
+        DeckSectionHead(title: "The record", count: "\(offeredFields.filter { !value($0.id).isEmpty }.count)/\(offeredFields.count)")
 
         switch view {
         case .record:

@@ -65,14 +65,10 @@ struct PatientFileView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
-                DemoBadge()
-                CareHeading(eyebrow: "Clinical · design preview", title: thuso(.patientFile, store.locale),
-                            subtitle: "The file a nurse or a doctor opens about somebody else. Fictional patients, fictional numbers; nothing here is a record and nothing reaches a service.")
+                deck
                 reviewControls
-                PatientSummaryHeader(patient: patient, viewer: subject)
+                WithheldNoticeCard(viewer: subject)
                 tabStrip
-                Text(spokenState).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                    .accessibilityAddTraits(.updatesFrequently)
                 StatePicker(title: "Preview how this file behaves when the record service is unavailable", state: $feed)
                 StateBlock(state: feed, subject: "This patient file", permission: "clinical record access",
                            retry: { feed = .ready }) {
@@ -89,38 +85,73 @@ struct PatientFileView: View {
         .thusoGround()
         .navigationTitle(thuso(.patientFile, store.locale)).navigationBarTitleDisplayMode(.inline)
         .onAppear { if viewer.isEmpty { viewer = viewers.contains { $0.id == viewerId } ? viewerId : (viewers.first?.id ?? "") } }
+        .onChange(of: patientId) { _, _ in notice = "" }
+        .onChange(of: viewer) { _, _ in notice = "" }
     }
 
     private var spokenState: String {
         "\(patient.name), \(patient.id). Viewing as \(subject.name), \(subject.role?.name.lowercased() ?? "party"). \(tabName) is \(decision.allowed ? "open" : "refused"). \(refusedCount) of \(Records.fileTabs.count) sections are refused to this viewer."
     }
 
-    @ViewBuilder private var reviewControls: some View {
-        CareCard {
-            StatusPill(text: "Design review", tone: "quiet")
-            Text("The same file, through different eyes").font(.headline).foregroundStyle(ThusoTheme.charcoal)
-            Text("Every tab, action and field group below asks the vetting module whether this party may see it. Change the viewer and watch the file change shape — that is the demonstration, and it is the only way to tell whether a refusal was designed or assumed.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-            /* The label is drawn rather than left to the picker: a menu picker in a card shows only
-               its value, and “Viewing as” is the whole point of the control. */
-            Text(thuso(.openFileOf, store.locale)).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-            Picker(thuso(.openFileOf, store.locale), selection: $patientId) {
-                ForEach(PatientFixtures.all) { Text("\($0.name) · \($0.id)").tag($0.id) }
+    /* THE FILE OPENS ON A DECK, AND ITS HEADLINE IS THE FILE'S NAME RATHER THAN THE PATIENT'S.
+     *
+     * A viewer refused the patient summary is told "The file is open. The person is not." — so the
+     * patient's name may not be the largest word on the screen above that sentence. It stays where it
+     * always was, inside the summary, which is now the sheet standing on the canvas's edge and still
+     * asks the vetting module before it draws a single fact.
+     *
+     * The two choices a design review turns on are pill clusters directly under the deck, because
+     * comparing the viewers is the demonstration and a menu shows one answer at a time. The ring is the file's
+     * sections with the open ones lit, counted by the same canOpenTab the tabs below are drawn from. The
+     * panel is the last blood pressure with the systolic trend behind it, drawn finished rather than
+     * drawn in, and for a reader the clinical record is refused to it is the refusal, in words. */
+    /* The review controls, directly under the file rather than on its canvas. Eight viewers set as pills
+       on the night made the deck nearly two screens tall before the file began, and the file is what
+       the deck is for. Nothing about the demonstration moved: every option is still visible at once,
+       and the ring on the glass above answers the moment a pill is pressed. */
+    private var reviewControls: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            DeckSectionHead(title: "The same file, through different eyes",
+                            note: "Every tab, action and field group below asks the vetting module whether this party may see it. Change the viewer and watch the file change shape — that is the demonstration, and it is the only way to tell whether a refusal was designed or assumed.")
+            DeckPills(label: thuso(.openFileOf, store.locale), selection: $patientId,
+                      options: PatientFixtures.all.map { ($0.id, "\($0.name) · \($0.id)") }, onNight: false)
+            DeckPills(label: thuso(.viewingAs, store.locale), selection: $viewer,
+                      options: viewers.map { ($0.id, "\($0.name) · \($0.role?.name ?? $0.roleId)") }, onNight: false)
+            Text(spokenState).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.updatesFrequently)
+        }
+    }
+
+    private var deck: some View {
+        let clinical = can(subject, "view-clinical-record")
+        let standing = summarise(subject)
+        return DeckHero(wrap: false) {
+            DeckPreviewMark()
+            DeckHeadline(eyebrow: "Clinical · design preview",
+                         words: [.text(thuso(.patientFile, store.locale)), .glyph("folder.badge.person.crop")],
+                         tail: "The file a nurse or a doctor opens about somebody else. Fictional patients, fictional numbers; nothing here is a record and nothing reaches a service.")
+            DeckGlass {
+                DeckFigure(value: "\(Records.fileTabs.count - refusedCount)", label: "of \(Records.fileTabs.count) sections open to \(subject.name)",
+                           chip: "\(standing.status.label) · \(subject.role?.name ?? subject.roleId)", flagged: !standing.cleared,
+                           shape: .ring(Records.fileTabs.map { canOpenTab(subject, $0).allowed }))
             }
-            .labelsHidden()
-            .onChange(of: patientId) { _, _ in notice = "" }
-            Text(thuso(.viewingAs, store.locale)).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-            Picker(thuso(.viewingAs, store.locale), selection: $viewer) {
-                ForEach(viewers) { Text("\($0.name) · \($0.role?.name ?? $0.roleId)").tag($0.id) }
+            DeckPanel {
+                if clinical.allowed, let latest = patient.vitals.last {
+                    DeckFigure(value: "\(Int(latest.systolic))/\(Int(latest.diastolic))", unit: "mmHg",
+                               label: "Blood pressure, \(longDate(latest.at))",
+                               chip: originOf(latest, "systolic")?.name,
+                               shape: .spark(weeks: patient.vitals.map { Int($0.systolic) }), ground: .panel, still: true)
+                } else {
+                    Text("Observations are not open to this viewer").thusoFont(ThusoType.cardTitle, weight: .semibold)
+                        .foregroundStyle(DeckInk.panelInk).fixedSize(horizontal: false, vertical: true)
+                    if let reason = clinical.reason {
+                        Text(reason).font(.footnote).foregroundStyle(DeckInk.panelQuiet).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
-            .labelsHidden()
-            .onChange(of: viewer) { _, _ in notice = "" }
-            HStack(spacing: ThusoSpacing.space8) {
-                SubjectStatusPill(status: summarise(subject).status)
-                Text("\(subject.reference) · \(refusedCount) of \(Records.fileTabs.count) sections refused to this viewer")
-                    .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
-            }
-            .accessibilityElement(children: .combine)
+        } sheet: {
+            DeckSheet { PatientSummaryHeader(patient: patient, viewer: subject, carded: false) }
         }
     }
 
@@ -135,7 +166,8 @@ struct PatientFileView: View {
                             if !open { Image(systemName: "lock").font(.caption2.weight(.semibold)) }
                         }
                         .padding(.horizontal, 13).padding(.vertical, 9)
-                        .background(item.name == tabName ? ThusoTheme.studioNight : .white, in: Capsule())
+                        .frame(minHeight: 44)
+                        .background(item.name == tabName ? ThusoTheme.studioNight : ThusoTheme.surface, in: Capsule())
                         .foregroundStyle(item.name == tabName ? ThusoTheme.studioPaper : ThusoTheme.studioInkMuted)
                         .overlay(Capsule().stroke(ThusoTheme.controlEdge, lineWidth: item.name == tabName ? 0 : 1))
                     }
@@ -258,8 +290,22 @@ struct PatientSummaryHeader: View {
         }
     }
 
+    /// Off where the file's deck stands the summary on its own edge; the screen then draws the withheld
+    /// notice itself, directly under the deck, so it is never folded into a card it cannot be missed from.
+    var carded = true
+
     var body: some View {
-        CareCard {
+        if carded {
+            CareCard {
+                summary
+                WithheldNoticeCard(viewer: viewer)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space12) { summary }
+        }
+    }
+
+    @ViewBuilder private var summary: some View {
             if decision.allowed {
                 identity
                 let profile = summaryProfile(viewer.roleId)
@@ -295,8 +341,6 @@ struct PatientSummaryHeader: View {
                 }
                 RefusalCard(title: "The patient summary is not open to this viewer", decision: decision)
             }
-            WithheldNoticeCard(viewer: viewer)
-        }
     }
 
     @ViewBuilder private var identity: some View {
@@ -415,11 +459,11 @@ struct PatientFileOverview: View {
             lastVisitCard
             nextAppointmentCard
             medicationCard
-            SectionHeading(title: "Latest observations")
+            DeckSectionHead(title: "Latest observations")
             if clinical.allowed { observations } else {
                 RefusalCard(title: "Observations are not open to this viewer", decision: clinical)
             }
-            SectionHeading(title: "Clinical summary")
+            DeckSectionHead(title: "Clinical summary")
             if clinical.allowed {
                 CareCard {
                     ForEach(patient.summaryPoints, id: \.self) { point in
@@ -441,7 +485,7 @@ struct PatientFileOverview: View {
                     ForEach(recent) { RecordEntryRow(entry: $0, decision: canOpen(viewer, $0)) }
                 }
             }
-            SectionHeading(title: "Actions")
+            DeckSectionHead(title: "Actions")
             actions
             if !notice.isEmpty {
                 Text(notice).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
@@ -772,7 +816,7 @@ struct PatientFileMedication: View {
                         .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
                 }
             }
-            SectionHeading(title: "Current medicine")
+            DeckSectionHead(title: "Current medicine")
             CareCard {
                 if current.isEmpty {
                     Text("No current medicine is open to this viewer.").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
@@ -784,7 +828,7 @@ struct PatientFileMedication: View {
                 }
             }
             if !past.isEmpty {
-                SectionHeading(title: "Stopped")
+                DeckSectionHead(title: "Stopped")
                 CareCard {
                     ForEach(past) { medicine in
                         MedicineRow(medicine: medicine,

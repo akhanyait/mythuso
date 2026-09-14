@@ -500,68 +500,114 @@ struct VettingStatusView: View {
         .navigationTitle(thuso(.vettingStatus, store.locale)).navigationBarTitleDisplayMode(.inline)
     }
 
+    /* ONE PARTY'S STANDING, AS A DECK.
+     *
+     * This was a system List: a name, a thin progress bar and nine grouped sections of the same grey,
+     * so the answer a nurse opens it for — am I cleared, and what am I refused — sat at the height of
+     * the fine print. The deck counts it in three places. The ring is this role's checks with the
+     * passing ones lit; the panel's dial is the capabilities this party may use out of every one the
+     * role is granted; and the night card crossing its edge is the soonest renewal in days. All three
+     * are arithmetic over the two lists below, which are unchanged, and the sentences that explain a
+     * refusal are the sheet standing on the canvas — the first thing read, not the last. */
     private func content(_ subject: VettingSubject, _ summary: VettingSummary) -> some View {
-        List {
-            Section {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(subject.name).font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Spacer(minLength: 8)
-                    SubjectStatusPill(status: summary.status)
+        let capabilities = decisions(subject)
+        let allowed = capabilities.filter(\.decision.allowed).count
+        return ScrollView {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
+                DeckHero {
+                    DeckPreviewMark()
+                    DeckHeadline(eyebrow: subject.role?.name ?? subject.roleId,
+                                 words: [.glyph("checkmark.seal"), .text(subject.name)],
+                                 tail: "\(subject.role?.name ?? subject.roleId) · \(subject.id) · \(subject.reference)")
+                    if !subject.scope.isEmpty {
+                        Text("Scope: \(subject.scope.joined(separator: ", "))").font(.footnote).foregroundStyle(DeckInk.quiet)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    DeckGlass {
+                        DeckFigure(value: "\(summary.passed)", label: "of \(summary.total) checks in date",
+                                   chip: summary.status.label, flagged: !summary.cleared,
+                                   shape: .ring(summary.states.map { $0.state.passes }))
+                    }
+                    if let due = summary.nextDue, let days = daysUntil(due.record.expiresOn) {
+                        DeckPanel { capabilityFigure(allowed, capabilities.count) } float: {
+                            DeckFigure(value: "\(abs(days))", unit: abs(days) == 1 ? "day" : "days",
+                                       label: days < 0 ? "since \(due.check.name) lapsed" : "until \(due.check.name) renews",
+                                       chip: days < 0 ? "Lapsed" : nil, flagged: days < 0, ground: .night)
+                        }
+                    } else {
+                        DeckPanel { capabilityFigure(allowed, capabilities.count) }
+                    }
+                } sheet: {
+                    standing(subject, summary)
                 }
-                Text("\(subject.role?.name ?? subject.roleId) · \(subject.id) · \(subject.reference)")
-                    .font(.caption).foregroundStyle(.secondary)
-                if !subject.scope.isEmpty {
-                    Text("Scope: \(subject.scope.joined(separator: ", "))").font(.caption).foregroundStyle(.secondary)
-                }
-                VettingProgressRow(summary: summary)
-            }
-            if subject.declined || subject.suspended {
-                Section {
-                    Label(subject.declined ? "Declined" : "Suspended", systemImage: "hand.raised.fill").foregroundStyle(ThusoTheme.danger)
-                    Text(subject.declinedReason ?? subject.suspendedReason ?? "A check on this file has lapsed, so every capability it carried is withdrawn.")
-                        .font(.subheadline).foregroundStyle(.secondary)
-                    if subject.appealed {
-                        Text("An appeal is lodged. The decision stands while it is heard — an appeal is not a suspension of the refusal.")
-                            .font(.caption).foregroundStyle(.secondary)
+                DeckSectionHead(title: thuso(.vettingRefused, store.locale), count: "\(allowed) of \(capabilities.count)")
+                CareCard {
+                    ForEach(capabilities) { item in
+                        RefusalRow(item: item)
+                        if item.id != capabilities.last?.id { Hairline() }
                     }
                 }
-            }
-            blockingSection(subject, summary)
-            Section(thuso(.vettingRefused, store.locale)) {
-                ForEach(decisions(subject)) { RefusalRow(item: $0) }
-            }
-            if let due = summary.nextDue {
-                Section(thuso(.vettingRenewals, store.locale)) {
-                    LabeledContent(due.check.name, value: expiryPhrase(due.record.expiresOn))
-                    Text("Re-vetting runs on a schedule, not once at sign-up. Nobody has to remember this date.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            Section("Checks") {
+                DeckSectionHead(title: "Checks", count: "\(summary.passed)/\(summary.total)")
                 ForEach(summary.states) { standing in
-                    CheckStandingRow(subject: subject, standing: standing, vetting: vetting)
+                    CareCard { CheckStandingRow(subject: subject, standing: standing, vetting: vetting) }
                 }
-            }
-            Section {
                 Text("Fictional party, fictional credentials, fictional decisions. Nothing on this screen was verified with anybody.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(ThusoSpacing.space16)
+        }
+        .thusoGround()
+    }
+
+    private func capabilityFigure(_ allowed: Int, _ total: Int) -> some View {
+        DeckFigure(value: "\(allowed)", label: "of \(total) capabilities this party may use",
+                   chip: allowed == total ? "Nothing refused" : "\(total - allowed) refused", flagged: allowed < total,
+                   shape: .gauge(part: allowed, whole: total), ground: .panel)
+    }
+
+    /* What the figures cannot say: why. A declined or suspended file says so first, in danger and in
+       words; a file held up says which checks are holding it; and every file says when it next comes
+       round, because re-vetting runs on a schedule and nobody should have to remember the date. */
+    @ViewBuilder private func standing(_ subject: VettingSubject, _ summary: VettingSummary) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
+            Text(thuso(.vettingStatus, store.locale)).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+            Spacer(minLength: ThusoSpacing.space8)
+            SubjectStatusPill(status: summary.status)
+        }
+        .accessibilityElement(children: .combine)
+        if subject.declined || subject.suspended {
+            Label(subject.declined ? "Declined" : "Suspended", systemImage: "hand.raised.fill")
+                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
+            Text(subject.declinedReason ?? subject.suspendedReason ?? "A check on this file has lapsed, so every capability it carried is withdrawn.")
+                .font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+            if subject.appealed {
+                Text("An appeal is lodged. The decision stands while it is heard — an appeal is not a suspension of the refusal.")
+                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-    }
-    @ViewBuilder private func blockingSection(_ subject: VettingSubject, _ summary: VettingSummary) -> some View {
         if !summary.blocking.isEmpty || !summary.awaitingSecond.isEmpty {
-            Section("What is blocking") {
-                ForEach(summary.blocking) { check in
-                    Label("\(check.name) — \(stateOf(subject, check.id).label.lowercased())", systemImage: "circle.dashed")
-                        .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
-                }
-                ForEach(summary.awaitingSecond) { standing in
-                    Label("\(standing.check.name) — verified by \(standing.record.decidedBy ?? "a reviewer"), waiting for a second", systemImage: "person.2")
-                        .font(.subheadline).foregroundStyle(ThusoTheme.mangoInk)
-                }
-                Text("A high-risk check is not verified on one person's say-so, so a file can look complete and still be refused.")
-                    .font(.caption).foregroundStyle(.secondary)
+            Text("What is blocking").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            ForEach(summary.blocking) { check in
+                Label("\(check.name) — \(stateOf(subject, check.id).label.lowercased())", systemImage: "circle.dashed")
+                    .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
             }
+            ForEach(summary.awaitingSecond) { standing in
+                Label("\(standing.check.name) — verified by \(standing.record.decidedBy ?? "a reviewer"), waiting for a second", systemImage: "person.2")
+                    .font(.subheadline).foregroundStyle(ThusoTheme.mangoInk)
+            }
+            Text("A high-risk check is not verified on one person's say-so, so a file can look complete and still be refused.")
+                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        if let due = summary.nextDue {
+            Hairline()
+            FactRow(label: due.check.name, value: expiryPhrase(due.record.expiresOn))
+            Text("Re-vetting runs on a schedule, not once at sign-up. Nobody has to remember this date.")
+                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

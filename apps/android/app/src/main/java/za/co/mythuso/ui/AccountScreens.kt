@@ -39,6 +39,11 @@ import za.co.mythuso.model.payWeeks
 import za.co.mythuso.model.services
 import za.co.mythuso.model.readingSets
 import za.co.mythuso.model.householdMemberById
+import za.co.mythuso.model.observationRanges
+import za.co.mythuso.model.fileTabs
+import za.co.mythuso.model.canOpenTab
+import za.co.mythuso.model.summarise
+import za.co.mythuso.model.passingStates
 import za.co.mythuso.model.mokoenaHousehold
 
 /* The patient's own record.
@@ -388,6 +393,9 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Employer programmes" -> ProgrammesScreen(store)
         title.startsWith("Laboratory order ") -> LabOrderScreen(title.removePrefix("Laboratory order "))
         title.startsWith("Incident ") -> IncidentDetailScreen(title.removePrefix("Incident "))
+        /* The reference a case is read against. It was the roadmap placeholder; the ranges were in the
+           record contract all along. ClinicalDeck.kt says what the screen refuses to draw. */
+        title == "Clinical protocols" -> ClinicalProtocolsScreen()
         title == "Notifications" -> ScreenColumn {
             Heading("Your care updates", "Notifications", "Sample notifications only.")
             listOf("Your Saturday visit is confirmed.", "Your visit summary is ready.", "Explore regular check-ins with Thuso Routine.", "Kagiso asked to help with your bookings. Review what he would see.").forEach { CareCard { Text(it) } }
@@ -736,6 +744,36 @@ fun deckHead(role: String): Pair<String, String>? = when (role) {
     } }
 }
 
+/* The sections behind a landing that are drawn as decks. A nurse's four and the doctor's two the
+   founder named; the doctor's teleconsultation, the partner and the Control Tower keep the plain
+   heading, because nobody asked for them and a deck on every tab is a deck that has stopped leading. */
+private fun sectionDeck(role: String, section: String) =
+    (role == "Nurse" && section in listOf("Assessments", "Thuso Kit", "Earnings", "Vetting")) ||
+        (role == "Doctor" && section in listOf("Patient context", "Protocols"))
+
+/* A section behind the landing, in the deck's grammar rather than as a heading over a grey pill.
+ *
+ * The screen was a sentence-case title and one white card holding one pill, which is what the founder
+ * meant by boring: it told a nurse where a door was and nothing about what was behind it. The canvas
+ * now names the section with the tab's own glyph inside the headline, carries the section's sentence
+ * from the framing contract, and puts the one figure the section can honestly count on glass. The
+ * door itself is the raised card standing on the canvas's edge. Every section still says it is a
+ * preview, on the canvas, in DemoBadge's own words. */
+@Composable private fun SectionDeck(
+    eyebrow: String, section: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
+    figure: @Composable ColumnScope.() -> Unit, lead: @Composable ColumnScope.() -> Unit
+) {
+    DeckHero(
+        wrap = false,
+        content = {
+            DeckPreviewMark()
+            DeckHeadline(eyebrow, listOf(DeckWord.Words(section), DeckWord.Glyph(icon)), tail = FramingData.blurb(section))
+            DeckGlassCard(content = figure)
+        },
+        sheet = lead
+    )
+}
+
 @Composable fun WorkspaceScreen(role: String, section: String, store: PreviewStore, open: (String) -> Unit) {
     var available by remember { mutableStateOf(true) }
     val landing = workspaceSections(role).first().name == section
@@ -768,7 +806,7 @@ fun deckHead(role: String): Pair<String, String>? = when (role) {
                 DemoBadge()
             }
             WorkspaceUrgency(role, store)
-        } else {
+        } else if (!sectionDeck(role, section)) {
             Heading("", section, "")
         }
         when {
@@ -803,21 +841,63 @@ fun deckHead(role: String): Pair<String, String>? = when (role) {
                     listOf("Thuso SOS", "Locum shifts", "Academy").forEach { item -> ToolRow(item) { open(item) } }
                 }
             }
-            role == "Nurse" && section == "Assessments" -> CareCard {
-                Text("Start a visit", style = MaterialTheme.typography.titleMedium)
-                listOf("Visit assessment", "Patient file", "Consultation record").forEach { item -> ToolRow(item) { open(item) } }
+            role == "Nurse" && section == "Assessments" -> {
+                /* Counted off the contract's seven readings and the visit queue's own record of which of
+                   them this phone holds for TH-2048 — the visit the first destination opens. */
+                val taken = observationRanges.map { store.capture.standingFor("TH-2048", it.id) != null }
+                SectionDeck("Start a visit", section, Icons.Outlined.ContentPaste, figure = {
+                    DeckFigure(
+                        value = "${taken.count { it }}", label = "of ${observationRanges.size} readings taken for TH-2048 on this phone",
+                        chip = "Visit assessment · TH-2048", shape = DeckShape.Ring(taken)
+                    )
+                }) {
+                    DeckDestination("Visit assessment", "Identity, consent, readings, findings, sign-off", Icons.Outlined.ContentPaste, raised = true) { open("Visit assessment") }
+                }
+                DeckSectionHead("Patient records")
+                DeckDestination("Patient file", "${fileTabs.size} tabs, gated on vetting", Icons.Outlined.FolderShared) { open("Patient file") }
+                DeckDestination("Consultation record", "One structure for every encounter", Icons.Outlined.EditNote) { open("Consultation record") }
             }
-            role == "Nurse" && section == "Thuso Kit" -> CareCard {
-                Text("Instruments and what they wrote", style = MaterialTheme.typography.titleMedium)
-                listOf("Thuso Kit", "Capture queue", "Visit queue").forEach { item -> ToolRow(item) { open(item) } }
+            role == "Nurse" && section == "Thuso Kit" -> {
+                val held = store.capture.readings.filter { it.state != CaptureState.STORED }
+                val needing = held.count { it.state == CaptureState.CONFLICTED }
+                SectionDeck("Instruments and what they wrote", section, Icons.Outlined.Sensors, figure = {
+                    DeckFigure(
+                        value = "${held.size}", label = "readings held on this phone, not yet sent",
+                        chip = if (needing > 0) "$needing needing a decision" else "None needing a decision", flagged = needing > 0,
+                        shape = DeckShape.Ring(held.map { it.state == CaptureState.CONFLICTED })
+                    )
+                }) {
+                    DeckDestination("Thuso Kit", "Pairing, calibration and where a reading came from", Icons.Outlined.Sensors, raised = true) { open("Thuso Kit") }
+                }
+                DeckDestination("Capture queue", "", Icons.Outlined.Inventory2) { open("Capture queue") }
+                DeckDestination("Visit queue", "", Icons.Outlined.Inbox) { open("Visit queue") }
             }
-            role == "Nurse" && section == "Earnings" -> CareCard {
-                Text("Your money", style = MaterialTheme.typography.titleMedium)
-                ToolRow("Earnings & payouts") { open("Earnings & payouts") }
+            role == "Nurse" && section == "Earnings" -> {
+                val week = Earnings.currentWeek
+                SectionDeck("Your money", section, Icons.Outlined.CreditCard, figure = {
+                    DeckFigure(
+                        value = rand(week.total).removePrefix("R "), prefix = "R", label = "This week so far",
+                        chip = "Pays ${week.pays.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.UK)}",
+                        shape = DeckShape.Spark(completedWeekTotals())
+                    )
+                }) {
+                    DeckDestination("Earnings & payouts", "What a visit paid, and what a suspension never touches", Icons.Outlined.CreditCard, raised = true) { open("Earnings & payouts") }
+                }
             }
-            role == "Nurse" -> CareCard {
-                Text("Your vetting", style = MaterialTheme.typography.titleMedium)
-                listOf("Vetting: N-205", "Nurse onboarding & vetting", "Apply for vetting: locum").forEach { item -> ToolRow(label(item)) { open(item) } }
+            role == "Nurse" -> {
+                val self = store.vetting.subject("N-205")
+                val standing = self?.let { summarise(it) }
+                SectionDeck("Your vetting", section, Icons.Outlined.VerifiedUser, figure = {
+                    if (standing != null) DeckFigure(
+                        value = "${standing.passed}", label = "of ${standing.total} checks in date",
+                        chip = standing.status.label, flagged = !standing.cleared,
+                        shape = DeckShape.Ring(standing.states.map { it.second in passingStates })
+                    )
+                }) {
+                    DeckDestination(label("Vetting: N-205"), "Every check, and what each one gates", Icons.Outlined.VerifiedUser, raised = true) { open("Vetting: N-205") }
+                }
+                DeckDestination(label("Nurse onboarding & vetting"), "What a nurse must produce before a visit", Icons.Outlined.PersonAdd) { open("Nurse onboarding & vetting") }
+                DeckDestination(label("Apply for vetting: locum"), "The same bar, for a shift rather than a post", Icons.Outlined.Schedule) { open("Apply for vetting: locum") }
             }
             role == "Doctor" && section == "Review queue" -> {
                 /* The queue the strip above counts, and the waiting time is on the row as well as in
@@ -837,13 +917,28 @@ fun deckHead(role: String): Pair<String, String>? = when (role) {
                 }
             }
             role == "Doctor" && section == "Teleconsultation" -> CareCard { ToolRow("Teleconsultation") { open("Teleconsultation") } }
-            role == "Doctor" && section == "Patient context" -> CareCard {
-                Text("Patient records", style = MaterialTheme.typography.titleMedium)
-                listOf("Patient file", "Consultation record").forEach { item -> ToolRow(item) { open(item) } }
+            role == "Doctor" && section == "Patient context" -> {
+                /* The file opens as D-401, so the ring is what D-401 may open of it, counted by the same
+                   canOpenTab the file's own tabs are drawn from. */
+                val doctor = store.vetting.subject("D-401")
+                val openTabs = doctor?.let { reader -> fileTabs.map { canOpenTab(reader, it).allowed } }.orEmpty()
+                SectionDeck("Patient records", section, Icons.Outlined.MonitorHeart, figure = {
+                    DeckFigure(
+                        value = "${openTabs.count { it }}", label = "of ${fileTabs.size} sections of a patient file open to ${doctor?.name ?: "this doctor"}",
+                        chip = doctor?.let { summarise(it).status.label }, shape = DeckShape.Ring(openTabs)
+                    )
+                }) {
+                    DeckDestination("Patient file", "${fileTabs.size} tabs, gated on vetting", Icons.Outlined.FolderShared, raised = true) { open("Patient file") }
+                }
+                DeckDestination("Consultation record", "One structure for every encounter", Icons.Outlined.EditNote) { open("Consultation record") }
             }
-            role == "Doctor" -> CareCard {
-                Text("Your tools", style = MaterialTheme.typography.titleMedium)
-                listOf("Clinical protocols", "Referral pathway").forEach { item -> ToolRow(item) { open(item) } }
+            role == "Doctor" -> {
+                SectionDeck("Your tools", section, Icons.Outlined.Book, figure = {
+                    DeckFigure(value = "${observationRanges.size}", label = "readings, and the indicative adult range each is flagged against")
+                }) {
+                    DeckDestination("Clinical protocols", "The reference a case is read against", Icons.Outlined.Straighten, raised = true) { open("Clinical protocols") }
+                }
+                DeckDestination("Referral pathway", "", Icons.AutoMirrored.Outlined.Send) { open("Referral pathway") }
             }
             role == "Partner" && section == "Orders" -> {
                 CareCard {

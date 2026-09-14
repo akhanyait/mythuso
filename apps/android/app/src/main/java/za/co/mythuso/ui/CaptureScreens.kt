@@ -175,34 +175,76 @@ private fun stateTone(state: CaptureState) = when (state) {
         if (scanning) { delay(1600); scanning = false; scanned = true }
     }
 
-    ScreenColumn {
-        DemoBadge()
-        NotConnected("devices")
-        Heading("Thuso Kit", "Connected diagnostic capture.", "$visit · $patient. Six instruments, each with what it measures, how it would connect and when it was last calibrated.")
-        CareCard {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.BluetoothDisabled, null, tint = Charcoal)
-                Text("Nothing here connects.", style = MaterialTheme.typography.titleMedium)
-            }
-            Text(
-                "No Bluetooth adapter is opened, no scan is started and no instrument is on the other end. This app asks for no permission at all — not location, not Bluetooth, not internet — and its manifest declares none, so nothing here could reach an instrument or a server even if one existed.",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Note("What is real is the shape: what each instrument measures, what has to be recorded alongside it, when it was last calibrated, and what happens to the reading afterwards. The numbers are generated on this phone and every screen that shows one says so.")
-        }
-        CareCard {
-            Text("Capturing as", style = MaterialTheme.typography.titleMedium)
-            Note("Capturing a reading is writing into somebody’s record, so it asks the vetting module the same question a consultation does: may this party write a clinical note?")
-            FlowRowChips(nurses.map { it.name }, setOf(nurse.name)) { name -> nurseId = nurses.first { it.name == name }.id }
-            Note("${vettingRoleById(nurse.roleId)?.name} · ${nurse.reference} · ${summarise(nurse).status.label}")
-            if (!mayCapture.allowed) Text(
-                "${mayCapture.reason.orEmpty()} Pairing and calibration stay readable — knowing which instrument is out of date is not a clinical write — but no reading is taken under this registration.",
-                style = MaterialTheme.typography.bodyMedium, color = Danger,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-            )
-        }
+    val held = capture.readings.filter { it.state != CaptureState.STORED }
+    val needing = held.count { it.state == CaptureState.CONFLICTED }
+    val outOfDate = capture.paired.count { it.state == CalibrationState.OUT_OF_DATE }
+    val dueSoon = capture.paired.count { it.state == CalibrationState.DUE }
 
-        Text("Paired instruments", style = MaterialTheme.typography.titleMedium, color = Charcoal)
+    ScreenColumn {
+        /* THE KIT IS A DECK, AND THE SENTENCE ABOUT BLUETOOTH STANDS ON IT.
+           The screen used to open on a notice, a heading and two white cards of equal weight, so the
+           one fact a reviewer most needs — nothing here reaches an instrument — sat at the same height
+           as the choice of nurse. The capability's own sentence is on the canvas now, at reading
+           size; the choice of nurse is a pill cluster, because comparing the three is the whole
+           demonstration; and "Nothing here connects" is the sheet standing on the canvas's edge, the
+           first thing under the deck and the most raised thing on the screen.
+           The two figures are counted off the two lists below them: the ring is the contract's six
+           instruments with the paired ones lit, and the panel's ring is what is still on this phone,
+           lit where a reading disagrees with another. */
+        DeckHero(
+            content = {
+                DeckPreviewMark()
+                DeckHeadline(
+                    "Thuso Kit",
+                    listOf(DeckWord.Words("Connected"), DeckWord.Glyph(Icons.Outlined.Sensors), DeckWord.Words("diagnostic capture.")),
+                    tail = "$visit · $patient. Six instruments, each with what it measures, how it would connect and when it was last calibrated."
+                )
+                NotConnected("devices")
+                DeckPills("Capturing as", nurse.id, nurses.map { it.id to it.name }) { nurseId = it }
+                Text(
+                    "Capturing a reading is writing into somebody’s record, so it asks the vetting module the same question a consultation does: may this party write a clinical note?",
+                    style = MaterialTheme.typography.bodySmall, color = DeckInk.quiet
+                )
+                Text("${vettingRoleById(nurse.roleId)?.name} · ${nurse.reference} · ${summarise(nurse).status.label}",
+                    style = MaterialTheme.typography.bodySmall, color = DeckInk.quiet)
+                if (!mayCapture.allowed) Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                    DeckRefusal("${mayCapture.reason.orEmpty()} Pairing and calibration stay readable — knowing which instrument is out of date is not a clinical write — but no reading is taken under this registration.")
+                }
+                DeckGlassCard {
+                    DeckFigure(
+                        value = "${capture.paired.size}", label = "of ${kitInstruments.size} instruments paired to this phone",
+                        chip = when {
+                            capture.paired.isEmpty() -> "Nothing paired"
+                            outOfDate > 0 -> "$outOfDate out of calibration"
+                            dueSoon > 0 -> "$dueSoon due for calibration"
+                            else -> "All in calibration"
+                        },
+                        flagged = outOfDate > 0,
+                        shape = DeckShape.Ring(kitInstruments.map { instrument -> capture.paired.any { it.instrument.id == instrument.id } })
+                    )
+                }
+                DeckPanel {
+                    DeckFigure(
+                        value = "${held.size}", label = "readings held on this phone, not yet sent",
+                        chip = if (needing > 0) "$needing needing a decision" else "None needing a decision", flagged = needing > 0,
+                        shape = DeckShape.Ring(held.map { it.state == CaptureState.CONFLICTED }), ground = DeckGround.PANEL
+                    )
+                }
+            },
+            sheet = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.BluetoothDisabled, null, tint = Charcoal)
+                    Text("Nothing here connects.", style = MaterialTheme.typography.titleMedium, color = Charcoal)
+                }
+                Text(
+                    "No Bluetooth adapter is opened, no scan is started and no instrument is on the other end. This app asks for no permission at all — not location, not Bluetooth, not internet — and its manifest declares none, so nothing here could reach an instrument or a server even if one existed.",
+                    style = MaterialTheme.typography.bodyMedium, color = Charcoal
+                )
+                Note("What is real is the shape: what each instrument measures, what has to be recorded alongside it, when it was last calibrated, and what happens to the reading afterwards. The numbers are generated on this phone and every screen that shows one says so.")
+            }
+        )
+
+        DeckSectionHead("Paired instruments", count = "${capture.paired.size}")
         if (capture.paired.isEmpty()) EmptyStateCard("Nothing is paired", "Discover below. In this preview discovery is a timer and a list compiled into the app.")
         capture.paired.forEach { paired ->
             InstrumentCard(
@@ -218,7 +260,7 @@ private fun stateTone(state: CaptureState) = when (state) {
             )
         }
 
-        Text("Not paired", style = MaterialTheme.typography.titleMedium, color = Charcoal)
+        DeckSectionHead("Not paired", count = "${capture.unpaired().size}")
         CareCard {
             Text("Discover instruments", style = MaterialTheme.typography.titleMedium)
             Text(
@@ -245,12 +287,12 @@ private fun stateTone(state: CaptureState) = when (state) {
         }
         if (scanned && capture.unpaired().isEmpty()) Note("All six instruments in the contract are paired. Pairing survives a restart: it is written to the same file the queue is.")
 
-        CareCard {
-            Text("Where these readings go", style = MaterialTheme.typography.titleMedium)
-            Note("A reading taken here is held on this phone first, then queued, then sent. Nothing is sent from this preview, so the queue is where the work sits and it is worth looking at.")
-            ToolRow("Capture queue") { open("Capture queue") }
-            ToolRow("Visit assessment") { open("Visit assessment") }
-        }
+        DeckSectionHead(
+            "Where these readings go",
+            note = "A reading taken here is held on this phone first, then queued, then sent. Nothing is sent from this preview, so the queue is where the work sits and it is worth looking at."
+        )
+        DeckDestination("Capture queue", "", Icons.Outlined.Inventory2, raised = true) { open("Capture queue") }
+        DeckDestination("Visit assessment", "", Icons.Outlined.ContentPaste) { open("Visit assessment") }
     }
 }
 

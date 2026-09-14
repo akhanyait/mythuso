@@ -62,7 +62,7 @@ enum WorkspaceNavigation {
                                       .init(id: "Quality", symbol: "chart.bar")]
         default: return [.init(id: "Schedule", symbol: "calendar"),
                          .init(id: "Assessments", symbol: "list.clipboard"),
-                         .init(id: "Thuso Kit", symbol: "sensor.tag.radiowave.forward"),
+                         .init(id: "Thuso Kit", symbol: "sensor.tag.radiowaves.forward"),
                          .init(id: "Earnings & payouts", symbol: "creditcard"),
                          .init(id: "Vetting", symbol: "checkmark.seal")]
         }
@@ -356,6 +356,8 @@ struct WorkspaceSectionView: View {
                                    detail: FramingData.blurb(section))
                         .accessibilityIdentifier("workspace-section-\(section)")
                     WorkspaceUrgency(role: role)
+                } else if Self.decked(role, section) {
+                    sectionDeck
                 } else {
                     SurfaceHeading(title: section, subtitle: FramingData.blurb(section))
                         .accessibilityIdentifier("workspace-section-\(section)")
@@ -420,17 +422,14 @@ struct WorkspaceSectionView: View {
                 pill("Open a teleconsultation", "Who is in the room, and what each of them may hear", "video") { TeleconsultView() }
             }
         case ("Doctor", "Patient context"):
-            /* A doctor's queue and a doctor's record are the same authority asked twice, so the file
-               opens as this doctor rather than as an anonymous reader. */
-            group("Patient records") {
-                pill("Patient file", "Eight tabs, gated on vetting", "folder.badge.person.crop") { PatientFileView(viewerId: "D-401") }
-                pill("Consultation record", "One structure for every encounter", "square.and.pencil") { ConsultationRecordView(writerId: "D-401") }
-            }
+            /* A doctor's queue and a doctor's record are the same authority asked twice, so the record
+               opens as this doctor rather than as an anonymous reader. The file itself is the raised
+               card standing on the deck above. */
+            deckRow("Consultation record", "One structure for every encounter", "square.and.pencil") { ConsultationRecordView(writerId: "D-401") }
         case ("Doctor", "Protocols"):
-            group("Your tools") {
-                pill("Clinical protocols", "", "book") { FeatureDetail(title: "Clinical protocols") }
-                pill("Referral pathway", "", "arrow.triangle.branch") { FeatureDetail(title: "Referral pathway") }
-            }
+            /* Still the roadmap's placeholder, and saying so by destination: the web's pathway is prose
+               typed into a component, not a contract a native screen could render word for word. */
+            deckRow("Referral pathway", "", "arrow.triangle.branch") { FeatureDetail(title: "Referral pathway") }
         case ("Partner", "Orders"): partnerOrders
         case ("Partner", "Collections"):
             group("Collections") {
@@ -457,30 +456,148 @@ struct WorkspaceSectionView: View {
                 pill("Nurse onboarding & vetting", "What a nurse must produce before a visit", "person.badge.plus") { VettingApplyView(roleId: "nurse") }
             }
         case (_, "Assessments"):
-            group("Start a visit") {
-                pill("Visit assessment · TH-2048", "Identity, consent, readings, findings, sign-off", "list.clipboard") { VisitAssessmentView() }
-            }
-            group("Patient records") {
-                pill("Patient file", "Eight tabs, gated on vetting", "folder.badge.person.crop") { PatientFileView(viewerId: "N-201") }
-                pill("Consultation record", "One structure for every encounter", "square.and.pencil") { ConsultationRecordView(writerId: "N-205") }
+            VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+                DeckSectionHead(title: "Patient records")
+                deckRow("Patient file", "\(Records.fileTabs.count) tabs, gated on vetting", "folder.badge.person.crop") { PatientFileView(viewerId: "N-201") }
+                deckRow("Consultation record", "One structure for every encounter", "square.and.pencil") { ConsultationRecordView(writerId: "N-205") }
             }
         case (_, "Thuso Kit"):
-            group("On this phone") { waitingToSend }
-            group("Instruments") {
-                pill("Thuso Kit · pair an instrument", "Pairing, calibration and where a reading came from", "sensor.tag.radiowave.forward") { ThusoKitView() }
+            VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+                DeckSectionHead(title: "On this phone")
+                NavigationLink { CaptureQueueView() } label: {
+                    DeckDestination(title: "Waiting to send",
+                                    subtitle: "\(kit.onlyHereCount) reading\(kit.onlyHereCount == 1 ? "" : "s") held here · \(kit.conflictedCount) needing a decision",
+                                    symbol: "tray.full")
+                }.buttonStyle(.plain)
             }
         case (_, "Earnings & payouts"):
-            group("Your money") {
-                pill("Earnings & payouts", "What a visit paid, and what a suspension never touches", "creditcard") { EarningsView() }
-            }
+            EmptyView()
         case (_, "Vetting"):
-            group("Your vetting") {
-                pill("My vetting status", "Every check, and what each one gates", "checkmark.seal") { VettingStatusView(subjectId: "N-205") }
-                pill("Nurse onboarding & vetting", "What a nurse must produce before a visit", "person.badge.plus") { VettingApplyView(roleId: "nurse") }
-                pill("Locum vetting", "The same bar, for a shift rather than a post", "clock.badge.checkmark") { VettingRoleView(roleId: "locum") }
+            VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+                deckRow("Nurse onboarding & vetting", "What a nurse must produce before a visit", "person.badge.plus") { VettingApplyView(roleId: "nurse") }
+                deckRow("Locum vetting", "The same bar, for a shift rather than a post", "clock.badge.checkmark") { VettingRoleView(roleId: "locum") }
             }
         default: nurseSchedule
         }
+    }
+
+    // MARK: - The sections drawn as decks
+
+    /* A nurse's four and the doctor's two the founder named. The doctor's teleconsultation, the partner
+       and the Control Tower keep the plain heading: nobody asked for them, and a deck on every tab is a
+       deck that has stopped leading. */
+    private static func decked(_ role: String, _ section: String) -> Bool {
+        (role == "Nurse" && ["Assessments", "Thuso Kit", "Earnings & payouts", "Vetting"].contains(section))
+            || (role == "Doctor" && ["Patient context", "Protocols"].contains(section))
+    }
+
+    /* A section behind the landing, in the deck's grammar rather than a heading over a grey pill.
+     *
+     * Each was a sentence-case title and a white group holding one pill, which is what the founder meant
+     * by boring: it told a nurse where a door was and nothing about what was behind it. The canvas now
+     * names the section with the tab's own symbol set inside the headline, carries the section's
+     * sentence from the framing contract, and puts on glass the one figure the section can honestly
+     * count — counted off the same stores the screen behind the door reads. The door itself is the
+     * raised card standing on the canvas's edge. Each section says it is a preview, on the canvas, in
+     * DemoBadge's own words. */
+    @ViewBuilder private var sectionDeck: some View {
+        switch section {
+        case "Assessments":
+            let visit = CaptureFixtures.visit
+            let taken = Records.observations.map { observation in
+                kit.forVisit(visit).contains { !$0.superseded && $0.reading.observationId == observation.id }
+            }
+            sectionHero(eyebrow: "Start a visit", symbol: "list.clipboard") {
+                DeckFigure(value: "\(taken.filter { $0 }.count)",
+                           label: "of \(Records.observations.count) readings taken for \(visit) on this phone",
+                           chip: "Visit assessment · \(visit)", shape: .ring(taken))
+            } lead: {
+                NavigationLink { VisitAssessmentView() } label: {
+                    DeckDestination(title: "Visit assessment · \(visit)", subtitle: "Identity, consent, readings, findings, sign-off",
+                                    symbol: "list.clipboard", raised: true)
+                }.buttonStyle(.plain)
+            }
+        case "Thuso Kit":
+            sectionHero(eyebrow: "Instruments", symbol: "sensor.tag.radiowaves.forward") {
+                DeckFigure(value: "\(kit.onlyHereCount)", label: "readings held on this phone, not yet sent",
+                           chip: kit.conflictedCount > 0 ? "\(kit.conflictedCount) needing a decision" : "None needing a decision",
+                           flagged: kit.conflictedCount > 0)
+            } lead: {
+                NavigationLink { ThusoKitView() } label: {
+                    DeckDestination(title: "Thuso Kit · pair an instrument", subtitle: "Pairing, calibration and where a reading came from",
+                                    symbol: "sensor.tag.radiowaves.forward", raised: true)
+                }.buttonStyle(.plain)
+            }
+        case "Earnings & payouts":
+            sectionHero(eyebrow: "Your money", symbol: "creditcard") {
+                DeckFigure(value: Earnings.randDigits(Earnings.currentWeek.total), prefix: "R ", label: "This week so far",
+                           chip: "Pays \(Earnings.cycle.paysOn)", shape: .spark(weeks: WorkspaceDay.completedWeekTotals))
+            } lead: {
+                NavigationLink { EarningsView() } label: {
+                    DeckDestination(title: "Earnings & payouts", subtitle: "What a visit paid, and what a suspension never touches",
+                                    symbol: "creditcard", raised: true)
+                }.buttonStyle(.plain)
+            }
+        case "Vetting":
+            let standing = VettingStore.shared.subject("N-205").map(summarise)
+            sectionHero(eyebrow: "Your vetting", symbol: "checkmark.seal") {
+                if let standing {
+                    DeckFigure(value: "\(standing.passed)", label: "of \(standing.total) checks in date",
+                               chip: standing.status.label, flagged: !standing.cleared,
+                               shape: .ring(standing.states.map { $0.state.passes }))
+                }
+            } lead: {
+                NavigationLink { VettingStatusView(subjectId: "N-205") } label: {
+                    DeckDestination(title: "My vetting status", subtitle: "Every check, and what each one gates",
+                                    symbol: "checkmark.seal", raised: true)
+                }.buttonStyle(.plain)
+            }
+        case "Patient context":
+            /* The file opens as D-401, so the ring is what D-401 may open of it, counted by the same
+               canOpenTab the file's own tabs are drawn from. */
+            let doctor = VettingStore.shared.subject("D-401")
+            let openTabs = doctor.map { reader in Records.fileTabs.map { canOpenTab(reader, $0).allowed } } ?? []
+            sectionHero(eyebrow: "Patient records", symbol: "waveform.path.ecg") {
+                DeckFigure(value: "\(openTabs.filter { $0 }.count)",
+                           label: "of \(Records.fileTabs.count) sections of a patient file open to \(doctor?.name ?? "this doctor")",
+                           chip: doctor.map { summarise($0).status.label }, shape: .ring(openTabs))
+            } lead: {
+                NavigationLink { PatientFileView(viewerId: "D-401") } label: {
+                    DeckDestination(title: "Patient file", subtitle: "\(Records.fileTabs.count) tabs, gated on vetting",
+                                    symbol: "folder.badge.person.crop", raised: true)
+                }.buttonStyle(.plain)
+            }
+        default:
+            sectionHero(eyebrow: "Your tools", symbol: "book") {
+                DeckFigure(value: "\(Records.observations.count)",
+                           label: "readings, and the indicative adult range each is flagged against")
+            } lead: {
+                NavigationLink { ClinicalProtocolsView() } label: {
+                    DeckDestination(title: "Clinical protocols", subtitle: "The reference a case is read against",
+                                    symbol: "ruler", raised: true)
+                }.buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func sectionHero<Figure: View, Lead: View>(eyebrow: String, symbol: String,
+                                                       @ViewBuilder figure: () -> Figure,
+                                                       @ViewBuilder lead: () -> Lead) -> some View {
+        DeckHero(wrap: false) {
+            DeckPreviewMark()
+            DeckHeadline(eyebrow: eyebrow, words: [.text(section), .glyph(symbol)], tail: FramingData.blurb(section))
+                .accessibilityIdentifier("workspace-section-\(section)")
+            DeckGlass { figure() }
+        } sheet: {
+            lead()
+        }
+    }
+
+    private func deckRow<Destination: View>(_ title: String, _ subtitle: String, _ symbol: String,
+                                            @ViewBuilder destination: @escaping () -> Destination) -> some View {
+        NavigationLink { destination() } label: {
+            DeckDestination(title: title, subtitle: subtitle, symbol: symbol)
+        }.buttonStyle(.plain)
     }
 
     // MARK: - The boards

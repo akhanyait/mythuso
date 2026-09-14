@@ -388,7 +388,7 @@ struct MoreView: View {
                     row(thuso(.consultationRecord, store.locale), "One structure for every encounter, in long form or SOAP", "square.and.pencil") { ConsultationRecordView() }
                     row(thuso(.householdRecord, store.locale), "One household, and what each member may see of the others", "house") { HouseholdView() }
                     row(thuso(.healthSummary, store.locale), "The shareable summary, bound to a purpose and a period", "square.and.arrow.up") { HealthSummaryView() }
-                    row("Thuso Kit", "Pairing, calibration and where a reading came from", "sensor.tag.radiowave.forward") { ThusoKitView() }
+                    row("Thuso Kit", "Pairing, calibration and where a reading came from", "sensor.tag.radiowaves.forward") { ThusoKitView() }
                     row("The visit, waiting", "Offline capture of a whole visit — identity, consent, readings, findings, sign-off", "tray.full") { VisitQueueView() }
                     row("Readings waiting to send", "One reading at a time, and the four conflicts nobody merges", "waveform.path.ecg") { CaptureQueueView() }
                     row("System states", "Loading, error, offline and denied", "square.stack.3d.up") { SystemStatesView() }
@@ -475,7 +475,7 @@ struct RoadmapView: View {
                            It is built, so the roadmap sends you to the thing rather than to a
                            promise about it. */
                         if feature == "Thuso Kit" {
-                            NavigationLink { ThusoKitView() } label: { MenuRow(title: feature, subtitle: "Built — pairing, calibration and provenance", symbol: "sensor.tag.radiowave.forward") }.buttonStyle(.plain)
+                            NavigationLink { ThusoKitView() } label: { MenuRow(title: feature, subtitle: "Built — pairing, calibration and provenance", symbol: "sensor.tag.radiowaves.forward") }.buttonStyle(.plain)
                         } else if feature == "Thuso SOS" {
                             NavigationLink { SosView() } label: { MenuRow(title: feature, subtitle: "Emergency services first, then what MyThuso can actually do", symbol: "cross.case") }.buttonStyle(.plain)
                         } else {

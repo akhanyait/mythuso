@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ArrowLeftRight, Ban, CheckCheck, CircleAlert, Cloud, CloudOff, GitMerge, History, Inbox, Lock, Radio, Send, ShieldCheck, ShieldX, Undo2, UserCheck } from 'lucide-react';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { ArrowLeftRight, Ban, CheckCheck, CircleAlert, GitMerge, History, Inbox, Lock, Radio, Send, ShieldCheck, ShieldX, Undo2, UserCheck } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { CalibrationTag, ProvenanceLegend, ProvenanceTag } from '../components/Provenance';
@@ -28,6 +28,14 @@ import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
    about what it does not survive.
 
    Fictional patients, invented readings, nothing sent anywhere. */
+
+/* Loaded when it is drawn, and only this screen needs to do that. Thuso Kit is one of the few screens
+   a patient opens as well as a nurse, so a static import of the clinical deck — or of this screen's
+   own stylesheet — would put both into the patient's entry, the download CLAUDE.md measures so that
+   it never grows. KitDeck carries the two together. On a clinical screen they are already in the
+   workspace chunk and nothing extra is fetched; a patient fetches them once, when she opens this
+   screen and not before. The figures and their labels travel with it for the same reason. */
+const KitDeck = lazy(() => import('./KitDeck'));
 
 const HOURS = 3_600_000;
 const nurses = subjectsByRole('nurse').filter(n => ['N-205', 'N-201', 'N-204'].includes(n.id));
@@ -122,22 +130,22 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
  };
  const interrupt = () => { setEntries(list => list.map(e => e.state === 'sending' ? { ...e, state: 'queued', note: 'The send was interrupted. The entry went back to the queue rather than anywhere else.' } : e)); setSending(false); };
 
- return <div className="form-stack kit-surface">
-  <div className="page-intro">
-   <div className="eyebrow">Thuso Kit</div>
-   <h1>Connected capture, and what it owes a reading</h1>
-   <p>Where a reading came from, which instrument took it, whether that instrument is in calibration, and what becomes of work done in a house with no signal.</p>
-  </div>
-  <NotConnected of="devices"/>
+ return <div className="kit-surface nt-screen c-page">
+  {/* The whole screen waits for its deck and its sheet together, so nobody sees the queue drawn
+      without its styles for a moment. While it waits, the capability's sentence is already on the
+      screen: a disclosure that appears after the thing it qualifies is, for that moment, none. */}
+  <Suspense fallback={<NotConnected of="devices"/>}>
+  <KitDeck entries={entries} online={online} onToggle={() => setOnline(!online)} localCopyAt={localCopyAt}/>
 
+  <div className="c-sheet form-stack">
   <SectionTitle title="Four origins, and none of them a lesser version of another"/>
-  <div className="panel">
+  <div className="panel nt-origins">
    <ProvenanceLegend/>
    <p className="helper"><CircleAlert size={13}/><span>{rules.provenanceIsRequired}</span></p>
   </div>
 
   <SectionTitle title="Capturing as"/>
-  <div className="panel form-stack">
+  <div className="panel form-stack nt-capturer">
    <label>Nurse<select value={capturerId} onChange={e => setCapturerId(e.target.value)}>
     {nurses.map(n => <option key={n.id} value={n.id}>{n.name} · {n.reference}</option>)}
    </select></label>
@@ -150,14 +158,10 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
     onCapture={c => { setEntries(list => [c, ...list]); setNotice(`${c.label} captured. It is held on this device and exists nowhere else.`); }}/>
 
    <SectionTitle title="Waiting to send"/>
-   <div className="panel form-stack">
+   <div className="panel form-stack nt-queue">
     <div className="kit-switches">
-     <button className={online ? 'secondary' : 'secondary offline'} onClick={() => setOnline(!online)} aria-pressed={online}>
-      {online ? <><Cloud size={16}/>Connection: on</> : <><CloudOff size={16}/>Connection: off</>}
-     </button>
      <label className="checkbox"><input type="checkbox" checked={signed} onChange={e => setSigned(e.target.checked)}/><span>A doctor has signed this visit</span></label>
     </div>
-    <p className="helper">{online ? 'A connection is available, so the queue can be sent.' : 'No connection. A sealed reading goes nowhere, and the nurse has done everything she can do.'}</p>
 
     {/* The rule this preview owes and does not meet, said in the one place a reader would
         otherwise assume it did. */}
@@ -200,20 +204,30 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
    </div>
 
    <SectionTitle title="The six states a reading passes through"/>
-   <div className="panel">
-    {(['captured', 'queued', 'sending', 'stored', 'conflicted', 'refused'] as CaptureStateId[]).map(id => {
-     const spec = captureStateById(id);
-     return <div className="review-line" key={id}>
-      <span><strong className="kit-state-name">{spec.name}</strong><small>{spec.detail}</small></span>
-      <Pill tone={stateTone[id]}>{entries.filter(e => e.state === id).length}</Pill>
-     </div>;
-    })}
+   <div className="panel nt-states">
+    {/* Six stations in the order a reading passes through them, each carrying the count it holds
+        right now. A count of nothing is drawn as nothing rather than as a nought in a filled pill:
+        an empty state is a state that has not happened, and colouring it the same as a state that
+        has would put four false alarms on the screen. */}
+    <ol className="nt-state-board">
+     {(['captured', 'queued', 'sending', 'stored', 'conflicted', 'refused'] as CaptureStateId[]).map(id => {
+      const spec = captureStateById(id);
+      const count = entries.filter(e => e.state === id).length;
+      return <li className={`nt-state${count ? ` holds tone-${stateTone[id] || 'stored'}` : ' empty'}`} key={id}>
+       <span className="nt-state-count">{count}</span>
+       <strong className="kit-state-name">{spec.name}</strong>
+       <small>{spec.detail}</small>
+      </li>;
+     })}
+    </ol>
     {/* An empty state is worth explaining rather than filling. */}
     <p className="helper"><Ban size={13}/><span>Nothing here produces a server refusal, and one has not been invented to fill the row. The refusals designed here happen earlier — a reading whose cuff nobody recorded is never taken, a nurse who is not cleared never captures — or they are put in front of a clinician instead of being thrown back. A server refuses for reasons nothing on this device can produce: a visit that no longer exists, a payload it cannot read, a version it does not support. The state is designed and left at zero.</span></p>
    </div>
 
   <div className="privacy-note"><Radio size={19}/>The instruments, their calibration cadences, the six states and the four conflicts are read from <code>packages/catalog/capture.json</code>, so web, iOS and Android cannot quietly disagree about what a reading is.</div>
   {onClose && <button className="primary full" onClick={onClose}>Close</button>}
+  </div>
+  </Suspense>
  </div>;
 }
 
@@ -226,19 +240,29 @@ function QueueRow({ entry }: { entry: Capture }) {
  const conflict = entry.conflictId ? conflictById(entry.conflictId) : undefined;
  const instrument = entry.serial ? instrumentBySerial(entry.serial) : undefined;
  const skewed = entry.receivedAt && Math.abs(new Date(entry.receivedAt).getTime() - new Date(entry.deviceAt).getTime()) > 5 * 60_000;
- return <div className={`panel kit-entry ${entry.supersededBy ? 'superseded' : ''}`}>
-  <div className="kit-entry-head">
-   <div><strong>{entry.label}</strong><small>{entry.value} {entry.unit}</small></div>
+ /* The reading itself is the biggest thing on the row and the label is the quiet thing above it.
+    It was the other way round, which made twelve rows of identical bold labels with the one number
+    on each of them set smaller than its own caption. */
+ return <div className={`panel kit-entry nt-entry tone-${stateTone[entry.state] || 'stored'} ${entry.supersededBy ? 'superseded' : ''}`}>
+  <div className="kit-entry-head nt-entry-head">
+   <div className="nt-entry-value">
+    <small>{entry.label}</small>
+    <strong>{entry.value}<i>{entry.unit}</i></strong>
+   </div>
    <Pill tone={stateTone[entry.state]}>{spec.name}</Pill>
   </div>
   <div className="kit-tags">
    <ProvenanceTag source={{ provenance: entry.provenance, serial: entry.serial, by: entry.byName, saidBy: entry.saidBy, inputs: entry.inputs }}/>
    <CalibrationTag source={{ provenance: entry.provenance, serial: entry.serial, calibration: entry.calibration }}/>
   </div>
-  {entry.context && instrument && <div className="review-line"><span>{deviceById(instrument.deviceId)!.name}</span><strong>{entry.context}</strong></div>}
-  <div className="review-line"><span>Captured by</span><strong>{entry.byName}</strong></div>
-  <div className="review-line"><span>The instrument’s clock said</span><strong>{clockTime(entry.deviceAt)}</strong></div>
-  <div className="review-line"><span>Server receipt · what this is ordered by</span><strong>{entry.receivedAt ? formatEventTime(entry.receivedAt) : 'Not received. Nothing has ordered this yet.'}</strong></div>
+  <dl className="nt-facts">
+   {entry.context && instrument && <div><dt>{deviceById(instrument.deviceId)!.name}</dt><dd>{entry.context}</dd></div>}
+   <div><dt>Captured by</dt><dd>{entry.byName}</dd></div>
+   {/* Two clocks, always both, side by side rather than stacked — the whole point of the pair is
+       that a reader can see them disagree, and a disagreement read down a column is arithmetic. */}
+   <div><dt>The instrument’s clock said</dt><dd className="nt-clock">{clockTime(entry.deviceAt)}</dd></div>
+   <div><dt>Server receipt · what this is ordered by</dt><dd className="nt-clock">{entry.receivedAt ? formatEventTime(entry.receivedAt) : 'Not received. Nothing has ordered this yet.'}</dd></div>
+  </dl>
   <p className="helper"><History size={13}/>Held on the device, {ageText(entry.deviceAt)}.</p>
   {skewed && <p className="helper" role="status"><ArrowLeftRight size={13}/><span>{skewText(entry.deviceAt, entry.receivedAt!)}</span></p>}
   {conflict && entry.state === 'stored' && conflict.resolution === 'server' &&

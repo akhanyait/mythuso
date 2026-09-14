@@ -52,12 +52,7 @@ struct EarningsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
-                DemoBadge()
-                CareHeading(eyebrow: "Nurse workspace", title: "Earnings & payouts",
-                            subtitle: "Fictional visits, a fictional bank, and nothing transferred.")
-                standing
-                nursePicker
-                totals
+                deck
                 rule("accrued-is-not-paid")
                 split
                 weeks
@@ -93,55 +88,48 @@ struct EarningsView: View {
                 }
             }
         }
-        .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(allowed ? ThusoTheme.studioLilac : ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
 
-    private var nursePicker: some View {
-        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-            Picker("Preview this screen as", selection: $who) {
-                ForEach(payPreviewNurses, id: \.self) { id in
-                    Text(vetting.subject(id)?.name ?? id).tag(id)
-                }
-            }
-            .pickerStyle(.segmented)
+    /* THE MONEY IS THE DECK, AND THE STANDING STANDS ON IT.
+       Three cards of equal weight used to hold this week, what is owed and the tax year, so the figure
+       a nurse opens this screen for was the size of the two she reads once a month. This week is the
+       lead now, on glass, with the completed weeks drawn behind it; what is owed is the pale panel, its
+       columns the weeks themselves, lit where a week is neither settled nor still accruing — which is
+       Earnings.owedNotYetPaid's own filter, so the drawing and the figure cannot disagree; and the tax
+       year is the night card crossing the panel's edge. The banner that reads the vetting register is
+       the sheet on the canvas's edge, mango when it refuses. Switching the nurse on the canvas changes
+       the banner and not one figure, which is the rule made visible rather than asserted. */
+    private var deck: some View {
+        let chronological = Earnings.weeks.sorted { $0.ends < $1.ends }
+        let allowed = nurse.map { can($0, "take-visit").allowed } ?? false
+        return DeckHero(sheetFill: allowed ? ThusoTheme.surface : ThusoTheme.mangoSoft) {
+            DeckPreviewMark()
+            DeckHeadline(eyebrow: "Nurse workspace", words: [.text("Earnings"), .glyph("creditcard"), .text("& payouts")],
+                         tail: "Fictional visits, a fictional bank, and nothing transferred.")
+            DeckPills(label: "Preview this screen as", selection: $who,
+                      options: payPreviewNurses.map { ($0, vetting.subject($0)?.name ?? $0) })
             Text("The same earnings, seen by a cleared nurse and by one whose police clearance lapsed nine days ago. Only the banner changes — which is the rule.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-        }
-    }
-
-    // MARK: - Totals
-
-    private var totals: some View {
-        VStack(spacing: ThusoSpacing.space12) {
-            metric("This week so far", rand(Earnings.currentWeek.total),
-                   "\(Earnings.currentWeek.visits) visits · closes \(Earnings.cycle.closesOn), pays \(Earnings.cycle.paysOn)",
-                   weight: .lead, size: .largeTitle)
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: ThusoSpacing.space12) { secondaryTotals }
-                VStack(spacing: ThusoSpacing.space12) { secondaryTotals }
+                .font(.footnote).foregroundStyle(DeckInk.quiet)
+                .fixedSize(horizontal: false, vertical: true)
+            DeckGlass {
+                DeckFigure(value: Earnings.randDigits(Earnings.currentWeek.total), prefix: "R ", label: "This week so far",
+                           chip: "\(Earnings.currentWeek.visits) visits · closes \(Earnings.cycle.closesOn), pays \(Earnings.cycle.paysOn)",
+                           shape: .spark(weeks: chronological.filter { $0.state != "accruing" }.map(\.total)))
             }
+            DeckPanel {
+                DeckFigure(value: Earnings.randDigits(Earnings.owedNotYetPaid), prefix: "R ", label: "Owed, not yet in your account",
+                           chip: "On its way, or waiting on a bank",
+                           shape: .columns(values: chronological.map(\.total),
+                                           lit: chronological.map { !Earnings.state($0.state).settled && $0.state != "accruing" }),
+                           ground: .panel)
+            } float: {
+                DeckFigure(value: Earnings.randDigits(Earnings.paidThisTaxYear), prefix: "R ", label: "Reached your account this tax year",
+                           chip: "Since \(Earnings.taxYear.startsOn) · \(Earnings.taxYear.label)", ground: .night)
+            }
+        } sheet: {
+            standing
         }
-    }
-
-    @ViewBuilder private var secondaryTotals: some View {
-        metric("Owed, not yet in your account", rand(Earnings.owedNotYetPaid), "On its way, or waiting on a bank")
-        metric("Reached your account this tax year", rand(Earnings.paidThisTaxYear),
-               "Since \(Earnings.taxYear.startsOn) · \(Earnings.taxYear.label)")
-    }
-
-    private func metric(_ label: String, _ value: String, _ note: String,
-                        weight: CardWeight = .plain, size: Font = .title2) -> some View {
-        CareCard(weight: weight, spacing: ThusoSpacing.space4) {
-            Text(label).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(value).font(size.weight(.bold)).monospacedDigit().foregroundStyle(ThusoTheme.charcoal)
-                .minimumScaleFactor(0.7).lineLimit(1)
-            Text(note).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .combine)
     }
 
     // MARK: - The split
@@ -149,11 +137,10 @@ struct EarningsView: View {
     private var split: some View {
         let parts = Earnings.split(service)
         return VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            Text("Where the money goes").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            DeckSectionHead(title: "Where the money goes")
             CareCard {
-                Picker("Show the split for", selection: $serviceId) {
-                    ForEach(Earnings.pricedServices) { Text($0.name).tag($0.id) }
-                }
+                DeckPills(label: "Show the split for", selection: $serviceId,
+                          options: Earnings.pricedServices.map { ($0.id, $0.name) }, onNight: false)
                 GeometryReader { geometry in
                     HStack(spacing: 3) {
                         bar(ThusoTheme.charcoal, parts.nurse, parts.price, geometry.size.width)
@@ -194,8 +181,7 @@ struct EarningsView: View {
 
     private var weeks: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            Text("Your weeks").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(Earnings.cycle.note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            DeckSectionHead(title: "Your weeks", count: "\(Earnings.weeks.count)", note: Earnings.cycle.note)
             ForEach(Earnings.weeks) { entry in weekCard(entry) }
         }
     }
@@ -274,7 +260,7 @@ struct EarningsView: View {
 
     private var tax: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            Text("Tax").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            DeckSectionHead(title: "Tax")
             CareCard {
                 row("Reached your account since \(Earnings.taxYear.startsOn)", rand(Earnings.paidThisTaxYear))
                 row("Tax withheld by MyThuso", rand(0))
@@ -295,7 +281,7 @@ struct EarningsView: View {
 
     private var account: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            Text("Where you are paid").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            DeckSectionHead(title: "Where you are paid")
             CareCard {
                 HStack(spacing: ThusoSpacing.space12) {
                     TileIcon(symbol: "building.columns", size: 38)
@@ -333,7 +319,7 @@ struct EarningsView: View {
 
     private var refusals: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            Text("What this screen will not do").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            DeckSectionHead(title: "What this screen will not do", count: "\(Earnings.refusals.filter { $0.id != "advise-on-tax" }.count)")
             ForEach(Earnings.refusals.filter { $0.id != "advise-on-tax" }) { item in
                 CareCard { refusal(item) }
             }

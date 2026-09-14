@@ -1,6 +1,6 @@
 import { ClinicalWorkbench } from '../features/ClinicalWorkbench';
 import framing from '../../../../packages/catalog/framing.json' with { type: 'json' };
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
 import { Modal, SectionTitle } from '../components/UI';
 import { Metric, Metrics, NavRow } from '../surface/Surface';
@@ -13,7 +13,7 @@ import { NurseSchedule, ReviewQueue, nurseDayCounts, reviewQueueCounts, roleExtr
 import { useVisitQueue } from '../features/VisitQueue';
 import type { Part } from '../lib/visit-queue';
 import { cycle, weeks } from '../lib/earnings';
-import { ClinicalDeck, type DeckFigure } from '../features/ClinicalDeck';
+import { ClinicalDeck, DeckTitleLevel, type DeckFigure, type DeckHeadline } from '../features/ClinicalDeck';
 import { earningsSummary, rand } from '../features/Earnings';
 import { DispatchBoard, IncidentBoard, QualityBoard, controlTowerCounts } from '../features/Dispatch';
 import { FulfilmentQueue, partnerCounts } from '../features/Fulfilment';
@@ -212,20 +212,30 @@ export default function StaffWorkspace({ role }: { role: StaffRole }) {
    carry one and a second would be the shell talking over them. */
 const SectionHead = ({ role, section }: { role: StaffRole; section: string }) =>
  <div className="page-intro"><div><div className="eyebrow">{role.toUpperCase()}</div><h1>{section}</h1></div></div>;
+/* The seven screens that open on the clinical deck name themselves on it, so the shell gives them
+   only the role eyebrow — the arrangement the doctor's queue and the nurse's day already have — and
+   tells the deck it is standing on a page rather than in a dialog. A large title over a 42px display
+   line was two headlines fighting for one screen; see DeckTitleLevel for why the deck cannot work out
+   which of the two places it is in for itself. */
+const OnDeck = ({ role, children }: { role: StaffRole; children: ReactNode }) =>
+ <DeckTitleLevel.Provider value="h1">
+  <div className="page-intro"><div><div className="eyebrow">{role.toUpperCase()}</div></div></div>
+  {children}
+ </DeckTitleLevel.Provider>;
 
 function renderSection(role: StaffRole, section: string, open: (m: string) => void, home: () => void) {
  const head = <SectionHead role={role} section={section}/>;
  if (role === 'Nurse') {
-  if (section === 'Assessments') return <>{head}<VisitAssessment onClose={home}/></>;
-  if (section === 'Thuso Kit') return <ThusoKit/>;
-  if (section === 'Earnings & payouts') return <>{head}<Earnings/></>;
-  if (section === 'Vetting') return <>{head}<VettingApplication roleId="nurse" onClose={home}/></>;
+  if (section === 'Assessments') return <OnDeck role={role}><VisitAssessment onClose={home}/></OnDeck>;
+  if (section === 'Thuso Kit') return <OnDeck role={role}><ThusoKit/></OnDeck>;
+  if (section === 'Earnings & payouts') return <OnDeck role={role}><Earnings/></OnDeck>;
+  if (section === 'Vetting') return <OnDeck role={role}><VettingApplication roleId="nurse" onClose={home}/></OnDeck>;
  }
  if (role === 'Doctor') {
-  if (section === 'Protocols') return <ClinicalProtocols/>;
+  if (section === 'Protocols') return <OnDeck role={role}><ClinicalProtocols/></OnDeck>;
   if (section === 'Teleconsultation') return <>{head}<Teleconsult/></>;
-  if (section === 'Patient context') return <PatientFile open={open}/>;
-  if (section === 'Consultation records') return <>{head}<ConsultationRecord/></>;
+  if (section === 'Patient context') return <OnDeck role={role}><PatientFile open={open}/></OnDeck>;
+  if (section === 'Consultation records') return <OnDeck role={role}><ConsultationRecord title="Consultation records"/></OnDeck>;
  }
  if (role === 'Partner' && section === 'Substitution & repeats') return <>{head}<Dispensing/></>;
  if (role === 'Control Tower') {
@@ -320,7 +330,10 @@ const metricsOf = (role: StaffRole, queue: Part[]): readonly Figure[] => {
           { label: 'Priority reviews', value: String(q.flagged), chip: 'Out of range', flagged: q.flagged > 0,
             shape: { kind: 'gauge', part: q.flagged, whole: q.waiting } },
           { label: 'Longest wait', value: q.longest, chip: 'Oldest in the queue', flagged: false,
-            shape: { kind: 'bars', values: q.rows.map(row => row.minutes) } }]; }
+            /* The bars carry the reference of the row each one is, so "the longest wait" names a
+               case a reader can find on the queue below rather than a length they have to match by
+               eye. Both halves come off the same rows the numeral is counted from. */
+            shape: { kind: 'bars', values: q.rows.map(row => row.minutes), labels: q.rows.map(row => row.ref) } }]; }
  if (role === 'Nurse') { const day = nurseDayCounts(queue);
   /* The week's earnings are the earnings screen's arithmetic rather than the schedule's: that
      screen already exports its summary, so the strip reads the one figure instead of keeping a
@@ -382,10 +395,18 @@ const DECK: readonly StaffRole[] = ['Nurse', 'Doctor'];
 /* What the deck is called, and what to do if a figure on it looks wrong — which is to count the rows
    it was counted from. That second sentence is the one line on a dashboard worth what it costs.
    The eyebrow does not repeat the role. The shell writes NURSE above this already, and a screen that
-   spends its most valuable line saying the same word twice has said nothing with it. */
-const deckHead: Partial<Record<StaffRole, { eyebrow: string; note: string }>> = {
- Nurse: { eyebrow: 'TODAY AT A GLANCE', note: 'Every figure is counted off the visits below' },
- Doctor: { eyebrow: 'THE QUEUE AT A GLANCE', note: 'Every figure is counted off the rows below' }
+   spends its most valuable line saying the same word twice has said nothing with it.
+   The headline is a sentence with a badge set inside it, and it is the question each of these two
+   screens exists to answer: a doctor's is what is waiting and for how long, a nurse's is where she
+   is going and when she can leave. The badge is decoration and is hidden from a screen reader, so
+   both sentences are written to read correctly without it. */
+const deckHead: Partial<Record<StaffRole, { eyebrow: string; headline: DeckHeadline; note: string }>> = {
+ Nurse: { eyebrow: 'TODAY AT A GLANCE',
+          headline: ['Where you are going,', { glyph: 'pin' }, 'and when you can leave.'],
+          note: 'Every figure is counted off the visits below' },
+ Doctor: { eyebrow: 'THE QUEUE AT A GLANCE',
+           headline: ['What is waiting,', { glyph: 'clock' }, 'and how long it has waited.'],
+           note: 'Every figure is counted off the rows below' }
 };
 
 function StaffSection({ role, section, open }: { role: StaffRole; section: string; open: (m: string) => void }) {
@@ -423,7 +444,8 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
       dashboard rather than a tool — the deck is for the two screens a clinician opens the
       application at and stays on. */}
   {figures.length > 0 && (deck
-   ? <ClinicalDeck role={role} figures={figures} eyebrow={deckHead[role]?.eyebrow ?? ''} note={deckHead[role]?.note ?? ''}/>
+   ? <ClinicalDeck role={role} figures={figures} eyebrow={deckHead[role]?.eyebrow ?? ''}
+                   headline={deckHead[role]?.headline ?? []} note={deckHead[role]?.note ?? ''}/>
    : <Metrics>{figures.map((figure, i) =>
       <Metric key={figure.label} label={figure.label} value={figure.value} unit={figure.unit} prefix={figure.prefix}
               chip={figure.chip} flagged={figure.flagged} lead={i === 0}/>)}</Metrics>)}

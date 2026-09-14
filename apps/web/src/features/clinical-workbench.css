@@ -61,17 +61,27 @@
     Both stops are lighter than the paper they mix towards, so nothing on this ground darkens. */
  background:radial-gradient(120% 90% at 6% -10%, color-mix(in srgb, var(--surface) 72%, var(--studio-paper)) 0%, transparent 62%), var(--studio-paper)}
 .iq-worklist>:last-child{margin-bottom:0}
-.iq-heading{display:grid;gap:18px;padding:24px 30px 28px;color:var(--studio-paper);
- /* The night, lifted six per cent at the top edge — the same one-step depth the deck's lead panel
-    takes, rather than a second colour. studioPaper reads 11.47 on the lighter end and 13.59 on the
-    darker; studioLime 10.16 and 12.03. */
- background:linear-gradient(180deg, color-mix(in srgb, var(--studio-paper) 6%, var(--studio-night)) 0%, var(--studio-night) 100%)}
+.iq-heading{display:grid;gap:18px;padding:24px 30px 28px;color:var(--studio-paper);position:relative;
+ /* The night, lifted at one corner rather than flat — the same radial the instrument deck at the
+    top of the screen stands on, so the two dark bands on a clinical screen are recognisably one
+    object twice rather than two dark rectangles sharing a colour. studioPaper reads 11.47 on the
+    lightest part of it and 13.59 on the darkest; studioLime 10.16 and 12.03. */
+ background:radial-gradient(120% 150% at 3% -30%, color-mix(in srgb, var(--studio-paper) 7%, var(--studio-night)) 0%, transparent 58%), var(--studio-night)}
 .iq-heading-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;padding-bottom:16px;border-bottom:1px solid color-mix(in srgb, var(--studio-paper) 14%, var(--studio-night))}
 .iq-heading-say>p{max-width:60ch}
 /* The workspace shell styles every .clinical h2 charcoal, which on this dark header is a
    1.28:1 headline nobody can read. Same specificity loses on source order, so this rule carries
    the extra class rather than !important. */
-.iq-workbench .iq-heading h2{font-size:clamp(23px,2.3vw,34px);line-height:1.15;max-width:600px;margin:12px 0;letter-spacing:-1px;color:inherit}
+/* 24 and 36, which are steps on the type scale in packages/design-tokens/tokens.json. It was
+   clamp(23px, 2.3vw, 34px): two ends and everything between them off a scale the whole product is
+   drawn on, in the one place a reader is most likely to notice the difference. */
+.iq-workbench .iq-heading h2{font-size:clamp(24px,2.5vw,36px);font-weight:500;line-height:1.16;max-width:20ch;margin:12px 0;letter-spacing:-1.2px;color:inherit;text-wrap:balance}
+/* The badge inside the sentence, sized in em so it grows with the headline rather than becoming a
+   dot beside a 36px word. Pale, with the dark ink inside it: this family's ink measures 1.28 on the
+   night and is never a mark there. indigoSoft against the night is 13.16 and indigoDeep on
+   indigoSoft is 13.39. */
+.iq-glyph{display:inline-grid;place-items:center;width:.92em;height:.92em;margin:0 .06em;border-radius:50%;background:var(--indigo-soft);color:var(--indigo-deep);vertical-align:-.12em}
+.iq-glyph svg{width:54%;height:54%}
 .iq-heading p{color:var(--studio-line);font-size:14px;margin:0}
 /* 13, not 12. The type scale in packages/design-tokens/tokens.json starts at 13 and the 200% zoom
    audit reads every rendered size against it, so an eyebrow set at 12 is text the design system says
@@ -106,7 +116,23 @@
    carries the weight of one now. The allergy tile turns peach when the record has not been
    reconciled — the same flag that makes the pharmacist's verification fail — and says so in words
    and in a mark beside the colour. */
-.iq-identity{border:1px solid var(--studio-line);border-radius:var(--r-card);padding:20px 22px;display:grid;gap:18px;background:var(--surface)}
+.iq-identity{border:1px solid var(--studio-line);border-radius:var(--r-card);padding:20px 22px;display:grid;gap:18px;background:var(--surface);position:relative}
+/* THE ONE CARD THAT CROSSES A BAND. The person being worked is what the dark band above introduces,
+   so the card carrying their name lifts out of the white column and onto the band's lower edge —
+   the reference's floating cards overlapping the panel they belong to, and the same move the
+   instrument deck makes where the board below it slides onto the canvas. The band is given the
+   overlap as padding first, so what the card covers is empty ground and never a word; it is the
+   only thing in this workspace at that elevation, which is what keeps it meaning something.
+   1101 and not a pixel less, and the number is the layout's rather than a guess: the patient rail
+   below stops being a column beside the work at `max-width:1100px` and becomes a row of cards above
+   it, and a card lifted onto the band then lands on three buttons instead of on empty ground. It
+   did, first at 1000 and then at exactly 1100 — an overlap measured against the wrong breakpoint is
+   a control nobody can press, and a breakpoint that agrees with another one only on one side of
+   itself is not agreeing with it. */
+@media(min-width:1101px){
+ .iq-heading{padding-bottom:calc(28px + 48px)}
+ .iq-identity{margin-top:-48px;box-shadow:var(--shadow-raised)}
+}
 .iq-identity-top{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
 .iq-identity-disc{width:56px;height:56px;flex:0 0 56px;border-radius:50%;display:grid;place-items:center;background:var(--studio-ink);color:var(--surface);font-size:18px;font-weight:600;letter-spacing:.5px}
 .iq-identity-say{flex:1 1 220px;min-width:0}
@@ -128,9 +154,12 @@
    across a card and none of them mean anything; a single recessed rail with the chosen tool lifted
    out of it says which of five you are on in one shape. studioInk on paper is 10.59, white on
    studioInk 11.66, and the chosen pill is also the only one carrying a shadow. */
-.iq-tools{display:flex;gap:3px;flex-wrap:wrap;padding:5px;border:1px solid var(--studio-line);border-radius:var(--r-panel);background:var(--studio-paper)}
+/* The rail is the pale panel the deck's quiet half stands on rather than a second shade of paper,
+   so the secondary tone on a clinical screen is one thing appearing twice instead of two things.
+   studioInk on it measures 10.25, white on the chosen pill 11.66. */
+.iq-tools{display:flex;gap:3px;flex-wrap:wrap;padding:5px;border:1px solid color-mix(in srgb, var(--studio-ink) 12%, var(--indigo-soft));border-radius:var(--r-panel);background:var(--indigo-soft)}
 .iq-tools button{display:flex;align-items:center;gap:7px;border:1px solid transparent;border-radius:var(--r-pill);min-height:44px;padding:9px 13px;background:transparent;color:var(--studio-ink);font-size:13px;transition:background var(--t-settle) var(--ease-soft),box-shadow var(--t-settle) var(--ease-soft)}
-.iq-tools button:hover{background:color-mix(in srgb, var(--surface) 70%, transparent)}
+.iq-tools button:hover{background:color-mix(in srgb, var(--surface) 80%, transparent)}
 .iq-tools button[aria-pressed=true]{background:var(--studio-ink);color:var(--surface);border-color:var(--studio-ink);box-shadow:var(--shadow-raised)}
 .iq-tools button[aria-pressed=true]:hover{background:var(--studio-ink)}
 /* core.css draws :focus-visible as an outline AND a box-shadow ring at the lowest possible
@@ -139,7 +168,10 @@
    in front of their own. */
 .iq-tools button[aria-pressed=true]:focus-visible,
 .iq-patients>button.selected:focus-visible{box-shadow:0 0 0 7px var(--focus-edge),var(--shadow-raised)}
-.iq-tool-count{font-size:13px;line-height:1.3;min-width:20px;padding:1px 6px;border-radius:var(--r-pill);background:color-mix(in srgb, var(--studio-ink) 12%, var(--surface));color:var(--studio-ink-muted);font-variant-numeric:tabular-nums}
+/* Ink at 12% over the rail rather than over white, because the rail is what it is drawn on:
+   studioInkMuted reads 5.25 there. A tint measured against the ground it is not on is how a badge
+   ends up invisible on the one surface it appears. */
+.iq-tool-count{font-size:13px;line-height:1.3;min-width:20px;padding:1px 6px;border-radius:var(--r-pill);background:color-mix(in srgb, var(--studio-ink) 12%, var(--indigo-soft));color:var(--studio-ink-muted);font-variant-numeric:tabular-nums}
 .iq-tools button[aria-pressed=true] .iq-tool-count{background:color-mix(in srgb, var(--surface) 22%, var(--studio-ink));color:var(--surface)}
 
 /* Each tool's body opens on a head with a rule under it, so five tools in one card read as five

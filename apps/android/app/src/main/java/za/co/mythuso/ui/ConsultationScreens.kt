@@ -124,32 +124,58 @@ private data class ConsultationSignature(
         .filter { it.state != CaptureState.REFUSED }
         .sortedBy { it.label }
 
+    val caveated = readings.count { it.caveats.isNotEmpty() }
+
     ScreenColumn {
-        DemoBadge()
-        Heading("Clinical", thuso(Phrase.CONSULTATION_RECORD, store.locale), "$reference · $patient")
-        StatusPill(if (signature != null) "Signed · demo record" else "Draft — not signed", if (signature != null) "teal" else "amber")
-        Note(consultationWhy)
-
-        CareCard {
-            Text("Writing as", style = MaterialTheme.typography.titleMedium)
-            FlowRowChips(writers.map { it.name }, setOf(writer.name)) { name ->
-                writerId = writers.first { it.name == name }.id
-                signature = null
+        /* THE RECORD OPENS ON A DECK: who is writing, how much of the standard is written, and what the
+           visit already carried in. The standing chip is on the canvas where the eye lands first, and
+           it is filled while the record is a draft, because a draft is the state that must not be
+           mistaken for a consultation. The ring is this writer's fields with the written ones lit — the
+           same `offeredFields` the form below is built from, so it moves as the form is typed into —
+           and the panel's ring is the readings carried from the capture queue, lit where one carries a
+           caveat. The choice of view stands on the canvas's edge, because it rearranges everything
+           under it and changes no value. */
+        DeckHero(
+            content = {
+                DeckPreviewMark()
+                DeckHeadline(
+                    "Clinical · ${thuso(Phrase.CONSULTATION_RECORD, store.locale)}",
+                    listOf(DeckWord.Words(reference), DeckWord.Glyph(Icons.Outlined.EditNote), DeckWord.Words(patient)),
+                    tail = consultationWhy
+                )
+                DeckTag(if (signature != null) "Signed · demo record" else "Draft — not signed", flagged = signature == null, ground = DeckGround.NIGHT)
+                DeckPills("Writing as", writer.id, writers.map { it.id to it.name }) { writerId = it; signature = null }
+                Text("${role?.name} · ${writer.reference} · ${summarise(writer).status.label}",
+                    style = MaterialTheme.typography.bodySmall, color = DeckInk.quiet)
+                if (!mayWrite.allowed) Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                    DeckRefusal("${mayWrite.reason.orEmpty()} The form is read-only rather than merely unsignable: an entry nobody may put their registration against is not a record, it is a note that looks like one.")
+                }
+                DeckGlassCard {
+                    DeckFigure(
+                        value = "$filled", label = "of ${offeredFields.size} fields written",
+                        chip = if (outstanding.isEmpty()) "Every required section written" else "${outstanding.size} required still to write",
+                        flagged = outstanding.isNotEmpty(),
+                        shape = DeckShape.Ring(offeredFields.map { value(it.id).isNotEmpty() })
+                    )
+                }
+                DeckPanel {
+                    DeckFigure(
+                        value = "${readings.size}", label = "readings carried from the visit, not retyped",
+                        chip = if (caveated > 0) "$caveated carrying a caveat" else "None carrying a caveat", flagged = caveated > 0,
+                        shape = DeckShape.Ring(readings.map { it.caveats.isNotEmpty() }), ground = DeckGround.PANEL
+                    )
+                }
+            },
+            sheet = {
+                DeckPills("View", view, listOf("Full record", "SOAP", "As it reads").map { it to it }, onNight = false) { view = it }
+                Note("One record, $filled of ${offeredFields.size} fields written. SOAP and the long form are two arrangements of those same fields — switching loses nothing, because there is no second copy of the note to keep in step.")
             }
-            Note("${role?.name} · ${writer.reference} · ${summarise(writer).status.label}")
-            if (!mayWrite.allowed) Text(
-                "${mayWrite.reason.orEmpty()} The form is read-only rather than merely unsignable: an entry nobody may put their registration against is not a record, it is a note that looks like one.",
-                style = MaterialTheme.typography.bodyMedium, color = Danger,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-            )
-        }
-
-        FlowRowChips(listOf("Full record", "SOAP", "As it reads"), setOf(view)) { view = it }
-        Note("One record, $filled of ${offeredFields.size} fields written. SOAP and the long form are two arrangements of those same fields — switching loses nothing, because there is no second copy of the note to keep in step.")
+        )
+        DeckSectionHead("The record", count = "$filled/${offeredFields.size}")
 
         when (view) {
-            "Full record" -> offered.forEach { section ->
-                ConsultationSectionBlock(section, record, mayDiagnose, writer, signature != null, readings, patient)
+            "Full record" -> offered.filter { it.id != "clinician" }.forEach { section ->
+                CareCard { ConsultationSectionBlock(section, record, mayDiagnose, writer, signature != null, readings, patient) }
             }
             "SOAP" -> {
                 soapHeadings.forEach { heading ->

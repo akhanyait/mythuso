@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ArrowRight, Ban, BadgeCheck, Building2, CalendarClock, CircleAlert, Info, Landmark, Lock, Receipt, RotateCcw, ShieldAlert, TrendingUp, Undo2, Wallet } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
-import { Metric, Metrics } from '../surface/Surface';
+import { Metric } from '../surface/Surface';
+import { ClinicalDeck, type DeckFigure } from './ClinicalDeck';
 import { NotConnected } from '../components/NotConnected';
 import { blockedBy } from '../lib/capabilities';
 import { liveServices, money, type Service } from '../lib/catalog';
@@ -16,6 +17,8 @@ import { can, type VettingSubject } from '../lib/vetting';
    with the same three states earnings.json already draws, in the same sentences. */
 import { askToVerifyAccount, runPayout, type PayoutAdvice } from '../lib/simulation';
 import { subjectById } from '../lib/vetting-fixtures';
+import './nurse-kit.css';
+import './nurse-tools.css';
 
 /* What a nurse is paid.
  *
@@ -58,6 +61,25 @@ export const rand = (n: number) => { const s = money(n); const i = s.search(/\d/
    them changes the standing banner and nothing else on the screen, which is the rule made visible:
    the suspension moves, the money does not. */
 const shownNurses = ['N-205', 'N-204'];
+
+/* ---- The week, and the weeks behind it ---------------------------------------------------------
+ *
+ * The deck at the top of this screen is the only live instrument on it: everything on the sheet
+ * below is a record of something that has already happened. Every figure on it is `lib/earnings.ts`
+ * arithmetic over `packages/catalog/earnings.json` — nothing here types a rand — and the deck itself
+ * is the clinical portal's own, so the count-up, the line and the bars are the ones the nurse's day
+ * already draws rather than a second set drawn here.
+ *
+ * The line under the lead is the weeks that are closed, oldest first by their own end dates. This
+ * week is not on it: a week still accruing drawn beside finished ones would be a figure falling every
+ * Monday morning and a nurse reading a decline that is only the calendar.
+ */
+const weeksBehind = weeks.filter(w => w.state !== 'accruing').sort((a, b) => a.ends.localeCompare(b.ends)).map(w => w.total);
+/* The closed weeks that have not reached her account, oldest first. Their totals ARE the owed figure —
+   owedNotYetPaid is the sum of exactly these — so the bars under that numeral are the numeral taken
+   apart, each one a week listed on the sheet below (one on its way, one a bank sent back), and not a
+   drawing of anything else. */
+const owedWeeks = weeks.filter(w => !stateById(w.state).settled && w.state !== 'accruing').sort((a, b) => a.ends.localeCompare(b.ends));
 
 function Standing({ nurse }: { nurse: VettingSubject }) {
  const dispatchable = can(nurse, 'take-visit');
@@ -268,8 +290,27 @@ export function Earnings() {
  const [openWeek, setOpenWeek] = useState<string | null>(weeks[1].id);
  const nurse = subjectById(nurseId)!;
  const service = liveServices.find(s => s.id === serviceId)!;
- return <div className="earnings">
-  <NotConnected of="payouts"/>
+ const week = rand(currentWeek.total);
+ const figures: DeckFigure[] = [
+  { label: 'This week so far', value: week.value, prefix: week.prefix, flagged: false,
+    chip: `${currentWeek.visits} ${currentWeek.visits === 1 ? 'visit' : 'visits'} · pays ${cycle.paysOn}`,
+    shape: weeksBehind.length > 1 ? { kind: 'spark', values: weeksBehind, countTo: currentWeek.total } : undefined },
+  { label: 'Reached your account this tax year', ...rand(paidThisTaxYear), chip: `Since ${taxYear.startsOn}`, flagged: false },
+  { label: 'Owed, not yet in your account', ...rand(owedNotYetPaid), chip: 'On its way, or waiting on a bank', flagged: false,
+    shape: owedWeeks.length ? { kind: 'bars', values: owedWeeks.map(w => w.total), labels: owedWeeks.map(w => `to ${on(w.ends)}`),
+                                label: `${owedWeeks.length} ${owedWeeks.length === 1 ? 'week' : 'weeks'} owed and not yet in your account, oldest first: ${owedWeeks.map(w => money(w.total)).join(', ')}` } : undefined }
+ ];
+ return <div className="nt-screen c-page">
+  {/* The three figures a nurse opened this screen for, on the portal's own deck, with the payout
+      capability's sentence on it rather than under it. Everything under it is a record — a split,
+      the weeks, a tax note, a bank account — and records belong on the sheet. */}
+  <ClinicalDeck role="Earnings & payouts" title="Earnings & payouts" eyebrow="This week" figures={figures}
+   headline={['What you have earned,', { glyph: 'wallet' }, 'and what has reached you.']}
+   note={ruleById('accrued-is-not-paid').sentence}>
+   <NotConnected of="payouts"/>
+   <p className="c-deck-aside">{cycle.note}</p>
+  </ClinicalDeck>
+  <div className="c-sheet earnings">
   <Standing nurse={nurse}/>
   <fieldset className="earn-preview-switch">
    <legend className="visually-hidden">Whose earnings to show</legend>
@@ -278,17 +319,6 @@ export function Earnings() {
     <span>{n.name}</span></label>; })}
    <p className="helper">The same earnings, seen by a cleared nurse and by one whose police clearance lapsed nine days ago. Only the banner changes — which is the rule.</p>
   </fieldset>
-
-  {/* The three figures a nurse opened this screen for, in the dashboard language: the amount set
-      large and thin, what it is underneath it, and how it is going in a chip above. The rand sign
-      is the prefix rather than part of the numeral — R 598, never 598 R, and never a currency
-      symbol set at the same size as the number it qualifies. */}
-  <Metrics>
-   <Metric {...rand(currentWeek.total)} label="This week so far" chip={`${currentWeek.visits} visits · pays ${cycle.paysOn}`}/>
-   <Metric {...rand(owedNotYetPaid)} label="Owed, not yet in your account" chip="On its way, or waiting on a bank"/>
-   <Metric {...rand(paidThisTaxYear)} label="Reached your account this tax year" chip={`Since ${taxYear.startsOn}`}/>
-  </Metrics>
-  <p className="earn-rule"><Info size={15}/>{ruleById('accrued-is-not-paid').sentence}</p>
 
   {/* Directly under the three figures, because the question a nurse asks straight after "what have
       I earned" is "what would another shift be worth", and every other section on this screen is a
@@ -300,8 +330,7 @@ export function Earnings() {
   <Split service={service} onPick={setServiceId}/>
 
   <SectionTitle title="Your weeks"/>
-  <p className="muted">{cycle.note}</p>
-  <div className="earn-weeks space-top">
+  <div className="earn-weeks">
    {weeks.map(week => <Week key={week.id} week={week} nurseId={nurseId} open={openWeek === week.id} toggle={() => setOpenWeek(openWeek === week.id ? null : week.id)}/>)}
   </div>
 
@@ -321,6 +350,7 @@ export function Earnings() {
   <div className="earn-refusals">{refusals.filter(r => r.id !== 'advise-on-tax').map(r =>
    <div className="earn-refusal" key={r.id}><Ban size={19}/><p>{r.sentence}</p></div>)}</div>
   <EmptyNote>Payment runs, bank verification and the ledger itself arrive with the payment provider. Every amount above is the catalogue's own arithmetic, and none of it has been rounded to look better.</EmptyNote>
+  </div>
  </div>;
 }
 

@@ -1,18 +1,39 @@
 /* The clinical instrument deck.
  *
- * A dark band at the top of a nurse's day and a doctor's queue, carrying three instruments: a ring
- * of the rows, a dial of what is pressing, the day drawn to scale. It stands on studioNight — the
- * same ground the ThusoIQ header further down the screen already stands on — so the two dark bands
- * bracket the work between them instead of one of them being an exception nobody explained.
+ * A near-black canvas at the top of a nurse's day and a doctor's queue, carrying a headline with
+ * circular badges set inside the sentence, the lead figure on dark glass, and beside them a pale
+ * indigo panel with a chart behind its numeral and a card crossing its leading edge. It stands on
+ * studioNight — the same ground the ThusoIQ header further down the screen already stands on — so
+ * the two dark bands bracket the work between them instead of one of them being an exception nobody
+ * explained.
  *
- * EVERY PAIR ON THIS GROUND IS COMPUTED, with the same sRGB relative-luminance formula
+ * WHAT CAME FROM THE REFERENCE AND WHAT DID NOT. The composition did: the canvas, the enormous
+ * headline with glyph badges in it, big figures with small quiet labels, charts drawn behind a
+ * numeral rather than beside it, pill clusters, and cards at different elevations crossing each
+ * other's edges. The palette did not. The reference is violet on black and MyThuso is green and
+ * mint; the secondary half of the deck is drawn in the indigo family the token contract ships —
+ * indigoSoft as the panel the reference draws in lavender, indigo and indigoDeep as its ink — and
+ * studioLime stays the one lead accent, spent once per deck on the figure the screen was opened for.
+ *
+ * AND THE INDIGO FAMILY IS NOT BLUE HERE, WHICH IS THE SURFACE'S DECISION RATHER THAN THIS SHEET'S.
+ * surface/studio.css remaps the whole family on the studio surface — `--indigo: var(--studio-ink)`,
+ * `--indigo-deep: var(--studio-ink-deep)`, `--indigo-soft: lime at 26% over paper` — with a comment
+ * saying why: indigo is a foreground far more often than a fill in this product, so it became the
+ * ink. Naming the family rather than the resolved colours is deliberate: one place decides what the
+ * secondary accent is, and the day that place changes its mind the deck changes with it instead of
+ * being the sheet that disagrees. The ratios below are measured on what those names actually resolve
+ * to on this surface, because a figure measured against #eef2ff would be about a colour that nothing
+ * on this screen renders.
+ *
+ * EVERY PAIR ON THESE GROUNDS IS COMPUTED, with the same sRGB relative-luminance formula
  * scripts/check-boundaries.mjs uses on the ninety-two declared pairs. Two of them are in the token
  * contract already and the rest are color-mix()es of two tokens, which is the practice studio.css
  * established for exactly this case and for exactly the same reason: the palette has no muted tone
  * for a dark ground, and adding one regenerates the iOS and Android token files.
  *
+ * ON THE NIGHT CANVAS
  *   studioPaper on studioNight   13.59      studioLime on studioNight   12.03
- *   paper at 72% over night      7.73       — quiet text: the labels and the note
+ *   paper at 72% over night      7.73       — quiet text: the labels, the tail of the headline
  *   paper at 40% over night      3.42       — an unlit mark. 3.52 against lime, 3.98 against paper,
  *                                             so it clears SC 1.4.11's 3:1 against the ground it is
  *                                             drawn on and against both marks it sits beside.
@@ -21,18 +42,42 @@
  *                                             at 40% on top of it. At 16% the gauge's empty third
  *                                             could not be seen at all, which made a two-thirds dial
  *                                             look like a full one.
+ *   indigo on studioNight        1.28       — which is why no mark, rule or word on this canvas is
+ *                                             ever drawn in the indigo family's ink. It appears on
+ *                                             the night only as a pale disc with a dark icon in it.
  *
- * And the lead's own panel, which is the night lifted a little rather than a second colour:
- *
- *   paper at 6% over night — the lead ground.  paper on it 11.47, lime 9.86, quiet text 6.53
- *   paper at 44% over night — the unlit mark ON that lighter ground, 3.24 against it and 3.14
- *                             against lime. The 40% above measures 2.89 there and would have been
+ * ON THE DARK GLASS the lead stands on — the night lifted eight per cent, which is depth by one step
+ * of the same colour rather than by a second shadow inside a shadowed card:
+ *   paper on glass 10.81   lime on glass 9.57   quiet text on glass 6.15
+ *   paper at 44% over night — the unlit mark ON that lighter ground, 3.05 against it and 3.14
+ *                             against lime. The 40% above measures 2.72 there and would have been
  *                             the kind of failure this project keeps finding: a colour that clears
  *                             on the ground it was chosen against and not on the one it lands on.
  *
+ * ON THE PALE PANEL, which is the reference's lavender half. indigoSoft resolves to #f0f2de here
+ * and charcoal, body and faint are remapped by the same sheet, so every figure is that pair:
+ *   charcoal on indigoSoft      10.25   — the numeral, and every mark on the panel
+ *   indigoDeep on indigoSoft    13.39   — the chip's word, and the icon inside a headline badge
+ *   body on indigoSoft           5.71   — the label under the figure, and the scale under a chart
+ *   indigo at 58% over indigoSoft 3.23  — the outline of a hatched bar, which is the only boundary
+ *                                         on the panel SC 1.4.11 applies to. It was 55%, which the
+ *                                         browser resolves at 2.99 — a figure that rounds to 3.0 in
+ *                                         a note and fails the standard in a measurement
+ *   the glass card's own edge          1.62 against the canvas, and the card's ground 1.26. Neither
+ *                                         carries information: the card is not a control and not a
+ *                                         state, and what it holds is read against the card rather
+ *                                         than against the canvas — the same reasoning the ring's
+ *                                         own groove is drawn under
+ *   indigo at 18% over indigoSoft 1.37  — the groove a dial runs in. It carries nothing and owes no
+ *                                         ratio, the same way the night's own track does
+ *   indigoSoft against studioNight 13.16 — the panel against the canvas
+ *   studioNight against indigoSoft 13.16 — the card that crosses the panel's edge
+ * Lit and hatched are the SAME colour at 10.25. What separates them is fill and height, not tone,
+ * so the bar the figure names survives a reader who cannot separate two tones of one hue at all.
+ *
  * AND COLOUR IS NEVER THE ONLY DIFFERENCE. A flagged arc is the brighter one AND the thicker one; a
- * signed visit is filled AND carries the heavier weight. Lime is spent once per deck, on the figure
- * the screen was opened for, which is the discipline the lime tile this replaces was written under.
+ * signed visit is filled AND carries the heavier weight; the bar the figure names is solid AND the
+ * others are hatched.
  *
  * NOTHING HERE ANIMATES ITSELF. The marks are drawn on arrival by components/ChartMotion.tsx, which
  * settles every one of them the instant a reader asks for less motion — and because no mark is
@@ -45,80 +90,215 @@
  --c-mark: color-mix(in srgb, var(--studio-paper) 40%, var(--studio-night));
  --c-track: color-mix(in srgb, var(--studio-paper) 24%, var(--studio-night));
  --c-edge: color-mix(in srgb, var(--studio-paper) 14%, var(--studio-night));
- background: var(--studio-night);
+ --c-glass: color-mix(in srgb, var(--studio-paper) 8%, var(--studio-night));
+ --c-glass-edge: color-mix(in srgb, var(--studio-paper) 16%, var(--studio-night));
+ /* The outline of a control standing on the night: 3.70 against it and 3.24 against the glass. The
+    40% mark measures 2.89 on the glass, and a pill a reader cannot find the edge of is not a pill. */
+ --c-control: color-mix(in srgb, var(--studio-paper) 44%, var(--studio-night));
+ /* The deck decides its own columns from its own width. See the note on .c-deck-grid in the
+    component: a deck in a dialog is not a deck on a wide screen, whatever the window measures. */
+ container: deck / inline-size;
+ /* Lit from the top left rather than flat, so the glass and the panel have something to sit in
+    front of. One gradient of the same colour, not a second colour. */
+ background: radial-gradient(120% 110% at 3% -18%, color-mix(in srgb, var(--studio-paper) 7%, var(--studio-night)) 0%, transparent 58%), var(--studio-night);
  color: var(--c-ink);
  border-radius: var(--r-panel);
- padding: var(--space-20) var(--space-24) var(--space-24);
+ padding: var(--space-24);
  margin: 0 0 var(--space-24);
  /* One shadow. The reference stacks two and the result on a cream ground is a smudge rather than a
     lift; the token file declares one raised elevation and this is it. */
  box-shadow: var(--shadow-raised);
+ /* The stacking context the two overlaps live in. The workbench below is a later sibling with its
+    own overflow, so without this the card that hangs off the bottom of the deck is painted over by
+    the card it is supposed to be floating on. */
+ position: relative;
+ z-index: 1;
 }
 
-.c-deck-head {
- display: flex;
- align-items: baseline;
- justify-content: space-between;
- flex-wrap: wrap;
- gap: var(--space-8) var(--space-16);
- padding-bottom: var(--space-20);
- border-bottom: 1px solid var(--c-edge);
-}
-/* The same eyebrow the workbench header below wears, so the two dark bands are recognisably one
-   family rather than two dark rectangles that happen to share a colour. */
+.c-deck-grid { display: grid; gap: var(--space-24); align-content: start; min-width: 0; }
+
+/* ---- What the deck says ------------------------------------------------------------------------
+   The eyebrow used to carry the most valuable line on the screen at thirteen pixels. It is a
+   headline now, with the badge set inside the sentence where the reference sets one, and the note
+   under it in a lighter weight — which is the reference's own "last line lighter" and is also the
+   only sentence on a dashboard worth what it costs: what to do if a figure looks wrong. */
+.c-deck-say { display: grid; align-content: start; gap: var(--space-16); min-width: 0; }
 .c-deck-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; color: var(--c-accent); }
-.c-deck-note { font-size: 13px; line-height: 1.5; color: var(--c-quiet); }
+.c-deck-headline {
+ font-size: clamp(28px, 4cqi, 42px);
+ font-weight: 500;
+ line-height: 1.16;
+ letter-spacing: -1.2px;
+ margin: 0;
+ max-width: 19ch;
+ color: var(--c-ink);
+ text-wrap: balance;
+}
+.c-deck-tail {
+ display: block;
+ margin-top: var(--space-12);
+ font-size: 15px;
+ font-weight: 400;
+ line-height: 1.55;
+ letter-spacing: 0;
+ color: var(--c-quiet);
+ max-width: 40ch;
+}
+/* The badge. Sized in em so it grows with the headline instead of becoming a dot beside a 42px
+   word, and pale rather than indigo: indigo on this ground measures 1.45 and a disc nobody can see
+   is not a badge. The icon inside it reads at 11.23. */
+.c-deck-glyph {
+ display: inline-grid;
+ place-items: center;
+ width: .92em;
+ height: .92em;
+ margin: 0 .1em;
+ border-radius: 50%;
+ background: var(--indigo-soft);
+ color: var(--indigo-deep);
+ vertical-align: -.12em;
+}
+.c-deck-glyph svg { width: 54%; height: 54%; }
 
-/* ---- The three instruments ---------------------------------------------------------------------
-   Not a row of three equal cells. The lead takes its own column and the other two share the next,
-   which is what makes the deck say what the screen is for before it says anything else — a strip of
-   three identical boxes is the composition this whole piece of work exists to replace. */
-.c-deck-figures { display: grid; gap: var(--space-16); padding-top: var(--space-20); align-items: stretch; }
-.c-deck-rest { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: var(--space-20) var(--space-24); align-items: stretch; }
-/* The lead is a panel and the other two are not: the night lifted six per cent, which is depth by
-   one step of the same colour rather than by a second shadow inside a shadowed card. It is what
-   makes the deck say what the screen is for before it says anything else — a row of three identical
-   cells is the composition this whole piece of work exists to replace. */
+/* ---- The lead, on dark glass --------------------------------------------------------------------
+   The one figure the screen was opened for, on a card of its own, and the only place on the deck
+   that spends lime. On a wide screen it hangs below the canvas and onto the card underneath — the
+   reference's floating cards crossing the edge of the panel they belong to, at the scale of the
+   page rather than of a widget. Nothing is covered by it: the section under the deck is given the
+   overhang back as padding, twenty lines below. */
 .c-deck-lead {
- background: color-mix(in srgb, var(--studio-paper) 6%, var(--studio-night));
+ background: var(--c-glass);
+ border: 1px solid var(--c-glass-edge);
  --c-mark: color-mix(in srgb, var(--studio-paper) 44%, var(--studio-night));
+ --c-track: color-mix(in srgb, var(--studio-paper) 30%, var(--studio-night));
  border-radius: var(--r-card);
- padding: var(--space-16) var(--space-20) var(--space-20);
-}
-@media (min-width: 900px) {
- .c-deck-figures { grid-template-columns: minmax(300px, 1.05fr) minmax(0, 1.35fr); gap: var(--space-24); }
- /* The two columns' interiors line up rather than their boxes: the lead is a padded panel, so the
-    pair beside it is inset by the same amount and the chips across the deck sit on one line and the
-    labels under them on another. Without it the panel's own padding read as a misalignment. */
- .c-deck-rest { padding: var(--space-16) 0 var(--space-20) var(--space-8); }
+ padding: var(--space-20);
+ box-shadow: var(--shadow-raised);
+ min-width: 0;
 }
 
+/* ---- The pale panel ------------------------------------------------------------------------------
+   The quiet half of the deck: the last figure in the strip, which is the least urgent of them, drawn
+   large in area and moderate in type so that it cannot outrank the lead. The chart sits behind the
+   numeral rather than beside it, which is the reference's move and is also the honest one — the
+   drawing and the figure are the same arithmetic, so they belong in the same box.
+   The texture is a dot grid in the panel's own ink at a tenth of its strength. It carries nothing;
+   it is what stops a 400px block of one colour reading as a hole in the canvas. */
+.c-deck-panel {
+ position: relative;
+ border-radius: var(--r-panel);
+ padding: var(--space-24);
+ background:
+  radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--indigo) 22%, transparent) 1px, transparent 1.6px) 0 0 / 14px 14px,
+  var(--indigo-soft);
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-24);
+ min-width: 0;
+ color: var(--charcoal);
+}
+.c-deck-panel-figure { min-width: 0; }
+/* The chart is given room rather than left to be as tall as three bars happen to be. A panel whose
+   drawing occupies a sixth of it is a panel with a hole in the middle. */
+.c-deck-panel-figure .s-metric-figure { min-height: 108px; align-content: center; }
+/* The card that crosses the panel's leading edge. It is in the panel's flow and moved by a margin
+   rather than lifted out of it, so a narrow column, a long word or a reader at 200% still gets a
+   card with room in it instead of one card printed over another. */
+.c-deck-float { min-width: 0; display: grid; gap: var(--space-16); margin-top: auto; }
+.c-deck-float .c-instrument {
+ background: var(--studio-night);
+ border-radius: var(--r-card);
+ padding: var(--space-16) var(--space-20);
+ box-shadow: var(--shadow-raised);
+}
+
+@container deck (min-width: 880px) {
+ .c-deck-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.04fr); gap: var(--space-40); align-items: stretch; }
+ .c-deck-say { gap: var(--space-20); align-content: start; }
+ /* The lead is pushed to the foot of its column so that the two columns end on one line — the
+    headline above it is whatever height the sentence needs, and a card that floated under a short
+    sentence would leave the deck looking as though something had failed to load. */
+ .c-deck-lead { padding: var(--space-20) var(--space-24) var(--space-24); margin-top: auto; }
+ .c-deck-panel { padding: var(--space-24) var(--space-24) var(--space-24) var(--space-32); }
+ /* The card crosses the panel's leading edge. The panel's extra left padding is exactly what the
+    card takes back, so the crossing costs the drawing above it nothing. */
+ .c-deck-float { margin-left: -56px; }
+}
+/* ---- Where the deck ends and the work begins -----------------------------------------------------
+   The board below does not sit under the canvas, it sits ON it — the reference's panels at two
+   elevations, one crossing the other's edge, at the scale of the page rather than of a widget. The
+   canvas is given the overlap as padding first, so what the board covers is empty ground and never
+   a figure; the board is lifted onto the one declared elevation and keeps its own rounded top.
+   Only where a deck is actually drawn: the partner opens the same workbench with no deck above it. */
+@media (min-width: 1000px) {
+ .c-deck:has(+ .iq-workbench) { padding-bottom: calc(var(--space-40) + 44px); margin-bottom: 0; }
+ .c-deck + .iq-workbench { margin-top: -44px; position: relative; z-index: 2; box-shadow: var(--shadow-raised); }
+}
+
+/* ---- The instruments -----------------------------------------------------------------------------
+   Three places rather than a row of three equal cells: the lead on glass, the middle on a card that
+   crosses the panel's edge, the last inside the panel. A strip of three identical boxes is the
+   composition this whole piece of work exists to replace. */
 .c-instrument { min-width: 0; display: flex; }
 /* Stretched rather than hugged, so a day drawn to scale is as wide as the column it was given and
    not as wide as the four characters of the time above it. */
 .c-instrument .s-metric { gap: var(--space-8); width: 100%; align-items: stretch; flex: 1; }
-/* The labels sit on one line across the deck, whatever height the drawing above each of them takes.
-   Three figures at three heights is the one thing a row of numerals must never do, and it is the
-   defect the chip line in surface.css was written to stop happening at the top of the strip. */
+/* The labels sit at the foot of whatever height the drawing above them takes, so a figure and its
+   name never drift apart. */
 .c-instrument .s-metric-label { margin-top: auto; padding-top: var(--space-4); }
 .c-instrument .s-metric-value { color: var(--c-ink); }
 .c-instrument .s-metric-value small { color: var(--c-quiet); }
 .c-instrument .s-metric-label { color: var(--c-quiet); font-weight: 500; }
 /* The chip on the dark ground: outlined in the quiet tone, and filled paper for the one figure that
    is out of range. Not lime — lime is the lead's, and a chip that took it would leave the deck with
-   two accents and therefore with none. */
-.c-instrument .s-metric-chip {
+   two accents and therefore with none.
+   Three classes, and the third is the fix for a defect the eye found before the source did: the
+   clinical shell paints `.clinical .s-metric-chip` a pale pane at two classes, and which of the two
+   sheets won was decided by the order the bundler put them in. On the doctor's queue it happened to
+   be this one; on the nurse's kit and earnings it was not, and the chips were paper on paper. */
+.c-deck .c-instrument .s-metric-chip {
  background: transparent;
  border-color: var(--c-mark);
  color: var(--c-quiet);
  white-space: normal;
  line-height: 1.4;
 }
-.c-instrument .s-metric-chip.flagged { background: var(--c-ink); border-color: var(--c-ink); color: var(--studio-night); }
+.c-deck .c-instrument .s-metric-chip.flagged { background: var(--c-ink); border-color: var(--c-ink); color: var(--studio-night); }
 /* The chip's line reserves its own height here rather than inheriting the strip rule, because the
    deck is not a .s-metrics grid and three figures at three heights is the one thing a row of
    numerals must never do. */
 .c-instrument .s-metric-chip-line { min-height: 26px; }
+/* The lead is the largest numeral on the deck, and it is the largest by a step rather than by a
+   fraction: 64 on a wide screen against the panel's 40. */
+@container deck (min-width: 880px) {
+ .c-deck-lead .s-metric-value { font-size: 64px; letter-spacing: -2.5px; }
+ .c-deck-lead .s-metric-value small { font-size: 20px; }
+ .c-deck-float .s-metric-value { font-size: 40px; }
+ /* And the dial grows with the card it is the subject of. At 148 in a 500px card the lead read as a
+    control sitting in a field rather than as the thing the card is for. */
+ .c-deck-lead .c-instrument-ring .s-metric-figure,
+ .c-deck-lead .c-instrument-gauge .s-metric-figure { width: 190px; }
+}
+
+/* The panel's own instrument speaks the panel's palette. Nothing here is lime: the accent is spent
+   on the lead, and a deck with two accents has none.
+   Scoped to the drawing rather than to the panel, and that distinction was a defect before it was a
+   comment: the card that crosses the panel's edge is a night card standing INSIDE the panel, so a
+   rule written at `.c-deck-panel` painted its chip and its label in the panel's dark ink and left a
+   nurse's "3 to sign off" invisible on black. A palette belongs to a ground, and the card has its
+   own. */
+.c-deck-panel-figure .s-metric-value { color: var(--charcoal); }
+.c-deck-panel-figure .s-metric-value small { color: var(--body); }
+.c-deck-panel-figure .s-metric-label { color: var(--body); }
+/* Four classes and five, and the arithmetic is the point of the comment. The narrow-screen block at
+   the foot of this sheet redraws every chip on the deck in the night's own palette, at three classes
+   and five hundred lines further down — so the panel's chip was being painted paper grey on a pale
+   panel below 1000px, which measures about 1.5 and is the "1.28:1 headline" defect wearing a
+   different colour. A palette scoped to a ground has to outrank a palette scoped to a width. */
+.c-deck .c-deck-panel-figure .c-instrument .s-metric-chip { border: 1px solid var(--indigo); color: var(--indigo-deep); background: transparent; }
+.c-deck .c-deck-panel-figure .c-instrument .s-metric-chip.flagged { background: var(--indigo); border-color: var(--indigo); color: var(--indigo-soft); }
+.c-deck-panel-figure .c-day-scale { color: var(--body); }
+.c-deck-panel-figure .c-day-scale .c-day-now { color: var(--charcoal); }
 
 /* ---- Where the numeral sits ---------------------------------------------------------------------
    Two arrangements, and the shape decides which. A dial puts the numeral in the middle of itself,
@@ -135,10 +315,10 @@
  display: grid;
  place-items: center;
 }
-/* The pair beside the lead are drawn smaller than it. A dial the same size as the lead's is a second
-   lead, and a deck with two leads has none. */
-.c-deck-rest .c-instrument-ring .s-metric-figure,
-.c-deck-rest .c-instrument-gauge .s-metric-figure { width: 132px; }
+/* The dial on the card that crosses the panel is drawn smaller than the lead's. A dial the same
+   size as the lead's is a second lead, and a deck with two leads has none. */
+.c-deck-float .c-instrument-ring .s-metric-figure,
+.c-deck-float .c-instrument-gauge .s-metric-figure { width: 116px; }
 .c-instrument-ring .s-metric-figure > .c-plot,
 .c-instrument-gauge .s-metric-figure > .c-plot { position: absolute; inset: 0; width: 100%; height: 100%; }
 .c-instrument-ring .s-metric-value,
@@ -168,20 +348,32 @@
    each into a gap seven units wide — and a ring of three cases was drawn as one unbroken circle. The
    segments are the count; a count you cannot count is not one. */
 .c-ring .c-mark { stroke-linecap: butt; }
-/* The lead figure is the only one that spends the accent. On the other two instruments a lit mark is
-   the quiet tone — still the brightest thing in its own drawing at 7.73 on this ground, still two
-   channels apart from an unlit one at 3.42, and not a second thing on the deck claiming to be the
-   most important. Paper was tried here first and a two-thirds white dial beside a lime ring read as
-   the louder of the two, which is a hierarchy saying the opposite of what the strip's order says. */
+/* The lead figure is the only one that spends the accent. On the card that crosses the panel a lit
+   mark is the quiet tone — still the brightest thing in its own drawing at 7.73 on that ground, still
+   two channels apart from an unlit one at 3.42, and not a second thing on the deck claiming to be
+   the most important. */
 .c-instrument:not(.lead) .c-mark.on { stroke: var(--c-quiet); }
-/* Except the spark's line, which is two pixels wide: a hairline in the quiet tone on a dark ground
-   disappears, and the line is the only thing in that drawing carrying the shape. */
+/* Except a line two pixels wide: a hairline in the quiet tone on a dark ground disappears, and the
+   line is the only thing in that drawing carrying the shape. */
 .c-instrument:not(.lead) .c-spark .c-mark.on { stroke: var(--c-ink); }
+/* Inside the pale panel every mark is indigo — the lit one solid, the rest hatched below. Both are
+   the same 9.26 against the panel, so what tells them apart is fill and not tone. */
+/* Written with the instrument in the selector so that it outranks the canvas's own
+   `.c-instrument:not(.lead) .c-spark .c-mark.on`, which is four classes and had been painting the
+   panel's line in the night's paper white — a pale hairline on a pale panel, which is a chart
+   nobody can read drawn at the correct coordinates. */
+.c-deck-panel-figure .c-instrument .c-mark,
+.c-deck-panel-figure .c-instrument .c-mark.on,
+.c-deck-panel-figure .c-instrument .c-spark .c-mark.on { stroke: var(--indigo); }
+.c-deck-panel-figure .c-instrument .c-ring-track { stroke: color-mix(in srgb, var(--indigo) 18%, var(--indigo-soft)); }
 
 .c-spark { height: 52px; }
 .c-area { fill: var(--c-mark); stroke: none; opacity: .3; mask-image: linear-gradient(to bottom, #000, transparent); -webkit-mask-image: linear-gradient(to bottom, #000, transparent); }
 .c-spark .c-mark { stroke-width: 2; stroke-linejoin: round; }
 .c-instrument.lead .c-area { fill: var(--c-accent); }
+.c-deck-panel-figure .c-instrument .c-area { fill: var(--indigo); opacity: .15; }
+.c-deck-panel-figure .c-spark { height: 86px; }
+.c-deck-panel-figure .c-spark .c-mark { stroke-width: 2.5; }
 
 /* ---- Bars, and a day -----------------------------------------------------------------------------
    `.c-bars` is the one class in this sheet that is not the deck's alone: the review queue's own rows
@@ -193,6 +385,42 @@
 .c-deck .c-waits i { display: block; height: 9px; border-radius: var(--r-pill); background: var(--c-mark); transform-origin: left center; }
 .c-deck .c-waits i.on { background: var(--c-quiet); height: 11px; }
 .c-deck .c-instrument.lead .c-waits i.on { background: var(--c-accent); }
+/* Where the strip hands over what each row is called, the bars become a two-column list: the
+   reference in its own gutter, the bar beside it. The bars stay direct children of .c-waits —
+   tests/workspace-counts.spec.ts counts them that way and ChartMotion animates them that way, and a
+   wrapper element would have broken both of those without either saying so. */
+.c-deck .c-waits:has(em) {
+ display: grid;
+ grid-template-columns: auto minmax(0, 1fr);
+ align-items: center;
+ gap: 10px var(--space-12);
+}
+.c-deck .c-waits em {
+ font-style: normal;
+ font-size: 13px;
+ line-height: 1.3;
+ letter-spacing: .4px;
+ font-variant-numeric: tabular-nums;
+ color: var(--c-quiet);
+ white-space: nowrap;
+}
+/* Hatched, not merely darker. The bar the figure names is solid and every other bar is the same
+   indigo drawn as stripes, so which row the figure is about survives a reader who cannot separate
+   two tones of one hue. */
+.c-deck-panel-figure .c-waits em { color: var(--body); }
+.c-deck-panel-figure .c-waits i {
+ height: 16px;
+ border-radius: var(--r-control);
+ background:
+  repeating-linear-gradient(-45deg, var(--indigo) 0 2px, transparent 2px 6px),
+  color-mix(in srgb, var(--indigo) 8%, var(--indigo-soft));
+ box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--indigo) 58%, var(--indigo-soft));
+}
+.c-deck-panel-figure .c-waits i.on {
+ height: 22px;
+ background: var(--indigo);
+ box-shadow: none;
+}
 
 /* The day: a groove from the first visit to the last, with each visit lying in it at the length that
    visit actually takes. */
@@ -207,7 +435,7 @@
 }
 .c-deck .c-day i.on { background: var(--c-accent); }
 .c-deck .c-day i.done { background: var(--c-ink); }
-/* The two ends of the day, and where now is between them. 13px, which is the floor of the type scale
+/* The two ends of the track, and where now is between them. 13px, which is the floor of the type scale
    rather than the smallest size that would have fitted. */
 .c-day-scale {
  order: 2;
@@ -234,29 +462,25 @@
 }
 
 /* ---- Narrow ------------------------------------------------------------------------------------
-   Below 900 the deck is one column, and nothing is dropped: a phone gets the same three instruments
-   at the same figures. The dials scale with the viewport rather than stepping at a breakpoint, so a
-   600px tablet is not simply a wide phone with a small ring on it. */
-@media (max-width: 899px) {
+   Below 1000 the deck is one column, and nothing is dropped: a phone gets the same instruments at
+   the same figures, in the same three grounds. Nothing hangs off anything — an overhang on a column
+   as wide as the screen is a card printed on top of another card. */
+/* The deck's own padding answers the window, because a container cannot query itself. Everything
+   inside it answers the deck. */
+@media (max-width: 999px) {
  .c-deck { padding: var(--space-16) var(--space-16) var(--space-20); border-radius: var(--r-card); }
- /* The dial grows as the column does. Below 900 the deck is one column, so the lead's own panel is
-    as wide as the screen — a 124px ring in a 560px panel is a button in a field, and the dial is the
-    subject of that panel.
-    900 rather than a narrower step, and the arithmetic decided it rather than taste: two columns at
-    720 leave the pair 308 pixels between them, and a pair of dials with "3 h 20 m" set at 42 needs
-    324. A breakpoint that produces a column its own contents do not fit in is a breakpoint chosen
-    for the shape of the layout rather than for the words in it. */
+}
+@container deck (max-width: 879px) {
+ .c-deck-panel { border-radius: var(--r-card); padding: var(--space-20) var(--space-16); }
+ .c-deck-lead { padding: var(--space-16); }
+ .c-deck-headline { letter-spacing: -.8px; }
+ /* The dial grows as the column does. Below 1000 the deck is one column, so the lead's own card is
+    as wide as the screen — a 124px ring in a 560px card is a button in a field, and the dial is the
+    subject of that card. */
  .c-deck-lead .c-instrument-ring .s-metric-figure,
  .c-deck-lead .c-instrument-gauge .s-metric-figure { width: clamp(124px, 26vw, 168px); }
- /* And the pair beside it stay smaller than the lead's, whatever the screen does. A dial the same
-    size as the lead's is a second lead. */
- .c-deck-rest .c-instrument-ring .s-metric-figure,
- .c-deck-rest .c-instrument-gauge .s-metric-figure { width: clamp(116px, 19vw, 138px); }
- .c-deck-rest { gap: var(--space-20) var(--space-16); }
- /* The pair below the lead stay two-up while the column is wide enough for a dial and its label, and
-    fall to one when it is not. auto-fit decides it from the width the screen actually has, so a
-    320px reader and a reader at 200% zoom get the same rule rather than a breakpoint guessed for
-    one of them. */
+ .c-deck-float .c-instrument-ring .s-metric-figure,
+ .c-deck-float .c-instrument-gauge .s-metric-figure { width: clamp(112px, 19vw, 132px); }
  .c-deck .c-instrument .s-metric-value { font-size: 36px; }
  .c-deck .c-instrument .s-metric-value small { font-size: 16px; }
  /* The flat clinical strip moves its chip below the label on a phone and takes the pill off it: one
@@ -274,15 +498,37 @@
   color: var(--c-quiet);
  }
  .c-deck .c-instrument .s-metric-chip.flagged { background: var(--c-ink); border-color: var(--c-ink); color: var(--studio-night); font-weight: 500; }
+ .c-deck-panel-figure .c-spark { height: 72px; }
+}
+
+/* The card that crosses the panel's edge is short and wide at every width that can hold it: the
+   dial beside its own chip and label rather than stacked above them. A tall dark block in the
+   middle of a pale panel reads as the panel's subject, and the panel's subject is the drawing. */
+@container deck (min-width: 480px) {
+ .c-deck-float .c-instrument-ring .s-metric,
+ .c-deck-float .c-instrument-gauge .s-metric {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: 'figure chip' 'figure label';
+  align-content: center;
+  column-gap: var(--space-20);
+  row-gap: var(--space-4);
+ }
+ .c-deck-float .c-instrument-ring .s-metric-figure,
+ .c-deck-float .c-instrument-gauge .s-metric-figure { grid-area: figure; align-self: center; }
+ .c-deck-float .c-instrument-ring .s-metric-chip-line,
+ .c-deck-float .c-instrument-gauge .s-metric-chip-line { grid-area: chip; align-self: end; }
+ .c-deck-float .c-instrument-ring .s-metric-label,
+ .c-deck-float .c-instrument-gauge .s-metric-label { grid-area: label; align-self: start; margin-top: 0; }
 }
 
 /* ---- One column, with room in it ----------------------------------------------------------------
-   Between a phone and a laptop the deck is a single column, so the lead's panel is as wide as the
+   Between a phone and a laptop the deck is a single column, so the lead's card is as wide as the
    screen and a dial stacked above a two-word label leaves half of it empty. The dial moves to the
    left of its own chip and label instead — the same three pieces, in the arrangement that fits the
    box they are in. Below 520 it goes back to stacking: a 124px dial and a wrapping chip beside it on
    a 320px screen is two narrow columns rather than one composition. */
-@media (min-width: 520px) and (max-width: 899px) {
+@container deck (min-width: 480px) and (max-width: 879px) {
  .c-deck-lead .c-instrument-ring .s-metric,
  .c-deck-lead .c-instrument-gauge .s-metric {
   display: grid;
@@ -299,3 +545,153 @@
  .c-deck-lead .c-instrument-ring .s-metric-label,
  .c-deck-lead .c-instrument-gauge .s-metric-label { grid-area: label; align-self: start; margin-top: 0; }
 }
+
+/* ==================================================================================================
+   THE SEVEN SCREENS BEHIND THE TWO PORTALS
+   ==================================================================================================
+ *
+ * A doctor opened her portal on this deck and then walked into a patient file that was an unstyled
+ * column of text, a record on a flat black band, and a protocols page drawn by a third hand; a nurse
+ * walked from her day into a kit whose not-connected sentence was dark grey on black. Four dialects
+ * on one login. The founder's word for it was boring, and the more exact one is that the screens did
+ * not agree about what kind of product they were in.
+ *
+ * So every one of the seven opens on this deck now — the component, not a copy of its look — and
+ * the work of the screen sits on a sheet that crosses the deck's lower edge, which is the move the
+ * workbench makes under the doctor's queue. The deck is given the overlap as padding first, so what
+ * the sheet covers is empty night and never a figure.
+ *
+ * WHAT THE DECK MAY SAY ON A SUB-PAGE IS WHAT IT SAYS ON A PORTAL: figures counted off the rows on
+ * the sheet under it, and drawings made from the same arithmetic. A figure with no honest drawing
+ * gets no drawing — a pale panel with a numeral on it is a quieter picture than a ring made up to
+ * fill it, and it is not a lie.
+ *
+ * PAIRS ADDED HERE, same formula as the rest of this sheet:
+ *   studioPaper on the glass (paper at 8% over night)        10.81  — the notice's words
+ *   studioLime on studioNight                                 12.03  — the page title
+ *   paper at 72% over night                                    7.73  — the eyebrow beside it, a note
+ *   paper at 44% over night                                    3.70 on the night, 3.24 on the
+ *                                                                     glass — every control's edge
+ *   studioNight on studioPaper                                13.59  — a pressed pill
+ */
+
+/* The page's name, where the deck's eyebrow is. Lime on the night at 12.03, the one place on the
+   deck the accent is spent in words — the same place the portals spend it. Three classes, because
+   the shell paints `.clinical h1` charcoal, which on this ground is the 1.28:1 headline this project
+   has already shipped once. */
+.c-deck-eyebrows { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-12); min-width: 0; }
+.clinical .c-deck .c-deck-title,
+.c-deck .c-deck-eyebrows .c-deck-title { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; text-transform: uppercase; color: var(--c-accent); }
+.c-deck-eyebrow-aside { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; text-transform: uppercase; color: var(--c-quiet); }
+.c-deck.is-say-only .c-deck-headline { max-width: 26ch; }
+
+/* Under the sentence: the disclosure, then whatever control changes what the deck counts. */
+.c-deck-extra { display: grid; gap: var(--space-12); min-width: 0; }
+/* The not-connected sentence on the night, at reading size and on the glass. It was drawn in the
+   light ground's own colours on this ground once, and measured about 1.3 — the one sentence on a
+   screen that must never be the hardest to read. Three classes: `.clinical .not-connected` is two. */
+.c-deck .c-deck-extra .not-connected {
+ margin: 0;
+ max-width: none;
+ background: var(--c-glass);
+ border: 1px solid var(--c-glass-edge);
+ border-left: 3px solid var(--c-accent);
+ border-radius: var(--r-control);
+ padding: var(--space-12) var(--space-16);
+ font-size: 14px;
+ line-height: 1.55;
+ color: var(--c-ink);
+}
+.c-deck .c-deck-extra .not-connected > svg { color: var(--c-accent); }
+.c-deck .c-deck-extra .c-deck-aside { margin: 0; font-size: 14px; line-height: 1.55; color: var(--c-quiet); max-width: 62ch; }
+.c-deck-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-8) var(--space-12); min-width: 0; }
+.c-deck .c-deck-controls > p { margin: 0; flex: 1 1 240px; min-width: 0; align-self: center; font-size: 14px; line-height: 1.55; color: var(--c-quiet); }
+
+/* A pill on the night. Outlined when it is a choice, filled paper when it is the one chosen — the
+   fill and the word both change, so neither is a colour on its own. No resting shadow: core.css's
+   focus ring is an outline and a box-shadow, and a shadow here would delete half of it. */
+.c-deck .c-pill {
+ display: inline-flex;
+ align-items: center;
+ gap: var(--space-8);
+ min-height: 44px;
+ padding: var(--space-8) var(--space-16);
+ border-radius: var(--r-pill);
+ border: 1px solid var(--c-control);
+ background: transparent;
+ color: var(--c-ink);
+ font: inherit;
+ font-size: 14px;
+ font-weight: 500;
+ line-height: 1.4;
+ cursor: pointer;
+ transition: background var(--t-settle) var(--ease-soft), border-color var(--t-settle) var(--ease-soft);
+}
+.c-deck .c-pill:hover { background: var(--c-glass); }
+.c-deck .c-pill[aria-pressed='true'] { background: var(--c-ink); border-color: var(--c-ink); color: var(--studio-night); }
+/* A choice made from a list, on the night: the same pill, with the list's own label above it. The
+   native list opens in the dark scheme so its options are not white on a white popup over a dark
+   control. */
+.c-deck .c-field { display: grid; gap: var(--space-4); min-width: 0; flex: 1 1 220px; font-size: 13px; line-height: 1.5; color: var(--c-quiet); }
+.c-deck .c-field select {
+ width: 100%;
+ min-width: 0;
+ min-height: 44px;
+ border-radius: var(--r-pill);
+ border: 1px solid var(--c-control);
+ background-color: var(--c-glass);
+ color: var(--c-ink);
+ color-scheme: dark;
+ padding: var(--space-8) var(--space-16);
+ font: inherit;
+ font-size: 14px;
+}
+
+/* Something that is not a figure, on the glass or on the pale panel. */
+.c-deck-lead.is-custom { display: grid; gap: var(--space-16); align-content: start; }
+.c-deck-panel-body { display: grid; gap: var(--space-12); align-content: start; min-width: 0; color: var(--charcoal); }
+.c-panel-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; text-transform: uppercase; color: var(--body); }
+.c-panel-name { display: block; font-size: 32px; font-weight: 500; line-height: 1.15; letter-spacing: -1px; color: var(--charcoal); overflow-wrap: anywhere; }
+.c-deck .c-panel-line { margin: 0; font-size: 15px; line-height: 1.55; color: var(--body); }
+
+/* ---- The sheet the work stands on -----------------------------------------------------------------
+   Everything under a sub-page's deck is one sheet: the paper ground the workbench's own list stands
+   on, lifted at one corner, with the white panels of the screen inside it. It crosses the deck's
+   foot on a wide work column and nowhere else — in a dialog, and on a phone, an overlap is one card
+   printed on another. */
+.c-page { display: block; min-width: 0; }
+.c-sheet {
+ position: relative;
+ min-width: 0;
+ border: 1px solid var(--studio-line);
+ border-radius: var(--r-panel);
+ padding: var(--space-24) var(--space-32) var(--space-32);
+ background: radial-gradient(120% 90% at 6% -10%, color-mix(in srgb, var(--surface) 72%, var(--studio-paper)) 0%, transparent 62%), var(--studio-paper);
+ box-shadow: var(--shadow-raised);
+}
+@media (min-width: 1000px) {
+ main .c-deck:has(+ .c-sheet) { padding-bottom: calc(var(--space-40) + 44px); margin-bottom: 0; }
+ main .c-deck + .c-sheet { margin-top: -44px; z-index: 2; }
+}
+@media (max-width: 999px) {
+ .c-sheet { padding: var(--space-20) var(--space-16) var(--space-24); border-radius: var(--r-card); }
+}
+.modal .c-sheet { border: 0; padding: 0; background: none; box-shadow: none; }
+
+/* A sub-page's left column carries a disclosure and a control the portals do not, so it runs taller
+   than the pale panel's content. Stretched to match, the panel was a field of dots with its figure
+   either floating in the middle or stranded at the foot — both read as something that had failed to
+   load. On a sub-page the panel is as tall as what it holds, its figure starts at the top the way the
+   review queue's does, and the card that crosses its edge stays in its flow directly under the
+   figure, so the crossing is unchanged. The ring still grows into the width it has. */
+@container deck (min-width: 880px) {
+ .c-page .c-deck-grid { align-items: start; }
+ .c-page .c-deck-panel .c-deck-float { margin-top: 0; }
+ .c-page .c-deck-panel-figure .c-instrument-ring .s-metric-figure,
+ .c-page .c-deck-panel-figure .c-instrument-gauge .s-metric-figure { width: 196px; }
+ .c-page .c-deck-panel-figure .s-metric-value { font-size: 42px; }
+}
+/* Two lists side by side at half a column cut a patient's name off mid-reference. Each takes a row
+   of its own unless the column can give both of them room. */
+.c-deck .c-deck-controls .c-field { flex-basis: 260px; }
+@container deck (min-width: 880px) { .c-page .c-panel-name { font-size: 42px; letter-spacing: -1.2px; } }
