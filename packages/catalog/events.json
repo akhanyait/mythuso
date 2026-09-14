@@ -2,6 +2,8 @@
  "_note": "ThusoIQ Core's event contracts, version one, frozen. The Full Scope's first governing principle is to freeze these before anything else, because every engine publishes to the same bus and reads from it: an event whose shape changes under a subscriber is a subscriber quietly doing the wrong thing. So the shape is data, the refusals are data, and scripts/check-boundaries.mjs holds every file listed in `sources` to both. Nothing here is a running bus. No event is published, delivered or stored anywhere in this repository.",
  "_whatFrozenMeans": "An event type at a version never changes and never disappears while `frozen` is true. packages/catalog/events.lock lists every type@version this contract has ever published; the build fails if one in the lock is no longer declared, or if one is declared and not in the lock. Changing an event's payload means adding the same type at the next version as a new entry and adding its line to the lock, and leaving the old one exactly as it was so that subscribers still reading it keep working.",
  "_kernelNote": "packages/catalog/thusoiq.json holds the appointment kernel's four states — scheduled, arrived, completed, cancelled — which is what the preview enforces today. The events below follow the Master's nine-state Appointment Engine instead, because that is what the engines subscribing to them will be built against. The kernel is a subset of it rather than a rival: scheduled is booked-or-confirmed, arrived is in-progress.",
+ "_withdrawnMeans": "A frozen event cannot be edited, and a defective one cannot be left running. So a version found wrong after it was frozen is withdrawn rather than changed: it stays in this file with the shape it was frozen with and keeps its line in the lock, it names the day, the reason, the subscribers it had and the version that corrects it, and its subscriber list is empty. No generated or hand-written code may name it and no engine may publish it. The shape refusals below are not applied to a withdrawn version — it fails them, which is why it was withdrawn — and every refusal about being used is. On 14 September four were withdrawn: person.trust_updated@1 sent the Trust Score itself to dispatch; passport.consent.granted@1 and passport.consent.revoked@1 told Money, the engine serving the scheme's aggregate role, about one patient's grant; and trust.weight.decided@1 carried a governance weight as a number on the bus rather than beside its minute in packages/catalog/trust.json.",
+ "_neverMatching": "A field is refused when its name ends in a refused name or one of its aliases, as whole words or as letters — patientName, contactPhone and bpValue — because the last word of a field's name is what the field is: readingKind names a kind of reading and is not a reading. An entry marked \"match\": \"anywhere\" is refused wherever its words appear in the name, and the score is the entry that needs it, because a score's band, rank or percentile is the score — trustScore and scoreBand are both refused. Until 14 September there was no word for a score at all, so score, points and rating passed. The matching applies to every source file's events and to each event's own neverCarries.",
  "version": 1,
  "frozen": true,
  "lock": "packages/catalog/events.lock",
@@ -51,6 +53,8 @@
   { "field": "image", "why": "A wound photograph is a clinical record, and a photograph of a door is an address." },
   { "field": "cardNumber", "why": "No payment is taken in this repository, and when one is, a card number never leaves the payment provider." },
   { "field": "bankAccount", "why": "A nurse's payout account is her financial information. Money holds it; nothing else needs it." }
+,
+  { "field": "score", "aliases": ["trustScore", "points", "rank", "ranking", "rating", "weight", "percentile", "grade"], "match": "anywhere", "why": "A person's Trust Score, and anything that is one under another name. packages/catalog/trust.json shows the number to the vetting team alone; on the bus it is a number in every roster's log, and a roster that can sort nurses by it has been handed a leaderboard nobody designed. A weight is refused with it, because a weight is how a score is made and, on a patient, weight is a reading." }
  ],
 
  "sources": [
@@ -58,6 +62,9 @@
   "packages/catalog/assistant.json",
   "packages/catalog/trust.json"
  ],
+
+ "grantFields": ["grantRef", "recipientRole", "recipientRef", "scope", "sealedIncluded"],
+ "_grantFieldsNote": "The payload fields that describe one person's grant. An engine that serves only a non-identifiable grant role — Money, for the scheme's aggregate role — is never subscribed to an event carrying one of them, or to any passport.consent event. The subject token rides on every envelope and Money still needs it to charge for a visit; what it is never told is who may read that patient's record, over what, or whether something sealed is in it.",
 
  "refusals": [
   { "id": "nothing-identifying-on-the-bus", "statement": "No event carries a field listed under neverInEnvelope, in its envelope or in its payload.", "why": "Every engine subscribes to something, and every subscriber keeps what it receives. The bus is the widest audience in the platform, so it carries references and never the thing referred to." },
@@ -68,6 +75,11 @@
   { "id": "an-alert-closes-on-an-outcome", "statement": "An alert is not closed without a reference to the outcome that was recorded.", "why": "The closed loop's rule is that no alert is done until the outcome is documented. An alert.closed with nowhere to point is a loop closed by somebody pressing a button." },
   { "id": "a-suspension-never-reaches-money", "statement": "Money does not subscribe to a person being suspended or deactivated.", "why": "A suspension withdraws future work. It never touches money already earned, and the simplest way to make that true is for the engine that pays to never be told." },
   { "id": "frozen-means-frozen", "statement": "While the contract is frozen, no type@version in the lock may disappear or change. A new version is a new entry.", "why": "A subscriber built against version one is still running somewhere. Editing version one in place breaks it silently; adding version two breaks nothing and lets it move when it is ready." }
+,
+  { "id": "a-score-never-leaves-verify", "statement": "No event carries a Trust Score, or anything named like one — a score, points, a rank, a rating or a weight. A person's standing travels as a badge tier and whether the hard gates pass.", "why": "packages/catalog/trust.json gives the number to the vetting team alone. A number on the bus is a number in every roster that subscribes, and trustScore and scoreBand are the same leak spelt differently, so the words are matched as whole words anywhere in a field's name, in every source file." },
+  { "id": "no-grant-news-for-an-aggregate-engine", "statement": "An engine that serves only a non-identifiable grant role is never subscribed to an event about a person's grant, and no event it receives carries a grant's recipient, scope or sealed flag.", "why": "Money serves the scheme's aggregate role, and a scheme receives aggregates and nothing about one person. Told that a patient has a grant, to whom, over what and whether something sealed is in it, the engine facing the scheme holds exactly what the scheme must never have. The rule that grant news reaches every engine serving a recipient applies to identifiable recipients only." },
+  { "id": "withdrawn-means-silent", "statement": "A withdrawn version stays in the contract and in the lock, and nobody publishes it or subscribes to it. Its correction is the next version.", "why": "Keeping it keeps the record of what engines were built against; silencing it means the only way to use the corrected contract is the corrected version. A withdrawal with a subscriber left on it, or code still naming it, is a defect with a label on it." },
+  { "id": "freezing-cannot-be-switched-off", "statement": "This contract is frozen, and the build refuses a contract that says it is not.", "why": "Every lock check sits behind the frozen flag. A contract that one boolean could unfreeze is a contract any change can walk through, and nobody reading that diff would see the lock checks stop running." }
  ],
 
  "events": [
@@ -230,11 +242,26 @@
   {
    "type": "person.trust_updated", "version": 1, "owner": "trust",
    "summary": "A person's Trust Score has been recomputed.",
+   "withdrawn": { "on": "2026-09-14", "supersededBy": "person.trust_updated@2", "formerSubscribers": ["care", "movement"],
+                  "why": "It sent the score itself to care and movement. packages/catalog/trust.json gives the number to the vetting team alone and gives a roster the badge; the frozen shape contradicted the contract it existed to carry, and the never-list did not catch it because it had no word for a score." },
    "payload": [
     { "field": "score", "type": "integer", "required": true, "why": "The whole-number score dispatch ranks eligible people by, after proximity. Never shown to a patient." },
     { "field": "badgeTier", "type": "string", "required": true, "why": "The tier a patient may be shown, derived by Verify so no screen derives its own." }
    ],
    "neverCarries": [
+    { "field": "scoreInputs", "why": "Complaints, incidents and ratings are what the score is explained from, to the person it is about. A roster that can read them is a roster that starts judging on them." }
+   ],
+   "subscribers": []
+  },
+  {
+   "type": "person.trust_updated", "version": 2, "owner": "trust",
+   "summary": "A person's standing with Verify changed: their badge, or whether every hard gate passes. The number behind it stays with the vetting team.",
+   "payload": [
+    { "field": "badgeTier", "type": "string", "required": true, "why": "Verified, Trusted or Senior, from the tiers in packages/catalog/trust.json — the only form of a Trust Score a roster or a patient may be given." },
+    { "field": "hardGatesPassed", "type": "boolean", "required": true, "why": "Whether every hard gate passes today. Dispatch withholds on false; which gate failed, and why, is vetting data and stays in Verify." }
+   ],
+   "neverCarries": [
+    { "field": "score", "why": "packages/catalog/trust.json shows the number to the vetting team and nobody else. Ranking by it happens inside Verify, which hands dispatch an order and never the figures behind it; a roster that can read the number sorts nurses by it." },
     { "field": "scoreInputs", "why": "Complaints, incidents and ratings are what the score is explained from, to the person it is about. A roster that can read them is a roster that starts judging on them." }
    ],
    "subscribers": ["care", "movement"]
@@ -380,6 +407,8 @@
   {
    "type": "passport.consent.granted", "version": 1, "owner": "record",
    "summary": "The patient, or their delegate, has granted a recipient access to part of the record, for a purpose, until a time.",
+   "withdrawn": { "on": "2026-09-14", "supersededBy": "passport.consent.granted@2", "formerSubscribers": ["core", "access", "care", "medicines", "movement", "money"],
+                  "why": "It told every engine serving a grant role which records a patient had opened, to whom, and whether a sealed category was among them — and Money, which serves only the scheme's aggregate role, was made to subscribe. A scheme receives aggregates and nothing about one person (Master §17 and §21) and is excluded from secondary use of a record (§20); the engine facing it cannot be told about one patient's grant without that line being crossed." },
    "payload": [
     { "field": "grantRef", "type": "string", "required": true, "why": "The signed consent artefact the gateway validates on every call." },
     { "field": "recipientRole", "type": "string", "required": true, "why": "A role id from grants.recipientRoles in packages/catalog/consent.json." },
@@ -392,11 +421,30 @@
    "neverCarries": [
     { "field": "sealedCategories", "why": "Which sealed categories a grant opens discloses that the patient has something in them. The gateway knows; the bus is told only that some are included." }
    ],
-   "subscribers": ["core", "access", "care", "medicines", "movement", "money"]
+   "subscribers": []
+  },
+  {
+   "type": "passport.consent.granted", "version": 2, "owner": "record",
+   "summary": "The patient, or their delegate, has let a named recipient into their record for a purpose until a time. Which parts, and whether anything sealed is among them, is the gateway's to know.",
+   "payload": [
+    { "field": "grantRef", "type": "string", "required": true, "why": "The signed consent artefact the gateway validates on every call." },
+    { "field": "recipientRole", "type": "string", "required": true, "why": "A role id from grants.recipientRoles in packages/catalog/consent.json, and only an identifiable one: a grant to the scheme's aggregate role names nobody and is not announced on the bus." },
+    { "field": "recipientRef", "type": "string", "required": true, "why": "The opaque reference of the recipient, so the engine serving them stops asking for a grant they now hold. Required, because a grant with no recipient is an aggregate one and is not published." },
+    { "field": "purpose", "type": "string", "required": true, "why": "The purpose the grant is for, from the gate's Purpose union." },
+    { "field": "expiresAt", "type": "instant", "required": true, "why": "Every grant ends, and an engine holding a cached answer must drop it by then without being told twice." }
+   ],
+   "neverCarries": [
+    { "field": "scope", "why": "Which records a grant opens is the gateway's filter. An engine asks and the gateway answers; announced in advance, the scope is a list of what this patient has let somebody see, in every subscriber's log." },
+    { "field": "sealedIncluded", "why": "Whether a sealed category was ticked in tells every subscriber that this patient has something sealed. The gateway enforces it; nothing else needs to know." },
+    { "field": "sealedCategories", "why": "Which sealed categories a grant opens discloses that the patient has something in them." }
+   ],
+   "subscribers": ["core", "access", "care", "medicines", "movement"]
   },
   {
    "type": "passport.consent.revoked", "version": 1, "owner": "record",
    "summary": "A grant has been revoked. It stops working at once.",
+   "withdrawn": { "on": "2026-09-14", "supersededBy": "passport.consent.revoked@2", "formerSubscribers": ["core", "access", "care", "medicines", "movement", "money"],
+                  "why": "Money was subscribed. A revocation reaching the engine that serves the scheme tells it that one identified patient had a grant and has ended it, which is a fact about a person the aggregate role must never hold." },
    "payload": [
     { "field": "grantRef", "type": "string", "required": true, "why": "The grant that no longer opens anything." },
     { "field": "recipientRole", "type": "string", "required": true, "why": "Whose access ended, so every engine serving that role drops what it cached." }
@@ -404,7 +452,20 @@
    "neverCarries": [
     { "field": "revocationReason", "why": "A patient never has to say why, and nothing downstream is entitled to ask." }
    ],
-   "subscribers": ["core", "access", "care", "medicines", "movement", "money"]
+   "subscribers": []
+  },
+  {
+   "type": "passport.consent.revoked", "version": 2, "owner": "record",
+   "summary": "A grant has been revoked. It stops working at once, and the engines serving the recipient drop what they hold.",
+   "payload": [
+    { "field": "grantRef", "type": "string", "required": true, "why": "The grant that no longer opens anything." },
+    { "field": "recipientRole", "type": "string", "required": true, "why": "Whose access ended, so every engine serving that identifiable role drops what it cached." }
+   ],
+   "neverCarries": [
+    { "field": "revocationReason", "why": "A patient never has to say why, and nothing downstream is entitled to ask." },
+    { "field": "scope", "why": "What the grant used to open is as much the gateway's own business after it ends as before." }
+   ],
+   "subscribers": ["core", "access", "care", "medicines", "movement"]
   },
   {
    "type": "passport.access.read", "version": 1, "owner": "record",

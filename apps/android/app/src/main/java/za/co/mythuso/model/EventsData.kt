@@ -4,6 +4,7 @@
 //
 // Event types, their owning engine and their version. Nothing in this app publishes to a bus, and
 // no payload shape is written here: a frozen shape compiled into a phone is a copy nobody regenerates.
+// Withdrawn versions are left out, so no code in this app can name one.
 
 package za.co.mythuso.model
 
@@ -42,7 +43,7 @@ object EventsData {
         Event("appointment.follow_up_required", 1, "care"),
         Event("person.verified", 1, "trust"),
         Event("person.probation", 1, "trust"),
-        Event("person.trust_updated", 1, "trust"),
+        Event("person.trust_updated", 2, "trust"),
         Event("person.under_review", 1, "trust"),
         Event("person.suspended", 1, "trust"),
         Event("person.reinstated", 1, "trust"),
@@ -54,8 +55,8 @@ object EventsData {
         Event("passport.record.created", 1, "record"),
         Event("passport.entry.written", 1, "record"),
         Event("passport.entry.superseded", 1, "record"),
-        Event("passport.consent.granted", 1, "record"),
-        Event("passport.consent.revoked", 1, "record"),
+        Event("passport.consent.granted", 2, "record"),
+        Event("passport.consent.revoked", 2, "record"),
         Event("passport.access.read", 1, "record"),
         Event("passport.access.breakglass", 1, "record"),
         Event("passport.export.generated", 1, "record"),
@@ -76,7 +77,7 @@ object EventsData {
         Event("pulse.guidance.presented", 1, "pulse"),
         Event("pulse.escalation.started", 1, "pulse"),
         Event("pulse.handover.completed", 1, "pulse"),
-        Event("trust.weight.decided", 1, "trust"),
+        Event("trust.weight.decided", 2, "trust"),
         Event("trust.dispatch.withheld", 1, "trust"),
         Event("record.breakglass.review_due", 1, "record"),
         Event("record.audit.chain_broken", 1, "record")

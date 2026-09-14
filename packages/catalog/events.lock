@@ -1,58 +1,65 @@
-# packages/catalog/events.lock — every event type@version ThusoIQ Core has frozen, with the fingerprint of its shape.
+# packages/catalog/events.lock — every event type@version ThusoIQ Core has frozen, with the fingerprint of its type and shape.
 #
 # scripts/check-boundaries.mjs fails the build when a line here is no longer declared, when a declared event is
-# missing from here, or when an event has changed shape under a line that was not updated in the same change.
-# A new event, or a new version of one, is a new line. Removing or rewriting a line is a decision about every
-# subscriber already built against it, and it should be the only thing that commit does.
+# missing from here, when an event no longer matches its line, or when two lines share a fingerprint.
+# A new event, or a new version of one, is a new line. A version found wrong after it was frozen is withdrawn in
+# its contract, not removed from here: its line stays as the record of what engines were built against.
+#
+# Every line was re-locked on 14 September 2026, in one change, when the fingerprint gained the event type and
+# version: person.under_review@1 and person.deactivated@1 had the same owner and payload and so the same print.
 #
 # type@version fingerprint
-appointment.requested@1 828e599122804aa6
-appointment.offered@1 a5112faf73416acf
-appointment.booked@1 d8d995cada5d15a3
-appointment.confirmed@1 bf9ba9ed2c2a0087
-appointment.en_route@1 a3080f562338de9b
-appointment.in_progress@1 7bda7a859bdc3bd9
-appointment.completed@1 611f717d0cff565f
-appointment.no_show@1 a911332214a74e0b
-appointment.cancelled@1 c0231660dc54f234
-appointment.follow_up_required@1 9dad74419de14342
-person.verified@1 a3093cc819c61bce
-person.probation@1 f7a793839dfaf49d
-person.trust_updated@1 50a06b9d1a74871d
-person.under_review@1 02240b712115fba6
-person.suspended@1 f0476cbdf7909f0c
-person.reinstated@1 38320245d1d171c4
-person.deactivated@1 02240b712115fba6
-credential.expiring@1 8a9e684877523db2
-credential.lapsed@1 9be67c65584828b1
-partner.verified@1 780c23317d9c223d
-partner.suspended@1 7a83f59fde68440d
-passport.record.created@1 f0ad1123db97f084
-passport.entry.written@1 d825d548a0f9d979
-passport.entry.superseded@1 b8c0799d23d55c40
-passport.consent.granted@1 d99e52b098808917
-passport.consent.revoked@1 189666f4a9df5a5a
-passport.access.read@1 cc0c37b1b142debe
-passport.access.breakglass@1 c34822ee4d0eff54
-passport.export.generated@1 75006ce3fbf99015
-alert.raised@1 7d1aa7ecb9ba6106
-alert.acknowledged@1 5b47dc256624f102
-alert.escalated@1 5ef7eae455c02951
-alert.closed@1 c1db2e1e45656918
-market.order.placed@1 d263a7906a4ff99c
-market.order.paid@1 35685247bf01654b
-market.order.shipped@1 5f322ee9641994a6
-market.order.delivered@1 b59e84c35cd47387
-market.order.returned@1 521cf93a22985e3b
-trust.weight.decided@1 4cd80c394321c4a7
-trust.dispatch.withheld@1 733776b734bd84cf
-record.breakglass.review_due@1 52959d41898c35ee
-record.audit.chain_broken@1 ce47e06eb02ef48f
-pulse.session.started@1 1b9346421bcaadf6
-pulse.listening.started@1 42c2ea6326dba7fe
-pulse.utterance.finalised@1 ea43eccc97f58ecd
-pulse.thinking.started@1 d2be8e5f081a82d4
-pulse.device.highlight@1 0aa96c129aebcb1e
-pulse.guidance.presented@1 b92fdd2603c524a2
-pulse.escalation.started@1 6b38c0aaa9b7dc21
-pulse.handover.completed@1 4ef9f0d81857c4ea
+appointment.requested@1 bc7aa4ce593296b1
+appointment.offered@1 f7e92799196fe0ff
+appointment.booked@1 2ac203fd1f0c3ea7
+appointment.confirmed@1 3e7f99ac39f1515f
+appointment.en_route@1 ae70026cc76d7a46
+appointment.in_progress@1 948f70b44ac9e969
+appointment.completed@1 c6ff98253cd7fbb0
+appointment.no_show@1 8c0a5fdb2831545b
+appointment.cancelled@1 ae53168eca6abb4d
+appointment.follow_up_required@1 0ced39049a587b4d
+person.verified@1 bebe26d8ce8652b9
+person.probation@1 cf6617e91e8e3d97
+person.trust_updated@1 d8b64c5ac220d038
+person.trust_updated@2 1c84f19889f925dc
+person.under_review@1 7c07e2c9df12431f
+person.suspended@1 01c4c846e0821843
+person.reinstated@1 5092a8991d05a391
+person.deactivated@1 4f159ae4523cb247
+credential.expiring@1 9d733bbae4565a0d
+credential.lapsed@1 53ce35c777b57065
+partner.verified@1 8ed93696a0510397
+partner.suspended@1 394ce75366cd9665
+passport.record.created@1 e67089c273fe777b
+passport.entry.written@1 71aa8a7c186a2e60
+passport.entry.superseded@1 bfa20506da0581d1
+passport.consent.granted@1 268b16480e42cdde
+passport.consent.granted@2 7936502544bd7a97
+passport.consent.revoked@1 3f6ab655b3a41985
+passport.consent.revoked@2 88fe330899145748
+passport.access.read@1 06dc2c2365ab8433
+passport.access.breakglass@1 1460df1103c340ae
+passport.export.generated@1 ff1662820024c929
+alert.raised@1 fb15cbe180191c7d
+alert.acknowledged@1 e42d8ed931148f30
+alert.escalated@1 7a16b437abf15055
+alert.closed@1 d17ec45666e9a110
+market.order.placed@1 273f66934df3b992
+market.order.paid@1 5f1cc1d9841327ab
+market.order.shipped@1 c824248f2178b66f
+market.order.delivered@1 4d61eaabca8f5340
+market.order.returned@1 e80cbc9d3604a326
+pulse.session.started@1 378edd962d2888d9
+pulse.listening.started@1 1c8db2ea32792e48
+pulse.utterance.finalised@1 392a3c9d07c5fff1
+pulse.thinking.started@1 7dcb9157c1468982
+pulse.device.highlight@1 9e7b6aa0444644b7
+pulse.guidance.presented@1 5327312e6526a0a1
+pulse.escalation.started@1 40b17080dd0990b8
+pulse.handover.completed@1 78aa71fbaa11060d
+trust.weight.decided@1 689ab2b6cb5dc6b1
+trust.weight.decided@2 9979d07852e17e62
+trust.dispatch.withheld@1 4c49c316a9628f4a
+record.breakglass.review_due@1 5188c8a7f3bb1424
+record.audit.chain_broken@1 cc682ddba72a90ff

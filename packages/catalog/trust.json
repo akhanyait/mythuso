@@ -128,6 +128,7 @@
    "version": 1,
    "owner": "trust",
    "summary": "The Clinical Governance Lead recorded a weight for one soft input of the Trust Score.",
+   "withdrawn": { "on": "2026-09-14", "supersededBy": "trust.weight.decided@2", "formerSubscribers": ["core"], "why": "It carried the weight as a number. A weight decides who is dispatched and it lives in this file beside the minute that set it; a copy on the bus is a second place it can disagree, and a field named like a score, which packages/catalog/events.json refuses in every source file from the same day." },
    "payload": [
     { "field": "input", "type": "string", "required": true, "why": "Which soft input, by its id in this file." },
     { "field": "weight", "type": "number", "required": true, "why": "The weight decided. It lands in this file only beside the decision that set it." },
@@ -139,7 +140,25 @@
     { "field": "partyId", "why": "A weight is a policy about everybody. An event tying it to one person is a weight tuned to an outcome." },
     { "field": "value", "why": "Nobody's score travels with a policy change." }
    ],
-   "subscribers": [ "core"]
+   "subscribers": []
+  },
+  {
+   "type": "trust.weight.decided",
+   "version": 2,
+   "owner": "trust",
+   "summary": "The Clinical Governance Lead recorded a weight for one soft input of the Trust Score.",
+   "payload": [
+    { "field": "input", "type": "string", "required": true, "why": "Which soft input, by its id in this file." },
+    { "field": "decidedBy", "type": "string", "required": true, "why": "The role that decided, so a weight is never authorless." },
+    { "field": "decidedOn", "type": "iso-date", "required": true, "why": "A decision is a day, not a moment." },
+    { "field": "minute", "type": "string", "required": true, "why": "The governance minute it is recorded in, so the reasoning can be read rather than assumed." }
+   ],
+   "neverCarries": [
+    { "field": "partyId", "why": "A weight is a policy about everybody. An event tying it to one person is a weight tuned to an outcome." },
+    { "field": "value", "why": "Nobody's score travels with a policy change." },
+    { "field": "weight", "why": "The number lands in this file, in the soft input it weighs, beside the minute that set it. On the bus it would be a second copy of a number that decides who is dispatched — and the copy nobody corrects." }
+   ],
+   "subscribers": ["core"]
   },
   {
    "type": "trust.dispatch.withheld",

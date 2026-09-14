@@ -4,6 +4,7 @@
 //
 // Event types, their owning engine and their version. Nothing in this app publishes to a bus, and
 // no payload shape is written here: a frozen shape compiled into a phone is a copy nobody regenerates.
+// Withdrawn versions are left out, so no code in this app can name one.
 
 import Foundation
 
@@ -45,7 +46,7 @@ enum EventsData {
         Event(type: "appointment.follow_up_required", version: 1, owner: "care"),
         Event(type: "person.verified", version: 1, owner: "trust"),
         Event(type: "person.probation", version: 1, owner: "trust"),
-        Event(type: "person.trust_updated", version: 1, owner: "trust"),
+        Event(type: "person.trust_updated", version: 2, owner: "trust"),
         Event(type: "person.under_review", version: 1, owner: "trust"),
         Event(type: "person.suspended", version: 1, owner: "trust"),
         Event(type: "person.reinstated", version: 1, owner: "trust"),
@@ -57,8 +58,8 @@ enum EventsData {
         Event(type: "passport.record.created", version: 1, owner: "record"),
         Event(type: "passport.entry.written", version: 1, owner: "record"),
         Event(type: "passport.entry.superseded", version: 1, owner: "record"),
-        Event(type: "passport.consent.granted", version: 1, owner: "record"),
-        Event(type: "passport.consent.revoked", version: 1, owner: "record"),
+        Event(type: "passport.consent.granted", version: 2, owner: "record"),
+        Event(type: "passport.consent.revoked", version: 2, owner: "record"),
         Event(type: "passport.access.read", version: 1, owner: "record"),
         Event(type: "passport.access.breakglass", version: 1, owner: "record"),
         Event(type: "passport.export.generated", version: 1, owner: "record"),
@@ -79,7 +80,7 @@ enum EventsData {
         Event(type: "pulse.guidance.presented", version: 1, owner: "pulse"),
         Event(type: "pulse.escalation.started", version: 1, owner: "pulse"),
         Event(type: "pulse.handover.completed", version: 1, owner: "pulse"),
-        Event(type: "trust.weight.decided", version: 1, owner: "trust"),
+        Event(type: "trust.weight.decided", version: 2, owner: "trust"),
         Event(type: "trust.dispatch.withheld", version: 1, owner: "trust"),
         Event(type: "record.breakglass.review_due", version: 1, owner: "record"),
         Event(type: "record.audit.chain_broken", version: 1, owner: "record")

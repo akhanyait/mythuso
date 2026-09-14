@@ -17,9 +17,16 @@
    generated files stop matching and the build says to run `npm run events`.
 
    The lock. `eventFingerprint` is exported for scripts/check-boundaries.mjs and for whoever appends
-   a line to packages/catalog/events.lock. It fingerprints the owner and each payload field's name,
-   type and whether it is required — the shape a subscriber is built against — and nothing else, so
-   rewording a `why` or adding a subscriber is not a version change and changing a field is.
+   a line to packages/catalog/events.lock. It fingerprints the type, the version, the owner and each
+   payload field's name, type and whether it is required — the shape a subscriber is built against —
+   and nothing else, so rewording a `why` or adding a subscriber is not a version change and changing
+   a field is. The type and version were not in it until 14 September, when person.under_review@1 and
+   person.deactivated@1 were found sharing one fingerprint: same owner, same payload, so the lock could
+   not tell one from the other. Every line was re-locked in that one change.
+
+   Withdrawn versions are not emitted. A version withdrawn from the contract stays in events.json and
+   in the lock as the record of what was frozen, and nothing may publish or subscribe to it — leaving
+   it out of both apps is how neither of them can.
 
    Escaping: Swift needs its quotes escaped; Kotlin needs backslash, quote and dollar, because a
    lone $ starts a template. */
@@ -34,7 +41,7 @@ const swift = value => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 const kotlin = value => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$')}"`;
 
 export const eventFingerprint = event => createHash('sha256')
- .update(JSON.stringify({ owner: event.owner, payload: (event.payload ?? []).map(f => [f.field, f.type, f.required === true]) }))
+ .update(JSON.stringify({ type: event.type, version: event.version, owner: event.owner, payload: (event.payload ?? []).map(f => [f.field, f.type, f.required === true]) }))
  .digest('hex').slice(0, 16);
 
 /* Every event from every source that exists, in source order. Shared with the check so the two can
@@ -57,7 +64,8 @@ const camel = type => type.split(/[._]/).map((part, i) => (i ? part[0].toUpperCa
 const upper = type => type.replace(/[.]/g, '_').toUpperCase();
 
 export function emitEvents(root = '') {
- const { contract, events } = collectEvents(root);
+ const { contract, events: declared } = collectEvents(root);
+ const events = declared.filter(e => !e.withdrawn);
  const types = [...new Set(events.map(e => e.type))];
  /* Two types that differ only in punctuation would collapse into one constant and one of them would
     silently vanish from both apps. */
@@ -75,7 +83,8 @@ export function emitEvents(root = '') {
   'disagree, so an edit here is lost rather than merely wrong.',
   '',
   'Event types, their owning engine and their version. Nothing in this app publishes to a bus, and',
-  'no payload shape is written here: a frozen shape compiled into a phone is a copy nobody regenerates.'
+  'no payload shape is written here: a frozen shape compiled into a phone is a copy nobody regenerates.',
+  'Withdrawn versions are left out, so no code in this app can name one.'
  ].map(line => (line ? `// ${line}` : '//')).join('\n');
 
  const swiftFile = `${banner}
