@@ -67,7 +67,7 @@ object EventsData {
             val BOOKING_CANCELLED_V1 = EventKey("booking.cancelled", 1, "access")
             val CONVERSATION_HANDOVER_V1 = EventKey("conversation.handover", 1, "access")
             val VISIT_HANDOVER_SUBMITTED_V1 = EventKey("visit.handover.submitted", 1, "care")
-            val TRIAGE_COMPLETED_V1 = EventKey("triage.completed", 1, "clinical")
+            val TRIAGE_COMPLETED_V2 = EventKey("triage.completed", 2, "clinical")
             val REVIEW_SIGNED_V1 = EventKey("review.signed", 1, "clinical")
             val RESULT_ACKNOWLEDGED_V1 = EventKey("result.acknowledged", 1, "clinical")
             val GUIDANCE_DELIVERED_V1 = EventKey("guidance.delivered", 1, "clinical")
@@ -75,7 +75,7 @@ object EventsData {
             val PANIC_RAISED_V1 = EventKey("panic.raised", 1, "safety")
             val SOS_RAISED_V1 = EventKey("sos.raised", 1, "safety")
             val NOK_NOTIFIED_V1 = EventKey("nok.notified", 1, "safety")
-            val SENTINEL_TIER_RAISED_V1 = EventKey("sentinel.tier_raised", 1, "safety")
+            val SENTINEL_RUNG_RAISED_V1 = EventKey("sentinel.rung_raised", 1, "safety")
             val SAFEGUARDING_REPORTED_V1 = EventKey("safeguarding.reported", 1, "safety")
             val ADMISSION_NEED_IDENTIFIED_V1 = EventKey("admission.need_identified", 1, "movement")
             val FACILITY_CANDIDATE_SELECTED_V1 = EventKey("facility.candidate_selected", 1, "movement")
@@ -114,8 +114,10 @@ object EventsData {
             val PAYMENT_FAILED_V1 = EventKey("payment.failed", 1, "money")
             val PAYOUT_SCHEDULED_V1 = EventKey("payout.scheduled", 1, "money")
             val PAYOUT_PAID_V1 = EventKey("payout.paid", 1, "money")
-            val CLAIM_SUBMITTED_V1 = EventKey("claim.submitted", 1, "money")
+            val CLAIM_SUBMITTED_V2 = EventKey("claim.submitted", 2, "money")
             val CLAIM_DECIDED_V1 = EventKey("claim.decided", 1, "money")
+            val VISIT_BILLABLE_V1 = EventKey("visit.billable", 1, "care")
+            val REVIEW_BILLABLE_V1 = EventKey("review.billable", 1, "clinical")
             val PULSE_SESSION_STARTED_V1 = EventKey("pulse.session.started", 1, "pulse")
             val PULSE_LISTENING_STARTED_V1 = EventKey("pulse.listening.started", 1, "pulse")
             val PULSE_UTTERANCE_FINALISED_V2 = EventKey("pulse.utterance.finalised", 2, "pulse")
@@ -178,7 +180,7 @@ object EventsData {
                 BOOKING_CANCELLED_V1,
                 CONVERSATION_HANDOVER_V1,
                 VISIT_HANDOVER_SUBMITTED_V1,
-                TRIAGE_COMPLETED_V1,
+                TRIAGE_COMPLETED_V2,
                 REVIEW_SIGNED_V1,
                 RESULT_ACKNOWLEDGED_V1,
                 GUIDANCE_DELIVERED_V1,
@@ -186,7 +188,7 @@ object EventsData {
                 PANIC_RAISED_V1,
                 SOS_RAISED_V1,
                 NOK_NOTIFIED_V1,
-                SENTINEL_TIER_RAISED_V1,
+                SENTINEL_RUNG_RAISED_V1,
                 SAFEGUARDING_REPORTED_V1,
                 ADMISSION_NEED_IDENTIFIED_V1,
                 FACILITY_CANDIDATE_SELECTED_V1,
@@ -225,8 +227,10 @@ object EventsData {
                 PAYMENT_FAILED_V1,
                 PAYOUT_SCHEDULED_V1,
                 PAYOUT_PAID_V1,
-                CLAIM_SUBMITTED_V1,
+                CLAIM_SUBMITTED_V2,
                 CLAIM_DECIDED_V1,
+                VISIT_BILLABLE_V1,
+                REVIEW_BILLABLE_V1,
                 PULSE_SESSION_STARTED_V1,
                 PULSE_LISTENING_STARTED_V1,
                 PULSE_UTTERANCE_FINALISED_V2,

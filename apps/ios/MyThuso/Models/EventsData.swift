@@ -90,7 +90,7 @@ enum EventsData {
     static let bookingCancelledV1 = EventKey("booking.cancelled", 1, "access")
     static let conversationHandoverV1 = EventKey("conversation.handover", 1, "access")
     static let visitHandoverSubmittedV1 = EventKey("visit.handover.submitted", 1, "care")
-    static let triageCompletedV1 = EventKey("triage.completed", 1, "clinical")
+    static let triageCompletedV2 = EventKey("triage.completed", 2, "clinical")
     static let reviewSignedV1 = EventKey("review.signed", 1, "clinical")
     static let resultAcknowledgedV1 = EventKey("result.acknowledged", 1, "clinical")
     static let guidanceDeliveredV1 = EventKey("guidance.delivered", 1, "clinical")
@@ -98,7 +98,7 @@ enum EventsData {
     static let panicRaisedV1 = EventKey("panic.raised", 1, "safety")
     static let sosRaisedV1 = EventKey("sos.raised", 1, "safety")
     static let nokNotifiedV1 = EventKey("nok.notified", 1, "safety")
-    static let sentinelTierRaisedV1 = EventKey("sentinel.tier_raised", 1, "safety")
+    static let sentinelRungRaisedV1 = EventKey("sentinel.rung_raised", 1, "safety")
     static let safeguardingReportedV1 = EventKey("safeguarding.reported", 1, "safety")
     static let admissionNeedIdentifiedV1 = EventKey("admission.need_identified", 1, "movement")
     static let facilityCandidateSelectedV1 = EventKey("facility.candidate_selected", 1, "movement")
@@ -137,8 +137,10 @@ enum EventsData {
     static let paymentFailedV1 = EventKey("payment.failed", 1, "money")
     static let payoutScheduledV1 = EventKey("payout.scheduled", 1, "money")
     static let payoutPaidV1 = EventKey("payout.paid", 1, "money")
-    static let claimSubmittedV1 = EventKey("claim.submitted", 1, "money")
+    static let claimSubmittedV2 = EventKey("claim.submitted", 2, "money")
     static let claimDecidedV1 = EventKey("claim.decided", 1, "money")
+    static let visitBillableV1 = EventKey("visit.billable", 1, "care")
+    static let reviewBillableV1 = EventKey("review.billable", 1, "clinical")
     static let pulseSessionStartedV1 = EventKey("pulse.session.started", 1, "pulse")
     static let pulseListeningStartedV1 = EventKey("pulse.listening.started", 1, "pulse")
     static let pulseUtteranceFinalisedV2 = EventKey("pulse.utterance.finalised", 2, "pulse")
@@ -201,7 +203,7 @@ enum EventsData {
         bookingCancelledV1,
         conversationHandoverV1,
         visitHandoverSubmittedV1,
-        triageCompletedV1,
+        triageCompletedV2,
         reviewSignedV1,
         resultAcknowledgedV1,
         guidanceDeliveredV1,
@@ -209,7 +211,7 @@ enum EventsData {
         panicRaisedV1,
         sosRaisedV1,
         nokNotifiedV1,
-        sentinelTierRaisedV1,
+        sentinelRungRaisedV1,
         safeguardingReportedV1,
         admissionNeedIdentifiedV1,
         facilityCandidateSelectedV1,
@@ -248,8 +250,10 @@ enum EventsData {
         paymentFailedV1,
         payoutScheduledV1,
         payoutPaidV1,
-        claimSubmittedV1,
+        claimSubmittedV2,
         claimDecidedV1,
+        visitBillableV1,
+        reviewBillableV1,
         pulseSessionStartedV1,
         pulseListeningStartedV1,
         pulseUtteranceFinalisedV2,
