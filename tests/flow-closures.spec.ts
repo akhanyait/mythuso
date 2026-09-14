@@ -188,9 +188,11 @@ test('a signed visit has a state on the nurse\'s day', async ({ page }) => {
   await expect(card).toContainText('Signed by Sister Naledi Mokoena');
   await expect(card.getByRole('button', { name: 'Start this visit' })).toHaveCount(0);
   await expect(card.getByRole('button', { name: /Open what this produced/ })).toBeVisible();
-  /* And the strip above the day says the same thing the day says. A header reading "one to sign
-     off" over a day with nothing left to sign is the drift the one-number rule exists to stop. */
-  await expect(page.locator('.s-metric').filter({ hasText: 'Today’s visits' })).toContainText('1 signed, 2 to go');
+  /* And the line under the date says the same thing the day says. A header reading "one to sign
+     off" over a day with nothing left to sign is the drift the one-number rule exists to stop.
+     It used to be a summary tile in a strip above the schedule; the strip went with the clinical
+     dashboards, and the claim moved to the one place on the screen that was already counting. */
+  await expect(page.locator('.shift-head p')).toContainText('1 signed');
 });
 
 test('the nurse\'s two more-tools say what they will not do rather than that they are not drawn', async ({ page }) => {

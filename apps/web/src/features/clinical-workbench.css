@@ -1,11 +1,20 @@
 .iq-workbench{margin:0 0 32px;border:1px solid var(--studio-line);border-radius:28px;overflow:hidden;background:var(--surface);color:var(--studio-ink)}
+/* The role's own board, at the top of the card. It is on the pale ground rather than on the card's
+   white so that the frosted lists inside it — a day, a queue, a collection round — still read as
+   panes instead of white on white, and so the dark band below it divides the queue from the one
+   patient being worked rather than sitting on top of the screen. */
+.iq-worklist{padding:26px 30px 28px;background:var(--studio-paper);border-bottom:1px solid var(--studio-line)}
+.iq-worklist>:last-child{margin-bottom:0}
 .iq-heading{display:flex;justify-content:space-between;gap:24px;padding:28px 30px;background:var(--studio-night);color:var(--studio-paper)}
 /* The workspace shell styles every .clinical h2 charcoal, which on this dark header is a
    1.28:1 headline nobody can read. Same specificity loses on source order, so this rule carries
    the extra class rather than !important. */
 .iq-workbench .iq-heading h2{font-size:clamp(23px,2.3vw,34px);line-height:1.15;max-width:600px;margin:12px 0;letter-spacing:-1px;color:inherit}
 .iq-heading p{color:var(--studio-line);font-size:14px;margin:0}
-.iq-eyebrow{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:1.4px;font-weight:600;line-height:1.5}
+/* 13, not 12. The type scale in packages/design-tokens/tokens.json starts at 13 and the 200% zoom
+   audit reads every rendered size against it, so an eyebrow set at 12 is text the design system says
+   does not exist — and at twice the text size it is the line a reader most needs to survive. */
+.iq-eyebrow{display:flex;align-items:center;gap:8px;font-size:13px;letter-spacing:1.4px;font-weight:600;line-height:1.5}
 .iq-heading .iq-eyebrow{color:var(--studio-lime)}
 .iq-status{white-space:nowrap;display:flex;align-items:center;gap:8px;font-size:13px;align-self:flex-start;border:1px solid var(--studio-ink-muted);padding:8px 12px;border-radius:99px}
 .iq-status>span{width:6px;height:6px;border-radius:50%;background:var(--studio-lime)}
@@ -29,4 +38,4 @@
 .iq-message{padding:12px 16px;border-radius:12px;background:var(--pale-sage);font-size:14px;line-height:1.5}.iq-message.error{background:var(--studio-peach);color:var(--danger)}
 .iq-audit{padding:16px 24px;border-top:1px solid var(--studio-line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;font-size:13px;background:var(--studio-paper)}.iq-audit>span{display:flex;align-items:center;gap:7px}.iq-audit li{margin:8px 0}.iq-audit summary,.iq-tool-body summary{min-height:44px;padding:10px 0;cursor:pointer}
 @media(max-width:1100px){.iq-layout{grid-template-columns:1fr}.iq-patients{display:flex;gap:8px;overflow:auto;border-right:0;border-bottom:1px solid var(--studio-line)}.iq-patients>button{flex:0 0 220px;margin:0}.iq-patients>.iq-eyebrow,.iq-patients>.helper{display:none}}
-@media(max-width:600px){.iq-heading{padding:22px 18px;flex-direction:column;gap:16px}.iq-patient-work{padding:18px 14px}.iq-patient-head{flex-direction:column}.iq-form-row,.iq-soap{grid-template-columns:1fr}.iq-heading h2{font-size:25px}.iq-status{padding:6px 10px}.iq-signal{padding:18px;grid-template-columns:1fr}.iq-signal svg{height:80px}.iq-eyebrow{font-size:13px;letter-spacing:.8px}.iq-audit{padding:14px}.iq-workbench{border-radius:22px}}
+@media(max-width:600px){.iq-worklist{padding:18px 14px 20px}.iq-heading{padding:22px 18px;flex-direction:column;gap:16px}.iq-patient-work{padding:18px 14px}.iq-patient-head{flex-direction:column}.iq-form-row,.iq-soap{grid-template-columns:1fr}.iq-heading h2{font-size:25px}.iq-status{padding:6px 10px}.iq-signal{padding:18px;grid-template-columns:1fr}.iq-signal svg{height:80px}.iq-eyebrow{letter-spacing:.8px}.iq-audit{padding:14px}.iq-workbench{border-radius:22px}}

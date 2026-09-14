@@ -12,12 +12,14 @@ import '../surface/clinical-screens.css';
 import { NurseSchedule, ReviewQueue, nurseDayCounts, reviewQueueCounts, roleExtras, sectionDoor, sectionWorkflow } from '../features/Workspaces';
 import { useVisitQueue } from '../features/VisitQueue';
 import type { Part } from '../lib/visit-queue';
+import { cycle } from '../lib/earnings';
+import { earningsSummary, rand } from '../features/Earnings';
 import { DispatchBoard, IncidentBoard, QualityBoard, controlTowerCounts } from '../features/Dispatch';
 import { FulfilmentQueue, partnerCounts } from '../features/Fulfilment';
 import { ClinicalProtocols, ReferralLetter, ReferralPathway, VisitAssessment, DoctorReview } from '../features/Clinical';
 import { Academy, LocumShifts } from '../features/NurseTools';
 import { ThusoKit } from '../features/Kit';
-import { Earnings, earningsSummary, rand } from '../features/Earnings';
+import { Earnings } from '../features/Earnings';
 import { Dispensing } from '../features/Dispensing';
 import { Programmes } from '../features/Programmes';
 import { Teleconsult } from '../features/Teleconsult';
@@ -30,7 +32,6 @@ import { t } from '../lib/i18n';
 import { endSession } from '../lib/auth';
 import { subjectsByRole } from '../lib/vetting-fixtures';
 import { scrollToTop } from '../lib/scroll';
-import { cycle } from '../lib/earnings';
 
 /* MyThuso for clinicians — its own application, not the patient app with different navigation.
  *
@@ -186,7 +187,6 @@ export default function StaffWorkspace({ role }: { role: StaffRole }) {
        of this one asks which. */}
    <DemoBar note={t('shell.previewBadge', 'en-ZA')}/>
    <main id="main" tabIndex={-1}>
-    {((role === 'Doctor' && section === 'Review queue') || (role === 'Nurse' && section === 'Schedule') || (role === 'Partner' && section === 'Orders')) && <ClinicalWorkbench role={role as 'Nurse' | 'Doctor' | 'Partner'}/>}
     {renderSection(role, section, setModal, home)}
    </main>
    <footer className="app-footer"><span>© 2026 MyThuso · {role} workspace</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
@@ -281,10 +281,12 @@ type Metric = readonly [string, string, string, string, boolean, string?];
    over a queue of four, and the Control Tower's said one high-severity incident over a board
    listing one critical and one high. A figure a reader can disprove by looking at the screen under
    it is worse than no figure.
-   The nurse's and the doctor's still carry typed sample figures, because the schedule and the
-   review queue are drawn from features/Pages.tsx, which does not export its rows. What is fixed is
-   that they no longer contradict what is on the screen: three visits, three cases waiting, two of
-   them flagged. */
+   Two roles are left. The nurse's, the doctor's and the partner's opening sections are the clinical
+   workbench now, and a strip of summary tiles over a work queue is the dashboard a clinician was
+   asked not to be shown — so those three went with it. Two of the doctor's figures had no list to
+   be counted from at all: "18 reviewed today" and its "Median 4 m 10 s" were invented, and an
+   invented productivity figure on a clinical screen is the one kind of number this product must
+   never carry. What the two remaining boards say about themselves, each of them still counts. */
 const metricsOf = (role: StaffRole, queue: Part[]): readonly Metric[] => {
  if (role === 'Partner') { const c = partnerCounts();
   return [['Open orders', String(c.open), '', c.pastWindow ? `${c.pastWindow} past its window` : 'All inside their windows', c.pastWindow > 0],
@@ -294,18 +296,23 @@ const metricsOf = (role: StaffRole, queue: Part[]): readonly Metric[] => {
   return [['Visits on the board', String(c.waiting), '', 'Awaiting a nurse', false],
           ['Nurses on duty', String(c.nurses), '', `${c.offDuty} off duty`, false],
           ['Open incidents', String(c.incidents), '', c.critical ? `${c.critical} critical` : `${c.high} high`, c.critical > 0]]; }
+ /* The doctor's third tile used to be "18 reviewed today" over "Median 4 m 10 s". Both were typed,
+    neither had a list under it to be counted from, and a productivity figure nobody can check is
+    the one number a clinical screen must not carry. The longest wait replaces them: it is the same
+    queue, sorted, and a reader can see which row it names. */
  if (role === 'Doctor') { const q = reviewQueueCounts();
-  return [['Awaiting review', String(q.waiting), '', `Longest ${q.longest}`, false],
-          ['Priority reviews', String(q.flagged), '', 'Out of range', true],
-          ['Reviewed today', '18', '', 'Median 4 m 10 s', false]]; }
- const day = nurseDayCounts(queue);
- /* The week's earnings are the earnings screen's arithmetic and not the schedule's, which is why
-    this was typed rather than recomputed here. It does not have to be either: that screen already
-    exports its own summary, so the strip reads the one figure instead of keeping a second. */
- const week = earningsSummary();
- return [['Next visit', day.nextStart, '', day.nextWhere, false],
-         ['Today’s visits', String(day.visits), '', day.signed ? `${day.signed} signed, ${day.left} to go` : `${day.left} to sign off`, false],
-         ['This week', rand(week.thisWeek).value, '', `Pays ${cycle.paysOn}`, false, rand(week.thisWeek).prefix]];
+  return [['Awaiting review', String(q.waiting), '', q.flagged ? `${q.flagged} out of range` : 'All inside their ranges', false],
+          ['Priority reviews', String(q.flagged), '', 'Out of range', q.flagged > 0],
+          ['Longest wait', q.longest, '', 'Oldest in the queue', false]]; }
+ if (role === 'Nurse') { const day = nurseDayCounts(queue);
+  /* The week's earnings are the earnings screen's arithmetic rather than the schedule's: that
+     screen already exports its summary, so the strip reads the one figure instead of keeping a
+     second that could disagree with it. */
+  const week = earningsSummary();
+  return [['Next visit', day.nextStart, '', day.nextWhere, false],
+          ['Today’s visits', String(day.visits), '', day.signed ? `${day.signed} signed, ${day.left} to go` : `${day.left} to sign off`, false],
+          ['This week', rand(week.thisWeek).value, '', `Pays ${cycle.paysOn}`, false, rand(week.thisWeek).prefix]]; }
+ return [];
 };
 /* Three columns rather than one bold string with two middle dots in it. A reference, what the case
    is, and what state it is in are three different questions, and a reader scanning a queue answers
@@ -319,11 +326,24 @@ const BOARDS = ['Schedule', 'Review queue', 'Dispatch', 'Incidents', 'Orders', '
    was. A board that heads itself has to actually head itself. */
 const HEADS_ITSELF = BOARDS.filter(section => section !== 'Incidents').concat(['Protocols', 'Quality', 'Vetting queue']);
 
+/* The three sections that open the clinical workbench instead of being a board on their own.
+   A nurse's day, a doctor's queue and a partner's orders are the work each of those roles signs in
+   to do, and the workbench is where one case of it is actually worked — so the board is folded into
+   the top of the workbench rather than drawn above or below it. Before this they were both, one
+   after the other, with a strip of summary tiles in between: the same person's work twice over,
+   which is what made a clinical screen read as a dashboard. */
+const WORKBENCH: Partial<Record<StaffRole, string>> = { Nurse: 'Schedule', Doctor: 'Review queue', Partner: 'Orders' };
+
 function StaffSection({ role, section, open }: { role: StaffRole; section: string; open: (m: string) => void }) {
- /* Subscribed here as well as inside the schedule, so the strip above the day and the list below it
-    cannot disagree about how much of it is done. */
- const queue = useVisitQueue();
  const board = BOARDS.includes(section);
+ const workbench = WORKBENCH[role] === section;
+ /* The nurse's strip counts how many of her visits are signed off, which is the queue's state and
+    not the schedule's — so the hook is read here and handed down rather than reached for twice. */
+ const queue = useVisitQueue();
+ /* The strip leads every board, the workbench sections included. It was taken out of those three
+    and the founder asked for it back: a clinician wants the shape of the day before the first row
+    of it. What did not come back is any figure that cannot be counted off the list beneath it. */
+ const figures = board ? metricsOf(role, queue) : [];
  /* The sections rendered by a feature component that draws its own <h1>. */
  const headsItself = HEADS_ITSELF.includes(section);
  /* Protocols and Quality draw their own page-intro, eyebrow included, because they are whole screens
@@ -343,26 +363,9 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
       about which number matters, and it cannot drift out of step with the order of the strip
       because it is the order of the strip. Nothing is typed: the figure inside it is the same
       counted value, from the same board underneath. */}
-  {board && <Metrics>{metricsOf(role, queue).map(([label, value, unit, chip, flagged, prefix], i) =>
+  {figures.length > 0 && <Metrics>{figures.map(([label, value, unit, chip, flagged, prefix], i) =>
    <Metric key={label} label={label} value={value} unit={unit || undefined} prefix={prefix} chip={chip} flagged={flagged} lead={i === 0}/>)}</Metrics>}
-  {section === 'Schedule' ? <NurseSchedule open={open}/>
-   : section === 'Review queue' ? <ReviewQueue open={open}/>
-: section === 'Dispatch' ? <DispatchBoard/>
-   : section === 'Incidents' ? <IncidentBoard open={open}/>
-    : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
-     /* The last fallback. Protocols and Quality used to land here — a card whose only control
-        opened a dialog saying nothing happens — and both are screens of their own now. What is left
-        is the shape a section takes when it genuinely has nothing behind it, which is worth keeping
-        drawn so a reviewer can tell a gap from an oversight. */
-     : <div className="panel workflow-door">
-      <span className="tile-icon"><ShieldCheck size={22}/></span>
-      <h2>{section}</h2>
-      <p>{sectionDoor[section] ?? 'This workflow is drawn but not yet a screen of its own.'}</p>
-      {/* The section keeps its own capitalisation: these are the names of screens, and "open vetting"
-          reads as an instruction to vet somebody rather than as the name of the thing behind the door. */}
-      <button className="primary" onClick={() => open(sectionWorkflow[section] ?? section)}>Open {section}<ArrowRight size={17}/></button>
-      <p className="helper">It opens as a preview dialog. Nothing in it reaches a nurse, a patient, a device or a record.</p>
-     </div>}
+  {workbench ? <ClinicalWorkbench role={role as 'Nurse' | 'Doctor' | 'Partner'} worklist={sectionBody(section, open)}/> : sectionBody(section, open)}
   {/* Secondary by construction. These were two cards with the same shield on them, the same white
       surface and the same shadow as the queue above — so a screen whose entire purpose is the queue
       ended on two equally-weighted boxes. A list of links is what they are. */}
@@ -370,6 +373,29 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
   <div className="tool-links">{(roleExtras[role] ?? []).map(tool =>
    <button className="tool-link" key={tool} onClick={() => open(tool)}>{tool}<ArrowUpRight size={16}/></button>)}</div>
  </>;
+}
+
+/* The board itself, separated from the shell's furniture so that one line above can either draw it
+   or hand it to the workbench to draw. */
+function sectionBody(section: string, open: (m: string) => void) {
+ return section === 'Schedule' ? <NurseSchedule open={open}/>
+  : section === 'Review queue' ? <ReviewQueue open={open}/>
+   : section === 'Dispatch' ? <DispatchBoard/>
+    : section === 'Incidents' ? <IncidentBoard open={open}/>
+     : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
+      /* The last fallback. Protocols and Quality used to land here — a card whose only control
+         opened a dialog saying nothing happens — and both are screens of their own now. What is left
+         is the shape a section takes when it genuinely has nothing behind it, which is worth keeping
+         drawn so a reviewer can tell a gap from an oversight. */
+      : <div className="panel workflow-door">
+       <span className="tile-icon"><ShieldCheck size={22}/></span>
+       <h2>{section}</h2>
+       <p>{sectionDoor[section] ?? 'This workflow is drawn but not yet a screen of its own.'}</p>
+       {/* The section keeps its own capitalisation: these are the names of screens, and "open vetting"
+           reads as an instruction to vet somebody rather than as the name of the thing behind the door. */}
+       <button className="primary" onClick={() => open(sectionWorkflow[section] ?? section)}>Open {section}<ArrowRight size={17}/></button>
+       <p className="helper">It opens as a preview dialog. Nothing in it reaches a nurse, a patient, a device or a record.</p>
+      </div>;
 }
 
 /* The clinical modal router. It is a separate function from the patient app's on purpose: this is

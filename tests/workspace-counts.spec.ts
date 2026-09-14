@@ -21,6 +21,12 @@ import { goSection, openWorkspace } from './nav';
  * that there is more than one row on each board: a count that matched because both sides were nought
  * would have proved nothing at all.
  *
+ * Three of the strips are gone rather than fixed. A nurse's schedule, a doctor's queue and a
+ * partner's orders open into the clinical workbench now, and a row of summary tiles over the work
+ * somebody signed in to do is the dashboard a clinician was asked not to be shown. Where a figure
+ * survived on those screens it survived by moving into the line above the rows it counts, and that
+ * is what is read here instead — the same property, in the place the figure now lives.
+ *
  * The web only. Playwright drives the web app, and iOS and Android are held by the source check
  * alone — which is worth saying plainly rather than leaving a reader to assume all three are covered.
  */
@@ -71,6 +77,29 @@ test.describe('a workspace figure agrees with the rows beneath it', () => {
     expect(await figure(page, 'Nurses on duty')).toBe(onDuty);
   });
 
+  test("the doctor's queue heads itself with the number of rows it is heading", async ({ page }) => {
+    /* This section lost its strip with the rest of the clinical dashboards, and two of the three
+       figures on it were invented rather than counted — "18 reviewed today", "Median 4 m 10 s".
+       What replaced them is one line above the queue, and the reason it is allowed to carry a
+       figure at all is that the queue is directly underneath it. So the same rule applies: read the
+       claim, count the rows, compare. */
+    await openWorkspace(page, 'Doctor');
+    const rows = page.locator('.review-row');
+    await expect(rows.first()).toBeVisible();
+    const waiting = await rows.count();
+    expect(waiting).toBeGreaterThan(1);
+    const head = (await page.locator('.iq-worklist .shift-head p').textContent()) ?? '';
+    expect(Number(head.match(/(\d+) waiting/)?.[1]), `the queue head reads "${head}"`).toBe(waiting);
+
+    /* And it keeps saying the truth when the filter narrows what is on the screen. */
+    await page.locator('.queue-filter').getByRole('button', { name: 'Flagged' }).click();
+    await expect(rows).not.toHaveCount(waiting);
+    const flagged = await rows.count();
+    expect(flagged).toBeLessThan(waiting);
+    const narrowed = (await page.locator('.iq-worklist .shift-head p').textContent()) ?? '';
+    expect(Number(narrowed.match(/(\d+) waiting/)?.[1]), `the filtered head reads "${narrowed}"`).toBe(flagged);
+  });
+
   test('the incident figure and its chip both agree with the incident list', async ({ page }) => {
     await openWorkspace(page, 'Control Tower');
     await goSection(page, 'Incidents');
@@ -98,13 +127,20 @@ test.describe('a workspace figure agrees with the rows beneath it', () => {
   test("a partner's orders, collections and releases are counted off their own boards", async ({ page }) => {
     await openWorkspace(page, 'Partner');
     /* Orders lands first, and the strip above it said eight over a queue of four before the boards
-       started counting. The chip beside it counts something the reader cannot see from here — the
-       collections past their window, which are on the next section — so only the figure is held. */
-    const orders = page.locator('.fulfil-row').filter({ hasText: /^(RX|LAB)-\d+/ });
-    await expect(orders.first()).toBeVisible();
-    const open = await orders.count();
-    expect(open).toBeGreaterThan(1);
-    expect(await figure(page, 'Open orders')).toBe(open);
+       started counting. There is no strip on this section at all now — it opens into the clinical
+       workbench, with the two order groups folded into the top of it — so what is read here is the
+       figure the board still carries: the count in each group's own heading, "Prescriptions · 2",
+       against the rows under that heading. It is the same property in a smaller place. */
+    const groups = page.locator('.iq-worklist > section');
+    await expect(groups.first()).toBeVisible();
+    expect(await groups.count()).toBeGreaterThan(1);
+    for (const group of await groups.all()) {
+      const heading = (await group.locator('.section-title h2').textContent()) ?? '';
+      const claimed = Number(heading.match(/\d+/)?.[0]);
+      expect(claimed, `the heading "${heading}" carries no figure`).not.toBeNaN();
+      expect(claimed, `"${heading}" heads a different number of rows`)
+        .toBe(await group.locator('.fulfil-row').count());
+    }
 
     await goSection(page, 'Collections');
     const collections = page.locator('.fulfil-row').filter({ hasText: /COL-\d+/ });
@@ -123,4 +159,40 @@ test.describe('a workspace figure agrees with the rows beneath it', () => {
       await results.filter({ hasText: /Verified by the laboratory/ }).count()
     );
   });
+});
+
+/* The two clinical strips, restored. Each figure is read off the strip and counted off the rows
+   under it — the doctor's queue and the nurse's day are both lists on the same screen, so a strip
+   that disagrees with them is disprovable by a reader who simply looks down. */
+test("the doctor's strip counts the queue it sits above", async ({ page }) => {
+ await openWorkspace(page, 'Doctor');
+ await goSection(page, 'Review queue');
+ const rows = page.locator('.review-list > *');
+ const rowCount = await rows.count();
+ expect(rowCount).toBeGreaterThan(1);
+ await expect(page.locator('.s-metric', { hasText: 'Awaiting review' })).toContainText(String(rowCount));
+ /* Out of range is a badge on the row, so the strip's figure and the badges are two renderings of
+    one fact and have to agree. */
+ const flagged = await page.locator('.review-list').getByText('Out of range').count();
+ await expect(page.locator('.s-metric', { hasText: 'Priority reviews' })).toContainText(String(flagged));
+ /* The longest wait has to be a wait that is on the queue, rather than a figure of its own. */
+ const longest = (await page.locator('.s-metric', { hasText: 'Longest wait' }).textContent()) ?? '';
+ const stated = longest.match(/\d+\s*h\s*\d+\s*m|\d+\s*m/)?.[0];
+ expect(stated).toBeTruthy();
+ const rowText = (await rows.allTextContents()).join(' ').replace(/\s+/g, ' ');
+ expect(rowText).toContain(stated as string);
+});
+
+test("the nurse's strip counts the day it sits above", async ({ page }) => {
+ await openWorkspace(page, 'Nurse');
+ await goSection(page, 'Schedule');
+ /* The next visit on the strip is the first visit of the day, not a second opinion about it. */
+ const next = (await page.locator('.s-metric', { hasText: 'Next visit' }).textContent()) ?? '';
+ const time = next.match(/\d{2}:\d{2}/)?.[0];
+ expect(time).toBeTruthy();
+ await expect(page.locator('.shift-head').first()).toContainText(time as string);
+ /* Today's visits counts the day: the one being worked, plus the ones still to come. */
+ const later = await page.locator('.day-list > *').count();
+ const visits = (await page.locator('.s-metric', { hasText: 'visits' }).textContent()) ?? '';
+ expect(Number(visits.match(/\b(\d+)\b/)?.[1])).toBe(later + 1);
 });

@@ -3,10 +3,12 @@ import { consultations } from './consultations.ts';
 import { diagnosis } from './diagnosis.ts';
 import { dispensary } from './dispensary.ts';
 import { wearables } from './wearables.ts';
-import { patientIn, requireThat } from './guards.ts';
-import { EngineError, type Actor, type Command, type State, type ThusoIQPort } from './types.ts';
+import { patientIn, refuse, requireThat } from './guards.ts';
+import { bounds } from './contract.ts';
+import type { Actor, Command, State, ThusoIQPort } from './types.ts';
 export * from './types.ts';
 export { latestSample, sampleFreshness } from './wearables.ts';
+export { refusal, label, soapKeys, thusoiq, bounds } from './contract.ts';
 
 /** One in-memory kernel per host session; all five engines commit atomically through this seam.
  * The actor resolver belongs to the host. A real adapter must authenticate and authorise before
@@ -21,16 +23,20 @@ export function createThusoIQ(initial: State, actor: () => Actor, clock: () => s
   subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
   execute(command: Command, options) {
    const who = actor();
-   if (!who.verified) throw new EngineError('forbidden', 'Professional verification is required.');
-   requireThat(!!options.idempotencyKey && options.idempotencyKey.length <= 200, 'An idempotency key is required.');
+   /* Above the role check on purpose: a lapsed doctor is stopped before the kernel has to reason
+      about what doctors may do. */
+   if (!who.verified) refuse('forbidden', 'verification-required');
+   requireThat(!!options.idempotencyKey && options.idempotencyKey.length <= bounds.idempotencyKeyCharacters.max, 'idempotency-key-required');
    const fingerprint = JSON.stringify({ actor: who.id, role: who.role, command });
    const key = `${who.id}:${options.idempotencyKey}`;
    const prior = receipts.get(key);
    if (prior) {
-    if (prior !== fingerprint) throw new EngineError('conflict', 'This idempotency key was used for a different command.');
+    /* A replay returns what the first attempt returned. A key reused for a different command is a
+       collision, and answering it with the earlier result would report something that never ran. */
+    if (prior !== fingerprint) refuse('conflict', 'idempotency-key-reused');
     return { state: structuredClone(state), replayed: true };
    }
-   if (state.revision !== options.expectedRevision) throw new EngineError('conflict', 'The workspace changed. Refresh before trying again.');
+   if (state.revision !== options.expectedRevision) refuse('conflict', 'stale-revision');
    const next = structuredClone(state), now = clock();
    patientIn(next, command.patientId);
    if (command.type.startsWith('appointment.')) appointments(next, command, who, now);
@@ -38,10 +44,10 @@ export function createThusoIQ(initial: State, actor: () => Actor, clock: () => s
    else if (command.type.startsWith('diagnosis.')) diagnosis(next, command, who);
    else if (command.type.startsWith('dispensary.')) dispensary(next, command, who, now);
    else if (command.type.startsWith('wearable.')) wearables(next, command, who, now);
-   else throw new EngineError('invalid', 'Unknown engine command.');
+   else refuse('invalid', 'unknown-command');
    next.revision += 1;
    next.events.push({ sequence: next.revision, revision: next.revision, at: now, actorId: who.id, action: command.type, patientId: command.patientId });
-   next.events = next.events.slice(-1000);
+   next.events = next.events.slice(-bounds.auditBuffer.max);
    state = next;
    const receipt = { state: structuredClone(state), replayed: false };
    receipts.set(key, fingerprint);

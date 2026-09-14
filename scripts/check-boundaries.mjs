@@ -21,6 +21,7 @@ import { emitFraming } from './emit-framing.mjs';
 import { emitWellbeing } from './emit-wellbeing.mjs';
 import { emitShop } from './emit-shop.mjs';
 import { emitRewards } from './emit-rewards.mjs';
+import { emitThusoIQ } from './emit-thusoiq.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -852,7 +853,8 @@ const generated = [
  { source: 'packages/catalog/framing.json', command: 'npm run framing', files: emitFraming() },
  { source: 'packages/catalog/wellbeing.json', command: 'npm run wellbeing', files: emitWellbeing() },
  { source: 'packages/catalog/shop.json', command: 'npm run shop', files: emitShop() },
- { source: 'packages/catalog/rewards.json', command: 'npm run rewards', files: emitRewards() }
+ { source: 'packages/catalog/rewards.json', command: 'npm run rewards', files: emitRewards() },
+ { source: 'packages/catalog/thusoiq.json', command: 'npm run thusoiq-contract', files: emitThusoIQ() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -3233,9 +3235,13 @@ const METRIC_STRIPS = [
 /* Per file rather than per string, because "18" is a doctor's finished reviews on one strip and was
    "Available nurses 18" over a board of seven on another. A blessing granted to a number rather than
    to a number in a place would have hidden one of the four lies this check was written for. */
+/* The web's two came off this list the way the honest alternative always said they could: with no
+   figure. "18 reviewed today" and its "Median 4 m 10 s" were a productivity report on the doctor
+   reading them, drawn over a queue that cannot count either, and the strip they sat in is gone —
+   the doctor's section is the clinical workbench now and the queue heads itself with what is
+   actually in front of him. The iOS two are the same two sentences on a screen that still has the
+   strip, and they stay until that screen is rebuilt the same way. */
 const TYPED_FIGURES = [
- ['apps/web/src/shells/StaffShell.tsx', '18', "How many reviews this doctor finished today. The queue lists what is waiting, not what is done, so there is no row on the screen to count — the honest alternatives are this or no figure."],
- ['apps/web/src/shells/StaffShell.tsx', 'Median 4 m 10 s', 'Its chip, and the same fact: a median over reviews that are no longer on the screen.'],
  ['apps/ios/MyThuso/Features/WorkspaceView.swift', '18', 'The same finished-review count, on the same reasoning.'],
  ['apps/ios/MyThuso/Features/WorkspaceView.swift', 'Median 4 m 10 s', 'The same chip.'],
  ['apps/ios/MyThuso/Features/WorkspaceView.swift', '598', "The same week's earnings, and the comment above it in that file says so."]
@@ -3244,9 +3250,10 @@ const TYPED_FIGURES = [
    purpose: a new one fails the build, and so does fixing one without bringing the number down, which
    is the only arrangement in which a list like this ever reaches nought. */
 const FIGURE_QUARANTINE = [
- /* The web shell's three came off this list: features/Workspaces.tsx exports reviewQueueCounts()
-    now and the doctor's strip counts its own queue, the way the Control Tower's and the partner's
-    already did. What is left is the one figure on a platform whose day has no list to count from. */
+ /* The web shell's three came off this list, and then the doctor's strip came off the screen: the
+    three sections a clinician opens the app at are the workbench now, and the two boards that still
+    carry a strip — the Control Tower's and the partner's collections and results — count it. What is
+    left here is the one figure on a platform whose day has no list to count from. */
  ['apps/ios/MyThuso/Features/WorkspaceView.swift', 1,
   'the partner\'s "Next collection 11:15", which the web counts out of partnerCounts(). WorkspaceDay has no collections list for it to be counted from yet'],
 ];

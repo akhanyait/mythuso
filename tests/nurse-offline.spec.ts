@@ -144,13 +144,40 @@ test('a shift is shown as a difference and a range, never as one confident numbe
   expect(errors).toEqual([]);
 });
 
+/* Which of the offered days falls after this week ends depends on what day it is today. The five
+   chips are offsets from now, so on a Saturday the window crosses Sunday and on a Monday it does
+   not — this test used to click the fifth chip and assert "Next week", which was true the day it
+   was written and false every Monday to Wednesday after it. Both sides of the boundary are worth
+   holding, so the test now finds the boundary rather than assuming where it is: if a day in next
+   week is on offer it is asserted on, and if none is, the complementary claim is asserted instead —
+   that every day offered is correctly counted into this week. Either way it asserts something true
+   about the week a visit lands in, which is the property that matters for a figure about money. */
 test('a day after this week ends changes this week by nothing at all', async ({ page }) => {
   const d = await openEarnings(page);
   const shift = d.locator('.fc');
-  // the fifth day the app offers is four days after tomorrow, which is past this week's end
-  await shift.locator('.date-chip').nth(4).click();
-  await shift.getByRole('button', { name: '08:00', exact: true }).click();
-  await expect(shift.getByText('Next week', { exact: true })).toBeVisible();
-  await expect(shift.getByText(/changes this week’s figure by nothing at all/)).toBeVisible();
-  await expect(shift.getByText(/Added to next week/)).toBeVisible();
+  const chips = shift.locator('.date-chip');
+  const offered = await chips.count();
+  let foundNextWeek = false;
+  for (let day = 0; day < offered; day += 1) {
+    await chips.nth(day).click();
+    const slot = shift.getByRole('button', { name: '08:00', exact: true });
+    if (!(await slot.count())) continue;
+    await slot.click();
+    if (await shift.getByText('Next week', { exact: true }).isVisible().catch(() => false)) {
+      await expect(shift.getByText(/changes this week’s figure by nothing at all/)).toBeVisible();
+      await expect(shift.getByText(/Added to next week/)).toBeVisible();
+      foundNextWeek = true;
+      break;
+    }
+  }
+  if (!foundNextWeek) {
+    /* Every offered day is inside this week. Opened again from scratch, because the sweep above
+       left the last hour it tried switched on and clicking it a second time would switch it off —
+       an empty forecast would then pass an assertion about what the forecast does not say. */
+    const again = (await openEarnings(page)).locator('.fc');
+    await again.locator('.date-chip').nth(offered - 1).click();
+    await again.getByRole('button', { name: '08:00', exact: true }).click();
+    await expect(again.getByText('Next week', { exact: true })).toHaveCount(0);
+    await expect(again.getByText(/Added to this week/i)).toBeVisible();
+  }
 });

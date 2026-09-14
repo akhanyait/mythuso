@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Activity, ArrowUpRight, CalendarDays, Check, ClipboardList, Cpu, HeartPulse, PackageCheck, Radio, ShieldCheck, Stethoscope } from 'lucide-react';
 import { useThusoIQ } from '../lib/thusoiq';
 import { latestSample, sampleFreshness, type Command, type Notes } from '../../../../packages/thusoiq/index.ts';
@@ -10,7 +10,12 @@ const dateTime = (value: string) => new Date(value).toLocaleString('en-ZA', { mo
 const field = (event: FormEvent<HTMLFormElement>, name: string) => String(new FormData(event.currentTarget).get(name) ?? '').trim();
 const sampleValues = [72,74,73,76,75,72,71,73];
 
-export function ClinicalWorkbench({ role }: { role: 'Nurse' | 'Doctor' | 'Partner' }) {
+/* `worklist` is the role's own board — a nurse's day, a doctor's queue, a partner's orders — folded
+   into the top of this card rather than stacked above or below it. The three clinical roles used to
+   land on the workbench *and* a second screen underneath it: the same person's work, drawn twice,
+   with a strip of summary figures between them. A clinician opens this to work a queue, so the queue
+   is the first thing in the card and the per-patient workspace is what opens beneath it. */
+export function ClinicalWorkbench({ role, worklist }: { role: 'Nurse' | 'Doctor' | 'Partner'; worklist?: ReactNode }) {
  const { state, execute } = useThusoIQ();
  const [patientId, setPatient] = useState(state.patients[0].id);
  const [tool, setTool] = useState<Tool>(role === 'Partner' ? 'Dispensary' : 'Appointments');
@@ -49,6 +54,10 @@ export function ClinicalWorkbench({ role }: { role: 'Nurse' | 'Doctor' | 'Partne
  };
  const samplePath = samples.slice(-20).map((s,i,arr) => `${arr.length===1?50:i*100/(arr.length-1)},${85-(s.value-60)*2}`).join(' ');
  return <section className="iq-workbench" aria-label="ThusoIQ clinical workspace">
+  {/* The board keeps its own <h1>: it is what the section is, and the dark band below it introduces
+      the workspace rather than the page. Two h1 elements on one screen is a reader guessing which
+      one they are on, and the heading order this way round is h1 then h2. */}
+  {worklist && <div className="iq-worklist">{worklist}</div>}
   <header className="iq-heading"><div><span className="iq-eyebrow"><Cpu size={16}/> THUSOIQ · CLINICAL WORKSPACE</span><h2>{role==='Doctor'?'From evidence to a care decision.':role==='Nurse'?'Your next visit, fully connected.':'From prescription to handover.'}</h2><p>One patient. Their appointments, clinical record and next action.</p></div><span className="iq-status"><span/>Fictional sandbox</span></header>
   <div className="iq-layout">
    <aside className="iq-patients" aria-label="Clinical patients"><p className="iq-eyebrow">CARE QUEUE</p>{state.patients.map(p=><button key={p.id} className={patientId===p.id?'selected':''} aria-pressed={patientId===p.id} onClick={()=>choosePatient(p.id)}><span className="avatar small">{p.name.split(' ').map(n=>n[0]).join('')}</span><span><strong>{p.name}</strong><small>{p.reason}</small><em>{p.consent?'Ready for review':'Consent outstanding'}</em></span><ArrowUpRight size={15}/></button>)}<p className="helper">These patients belong to a separate, in-memory workflow sandbox. No clinical service is delivered here.</p></aside>

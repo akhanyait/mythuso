@@ -73,26 +73,21 @@ const reviewQueue: Review[] = [
  { ref: 'TH-2041', what: 'Prescription request · Thabo Molefe', from: 'Sister Palesa Khumalo · repeat, last issued 28 August', waited: '1 h 05 m', minutes: 65, flag: 'Out of range' },
  { ref: 'TH-2045', what: 'Wound follow-up · Nomsa Molefe', from: 'Sister Naledi Mokoena · day 6, photograph attached', waited: '22 m', minutes: 22, flag: '' }
 ];
-/* The counts the shell's strip shows above the doctor's queue. They were typed, and the quarantine
-   in scripts/check-boundaries.mjs said why: this file did not export its rows, so a strip above the
-   queue had nothing to count. It does now. The longest wait is taken by comparing minutes rather
-   than by trusting the order the list happens to be written in — a queue that is re-sorted one day
-   should not quietly start reporting the wrong wait. */
+/* The reference each row on the day opens its assessment under. The first is the workspace's own
+   worked example; the rest carry their time, because StaffShell reads the time back out of the
+   modal name to decide whose visit it is. One rule, in one place, so the schedule and the queue
+   agree about which visit was signed. */
+/* The two figures a clinician's dashboard leads with, each counted off the list beneath it. The
+   founder asked for the dashboards back after they were taken out; what does not come back is the
+   pair that was invented — "18 reviewed today" and its "Median 4 m 10 s" had no list to be counted
+   from at all, and an invented productivity figure on a clinical screen is the one kind of number
+   this product must never carry. Everything below can be disproved by looking at the rows. */
 export const reviewQueueCounts = () => ({
  waiting: reviewQueue.length,
  flagged: reviewQueue.filter(review => review.flag).length,
  longest: [...reviewQueue].sort((a, b) => b.minutes - a.minutes)[0].waited
 });
 
-/* The reference each row on the day opens its assessment under. The first is the workspace's own
-   worked example; the rest carry their time, because StaffShell reads the time back out of the
-   modal name to decide whose visit it is. One rule, in one place, so the schedule and the queue
-   agree about which visit was signed. */
-export const referenceFor = (shift: Shift) => shift === nurseDay[0] ? 'TH-2048' : `TH-2048 · ${shift.start}`;
-
-/* The numbers the shell's strip shows above this screen. "One to sign off" was typed there and was
-   still saying it after she had signed all three — the strip and the list are one claim about one
-   day, so they read one source. */
 export const nurseDayCounts = (queue: Part[]) => {
  const signed = nurseDay.filter(shift => signOffFor(queue, referenceFor(shift))).length;
  const [first] = nurseDay;
@@ -102,6 +97,8 @@ export const nurseDayCounts = (queue: Part[]) => {
   earned: nurseDay.reduce((total, shift) => total + shift.service.nurseShare, 0)
  };
 };
+
+export const referenceFor = (shift: Shift) => shift === nurseDay[0] ? 'TH-2048' : `TH-2048 · ${shift.start}`;
 
 export function NurseSchedule({ open }: { open: (s: string) => void }) {
  const [available, setAvailable] = useState(true);
@@ -162,13 +159,19 @@ export function NurseSchedule({ open }: { open: (s: string) => void }) {
 export function ReviewQueue({ open }: { open: (s: string) => void }) {
  const [flaggedOnly, setFlaggedOnly] = useState(false);
  const rows = flaggedOnly ? reviewQueue.filter(r => r.flag) : reviewQueue;
+ /* Longest first is what the doctor is told, so the longest is taken by comparing minutes rather
+    than by trusting the order the list happens to be written in — and it is taken from the rows
+    actually on the screen, so switching to Flagged cannot leave the sentence describing a case the
+    filter has hidden. */
+ const longest = [...rows].sort((a, b) => b.minutes - a.minutes)[0];
  return <>
   <div className="shift-head">
-   {/* Not the three figures again. The strip above this says how many are waiting, how many are
-       outside a range and how long the longest has waited — all three counted from these rows — so a
-       subtitle repeating them is a line of screen spent saying nothing twice. What it says instead
-       is the two things the figures cannot: which order the list is in, and who may sign. */}
-   <div><h1>Review queue</h1><p>Longest first. Decision support may draft; only a registered doctor signs.</p></div>
+   {/* The one line, and it carries the figures now. There used to be a strip of three summary tiles
+       above this screen saying how many were waiting, how many were out of range and — invented,
+       with nothing on the queue to count it from — how many had been reviewed today at what median.
+       A clinician opens this to work a queue rather than to read a report on herself. What is worth
+       saying is what is in front of her, counted off the rows underneath, and then who may sign. */}
+   <div><h1>Review queue</h1><p>{longest ? `${rows.length} waiting, longest first — the oldest for ${longest.waited}. ` : ''}Decision support may draft; only a registered doctor signs.</p></div>
    <div className="tabs queue-filter" role="group" aria-label="Filter the queue">
     <button className={flaggedOnly ? '' : 'selected'} aria-pressed={!flaggedOnly} onClick={() => setFlaggedOnly(false)}>Everything</button>
     <button className={flaggedOnly ? 'selected' : ''} aria-pressed={flaggedOnly} onClick={() => setFlaggedOnly(true)}>Flagged</button>
