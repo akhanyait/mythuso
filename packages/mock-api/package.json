@@ -1,0 +1,11 @@
+{
+  "name": "@mythuso/mock-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Development mock for every route in packages/catalog/apis. Loopback only, synthetic data only, refuses to start without MYTHUSO_MOCK=synthetic-data-only. Never deployed.",
+  "scripts": {
+    "check": "tsc -b",
+    "test": "node --test \"test/**/*.test.ts\""
+  }
+}
