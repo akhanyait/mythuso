@@ -57,6 +57,65 @@ object EventsData {
             val MARKET_ORDER_SHIPPED_V1 = EventKey("market.order.shipped", 1, "money")
             val MARKET_ORDER_DELIVERED_V1 = EventKey("market.order.delivered", 1, "money")
             val MARKET_ORDER_RETURNED_V1 = EventKey("market.order.returned", 1, "money")
+            val LOOP_OPENED_V1 = EventKey("loop.opened", 1, "core")
+            val LOOP_ACKNOWLEDGED_V1 = EventKey("loop.acknowledged", 1, "core")
+            val LOOP_ESCALATED_V1 = EventKey("loop.escalated", 1, "core")
+            val LOOP_CLOSED_V1 = EventKey("loop.closed", 1, "core")
+            val PROTOCOL_RATIFIED_V1 = EventKey("protocol.ratified", 1, "core")
+            val BOOKING_REQUESTED_V1 = EventKey("booking.requested", 1, "access")
+            val BOOKING_CONFIRMED_V1 = EventKey("booking.confirmed", 1, "access")
+            val BOOKING_CANCELLED_V1 = EventKey("booking.cancelled", 1, "access")
+            val CONVERSATION_HANDOVER_V1 = EventKey("conversation.handover", 1, "access")
+            val VISIT_HANDOVER_SUBMITTED_V1 = EventKey("visit.handover.submitted", 1, "care")
+            val TRIAGE_COMPLETED_V1 = EventKey("triage.completed", 1, "clinical")
+            val REVIEW_SIGNED_V1 = EventKey("review.signed", 1, "clinical")
+            val RESULT_ACKNOWLEDGED_V1 = EventKey("result.acknowledged", 1, "clinical")
+            val GUIDANCE_DELIVERED_V1 = EventKey("guidance.delivered", 1, "clinical")
+            val CHECKIN_OVERDUE_V1 = EventKey("checkin.overdue", 1, "safety")
+            val PANIC_RAISED_V1 = EventKey("panic.raised", 1, "safety")
+            val SOS_RAISED_V1 = EventKey("sos.raised", 1, "safety")
+            val NOK_NOTIFIED_V1 = EventKey("nok.notified", 1, "safety")
+            val SENTINEL_TIER_RAISED_V1 = EventKey("sentinel.tier_raised", 1, "safety")
+            val SAFEGUARDING_REPORTED_V1 = EventKey("safeguarding.reported", 1, "safety")
+            val ADMISSION_NEED_IDENTIFIED_V1 = EventKey("admission.need_identified", 1, "movement")
+            val FACILITY_CANDIDATE_SELECTED_V1 = EventKey("facility.candidate_selected", 1, "movement")
+            val ADMISSION_PREAUTH_SUBMITTED_V1 = EventKey("admission.preauth.submitted", 1, "movement")
+            val ADMISSION_PREAUTH_DECIDED_V1 = EventKey("admission.preauth.decided", 1, "movement")
+            val ADMISSION_REQUESTED_V1 = EventKey("admission.requested", 1, "movement")
+            val ADMISSION_ACCEPTED_V1 = EventKey("admission.accepted", 1, "movement")
+            val ADMISSION_WAITLISTED_V1 = EventKey("admission.waitlisted", 1, "movement")
+            val ADMISSION_DECLINED_V1 = EventKey("admission.declined", 1, "movement")
+            val TRANSPORT_ENROUTE_V1 = EventKey("transport.enroute", 1, "movement")
+            val ADMISSION_ARRIVED_V1 = EventKey("admission.arrived", 1, "movement")
+            val TRIAGE_VERIFIED_V1 = EventKey("triage.verified", 1, "movement")
+            val ADMISSION_HANDOVER_COMPLETE_V1 = EventKey("admission.handover_complete", 1, "movement")
+            val TRIP_REQUESTED_V1 = EventKey("trip.requested", 1, "movement")
+            val TRIP_ACCEPTED_V1 = EventKey("trip.accepted", 1, "movement")
+            val TRUST_SHIFT_START_MATCHED_V1 = EventKey("trust.shift_start.matched", 1, "trust")
+            val TRUST_SHIFT_START_REFUSED_V1 = EventKey("trust.shift_start.refused", 1, "trust")
+            val TRUST_DOOR_VERIFIED_V1 = EventKey("trust.door.verified", 1, "trust")
+            val TRUST_DOOR_MISMATCHED_V1 = EventKey("trust.door.mismatched", 1, "trust")
+            val PASSPORT_SHARE_LINK_CREATED_V1 = EventKey("passport.share.link_created", 1, "record")
+            val PASSPORT_SHARE_LINK_USED_V1 = EventKey("passport.share.link_used", 1, "record")
+            val PASSPORT_ANOMALY_DETECTED_V1 = EventKey("passport.anomaly.detected", 1, "record")
+            val PASSPORT_ADMISSION_DETECTED_V1 = EventKey("passport.admission.detected", 1, "record")
+            val PASSPORT_DISCHARGE_RECEIVED_V1 = EventKey("passport.discharge.received", 1, "record")
+            val PRESCRIPTION_PRESCRIBED_V1 = EventKey("prescription.prescribed", 1, "medicines")
+            val PRESCRIPTION_VERIFIED_V1 = EventKey("prescription.verified", 1, "medicines")
+            val DISPENSE_COMPLETED_V1 = EventKey("dispense.completed", 1, "medicines")
+            val DELIVERY_COLLECTED_V1 = EventKey("delivery.collected", 1, "medicines")
+            val DELIVERY_HANDED_OVER_V1 = EventKey("delivery.handed_over", 1, "medicines")
+            val LAB_ORDER_PLACED_V1 = EventKey("lab.order.placed", 1, "medicines")
+            val LAB_RESULT_RECEIVED_V1 = EventKey("lab.result.received", 1, "medicines")
+            val READING_INGESTED_V1 = EventKey("reading.ingested", 1, "devices")
+            val DEVICE_STALE_V1 = EventKey("device.stale", 1, "devices")
+            val DEVICE_RECALLED_V1 = EventKey("device.recalled", 1, "devices")
+            val PAYMENT_SUCCEEDED_V1 = EventKey("payment.succeeded", 1, "money")
+            val PAYMENT_FAILED_V1 = EventKey("payment.failed", 1, "money")
+            val PAYOUT_SCHEDULED_V1 = EventKey("payout.scheduled", 1, "money")
+            val PAYOUT_PAID_V1 = EventKey("payout.paid", 1, "money")
+            val CLAIM_SUBMITTED_V1 = EventKey("claim.submitted", 1, "money")
+            val CLAIM_DECIDED_V1 = EventKey("claim.decided", 1, "money")
             val PULSE_SESSION_STARTED_V1 = EventKey("pulse.session.started", 1, "pulse")
             val PULSE_LISTENING_STARTED_V1 = EventKey("pulse.listening.started", 1, "pulse")
             val PULSE_UTTERANCE_FINALISED_V2 = EventKey("pulse.utterance.finalised", 2, "pulse")
@@ -109,6 +168,65 @@ object EventsData {
                 MARKET_ORDER_SHIPPED_V1,
                 MARKET_ORDER_DELIVERED_V1,
                 MARKET_ORDER_RETURNED_V1,
+                LOOP_OPENED_V1,
+                LOOP_ACKNOWLEDGED_V1,
+                LOOP_ESCALATED_V1,
+                LOOP_CLOSED_V1,
+                PROTOCOL_RATIFIED_V1,
+                BOOKING_REQUESTED_V1,
+                BOOKING_CONFIRMED_V1,
+                BOOKING_CANCELLED_V1,
+                CONVERSATION_HANDOVER_V1,
+                VISIT_HANDOVER_SUBMITTED_V1,
+                TRIAGE_COMPLETED_V1,
+                REVIEW_SIGNED_V1,
+                RESULT_ACKNOWLEDGED_V1,
+                GUIDANCE_DELIVERED_V1,
+                CHECKIN_OVERDUE_V1,
+                PANIC_RAISED_V1,
+                SOS_RAISED_V1,
+                NOK_NOTIFIED_V1,
+                SENTINEL_TIER_RAISED_V1,
+                SAFEGUARDING_REPORTED_V1,
+                ADMISSION_NEED_IDENTIFIED_V1,
+                FACILITY_CANDIDATE_SELECTED_V1,
+                ADMISSION_PREAUTH_SUBMITTED_V1,
+                ADMISSION_PREAUTH_DECIDED_V1,
+                ADMISSION_REQUESTED_V1,
+                ADMISSION_ACCEPTED_V1,
+                ADMISSION_WAITLISTED_V1,
+                ADMISSION_DECLINED_V1,
+                TRANSPORT_ENROUTE_V1,
+                ADMISSION_ARRIVED_V1,
+                TRIAGE_VERIFIED_V1,
+                ADMISSION_HANDOVER_COMPLETE_V1,
+                TRIP_REQUESTED_V1,
+                TRIP_ACCEPTED_V1,
+                TRUST_SHIFT_START_MATCHED_V1,
+                TRUST_SHIFT_START_REFUSED_V1,
+                TRUST_DOOR_VERIFIED_V1,
+                TRUST_DOOR_MISMATCHED_V1,
+                PASSPORT_SHARE_LINK_CREATED_V1,
+                PASSPORT_SHARE_LINK_USED_V1,
+                PASSPORT_ANOMALY_DETECTED_V1,
+                PASSPORT_ADMISSION_DETECTED_V1,
+                PASSPORT_DISCHARGE_RECEIVED_V1,
+                PRESCRIPTION_PRESCRIBED_V1,
+                PRESCRIPTION_VERIFIED_V1,
+                DISPENSE_COMPLETED_V1,
+                DELIVERY_COLLECTED_V1,
+                DELIVERY_HANDED_OVER_V1,
+                LAB_ORDER_PLACED_V1,
+                LAB_RESULT_RECEIVED_V1,
+                READING_INGESTED_V1,
+                DEVICE_STALE_V1,
+                DEVICE_RECALLED_V1,
+                PAYMENT_SUCCEEDED_V1,
+                PAYMENT_FAILED_V1,
+                PAYOUT_SCHEDULED_V1,
+                PAYOUT_PAID_V1,
+                CLAIM_SUBMITTED_V1,
+                CLAIM_DECIDED_V1,
                 PULSE_SESSION_STARTED_V1,
                 PULSE_LISTENING_STARTED_V1,
                 PULSE_UTTERANCE_FINALISED_V2,

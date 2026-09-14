@@ -80,6 +80,65 @@ enum EventsData {
     static let marketOrderShippedV1 = EventKey("market.order.shipped", 1, "money")
     static let marketOrderDeliveredV1 = EventKey("market.order.delivered", 1, "money")
     static let marketOrderReturnedV1 = EventKey("market.order.returned", 1, "money")
+    static let loopOpenedV1 = EventKey("loop.opened", 1, "core")
+    static let loopAcknowledgedV1 = EventKey("loop.acknowledged", 1, "core")
+    static let loopEscalatedV1 = EventKey("loop.escalated", 1, "core")
+    static let loopClosedV1 = EventKey("loop.closed", 1, "core")
+    static let protocolRatifiedV1 = EventKey("protocol.ratified", 1, "core")
+    static let bookingRequestedV1 = EventKey("booking.requested", 1, "access")
+    static let bookingConfirmedV1 = EventKey("booking.confirmed", 1, "access")
+    static let bookingCancelledV1 = EventKey("booking.cancelled", 1, "access")
+    static let conversationHandoverV1 = EventKey("conversation.handover", 1, "access")
+    static let visitHandoverSubmittedV1 = EventKey("visit.handover.submitted", 1, "care")
+    static let triageCompletedV1 = EventKey("triage.completed", 1, "clinical")
+    static let reviewSignedV1 = EventKey("review.signed", 1, "clinical")
+    static let resultAcknowledgedV1 = EventKey("result.acknowledged", 1, "clinical")
+    static let guidanceDeliveredV1 = EventKey("guidance.delivered", 1, "clinical")
+    static let checkinOverdueV1 = EventKey("checkin.overdue", 1, "safety")
+    static let panicRaisedV1 = EventKey("panic.raised", 1, "safety")
+    static let sosRaisedV1 = EventKey("sos.raised", 1, "safety")
+    static let nokNotifiedV1 = EventKey("nok.notified", 1, "safety")
+    static let sentinelTierRaisedV1 = EventKey("sentinel.tier_raised", 1, "safety")
+    static let safeguardingReportedV1 = EventKey("safeguarding.reported", 1, "safety")
+    static let admissionNeedIdentifiedV1 = EventKey("admission.need_identified", 1, "movement")
+    static let facilityCandidateSelectedV1 = EventKey("facility.candidate_selected", 1, "movement")
+    static let admissionPreauthSubmittedV1 = EventKey("admission.preauth.submitted", 1, "movement")
+    static let admissionPreauthDecidedV1 = EventKey("admission.preauth.decided", 1, "movement")
+    static let admissionRequestedV1 = EventKey("admission.requested", 1, "movement")
+    static let admissionAcceptedV1 = EventKey("admission.accepted", 1, "movement")
+    static let admissionWaitlistedV1 = EventKey("admission.waitlisted", 1, "movement")
+    static let admissionDeclinedV1 = EventKey("admission.declined", 1, "movement")
+    static let transportEnrouteV1 = EventKey("transport.enroute", 1, "movement")
+    static let admissionArrivedV1 = EventKey("admission.arrived", 1, "movement")
+    static let triageVerifiedV1 = EventKey("triage.verified", 1, "movement")
+    static let admissionHandoverCompleteV1 = EventKey("admission.handover_complete", 1, "movement")
+    static let tripRequestedV1 = EventKey("trip.requested", 1, "movement")
+    static let tripAcceptedV1 = EventKey("trip.accepted", 1, "movement")
+    static let trustShiftStartMatchedV1 = EventKey("trust.shift_start.matched", 1, "trust")
+    static let trustShiftStartRefusedV1 = EventKey("trust.shift_start.refused", 1, "trust")
+    static let trustDoorVerifiedV1 = EventKey("trust.door.verified", 1, "trust")
+    static let trustDoorMismatchedV1 = EventKey("trust.door.mismatched", 1, "trust")
+    static let passportShareLinkCreatedV1 = EventKey("passport.share.link_created", 1, "record")
+    static let passportShareLinkUsedV1 = EventKey("passport.share.link_used", 1, "record")
+    static let passportAnomalyDetectedV1 = EventKey("passport.anomaly.detected", 1, "record")
+    static let passportAdmissionDetectedV1 = EventKey("passport.admission.detected", 1, "record")
+    static let passportDischargeReceivedV1 = EventKey("passport.discharge.received", 1, "record")
+    static let prescriptionPrescribedV1 = EventKey("prescription.prescribed", 1, "medicines")
+    static let prescriptionVerifiedV1 = EventKey("prescription.verified", 1, "medicines")
+    static let dispenseCompletedV1 = EventKey("dispense.completed", 1, "medicines")
+    static let deliveryCollectedV1 = EventKey("delivery.collected", 1, "medicines")
+    static let deliveryHandedOverV1 = EventKey("delivery.handed_over", 1, "medicines")
+    static let labOrderPlacedV1 = EventKey("lab.order.placed", 1, "medicines")
+    static let labResultReceivedV1 = EventKey("lab.result.received", 1, "medicines")
+    static let readingIngestedV1 = EventKey("reading.ingested", 1, "devices")
+    static let deviceStaleV1 = EventKey("device.stale", 1, "devices")
+    static let deviceRecalledV1 = EventKey("device.recalled", 1, "devices")
+    static let paymentSucceededV1 = EventKey("payment.succeeded", 1, "money")
+    static let paymentFailedV1 = EventKey("payment.failed", 1, "money")
+    static let payoutScheduledV1 = EventKey("payout.scheduled", 1, "money")
+    static let payoutPaidV1 = EventKey("payout.paid", 1, "money")
+    static let claimSubmittedV1 = EventKey("claim.submitted", 1, "money")
+    static let claimDecidedV1 = EventKey("claim.decided", 1, "money")
     static let pulseSessionStartedV1 = EventKey("pulse.session.started", 1, "pulse")
     static let pulseListeningStartedV1 = EventKey("pulse.listening.started", 1, "pulse")
     static let pulseUtteranceFinalisedV2 = EventKey("pulse.utterance.finalised", 2, "pulse")
@@ -132,6 +191,65 @@ enum EventsData {
         marketOrderShippedV1,
         marketOrderDeliveredV1,
         marketOrderReturnedV1,
+        loopOpenedV1,
+        loopAcknowledgedV1,
+        loopEscalatedV1,
+        loopClosedV1,
+        protocolRatifiedV1,
+        bookingRequestedV1,
+        bookingConfirmedV1,
+        bookingCancelledV1,
+        conversationHandoverV1,
+        visitHandoverSubmittedV1,
+        triageCompletedV1,
+        reviewSignedV1,
+        resultAcknowledgedV1,
+        guidanceDeliveredV1,
+        checkinOverdueV1,
+        panicRaisedV1,
+        sosRaisedV1,
+        nokNotifiedV1,
+        sentinelTierRaisedV1,
+        safeguardingReportedV1,
+        admissionNeedIdentifiedV1,
+        facilityCandidateSelectedV1,
+        admissionPreauthSubmittedV1,
+        admissionPreauthDecidedV1,
+        admissionRequestedV1,
+        admissionAcceptedV1,
+        admissionWaitlistedV1,
+        admissionDeclinedV1,
+        transportEnrouteV1,
+        admissionArrivedV1,
+        triageVerifiedV1,
+        admissionHandoverCompleteV1,
+        tripRequestedV1,
+        tripAcceptedV1,
+        trustShiftStartMatchedV1,
+        trustShiftStartRefusedV1,
+        trustDoorVerifiedV1,
+        trustDoorMismatchedV1,
+        passportShareLinkCreatedV1,
+        passportShareLinkUsedV1,
+        passportAnomalyDetectedV1,
+        passportAdmissionDetectedV1,
+        passportDischargeReceivedV1,
+        prescriptionPrescribedV1,
+        prescriptionVerifiedV1,
+        dispenseCompletedV1,
+        deliveryCollectedV1,
+        deliveryHandedOverV1,
+        labOrderPlacedV1,
+        labResultReceivedV1,
+        readingIngestedV1,
+        deviceStaleV1,
+        deviceRecalledV1,
+        paymentSucceededV1,
+        paymentFailedV1,
+        payoutScheduledV1,
+        payoutPaidV1,
+        claimSubmittedV1,
+        claimDecidedV1,
         pulseSessionStartedV1,
         pulseListeningStartedV1,
         pulseUtteranceFinalisedV2,

@@ -674,6 +674,753 @@
     { "field": "returnReasonText", "why": "A customer's own words about a return are free text, and free text does not travel on the bus." }
    ],
    "subscribers": ["core", "devices"]
+  },
+  {
+   "type": "loop.opened", "version": 1, "owner": "core",
+   "summary": "A concern has an owner, a deadline and a fallback, and the closed loop is now waiting for its outcome.",
+   "payload": [
+    { "field": "loopRef", "type": "string", "required": true, "why": "The loop every later event about this concern refers to." },
+    { "field": "sourceEngine", "type": "string", "required": true, "why": "The engine the concern came from." },
+    { "field": "ownerRole", "type": "string", "required": true, "why": "The role that owns it now. Every concern has an owner." },
+    { "field": "dueBy", "type": "instant", "required": true, "why": "The deadline after which it goes to the fallback." }
+   ],
+   "neverCarries": [
+    { "field": "concernDetail", "why": "What the concern is about is in the record or the source engine. The loop needs an owner and a clock." }
+   ],
+   "subscribers": ["care", "safety", "access"]
+  },
+  {
+   "type": "loop.acknowledged", "version": 1, "owner": "core",
+   "summary": "The owner has taken the concern on.",
+   "payload": [
+    { "field": "loopRef", "type": "string", "required": true, "why": "The loop acknowledged." },
+    { "field": "acknowledgedByRole", "type": "string", "required": true, "why": "The role that took it on." }
+   ],
+   "neverCarries": [
+    { "field": "snoozeReasonText", "why": "A snooze carries a reason code; the words stay with the owner." }
+   ],
+   "subscribers": ["care", "safety"]
+  },
+  {
+   "type": "loop.escalated", "version": 1, "owner": "core",
+   "summary": "The deadline passed, or somebody escalated, and the concern has a new owner.",
+   "payload": [
+    { "field": "loopRef", "type": "string", "required": true, "why": "The loop escalated." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "A code, never free text." },
+    { "field": "ownerRole", "type": "string", "required": true, "why": "The fallback that owns it now." },
+    { "field": "dueBy", "type": "instant", "required": true, "why": "The new deadline." }
+   ],
+   "neverCarries": [
+    { "field": "concernDetail", "why": "The new owner reads the concern where it lives." }
+   ],
+   "subscribers": ["care", "safety", "access"]
+  },
+  {
+   "type": "loop.closed", "version": 1, "owner": "core",
+   "summary": "The outcome was recorded and the loop is closed.",
+   "payload": [
+    { "field": "loopRef", "type": "string", "required": true, "why": "The loop closed." },
+    { "field": "outcomeRef", "type": "string", "required": true, "why": "Where the outcome is recorded. No loop closes without one." },
+    { "field": "closedByRole", "type": "string", "required": true, "why": "The role that closed it." }
+   ],
+   "neverCarries": [
+    { "field": "outcomeSummary", "why": "The outcome is in the record; a summary on the bus is the outcome without the record's protections." }
+   ],
+   "subscribers": ["care", "safety", "access"]
+  },
+  {
+   "type": "protocol.ratified", "version": 1, "owner": "core",
+   "summary": "The Medical Director ratified a protocol version in the registry.",
+   "payload": [
+    { "field": "registryRef", "type": "string", "required": true, "why": "The id@version ratified, from packages/catalog/protocols.json." },
+    { "field": "ratifiedByRole", "type": "string", "required": true, "why": "The role that signed. Only the Medical Director may." }
+   ],
+   "neverCarries": [
+    { "field": "protocolContent", "why": "Engines read a protocol from the registry at the version named, never from a copy on the bus." }
+   ],
+   "subscribers": ["care", "clinical", "safety", "medicines"]
+  },
+  {
+   "type": "booking.requested", "version": 1, "owner": "access",
+   "summary": "A patient, a family member or the Thuso Line asked for a visit through the booking flow.",
+   "payload": [
+    { "field": "bookingRef", "type": "string", "required": true, "why": "The booking every later event refers to." },
+    { "field": "serviceId", "type": "string", "required": true, "why": "An id from packages/catalog/services.json." },
+    { "field": "mode", "type": "string", "required": true, "why": "home or video." },
+    { "field": "requestedFor", "type": "instant", "required": true, "why": "The time chosen from the slots offered. A booking never invents a slot." }
+   ],
+   "neverCarries": [
+    { "field": "reasonForVisit", "why": "What is wrong is written into the record at intake, not broadcast with the booking." }
+   ],
+   "subscribers": ["care", "core"]
+  },
+  {
+   "type": "booking.confirmed", "version": 1, "owner": "access",
+   "summary": "Care accepted the booking and the patient has been told.",
+   "payload": [
+    { "field": "bookingRef", "type": "string", "required": true, "why": "The booking confirmed." },
+    { "field": "scheduledFor", "type": "instant", "required": true, "why": "The time held." }
+   ],
+   "neverCarries": [
+    { "field": "visitCode", "why": "The visit code is between the patient and the visit." }
+   ],
+   "subscribers": ["core", "money"]
+  },
+  {
+   "type": "booking.cancelled", "version": 1, "owner": "access",
+   "summary": "The booking was called off before a nurse was on the way.",
+   "payload": [
+    { "field": "bookingRef", "type": "string", "required": true, "why": "The booking cancelled." },
+    { "field": "cancelledByRole", "type": "string", "required": true, "why": "Who called it off, by role." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "A code, never free text." }
+   ],
+   "neverCarries": [
+    { "field": "cancellationReasonText", "why": "A patient's own words about why are free text, and free text does not travel." }
+   ],
+   "subscribers": ["care", "core", "money"]
+  },
+  {
+   "type": "conversation.handover", "version": 1, "owner": "access",
+   "summary": "Gilbert handed a conversation to a nurse, with a structured summary written to the record.",
+   "payload": [
+    { "field": "conversationRef", "type": "string", "required": true, "why": "The Gilbert episode handed over." },
+    { "field": "summaryEntryRef", "type": "string", "required": true, "why": "The record entry holding the structured summary, which the nurse opens through the gateway." },
+    { "field": "urgencyCode", "type": "string", "required": true, "why": "The urgency the rules set. Gilbert may explain it; it may not lower it." }
+   ],
+   "neverCarries": [
+    { "field": "transcript", "why": "What the patient said stays in the conversation, for the conversation. The nurse gets the summary." },
+    { "field": "symptoms", "why": "Symptoms are clinical and are in the summary entry." }
+   ],
+   "subscribers": ["care", "core"]
+  },
+  {
+   "type": "visit.handover.submitted", "version": 1, "owner": "care",
+   "summary": "A nurse submitted a visit for doctor review.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The visit handed over." },
+    { "field": "encounterRef", "type": "string", "required": true, "why": "The encounter in the record the doctor reviews." }
+   ],
+   "neverCarries": [
+    { "field": "findings", "why": "What the nurse found is the encounter." }
+   ],
+   "subscribers": ["clinical", "core"]
+  },
+  {
+   "type": "triage.completed", "version": 1, "owner": "clinical",
+   "summary": "The rule engine set a priority and a care setting under a ratified protocol.",
+   "payload": [
+    { "field": "triageRef", "type": "string", "required": true, "why": "The triage decision." },
+    { "field": "priorityCode", "type": "string", "required": true, "why": "The priority the rules set. Generative output never lowers it." },
+    { "field": "careSetting", "type": "string", "required": true, "why": "Home guidance, nurse visit, doctor review or emergency." },
+    { "field": "reasonCodes", "type": "list", "required": true, "why": "Why, as codes, so a clinician can check the rule that fired." }
+   ],
+   "neverCarries": [
+    { "field": "symptoms", "why": "The symptoms are in the intake entry." },
+    { "field": "diagnosis", "why": "Triage sets urgency. It does not diagnose, and it never says so." }
+   ],
+   "subscribers": ["access", "care", "safety", "core"]
+  },
+  {
+   "type": "review.signed", "version": 1, "owner": "clinical",
+   "summary": "A doctor signed the review of an encounter.",
+   "payload": [
+    { "field": "reviewRef", "type": "string", "required": true, "why": "The review signed." },
+    { "field": "encounterRef", "type": "string", "required": true, "why": "The encounter reviewed." },
+    { "field": "signedByRef", "type": "string", "required": true, "why": "The doctor who signed. Nothing auto-signs." }
+   ],
+   "neverCarries": [
+    { "field": "assessment", "why": "The doctor's assessment is in the record." }
+   ],
+   "subscribers": ["care", "record", "money", "core"]
+  },
+  {
+   "type": "result.acknowledged", "version": 1, "owner": "clinical",
+   "summary": "A named clinician acknowledged a result. Until this, the result is not complete.",
+   "payload": [
+    { "field": "resultRef", "type": "string", "required": true, "why": "The result entry acknowledged." },
+    { "field": "acknowledgedByRef", "type": "string", "required": true, "why": "The clinician who acknowledged it." }
+   ],
+   "neverCarries": [
+    { "field": "resultValues", "why": "The result stays in the record." }
+   ],
+   "subscribers": ["medicines", "record", "core"]
+  },
+  {
+   "type": "guidance.delivered", "version": 1, "owner": "clinical",
+   "summary": "Home guidance from a ratified script was delivered to the patient.",
+   "payload": [
+    { "field": "guidanceRef", "type": "string", "required": true, "why": "The guidance delivered." },
+    { "field": "outcomeCode", "type": "string", "required": true, "why": "One of the four Home Guidance outcomes." },
+    { "field": "scriptRef", "type": "string", "required": true, "why": "The ratified script and its version." }
+   ],
+   "neverCarries": [
+    { "field": "scriptText", "why": "The words are the script, read from the registry at its version." }
+   ],
+   "subscribers": ["access", "core"]
+  },
+  {
+   "type": "checkin.overdue", "version": 1, "owner": "safety",
+   "summary": "A nurse's visit timer ran out without a check-out.",
+   "payload": [
+    { "field": "checkinRef", "type": "string", "required": true, "why": "The check-in that went overdue." },
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The visit it was timing." },
+    { "field": "overdueSince", "type": "instant", "required": true, "why": "When the timer ran out." }
+   ],
+   "neverCarries": [
+    { "field": "lastKnownLocation", "why": "The desk sees the nurse's location on the safety screen for the incident window, not on the bus." }
+   ],
+   "subscribers": ["core", "care"]
+  },
+  {
+   "type": "panic.raised", "version": 1, "owner": "safety",
+   "summary": "A nurse or responder pressed panic. The desk sees their live location until the window closes.",
+   "payload": [
+    { "field": "panicRef", "type": "string", "required": true, "why": "The panic every later action refers to." },
+    { "field": "raisedByRole", "type": "string", "required": true, "why": "Who pressed it, by role." },
+    { "field": "locationShareEndsAt", "type": "instant", "required": true, "why": "When the live location stops being shared. It always stops." }
+   ],
+   "neverCarries": [
+    { "field": "liveLocation", "why": "A position stream is not an event." }
+   ],
+   "subscribers": ["core", "care", "movement"]
+  },
+  {
+   "type": "sos.raised", "version": 1, "owner": "safety",
+   "summary": "A patient pressed SOS in the app or on the band.",
+   "payload": [
+    { "field": "sosRef", "type": "string", "required": true, "why": "The SOS every later action refers to." },
+    { "field": "channel", "type": "string", "required": true, "why": "app, band or phone." }
+   ],
+   "neverCarries": [
+    { "field": "liveLocation", "why": "Where the patient is goes to the desk and the ambulance partner, not to every subscriber." }
+   ],
+   "subscribers": ["core", "care", "movement", "access"]
+  },
+  {
+   "type": "nok.notified", "version": 1, "owner": "safety",
+   "summary": "Next of kin were told, in plain language, within the scope the patient chose.",
+   "payload": [
+    { "field": "notificationRef", "type": "string", "required": true, "why": "The notification sent." },
+    { "field": "severityCode", "type": "string", "required": true, "why": "Routine, moderate or major — which decides the channel." },
+    { "field": "channel", "type": "string", "required": true, "why": "push, sms or call." }
+   ],
+   "neverCarries": [
+    { "field": "clinicalDetail", "why": "Next of kin see plain language and never raw clinical data (§15)." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "sentinel.tier_raised", "version": 1, "owner": "safety",
+   "summary": "A baseline deviation reached a rung of the Sentinel ladder from tier one to three.",
+   "payload": [
+    { "field": "deviationRef", "type": "string", "required": true, "why": "The deviation raised." },
+    { "field": "rung", "type": "integer", "required": true, "why": "The rung on the escalation ladder, one to three in the seed scope." },
+    { "field": "readingEntryRef", "type": "string", "required": true, "why": "The record entry the deviation was measured from." }
+   ],
+   "neverCarries": [
+    { "field": "readingValues", "why": "The readings stay in the record." }
+   ],
+   "subscribers": ["core", "care", "clinical"]
+  },
+  {
+   "type": "safeguarding.reported", "version": 1, "owner": "safety",
+   "summary": "A safeguarding concern was reported to the designated safeguarding lead.",
+   "payload": [
+    { "field": "reportRef", "type": "string", "required": true, "why": "The report." },
+    { "field": "categoryCode", "type": "string", "required": true, "why": "Elder or child, and the kind, as a code." },
+    { "field": "reportedByRole", "type": "string", "required": true, "why": "Who reported it, by role." }
+   ],
+   "neverCarries": [
+    { "field": "narrative", "why": "What was seen is held by the safeguarding lead, not broadcast." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "admission.need_identified", "version": 1, "owner": "movement",
+   "summary": "A clinician or the triage rules decided hospital-level care is appropriate (§15C).",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission every later event refers to." },
+    { "field": "triageRef", "type": "string", "required": true, "why": "The triage decision behind it." }
+   ],
+   "neverCarries": [
+    { "field": "reasonForAdmission", "why": "The referral question is in the pre-arrival packet, behind a share link." }
+   ],
+   "subscribers": ["core", "access"]
+  },
+  {
+   "type": "facility.candidate_selected", "version": 1, "owner": "movement",
+   "summary": "A facility was matched by capability, location, network, accessibility and preference (§15C).",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission." },
+    { "field": "facilityRef", "type": "string", "required": true, "why": "The facility selected from the directory." }
+   ],
+   "neverCarries": [
+    { "field": "schemeBenefits", "why": "Benefit detail belongs to the pre-authorisation, not the match." }
+   ],
+   "subscribers": ["core", "access"]
+  },
+  {
+   "type": "admission.preauth.submitted", "version": 1, "owner": "movement",
+   "summary": "Pre-authorisation was submitted where the scheme requires it (§15C).",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission." },
+    { "field": "preauthRef", "type": "string", "required": true, "why": "The pre-authorisation request." }
+   ],
+   "neverCarries": [
+    { "field": "icd10Codes", "why": "Coding goes to the scheme through Money's claims route, not the bus." }
+   ],
+   "subscribers": ["core", "money"]
+  },
+  {
+   "type": "admission.preauth.decided", "version": 1, "owner": "movement",
+   "summary": "The scheme answered the pre-authorisation (§15C).",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission." },
+    { "field": "preauthRef", "type": "string", "required": true, "why": "The pre-authorisation answered." },
+    { "field": "decisionCode", "type": "string", "required": true, "why": "approved, declined or more information." }
+   ],
+   "neverCarries": [
+    { "field": "icd10Codes", "why": "As above." }
+   ],
+   "subscribers": ["core", "money", "access"]
+  },
+  {
+   "type": "admission.requested", "version": 1, "owner": "movement",
+   "summary": "A bed or admission request was sent with a priority, a bed category, a packet link and an arrival window (§15C).",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission." },
+    { "field": "facilityRef", "type": "string", "required": true, "why": "The facility asked." },
+    { "field": "bedCategory", "type": "string", "required": true, "why": "General ward, high care, ICU, maternity, paediatric and the rest." },
+    { "field": "arrivalWindowStart", "type": "instant", "required": true, "why": "The start of the requested arrival window." }
+   ],
+   "neverCarries": [
+    { "field": "packetContents", "why": "The facility opens the packet through a share link; the bus carries none of it." }
+   ],
+   "subscribers": ["core", "access"]
+  },
+  {
+   "type": "admission.accepted", "version": 1, "owner": "movement",
+   "summary": "The facility accepted the admission (§15C). Only now may a patient be shown a confirmed destination.",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission accepted." },
+    { "field": "receivingPoint", "type": "string", "required": true, "why": "Where to go on arrival." }
+   ],
+   "neverCarries": [
+    { "field": "bedNumber", "why": "A bed is confirmed by the facility at arrival, not promised on the bus." }
+   ],
+   "subscribers": ["core", "access", "care", "record"]
+  },
+  {
+   "type": "admission.waitlisted", "version": 1, "owner": "movement",
+   "summary": "The facility wait-listed the admission (§15C). It is pending, and is never shown as booked.",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission wait-listed." },
+    { "field": "reviewBy", "type": "instant", "required": false, "why": "When the facility has said it will decide, if it said." }
+   ],
+   "neverCarries": [
+    { "field": "queuePosition", "why": "A position in somebody else's queue is a promise nobody at MyThuso can keep." }
+   ],
+   "subscribers": ["core", "access"]
+  },
+  {
+   "type": "admission.declined", "version": 1, "owner": "movement",
+   "summary": "The facility declined the admission, or offered an alternative (§15C).",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission declined." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "A code, never free text." },
+    { "field": "alternativeOffered", "type": "boolean", "required": true, "why": "Whether an alternative facility or bed category was offered." }
+   ],
+   "neverCarries": [
+    { "field": "declineNarrative", "why": "The facility's words stay with the ops desk." }
+   ],
+   "subscribers": ["core", "access"]
+  },
+  {
+   "type": "transport.enroute", "version": 1, "owner": "movement",
+   "summary": "The patient is on the way: EMS for P1, Ride for P2 and P3 (§15C).",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission the transport serves." },
+    { "field": "priorityClass", "type": "string", "required": true, "why": "P1, P2 or P3, set by a clinician. A responder cannot set it." },
+    { "field": "expectedArrivalAt", "type": "instant", "required": true, "why": "An estimate the facility and family can be told." }
+   ],
+   "neverCarries": [
+    { "field": "vehiclePosition", "why": "Live position is shared with the care team and family under consent, not on the bus." }
+   ],
+   "subscribers": ["core", "access", "care"]
+  },
+  {
+   "type": "admission.arrived", "version": 1, "owner": "movement",
+   "summary": "The patient arrived and the facility confirmed the receiving point (§15C).",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission." },
+    { "field": "receivingPoint", "type": "string", "required": true, "why": "Where the patient was received." }
+   ],
+   "neverCarries": [
+    { "field": "clinicalHandoverNote", "why": "The handover is written to the Passport encounter." }
+   ],
+   "subscribers": ["core", "access", "record"]
+  },
+  {
+   "type": "triage.verified", "version": 1, "owner": "movement",
+   "summary": "The facility opened the packet and verified the pre-triage (§15C).",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission." },
+    { "field": "agreedWithPretriage", "type": "boolean", "required": true, "why": "Whether the facility's triage agreed. Disagreement is reported, not hidden." }
+   ],
+   "neverCarries": [
+    { "field": "facilityTriageDetail", "why": "The facility's own triage stays in its record and the Passport encounter." }
+   ],
+   "subscribers": ["core", "clinical"]
+  },
+  {
+   "type": "admission.handover_complete", "version": 1, "owner": "movement",
+   "summary": "A named receiving clinician or desk took the handover; the loop closes (§15C).",
+   "payload": [
+    { "field": "admissionRef", "type": "string", "required": true, "why": "The admission handed over." },
+    { "field": "receivingRole", "type": "string", "required": true, "why": "The receiving clinician or desk, by role." },
+    { "field": "encounterRef", "type": "string", "required": true, "why": "The Passport encounter updated with the handover." }
+   ],
+   "neverCarries": [
+    { "field": "receivingClinicianName", "why": "A name on the bus is a name in every subscriber's log." }
+   ],
+   "subscribers": ["core", "access", "record", "care"]
+  },
+  {
+   "type": "trip.requested", "version": 1, "owner": "movement",
+   "summary": "A trip was requested: P3 scheduled, or P2 with a clinician-set priority (§12).",
+   "payload": [
+    { "field": "tripRef", "type": "string", "required": true, "why": "The trip." },
+    { "field": "priorityClass", "type": "string", "required": true, "why": "P2 or P3. P1 never reaches Thuso Ride." },
+    { "field": "pickupWindowStart", "type": "instant", "required": true, "why": "When pick-up may begin." }
+   ],
+   "neverCarries": [
+    { "field": "address", "why": "The responder receives the pick-up point on accepting, not on the bus." }
+   ],
+   "subscribers": ["core", "care"]
+  },
+  {
+   "type": "trip.accepted", "version": 1, "owner": "movement",
+   "summary": "A vetted responder accepted a trip (§12).",
+   "payload": [
+    { "field": "tripRef", "type": "string", "required": true, "why": "The trip accepted." },
+    { "field": "responderRef", "type": "string", "required": true, "why": "The responder, who must hold a current person.verified." }
+   ],
+   "neverCarries": [
+    { "field": "responderPosition", "why": "Position is shared under consent, not broadcast." }
+   ],
+   "subscribers": ["core", "care", "access"]
+  },
+  {
+   "type": "trust.shift_start.matched", "version": 1, "owner": "trust",
+   "summary": "A nurse or responder passed the shift-start face match and may go online.",
+   "payload": [
+    { "field": "partyRef", "type": "string", "required": true, "why": "The person who went online." }
+   ],
+   "neverCarries": [
+    { "field": "faceTemplate", "why": "Biometrics are special personal information and never leave the Verify store." }
+   ],
+   "subscribers": ["care", "movement"]
+  },
+  {
+   "type": "trust.shift_start.refused", "version": 1, "owner": "trust",
+   "summary": "The shift-start face match failed. The person stays offline.",
+   "payload": [
+    { "field": "partyRef", "type": "string", "required": true, "why": "The person refused." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "A code, never free text." }
+   ],
+   "neverCarries": [
+    { "field": "faceTemplate", "why": "As above." }
+   ],
+   "subscribers": ["care", "movement", "core"]
+  },
+  {
+   "type": "trust.door.verified", "version": 1, "owner": "trust",
+   "summary": "A patient scanned the lanyard QR and it matched the person expected at the door.",
+   "payload": [
+    { "field": "partyRef", "type": "string", "required": true, "why": "The person verified." },
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The visit they arrived for." }
+   ],
+   "neverCarries": [
+    { "field": "photo", "why": "The patient saw the photo on their own screen; it does not travel." }
+   ],
+   "subscribers": ["care"]
+  },
+  {
+   "type": "trust.door.mismatched", "version": 1, "owner": "trust",
+   "summary": "The QR at the door did not match the person expected. Safety raises an SOS.",
+   "payload": [
+    { "field": "appointmentRef", "type": "string", "required": true, "why": "The visit at whose door the mismatch happened." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "A code, never free text." }
+   ],
+   "neverCarries": [
+    { "field": "photo", "why": "As above." }
+   ],
+   "subscribers": ["safety", "care", "core"]
+  },
+  {
+   "type": "passport.share.link_created", "version": 1, "owner": "record",
+   "summary": "A patient, or a responder with an active trip, created a share link with a scope, an expiry and a passcode (§26).",
+   "payload": [
+    { "field": "linkRef", "type": "string", "required": true, "why": "The link." },
+    { "field": "purpose", "type": "string", "required": true, "why": "The purpose the link was made for." },
+    { "field": "expiresAt", "type": "instant", "required": true, "why": "Every link ends." }
+   ],
+   "neverCarries": [
+    { "field": "linkUrl", "why": "A link to a record is the record." },
+    { "field": "scope", "why": "What the link opens is the gateway's to know." }
+   ],
+   "subscribers": ["core", "movement"]
+  },
+  {
+   "type": "passport.share.link_used", "version": 1, "owner": "record",
+   "summary": "Somebody opened a share link (§26).",
+   "payload": [
+    { "field": "linkRef", "type": "string", "required": true, "why": "The link used." },
+    { "field": "openedByRole", "type": "string", "required": true, "why": "Who opened it, by role." }
+   ],
+   "neverCarries": [
+    { "field": "linkUrl", "why": "As above." }
+   ],
+   "subscribers": ["core", "movement"]
+  },
+  {
+   "type": "passport.anomaly.detected", "version": 1, "owner": "record",
+   "summary": "The Passport noticed an access pattern that does not fit: volume, time, geography or relationship (§26).",
+   "payload": [
+    { "field": "anomalyRef", "type": "string", "required": true, "why": "The anomaly." },
+    { "field": "kindCode", "type": "string", "required": true, "why": "Which pattern, as a code." },
+    { "field": "requesterRef", "type": "string", "required": true, "why": "Whose access looked wrong, so Verify can review it." }
+   ],
+   "neverCarries": [
+    { "field": "entryContent", "why": "The review is of the access, not a copy of what was read." }
+   ],
+   "subscribers": ["core", "trust"]
+  },
+  {
+   "type": "passport.admission.detected", "version": 1, "owner": "record",
+   "summary": "A hospital ADT message showed the patient was admitted (§26).",
+   "payload": [
+    { "field": "encounterRef", "type": "string", "required": true, "why": "The hospital encounter written to the Passport." },
+    { "field": "facilityRef", "type": "string", "required": true, "why": "The facility that sent it." }
+   ],
+   "neverCarries": [
+    { "field": "admissionDiagnosis", "why": "The reason for admission is in the encounter." }
+   ],
+   "subscribers": ["core", "care", "movement"]
+  },
+  {
+   "type": "passport.discharge.received", "version": 1, "owner": "record",
+   "summary": "A hospital discharge summary arrived in the Passport (§26).",
+   "payload": [
+    { "field": "encounterRef", "type": "string", "required": true, "why": "The encounter the discharge closes." },
+    { "field": "facilityRef", "type": "string", "required": true, "why": "The facility that sent it." }
+   ],
+   "neverCarries": [
+    { "field": "dischargeSummary", "why": "The summary is in the record; discharge follow-up opens a loop that reads it there." }
+   ],
+   "subscribers": ["core", "care", "clinical"]
+  },
+  {
+   "type": "prescription.prescribed", "version": 1, "owner": "medicines",
+   "summary": "A doctor prescribed; interaction checks ran at prescribe time (§5.4).",
+   "payload": [
+    { "field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription workflow." },
+    { "field": "medicationRequestRef", "type": "string", "required": true, "why": "The MedicationRequest in the Passport, where the medicine and dose are." },
+    { "field": "prescriberRef", "type": "string", "required": true, "why": "The prescriber, who may not verify it." }
+   ],
+   "neverCarries": [
+    { "field": "medication", "why": "What was prescribed is in the record." },
+    { "field": "dose", "why": "As above." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "prescription.verified", "version": 1, "owner": "medicines",
+   "summary": "A pharmacist who is not the prescriber verified the prescription (§5.4).",
+   "payload": [
+    { "field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription verified." },
+    { "field": "verifiedByRef", "type": "string", "required": true, "why": "The pharmacist. Never the prescriber." }
+   ],
+   "neverCarries": [
+    { "field": "medication", "why": "As above." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "dispense.completed", "version": 1, "owner": "medicines",
+   "summary": "A licensed pharmacy dispensed the prescription (§5.4).",
+   "payload": [
+    { "field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription dispensed." },
+    { "field": "dispenseEntryRef", "type": "string", "required": true, "why": "The dispense record in the Passport." }
+   ],
+   "neverCarries": [
+    { "field": "medication", "why": "As above." }
+   ],
+   "subscribers": ["core", "money"]
+  },
+  {
+   "type": "delivery.collected", "version": 1, "owner": "medicines",
+   "summary": "A nurse or responder collected a sealed, scanned bag from the pharmacy (§10).",
+   "payload": [
+    { "field": "collectionRef", "type": "string", "required": true, "why": "The collection." },
+    { "field": "collectedByRole", "type": "string", "required": true, "why": "nurse or responder. A responder never carries Schedule 5–6." },
+    { "field": "sealRef", "type": "string", "required": true, "why": "The tamper-evident bag's QR." }
+   ],
+   "neverCarries": [
+    { "field": "medication", "why": "The bag is sealed; the bus does not open it either." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "delivery.handed_over", "version": 1, "owner": "medicines",
+   "summary": "The bag was handed over with the patient's or next of kin's PIN (§10).",
+   "payload": [
+    { "field": "collectionRef", "type": "string", "required": true, "why": "The collection handed over." },
+    { "field": "sealIntact", "type": "boolean", "required": true, "why": "Whether the seal was intact. A broken seal voids the delivery." }
+   ],
+   "neverCarries": [
+    { "field": "handoverPin", "why": "The PIN proves the hand-over; broadcasting it would make it worthless." }
+   ],
+   "subscribers": ["core", "money"]
+  },
+  {
+   "type": "lab.order.placed", "version": 1, "owner": "medicines",
+   "summary": "A doctor or nurse ordered a lab test from the partner lab.",
+   "payload": [
+    { "field": "labOrderRef", "type": "string", "required": true, "why": "The order." },
+    { "field": "orderedByRef", "type": "string", "required": true, "why": "The clinician who ordered it." }
+   ],
+   "neverCarries": [
+    { "field": "testsOrdered", "why": "What was ordered is in the ServiceRequest in the record." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "lab.result.received", "version": 1, "owner": "medicines",
+   "summary": "A result arrived from the partner lab and was written to the record. It is not complete until acknowledged.",
+   "payload": [
+    { "field": "labOrderRef", "type": "string", "required": true, "why": "The order the result answers." },
+    { "field": "resultEntryRef", "type": "string", "required": true, "why": "The result in the Passport." }
+   ],
+   "neverCarries": [
+    { "field": "resultValues", "why": "The values stay in the record." }
+   ],
+   "subscribers": ["clinical", "core"]
+  },
+  {
+   "type": "reading.ingested", "version": 1, "owner": "devices",
+   "summary": "A reading passed validation, dedupe and normalisation and was written to the record (§5.5).",
+   "payload": [
+    { "field": "readingRef", "type": "string", "required": true, "why": "The ingestion." },
+    { "field": "deviceRef", "type": "string", "required": true, "why": "The registered device." },
+    { "field": "metric", "type": "string", "required": true, "why": "Which measure." },
+    { "field": "qualityCode", "type": "string", "required": true, "why": "The sample quality. Poor samples are staged, not written." },
+    { "field": "observationRef", "type": "string", "required": true, "why": "The Observation in the Passport, where the value is." }
+   ],
+   "neverCarries": [
+    { "field": "value", "why": "The value is in the Observation." }
+   ],
+   "subscribers": ["safety", "clinical", "core"]
+  },
+  {
+   "type": "device.stale", "version": 1, "owner": "devices",
+   "summary": "A device has sent nothing for longer than its expected interval (§5.5).",
+   "payload": [
+    { "field": "deviceRef", "type": "string", "required": true, "why": "The device." },
+    { "field": "lastSyncAt", "type": "instant", "required": true, "why": "When it last synced." }
+   ],
+   "neverCarries": [
+    { "field": "lastValue", "why": "A stale device's last value is in the record." }
+   ],
+   "subscribers": ["core", "care"]
+  },
+  {
+   "type": "device.recalled", "version": 1, "owner": "devices",
+   "summary": "A device, or a batch, was recalled; the registry links every patient holding one (§4).",
+   "payload": [
+    { "field": "deviceRef", "type": "string", "required": true, "why": "The device recalled." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "A code, never free text." }
+   ],
+   "neverCarries": [
+    { "field": "holderList", "why": "Who holds a recalled device is read from the registry by the engine that must act." }
+   ],
+   "subscribers": ["core", "care", "money"]
+  },
+  {
+   "type": "payment.succeeded", "version": 1, "owner": "money",
+   "summary": "A payment was confirmed by the provider.",
+   "payload": [
+    { "field": "paymentRef", "type": "string", "required": true, "why": "The payment." },
+    { "field": "payableRef", "type": "string", "required": true, "why": "What was paid for, as Money's own payable." },
+    { "field": "amountCents", "type": "integer", "required": true, "why": "The amount, in cents." },
+    { "field": "method", "type": "string", "required": true, "why": "card, EFT, debit order, wallet or cash with OTP." }
+   ],
+   "neverCarries": [
+    { "field": "cardNumber", "why": "MyThuso never holds one." }
+   ],
+   "subscribers": ["core", "access"]
+  },
+  {
+   "type": "payment.failed", "version": 1, "owner": "money",
+   "summary": "A payment did not go through.",
+   "payload": [
+    { "field": "paymentRef", "type": "string", "required": true, "why": "The payment." },
+    { "field": "payableRef", "type": "string", "required": true, "why": "What it was for." },
+    { "field": "reasonCode", "type": "string", "required": true, "why": "A code, never free text." }
+   ],
+   "neverCarries": [
+    { "field": "providerMessage", "why": "A provider's raw message can carry account detail." }
+   ],
+   "subscribers": ["core", "access"]
+  },
+  {
+   "type": "payout.scheduled", "version": 1, "owner": "money",
+   "summary": "A weekly payout was worked out for a nurse, or a per-case fee for a doctor.",
+   "payload": [
+    { "field": "payoutRef", "type": "string", "required": true, "why": "The payout." },
+    { "field": "periodEnd", "type": "iso-date", "required": true, "why": "The last day the payout covers." },
+    { "field": "lineCount", "type": "integer", "required": true, "why": "How many visits or cases it covers." }
+   ],
+   "neverCarries": [
+    { "field": "bankAccount", "why": "The account is the provider's to hold." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "payout.paid", "version": 1, "owner": "money",
+   "summary": "The payout reached the provider.",
+   "payload": [
+    { "field": "payoutRef", "type": "string", "required": true, "why": "The payout paid." }
+   ],
+   "neverCarries": [
+    { "field": "bankAccount", "why": "As above." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "claim.submitted", "version": 1, "owner": "money",
+   "summary": "A claim was switched to a scheme through the switching partner.",
+   "payload": [
+    { "field": "claimRef", "type": "string", "required": true, "why": "The claim." },
+    { "field": "encounterRef", "type": "string", "required": true, "why": "The encounter claimed for, whose coding came from Clinical." }
+   ],
+   "neverCarries": [
+    { "field": "icd10Codes", "why": "Coding goes to the switch, not the bus." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "claim.decided", "version": 1, "owner": "money",
+   "summary": "The scheme paid, part-paid or rejected the claim.",
+   "payload": [
+    { "field": "claimRef", "type": "string", "required": true, "why": "The claim decided." },
+    { "field": "decisionCode", "type": "string", "required": true, "why": "paid, part-paid or rejected." },
+    { "field": "paidCents", "type": "integer", "required": true, "why": "What was paid, in cents." }
+   ],
+   "neverCarries": [
+    { "field": "icd10Codes", "why": "As above." }
+   ],
+   "subscribers": ["core", "access"]
   }
  ]
 }
