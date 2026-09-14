@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -20,6 +21,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -132,12 +134,35 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
        title from the first card without drawing a line. */
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
+    /* A NAVIGATION LABEL IS ONE LINE, AND IT IS NEVER CUT IN HALF.
+       The bar used to give every item an equal fifth with Material's 8dp gutters and let a label take
+       two lines. Two lines only help a label with a space in it: "Assessments" and "Teleconsultation"
+       are one word each, wider than their slot, and Compose breaks a word that cannot fit — so the
+       nurse's bar read "Assessment / s" and the doctor's "Teleconsultatio / n". A name split across two
+       lines is not a name. The contract has no shorter form of either and this file does not invent
+       one, and 13sp is already the type floor, so the width has to come from the layout: each item is
+       as wide as its own label, and whatever the row has left over is shared out evenly. Only when the
+       labels together are wider than the screen does every item fall back to an equal share and
+       ellipsise — a whole word or an ellipsis, never half of one. The ellipsis is drawing only: the
+       Text still carries the full label, so TalkBack reads the whole name. */
+    val labelMeasurer = rememberTextMeasurer()
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val labelWidths = destinations.map { destination ->
+        with(LocalDensity.current) { labelMeasurer.measure(label(destination), labelStyle).size.width.toDp() }
+    }
+
     /* The luminous ground, and it is the whole background rather than a band. It is a static brush:
        three pale tints drawn once, none of them darker than the floor every contrast figure in
        tokens.json is measured against. Nothing about it moves — a ground that drifts is a box that
        keeps changing under a thumb, and this is a phone somebody is holding on a doorstep. */
     Box(Modifier.fillMaxSize().background(studioGroundBrush())) {
         Row(Modifier.fillMaxSize()) {
+            /* The rail is as wide as its longest label, from Material's 80dp up to two fifths of the
+               window. The rail is where the largest type goes, and at twice the type an 80dp rail held
+               four characters of "Teleconsultation" a line. Past two fifths the page itself is what
+               gets squeezed, so the label ellipsises there instead. */
+            val windowWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
+            val railWidth = ((labelWidths.maxOrNull() ?: 0.dp) + ThusoSpacing.space24).coerceIn(80.dp, maxOf(80.dp, windowWidth * 0.4f))
             if (wide) NavigationRail(
                 containerColor = Color.Transparent,
                 header = {
@@ -156,10 +181,17 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                         selected = selectedKey == destination.key && detail == null,
                         onClick = { onSelect(destination.key) },
                         icon = { Icon(destination.icon, null) },
-                        label = { Text(label(destination), maxLines = 3, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall) },
+                        modifier = Modifier.width(railWidth),
+                        label = {
+                            Text(
+                                label(destination), maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center, style = labelStyle
+                            )
+                        },
                         colors = NavigationRailItemDefaults.colors(
-                            selectedIconColor = StudioPaper, selectedTextColor = Charcoal,
-                            indicatorColor = StudioNight, unselectedIconColor = StudioInkMuted, unselectedTextColor = StudioInkMuted
+                            selectedIconColor = if (role != null) SurfaceWhite else StudioPaper, selectedTextColor = if (role != null) BrandInk else Charcoal,
+                            indicatorColor = if (role != null) BrandInk else StudioNight,
+                            unselectedIconColor = if (role != null) BodyText else StudioInkMuted, unselectedTextColor = if (role != null) BodyText else StudioInkMuted
                         )
                     )
                 }
@@ -194,33 +226,50 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                     )
                 },
                 bottomBar = {
+                    /* Inside a staff workspace the pill is BrandInk rather than studioNight: the founder asked the
+                       screens a clinician works in to stick to the logo, and the workspace is the one place this
+                       bar is theirs. White on BrandInk 12.04, BrandInk on white 12.04, BodyText 7.58. */
                     /* The selected destination is a filled studioNight pill, which is what an active
                        row is everywhere else in this language and the same dark the one live card on
                        a screen takes. Material's default is a tinted lozenge in the primary container
                        colour; a lilac lozenge would have been the one place in the app where a tile
                        fill carried a label, and a lime one would fail the arithmetic outright. */
-                    if (!wide) NavigationBar(containerColor = SurfaceWhite) {
-                        destinations.forEach { destination ->
+                    /* NavigationBar's own Surface and height, without its 8dp gutters between items: the
+                       gutters are the width "Assessments" was short of. Each Material item still draws
+                       its own indicator, ripple, selection semantics and 48dp target; it simply fills a
+                       slot sized by the arithmetic above rather than an equal fifth. */
+                    if (!wide) Surface(color = SurfaceWhite) {
+                        BoxWithConstraints(
+                            Modifier.fillMaxWidth().windowInsetsPadding(NavigationBarDefaults.windowInsets)
+                        ) {
+                            val room = maxWidth
+                            val natural = labelWidths.map { maxOf(it + ThusoSpacing.space12, 64.dp + ThusoSpacing.space8) }
+                            val total = natural.fold(0.dp) { sum, width -> sum + width }
+                            val slots = if (total <= room) natural.map { it + (room - total) / natural.size }
+                                        else natural.map { room / natural.size }
+                            Row(Modifier.fillMaxWidth().height(80.dp).selectableGroup()) {
+                                destinations.forEachIndexed { index, destination ->
+                                    Row(Modifier.width(slots[index]).fillMaxHeight()) {
                             NavigationBarItem(
                                 selected = selectedKey == destination.key && detail == null,
                                 onClick = { onSelect(destination.key) },
                                 icon = { Icon(destination.icon, null) },
-                                /* Two lines rather than one. These labels are the locale contract's
-                                   own words — "Book care", and longer in isiZulu and Sesotho — and
-                                   at a raised font scale a single line turned that into "Book c…".
-                                   A tab whose name has been cut in half is not a name. */
                                 label = {
                                     Text(
-                                        label(destination), maxLines = 2, softWrap = true,
+                                        label(destination), maxLines = 1, softWrap = false,
                                         textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis,
-                                        style = MaterialTheme.typography.labelSmall
+                                        style = labelStyle
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = StudioPaper, selectedTextColor = Charcoal,
-                                    indicatorColor = StudioNight, unselectedIconColor = StudioInkMuted, unselectedTextColor = StudioInkMuted
+                                    selectedIconColor = if (role != null) SurfaceWhite else StudioPaper, selectedTextColor = if (role != null) BrandInk else Charcoal,
+                                    indicatorColor = if (role != null) BrandInk else StudioNight,
+                                    unselectedIconColor = if (role != null) BodyText else StudioInkMuted, unselectedTextColor = if (role != null) BodyText else StudioInkMuted
                                 )
                             )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

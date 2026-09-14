@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.platform.LocalDensity
@@ -68,27 +69,30 @@ import za.co.mythuso.model.observationsNote
  * decided in one place — `workspaceUrgency` in AccountScreens.kt, which is the block
  * scripts/check-boundaries.mjs reads for a typed digit.
  *
- * THE GROUND IS FLAT studioNight, AND DELIBERATELY NOT StudioNightCard's. That card carries a white
- * highlight at ten per cent, which is right for a card holding a sentence and wrong for one holding
- * five drawings: every unlit mark would be measured against a ground that changes across the card,
- * and at the palest corner paper at forty per cent falls to 3.01 against it — a mark that clears
- * SC 1.4.11 in the middle of the panel and scrapes it at the edge. On a flat ground every ratio the
- * web computes in apps/web/src/features/clinical-deck.css holds here exactly:
+ * THE GROUND IS THE WORDMARK'S INK. On 14 September the founder looked at these screens and asked
+ * them to "stick to logo colors and ui": the near-black StudioNight and the lime lead were the Care
+ * Studio's palette, not the logo's. The wordmark (apps/web/public/brand/mythuso-logo.svg) is
+ * BrandInk, BrandGreen, a BrandOrange roof and a BrandLime dot, and those four and white are what the
+ * deck is drawn in now. No colour token was added. This is the twin of ClinicalDeckView.swift.
  *
- *   studioPaper on studioNight   13.59      studioLime on studioNight   12.03
- *   paper at 72% over night      7.73       — quiet text: the labels, the note, an unlit lit mark
- *   paper at 40% over night      3.42       — an unlit mark, clear of 3:1 against the ground
- *   paper at 24% over night      2.11       — the groove a ring runs in; it carries nothing
- *   paper at  6% over night                 — the lead's own panel: paper on it 11.47, lime 10.16
- *   paper at 44% over that panel 3.55       — the unlit mark ON the lighter ground. The 40% above
- *                                             measures 2.89 there, which is a colour that clears on
- *                                             the ground it was chosen against and not on the one it
- *                                             lands on.
+ * Flat rather than StudioNightCard's highlight, for the reason that was always true here: every
+ * unlit mark is measured against one ground rather than a gradient. The lead's panel is RECESSED
+ * rather than lifted — the design system's Ink at 45% over BrandInk — and that is arithmetic rather
+ * than taste. BrandGreen reads 3.55 on BrandInk, falls to 2.98 on a six-per-cent white lift and 2.81
+ * on eight, and rises to 4.34 on the recess.
  *
- * AND COLOUR IS NEVER THE ONLY DIFFERENCE. A flagged arc is the brighter one AND the thicker one; a
- * signed visit is the filled block AND the paper-weight one. Lime is spent once per deck, on the
- * figure the screen was opened for — which is why the flagged chip here is paper on night rather
- * than StudioNightChip's lime: a deck with two accents has none.
+ *   on BrandInk                 white 12.04   BrandLime 10.47   BrandMint 8.09
+ *                               white at 72% 7.04 — quiet text     BrandGreen 3.55 — a mark, never a word
+ *                               white at 44% 3.63 — an unlit mark  BrandOrange 4.24 — a fill or a glyph
+ *                               white at 24% 2.06 — the groove a ring runs in; it carries nothing
+ *   on the recess (Ink at 45%)  white 14.71   white at 72% 8.29   white at 44% 4.03
+ *                               BrandGreen 4.34 — the lead's lit mark    BrandLime 12.80
+ *
+ * AND COLOUR IS NEVER THE ONLY DIFFERENCE. A flagged arc is the green one AND the thicker one; a
+ * signed visit is the filled block AND the white one. Green is spent once per deck, on the figure the
+ * screen was opened for, and lime once, as the eyebrow word — the dot on the wordmark, and the one
+ * pair tokens.json lets lime be read in. The flagged chip is the orange roof, filled, with the design
+ * system's Ink on it at 6.30: BrandInk on orange is 4.24, and a 13sp word needs 4.5.
  *
  * MOTION. Every mark draws itself once on arrival and that is all. Reduce motion is not a shorter
  * draw: `rememberStudioReveal` snaps to the finished mark when the system animator scale is nought,
@@ -119,37 +123,54 @@ sealed interface DeckShape {
     data class Columns(val values: List<Int>, val lit: List<Boolean>) : DeckShape
 }
 
-/* Alphas over StudioPaper rather than flattened greys, for the reason ThusoOpacity's own comment
-   gives: a flattened grey cannot follow the ground it sits on and an alpha has no choice but to.
-   The ratios each of these composites to are in the header above. */
+/* Alphas over white rather than flattened greys, for the reason ThusoOpacity's own comment gives: a
+   flattened grey cannot follow the ground it sits on and an alpha has no choice but to. The ratios
+   each of these composites to are in the header above. */
 object DeckInk {
-    val ground = StudioNight
-    val ink = StudioPaper
-    val accent = StudioLime
+    val ground = BrandInk
+    val ink = SurfaceWhite
+    /** The wordmark's dot. A word only on BrandInk, and on the deck only the eyebrow. */
+    val accent = BrandLime
+    /** The lead's lit mark: the wordmark's green, on the recess where it clears 3:1. */
+    val lit = BrandGreen
     /** The muted step is the token rather than a number retyped here: the same alpha every muted
      *  label on all three platforms is set at, and it darkens with whatever ground it lands on. */
-    val quiet = StudioPaper.copy(alpha = ThusoOpacity.charcoalMuted)
-    val mark = StudioPaper.copy(alpha = 0.40f)
+    val quiet = SurfaceWhite.copy(alpha = ThusoOpacity.charcoalMuted)
+    val mark = SurfaceWhite.copy(alpha = 0.44f)
 
-    /** The unlit mark on the lead's lighter panel. See the header: 40% does not clear 3:1 there. */
-    val leadMark = StudioPaper.copy(alpha = 0.44f)
-    val track = StudioPaper.copy(alpha = 0.24f)
-    val edge = StudioPaper.copy(alpha = 0.14f)
-    val leadGround = StudioPaper.copy(alpha = 0.06f)
+    /** The unlit mark on the lead's recess, 4.03 there. The same alpha as `mark`: the recess is darker
+     *  than the ground, so a mark that clears on one clears on both. */
+    val leadMark = SurfaceWhite.copy(alpha = 0.44f)
+    val track = SurfaceWhite.copy(alpha = 0.24f)
+    val edge = SurfaceWhite.copy(alpha = 0.14f)
+    val leadGround = Ink.copy(alpha = 0.45f)
+    /** The roof on the wordmark: the one thing that is not as it should be. A fill or a glyph. */
+    val attention = BrandOrange
+    val onAttention = Ink
 
     /* The grounds the screens behind the deck add: the glass the lead figure stands on, the edge of
-       anything pressable on the night, the one ink a refusal may use there, and the pale indigo panel.
-       Every ratio is in the table above the section that spends them, at the foot of this file. */
-    val glass = StudioPaper.copy(alpha = 0.08f)
-    val glassEdge = StudioPaper.copy(alpha = 0.16f)
-    val control = StudioPaper.copy(alpha = 0.44f)
-    val refusal = StudioPeach
-    val panel = IndigoSoft
-    val panelInk = Charcoal
-    val panelQuiet = StudioInkMuted
-    val panelLit = Indigo
-    val panelMark = Indigo.copy(alpha = 0.58f)
-    val panelTrack = Indigo.copy(alpha = 0.18f)
+       anything pressable on the canvas, the glyph a refusal wears there, the pale green panel, the
+       words on a white sheet and the chosen pill. Every ratio is in the table above the section that
+       spends them, at the foot of this file. The panel is composited once from two tokens rather than
+       left translucent, so its ratios cannot change with whatever stands behind it. */
+    val glass = Ink.copy(alpha = 0.45f)
+    val glassEdge = SurfaceWhite.copy(alpha = 0.16f)
+    val control = SurfaceWhite.copy(alpha = 0.44f)
+    val refusal = BrandOrange
+    val panel = BrandGreen.copy(alpha = 0.06f).compositeOver(SurfaceWhite)
+    val panelInk = BrandInk
+    val panelQuiet = BrandInk.copy(alpha = ThusoOpacity.charcoalMuted)
+    val panelLit = BrandGreen
+    val panelMark = BrandInk.copy(alpha = 0.60f)
+    val panelTrack = BrandInk.copy(alpha = 0.12f)
+    val sheetInk = BrandInk
+    val sheetQuiet = BodyText
+    val sheetLine = Line
+    val chosen = BrandGreen
+    val onChosen = Ink
+    /** The sheet standing on the canvas when what it holds is a refusal: the roof mark at 8% over white.
+     *  BrandInk 11.08 on it, BodyText 6.98. */
+    val attentionWash = BrandOrange.copy(alpha = 0.08f).compositeOver(SurfaceWhite)
 }
 
 /** Minutes since midnight and back again, so a day can be drawn to scale rather than as three equal
@@ -361,11 +382,10 @@ private fun turnToDegrees(turn: Float) = turn * 360f - 90f
 
 // MARK: - A chip on the deck
 
-/* The deck's own chip, and it is not the night card's. StudioNightChip fills the flagged one lime,
-   which is right on a card whose only accent it is and wrong here: the lead instrument already
-   spends lime on its marks, and a second lime object would leave the deck with two accents and
-   therefore with none. So the flagged chip is the deck's ink filled — studioNight on studioPaper,
-   13.59:1, the same declared pair the other way round — and everything else is outlined quiet. */
+/* The deck's own chip, and it is not the night card's. Flagged is the wordmark's orange roof, filled —
+   the one warm thing on a cool ground — standing 4.24 off BrandInk, with the design system's Ink on
+   it at 6.30. Everything else is outlined quiet. Filled against outlined is the difference that does
+   not depend on seeing orange. */
 @Composable private fun DeckChip(text: String, flagged: Boolean) {
     /* A pill until the words no longer fit on a line. A capsule's ends curve in by half its height,
        and at the larger font scales that eats the first and last word of a wrapped status. */
@@ -375,9 +395,9 @@ private fun turnToDegrees(turn: Float) = turn * 360f - 90f
     Text(
         text,
         style = MaterialTheme.typography.labelSmall,
-        color = if (flagged) DeckInk.ground else DeckInk.quiet,
+        color = if (flagged) DeckInk.onAttention else DeckInk.quiet,
         modifier = Modifier
-            .background(if (flagged) DeckInk.ink else Color.Transparent, shape)
+            .background(if (flagged) DeckInk.attention else Color.Transparent, shape)
             .then(if (flagged) Modifier else Modifier.border(1.dp, DeckInk.mark, shape))
             .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space4)
     )
@@ -388,10 +408,10 @@ private fun turnToDegrees(turn: Float) = turn * 360f - 90f
 @Composable private fun DeckInstrument(
     figure: WorkspaceFigure, lead: Boolean, progress: Float, modifier: Modifier = Modifier
 ) {
-    /* The lead is the only instrument that spends the accent. On the other two a lit mark is the
+    /* The lead is the only instrument that spends the green. On the other two a lit mark is the
        quiet tone — still the brightest thing in its own drawing, still two channels apart from an
        unlit one, and not a second thing on the deck claiming to be the most important. */
-    val lit = if (lead) DeckInk.accent else DeckInk.quiet
+    val lit = if (lead) DeckInk.lit else DeckInk.quiet
     val unlit = if (lead) DeckInk.leadMark else DeckInk.mark
     /* The two dial sizes the web settles on below its 900px breakpoint, which is every phone: 124
        for the lead and 116 for the pair beside it. The pair stay smaller than the lead whatever the
@@ -511,9 +531,9 @@ private fun spokenFor(figure: WorkspaceFigure): String {
                 Text(note, style = MaterialTheme.typography.bodySmall, color = DeckInk.quiet)
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(DeckInk.edge))
-            /* The lead is a panel and the other two are not: the night lifted six per cent, which is
-               depth by one step of the same colour rather than by a second shadow inside a shadowed
-               card. It is what makes the deck say what the screen is for before it says anything
+            /* The lead is a panel and the other two are not: the ground recessed by the design system's
+               Ink, which is depth by one step of the same colour rather than by a second shadow inside
+               a shadowed card, and darker rather than lighter so its green clears. It is what makes the deck say what the screen is for before it says anything
                else — a row of three identical cells is the composition this replaces. */
             if (lead != null) Box(
                 Modifier.fillMaxWidth()
@@ -554,8 +574,11 @@ private fun spokenFor(figure: WorkspaceFigure): String {
  * turns on; circular affordances; and a light sheet standing on the canvas's lower edge, one elevation
  * above it.
  *
- * INDIGO WHERE THE REFERENCE WAS VIOLET. The reference draws its quiet half in lavender; MyThuso ships
- * an indigo family, so the panel is IndigoSoft and its marks are Indigo. No colour token was added.
+ * THE WORDMARK'S COLOURS WHERE THE REFERENCE WAS VIOLET. The reference draws its quiet half in
+ * lavender; this file drew it in indigo and spent lime on the dark, and the founder asked for the logo
+ * instead. So the canvas is BrandInk, the lit marks and the chosen pill BrandGreen, attention
+ * BrandOrange, the one spark BrandLime, and the pale panel a six-per-cent green wash over white. No
+ * colour token was added.
  *
  * THE RULE THE DECK ABOVE IS BUILT ON HOLDS UNCHANGED. Nothing drawn introduces a number — every
  * ring, gauge, bar and line is counted off rows the same screen lists — and no clinical value moves: a
@@ -563,13 +586,16 @@ private fun spokenFor(figure: WorkspaceFigure): String {
  * only a count of rows draws itself in, and not even that when animations are off.
  *
  * MEASURED ON THE GROUND EACH PAIR ACTUALLY LANDS ON, with the sRGB formula the build runs:
- *   the flat night            paper 13.59   lime 12.03   quiet 7.75   StudioPeach 11.43
- *                             Danger is 2.28 here and is never written on the dark
- *   the glass, paper at 8%    paper 10.78   lime 9.54   quiet 6.45   peach 9.06   unlit mark at 44% 3.45
- *   a control's edge          paper at 44%: 3.84 on the night, 3.45 on the glass
- *   IndigoSoft                Charcoal 15.24   StudioInkMuted 6.19   IndigoDeep 11.23
- *                             Indigo 9.26, the lit mark   Indigo at 58% 3.15, the unlit one
- *   the badge                 IndigoSoft on StudioNight 13.39, IndigoDeep inside it 11.23
+ *   BrandInk                  white 12.04   quiet 7.04   lime 10.47   green 3.55, a mark   orange 4.24, a glyph
+ *                             Danger is 1.83 here and is never written on the dark
+ *   the glass, Ink at 45%     white 14.71   quiet 8.29   green 4.34   lime 12.80   unlit mark at 44% 4.03
+ *   a control's edge          white at 44%: 3.63 on the ground, 4.03 on the glass
+ *   the chosen pill           BrandGreen, 3.55 off BrandInk and 3.39 off white; Ink on it 5.27
+ *   the flagged tag           BrandOrange, 4.24 off BrandInk; Ink on it 6.30
+ *   the panel, green at 6%    BrandInk 11.27   BrandInk at 72% 4.99   BodyText 7.10
+ *                             green 3.17, the lit mark   BrandInk at 60% 3.59, the unlit one
+ *   the badge                 a BrandGreen disc, 3.55 on BrandInk and 3.39 on white; its white glyph 3.39
+ *   a white sheet             BrandInk 12.04   BodyText 7.58
  * Colour is never the only difference between two states: a lit arc is thicker, the longest bar is
  * taller, a chosen pill is filled and heavier and carries a tick, and a refusal says so in words. */
 
@@ -606,7 +632,7 @@ fun Modifier.deckRaised(shape: Shape): Modifier =
 /** The overlap grows with the reader's type, capped where a larger crossing would start to cover words. */
 @Composable private fun scaledOverlap(base: Dp): Dp = base * LocalDensity.current.fontScale.coerceIn(1f, 1.6f)
 
-/* The night canvas: flat StudioNight for the reason this file's header gives, the one raised
+/* The canvas: flat BrandInk for the reason this file's header gives, the one raised
    elevation, and the composition locals that tell the metrics inside it they are on the dark. */
 @Composable fun DeckCanvas(overhang: Dp = 0.dp, content: @Composable ColumnScope.() -> Unit) {
     val shape = RoundedCornerShape(ThusoRadius.panel)
@@ -647,7 +673,7 @@ fun Modifier.deckRaised(shape: Shape): Modifier =
 /** The light card that stands on the canvas: white, the card radius, the one elevation. */
 @Composable fun DeckSheet(modifier: Modifier = Modifier, fill: Color = SurfaceWhite, content: @Composable ColumnScope.() -> Unit) {
     val shape = RoundedCornerShape(ThusoRadius.card)
-    CompositionLocalProvider(LocalOnStudioNight provides false, LocalSecondaryText provides StudioInkMuted) {
+    CompositionLocalProvider(LocalOnStudioNight provides false, LocalSecondaryText provides DeckInk.sheetQuiet) {
         Column(
             modifier.fillMaxWidth().deckRaised(shape).clip(shape).background(fill).padding(ThusoSpacing.space16),
             verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), content = content
@@ -681,7 +707,7 @@ fun Modifier.deckRaised(shape: Shape): Modifier =
                         var x = step / 2
                         while (x < size.width) {
                             var y = step / 2
-                            while (y < size.height) { drawCircle(Indigo.copy(alpha = 0.22f), radius, Offset(x, y)); y += step }
+                            while (y < size.height) { drawCircle(BrandInk.copy(alpha = 0.14f), radius, Offset(x, y)); y += step }
                             x += step
                         }
                     }
@@ -736,8 +762,8 @@ sealed interface DeckWord {
                         )
                     }
                     is DeckWord.Glyph -> Box(Modifier.height(line), contentAlignment = Alignment.Center) {
-                        Box(Modifier.size(disc).background(IndigoSoft, CircleShape), contentAlignment = Alignment.Center) {
-                            Icon(word.icon, null, tint = IndigoDeep, modifier = Modifier.size(disc * 0.5f))
+                        Box(Modifier.size(disc).background(BrandGreen, CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(word.icon, null, tint = SurfaceWhite, modifier = Modifier.size(disc * 0.5f))
                         }
                     }
                 }
@@ -761,7 +787,8 @@ sealed interface DeckWord {
     }
 }
 
-/** A refusal on the canvas: peach, a glyph and the sentence the contract wrote. */
+/** A refusal on the canvas: an orange glyph and the sentence the contract wrote, in white. Orange is
+    4.24 on BrandInk, which is a glyph's ratio and not a sentence's. */
 @Composable fun DeckRefusal(reason: String?) {
     if (reason.isNullOrEmpty()) return
     Row(
@@ -769,7 +796,7 @@ sealed interface DeckWord {
         verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)
     ) {
         Icon(Icons.Outlined.Block, null, tint = DeckInk.refusal, modifier = Modifier.size(18.dp))
-        Text(reason, style = MaterialTheme.typography.bodyMedium, color = DeckInk.refusal)
+        Text(reason, style = MaterialTheme.typography.bodyMedium, color = DeckInk.ink)
     }
 }
 
@@ -778,9 +805,9 @@ sealed interface DeckWord {
 @Composable fun DeckTag(text: String, flagged: Boolean = false, ground: DeckGround = DeckGround.GLASS) {
     val shape = RoundedCornerShape(if (LocalDensity.current.fontScale >= 1.3f) ThusoRadius.control else ThusoRadius.pill)
     val (ink, fill, edge) = when {
-        ground == DeckGround.PANEL && flagged -> Triple(DeckInk.panel, DeckInk.panelLit, DeckInk.panelLit)
-        ground == DeckGround.PANEL -> Triple(IndigoDeep, Color.Transparent, DeckInk.panelLit)
-        flagged -> Triple(DeckInk.ground, DeckInk.ink, DeckInk.ink)
+        ground == DeckGround.PANEL && flagged -> Triple(SurfaceWhite, DeckInk.panelInk, DeckInk.panelInk)
+        ground == DeckGround.PANEL -> Triple(DeckInk.panelInk, Color.Transparent, DeckInk.panelMark)
+        flagged -> Triple(DeckInk.onAttention, DeckInk.attention, DeckInk.attention)
         else -> Triple(DeckInk.quiet, Color.Transparent, DeckInk.mark)
     }
     Text(
@@ -798,13 +825,13 @@ sealed interface DeckWord {
 @Composable fun <T> DeckPills(label: String, selected: T, options: List<Pair<T, String>>, onNight: Boolean = true, choose: (T) -> Unit) {
     val shape = RoundedCornerShape(if (LocalDensity.current.fontScale >= 1.3f) ThusoRadius.control else ThusoRadius.pill)
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-        if (label.isNotEmpty()) Text(label, style = MaterialTheme.typography.labelLarge, color = if (onNight) DeckInk.quiet else StudioInkMuted)
+        if (label.isNotEmpty()) Text(label, style = MaterialTheme.typography.labelLarge, color = if (onNight) DeckInk.quiet else DeckInk.sheetQuiet)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
             options.forEach { (value, title) ->
                 val on = value == selected
-                val ink = if (on) (if (onNight) DeckInk.ground else StudioPaper) else (if (onNight) DeckInk.ink else Charcoal)
-                val fill = if (on) (if (onNight) DeckInk.ink else StudioNight) else (if (onNight) DeckInk.glass else SurfaceWhite)
-                val edge = if (on) Color.Transparent else (if (onNight) DeckInk.control else StudioInkMuted)
+                val ink = if (on) DeckInk.onChosen else (if (onNight) DeckInk.ink else DeckInk.sheetInk)
+                val fill = if (on) DeckInk.chosen else (if (onNight) DeckInk.glass else SurfaceWhite)
+                val edge = if (on) Color.Transparent else (if (onNight) DeckInk.control else DeckInk.sheetQuiet)
                 Row(
                     Modifier.heightIn(min = TouchTarget).clip(shape).background(fill, shape).border(1.dp, edge, shape)
                         .clickable(role = Role.Button) { choose(value) }
@@ -823,8 +850,8 @@ sealed interface DeckWord {
 /** The circular affordance: filled and inverted against its ground, so it reads as the thing that
     moves you. Decorative to TalkBack — the row it sits on is the control. */
 @Composable fun DeckCircle(icon: ImageVector = Icons.Outlined.ArrowOutward, onNight: Boolean = false) {
-    Box(Modifier.size(44.dp).background(if (onNight) DeckInk.ink else StudioNight, CircleShape), contentAlignment = Alignment.Center) {
-        Icon(icon, null, tint = if (onNight) DeckInk.ground else StudioPaper, modifier = Modifier.size(18.dp))
+    Box(Modifier.size(44.dp).background(if (onNight) DeckInk.ink else DeckInk.ground, CircleShape), contentAlignment = Alignment.Center) {
+        Icon(icon, null, tint = if (onNight) DeckInk.ground else SurfaceWhite, modifier = Modifier.size(18.dp))
     }
 }
 
@@ -838,22 +865,22 @@ sealed interface DeckWord {
         Modifier.fillMaxWidth().heightIn(min = 68.dp)
             .then(if (raised) Modifier.deckRaised(shape) else Modifier)
             .clip(shape).background(SurfaceWhite, shape)
-            .then(if (raised) Modifier else Modifier.border(1.dp, StudioLine, shape))
+            .then(if (raised) Modifier else Modifier.border(1.dp, DeckInk.sheetLine, shape))
             .clickable(role = Role.Button, onClick = click)
             .semantics(mergeDescendants = true) {}
             .padding(start = ThusoSpacing.space16, end = ThusoSpacing.space12, top = ThusoSpacing.space12, bottom = ThusoSpacing.space12),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
     ) {
         if (roomy) {
-            if (raised) Box(Modifier.size(44.dp).background(IndigoSoft, CircleShape), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = IndigoDeep, modifier = Modifier.size(22.dp))
+            if (raised) Box(Modifier.size(44.dp).background(BrandGreen, CircleShape), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = SurfaceWhite, modifier = Modifier.size(22.dp))
             } else Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = Charcoal, modifier = Modifier.size(22.dp))
+                Icon(icon, null, tint = DeckInk.sheetInk, modifier = Modifier.size(22.dp))
             }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-            if (subtitle.isNotEmpty()) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+            Text(title, style = MaterialTheme.typography.titleSmall, color = DeckInk.sheetInk)
+            if (subtitle.isNotEmpty()) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetQuiet)
         }
         DeckCircle()
     }
@@ -869,12 +896,12 @@ sealed interface DeckWord {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
             Text(
                 title.uppercase(), style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp),
-                fontWeight = FontWeight.SemiBold, color = StudioInkMuted, modifier = Modifier.weight(1f)
+                fontWeight = FontWeight.SemiBold, color = DeckInk.sheetQuiet, modifier = Modifier.weight(1f)
             )
-            if (count != null) Text(count, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Charcoal)
+            if (count != null) Text(count, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = DeckInk.sheetInk)
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(StudioLine))
-        if (note.isNotEmpty()) Text(note, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+        Box(Modifier.fillMaxWidth().height(1.dp).background(DeckInk.sheetLine))
+        if (note.isNotEmpty()) Text(note, style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetQuiet)
     }
 }
 
@@ -894,8 +921,9 @@ sealed interface DeckWord {
     val progress = if (still) 1f else reveal
     val ink = if (ground == DeckGround.PANEL) DeckInk.panelInk else DeckInk.ink
     val quiet = if (ground == DeckGround.PANEL) DeckInk.panelQuiet else DeckInk.quiet
-    /* Lime is the glass's alone. On the night a lit mark is the quiet tone, and on the panel indigo. */
-    val lit = when (ground) { DeckGround.GLASS -> DeckInk.accent; DeckGround.PANEL -> DeckInk.panelLit; else -> DeckInk.quiet }
+    /* Green is the glass's and the panel's. On the bare ground a lit mark is the quiet tone, so the
+       figure on the glass stays the one the screen is about. */
+    val lit = when (ground) { DeckGround.GLASS -> DeckInk.lit; DeckGround.PANEL -> DeckInk.panelLit; else -> DeckInk.quiet }
     val unlit = when (ground) { DeckGround.GLASS -> DeckInk.leadMark; DeckGround.PANEL -> DeckInk.panelMark; else -> DeckInk.mark }
     val track = if (ground == DeckGround.PANEL) DeckInk.panelTrack else DeckInk.track
     val scale = LocalDensity.current.fontScale
@@ -1032,9 +1060,9 @@ sealed interface DeckWord {
                 }
             },
             sheet = {
-                Text(observationsNote, style = MaterialTheme.typography.titleSmall, color = Charcoal)
+                Text(observationsNote, style = MaterialTheme.typography.titleSmall, color = DeckInk.sheetInk)
                 Text("AI is decision support. Clinical decisions require an authorised clinician’s sign-off.",
-                    style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+                    style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetQuiet)
             }
         )
         DeckSectionHead("Where a reading is flagged", count = "${observationRanges.size}")
@@ -1045,7 +1073,7 @@ sealed interface DeckWord {
 /* One range as a ruler: the band is the indicative range and either side of it is where a reading is
    flagged. It is a schematic rather than a scale — seven readings in six units cannot share one axis
    honestly — so the numbers are written on the band and read out in full, because a chart in this
-   product is always also a table. studioPaper on studioOlive is 5.86. */
+   product is always also a table. White on the BrandInk band is 12.04; BodyText on the green wash 7.10. */
 @Composable private fun ProtocolRange(range: ObservationRange) {
     fun figure(value: Double) = if (range.step < 1) "%.1f".format(value) else "%.0f".format(value)
     val low = figure(range.low)
@@ -1053,23 +1081,46 @@ sealed interface DeckWord {
     val shape = RoundedCornerShape(ThusoRadius.card)
     val pill = RoundedCornerShape(ThusoRadius.pill)
     Column(
-        Modifier.fillMaxWidth().clip(shape).background(SurfaceWhite).border(1.dp, StudioLine, shape).padding(ThusoSpacing.space16)
+        Modifier.fillMaxWidth().clip(shape).background(SurfaceWhite).border(1.dp, DeckInk.sheetLine, shape).padding(ThusoSpacing.space16)
             .clearAndSetSemantics {
                 contentDescription = "${range.label}. Below $low ${range.unit} is flagged low, $low to $high is inside the indicative range, above $high is flagged high."
             },
         verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
     ) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-            Text(range.label, style = MaterialTheme.typography.titleSmall, color = Charcoal, modifier = Modifier.weight(1f))
-            Text(range.unit, style = MaterialTheme.typography.labelMedium, color = StudioInkMuted)
+            Text(range.label, style = MaterialTheme.typography.titleSmall, color = DeckInk.sheetInk, modifier = Modifier.weight(1f))
+            Text(range.unit, style = MaterialTheme.typography.labelMedium, color = DeckInk.sheetQuiet)
         }
-        Row(Modifier.fillMaxWidth().heightIn(min = 32.dp).clip(pill).background(Cloud), verticalAlignment = Alignment.CenterVertically) {
-            Text("Low", style = MaterialTheme.typography.labelMedium, color = StudioInkMuted, modifier = Modifier.weight(1f).padding(start = ThusoSpacing.space12))
-            Box(Modifier.weight(2f).heightIn(min = 32.dp).background(StudioOlive, pill), contentAlignment = Alignment.Center) {
-                Text("$low–$high", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = StudioPaper)
+        Row(Modifier.fillMaxWidth().heightIn(min = 32.dp).clip(pill).background(DeckInk.panel), verticalAlignment = Alignment.CenterVertically) {
+            Text("Low", style = MaterialTheme.typography.labelMedium, color = DeckInk.sheetQuiet, modifier = Modifier.weight(1f).padding(start = ThusoSpacing.space12))
+            Box(Modifier.weight(2f).heightIn(min = 32.dp).background(DeckInk.ground, pill), contentAlignment = Alignment.Center) {
+                Text("$low–$high", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = SurfaceWhite)
             }
-            Text("High", style = MaterialTheme.typography.labelMedium, color = StudioInkMuted, textAlign = androidx.compose.ui.text.style.TextAlign.End,
+            Text("High", style = MaterialTheme.typography.labelMedium, color = DeckInk.sheetQuiet, textAlign = androidx.compose.ui.text.style.TextAlign.End,
                 modifier = Modifier.weight(1f).padding(end = ThusoSpacing.space12))
         }
     }
+}
+
+/* The primary action on a staff screen, in the wordmark's ink. StudioButton is the Care Studio's olive
+   and stays the patient app's; the screens a clinician works in moved to the logo, and a dark olive
+   button under a BrandInk canvas is the palette the founder asked to be rid of. White on BrandInk is
+   12.04; a disabled button is the green wash with BodyText on it at 7.10, and it says so by losing the
+   ink rather than by greying the words below what a reader can make out. */
+@Composable fun DeckButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape = ThusoButtonShape,
+    contentPadding: PaddingValues = androidx.compose.material3.ButtonDefaults.ContentPadding,
+    content: @Composable RowScope.() -> Unit
+) {
+    androidx.compose.material3.Button(
+        onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
+        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+            containerColor = DeckInk.ground, contentColor = SurfaceWhite,
+            disabledContainerColor = DeckInk.panel, disabledContentColor = DeckInk.sheetQuiet
+        ),
+        contentPadding = contentPadding, content = content
+    )
 }

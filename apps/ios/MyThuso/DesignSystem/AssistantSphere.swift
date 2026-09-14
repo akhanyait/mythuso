@@ -45,7 +45,7 @@ import SwiftUI
 
 struct AssistantSphere: View {
     var size: CGFloat = 272
-    /// Where this state sits on the sage ramp: 0 is the palest and widest, 3 the deepest and most
+    /// Where this state sits on the green ramp: 0 is the palest and widest, 3 the deepest and most
     /// concentrated. It is never the only thing that says which state this is — the screen says it
     /// in words directly underneath.
     var depth: Int = 0
@@ -66,15 +66,20 @@ struct AssistantSphere: View {
     private static let hold: Double = 1.25
     private static let settled: Double = 2.45
 
-    // The ramp, deepening with the state. Sage is a fill here and never a label: the darkest of
-    // these measures 5.26:1 against the ground as a large shape and nothing at all as small text.
+    // The ramp, deepening with the state, in the wordmark's colours since 14 September. Green is a
+    // fill here and never a label: brandGreen measures 3.55:1 against brandInk as a large shape and
+    // nothing at all as small text, and brandMint 8.09.
     /* The shell colour and the core, in order. The core is deep on every state: a body measured
        pale at the centre and pale at the rim reads as a pearl, which is what the first two passes
-       of this drawing were. Light inside a dark body is what makes a sphere look lit. */
-    private static let mids: [Color] = [ThusoTheme.softSage, ThusoTheme.paleSage,
-                                        ThusoTheme.paleSage, ThusoTheme.paleSage]
-    private static let cores: [Color] = [ThusoTheme.studioInk, ThusoTheme.studioInk,
-                                         ThusoTheme.studioInkDeep, ThusoTheme.studioInkDeep]
+       of this drawing were. Light inside a dark body is what makes a sphere look lit — green light
+       inside the logo's ink, deepening to the design system's ink on the two states with something
+       in them. The shell is green on every state, settled included: a mint shell measured on the
+       simulator as a pale pearl again, which is the first two passes of this drawing in a new colour.
+       Mint is the key light's alone. */
+    private static let mids: [Color] = [ThusoTheme.brandGreen, ThusoTheme.brandGreen,
+                                        ThusoTheme.brandGreen, ThusoTheme.brandGreen]
+    private static let cores: [Color] = [ThusoTheme.brandInk, ThusoTheme.brandInk,
+                                         ThusoTheme.ink, ThusoTheme.ink]
 
     private var step: Int { min(max(depth, 0), Self.mids.count - 1) }
     private var mid: Color { Self.mids[step] }
@@ -129,15 +134,15 @@ struct AssistantSphere: View {
     private func bleed(breath: Double, gather: Double) -> some View {
         ZStack {
             Circle().fill(RadialGradient(gradient: Gradient(stops: [
-                .init(color: ThusoTheme.paleSage.opacity(0.58 + gather * 0.18), location: 0),
-                .init(color: ThusoTheme.paleSage.opacity(0.26), location: 0.38),
+                .init(color: ThusoTheme.brandGreen.opacity(0.58 + gather * 0.18), location: 0),
+                .init(color: ThusoTheme.brandGreen.opacity(0.26), location: 0.38),
                 .init(color: mid.opacity(0.09), location: 0.72),
                 .init(color: mid.opacity(0), location: 1)
             ]), center: .center, startRadius: size * 0.26, endRadius: size * spread))
             Circle().fill(RadialGradient(gradient: Gradient(stops: [
-                .init(color: ThusoTheme.glow.opacity(0.48 + gather * 0.16), location: 0),
-                .init(color: ThusoTheme.glow.opacity(0.13), location: 0.55),
-                .init(color: ThusoTheme.glow.opacity(0), location: 1)
+                .init(color: ThusoTheme.brandMint.opacity(0.48 + gather * 0.16), location: 0),
+                .init(color: ThusoTheme.brandMint.opacity(0.13), location: 0.55),
+                .init(color: ThusoTheme.brandMint.opacity(0), location: 1)
             ]), center: .center, startRadius: size * 0.29, endRadius: size * 0.46))
         }
         .scaleEffect(1 + 0.05 * breath + 0.02 * gather)
@@ -157,7 +162,7 @@ struct AssistantSphere: View {
     }
 
     private func hairline(diameter: CGFloat, opacity: Double) -> some View {
-        Circle().stroke(ThusoTheme.paleSage.opacity(opacity), lineWidth: 1)
+        Circle().stroke(ThusoTheme.brandMint.opacity(opacity), lineWidth: 1)
             .frame(width: diameter, height: diameter)
     }
 
@@ -178,11 +183,11 @@ struct AssistantSphere: View {
                        angle: Double, opacity: Double, weight: CGFloat) -> some View {
         Ellipse()
             .stroke(AngularGradient(gradient: Gradient(stops: [
-                .init(color: ThusoTheme.paleSage.opacity(0), location: 0),
-                .init(color: ThusoTheme.paleSage.opacity(opacity), location: 0.15),
-                .init(color: ThusoTheme.glow.opacity(opacity * 0.55), location: 0.32),
-                .init(color: ThusoTheme.paleSage.opacity(0), location: 0.58),
-                .init(color: ThusoTheme.paleSage.opacity(0), location: 1)
+                .init(color: ThusoTheme.brandMint.opacity(0), location: 0),
+                .init(color: ThusoTheme.brandMint.opacity(opacity), location: 0.15),
+                .init(color: ThusoTheme.brandLime.opacity(opacity * 0.55), location: 0.32),
+                .init(color: ThusoTheme.brandMint.opacity(0), location: 0.58),
+                .init(color: ThusoTheme.brandMint.opacity(0), location: 1)
             ]), center: .center, angle: .degrees(angle)), lineWidth: weight)
             .frame(width: width, height: width * flatten)
             .rotationEffect(.degrees(tilt))
@@ -203,23 +208,24 @@ struct AssistantSphere: View {
         let radius = diameter / 2
         return ZStack {
             Circle().fill(RadialGradient(gradient: Gradient(stops: [
-                .init(color: ThusoTheme.paleSage, location: 0),
+                .init(color: ThusoTheme.brandMint, location: 0),
                 .init(color: mid, location: 0.36),
                 .init(color: core, location: 0.80),
                 .init(color: core, location: 1)
             ]), center: lightCentre(clock: clock, gather: gather),
                startRadius: 0, endRadius: radius * 1.55))
-            /* The bounce. A shadow side with nothing in it is a dead grey area; a little of the
-               body's own light finding its way back into it is what real spheres do, and it is what
-               keeps the lower right reading as shadow rather than as a hole. */
+            /* The bounce. A shadow side with nothing in it is a dead grey area; a little light finding
+               its way back into it is what real spheres do, and it is what keeps the lower right
+               reading as shadow rather than as a hole. It is the one place the wordmark's orange roof
+               appears, at a sixth of its strength: warmth, not a mark. */
             Circle().fill(RadialGradient(gradient: Gradient(stops: [
-                .init(color: ThusoTheme.glow.opacity(0.20), location: 0),
-                .init(color: ThusoTheme.glow.opacity(0), location: 1)
+                .init(color: ThusoTheme.brandOrange.opacity(0.16), location: 0),
+                .init(color: ThusoTheme.brandOrange.opacity(0), location: 1)
             ]), center: bounceCentre(clock: clock), startRadius: 0, endRadius: radius * 0.90))
             Circle().fill(RadialGradient(gradient: Gradient(stops: [
                 .init(color: Color.clear, location: 0),
                 .init(color: Color.clear, location: rimStart),
-                .init(color: ThusoTheme.paleSage.opacity(0.50), location: rimStart + (1 - rimStart) * 0.62),
+                .init(color: ThusoTheme.brandMint.opacity(0.50), location: rimStart + (1 - rimStart) * 0.62),
                 .init(color: Color.white.opacity(0.92), location: 1)
             ]), center: .center, startRadius: 0, endRadius: radius))
             sheen(clock: clock, radius: radius)
@@ -241,8 +247,8 @@ struct AssistantSphere: View {
                round is a drawn outline, which is the one thing a lit sphere never has. */
             Circle().strokeBorder(LinearGradient(gradient: Gradient(stops: [
                 .init(color: Color.white.opacity(0.95), location: 0),
-                .init(color: ThusoTheme.paleSage.opacity(0.45), location: 0.42),
-                .init(color: ThusoTheme.glow.opacity(0.10), location: 0.78),
+                .init(color: ThusoTheme.brandMint.opacity(0.45), location: 0.42),
+                .init(color: ThusoTheme.brandGreen.opacity(0.10), location: 0.78),
                 .init(color: Color.clear, location: 1)
             ]), startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.7)
                 .blur(radius: 0.5)
@@ -284,14 +290,15 @@ struct AssistantSphere: View {
     }
 
     /// One highlight, well off centre, with a small hard glint inside it. Centred, it hollows the
-    /// sphere out into a ring, which is what the first pass at this looked like.
+    /// sphere out into a ring, which is what the first pass at this looked like. The glint is the
+    /// wordmark's lime dot, which is the only size lime is ever spent at.
     private func specular(radius: CGFloat, breath: Double) -> some View {
         ZStack {
             Circle().fill(Color.white.opacity(0.62))
                 .frame(width: radius * 0.58, height: radius * 0.48)
                 .blur(radius: radius * 0.14)
                 .offset(x: -radius * 0.32, y: -radius * 0.40)
-            Circle().fill(Color.white.opacity(0.92))
+            Circle().fill(ThusoTheme.brandLime.opacity(0.92))
                 .frame(width: radius * 0.17, height: radius * 0.17)
                 .blur(radius: radius * 0.035)
                 .offset(x: -radius * 0.36, y: -radius * 0.44)
@@ -304,7 +311,9 @@ struct AssistantSphere: View {
     /* Twenty-six of them, in one Canvas. The golden angle spaces them without a random number
        generator, the vertical squash puts them on an orbital plane rather than in a flat halo, and
        each one's speed, size and twinkle is a different modulo of its own index — which is what
-       stops them reading as a clock face. They draw inwards and brighten while the sphere gathers. */
+       stops them reading as a clock face. They draw inwards and brighten while the sphere gathers.
+       One in five is lime and the rest mint, chosen by index like everything else here, so the field
+       is the same field on every run. */
     private func particles(clock: Double, gather: Double) -> some View {
         Canvas { context, box in
             let centre = CGPoint(x: box.width / 2, y: box.height / 2)
@@ -322,7 +331,8 @@ struct AssistantSphere: View {
                 let dot = CGFloat(extent * (0.006 + fmod(seed * 0.11, 1) * 0.008))
                 let spot = CGRect(x: point.x - dot / 2, y: point.y - dot / 2, width: dot, height: dot)
                 context.fill(Path(ellipseIn: spot),
-                             with: .color(ThusoTheme.paleSage.opacity(twinkle * (0.55 + gather * 0.35))))
+                             with: .color((index % 5 == 0 ? ThusoTheme.brandLime : ThusoTheme.brandMint)
+                                            .opacity(twinkle * (0.55 + gather * 0.35))))
             }
         }
     }

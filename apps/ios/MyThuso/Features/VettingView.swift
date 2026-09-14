@@ -24,7 +24,7 @@ struct VettingProgressRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             ProgressView(value: summary.progress)
-                .tint(summary.cleared ? ThusoTheme.charcoal : ThusoTheme.mangoInk)
+                .tint(summary.cleared ? DeckInk.sheetInk : ThusoTheme.mangoInk)
                 .studioChartEntrance(identity: "\(summary.passed)/\(summary.total)")
             Text("\(summary.passed) of \(summary.total) checks in date")
                 .font(.caption).foregroundStyle(.secondary)
@@ -39,7 +39,7 @@ struct RefusalRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline) {
-                Text(item.capability.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(item.capability.name).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
                 Spacer(minLength: 8)
                 StatusPill(text: item.decision.allowed ? "Allowed" : "Refused", tone: item.decision.allowed ? "teal" : "danger")
             }
@@ -74,7 +74,7 @@ struct SubjectSummaryRow: View {
         let summary = summarise(subject)
         VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline) {
-                Text(subject.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(subject.name).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
                 Spacer(minLength: 8)
                 SubjectStatusPill(status: summary.status)
             }
@@ -102,7 +102,7 @@ struct VettingDirectoryView: View {
         List {
             Section {
                 DemoBadge()
-                Text("Thirteen parties are vetted, not only nurses.").font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text("Thirteen parties are vetted, not only nurses.").font(.title3.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
                 Text("Each one is refused something specific until its checks pass, and each check is renewed on its own cadence by the authority that issued it.")
                     .font(.caption).foregroundStyle(.secondary)
                 StatePicker(title: "Preview the vetting feed state", state: $feed)
@@ -137,7 +137,7 @@ struct VettingDirectoryView: View {
         let parties = vetting.subjects(role: role.id)
         let cleared = parties.filter { summarise($0).cleared }.count
         return VStack(alignment: .leading, spacing: 4) {
-            Text(role.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(role.name).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
             Text(role.summary).font(.caption).foregroundStyle(.secondary)
             Text("\(role.checks.count) checks · \(role.grants.count) gated capabilit\(role.grants.count == 1 ? "y" : "ies") · \(cleared) of \(parties.count) parties cleared")
                 .font(.caption2).foregroundStyle(.secondary)
@@ -157,7 +157,7 @@ struct VettingRoleView: View {
         List {
             if let role {
                 Section {
-                    Text(role.summary).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    Text(role.summary).font(.subheadline).foregroundStyle(DeckInk.sheetInk)
                     LabeledContent("Party", value: role.party.capitalized)
                     LabeledContent("Workspace", value: role.workspace)
                 }
@@ -165,7 +165,7 @@ struct VettingRoleView: View {
                     ForEach(role.grants, id: \.capability) { grant in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(Vetting.capability(grant.capability)?.name ?? grant.capability)
-                                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                                .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
                             Text(grant.refusal).font(.caption).foregroundStyle(ThusoTheme.danger)
                         }
                         .padding(.vertical, 3)
@@ -193,7 +193,7 @@ struct CheckDefinitionRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
-                Text(check.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(check.name).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
                 Spacer(minLength: 8)
                 if check.isHighRisk { StatusPill(text: "Two reviewers", tone: "amber") }
             }
@@ -318,9 +318,9 @@ struct VettingApplyView: View {
                     if scope.contains(item) { scope.remove(item) } else { scope.insert(item) }
                 } label: {
                     HStack {
-                        Text(item).foregroundStyle(ThusoTheme.charcoal)
+                        Text(item).foregroundStyle(DeckInk.sheetInk)
                         Spacer()
-                        if scope.contains(item) { Image(systemName: "checkmark").foregroundStyle(ThusoTheme.charcoal) }
+                        if scope.contains(item) { Image(systemName: "checkmark").foregroundStyle(DeckInk.sheetInk) }
                     }
                 }
                 .accessibilityAddTraits(scope.contains(item) ? [.isSelected] : [])
@@ -370,7 +370,7 @@ struct VettingApplyView: View {
     @ViewBuilder private var attestationStage: some View {
         if let submitted, let subject = vetting.subject(submitted) {
             Section {
-                Label("Demo application submitted", systemImage: "checkmark.seal.fill").foregroundStyle(ThusoTheme.charcoal)
+                Label("Demo application submitted", systemImage: "checkmark.seal.fill").foregroundStyle(DeckInk.sheetInk)
                 Text("\(subject.name) now appears in the vetting queue as \(subject.id). Nothing was transmitted and nobody was notified.")
                     .font(.subheadline).foregroundStyle(.secondary)
                 NavigationLink("Open the status of this application") { VettingStatusView(subjectId: subject.id) }
@@ -425,7 +425,7 @@ struct CredentialField: View {
     private var entered: Bool { !value.trimmingCharacters(in: .whitespaces).isEmpty }
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-            Text(authority.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(authority.name).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
             Text("\(authority.verifies) · \(authority.format)").font(.caption).foregroundStyle(.secondary)
             HStack(spacing: ThusoSpacing.space8) {
                 TextField(authority.example, text: $value)
@@ -436,14 +436,14 @@ struct CredentialField: View {
                     .accessibilityHint(authority.hint)
                 if entered {
                     Image(systemName: result.ok ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .foregroundStyle(result.ok ? ThusoTheme.charcoal : ThusoTheme.danger)
+                        .foregroundStyle(result.ok ? DeckInk.sheetInk : ThusoTheme.danger)
                         .accessibilityHidden(true)
                 }
             }
             if entered, let reason = result.reason {
                 Text(reason).font(.caption).foregroundStyle(ThusoTheme.danger)
             } else if entered && authority.id == "dha" {
-                Text(validateSaId(value).message).font(.caption).foregroundStyle(ThusoTheme.charcoal)
+                Text(validateSaId(value).message).font(.caption).foregroundStyle(DeckInk.sheetInk)
             } else {
                 Text("Used for \(usedFor.joined(separator: ", ")).").font(.caption2).foregroundStyle(.secondary)
             }
@@ -461,7 +461,7 @@ struct EvidenceSlot: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             HStack(alignment: .firstTextBaseline) {
-                Text(check.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(check.name).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
                 Spacer(minLength: 8)
                 if check.isHighRisk { StatusPill(text: "Two reviewers", tone: "amber") }
             }
@@ -476,7 +476,7 @@ struct EvidenceSlot: View {
                     .font(.caption2).foregroundStyle(.secondary)
             }
             if attached {
-                Label("\(check.evidence) attached · demo file", systemImage: "paperclip").font(.caption2).foregroundStyle(ThusoTheme.charcoal)
+                Label("\(check.evidence) attached · demo file", systemImage: "paperclip").font(.caption2).foregroundStyle(DeckInk.sheetInk)
             }
         }
         .padding(.vertical, 4)
@@ -552,7 +552,7 @@ struct VettingStatusView: View {
                     CareCard { CheckStandingRow(subject: subject, standing: standing, vetting: vetting) }
                 }
                 Text("Fictional party, fictional credentials, fictional decisions. Nothing on this screen was verified with anybody.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(ThusoSpacing.space16)
@@ -571,7 +571,7 @@ struct VettingStatusView: View {
        round, because re-vetting runs on a schedule and nobody should have to remember the date. */
     @ViewBuilder private func standing(_ subject: VettingSubject, _ summary: VettingSummary) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-            Text(thuso(.vettingStatus, store.locale)).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+            Text(thuso(.vettingStatus, store.locale)).font(.headline).foregroundStyle(DeckInk.sheetInk)
             Spacer(minLength: ThusoSpacing.space8)
             SubjectStatusPill(status: summary.status)
         }
@@ -580,33 +580,33 @@ struct VettingStatusView: View {
             Label(subject.declined ? "Declined" : "Suspended", systemImage: "hand.raised.fill")
                 .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
             Text(subject.declinedReason ?? subject.suspendedReason ?? "A check on this file has lapsed, so every capability it carried is withdrawn.")
-                .font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.subheadline).foregroundStyle(DeckInk.sheetQuiet)
                 .fixedSize(horizontal: false, vertical: true)
             if subject.appealed {
                 Text("An appeal is lodged. The decision stands while it is heard — an appeal is not a suspension of the refusal.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
         if !summary.blocking.isEmpty || !summary.awaitingSecond.isEmpty {
-            Text("What is blocking").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text("What is blocking").font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
             ForEach(summary.blocking) { check in
                 Label("\(check.name) — \(stateOf(subject, check.id).label.lowercased())", systemImage: "circle.dashed")
-                    .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.subheadline).foregroundStyle(DeckInk.sheetInk)
             }
             ForEach(summary.awaitingSecond) { standing in
                 Label("\(standing.check.name) — verified by \(standing.record.decidedBy ?? "a reviewer"), waiting for a second", systemImage: "person.2")
                     .font(.subheadline).foregroundStyle(ThusoTheme.mangoInk)
             }
             Text("A high-risk check is not verified on one person's say-so, so a file can look complete and still be refused.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
                 .fixedSize(horizontal: false, vertical: true)
         }
         if let due = summary.nextDue {
             Hairline()
             FactRow(label: due.check.name, value: expiryPhrase(due.record.expiresOn))
             Text("Re-vetting runs on a schedule, not once at sign-up. Nobody has to remember this date.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -625,7 +625,7 @@ struct CheckStandingRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             HStack(alignment: .firstTextBaseline) {
-                Text(check.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(check.name).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
                 Spacer(minLength: 8)
                 CheckStatePill(state: standing.state)
             }
@@ -675,7 +675,7 @@ struct CheckStandingRow: View {
             }
             .padding(.top, 6)
         } label: {
-            Text("Reviewer actions").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text("Reviewer actions").font(.caption.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
         }
     }
 }
@@ -754,7 +754,7 @@ struct VettingConsoleView: View {
         let decision = can(admin, "review-vetting")
         return VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
-                Text(admin.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(admin.name).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
                 Spacer(minLength: 8)
                 StatusPill(text: decision.allowed ? "May decide" : "Refused", tone: decision.allowed ? "teal" : "danger")
             }
@@ -810,7 +810,7 @@ struct VettingRenewalsView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
                 Text("\(item.standing.check.name) · \(item.subject.name)")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
                 Spacer(minLength: 8)
                 CheckStatePill(state: item.standing.state)
             }
@@ -836,7 +836,7 @@ struct VettingAuditView: View {
                 ForEach(vetting.log) { event in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text(event.kind.label).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                            Text(event.kind.label).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
                             Spacer(minLength: 8)
                             Text(formatEventTime(event.at)).font(.caption2).foregroundStyle(.secondary)
                         }

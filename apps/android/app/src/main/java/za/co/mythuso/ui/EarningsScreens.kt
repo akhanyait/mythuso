@@ -97,7 +97,7 @@ internal fun rand(amount: Int): String {
            on the canvas's edge, tinted mango when it refuses, and switching the nurse on the canvas
            changes the banner and not one figure — which is the rule, made visible. */
         DeckHero(
-            sheetFill = if (dispatchable.allowed) SurfaceWhite else MangoSoft,
+            sheetFill = if (dispatchable.allowed) SurfaceWhite else DeckInk.attentionWash,
             content = {
                 DeckPreviewMark()
                 DeckHeadline(
@@ -138,17 +138,17 @@ internal fun rand(amount: Int): String {
             sheet = {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                     Icon(if (dispatchable.allowed) Icons.Outlined.Verified else Icons.Outlined.WarningAmber, null,
-                        tint = if (dispatchable.allowed) Indigo else MangoInk)
+                        tint = if (dispatchable.allowed) DeckInk.sheetInk else MangoInk)
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(if (dispatchable.allowed) "Cleared for visits" else "You will not be sent new visits",
-                            style = MaterialTheme.typography.titleMedium, color = Charcoal)
+                            style = MaterialTheme.typography.titleMedium, color = DeckInk.sheetInk)
                         Text(
                             if (dispatchable.allowed) "Every check is verified and in date. Visits can be sent to you."
                             else dispatchable.reason.orEmpty(),
-                            style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted
+                            style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetQuiet
                         )
                         if (!dispatchable.allowed) Text(Earnings.rule("suspension-is-not-confiscation").sentence,
-                            style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+                            style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetInk)
                     }
                 }
             }
@@ -166,14 +166,14 @@ internal fun rand(amount: Int): String {
                 },
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Bar(Indigo, split.nurse)
+                Bar(DeckInk.sheetInk, split.nurse)
                 Bar(Mango, split.payment)
                 Bar(AccentSoft, split.platform)
             }
-            Legend(Indigo, rand(split.nurse), "Yours · ${(split.nurseShareOfPrice * 100).roundToInt()}% of the price")
+            Legend(DeckInk.sheetInk, rand(split.nurse), "Yours · ${(split.nurseShareOfPrice * 100).roundToInt()}% of the price")
             Legend(Mango, rand(split.payment), "The card fee, paid by MyThuso")
             Legend(AccentSoft, rand(split.platform), "What MyThuso keeps")
-            Text(Earnings.rule("share-is-not-reduced").sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+            Text(Earnings.rule("share-is-not-reduced").sentence, style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetQuiet)
             Note("Across the nine services at launch that is ${rand(Earnings.shareLow)} to ${rand(Earnings.shareHigh)} a visit — the same range the public page advertises, read from the same catalogue.")
         }
 
@@ -187,7 +187,7 @@ internal fun rand(amount: Int): String {
             LabelledAmount("Reached your account since ${payTaxYear.startsOn}", rand(Earnings.paidThisTaxYear))
             LabelledAmount("Tax withheld by MyThuso", rand(0))
             Note(payTaxYear.note)
-            Text(Earnings.rule("no-tax-withheld").sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+            Text(Earnings.rule("no-tax-withheld").sentence, style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetQuiet)
             Refusal(Earnings.refusal("advise-on-tax"))
         }
 
@@ -197,8 +197,8 @@ internal fun rand(amount: Int): String {
                 TileIcon(Icons.Outlined.AccountBalance, size = 38.dp)
                 Column {
                     Text("${payoutAccount.bank} · ${payoutAccount.maskedNumber}",
-                        style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                    Text(payoutAccount.holder, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                        style = MaterialTheme.typography.titleMedium, color = DeckInk.sheetInk)
+                    Text(payoutAccount.holder, style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetQuiet)
                 }
             }
             Note(payoutAccount.note)
@@ -206,26 +206,26 @@ internal fun rand(amount: Int): String {
                 "settled" -> {
                     OutlinedButton({ accountStage = "verifying" }, shape = ThusoButtonShape) { Text("Change account") }
                     Text(Earnings.rule("account-change-waits").sentence,
-                        style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+                        style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetQuiet)
                 }
                 "verifying" -> {
                     Note("Before anything changes, we check it is you. Nothing here is sent.")
                     payoutAccount.reverify.forEach { step ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
-                            Icon(Icons.Outlined.Lock, null, tint = Charcoal)
-                            Text(step, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+                            Icon(Icons.Outlined.Lock, null, tint = DeckInk.sheetInk)
+                            Text(step, style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetInk)
                         }
                     }
                     OutlinedTextField(code, { code = it.filter(Char::isDigit).take(6) },
                         label = { Text("One-time code") }, modifier = Modifier.fillMaxWidth())
-                    StudioButton({ accountStage = "pending" }, enabled = code.length == 6, shape = ThusoButtonShape) { Text("Verify and start the wait") }
+                    DeckButton({ accountStage = "pending" }, enabled = code.length == 6, shape = ThusoButtonShape) { Text("Verify and start the wait") }
                     OutlinedButton({ accountStage = "settled"; code = "" }, shape = ThusoButtonShape) { Text("Cancel") }
                 }
                 else -> {
                     Text("Waiting ${payoutAccount.coolingOffHours} hours",
-                        style = MaterialTheme.typography.titleMedium, color = Charcoal)
+                        style = MaterialTheme.typography.titleMedium, color = DeckInk.sheetInk)
                     Text(Earnings.rule("account-change-waits").sentence,
-                        style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+                        style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetQuiet)
                     OutlinedButton({ accountStage = "settled"; code = "" }, shape = ThusoButtonShape) { Text("Cancel the change") }
                 }
             }
@@ -245,23 +245,23 @@ internal fun rand(amount: Int): String {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
         Box(Modifier.padding(top = 4.dp).size(11.dp).background(colour, RoundedCornerShape(3.dp)))
         Column {
-            Text(amount, style = MaterialTheme.typography.titleMedium, color = Charcoal)
-            Text(note, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+            Text(amount, style = MaterialTheme.typography.titleMedium, color = DeckInk.sheetInk)
+            Text(note, style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetQuiet)
         }
     }
 }
 
 @Composable private fun LabelledAmount(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.titleMedium, color = Charcoal)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetQuiet, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.titleMedium, color = DeckInk.sheetInk)
     }
 }
 
 @Composable private fun Refusal(item: PayRefusal) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
         Icon(Icons.Outlined.Block, null, tint = Danger)
-        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+        Text(item.sentence, style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetInk)
     }
 }
 
@@ -274,9 +274,9 @@ internal fun rand(amount: Int): String {
             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top
         ) {
             Column {
-                Text(rand(week.total), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Charcoal)
+                Text(rand(week.total), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = DeckInk.sheetInk)
                 Text("Week to ${Scheduling.shortDate(week.ends)} · ${week.visits} visits",
-                    style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetQuiet)
             }
             StatusPill(state.name, when (week.state) {
                 "paid" -> "teal"; "failed" -> "danger"; "in-transit" -> "sky"; else -> "amber"
@@ -292,14 +292,14 @@ internal fun rand(amount: Int): String {
                 Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(line.service ?: Earnings.lineKind(line.kind).name,
-                            style = MaterialTheme.typography.bodyLarge, color = Charcoal, modifier = Modifier.weight(1f))
+                            style = MaterialTheme.typography.bodyLarge, color = DeckInk.sheetInk, modifier = Modifier.weight(1f))
                         Text(if (line.amount < 0) "− ${rand(line.amount)}" else rand(line.amount),
                             style = MaterialTheme.typography.titleSmall,
-                            color = if (line.amount < 0) Danger else Charcoal)
+                            color = if (line.amount < 0) Danger else DeckInk.sheetInk)
                     }
-                    Text("${line.reference} · ${line.patient}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                    line.plan?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Indigo) }
-                    line.reason?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted) }
+                    Text("${line.reference} · ${line.patient}", style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetQuiet)
+                    line.plan?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetInk) }
+                    line.reason?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetQuiet) }
                 }
             }
             HorizontalDivider()

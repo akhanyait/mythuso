@@ -39,10 +39,13 @@ import SwiftUI
 
    Two things about how it is drawn.
 
-   Sage is a fill and never a label. The orb is sage; every word on this screen is studioPaper
-   (#F5F4EF, 13.6:1 on the ground) or paleSage (#C8D5BB, 9.8:1), and the state is never carried by
-   the colour alone either — the line under the sphere says which state this is, in words, for a
-   reader who cannot tell four greens apart or is listening to the screen.
+   Green is a fill and never a label. Since 14 September the screen is in the wordmark's colours —
+   brandInk ground, a brandGreen body, brandMint light, one lime glint — because the founder asked for
+   the logo rather than the Care Studio's sage. Every word on this screen is white (12.04:1 on
+   brandInk, the lighter of the ground's tones) or brandMint (8.09, the reversed lockup's second tone),
+   and the state is never carried by the colour alone either — the line under the sphere says which
+   state this is, in words, for a reader who cannot tell four greens apart or is listening to the
+   screen.
 
    The animation stops rather than slows. Under Reduce Motion the sphere is a still object with
    every layer still drawn, not a blank circle: AssistantSphere pauses its timeline and substitutes
@@ -51,7 +54,7 @@ import SwiftUI
 
 // MARK: - The four things the drawing can say
 
-/// One situation the orb can be in. `depth` is where it sits on the sage ramp: 0 is the lightest
+/// One situation the orb can be in. `depth` is where it sits on the green ramp: 0 is the lightest
 /// and widest, 3 the deepest and most concentrated. It is never the only thing that says which
 /// state this is — `name` says it in words, and the words are what a screen reader gets.
 struct AssistantState: Identifiable, Hashable {
@@ -140,12 +143,15 @@ struct AssistantView: View {
 
     /* The ground the sphere is lit against. Two steps rather than one: a flat fill under a
        luminous object is the thing that makes it look pasted on, and the darker top gives the
-       large title something to sit on. Every word on this screen was measured against the lighter
-       of the two — studioNight, #202923 — so the ratios below are the worst case rather than the
-       flattering one. */
+       title something to sit on. brandInk in the middle, recessed at the ends by the design
+       system's ink at 45%. Every word on this screen was measured against the lighter of the two —
+       brandInk itself — so the ratios below are the worst case rather than the flattering one. */
     private var ground: some View {
-        LinearGradient(colors: [ThusoTheme.studioInkDeep, ThusoTheme.studioNight, ThusoTheme.studioInkDeep],
-                       startPoint: .top, endPoint: .bottom)
+        ZStack {
+            ThusoTheme.brandInk
+            LinearGradient(colors: [ThusoTheme.ink.opacity(0.45), .clear, ThusoTheme.ink.opacity(0.45)],
+                           startPoint: .top, endPoint: .bottom)
+        }
     }
 
     // MARK: - The sphere and the few words around it
@@ -162,22 +168,22 @@ struct AssistantView: View {
                 Text(showing.name)
                     .thusoFont(ThusoType.caption, weight: .semibold)
                     .tracking(1.4)
-                    .foregroundStyle(ThusoTheme.paleSage)
+                    .foregroundStyle(ThusoTheme.brandMint)
                 if let figure = showing.figure {
                     /* A semantic style at the lightest weight, not a point size: the genre's big
                        thin numeral, but one that still answers the text-size setting. */
                     Text(figure).font(.system(.largeTitle, design: .default, weight: .ultraLight))
-                        .foregroundStyle(ThusoTheme.studioPaper)
+                        .foregroundStyle(ThusoTheme.surface)
                     if let label = showing.figureLabel {
                         Text(label).thusoFont(ThusoType.caption)
-                            .foregroundStyle(ThusoTheme.paleSage)
+                            .foregroundStyle(ThusoTheme.brandMint)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 Text(showing.sentence)
                     .thusoFont(ThusoType.cardTitle)
-                    .foregroundStyle(ThusoTheme.studioPaper)
+                    .foregroundStyle(ThusoTheme.surface)
                     .lineSpacing(5)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -204,7 +210,7 @@ struct AssistantView: View {
             SceneHeading("What the drawing can say")
             Text("Four situations, and the shape each one takes. Nothing on this screen is watching for them yet — you are choosing which to look at.")
                 .thusoFont(ThusoType.caption)
-                .foregroundStyle(ThusoTheme.paleSage)
+                .foregroundStyle(ThusoTheme.brandMint)
                 .fixedSize(horizontal: false, vertical: true)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: ThusoSpacing.space8) { pills(filling: false) }
@@ -221,19 +227,20 @@ struct AssistantView: View {
             Button { showing = state } label: {
                 Text(state.name).font(.footnote.weight(.semibold))
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(chosen ? ThusoTheme.studioInkDeep : ThusoTheme.studioPaper)
+                    .foregroundStyle(chosen ? ThusoTheme.ink : ThusoTheme.surface)
                     .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8)
                     .frame(maxWidth: filling ? .infinity : nil, minHeight: 44)
                     /* The unchosen fill is a seven-per-cent lift off the ground rather than a
-                       colour of its own: studioPaper still measures 11.0:1 on it, and mutedSage at
-                       seven-tenths gives the edge 3.9:1 against the ground — a control's boundary
-                       has a contrast floor of its own and translucency is the usual way it is
-                       missed. */
-                    .background(chosen ? AnyShapeStyle(ThusoTheme.studioPaper)
+                       colour of its own: white still measures 9.80:1 on it, and white at 44% gives
+                       the edge 3.63:1 against the ground — a control's boundary has a contrast floor
+                       of its own and translucency is the usual way it is missed. The chosen pill is
+                       the wordmark's green, 3.55 off the ground, with the design system's ink on it
+                       at 5.27 — the same chosen pill the clinical decks draw. */
+                    .background(chosen ? AnyShapeStyle(ThusoTheme.brandGreen)
                                        : AnyShapeStyle(Color.white.opacity(0.07)),
                                 in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
-                        .stroke(chosen ? ThusoTheme.studioPaper : ThusoTheme.mutedSage.opacity(0.7), lineWidth: 1))
+                        .stroke(chosen ? ThusoTheme.brandGreen : ThusoTheme.surface.opacity(0.44), lineWidth: 1))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -253,10 +260,10 @@ struct AssistantView: View {
             SceneCard {
                 ForEach(Array(Capabilities.blocking(capability).enumerated()), id: \.offset) { index, reason in
                     if index > 0 {
-                        Rectangle().fill(ThusoTheme.mutedSage.opacity(0.24)).frame(height: 1)
+                        Rectangle().fill(ThusoTheme.surface.opacity(0.14)).frame(height: 1)
                             .accessibilityHidden(true)
                     }
-                    Text(reason).font(.footnote).foregroundStyle(ThusoTheme.studioPaper)
+                    Text(reason).font(.footnote).foregroundStyle(ThusoTheme.surface)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.vertical, ThusoSpacing.space4)
                 }
@@ -265,8 +272,8 @@ struct AssistantView: View {
                 SceneCard(spacing: ThusoSpacing.space8) {
                     Text("The rule this screen is built to")
                         .thusoFont(ThusoType.caption, weight: .semibold)
-                        .foregroundStyle(ThusoTheme.paleSage)
-                    Text(rule).font(.footnote).foregroundStyle(ThusoTheme.studioPaper)
+                        .foregroundStyle(ThusoTheme.brandMint)
+                    Text(rule).font(.footnote).foregroundStyle(ThusoTheme.surface)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -282,7 +289,7 @@ private struct SceneHeading: View {
     let text: String
     init(_ text: String) { self.text = text }
     var body: some View {
-        Text(text).font(.headline).foregroundStyle(ThusoTheme.studioPaper)
+        Text(text).font(.headline).foregroundStyle(ThusoTheme.surface)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityAddTraits(.isHeader)
     }
@@ -301,6 +308,6 @@ private struct SceneCard<Content: View>: View {
             .padding(ThusoSpacing.space16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.white.opacity(0.06), in: shape)
-            .overlay(shape.stroke(ThusoTheme.mutedSage.opacity(0.26), lineWidth: 1))
+            .overlay(shape.stroke(ThusoTheme.surface.opacity(0.16), lineWidth: 1))
     }
 }

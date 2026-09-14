@@ -95,6 +95,11 @@ val StudioNightInkQuiet = StudioPaper.copy(alpha = 0.78f)
  *
  * One node to TalkBack, announced as a heading. Read as three it was a greeting, then a slogan, then
  * a sentence, with nothing saying the three were one thing. */
+/* IN THE WORDMARK'S COLOURS, SINCE 14 SEPTEMBER. The only screens that set this headline are the staff
+   workspaces, and the founder asked those to stick to the logo: BrandInk for the lead (10.93 on the
+   paper), BrandGreen for the accent — 3.08 by the sRGB formula (tokens.json's note says 3.19), a pair
+   declared for large text only, and this
+   line is never smaller than `screenTitle` — and BodyText for the detail. */
 @Composable fun StudioHeadline(lead: String, accent: String, detail: String = "") {
     val compact = LocalDensity.current.fontScale >= 1.5f
     val size = if (compact) ThusoType.screenTitle else ThusoType.metricLarge
@@ -104,15 +109,15 @@ val StudioNightInkQuiet = StudioPaper.copy(alpha = 0.78f)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                lead, color = Charcoal, fontSize = size, lineHeight = size * 1.1f,
+                lead, color = BrandInk, fontSize = size, lineHeight = size * 1.1f,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                accent, color = StudioOlive, fontSize = size, lineHeight = size * 1.1f,
+                accent, color = BrandGreen, fontSize = size, lineHeight = size * 1.1f,
                 fontWeight = FontWeight.SemiBold
             )
         }
-        if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+        if (detail.isNotEmpty()) Text(detail, style = MaterialTheme.typography.bodyMedium, color = BodyText)
     }
 }
 

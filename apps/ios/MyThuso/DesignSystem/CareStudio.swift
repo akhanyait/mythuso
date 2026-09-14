@@ -67,6 +67,10 @@ extension EnvironmentValues {
  *
  * One element to VoiceOver, announced as a heading. Read as three it was a greeting, then a slogan,
  * then a sentence, with no indication that the three were one thing. */
+/* IN THE WORDMARK'S COLOURS, SINCE 14 SEPTEMBER. The only screens that set this headline are the staff
+   workspaces, and the founder asked those to stick to the logo. So the lead line is brandInk (10.93 on
+   the paper) and the accent line brandGreen — 3.08 on the paper by the sRGB formula (tokens.json's note
+   says 3.19), a pair declared for large text only, and this line is never smaller than `screenTitle`. The detail is body, 7.58 on white. */
 struct StudioHeadline: View {
     let lead: String
     let accent: String
@@ -81,17 +85,17 @@ struct StudioHeadline: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(lead)
                     .font(.system(size: size, weight: .semibold))
-                    .foregroundStyle(ThusoTheme.charcoal)
+                    .foregroundStyle(ThusoTheme.brandInk)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(accent)
                     .font(.system(size: size, weight: .semibold))
-                    .foregroundStyle(ThusoTheme.studioOlive)
+                    .foregroundStyle(ThusoTheme.brandGreen)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if !detail.isEmpty {
                 Text(detail)
                     .font(.subheadline)
-                    .foregroundStyle(ThusoTheme.studioInkMuted)
+                    .foregroundStyle(ThusoTheme.body)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

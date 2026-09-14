@@ -98,10 +98,10 @@ import za.co.mythuso.model.Capabilities
        drawn for the dark, so the sentence and the rule that it draws nothing once the capability is
        connected stay in one place. */
     val night = LocalOnStudioNight.current
-    TonedCard(background = if (night) StudioPaper.copy(alpha = 0.08f) else Cloud) {
+    TonedCard(background = if (night) SurfaceWhite.copy(alpha = 0.08f) else Cloud) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Info, null, tint = if (night) StudioPaper else Charcoal, modifier = Modifier.size(18.dp))
-            Text(notice, style = MaterialTheme.typography.bodySmall, color = if (night) StudioPaper else StudioInkMuted)
+            Icon(Icons.Outlined.Info, null, tint = if (night) SurfaceWhite else Charcoal, modifier = Modifier.size(18.dp))
+            Text(notice, style = MaterialTheme.typography.bodySmall, color = if (night) SurfaceWhite else StudioInkMuted)
         }
     }
 }

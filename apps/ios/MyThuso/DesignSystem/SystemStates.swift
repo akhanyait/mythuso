@@ -169,14 +169,14 @@ struct CapabilityNotice: View {
         if let notice = Capabilities.notice(for: of) {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
                 Image(systemName: "info.circle").font(.footnote)
-                    .foregroundStyle(onNight ? ThusoTheme.studioPaper : ThusoTheme.charcoal)
+                    .foregroundStyle(onNight ? ThusoTheme.surface : ThusoTheme.charcoal)
                     .accessibilityHidden(true)
-                Text(notice).font(.footnote).foregroundStyle(onNight ? ThusoTheme.studioPaper : ThusoTheme.charcoal)
+                Text(notice).font(.footnote).foregroundStyle(onNight ? ThusoTheme.surface : ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(ThusoSpacing.space12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(onNight ? ThusoTheme.studioPaper.opacity(0.08) : ThusoTheme.cloud,
+            .background(onNight ? ThusoTheme.surface.opacity(0.08) : ThusoTheme.cloud,
                         in: RoundedRectangle(cornerRadius: onNight ? ThusoRadius.control : ThusoRadius.panel, style: .continuous))
             /* A note rather than a status: it is true when the screen opens and does not change, so
                announcing it as a live update would interrupt a reader mid-sentence for old news. */

@@ -18,28 +18,31 @@ import SwiftUI
  * are still decided in one place — WorkspaceDay.figures(_:) in WorkspaceView.swift, which is the
  * block scripts/check-boundaries.mjs reads for a typed digit.
  *
- * THE GROUND IS FLAT studioNight, AND DELIBERATELY NOT StudioNightCard's. That card carries a
- * radial highlight of white at ten per cent, which is right for a card holding a sentence and wrong
- * for one holding five drawings: every unlit mark on it would be measured against a ground that
- * changes across the card, and at the palest corner paper at forty per cent falls to 3.01 against
- * it — a mark that clears SC 1.4.11 in the middle of the panel and scrapes it at the edge. On a
- * flat ground every ratio the web computes in clinical-deck.css holds here exactly:
+ * THE GROUND IS THE WORDMARK'S INK. On 14 September the founder looked at these screens and asked
+ * them to "stick to logo colors and ui": the near-black studioNight and the lime lead were the Care
+ * Studio's palette, not the logo's. The wordmark (apps/web/public/brand/mythuso-logo.svg) is
+ * brandInk, brandGreen, a brandOrange roof and a brandLime dot, and those four and white are what
+ * the deck is drawn in now. No colour token was added.
  *
- *   studioPaper on studioNight   13.59      studioLime on studioNight   12.03
- *   paper at 72% over night      7.73       — quiet text: the labels, the note, an unlit lit mark
- *   paper at 40% over night      3.42       — an unlit mark, clear of 3:1 against the ground
- *   paper at 24% over night      2.11       — the groove a ring runs in; it carries nothing
- *   paper at  6% over night                 — the lead's own panel: paper on it 11.47, lime 10.16
- *   paper at 44% over that panel 3.55       — the unlit mark ON the lighter ground. The 40% above
- *                                             measures 2.89 there, which is the kind of failure this
- *                                             project keeps finding: a colour that clears on the
- *                                             ground it was chosen against and not the one it lands
- *                                             on.
+ * Flat rather than StudioNightCard's highlight, for the reason that was always true here: every
+ * unlit mark is measured against one ground rather than a gradient. The lead's panel is RECESSED
+ * rather than lifted — the design system's ink at 45% over brandInk — and that is arithmetic rather
+ * than taste. brandGreen reads 3.55 on brandInk, falls to 2.98 on a six-per-cent white lift and 2.81
+ * on eight, and rises to 4.34 on the recess. A colour that clears on the ground it was chosen against
+ * and not on the one it lands on is the failure this project keeps finding.
  *
- * AND COLOUR IS NEVER THE ONLY DIFFERENCE. A flagged arc is the brighter one AND the thicker one; a
- * signed visit is the filled block AND the paper-weight one. Lime is spent once per deck, on the
- * figure the screen was opened for — which is why the flagged chip is paper on night rather than
- * lime: a deck with two accents has none.
+ *   on brandInk                 white 12.04   brandLime 10.47   brandMint 8.09
+ *                               white at 72% 7.04 — quiet text     brandGreen 3.55 — a mark, never a word
+ *                               white at 44% 3.63 — an unlit mark  brandOrange 4.24 — a fill or a glyph
+ *                               white at 24% 2.06 — the groove a ring runs in; it carries nothing
+ *   on the recess (ink at 45%)  white 14.71   white at 72% 8.29   white at 44% 4.03
+ *                               brandGreen 4.34 — the lead's lit mark    brandLime 12.80
+ *
+ * AND COLOUR IS NEVER THE ONLY DIFFERENCE. A flagged arc is the green one AND the thicker one; a
+ * signed visit is the filled block AND the white one. Green is spent once per deck, on the figure the
+ * screen was opened for, and lime once, as the eyebrow word — the dot on the wordmark, and the one
+ * pair tokens.json lets lime be read in. The flagged chip is the orange roof, filled, with the design
+ * system's ink on it at 6.30: brandInk on orange is 4.24, and a 13-point word needs 4.5.
  *
  * MOTION. Every mark draws itself once on arrival, along its own path, and that is all. Reduce
  * Motion is not a shorter draw — `progress` is already 1 on the first painted frame, so stillness is
@@ -76,22 +79,29 @@ enum DeckShape {
 
 // MARK: - The ink on the deck's own ground
 
-/* Alphas over studioPaper rather than flattened greys, for the reason ThusoOpacity's own comment
-   gives: a flattened grey cannot follow the ground it sits on and an alpha has no choice but to.
-   The ratios every one of these composites to are in the header above. */
+/* Alphas over white rather than flattened greys, for the reason ThusoOpacity's own comment gives: a
+   flattened grey cannot follow the ground it sits on and an alpha has no choice but to. The ratios
+   every one of these composites to are in the header above. */
 enum DeckInk {
-    static let ground = ThusoTheme.studioNight
-    static let ink = ThusoTheme.studioPaper
-    static let accent = ThusoTheme.studioLime
+    static let ground = ThusoTheme.brandInk
+    static let ink = ThusoTheme.surface
+    /// The wordmark's dot. A word only on brandInk, and on the deck only the eyebrow.
+    static let accent = ThusoTheme.brandLime
+    /// The lead's lit mark: the wordmark's green, on the recess where it clears 3:1.
+    static let lit = ThusoTheme.brandGreen
     /// The muted step is the token rather than a number retyped here: the same alpha every muted
     /// label on all three platforms is set at, and it darkens with whatever ground it lands on.
-    static let quiet = ThusoTheme.studioPaper.opacity(ThusoOpacity.charcoalMuted)
-    static let mark = ThusoTheme.studioPaper.opacity(0.40)
-    /// The unlit mark on the lead's lighter panel. See the header: 40% does not clear 3:1 there.
-    static let leadMark = ThusoTheme.studioPaper.opacity(0.44)
-    static let track = ThusoTheme.studioPaper.opacity(0.24)
-    static let edge = ThusoTheme.studioPaper.opacity(0.14)
-    static let leadGround = ThusoTheme.studioPaper.opacity(0.06)
+    static let quiet = ThusoTheme.surface.opacity(ThusoOpacity.charcoalMuted)
+    static let mark = ThusoTheme.surface.opacity(0.44)
+    /// The unlit mark on the lead's recess, 4.03 there. The same alpha as `mark`: the recess is darker
+    /// than the ground, so a mark that clears on one clears on both.
+    static let leadMark = ThusoTheme.surface.opacity(0.44)
+    static let track = ThusoTheme.surface.opacity(0.24)
+    static let edge = ThusoTheme.surface.opacity(0.14)
+    static let leadGround = ThusoTheme.ink.opacity(0.45)
+    /// The roof on the wordmark: the one thing that is not as it should be. A fill or a glyph.
+    static let attention = ThusoTheme.brandOrange
+    static let onAttention = ThusoTheme.ink
 }
 
 /// Minutes since midnight and back again, so a day can be drawn to scale rather than as three equal
@@ -351,11 +361,10 @@ private struct DeckSpark: View {
 
 // MARK: - A chip on the deck
 
-/* The deck's own chip, and it is not the night card's. StudioNightChip fills the flagged one lime,
-   which is right on a card whose only accent it is and wrong here: the lead instrument already
-   spends lime on its marks, and a second lime object would leave the deck with two accents and
-   therefore with none. So the flagged chip is the deck's ink filled — studioNight on studioPaper,
-   13.59:1, the same pair the other way round — and everything else is outlined quiet. */
+/* The deck's own chip, and it is not the night card's. Flagged is the wordmark's orange roof, filled —
+   the one warm thing on a cool ground — standing 4.24 off brandInk, with the design system's ink on
+   it at 6.30. Everything else is outlined quiet. Filled against outlined is the difference that does
+   not depend on seeing orange. */
 private struct DeckChip: View {
     let text: String
     let flagged: Bool
@@ -368,11 +377,11 @@ private struct DeckChip: View {
     var body: some View {
         Text(text)
             .thusoFont(ThusoType.caption, weight: .medium)
-            .foregroundStyle(flagged ? DeckInk.ground : DeckInk.quiet)
+            .foregroundStyle(flagged ? DeckInk.onAttention : DeckInk.quiet)
             .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, 3)
             .fixedSize(horizontal: false, vertical: true)
-            .background(flagged ? DeckInk.ink : .clear, in: shape)
-            .overlay(shape.stroke(flagged ? DeckInk.ink : DeckInk.mark, lineWidth: 1))
+            .background(flagged ? DeckInk.attention : .clear, in: shape)
+            .overlay(shape.stroke(flagged ? DeckInk.attention : DeckInk.mark, lineWidth: 1))
     }
 }
 
@@ -394,10 +403,10 @@ private struct DeckInstrument: View {
     @ScaledMetric(relativeTo: .largeTitle) private var restFigure: CGFloat = ThusoType.metric
     @ScaledMetric(relativeTo: .footnote) private var affix: CGFloat = ThusoType.cardTitle
 
-    /// The lead is the only instrument that spends the accent. On the other two a lit mark is the
+    /// The lead is the only instrument that spends the green. On the other two a lit mark is the
     /// quiet tone — still the brightest thing in its own drawing, still two channels apart from an
     /// unlit one, and not a second thing on the deck claiming to be the most important.
-    private var lit: Color { isLead ? DeckInk.accent : DeckInk.quiet }
+    private var lit: Color { isLead ? DeckInk.lit : DeckInk.quiet }
     private var unlit: Color { isLead ? DeckInk.leadMark : DeckInk.mark }
     private var dial: CGFloat { isLead ? leadDial : restDial }
 
@@ -500,9 +509,9 @@ struct ClinicalDeck: View {
             head
             Rectangle().fill(DeckInk.edge).frame(height: 1).accessibilityHidden(true)
             if let lead {
-                /* The lead is a panel and the other two are not: the night lifted six per cent, which
-                   is depth by one step of the same colour rather than by a second shadow inside a
-                   shadowed card. It is what makes the deck say what the screen is for before it says
+                /* The lead is a panel and the other two are not: the ground recessed by the design
+                   system's ink, which is depth by one step of the same colour rather than by a second
+                   shadow inside a shadowed card, and darker rather than lighter so its green clears. It is what makes the deck say what the screen is for before it says
                    anything else — a row of three identical cells is the composition this whole piece
                    of work exists to replace. */
                 DeckInstrument(figure: lead, isLead: true, progress: progress)
@@ -582,8 +591,11 @@ struct ClinicalDeck: View {
  * clusters for the choice a design review turns on. Circular affordances. And a light sheet standing
  * on the canvas's lower edge, one elevation above it.
  *
- * INDIGO WHERE THE REFERENCE WAS VIOLET. The reference draws its quiet half in lavender; MyThuso ships
- * an indigo family, so the panel is indigoSoft and its marks are indigo. No colour token was added.
+ * THE WORDMARK'S COLOURS WHERE THE REFERENCE WAS VIOLET. The reference draws its quiet half in
+ * lavender; this file drew it in indigo and spent lime on the dark, and the founder asked for the
+ * logo instead. So the canvas is brandInk, the lit marks and the chosen pill brandGreen, attention
+ * brandOrange, the one spark brandLime, and the pale panel a six-per-cent green wash over white,
+ * composited once from the two tokens. No colour token was added.
  *
  * THE RULE THE DECK ABOVE IS BUILT ON HOLDS UNCHANGED. Nothing drawn introduces a number: every ring,
  * gauge, bar and line is counted off rows the same screen lists, so a reader who distrusts the picture
@@ -592,34 +604,58 @@ struct ClinicalDeck: View {
  * Motion not even that.
  *
  * MEASURED ON THE GROUND EACH PAIR ACTUALLY LANDS ON, with the sRGB formula the build runs:
- *   the flat night            paper 13.59   lime 12.03   quiet 7.75   studioPeach 11.43
- *                             `danger` is 2.28 here and is never written on the dark; a refusal on
- *                             the canvas is peach and a glyph and a word.
- *   the glass, paper at 8% over night (#313933)
- *                             paper 10.78   lime 9.54   quiet 6.45   peach 9.06
- *                             an unlit mark at 44% 3.45 — 40% would be the colour that clears on the
- *                             night it was chosen against and not on the glass it lands on
- *   a control's edge          paper at 44%: 3.84 on the night, 3.45 on the glass
- *   indigoSoft                charcoal 15.24   studioInkMuted 6.19   indigoDeep 11.23
- *                             indigo 9.26 — the lit mark   indigo at 58% 3.15 — the unlit one
- *   the badge                 indigoSoft on studioNight 13.39, indigoDeep inside it 11.23
- *   the float card            studioNight against indigoSoft 13.39
+ *   brandInk                  white 12.04   quiet 7.04   lime 10.47   green 3.55, a mark   orange 4.24, a glyph
+ *                             `danger` is 1.83 here and is never written on the dark; a refusal on
+ *                             the canvas is an orange glyph beside a white sentence.
+ *   the glass, ink at 45% over brandInk
+ *                             white 14.71   quiet 8.29   green 4.34   lime 12.80
+ *                             an unlit mark at 44% 4.03 — the recess is darker than the ground, so
+ *                             green clears on it where it failed on a white lift (2.81)
+ *   a control's edge          white at 44%: 3.63 on the ground, 4.03 on the glass
+ *   the chosen pill           brandGreen, 3.55 off brandInk and 3.39 off white; ink on it 5.27
+ *   the flagged tag           brandOrange, 4.24 off brandInk; ink on it 6.30
+ *   the panel, green at 6% over white
+ *                             brandInk 11.27   brandInk at 72% 4.99   body 7.10
+ *                             green 3.17 — the lit mark   brandInk at 60% 3.59 — the unlit one
+ *   the badge                 a brandGreen disc, 3.55 on brandInk and 3.39 on white; its white glyph 3.39
+ *   a white sheet             brandInk 12.04   body 7.58
  * And colour is never the only difference between two states: a lit arc is thicker, the longest bar
  * is taller, a chosen pill is filled and heavier, and a refusal says so in words beside its glyph. */
 
 extension DeckInk {
-    static let glass = ThusoTheme.studioPaper.opacity(0.08)
-    static let glassEdge = ThusoTheme.studioPaper.opacity(0.16)
-    /// The edge of anything pressable on the canvas. See the table above: 3.84 and 3.45.
-    static let control = ThusoTheme.studioPaper.opacity(0.44)
-    /// A refusal on the dark. `danger` measures 2.28 on studioNight and may not be a word there.
-    static let refusal = ThusoTheme.studioPeach
-    static let panel = ThusoTheme.indigoSoft
-    static let panelInk = ThusoTheme.charcoal
-    static let panelQuiet = ThusoTheme.studioInkMuted
-    static let panelLit = ThusoTheme.indigo
-    static let panelMark = ThusoTheme.indigo.opacity(0.58)
-    static let panelTrack = ThusoTheme.indigo.opacity(0.18)
+    static let glass = ThusoTheme.ink.opacity(0.45)
+    static let glassEdge = ThusoTheme.surface.opacity(0.16)
+    /// The edge of anything pressable on the canvas. See the table above: 3.63 and 4.03.
+    static let control = ThusoTheme.surface.opacity(0.44)
+    /// A refusal's glyph on the dark. Orange is 4.24 there — a glyph's ratio, not a sentence's.
+    static let refusal = ThusoTheme.brandOrange
+    static let panel = deckWash(ThusoTheme.brandGreen, 0.06, over: ThusoTheme.surface)
+    static let panelInk = ThusoTheme.brandInk
+    static let panelQuiet = ThusoTheme.brandInk.opacity(ThusoOpacity.charcoalMuted)
+    static let panelLit = ThusoTheme.brandGreen
+    static let panelMark = ThusoTheme.brandInk.opacity(0.60)
+    static let panelTrack = ThusoTheme.brandInk.opacity(0.12)
+    /// Words on the white sheets these screens stand on.
+    static let sheetInk = ThusoTheme.brandInk
+    static let sheetQuiet = ThusoTheme.body
+    static let sheetLine = ThusoTheme.line
+    /// The chosen pill: the wordmark's green, with the ink the ratio above is measured for.
+    static let chosen = ThusoTheme.brandGreen
+    static let onChosen = ThusoTheme.ink
+    /// The sheet that stands on the canvas when what it holds is a refusal: the roof mark at 8% over
+    /// white. brandInk 11.08 on it, body 6.98, mangoInk comfortably above 4.5.
+    static let attentionWash = deckWash(ThusoTheme.brandOrange, 0.08, over: ThusoTheme.surface)
+}
+
+/* One opaque colour composited from two tokens. The panel is read as a colour in more places than a
+   background, and a translucent green would change its ratios with whatever stands behind it. Both
+   ends are tokens.json's; nothing here is typed. */
+private func deckWash(_ tint: Color, _ amount: Double, over ground: Color) -> Color {
+    var tr: CGFloat = 0, tg: CGFloat = 0, tb: CGFloat = 0, ta: CGFloat = 0
+    var gr: CGFloat = 0, gg: CGFloat = 0, gb: CGFloat = 0, ga: CGFloat = 0
+    UIColor(tint).getRed(&tr, green: &tg, blue: &tb, alpha: &ta)
+    UIColor(ground).getRed(&gr, green: &gg, blue: &gb, alpha: &ga)
+    return Color(red: gr + (tr - gr) * amount, green: gg + (tg - gg) * amount, blue: gb + (tb - gb) * amount)
 }
 
 /// The one raised elevation tokens.json declares — `0 4px 16px` of ink at ten per cent — and nothing
@@ -679,8 +715,8 @@ struct DeckFlow: Layout {
 
 // MARK: The canvas and what stands on it
 
-/* The night canvas. Flat studioNight for the reason this file's header gives — every unlit mark on it
-   is measured against one ground rather than a gradient — with the one raised elevation, and the
+/* The canvas. Flat brandInk for the reason this file's header gives — every unlit mark on it is
+   measured against one ground rather than a gradient — with the one raised elevation, and the
    environment flag that tells ThusoMetric and friends they are standing on the dark. */
 struct DeckCanvas<Content: View>: View {
     /// Room left at the foot for the sheet that crosses the canvas's lower edge. Given back as padding
@@ -743,8 +779,8 @@ struct DeckSheet<Content: View>: View {
     }
 }
 
-/// The lead's own card: the night lifted eight per cent, which is depth by one step of the same colour
-/// rather than by a second shadow inside a shadowed card.
+/// The lead's own card: the ground recessed by ink at 45%, which is depth by one step of the same
+/// colour rather than by a second shadow, and darker because green only clears 3:1 on the darker one.
 struct DeckGlass<Content: View>: View {
     var padding: CGFloat = ThusoSpacing.space16
     @ViewBuilder var content: Content
@@ -758,7 +794,7 @@ struct DeckGlass<Content: View>: View {
 }
 
 /* The pale half of the deck, and the card that crosses its lower edge.
-   indigoSoft with a dot grid of its own ink at a fifth of its strength: it carries nothing, and it is
+   A green wash with a dot grid of brandInk at 14%: it carries nothing, and it is
    what stops a block of one pale colour reading as a hole in the canvas. The float is a night card,
    inset on the leading side, so it crosses from the panel back onto the night it came from. */
 struct DeckPanel<Content: View, Crossing: View>: View {
@@ -802,7 +838,7 @@ private struct DeckDots: View {
                 var y: CGFloat = step / 2
                 while y < size.height {
                     context.fill(Path(ellipseIn: CGRect(x: x - 1, y: y - 1, width: 2, height: 2)),
-                                 with: .color(ThusoTheme.indigo.opacity(0.22)))
+                                 with: .color(ThusoTheme.brandInk.opacity(0.14)))
                     y += step
                 }
                 x += step
@@ -871,23 +907,23 @@ struct DeckHeadline: View {
     }
 }
 
-/// Pale indigo rather than indigo: indigo on this ground measures 1.28, and a disc nobody can see is
-/// not a badge.
+/// The wordmark's green as a disc with a white glyph in it: 3.55 against brandInk and 3.39 against a
+/// white card, and the glyph 3.39 on the disc — a picture held to 3:1, never a word.
 struct DeckGlyph: View {
     let symbol: String
     let diameter: CGFloat
     var body: some View {
         Image(systemName: symbol)
             .font(.system(size: diameter * 0.46, weight: .semibold))
-            .foregroundStyle(ThusoTheme.indigoDeep)
+            .foregroundStyle(ThusoTheme.surface)
             .frame(width: diameter, height: diameter)
-            .background(ThusoTheme.indigoSoft, in: Circle())
+            .background(ThusoTheme.brandGreen, in: Circle())
             .accessibilityHidden(true)
     }
 }
 
 /* The preview disclosure, on the dark. The words are DemoBadge's, unchanged; only the ground moved,
-   because a cloud chip on studioNight is a pale lozenge pulling the eye off the headline. */
+   because a cloud chip on brandInk is a pale lozenge pulling the eye off the headline. */
 struct DeckPreviewMark: View {
     var body: some View {
         Label("Design preview · Fictional data", systemImage: "info.circle")
@@ -901,13 +937,18 @@ struct DeckPreviewMark: View {
     }
 }
 
-/// A refusal on the canvas: peach, a glyph, and the sentence the contract wrote.
+/// A refusal on the canvas: an orange glyph, and the sentence the contract wrote in white. Orange is
+/// 4.24 on brandInk, which is a glyph's ratio and not a sentence's.
 struct DeckRefusal: View {
     let decision: VettingDecision
     var body: some View {
         if !decision.allowed, let reason = decision.reason {
-            Label(reason, systemImage: "hand.raised")
-                .font(.footnote).foregroundStyle(DeckInk.refusal)
+            Label {
+                Text(reason).foregroundStyle(DeckInk.ink)
+            } icon: {
+                Image(systemName: "hand.raised").foregroundStyle(DeckInk.refusal)
+            }
+                .font(.footnote)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityLabel("Refused. \(reason)")
         }
@@ -928,9 +969,9 @@ struct DeckTag: View {
     }
     private var colours: (ink: Color, fill: Color, edge: Color) {
         switch ground {
-        case .panel: return flagged ? (DeckInk.panel, DeckInk.panelLit, DeckInk.panelLit)
-                                    : (ThusoTheme.indigoDeep, .clear, DeckInk.panelLit)
-        default: return flagged ? (DeckInk.ground, DeckInk.ink, DeckInk.ink)
+        case .panel: return flagged ? (ThusoTheme.surface, DeckInk.panelInk, DeckInk.panelInk)
+                                    : (DeckInk.panelInk, .clear, DeckInk.panelMark)
+        default: return flagged ? (DeckInk.onAttention, DeckInk.attention, DeckInk.attention)
                                 : (DeckInk.quiet, .clear, DeckInk.mark)
         }
     }
@@ -967,7 +1008,7 @@ struct DeckPills<Value: Hashable>: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             Text(label)
                 .thusoFont(ThusoType.caption, weight: .semibold)
-                .foregroundStyle(onNight ? DeckInk.quiet : ThusoTheme.studioInkMuted)
+                .foregroundStyle(onNight ? DeckInk.quiet : DeckInk.sheetQuiet)
                 .fixedSize(horizontal: false, vertical: true)
             DeckFlow {
                 ForEach(options, id: \.value) { option in pill(option) }
@@ -979,8 +1020,8 @@ struct DeckPills<Value: Hashable>: View {
     }
     private func pill(_ option: (value: Value, title: String)) -> some View {
         let on = option.value == selection
-        let ink: Color = on ? (onNight ? DeckInk.ground : ThusoTheme.studioPaper) : (onNight ? DeckInk.ink : ThusoTheme.charcoal)
-        let fill: Color = on ? (onNight ? DeckInk.ink : ThusoTheme.studioNight) : (onNight ? DeckInk.glass : ThusoTheme.surface)
+        let ink: Color = on ? DeckInk.onChosen : (onNight ? DeckInk.ink : DeckInk.sheetInk)
+        let fill: Color = on ? DeckInk.chosen : (onNight ? DeckInk.glass : ThusoTheme.surface)
         let edge: Color = on ? .clear : (onNight ? DeckInk.control : ThusoTheme.controlEdge)
         return Button { selection = option.value } label: {
             HStack(spacing: ThusoSpacing.space4) {
@@ -1010,9 +1051,9 @@ struct DeckCircle: View {
     var body: some View {
         Image(systemName: symbol)
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(onNight ? DeckInk.ground : ThusoTheme.studioPaper)
+            .foregroundStyle(onNight ? DeckInk.ground : ThusoTheme.surface)
             .frame(width: 44, height: 44)
-            .background(onNight ? DeckInk.ink : ThusoTheme.studioNight, in: Circle())
+            .background(onNight ? DeckInk.ink : DeckInk.ground, in: Circle())
             .accessibilityHidden(true)
     }
 }
@@ -1033,15 +1074,15 @@ struct DeckDestination: View {
                 if raised {
                     DeckGlyph(symbol: symbol, diameter: 44)
                 } else {
-                    Image(systemName: symbol).font(.body).foregroundStyle(ThusoTheme.charcoal)
+                    Image(systemName: symbol).font(.body).foregroundStyle(DeckInk.sheetInk)
                         .frame(width: 44).accessibilityHidden(true)
                 }
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                Text(title).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(DeckInk.sheetInk)
                     .fixedSize(horizontal: false, vertical: true)
                 if !subtitle.isEmpty {
-                    Text(subtitle).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(subtitle).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -1053,7 +1094,7 @@ struct DeckDestination: View {
         .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
         .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous)
-            .stroke(raised ? .clear : ThusoTheme.studioLine, lineWidth: 1))
+            .stroke(raised ? .clear : DeckInk.sheetLine, lineWidth: 1))
         .modifier(DeckRaisedIf(raised: raised))
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
@@ -1079,17 +1120,17 @@ struct DeckSectionHead: View {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
                 Text(title.uppercased())
                     .thusoFont(ThusoType.caption, weight: .semibold).tracking(1.2)
-                    .foregroundStyle(ThusoTheme.studioInkMuted)
+                    .foregroundStyle(DeckInk.sheetQuiet)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: ThusoSpacing.space8)
                 if let count {
                     Text(count).thusoFont(ThusoType.caption, weight: .semibold).monospacedDigit()
-                        .foregroundStyle(ThusoTheme.charcoal)
+                        .foregroundStyle(DeckInk.sheetInk)
                 }
             }
             Hairline()
             if !note.isEmpty {
-                Text(note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(note).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -1129,8 +1170,9 @@ struct DeckFigure: View {
 
     private var ink: Color { ground == .panel ? DeckInk.panelInk : DeckInk.ink }
     private var quiet: Color { ground == .panel ? DeckInk.panelQuiet : DeckInk.quiet }
-    /// Lime is the glass's alone. On the night a lit mark is the quiet tone, and on the panel indigo.
-    private var lit: Color { ground == .glass ? DeckInk.accent : ground == .panel ? DeckInk.panelLit : DeckInk.quiet }
+    /// Green is the glass's and the panel's. On the bare ground a lit mark is the quiet tone, so the
+    /// figure on the glass stays the one the screen is about.
+    private var lit: Color { ground == .glass ? DeckInk.lit : ground == .panel ? DeckInk.panelLit : DeckInk.quiet }
     private var unlit: Color { ground == .glass ? DeckInk.leadMark : ground == .panel ? DeckInk.panelMark : DeckInk.mark }
     private var track: Color { ground == .panel ? DeckInk.panelTrack : DeckInk.track }
     private var progress: CGFloat { still || reduceMotion || drawn ? 1 : 0 }
@@ -1318,10 +1360,10 @@ struct ClinicalProtocolsView: View {
                     }
                 } sheet: {
                     Text(Records.observationsNote)
-                        .thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                        .thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(DeckInk.sheetInk)
                         .fixedSize(horizontal: false, vertical: true)
                     Text("AI is decision support. An authorised clinician must sign off clinical decisions.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 DeckSectionHead(title: "Where a reading is flagged", count: "\(Records.observations.count)")
@@ -1338,7 +1380,7 @@ struct ClinicalProtocolsView: View {
 /* One range as a ruler: the band is the indicative range and either side of it is where a reading is
    flagged. A schematic rather than a scale — seven readings in six units cannot share one axis honestly
    — so the numbers are on the band and read out in full, because a chart in this product is always
-   also a table. studioPaper on studioOlive is 5.86; studioInkMuted on cloud 5.46. */
+   also a table. White on the brandInk band is 12.04; body on the green wash either side 7.10. */
 private struct ProtocolRangeRow: View {
     let range: ObservationRange
     private func figure(_ value: Double) -> String {
@@ -1348,29 +1390,29 @@ private struct ProtocolRangeRow: View {
         let low = figure(range.low), high = figure(range.high)
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                Text(range.label).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                Text(range.label).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(DeckInk.sheetInk)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: ThusoSpacing.space8)
-                Text(range.unit).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(range.unit).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
             }
             HStack(spacing: 0) {
-                Text("Low").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("Low").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.leading, ThusoSpacing.space12)
                 Text("\(low)–\(high)").thusoFont(ThusoType.minimumBody, weight: .semibold).monospacedDigit()
-                    .foregroundStyle(ThusoTheme.studioPaper)
+                    .foregroundStyle(ThusoTheme.surface)
                     .lineLimit(1).minimumScaleFactor(0.8)
                     .frame(maxWidth: .infinity, minHeight: 32)
-                    .background(ThusoTheme.studioOlive, in: Capsule())
-                Text("High").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .background(DeckInk.ground, in: Capsule())
+                Text("High").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
                     .frame(maxWidth: .infinity, alignment: .trailing).padding(.trailing, ThusoSpacing.space12)
             }
             .frame(minHeight: 32)
-            .background(ThusoTheme.cloud, in: Capsule())
+            .background(DeckInk.panel, in: Capsule())
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(ThusoTheme.studioLine, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(DeckInk.sheetLine, lineWidth: 1))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(range.label). Below \(low) \(range.unit) is flagged low, \(low) to \(high) is inside the indicative range, above \(high) is flagged high.")
     }
