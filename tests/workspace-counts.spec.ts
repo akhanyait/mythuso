@@ -201,7 +201,9 @@ test("the nurse's strip counts the day it sits above", async ({ page }) => {
     Narrower, and it asserts the thing it always meant to: the numeral, against the rows. */
  const figure = (label: string) =>
   page.locator('.s-metric').filter({ hasText: label }).locator('.s-metric-value');
- /* The next visit on the strip is the first visit of the day, not a second opinion about it. */
+ /* The next visit on the strip is a visit on the day below it, not a second opinion about it — and
+    the line under the date says the same time, because both are the same `find` over the same rows.
+    Which visit that is is asserted below, where it can be made to change. */
  const next = (await figure('Next visit').textContent()) ?? '';
  const time = next.match(/\d{2}:\d{2}/)?.[0];
  expect(time, `the next-visit figure reads "${next}"`).toBeTruthy();
@@ -212,4 +214,62 @@ test("the nurse's strip counts the day it sits above", async ({ page }) => {
  expect(Number(visits.match(/\b(\d+)\b/)?.[1]), `the visits figure reads "${visits}"`).toBe(later + 1);
  /* And the deck's drawing is the same day: one block per visit, the same count as the numeral. */
  await expect(page.locator('.c-deck .c-day > i')).toHaveCount(later + 1);
+});
+
+/* NEXT MEANS THE NEXT ONE NOT YET SIGNED OFF.
+ *
+ * `nurseDayCounts().nextStart` returned nurseDay[0].start whatever had happened to it, so a nurse
+ * who signed her nine o'clock off at twenty to ten was still told by the deck at the top of the
+ * screen, and by the line under the date, that her next visit was at nine — while the drawing
+ * beside both of them had already turned that block to paper. It is the same class of defect as a
+ * typed figure: a claim at the top of a screen that the rows underneath disprove. The arithmetic
+ * was being done correctly and then thrown away.
+ *
+ * This is the regression, and it is deliberately written as "both readings move, together, to a
+ * time that is on the board" rather than as "the strip says 11:30". Asserting the literal would go
+ * red the day somebody moves a fictional visit, which is a change to the demo data and not a
+ * defect — the second time is read off the row it belongs to, the same way every other figure in
+ * this file is counted off what is actually drawn.
+ *
+ * The end of a day, where nothing is next at all, is not reachable from the browser: only the first
+ * visit of the three has an assessment flow behind it, so two of them cannot be signed off here.
+ * The shape it takes is in apps/web/src/shells/StaffShell.tsx's metricsOf and in the schedule's own
+ * standing line, and it is held by neither this file nor the source check. That is a gap, and it is
+ * written down rather than left to be discovered. */
+test("the nurse's next visit is the next one she has not signed off", async ({ page }) => {
+ test.setTimeout(60_000);
+ await openWorkspace(page, 'Nurse');
+ const deckNext = page.locator('.s-metric').filter({ hasText: 'Next visit' }).locator('.s-metric-value');
+ const head = page.locator('.shift-head p').first();
+ const first = ((await deckNext.textContent()) ?? '').match(/\d{2}:\d{2}/)?.[0];
+ expect(first, 'the deck carries no next-visit time to begin with').toBeTruthy();
+ await expect(head).toContainText(first as string);
+ await expect(page.locator('.next-visit .next-when')).toContainText(first as string);
+
+ /* What next has to become: the start of the first visit still on the rail below the card. */
+ const second = ((await page.locator('.day-list .day-row .day-time strong').first().textContent()) ?? '').trim();
+ expect(second, `the day below the card starts at "${second}", which is the same visit the card is`).not.toBe(first);
+
+ await page.getByRole('button', { name: 'Start this visit' }).click();
+ const d = page.getByRole('dialog');
+ await d.getByLabel('Visit code, digit 1 of 6').fill('482190');
+ await d.getByRole('checkbox').first().check();
+ await d.getByRole('button', { name: 'Confirm identity' }).click();
+ await d.getByRole('checkbox').first().check();
+ await d.getByRole('button', { name: 'Start observations' }).click();
+ await d.getByLabel('Blood pressure — systolic').fill('132');
+ await d.getByRole('button', { name: 'Record findings' }).click();
+ await d.getByLabel('Next step').selectOption('Refer for doctor review today');
+ await d.getByRole('button', { name: 'Review sign-off' }).click();
+ await d.getByRole('button', { name: 'Sign assessment' }).click();
+ await d.getByRole('button', { name: /Back to the workspace/ }).click();
+
+ /* Both readings move, and they move to the same visit — which is the one the rail now marks. */
+ await expect(deckNext).toContainText(second);
+ await expect(head).toContainText(`${second} to`);
+ await expect(head).not.toContainText(first as string);
+ await expect(page.locator('.day-row.is-next')).toContainText(second);
+ /* And the drawing the figure sits on says one of the three is done, which it did before the
+    numeral beside it agreed with it. */
+ await expect(page.locator('.c-deck .c-day > i.done')).toHaveCount(1);
 });

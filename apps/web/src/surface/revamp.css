@@ -355,56 +355,77 @@
  .reading-plot { top: 58px; bottom: auto; }
 }
 
-/* ---- The hero: one picture, the full width of the page, with the words on it -------------------
+/* ---- The hero: a panel of ink, and a photograph that is allowed to be bright -------------------
  *
- * Asked for on 14 September in three sentences — make it 100% wide, put the big text inside the
- * hero, better the animation. What it replaced was a band of paper carrying a 110px headline above
- * a boxed photograph: roughly the top third of a 900px screen spent before the picture began, and
- * a picture that then sat in a centred column with the page's margins showing either side of it.
+ * The full-bleed cover asked for on 14 September was built by laying the words straight onto the
+ * photograph and deepening a scrim under them until every run of type cleared AA. It did clear it —
+ * 10.27, 7.23, 7.54 — and it cost the page the only thing the photograph was there for. A warm,
+ * sunlit portrait of a woman with her hand on her chest arrived as a moody near-black plate, and a
+ * garden in afternoon light arrived as a green shadow. Legible, and no longer worth looking at.
  *
- * The composition now is a stage and a ledge. The stage runs edge to edge and carries the
- * photograph, the eyebrow, the headline, the sentence and the one call to action. The ledge under
- * it is paper, and it carries what a reader consults rather than reads first: the price panel, the
- * three marks and the controls for the four banners.
+ * The answer is composition rather than opacity. Thinning the scrim would have put the headline
+ * back under AA on the first bright frame; what this does instead is give the type a ground of its
+ * own so the picture needs no scrim at all.
  *
- * WHY THE TYPE ON THE PICTURE IS SAFE, and it is measured rather than judged.
+ * THE SPLIT. From 900px the stage is a panel of --studio-ink-deep on the left carrying every word,
+ * and the photograph beside it at its own brightness. The two meet on a feather rather than a cut:
+ * the panel is solid to its full width and then falls to nothing over --hero-feather of the
+ * picture's left edge, so the join reads as light going out rather than as a box bolted on. No type
+ * is ever inside that feather — the copy column ends a full --hero-pad before the solid edge does.
  *
- * Nothing on this stage is read off a photograph. .hero-stage::after lays three gradients of
- * --studio-ink-deep over every pixel of it, and the words are placed only where they are deep
- * enough. That is not a judgement: the page was rendered with every glyph turned transparent, the
- * stage photographed, and each run of type measured against the BRIGHTEST pixel inside its own text
- * rectangle — the worst ground a letter of it can land on — over all four banners at 1440px and at
- * 390px. The floor of each, in ratios against that worst pixel:
+ * Below 900px the same two parts stack: the photograph is a band across the top at full brightness,
+ * the ink runs under it, and the same feather carries one into the other.
  *
- *   headline, --surface            10.27   (large text, floor 3)
- *   headline accent, --brand-mint   7.23   (large text, floor 3)
- *   eyebrow, --studio-paper         7.54   (13px, floor 4.5)
- *   lede, --studio-paper           11.18   (16px, floor 4.5)
- *   photography note                9.04   (13px, floor 4.5)
- *   place chip, on its own pill     9.46   (13px, floor 4.5)
+ * WHY THE TYPE IS SAFE, and it is still measured rather than judged. Every word of the banner now
+ * sits on one flat colour, so its floors are the palette's own and packages/design-tokens/tokens.json
+ * computes them on every build. The page was re-measured the way the scrim was — every glyph turned
+ * transparent, the stage photographed, each run of type checked against the BRIGHTEST pixel inside
+ * its own text rectangle, over all four banners at 1440px and at 390px. On the panel the reading is
+ * the same on all eight, because the ground is one colour:
  *
- * The place chip, the caption plate and the two floating cards carry their own grounds, which is
- * what lets them sit high on the picture where the scrim is shallow. A translucent panel over a
- * photograph can be any brightness, so a panel commits to one end of the range and stays there: the
- * three on the right are LIGHT panels with dark words, and the chip is a dark pill with paper on
- * it. Measured at their worst — the panel over a black pixel, the pill over a white one — the
- * plate's olive label is 5.06, its line 11.94, a card's title 9.14 and a card's body 5.43.
+ *   headline, --surface            15.22   (large text, floor 3)      was 10.27
+ *   headline accent, --brand-mint  10.23   (large text, floor 3)      was  7.23
+ *   eyebrow, --studio-paper        13.82   (13px, floor 4.5)          was  7.54
+ *   lede, --studio-paper           13.82   (16px, floor 4.5)          was 11.18
+ *   photography note                8.54   (13px, floor 4.5)          was  9.04
  *
- * This project has already shipped a headline at 1.28:1, and a headline over a photograph is
- * exactly where that happens a second time if it is left to the eye.
+ * And the matter that still stands on the photograph, quoted at the worst of the eight frames
+ * rather than at their average: the place chip 5.14, the caption plate's olive label 5.02, its line 11.84, a card's title
+ * 9.14 and a card's body 5.43. The two thinnest are the two smallest — both 13px against a 4.5
+ * floor — and both are on a ground that commits to one end of the range rather than reading a
+ * photograph.
  *
- * THE ENTRANCE. Gated on html[data-motion="on"], which apps/web/src/lib/motion.ts sets in a layout
- * effect — before the first paint, so nothing flashes in and then hides itself, and never at all
- * for a reader who has asked their system for less motion. Every one of these animations ends at
- * the element's ordinary style, so removing them removes the movement and nothing else: the page
- * under prefers-reduced-motion is this page, arrived.
+ * The photograph itself is what this was for, and it was measured too: over the right 56% of the
+ * stage at 1440 the mean relative luminance goes 0.236 to 0.366 on the first banner, 0.236 to 0.368
+ * on the second, 0.233 to 0.422 on the third and 0.240 to 0.337 on the fourth — between 41% and 81%
+ * brighter. On a phone, over the band the picture now occupies, 0.205 to 0.296, 0.235 to 0.306,
+ * 0.249 to 0.338 and 0.210 to 0.284.
+ *
+ * WHAT STILL CARRIES ITS OWN GROUND. The place chip, the caption plate and the two floating cards
+ * stand on the photograph rather than on the panel, and a translucent panel over a photograph can
+ * be any brightness. So each commits to one end of the range and stays there: the plate and the
+ * cards are LIGHT glass with dark words, the chip is a dark pill with paper on it. A brighter
+ * photograph only helps them — the darkest ground a light panel can composite over is a black
+ * pixel, and there are fewer of those now than there were.
+ *
+ * THE ENTRANCE. Unchanged, and gated on html[data-motion="on"], which apps/web/src/lib/motion.ts
+ * sets in a layout effect — before the first paint, so nothing flashes in and then hides itself, and
+ * never at all for a reader who has asked their system for less motion. Every one of these
+ * animations ends at the element's ordinary style, so removing them removes the movement and
+ * nothing else: the page under prefers-reduced-motion is this page, arrived.
  *
  * Nothing here is keyed to .is-on. An animation that restarts when the banner changes is an
- * animation that can still be running when somebody presses pause, and the pause control's own
- * test asserts that nothing is. The one thing that does follow the showing banner is the drift on
- * the photograph, and that is gated on [data-decor='on'], which the pause control clears. */
+ * animation that can still be running when somebody presses pause, and the pause control's own test
+ * asserts that nothing is. The one thing that does follow the showing banner is the drift on the
+ * photograph, and that is gated on [data-decor='on'], which the pause control clears. */
 .landing .editorial-hero {
  --hero-pad: clamp(20px, 4.6vw, 64px);
+ /* The picture's own band in the stacked composition, and the width of the ink panel in the split
+    one. The panel is zero below the split breakpoint, which is what makes one set of rules serve
+    both: every offset below is written against --hero-panel, and at nought it simply falls away. */
+ --hero-band: clamp(250px, 34vh, 330px);
+ --hero-panel: 0px;
+ --hero-feather: 72px;
  display: grid;
  grid-template-columns: minmax(0, 1fr);
  gap: 0;
@@ -412,51 +433,42 @@
 }
 .landing .editorial-hero > * { min-width: 0; }
 
-/* The stage. The photograph and the copy are two layers in one cell, so the stage is as tall as
-   whichever of them is taller and neither can push the other down the page. */
+/* The stage. The photograph and the copy are two layers in one cell, so neither can push the other
+   down the page, and the ink under both is the stage's own ground rather than a panel element. */
 .hero-stage {
  position: relative;
  isolation: isolate;
  display: grid;
  grid-template-columns: minmax(0, 1fr);
- min-height: clamp(540px, 74vh, 700px);
+ min-height: clamp(620px, 96vh, 900px);
  background: var(--studio-ink-deep);
 }
 .hero-stage > * { grid-area: 1 / 1; min-width: 0; }
-/* The scrim. Up from the foot for the headline and everything beside it, in from the left for the
-   half of the frame the copy column stands on, and a light one down from the top so the place chip
-   and the navigation above it never sit on a bright sky. */
+/* The feather, and it is the only thing painted over the photograph now. It carries the foot of the
+   picture into the ink beneath it over --hero-feather and does nothing anywhere else, so the rest
+   of the frame is at the brightness the photograph was taken at. */
 .hero-stage::after {
  content: '';
  grid-area: 1 / 1;
  z-index: 2;
  pointer-events: none;
- background:
-  linear-gradient(to top,
-   color-mix(in srgb, var(--studio-ink-deep) 96%, transparent) 0%,
-   color-mix(in srgb, var(--studio-ink-deep) 92%, transparent) 34%,
-   color-mix(in srgb, var(--studio-ink-deep) 76%, transparent) 52%,
-   color-mix(in srgb, var(--studio-ink-deep) 44%, transparent) 74%,
-   color-mix(in srgb, var(--studio-ink-deep) 18%, transparent) 100%),
-  linear-gradient(100deg,
-   color-mix(in srgb, var(--studio-ink-deep) 88%, transparent) 0%,
-   color-mix(in srgb, var(--studio-ink-deep) 80%, transparent) 30%,
-   color-mix(in srgb, var(--studio-ink-deep) 62%, transparent) 50%,
-   color-mix(in srgb, var(--studio-ink-deep) 20%, transparent) 70%,
-   color-mix(in srgb, var(--studio-ink-deep) 4%, transparent) 88%,
-   transparent 100%),
-  linear-gradient(to bottom,
-   color-mix(in srgb, var(--studio-ink-deep) 46%, transparent) 0%,
-   color-mix(in srgb, var(--studio-ink-deep) 10%, transparent) 22%,
-   transparent 42%);
+ background: linear-gradient(to bottom,
+  transparent 0,
+  transparent calc(var(--hero-band) - var(--hero-feather)),
+  color-mix(in srgb, var(--studio-ink-deep) 55%, transparent) calc(var(--hero-band) - var(--hero-feather) * .38),
+  var(--studio-ink-deep) var(--hero-band));
 }
 
-/* The photograph layer. The figure fills the stage; its frame, its four slides and the crops inside
-   them all stretch to it, so the picture is genuinely edge to edge rather than a panel with rounded
-   corners pretending to be. */
+/* The photograph layer.
+ *
+ * The frame is a pass-through: static, no size and no clipping of its own. That is deliberate. The
+ * four slides are absolutely positioned, so with the frame out of the way their containing block is
+ * the figure, which stretches to the whole stage — and that is what lets a slide put its picture in
+ * a band at the top and its cards down in the ink, without a second element to hold them. The image
+ * is still clipped, by .editorial-photo-visual, which is the box the picture actually occupies. */
 .landing .editorial-hero .landing-portrait {
  /* z-index:auto deliberately: the figure must NOT open a stacking context, or the two floating
-    cards inside it could never rise above the scrim that is painted over the whole stage. */
+    cards inside it could never rise above the feather that is painted over the stage. */
  z-index: auto;
  display: block;
  position: relative;
@@ -464,50 +476,62 @@
  gap: 0;
 }
 .landing .editorial-hero .landing-portrait-frame {
- position: absolute;
- inset: 0;
+ position: static;
  display: block;
+ inset: auto;
+ width: auto;
  height: auto;
  aspect-ratio: auto;
  border: 0;
  border-radius: 0;
- background: var(--studio-ink-deep);
- overflow: hidden;
+ background: none;
+ overflow: visible;
 }
 .landing .editorial-hero .landing-slide { position: absolute; inset: 0; z-index: auto; display: block; }
-.editorial-photo-visual { position: absolute; inset: 0; overflow: hidden; }
+.landing .editorial-hero .editorial-photo-visual {
+ position: absolute;
+ inset: 0 0 auto var(--hero-panel);
+ height: var(--hero-band);
+ overflow: hidden;
+ background: var(--studio-ink-deep);
+}
 .landing .editorial-hero .editorial-photo-visual img {
  position: absolute;
  inset: 0;
  width: 100%;
  height: 100%;
  object-fit: cover;
- object-position: center 38%;
+ object-position: center 42%;
 }
-/* The first crop is the only portrait-ish one of the four; its subject sits right of centre and
-   high, so it is pulled down rather than sharing the others' framing. */
-.landing .editorial-hero .landing-slide:first-child .editorial-photo-visual img { object-position: 62% 42%; }
+/* The first crop is the only one of the four shot at 3:2 rather than 16:9, so it is the only one
+   the frame has vertical slack in — and its subject stands high and right of centre. It is pulled
+   left so her face clears the plate, and up so the top of her head is not cut off by the band. */
+.landing .editorial-hero .landing-slide:first-child .editorial-photo-visual img { object-position: 74% 8%; }
 
-/* The two standing lines. The place chip carries its own ground so it is readable at the top of any
-   of the four photographs; the photography disclosure sits in the foot of the scrim with the rest
-   of the words. Neither belongs to a banner and neither may be carried off by a rotation. */
+/* The two standing lines. The place chip stands on the photograph and carries its own ground; the
+   photography disclosure sits at the foot of the ink with the rest of the words. Neither belongs to
+   a banner and neither may be carried off by a rotation. */
 .landing .editorial-hero .landing-portrait-place {
  position: absolute;
  z-index: 4;
  top: var(--hero-pad);
- left: var(--hero-pad);
+ left: calc(var(--hero-panel) + var(--hero-pad));
  right: auto;
  bottom: auto;
  display: inline-flex;
  align-items: center;
  gap: 8px;
  width: fit-content;
- max-width: calc(100% - var(--hero-pad) * 2);
+ max-width: calc(100% - var(--hero-panel) - var(--hero-pad) * 2);
  margin: 0;
  padding: 9px 15px;
  border: 0;
  border-radius: var(--r-pill);
- background: color-mix(in srgb, var(--studio-ink-deep) 86%, transparent);
+ /* 92% rather than 86%: this pill is the one piece of type that still stands on the photograph,
+    and at 86% it measured 4.56:1 over the garden banner's sky — a tenth of a point of margin, and
+    none at all in a browser that ignores backdrop-filter. At 92% the worst it can composite to is
+    rgb(43,58,49), which carries paper at 10.3:1. */
+ background: color-mix(in srgb, var(--studio-ink-deep) 92%, transparent);
  backdrop-filter: blur(10px);
  font-size: 13px;
  font-weight: 500;
@@ -521,7 +545,7 @@
  z-index: 4;
  left: var(--hero-pad);
  right: auto;
- bottom: calc(var(--hero-pad) * .8);
+ bottom: calc(var(--hero-pad) * .6);
  max-width: calc(100% - var(--hero-pad) * 2);
  margin: 0;
  padding: 0;
@@ -530,27 +554,27 @@
  box-shadow: none;
  font-size: 13px;
  line-height: 1.5;
- color: color-mix(in srgb, var(--studio-paper) 84%, var(--studio-ink-deep));
+ color: color-mix(in srgb, var(--studio-paper) 76%, var(--studio-ink-deep));
  text-align: left;
 }
 
-/* The caption and the two floating cards. They belong to the picture rather than to the scrim, so
-   they sit on its right where the photographs leave room, and they fall in under the words on a
-   phone rather than crowding a face. */
+/* The caption plate and the two floating cards. They belong to the picture, so in the stacked
+   composition they fall in under the words rather than covering a face, and in the split one they
+   stand on the photograph's own side of the feather. */
 .editorial-photo-footer {
  position: absolute;
  z-index: 3;
+ left: var(--hero-pad);
  right: var(--hero-pad);
- top: calc(var(--hero-pad) + 34px);
- bottom: auto;
+ top: auto;
+ bottom: calc(var(--hero-pad) + 30px);
  display: grid;
  justify-items: stretch;
- gap: 12px;
- width: min(300px, 42%);
+ gap: 10px;
 }
 .editorial-photo-caption {
  position: static;
- padding: 14px 18px;
+ padding: 13px 18px;
  border-radius: var(--r-panel);
  background: color-mix(in srgb, var(--studio-paper) 92%, transparent);
  backdrop-filter: blur(16px) saturate(1.15);
@@ -559,8 +583,8 @@
  text-align: left;
 }
 .editorial-photo-caption > span { font-size: 13px; font-weight: 600; letter-spacing: .16em; color: var(--studio-olive); }
-.editorial-photo-caption > strong { display: block; margin-top: 6px; font-size: 20px; line-height: 1.2; font-weight: 500; letter-spacing: -.02em; }
-.editorial-photo-cards { position: static; display: grid; gap: 12px; width: 100%; }
+.editorial-photo-caption > strong { display: block; margin-top: 5px; font-size: 18px; line-height: 1.2; font-weight: 500; letter-spacing: -.02em; }
+.editorial-photo-cards { position: static; display: grid; gap: 10px; width: 100%; }
 /* Light glass with dark words on it, never the other way round: a translucent panel over a
    photograph can be any brightness, and only a light one keeps its text legible at both extremes.
    92% paper over black composites to rgb(226,225,220), the darkest this panel can go, and every
@@ -572,7 +596,7 @@
  gap: 12px;
  width: 100%;
  max-width: none;
- padding: 13px 16px;
+ padding: 12px 16px;
  border: 0;
  border-radius: var(--r-panel);
  background: color-mix(in srgb, var(--studio-paper) 92%, transparent);
@@ -583,19 +607,20 @@
 }
 .landing .editorial-hero .landing-hero-card.at-top { display: flex; }
 
-/* The words. One block, anchored to the foot of the stage on the left, which is where the scrim is
-   deepest and where all four photographs have the least happening. */
+/* The words. One block on the ink, under the picture in the stacked composition and beside it in
+   the split one. Nothing here stands on a photograph, which is the whole point of the panel. */
 .landing .editorial-hero .landing-hero-copy {
  z-index: 5;
- align-self: end;
+ align-self: stretch;
  display: grid;
  grid-template-columns: minmax(0, 1fr);
+ align-content: start;
  width: 100%;
- padding: clamp(90px, 18vh, 200px) var(--hero-pad) calc(var(--hero-pad) * .8 + 42px);
+ padding: calc(var(--hero-band) + 26px) var(--hero-pad) calc(var(--hero-pad) + 262px);
 }
 .landing .editorial-hero .landing-hero-slide {
  display: block;
- max-width: min(700px, 58%);
+ max-width: none;
  padding: 0;
  color: var(--surface);
 }
@@ -603,7 +628,7 @@
  display: flex;
  align-items: center;
  gap: 9px;
- margin: 0 0 20px;
+ margin: 0 0 16px;
  padding: 0;
  border: 0;
  border-radius: 0;
@@ -617,28 +642,28 @@
 .landing .editorial-hero h1 {
  max-width: none;
  margin: 0;
- font-size: clamp(40px, 5.8vw, 86px);
+ font-size: clamp(36px, 9.4vw, 44px);
  font-weight: 500;
- line-height: .98;
- letter-spacing: -.055em;
+ line-height: 1;
+ letter-spacing: -.05em;
  color: var(--surface);
 }
 /* Each half of the headline is a line in a clipped box so the entrance can lift it out from under
    its own baseline. The padding and the matching negative margin are there because a box clipped at
    the baseline eats the descender of "Small steps." and "Your skill." */
-.landing .editorial-hero .h1-line { display: block; overflow: hidden; padding-bottom: .1em; margin-bottom: -.1em; }
+.landing .editorial-hero .h1-line { display: block; padding-bottom: .1em; margin-bottom: -.1em; }
 .landing .editorial-hero .h1-line > span { display: block; }
 .landing .editorial-hero h1 .landing-h1-accent { color: var(--brand-mint); }
 .editorial-intro { padding: 0; }
 .landing .editorial-hero .landing-hero-lede {
- margin: 26px 0 0;
+ margin: 18px 0 0;
  max-width: 46ch;
- font-size: 16px;
+ font-size: 15px;
  line-height: 1.6;
  color: var(--studio-paper);
 }
 .landing .editorial-hero .primary {
- margin: 26px 0 0;
+ margin: 22px 0 0;
  min-height: 54px;
  padding: 14px 26px;
  border-radius: var(--r-pill);
@@ -651,7 +676,8 @@
 
 /* ---- The ledge --------------------------------------------------------------------------------
    Paper again, directly under the stage. The price panel is lifted into the picture's bottom right
-   from the width where there is room for it to overlap without covering anything. */
+   from the width where there is room for it to overlap without covering anything — less far than it
+   was, because a bright photograph is worth more of its own corner than a dark one was. */
 .hero-ledge {
  position: relative;
  z-index: 1;
@@ -687,20 +713,88 @@
 .editorial-care-note > small { margin: 0; }
 .landing .editorial-hero .studio-bar-wrap { width: 100%; margin: 0; padding: 0 var(--hero-pad) clamp(24px, 3vw, 40px); }
 
+/* A phone narrow enough that two cards side by side would break "A familiar place." over three
+   lines gets them stacked, and the copy's foot reserve grows to match. */
+@media (max-width: 399px) {
+ .landing .editorial-hero .landing-hero-copy { padding-bottom: calc(var(--hero-pad) + 324px); }
+}
+@media (min-width: 400px) and (max-width: 899px) {
+ .editorial-photo-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .landing .editorial-hero .landing-hero-card { padding: 12px; gap: 10px; border-radius: var(--r-card); }
+ .landing .editorial-hero .landing-hero-card .landing-hero-disc { width: 34px; height: 34px; }
+}
+@media (min-width: 560px) and (max-width: 899px) {
+ .hero-stage { min-height: clamp(620px, 88vh, 860px); }
+ .landing .editorial-hero .landing-hero-copy { padding-bottom: calc(var(--hero-pad) + 214px); }
+ .landing .editorial-hero h1 { font-size: clamp(44px, 6.4vw, 58px); }
+ .landing .editorial-hero .landing-hero-lede { font-size: 16px; }
+ .landing .editorial-hero .landing-hero-slide { max-width: 620px; }
+}
 @media (min-width: 760px) {
- .editorial-photo-footer { width: min(300px, 38%); }
  .landing .editorial-hero .landing-hero-foot { grid-template-columns: auto minmax(44px, 1fr) auto auto; gap: 12px; align-items: center; }
  .landing .editorial-hero .landing-slide-index { grid-area: 1 / 1; }
  .landing .editorial-hero .landing-slide-rule { grid-area: 1 / 2; }
  .landing .editorial-hero .landing-hero-foot .m-pause { grid-area: 1 / 3; }
  .landing .editorial-hero .landing-slide-steps { grid-area: 1 / 4; }
 }
+
+/* ---- The split --------------------------------------------------------------------------------
+   From 900px there is room for the panel and the picture side by side, and that is the width where
+   the photograph stops being a strip and starts being the reason the page is worth opening. */
+@media (min-width: 900px) {
+ .landing .editorial-hero {
+  --hero-panel: clamp(360px, 38vw, 560px);
+  --hero-feather: clamp(90px, 10vw, 170px);
+ }
+ .hero-stage { min-height: clamp(540px, 74vh, 700px); }
+ /* The wedge. Solid to the panel's full width so no letter is ever on anything but flat ink, then
+    out to nothing over the picture's left edge. Everything right of that is the photograph. */
+ .hero-stage::after {
+  background: linear-gradient(to right,
+   var(--studio-ink-deep) 0,
+   var(--studio-ink-deep) var(--hero-panel),
+   color-mix(in srgb, var(--studio-ink-deep) 42%, transparent) calc(var(--hero-panel) + var(--hero-feather) * .38),
+   transparent calc(var(--hero-panel) + var(--hero-feather)));
+ }
+ .landing .editorial-hero .editorial-photo-visual { inset: 0 0 0 var(--hero-panel); height: auto; }
+ .landing .editorial-hero .landing-portrait-place { left: var(--hero-pad); max-width: calc(var(--hero-panel) - var(--hero-pad) * 2); }
+ .landing .editorial-hero .landing-portrait figcaption { max-width: calc(var(--hero-panel) - var(--hero-pad) * 2); }
+ .landing .editorial-hero .landing-hero-copy {
+  width: var(--hero-panel);
+  align-content: center;
+  padding: calc(var(--hero-pad) + 74px) var(--hero-pad) calc(var(--hero-pad) + 58px);
+ }
+ .landing .editorial-hero h1 { font-size: clamp(38px, 4vw, 58px); line-height: .98; letter-spacing: -.055em; }
+ .landing .editorial-hero .landing-hero-lede { margin-top: 22px; font-size: 16px; }
+ .landing .editorial-hero .primary { margin-top: 26px; }
+ /* The plate and the cards hold the picture's inner edge, one at its head and one at its foot,
+    with the whole middle and the whole far side left alone. Stacked down the outer edge they
+    buried the first photograph's face and half of the second couple; every one of these four
+    photographs puts its subject in the middle of the frame, and the band beside the feather is
+    where all four have an out-of-focus wall, window or leaf instead. */
+ .editorial-photo-footer {
+  left: calc(var(--hero-panel) + var(--hero-feather) * .72);
+  right: var(--hero-pad);
+  top: calc(var(--hero-pad) + 34px);
+  bottom: calc(var(--hero-pad) + 16px);
+  width: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  justify-items: start;
+  gap: 12px;
+ }
+ .editorial-photo-caption { grid-row: 1; width: min(300px, 100%); }
+ .editorial-photo-cards { grid-row: 3; align-self: end; width: min(300px, 100%); grid-template-columns: minmax(0, 1fr); gap: 12px; }
+ .landing .editorial-hero .landing-hero-card { padding: 13px 16px; }
+}
 @media (min-width: 1024px) {
  .hero-ledge { grid-template-columns: auto minmax(0, 1fr) 320px; column-gap: clamp(24px, 3vw, 48px); align-items: center; }
  .editorial-trust { grid-column: 1; grid-row: 1; }
  .landing .editorial-hero .landing-hero-foot { grid-column: 2; grid-row: 1; justify-self: end; width: min(460px, 100%); }
  /* Lifted into the photograph. The panel is opaque, so the overlap costs the picture a corner the
-    composition was leaving empty and costs no word any contrast. */
+    composition was leaving empty and costs no word any contrast. It reaches in less far than it
+    did: the corner it covers is bright now, and worth keeping more of. */
  .editorial-care-note {
   grid-column: 3;
   grid-row: 1;
@@ -709,48 +803,16 @@
   gap: 0;
   justify-content: space-between;
   padding: 26px 28px;
-  margin-top: clamp(-290px, -20vw, -150px);
+  margin-top: clamp(-190px, -13vw, -110px);
  }
+ /* The cards stop short of the lifted price panel. Both are anchored to the stage's foot, so the
+    one that arrives from the ledge would otherwise land on top of the one that belongs to the
+    picture — which is how a panel ends up covering a sentence nobody can then read. */
+ .editorial-photo-footer { bottom: calc(var(--hero-pad) + 110px); }
  .editorial-care-note .care-orbit { display: grid; }
  .editorial-care-note > div > strong { font-size: 52px; }
  .editorial-care-note strong i { display: inline; }
  .editorial-care-note p { margin: 12px 0 20px; font-size: 15px; }
-}
-@media (max-width: 759px) {
- /* On a phone the caption, the disclosure and the two cards fall in under the words rather than
-    beside them: a 390px frame has one column, and a card floated over a face is a card covering the
-    only thing the photograph is for. The copy's foot padding is what makes room for them. */
- .hero-stage { min-height: clamp(700px, 102vh, 900px); }
- .hero-stage::after {
-  background:
-   linear-gradient(to top,
-    color-mix(in srgb, var(--studio-ink-deep) 96%, transparent) 0%,
-    color-mix(in srgb, var(--studio-ink-deep) 94%, transparent) 55%,
-    color-mix(in srgb, var(--studio-ink-deep) 86%, transparent) 72%,
-    color-mix(in srgb, var(--studio-ink-deep) 50%, transparent) 84%,
-    color-mix(in srgb, var(--studio-ink-deep) 20%, transparent) 94%,
-    color-mix(in srgb, var(--studio-ink-deep) 10%, transparent) 100%),
-   linear-gradient(to bottom,
-    color-mix(in srgb, var(--studio-ink-deep) 46%, transparent) 0%,
-    color-mix(in srgb, var(--studio-ink-deep) 10%, transparent) 18%,
-    transparent 34%);
- }
- .editorial-photo-footer { left: var(--hero-pad); right: var(--hero-pad); top: auto; bottom: calc(var(--hero-pad) + 26px); width: auto; }
- .editorial-photo-caption, .landing .editorial-hero .landing-portrait figcaption { text-align: left; }
- .editorial-photo-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
- .landing .editorial-hero .landing-hero-card { padding: 12px; gap: 10px; border-radius: var(--r-card); }
- .landing .editorial-hero .landing-hero-card .landing-hero-disc { width: 34px; height: 34px; }
- .landing .editorial-hero .landing-hero-copy { padding-bottom: calc(var(--hero-pad) + 300px); }
- .landing .editorial-hero .landing-hero-slide { max-width: none; }
- .landing .editorial-hero .landing-portrait figcaption { bottom: calc(var(--hero-pad) * .5); text-align: left; }
- .landing .editorial-hero .landing-hero-lede { margin-top: 18px; font-size: 15px; }
- .landing .editorial-hero .landing-hero-marks { gap: 14px 18px; }
-}
-@media (max-width: 419px) {
- .editorial-photo-cards { grid-template-columns: minmax(0, 1fr); }
- /* The cards go to one column here, which is 110px of extra stack; the head padding goes up with
-    it so the photograph still has a band of its own above the words rather than a sliver. */
- .landing .editorial-hero .landing-hero-copy { padding: clamp(150px, 24vh, 220px) var(--hero-pad) calc(var(--hero-pad) + 372px); }
 }
 /* The price panel goes to one column before the two it has get narrow enough to break "Find your
    care" over three lines and "/ visit" off the end of the numeral it belongs to. */
@@ -778,6 +840,11 @@
  html[data-motion="on"] .landing .editorial-hero .editorial-photo-visual { animation: hero-photo-in 1500ms var(--ease-soft) both; }
  html[data-motion="on"] .landing .editorial-hero .landing-portrait-place { animation: hero-chip-in 620ms var(--ease-soft) 260ms both; }
  html[data-motion="on"] .landing .editorial-hero .landing-hero-eyebrow { animation: hero-rise-in 620ms var(--ease-soft) 200ms both; }
+ /* The mask the headline is lifted out from under. It belongs with the animation rather than with
+    the type, so a reader who has asked for less motion is handed a headline with no clipping box
+    around it at all — and at the narrowest width the page claims, nothing of a long word can be cut
+    off by a box that is only there to hide a movement that is not happening. */
+ html[data-motion="on"] .landing .editorial-hero .h1-line { overflow: hidden; }
  html[data-motion="on"] .landing .editorial-hero .h1-line > span { animation: hero-line-up 880ms var(--ease-soft) 300ms both; }
  html[data-motion="on"] .landing .editorial-hero .landing-h1-accent > span { animation-delay: 400ms; }
  html[data-motion="on"] .landing .editorial-hero .landing-hero-lede { animation: hero-rise-in 700ms var(--ease-soft) 660ms both; }

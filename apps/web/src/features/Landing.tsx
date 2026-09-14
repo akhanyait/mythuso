@@ -165,15 +165,16 @@ function Hero() {
  const named = (i: number) => `${slides[i].headline.lead} ${slides[i].headline.accent}`;
  const hold = canHover ? { onMouseEnter: () => setHeld(true), onMouseLeave: () => setHeld(false) } : {};
  return <section className="landing-hero editorial-hero" role="group" aria-roledescription="carousel" aria-label="MyThuso in four pictures" data-ambient="paused">
-  {/* The stage. One picture, edge to edge, with the banner's own words set on it rather than in a
-      band of paper above it — asked for on 14 September in those terms. The photograph is the
-      figure and the copy is a layer over it; both are the same four slides, cross-faded together.
+  {/* The stage. Edge to edge, and two things in one cell: the photograph as the figure, and the
+      banner's own words as a layer over it. Both are the same four slides, cross-faded together.
 
-      Everything a reader reads here sits on a scrim rather than on a photograph, and the ratio each
-      run of type actually measured — over all four banners, at both viewports, against the
-      brightest pixel under it — is written down above .hero-stage in surface/revamp.css. A headline
-      has already shipped on this project at 1.28:1; composing type over an image is exactly where
-      that happens again if it is left to the eye. */}
+      The words do not stand on the photograph. They stand on a panel of ink beside it on a wide
+      screen and under it on a phone, and the picture keeps its own brightness — which is the whole
+      point, because the first attempt at this put the headline straight onto the image and had to
+      deepen a scrim until a sunlit portrait arrived as a near-black plate. What each run of type
+      measured, and what the photograph's mean luminance did, are written down above .hero-stage in
+      surface/revamp.css. A headline has already shipped on this project at 1.28:1; composing type
+      over an image is exactly where that happens again if it is left to the eye. */}
   <div className="hero-stage">
    <figure className="landing-portrait" {...hold}>
     <div className="landing-portrait-frame">

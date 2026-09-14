@@ -83,6 +83,12 @@ struct WorkspaceFigure: Identifiable {
     var prefix: String?
     let chip: String
     var flagged = false
+    /* The drawing that belongs to this figure, where the role gets a deck rather than a flat strip.
+       It is presentation and never a second number: whatever is handed in here is built from the
+       same arithmetic as the value beside it, so a reader who distrusts the picture can read the
+       numeral and a reader who distrusts the numeral can count the picture. Features/
+       ClinicalDeckView.swift draws them and says in full why each one is allowed to exist. */
+    var shape: DeckShape?
     var id: String { label }
 }
 
@@ -92,20 +98,49 @@ struct WorkspaceFigure: Identifiable {
  * could count a NavigationLink's title. Both the strip and the list now read this, so the two
  * cannot disagree, and a reviewer changing the day's work changes it once. */
 enum WorkspaceDay {
-    struct Visit: Identifiable { let id: String, time: String, service: String, area: String, standing: String }
-    struct Case: Identifiable { let id: String, subject: String, waiting: String; var priority = false }
+    /* A visit names the catalogue service it is as well as what the row calls it. The deck draws
+       the day to scale and a visit is as long as its own service takes — `CareService.duration`
+       already says an hour is not the answer for every service, and a day drawn as three equal
+       blocks says it is. */
+    struct Visit: Identifiable {
+        let id: String, time: String, serviceId: String, service: String, area: String, standing: String
+        var minutes: Int { CareService.all.first { $0.id == serviceId }?.duration ?? 0 }
+        var from: Int { DeckClock.minute(of: time) }
+        var to: Int { from + minutes }
+    }
+    /* Waiting is minutes, and the sentence on the row is arithmetic on them.
+       IT WAS A STRING, AND THE STRING IS WHAT LET THIS QUEUE DRIFT. The same three cases carried
+       different waits on each platform: TH-2041 was 24 minutes and routine here, 26 and flagged on
+       Android and 65 and flagged on the web; TH-2045 was 1 h 05 m here, 74 minutes on Android and
+       22 on the web. So "Priority reviews" read 1 on this phone and 2 everywhere else — one product
+       telling a doctor two different things about the same queue. The web is the source of truth
+       and these are now its numbers, derived rather than typed so the row and the figure above it
+       cannot disagree again. */
+    struct Case: Identifiable {
+        let id: String, subject: String, waitingMinutes: Int
+        var priority = false
+        var waited: String { WorkspaceDay.waited(waitingMinutes) }
+        var waiting: String { "Waiting \(waited)" }
+    }
     struct Order: Identifiable { let id: String, subject: String, standing: String; var late = false }
+
+    /// "3 h 20 m", "1 h 05 m", "22 m" — from minutes, so a waiting time is written once and read
+    /// everywhere. Padded, because a column of them is read down rather than across.
+    static func waited(_ minutes: Int) -> String {
+        minutes >= 60 ? String(format: "%d h %02d m", minutes / 60, minutes % 60) : "\(minutes) m"
+    }
 
     /// Sister Naledi Mokoena's day. The first row is the visit the assessment screen opens.
     static let nurseVisits = [
-        Visit(id: "TH-2048", time: "09:00", service: "Vitals assessment", area: "Rosebank", standing: "Awaiting sign-off"),
-        Visit(id: "TH-2053", time: "11:30", service: "Wound care", area: "Parktown", standing: "Not started"),
-        Visit(id: "TH-2057", time: "14:00", service: "Mother & baby", area: "Melville", standing: "Not started")
+        Visit(id: "TH-2048", time: "09:00", serviceId: "vitals", service: "Vitals assessment", area: "Rosebank", standing: "Awaiting sign-off"),
+        Visit(id: "TH-2053", time: "11:30", serviceId: "wound", service: "Wound care", area: "Parktown", standing: "Not started"),
+        Visit(id: "TH-2057", time: "14:00", serviceId: "mother", service: "Mother & baby", area: "Melville", standing: "Not started")
     ]
+    /// Longest first, because that is the order the queue is worked and what the screen says it is.
     static let doctorQueue = [
-        Case(id: "TH-2048", subject: "Vitals assessment", waiting: "Waiting 3 h 20 m", priority: true),
-        Case(id: "TH-2045", subject: "Wound follow-up", waiting: "Waiting 1 h 05 m"),
-        Case(id: "TH-2041", subject: "Prescription request", waiting: "Waiting 24 m")
+        Case(id: "TH-2048", subject: "Vitals assessment", waitingMinutes: 200, priority: true),
+        Case(id: "TH-2041", subject: "Prescription request", waitingMinutes: 65, priority: true),
+        Case(id: "TH-2045", subject: "Wound follow-up", waitingMinutes: 22)
     ]
     static let prescriptions = [
         Order(id: "RX-0081", subject: "2 items", standing: "Awaiting pharmacist", late: true),
@@ -116,15 +151,42 @@ enum WorkspaceDay {
         Order(id: "LAB-0019", subject: "Sample in transit", standing: "Seal intact")
     ]
 
+    /// Signed off, read out of the visit queue rather than out of a flag this screen sets. The ring
+    /// on the deck fills the visits a nurse has actually sealed, which is the same fact the
+    /// assessment screen wrote — not a second opinion about it kept beside the row.
+    @MainActor static func signedOff(_ visit: String) -> Bool {
+        VisitQueueStore.shared.parts.contains { $0.visitReference == visit && $0.kind == .signOff }
+    }
+
+    /* The weeks BEHIND this one, oldest first, so a line drawn from them runs the way time does.
+       Sorted on each week's own end date rather than on the order the contract lists them in — the
+       register is written newest first and a series drawn in that order would show every week
+       falling. The week in progress is deliberately not the last point on it: it is the figure above
+       the line, and a week still being added to, drawn as the end of a series, reads as a fall
+       rather than as a week that has not finished. */
+    static var completedWeekTotals: [Int] {
+        Earnings.weeks.filter { $0.state != "accruing" }.sorted { $0.ends < $1.ends }.map(\.total)
+    }
+
     /* Counted, never typed. Each of these is arithmetic over the list the same section draws below
-       it, so the only way the strip can be wrong is for the list to be wrong too. */
-    static func figures(_ role: String) -> [WorkspaceFigure] {
+       it, so the only way the strip can be wrong is for the list to be wrong too.
+
+       THE DOCTOR'S THIRD FIGURE USED TO BE "18 reviewed today" OVER "Median 4 m 10 s". Both were
+       typed, neither had a list under it to be counted from, and a productivity figure nobody can
+       check is the one number a clinical screen must not carry. The web deleted them in the pass
+       that built the deck; the longest wait replaces them here for the same reason, and it is the
+       same queue sorted, so a reader can see which row it names. */
+    @MainActor static func figures(_ role: String) -> [WorkspaceFigure] {
         switch role {
         case "Doctor":
             let priority = doctorQueue.filter(\.priority).count
-            return [.init(label: "Awaiting review", value: String(doctorQueue.count), chip: doctorQueue.first?.waiting ?? "Nothing waiting"),
-                    .init(label: "Priority reviews", value: String(priority), chip: "Flagged out of range", flagged: priority > 0),
-                    .init(label: "Reviewed today", value: "18", chip: "Median 4 m 10 s")]
+            return [.init(label: "Awaiting review", value: String(doctorQueue.count),
+                          chip: priority > 0 ? "\(priority) out of range" : "All inside their ranges",
+                          shape: .ring(doctorQueue.map(\.priority))),
+                    .init(label: "Priority reviews", value: String(priority), chip: "Out of range",
+                          flagged: priority > 0, shape: .gauge(part: priority, whole: doctorQueue.count)),
+                    .init(label: "Longest wait", value: waited(doctorQueue.map(\.waitingMinutes).max() ?? 0),
+                          chip: "Oldest in the queue", shape: .bars(doctorQueue.map(\.waitingMinutes)))]
         case "Partner":
             let late = prescriptions.filter(\.late).count
             let released = laboratory.filter { $0.standing.hasPrefix("Results") }.count
@@ -141,19 +203,44 @@ enum WorkspaceDay {
                     .init(label: "Open incidents", value: String(Incidents.all.count),
                           chip: critical > 0 ? "\(critical) critical" : "None critical", flagged: critical > 0)]
         default:
-            let toSign = nurseVisits.filter { $0.standing == "Awaiting sign-off" }.count
+            let signed = nurseVisits.filter { signedOff($0.id) }.count
+            let left = nurseVisits.count - signed
             let next = nurseVisits.first
-            /* The area, not the area and the service. A chip is a word: "Vitals assessment ·
-               Rosebank" wrapped to two lines, and because the chip floats above the figure, a chip
-               one line taller than its neighbour's pushes its numeral one line lower — so 09:00 and
-               3 sat at different heights in a strip whose whole job is to be scanned across. */
-            return [.init(label: "Next visit", value: next?.time ?? "—", chip: next?.area ?? "Nothing booked"),
+            /* The area AND the length of the visit, which is what the deck can afford and the flat
+               strip could not: every figure on the deck has its own column and its own chip line, so
+               a chip that wraps no longer drops the numeral beside it one line lower. The length is
+               the same duration the day above is drawn to.
+               The week's figure is the earnings screen's arithmetic rather than the schedule's: that
+               contract already answers "what has this week paid", and a second answer kept here is
+               two numbers waiting to disagree. The line under it is the same register's completed
+               weeks, oldest first. */
+            return [.init(label: "Next visit", value: next?.time ?? "—",
+                          chip: next.map { "\($0.area) · \($0.minutes) min" } ?? "Nothing booked",
+                          shape: .day(visits: nurseVisits.map { DeckVisit(from: $0.from, to: $0.to, signed: signedOff($0.id)) },
+                                      from: nurseVisits.first?.from ?? 0, to: nurseVisits.last?.to ?? 0)),
                     .init(label: "Today’s visits", value: String(nurseVisits.count),
-                          chip: toSign == 1 ? "One awaiting sign-off" : "\(toSign) awaiting sign-off"),
-                    /* The one figure that is not counted from this screen: a week's earnings are the
-                       earnings screen's arithmetic, not the schedule's. The prefix keeps it R 598
-                       rather than 598 R, which is the only reason ThusoMetric has one. */
-                    .init(label: "This week so far", value: "598", prefix: "R ", chip: "Pays Wednesday")]
+                          chip: signed > 0 ? "\(signed) signed, \(left) to go" : "\(left) to sign off",
+                          shape: .ring(nurseVisits.map { signedOff($0.id) })),
+                    .init(label: "This week", value: Earnings.randDigits(Earnings.currentWeek.total), prefix: "R ",
+                          chip: "Pays \(Earnings.cycle.paysOn)",
+                          shape: .spark(weeks: completedWeekTotals))]
+        }
+    }
+
+    /* THE TWO ROLES WHOSE OPENING SCREEN IS A DECK RATHER THAN THREE NUMERALS IN A ROW. Both open
+       the application on one list and work it for a shift, which is the case a ring and a dial earn
+       their place in: the shape of that list is the thing they need before the first row of it. The
+       partner and the Control Tower read several boards a day and keep the flat strip, deliberately
+       — a dial on each of six boards is a dashboard rather than a tool.
+
+       The two sentences are the web's, word for word (`deckHead` in apps/web/src/shells/
+       StaffShell.tsx). They are a third copy of them and the honest home is packages/catalog/
+       framing.json beside the role framings, which is a generator change rather than a screen one. */
+    static func deckHead(_ role: String) -> (eyebrow: String, note: String)? {
+        switch role {
+        case "Doctor": return ("THE QUEUE AT A GLANCE", "Every figure is counted off the rows below")
+        case "Nurse": return ("TODAY AT A GLANCE", "Every figure is counted off the visits below")
+        default: return nil
         }
     }
 }
@@ -185,10 +272,27 @@ struct WorkspaceShell: View {
 /* The strip a workspace lands on. Three figures side by side while they fit and a column when they
    do not — ThusoMetrics decides that from the scaled width of a numeral rather than from a size
    class, so a reader at the accessibility sizes gets one metric per row without anything here
-   asking about it. */
+   asking about it.
+
+   Two roles get an instrument deck instead, and the argument for it is in Features/
+   ClinicalDeckView.swift: a nurse and a doctor open the application on one list and work it for a
+   shift, and the shape of that list is what they need before its first row. Everything the deck
+   draws is counted off the same rows this strip counts. */
 struct WorkspaceUrgency: View {
     let role: String
+    /* Observed rather than read once, so the nurse's ring fills the moment she seals a visit rather
+       than the next time the workspace is opened. It is the same store the row underneath reads. */
+    @ObservedObject private var queue = VisitQueueStore.shared
     var body: some View {
+        if let head = WorkspaceDay.deckHead(role) {
+            ClinicalDeck(role: role, eyebrow: head.eyebrow, note: head.note,
+                         figures: WorkspaceDay.figures(role))
+        } else {
+            flatStrip
+        }
+    }
+
+    private var flatStrip: some View {
         /* The one near-black card on the screen, and it carries what is waiting right now.
          *
          * A workspace landing has a toggle, a queue and three lists on it, and if the strip that says

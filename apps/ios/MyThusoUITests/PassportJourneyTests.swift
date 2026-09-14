@@ -156,6 +156,15 @@ final class PassportJourneyTests: XCTestCase {
             self.openWorkspace(app, "Nurse workspace", bar: "Nurse", landing: "Schedule")
         }
     }
+    /* The doctor's queue, which had no journey at all until the deck landed on it — and it is the
+       screen the deck changes most: a ring of one arc per case, a dial of what is pressing and one
+       bar per row are three drawings that fail differently at three times the type than they do at
+       one, and the two figures this screen used to carry were the two that were invented. */
+    func testTheDoctorWorkspaceIsUsable() {
+        bothSizes("The doctor workspace") { app in
+            self.openWorkspace(app, "Doctor workspace", bar: "Doctor", landing: "Review queue")
+        }
+    }
     func testTheControlTowerIsUsable() {
         bothSizes("The Control Tower") { app in
             self.openWorkspace(app, "Control Tower", bar: "Control Tower", landing: "Dispatch")

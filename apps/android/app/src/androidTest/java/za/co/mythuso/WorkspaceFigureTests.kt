@@ -30,9 +30,9 @@ class WorkspaceFigureTests {
 
     private val store = PreviewStore()
     private fun figure(role: String, label: String): Pair<String, String> {
-        val row = workspaceUrgency(role, store).firstOrNull { it.first == label }
-            ?: throw AssertionError("The $role strip has no figure labelled \"$label\". It carries: ${workspaceUrgency(role, store).map { it.first }}")
-        return row.second to row.third
+        val row = workspaceUrgency(role, store).firstOrNull { it.label == label }
+            ?: throw AssertionError("The $role strip has no figure labelled \"$label\". It carries: ${workspaceUrgency(role, store).map { it.label }}")
+        return row.value to row.note
     }
 
     @Test fun theControlTowerStripCountsItsOwnBoard() {
@@ -65,23 +65,59 @@ class WorkspaceFigureTests {
     }
 
     @Test fun theDoctorStripCountsItsOwnQueue() {
-        val (waiting, longest) = figure("Doctor", "Awaiting review")
+        val (waiting, ranges) = figure("Doctor", "Awaiting review")
         assertEquals("The strip must say how many cases are in the queue below it",
             "${doctorReviewQueue.size}", waiting)
-        /* The longest wait is on the row as well as in the figure, so a reader can find it. */
+        val flaggedCount = doctorReviewQueue.count { it.flagged }
+        assertTrue("The chip must count the flagged rows rather than describe them: $ranges",
+            ranges.contains("$flaggedCount") || flaggedCount == 0)
+
+        val (flagged, _) = figure("Doctor", "Priority reviews")
+        assertEquals("Flagged must be counted, not asserted", "$flaggedCount", flagged)
+
+        /* The longest wait replaced "Reviewed today 18" and its "Median 4 m 10 s", which were typed
+           over a queue that could count neither. It is the same queue sorted, so a reader can see
+           which row it names. */
         val worst = doctorReviewQueue.maxByOrNull { it.waitingMinutes }!!
+        val (longest, _) = figure("Doctor", "Longest wait")
         assertTrue("The longest wait must be the queue's own: $longest",
             longest.contains("${worst.waitingMinutes / 60} h") || worst.waitingMinutes < 60)
+    }
 
-        val (flagged, _) = figure("Doctor", "Flagged out of range")
-        assertEquals("Flagged must be counted, not asserted",
-            "${doctorReviewQueue.count { it.flagged }}", flagged)
+    /* Every mark is the same arithmetic as the numeral beside it, off the same rows. A drawing a
+       reader cannot check against the list underneath is the typed-figure problem wearing a nicer
+       coat: three arcs, three rows, and the bright ones are the rows carrying a badge. */
+    @Test fun everyDrawingOnTheDeckIsCountedFromTheSameRows() {
+        val doctor = workspaceUrgency("Doctor", store).associateBy { it.label }
+        assertEquals("One arc per case on the queue, flagged where the row is flagged",
+            DeckShape.Ring(doctorReviewQueue.map { it.flagged }), doctor["Awaiting review"]!!.shape)
+        assertEquals("The dial is the flagged count out of the queue length",
+            DeckShape.Gauge(doctorReviewQueue.count { it.flagged }, doctorReviewQueue.size),
+            doctor["Priority reviews"]!!.shape)
+        assertEquals("One bar per case, as long as that case has waited",
+            DeckShape.Bars(doctorReviewQueue.map { it.waitingMinutes }),
+            doctor["Longest wait"]!!.shape)
 
-        val (overAnHour, oldest) = figure("Doctor", "Waiting over an hour")
-        assertEquals("Waiting over an hour must be counted from the same minutes the rows show",
-            "${doctorReviewQueue.count { it.waitingMinutes >= 60 }}", overAnHour)
-        assertTrue("The oldest named must be the oldest in the queue: $oldest",
-            oldest.contains(worst.reference))
+        val nurse = workspaceUrgency("Nurse", store).associateBy { it.label }
+        val day = nurse["Next visit"]!!.shape as DeckShape.Day
+        assertEquals("One block per visit on the day below", nurseToday.size, day.visits.size)
+        assertEquals("The day starts where the first visit starts", nurseToday.first().from, day.from)
+        assertEquals("And ends when the last one ends, at its own service's duration",
+            nurseToday.last().to, day.to)
+        nurseToday.forEachIndexed { index, visit ->
+            assertEquals("Visit ${visit.at} is as long as its service takes",
+                visit.minutes, day.visits[index].to - day.visits[index].from)
+        }
+        assertEquals("One arc per visit on the day below",
+            nurseToday.size, (nurse["Today’s visits"]!!.shape as DeckShape.Ring).segments.size)
+        /* The week in progress is the figure above the line and never a point on it: a week still
+           being added to, drawn as the end of a series, reads as a fall. */
+        val spark = nurse["This week"]!!.shape as DeckShape.Spark
+        assertEquals("The line is the completed weeks and only those",
+            payWeeks.count { it.state != "accruing" }, spark.weeks.size)
+        assertEquals("Oldest first, so a line drawn from them runs the way time does",
+            payWeeks.filter { it.state != "accruing" }.sortedBy { it.ends }.map { it.total },
+            spark.weeks)
     }
 
     @Test fun thePartnerStripCountsItsOwnCounter() {
@@ -105,12 +141,12 @@ class WorkspaceFigureTests {
         assertTrue("And it must say where that visit is: $where", where.contains(nurseToday.first().area))
 
         assertEquals("Visits today must be counted from the day, not typed beside it",
-            "${nurseToday.size}", figure("Nurse", "Visits today").first)
+            "${nurseToday.size}", figure("Nurse", "Today’s visits").first)
 
         /* The money comes off the pay contract rather than out of this file, and so does the day it
            pays: a figure typed here would be a second answer to a question earnings already answers,
            and the two would disagree the moment somebody edited a pay line. */
-        val (amount, pays) = figure("Nurse", "This week so far")
+        val (amount, pays) = figure("Nurse", "This week")
         assertTrue("The week's figure must contain the accruing week's own total: $amount",
             amount.replace(" ", "").contains("${Earnings.currentWeek.total}"))
         assertTrue("The pay day must be the cycle's own: $pays", pays.contains(payCycle.paysOn))
@@ -124,10 +160,12 @@ class WorkspaceFigureTests {
                 "${DispatchBoard.available(store.vetting)}",
                 "${incidents.count { it.status != "Closed" }}"
             ),
+            /* The doctor's third figure is the longest wait rather than a count, and it is the
+               same queue sorted — so it is written the way the row underneath writes it. */
             "Doctor" to setOf(
                 "${doctorReviewQueue.size}",
                 "${doctorReviewQueue.count { it.flagged }}",
-                "${doctorReviewQueue.count { it.waitingMinutes >= 60 }}"
+                waitedText(doctorReviewQueue.maxOf { it.waitingMinutes })
             ),
             "Partner" to setOf(
                 "${partnerOrders.size}",
@@ -136,7 +174,7 @@ class WorkspaceFigureTests {
             )
         )
         counted.forEach { (role, expected) ->
-            val shown = workspaceUrgency(role, store).map { it.second }.toSet()
+            val shown = workspaceUrgency(role, store).map { it.value }.toSet()
             assertEquals("Every figure in the $role strip must be one its own board produced", expected, shown)
         }
     }

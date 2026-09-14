@@ -32,12 +32,9 @@ import SwiftUI
 
 private let payPreviewNurses = ["N-205", "N-204"]
 
-private func rand(_ amount: Int) -> String {
-    let formatter = NumberFormatter()
-    formatter.numberStyle = .decimal
-    formatter.groupingSeparator = " "
-    return "R \(formatter.string(from: NSNumber(value: abs(amount))) ?? String(abs(amount)))"
-}
+/// The contract's own formatter, kept under the name this file's sixty call sites already use.
+/// It moved to Models/Earnings.swift when the nurse's deck needed the same figure without the R.
+private func rand(_ amount: Int) -> String { Earnings.rand(amount) }
 private let payDay = Date.FormatStyle().day().month(.abbreviated)
 private let payFullDay = Date.FormatStyle().weekday(.abbreviated).day().month(.wide)
 

@@ -34,6 +34,9 @@ import za.co.mythuso.model.Passport
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.Scheduling
 import za.co.mythuso.model.Earnings
+import za.co.mythuso.model.VisitPartKind
+import za.co.mythuso.model.payWeeks
+import za.co.mythuso.model.services
 import za.co.mythuso.model.readingSets
 import za.co.mythuso.model.householdMemberById
 import za.co.mythuso.model.mokoenaHousehold
@@ -492,10 +495,18 @@ fun workspaceSections(role: String): List<WorkspaceSection> = when (role) {
 /** One case waiting on a doctor. The waiting time is a field rather than a sentence in the strip,
  *  because the strip's "longest waiting" has to come off the same row the queue shows. */
 data class ReviewWaiting(val reference: String, val what: String, val waitingMinutes: Int, val flagged: Boolean)
+/* Longest first, because that is the order the queue is worked and what the screen says it is.
+
+   THE SAME THREE CASES USED TO CARRY DIFFERENT MINUTES ON EVERY PLATFORM. TH-2041 was 26 here, 24
+   on iOS and 65 on the web; TH-2045 was 74 here, 1 h 05 m on iOS and 22 on the web; and iOS did not
+   flag TH-2041 at all, so "Priority reviews" read 2 here and 1 there. One product telling a doctor
+   two different things about one queue is the defect the counted-figure rule exists to stop, arrived
+   at from the other direction — every figure was counted correctly, off rows that disagreed. The web
+   is the source of truth and these are its numbers. */
 val doctorReviewQueue = listOf(
     ReviewWaiting("TH-2048", "Vitals assessment", 200, flagged = true),
-    ReviewWaiting("TH-2045", "Wound follow-up", 74, flagged = false),
-    ReviewWaiting("TH-2041", "Prescription request", 26, flagged = true)
+    ReviewWaiting("TH-2041", "Prescription request", 65, flagged = true),
+    ReviewWaiting("TH-2045", "Wound follow-up", 22, flagged = false)
 )
 
 /** One prescription on a partner's counter, and what it is waiting for. */
@@ -506,17 +517,47 @@ val partnerOrders = listOf(
 )
 
 /** One visit on a nurse's day. The reference is null where the preview has no assessment behind it,
- *  which is what stops the strip claiming a visit is open on this phone when it is not. */
-data class NurseVisit(val at: String, val service: String, val area: String, val reference: String? = null)
+ *  which is what stops the strip claiming a visit is open on this phone when it is not.
+ *
+ *  It names the catalogue service as well as what the row calls it, because the deck draws the day
+ *  to scale and a visit is as long as its own service takes — `CareService.duration` already says an
+ *  hour is not the answer for every service, and a day drawn as three equal blocks says it is. */
+data class NurseVisit(
+    val at: String, val serviceId: String, val service: String, val area: String,
+    val reference: String? = null
+) {
+    val minutes: Int get() = services.firstOrNull { it.id == serviceId }?.duration ?: 0
+    val from: Int get() = DeckClock.minuteOf(at)
+    val to: Int get() = from + minutes
+}
 val nurseToday = listOf(
-    NurseVisit("09:00", "Vitals assessment", "Rosebank", "TH-2048"),
-    NurseVisit("11:30", "Wound care", "Parktown"),
-    NurseVisit("14:00", "Mother & baby", "Melville")
+    NurseVisit("09:00", "vitals", "Vitals assessment", "Rosebank", "TH-2048"),
+    NurseVisit("11:30", "wound", "Wound care", "Parktown"),
+    NurseVisit("14:00", "mother", "Mother & baby", "Melville")
 )
 
-/** “3 h 20 m”, from minutes, so a waiting time is written once and read everywhere. */
-private fun waitedText(minutes: Int): String =
-    if (minutes >= 60) "${minutes / 60} h ${minutes % 60} m" else "$minutes m"
+/** “3 h 20 m”, “1 h 05 m”, “22 m” — from minutes, so a waiting time is written once and read
+ *  everywhere. Padded, because a column of them is read down rather than across. */
+internal fun waitedText(minutes: Int): String =
+    if (minutes >= 60) "%d h %02d m".format(minutes / 60, minutes % 60) else "$minutes m"
+
+/** A figure in a workspace's strip, in the order it is drawn: the chip floats above the numeral and
+ *  says how it is going, the label sits beneath and says what it is. `flagged` marks the one value on
+ *  the strip that is out of range, and at most one per strip is the whole point of it — a strip where
+ *  every figure is marked has marked nothing.
+ *
+ *  `shape` is the drawing that belongs to the figure where the role gets a deck rather than a flat
+ *  strip. It is presentation and never a second number: whatever is handed in is built from the same
+ *  arithmetic as the value beside it, so a reader who distrusts the picture can read the numeral and
+ *  a reader who distrusts the numeral can count the picture. ClinicalDeck.kt draws them and says in
+ *  full why each one is allowed to exist. */
+data class WorkspaceFigure(
+    val label: String,
+    val value: String,
+    val note: String,
+    val flagged: Boolean = false,
+    val shape: DeckShape? = null
+)
 
 /*
  * What is waiting, and how long it has waited. A workspace that opens with anything else is asking
@@ -533,17 +574,18 @@ private fun waitedText(minutes: Int): String =
  * whose clearance has lapsed, and a strip that counts her as available has offered an operator
  * somebody the next screen will not let them send.
  */
-fun workspaceUrgency(role: String, store: PreviewStore): List<Triple<String, String, String>> = when (role) {
+fun workspaceUrgency(role: String, store: PreviewStore): List<WorkspaceFigure> = when (role) {
     "Doctor" -> {
         val flagged = doctorReviewQueue.count { it.flagged }
-        val overAnHour = doctorReviewQueue.filter { it.waitingMinutes >= 60 }
         listOf(
-            Triple("Awaiting review", "${doctorReviewQueue.size}",
-                "Longest waiting ${waitedText(doctorReviewQueue.maxOf { it.waitingMinutes })}"),
-            Triple("Flagged out of range", "$flagged",
-                if (flagged == 0) "Nothing in the queue is flagged" else "Read ${if (flagged == 1) "it" else "those"} first"),
-            Triple("Waiting over an hour", "${overAnHour.size}",
-                overAnHour.maxByOrNull { it.waitingMinutes }?.let { "Oldest is ${it.reference}" } ?: "Nothing has waited that long")
+            WorkspaceFigure("Awaiting review", "${doctorReviewQueue.size}",
+                if (flagged == 0) "All inside their ranges" else "$flagged out of range",
+                shape = DeckShape.Ring(doctorReviewQueue.map { it.flagged })),
+            WorkspaceFigure("Priority reviews", "$flagged", "Out of range", flagged = flagged > 0,
+                shape = DeckShape.Gauge(flagged, doctorReviewQueue.size)),
+            WorkspaceFigure("Longest wait", waitedText(doctorReviewQueue.maxOf { it.waitingMinutes }),
+                "Oldest in the queue",
+                shape = DeckShape.Bars(doctorReviewQueue.map { it.waitingMinutes }))
         )
     }
     "Partner" -> {
@@ -551,9 +593,9 @@ fun workspaceUrgency(role: String, store: PreviewStore): List<Triple<String, Str
         val courier = partnerOrders.count { it.waitingFor.contains("courier", ignoreCase = true) }
         val items = partnerOrders.sumOf { it.items }
         listOf(
-            Triple("Open orders", "${partnerOrders.size}", "$items item${if (items == 1) "" else "s"} between them"),
-            Triple("Awaiting a pharmacist", "$pharmacist", "Nothing is dispensed until one signs"),
-            Triple("Awaiting a courier", "$courier", "Dispensed, not yet collected")
+            WorkspaceFigure("Open orders", "${partnerOrders.size}", "$items item${if (items == 1) "" else "s"} between them"),
+            WorkspaceFigure("Awaiting a pharmacist", "$pharmacist", "Nothing is dispensed until one signs"),
+            WorkspaceFigure("Awaiting a courier", "$courier", "Dispensed, not yet collected")
         )
     }
     "Control Tower" -> {
@@ -567,11 +609,11 @@ fun workspaceUrgency(role: String, store: PreviewStore): List<Triple<String, Str
         val critical = open.count { it.severity == "Critical" }
         val high = open.count { it.severity == "High" }
         listOf(
-            Triple("Awaiting assignment", "${DispatchBoard.awaitingAssignment.size}",
+            WorkspaceFigure("Awaiting assignment", "${DispatchBoard.awaitingAssignment.size}",
                 if (urgent == 0) "None is marked urgent" else "$urgent marked urgent"),
-            Triple("Nurses available", "$available",
+            WorkspaceFigure("Nurses available", "$available",
                 if (refused > 0) "$refused refused by vetting" else "${DispatchBoard.onAVisit} on a visit"),
-            Triple("Open incidents", "${open.size}",
+            WorkspaceFigure("Open incidents", "${open.size}",
                 when {
                     critical > 0 -> "$critical critical"
                     high > 0 -> "$high high"
@@ -581,27 +623,72 @@ fun workspaceUrgency(role: String, store: PreviewStore): List<Triple<String, Str
     }
     else -> {
         val next = nurseToday.first()
-        /* Real state rather than a sentence: an assessment is open on this phone only if the visit
-           queue is holding a piece of one for it. */
-        val started = nurseToday.count { visit -> visit.reference?.let { store.visitQueue.forVisit(it).isNotEmpty() } == true }
+        /* Real state rather than a sentence: a visit is signed off only if the visit queue is
+           holding her sign-off for it. The ring fills the ones she has actually sealed, which is the
+           same fact the assessment screen wrote rather than a second opinion kept beside the row. */
+        fun signedOff(visit: NurseVisit) = visit.reference
+            ?.let { reference -> store.visitQueue.forVisit(reference).any { it.kind == VisitPartKind.SIGN_OFF } } == true
+        val signed = nurseToday.count { signedOff(it) }
+        val left = nurseToday.size - signed
         val week = Earnings.currentWeek
         listOf(
-            Triple("Next visit", next.at, "${next.service} · ${next.area}"),
-            Triple("Visits today", "${nurseToday.size}",
-                if (started == 0) "None started yet" else "$started open on this phone"),
-            Triple("This week so far", rand(week.total), "Pays ${week.pays.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.UK)}")
+            /* The area AND the length of the visit, which is what the deck can afford and the flat
+               strip could not: every figure has its own column and its own chip line now, so a chip
+               that wraps no longer drops the numeral beside it one line lower. The length is the same
+               duration the day above it is drawn to. */
+            WorkspaceFigure("Next visit", next.at, "${next.area} · ${next.minutes} min",
+                shape = DeckShape.Day(
+                    nurseToday.map { DeckVisit(it.from, it.to, signedOff(it)) },
+                    nurseToday.first().from, nurseToday.last().to
+                )),
+            WorkspaceFigure("Today’s visits", "${nurseToday.size}",
+                if (signed > 0) "$signed signed, $left to go" else "$left to sign off",
+                shape = DeckShape.Ring(nurseToday.map { signedOff(it) })),
+            WorkspaceFigure("This week", rand(week.total),
+                "Pays ${week.pays.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.UK)}",
+                shape = DeckShape.Spark(completedWeekTotals()))
         )
     }
 }
 
+/* The weeks BEHIND this one, oldest first, so a line drawn from them runs the way time does. Sorted
+   on each week's own end date rather than on the order the contract lists them in — the register is
+   written newest first and a series drawn in that order would show every week falling. The week in
+   progress is deliberately not the last point on it: it is the figure above the line, and a week
+   still being added to, drawn as the end of a series, reads as a fall rather than as a week that has
+   not finished. */
+private fun completedWeekTotals(): List<Int> =
+    payWeeks.filter { it.state != "accruing" }.sortedBy { it.ends }.map { it.total }
+
 /* What is waiting, at the top of a workspace, before anything else.
  *
+ * TWO ROLES GET AN INSTRUMENT DECK AND TWO KEEP THE FLAT STRIP. A nurse and a doctor open the
+ * application on one list and work it for a shift, which is the case a ring and a dial earn their
+ * place in: the shape of that list is the thing they need before its first row. The partner and the
+ * Control Tower read several boards a day, and a dial on each of six boards is a dashboard rather
+ * than a tool. ClinicalDeck.kt draws the deck; everything below is the strip the other two keep.
+ *
  * Three equal boxes is a dashboard; a person opening a workspace has one question — what is waiting
- * and how long has it waited — and the first of the three is the answer. So the first is the wide
- * one with the count at the metric size, and the two behind it are context at half the width. The
- * strip still wraps rather than clipping as the font scale grows. */
+ * and how long has it waited — and the first of the three is the answer. So the first is the wide one
+ * with the count at the metric size, and the two behind it are context at half the width. The strip
+ * still wraps rather than clipping as the font scale grows.
+ *
+ * The two deck sentences are the web's, word for word (`deckHead` in apps/web/src/shells/
+ * StaffShell.tsx). They are a third copy of them and the honest home is packages/catalog/framing.json
+ * beside the role framings, which is a generator change rather than a screen one. */
+fun deckHead(role: String): Pair<String, String>? = when (role) {
+    "Doctor" -> "THE QUEUE AT A GLANCE" to "Every figure is counted off the rows below"
+    "Nurse" -> "TODAY AT A GLANCE" to "Every figure is counted off the visits below"
+    else -> null
+}
+
 @Composable fun WorkspaceUrgency(role: String, store: PreviewStore) {
     val entries = workspaceUrgency(role, store)
+    val head = deckHead(role)
+    if (head != null) {
+        ClinicalDeck(role, head.first, head.second, entries)
+        return
+    }
     BoxWithConstraints { val room = maxWidth
     /* THE ONE NEAR-BLACK CARD ON THE SCREEN, AND IT CARRIES WHAT IS WAITING RIGHT NOW.
        The strip was a pale sage lead card with two white cards beside it, which was the right answer
@@ -614,10 +701,12 @@ fun workspaceUrgency(role: String, store: PreviewStore): List<Triple<String, Str
        light numeral, with a small label beneath*. The note is the chip, the value is the numeral and
        the label sits under it, so the strip reads the way every other metric in the product does. */
     StudioNightCard {
-        entries.firstOrNull()?.let { (label, value, note) ->
+        entries.firstOrNull()?.let { figure ->
             StudioNightFigure(
-                label, value, note, lead = true,
-                modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" }
+                figure.label, figure.value, figure.note, lead = true, flagged = figure.flagged,
+                modifier = Modifier.semantics(mergeDescendants = true) {
+                    contentDescription = "${figure.label}: ${figure.value}. ${figure.note}"
+                }
             )
         }
         /* Two half-width cards, until half is not a width any more.
@@ -632,15 +721,17 @@ fun workspaceUrgency(role: String, store: PreviewStore): List<Triple<String, Str
            so a pair of cards that cannot have that much between them is a pair that should be one
            column. Above it they sit side by side exactly as before. */
         val stacked = room < 320.dp
-        @Composable fun figure(label: String, value: String, note: String, modifier: Modifier) {
+        @Composable fun figure(entry: WorkspaceFigure, modifier: Modifier) {
             StudioNightFigure(
-                label, value, note,
-                modifier = modifier.semantics(mergeDescendants = true) { contentDescription = "$label: $value. $note" }
+                entry.label, entry.value, entry.note, flagged = entry.flagged,
+                modifier = modifier.semantics(mergeDescendants = true) {
+                    contentDescription = "${entry.label}: ${entry.value}. ${entry.note}"
+                }
             )
         }
-        if (stacked) entries.drop(1).forEach { (label, value, note) -> figure(label, value, note, Modifier.fillMaxWidth()) }
+        if (stacked) entries.drop(1).forEach { figure(it, Modifier.fillMaxWidth()) }
         else Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
-            entries.drop(1).forEach { (label, value, note) -> figure(label, value, note, Modifier.weight(1f)) }
+            entries.drop(1).forEach { figure(it, Modifier.weight(1f)) }
         }
     } }
 }

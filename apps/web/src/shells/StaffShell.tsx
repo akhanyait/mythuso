@@ -327,8 +327,16 @@ const metricsOf = (role: StaffRole, queue: Part[]): readonly Figure[] => {
      second that could disagree with it. The line under it is the same register's weeks, oldest
      first, so the figure has the four weeks behind it rather than a shape somebody drew. */
   const week = earningsSummary();
-  return [{ label: 'Next visit', value: day.nextStart, chip: day.nextWhere, flagged: false,
-            shape: { kind: 'day', spans: day.spans, from: day.dayFrom, to: day.dayTo } },
+  /* "Next visit 09:00" was still on this deck after 09:00 had been signed off, while the drawing
+     beside it had already turned that block to paper — see the note above nurseDayCounts. What is
+     next is the first visit with no sign-off against it, and at the end of a day there is no such
+     visit: the figure then says what is true, which is when the day ended and that nothing is left
+     on it. Both readings are the same counted rows; neither is a second opinion about them. */
+  return [day.next
+           ? { label: 'Next visit', value: day.next.start, chip: day.next.where, flagged: false,
+               shape: { kind: 'day', spans: day.spans, from: day.dayFrom, to: day.dayTo } }
+           : { label: 'Day finished at', value: day.dayEnds, chip: `${day.signed} of ${day.visits} signed off`, flagged: false,
+               shape: { kind: 'day', spans: day.spans, from: day.dayFrom, to: day.dayTo } },
           { label: 'Today’s visits', value: String(day.visits), flagged: false,
             chip: day.signed ? `${day.signed} signed, ${day.left} to go` : `${day.left} to sign off`,
             shape: { kind: 'ring', segments: day.spans.map(visit => visit.signed) } },

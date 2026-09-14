@@ -168,4 +168,20 @@ enum Earnings {
         let shares = nurseShares.values
         return (shares.min() ?? 0, shares.max() ?? 0)
     }
+
+    /* A rand amount, written the one way this product writes them: a space between the thousands, a
+       leading R, and the sign never carried on the digits — a reversal is drawn as a deduction by
+       the row it is on, not by a minus inside the figure.
+       Split in two because one screen needs the halves apart: a metric writes the R as its own
+       prefix, at its own size, so that it is R 598 and never 598 R. It lived as a private helper in
+       Features/EarningsView.swift, which is the only place that could reach it; the nurse's deck
+       needs the same figure, and a second formatter is how R 1 495 and R1,495 end up on two screens
+       of one application. */
+    static func randDigits(_ amount: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = " "
+        return formatter.string(from: NSNumber(value: abs(amount))) ?? String(abs(amount))
+    }
+    static func rand(_ amount: Int) -> String { "R \(randDigits(amount))" }
 }

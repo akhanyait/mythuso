@@ -3235,17 +3235,16 @@ const METRIC_STRIPS = [
 /* Per file rather than per string, because "18" is a doctor's finished reviews on one strip and was
    "Available nurses 18" over a board of seven on another. A blessing granted to a number rather than
    to a number in a place would have hidden one of the four lies this check was written for. */
-/* The web's two came off this list the way the honest alternative always said they could: with no
-   figure. "18 reviewed today" and its "Median 4 m 10 s" were a productivity report on the doctor
-   reading them, drawn over a queue that cannot count either, and the strip they sat in is gone —
-   the doctor's section is the clinical workbench now and the queue heads itself with what is
-   actually in front of him. The iOS two are the same two sentences on a screen that still has the
-   strip, and they stay until that screen is rebuilt the same way. */
-const TYPED_FIGURES = [
- ['apps/ios/MyThuso/Features/WorkspaceView.swift', '18', 'The same finished-review count, on the same reasoning.'],
- ['apps/ios/MyThuso/Features/WorkspaceView.swift', 'Median 4 m 10 s', 'The same chip.'],
- ['apps/ios/MyThuso/Features/WorkspaceView.swift', '598', "The same week's earnings, and the comment above it in that file says so."]
-];
+/* THIS LIST IS EMPTY, AND THAT IS THE POINT OF IT. "18 reviewed today" and its "Median 4 m 10 s"
+   came off the web with no figure at all: a productivity report on the doctor reading it, drawn over
+   a queue that cannot count either. The two phones carried the same two sentences and they are gone
+   the same way — the doctor's third figure is the longest wait now, which is the same queue sorted,
+   and a reader can see which row it names. The nurse's week was the last honest entry here and it is
+   counted too: Earnings.currentWeek.total on iOS and Android both, which is the contract's own
+   arithmetic rather than a second answer kept beside the schedule.
+   The list stays, with nothing in it. The check below fails on a blessing nobody uses, so an entry
+   added here has to be argued for on the day it is added rather than inherited. */
+const TYPED_FIGURES = [];
 /* And the figures that do have a list under them and are typed anyway. The count is exact on
    purpose: a new one fails the build, and so does fixing one without bringing the number down, which
    is the only arrangement in which a list like this ever reaches nought. */

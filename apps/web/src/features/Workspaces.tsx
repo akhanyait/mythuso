@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BadgeCheck, ChevronRight, ClipboardList, ClipboardPlus, MapPin } from 'lucide-react';
-import { Pill, SectionTitle } from '../components/UI';
+import { Pill } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { EmptyState } from '../components/States';
 import { services, money, type Service } from '../lib/catalog';
@@ -66,13 +66,25 @@ const nurseDay: Shift[] = [
  { start: '11:30', service: services[1], person: 'Thabo Molefe', suburb: 'Parktown', note: 'Dressing change · day 6' },
  { start: '14:00', service: services[2], person: 'Nomsa Molefe', suburb: 'Melville', note: 'Six-week check · first baby' }
 ];
-/** What a doctor is waiting on, longest first — because that is the order the queue is worked. */
-type Review = { ref: string; what: string; from: string; waited: string; minutes: number; flag: string };
+/** What a doctor is waiting on, longest first — because that is the order the queue is worked.
+
+    Four fields where there were two. `what` was "Vitals assessment · Lerato Molefe" and `from` was
+    "Sister Naledi Mokoena · 2 of 4 readings flagged": two sentences with a middle dot in each,
+    which a row can only ever render as two lines of running text. They are the same words, split at
+    the dots they were already split at, so the row can weight them — the case and the patient
+    large, the nurse who sent it quiet, and what she found as a chip a doctor can scan down a column
+    of. No word here is new. */
+type Review = { ref: string; kind: string; patient: string; from: string; found: string; waited: string; minutes: number; flag: string };
 const reviewQueue: Review[] = [
- { ref: 'TH-2048', what: 'Vitals assessment · Lerato Molefe', from: 'Sister Naledi Mokoena · 2 of 4 readings flagged', waited: '3 h 20 m', minutes: 200, flag: 'Out of range' },
- { ref: 'TH-2041', what: 'Prescription request · Thabo Molefe', from: 'Sister Palesa Khumalo · repeat, last issued 28 August', waited: '1 h 05 m', minutes: 65, flag: 'Out of range' },
- { ref: 'TH-2045', what: 'Wound follow-up · Nomsa Molefe', from: 'Sister Naledi Mokoena · day 6, photograph attached', waited: '22 m', minutes: 22, flag: '' }
+ { ref: 'TH-2048', kind: 'Vitals assessment', patient: 'Lerato Molefe', from: 'Sister Naledi Mokoena', found: '2 of 4 readings flagged', waited: '3 h 20 m', minutes: 200, flag: 'Out of range' },
+ { ref: 'TH-2041', kind: 'Prescription request', patient: 'Thabo Molefe', from: 'Sister Palesa Khumalo', found: 'Repeat, last issued 28 August', waited: '1 h 05 m', minutes: 65, flag: 'Out of range' },
+ { ref: 'TH-2045', kind: 'Wound follow-up', patient: 'Nomsa Molefe', from: 'Sister Naledi Mokoena', found: 'Day 6, photograph attached', waited: '22 m', minutes: 22, flag: '' }
 ];
+/** Somebody's initials, for the disc at the head of a row. It is drawn from the name beside it and
+    is aria-hidden everywhere it appears: a screen reader that reads "L M Lerato Molefe" has been
+    given the name twice, once as noise. */
+const initialsOf = (name: string) => name.split(' ').filter(Boolean).map(part => part[0]).join('').slice(0, 2);
+
 /* The reference each row on the day opens its assessment under. The first is the workspace's own
    worked example; the rest carry their time, because StaffShell reads the time back out of the
    modal name to decide whose visit it is. One rule, in one place, so the schedule and the queue
@@ -97,8 +109,6 @@ export const reviewQueueCounts = () => ({
 export const minuteOfDay = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
 
 export const nurseDayCounts = (queue: Part[]) => {
- const signed = nurseDay.filter(shift => signOffFor(queue, referenceFor(shift))).length;
- const [first] = nurseDay;
  /* Each visit as the span of the day it actually occupies — its start, and its end worked out from
     the service's own duration. The strip draws the day from these, so the block a reader sees is
     the visit the row underneath describes and is as long as that visit is. */
@@ -107,70 +117,149 @@ export const nurseDayCounts = (queue: Part[]) => {
   to: minuteOfDay(endTime(shift.start, shift.service.duration)),
   signed: Boolean(signOffFor(queue, referenceFor(shift)))
  }));
+ const signed = spans.filter(span => span.signed).length;
+ /* NEXT MEANS THE NEXT ONE NOT YET SIGNED OFF, and it did not: this returned nurseDay[0].start
+    whatever had happened to it, so a nurse who signed 09:00 off at 09:40 was still told her next
+    visit was at 09:00 — by the deck at the top of the screen and by the line under the date, while
+    the drawing beside them had already turned that block to paper. A figure that contradicts the
+    picture drawn from the same rows is the typed-figure defect with the arithmetic done correctly
+    and then thrown away. `find` is the whole fix: the first visit the queue holds no sign-off for.
+    It is legitimately undefined at the end of a day, and every caller is made to say what it shows
+    then rather than being handed a time that is not next and not true. */
+ const next = nurseDay.find(shift => !signOffFor(queue, referenceFor(shift)));
+ const last = nurseDay[nurseDay.length - 1];
  return {
   visits: nurseDay.length, signed, left: nurseDay.length - signed,
-  nextStart: first.start, nextWhere: `${first.suburb} · ${first.service.duration} min`,
+  /** Undefined once every visit is signed off: the day is finished, and nothing is next. One field
+      rather than two, so that a caller which has established there is a next visit has established
+      where it is as well — two optional fields is two null checks and a `?? ''` on the second. */
+  next: next && { start: next.start, where: `${next.suburb} · ${next.service.duration} min` },
+  dayStarts: nurseDay[0].start,
+  dayEnds: endTime(last.start, last.service.duration),
   earned: nurseDay.reduce((total, shift) => total + shift.service.nurseShare, 0),
   spans, dayFrom: spans[0].from, dayTo: spans[spans.length - 1].to
  };
+};
+
+/** The gap between two visits, which is the travel and the turnaround between them. Arithmetic on
+    the two rows it sits between — never a journey time somebody typed, because nothing in this
+    product knows how long the drive from Rosebank to Parktown takes. */
+const gapText = (minutes: number) => {
+ const hours = Math.floor(minutes / 60), rest = minutes % 60;
+ return hours ? `${hours} h${rest ? ` ${String(rest).padStart(2, '0')} m` : ''}` : `${rest} m`;
 };
 
 export const referenceFor = (shift: Shift) => shift === nurseDay[0] ? 'TH-2048' : `TH-2048 · ${shift.start}`;
 
 export function NurseSchedule({ open }: { open: (s: string) => void }) {
  const [available, setAvailable] = useState(true);
- const [next, ...later] = nurseDay;
- const ends = endTime(next.start, next.service.duration);
- const earned = nurseDay.reduce((total, shift) => total + shift.service.nurseShare, 0);
- const dayEnds = endTime(nurseDay[nurseDay.length - 1].start, nurseDay[nurseDay.length - 1].service.duration);
  /* What she has already done today, read out of the visit queue rather than out of a flag this
     screen sets. A signed visit used to read NEXT with "Start this visit" on it, and starting it
     again opened a blank assessment against a reference somebody had already sealed. */
  const queue = useVisitQueue();
  const signOff = (shift: Shift) => signOffFor(queue, referenceFor(shift));
- const nextSignOff = signOff(next);
- const signedCount = nurseDay.filter(shift => signOff(shift)).length;
+ /* The same arithmetic the deck at the top of the screen is counted from, read once here rather
+    than done again. It was done again — this screen worked out its own day end and its own total
+    while nurseDayCounts worked out both a second time — and two answers to "when does the day end"
+    is how a header comes to disagree with the strip above it. */
+ const day = nurseDayCounts(queue);
+ const [lead, ...later] = nurseDay;
+ const leadSignOff = signOff(lead);
+ const ends = endTime(lead.start, lead.service.duration);
+ /* One line under the date, and it says what is actually left. It said "09:00 to 14:45" all day,
+    including after 09:00 had been signed off; it opens on the next visit that has not been. When
+    there is no such visit it says so in the only words that are still true at the end of a day —
+    the hours the day ran, and that every one of them is signed off. */
+ const standing = !available ? 'You are off duty. Nothing new will be sent to you.'
+  : day.next ? `${day.next.start} to ${day.dayEnds}${day.signed ? ` · ${day.signed} signed` : ''}`
+   : `${day.dayStarts} to ${day.dayEnds} · every visit signed off`;
  return <>
   {/* Duty state sits with the date rather than beside the section heading below it: whether she is
       taking visits at all is a fact about the whole day, and it is the one control on this screen
       that changes what the rest of it means. */}
   <div className="shift-head">
-   <div><h1>{longDateOf(isoIn(new Date()))}</h1><p>{available ? `${next.start} to ${dayEnds}${signedCount ? ` · ${signedCount} signed` : ''}` : 'You are off duty. Nothing new will be sent to you.'}</p></div>
+   <div><h1>{longDateOf(isoIn(new Date()))}</h1><p>{standing}</p></div>
    <button className="secondary duty-toggle" aria-pressed={available} onClick={() => setAvailable(!available)}><span className={`status-dot ${available ? '' : 'offline'}`}/>{available ? 'Available for visits' : 'Off duty'}</button>
   </div>
   <NotConnected of="dispatch"/>
-  {available ? <>
-   {/* The next visit, drawn once and drawn large. Time first because that is what decides whether
-       she leaves now, then who and where, then the one thing she is walking in knowing. */}
-   <article className={`next-visit${nextSignOff ? ' is-signed' : ''}`}>
-    <div className="next-when"><span>{nextSignOff ? 'Signed' : 'Next'}</span><strong>{next.start}</strong><span>to {ends}</span></div>
+  {available ? <div className="nday">
+   {/* THE DAY AS ONE RAIL RATHER THAN A CARD AND TWO ROWS.
+       It was a lime card, a section heading, two grey rows in a white box and a hairline total —
+       four objects with nothing running between them, so the one question a schedule is read for
+       ("what does my day look like") had to be answered by reading three times and subtracting.
+       Everything below now hangs off one gutter: the time on the left, the rail beside it, the
+       visit to the right of that. The rail is solid through a visit and dashed through the gap
+       between two, and the gap says how long it is and which suburb it ends in — both of which are
+       arithmetic on the rows either side of it rather than a journey time anybody typed. */}
+   {/* The visit in hand, drawn once and drawn large. Time first because that is what decides
+       whether she leaves now, then who and where, then the one thing she is walking in knowing. */}
+   <article className={`next-visit${leadSignOff ? ' is-signed' : ''}`}>
+    <div className="next-when">
+     <span>{leadSignOff ? 'Signed' : 'Next'}</span><strong>{lead.start}</strong><span>to {ends}</span>
+    </div>
+    <span className="nday-node" aria-hidden="true"/>
     <div className="next-body">
-     <h2>{next.service.name}</h2>
-     <p className="next-who">{next.person}</p>
-     <p className="next-where"><MapPin size={15}/>{next.suburb} · home visit</p>
-     <p className="next-note">{nextSignOff ? `Sealed at ${formatEventTime(nextSignOff.capturedAt)}. ${nextSignOff.summary}` : next.note}</p>
+     <h2>{lead.service.name}</h2>
+     <p className="next-who">{lead.person}</p>
+     <p className="next-where"><MapPin size={15}/>{lead.suburb} · home visit</p>
+     <p className="next-note">{leadSignOff ? `Sealed at ${formatEventTime(leadSignOff.capturedAt)}. ${leadSignOff.summary}` : lead.note}</p>
     </div>
     {/* A signed visit is not startable. What she is offered instead is the record it produced —
         the same door the sign-off screen ends on, so arriving back here does not lose it. */}
     <div className="next-actions">
-     {nextSignOff
+     {leadSignOff
       ? <button className="primary" onClick={() => open('Consultation record')}><ClipboardList size={17}/>Open what this produced</button>
       : <button className="primary" onClick={() => open('Visit assessment')}><ClipboardPlus size={17}/>Start this visit</button>}
-     <button className="secondary" onClick={() => open(`Nurse case: TH-2048 · ${next.service.name} · ${next.suburb}`)}>Patient file</button>
+     <button className="secondary" onClick={() => open(`Nurse case: TH-2048 · ${lead.service.name} · ${lead.suburb}`)}>Patient file</button>
     </div>
    </article>
-   <SectionTitle title="Later today"/>
-   <ol className="day-list">{later.map(shift => { const done = signOff(shift); return <li key={shift.start}>
-    <button className="day-row" onClick={() => open(`Nurse case: ${shift.start} · ${shift.service.name} · ${shift.suburb}`)}>
-     <span className="day-time"><strong>{shift.start}</strong><small>{endTime(shift.start, shift.service.duration)}</small></span>
-     <span className="day-what"><strong>{shift.service.name}</strong><small>{shift.person} · {shift.suburb}</small></span>
-     {done && <Pill tone="teal"><BadgeCheck size={13}/> Signed</Pill>}
-     <ChevronRight size={18}/>
-    </button>
-   </li>; })}</ol>
-   {/* One line, at the end, in the place a person checks rather than plans from. */}
-   <p className="day-total"><span>Your share of today, at the catalogue's rates</span><strong>{money(earned)}</strong></p>
-  </> : <EmptyState title="You are off duty" body="Nothing is sent to a nurse who is off duty, and going off duty never cancels a visit you have already accepted. Turn availability back on when you are ready." action="Go available" onAction={() => setAvailable(true)}/>}
+   <ol className="day-list">{later.map((shift, index) => {
+    const done = signOff(shift);
+    const before = nurseDay[index];
+    /* The visit she should be doing next, marked on the rail rather than moved to the top of it.
+       It is only ever somebody other than the card above while that card has been signed off, so a
+       day that has not started yet carries no second marker and no second primary action — which
+       is also why this is a badge and not a button. One thing to press per screen. */
+    const isNext = !done && day.next?.start === shift.start;
+    return <li key={shift.start}>
+     <p className="nday-gap">
+      <span className="nday-gap-rail" aria-hidden="true"/>
+      <span className="nday-gap-dur">{gapText(minuteOfDay(shift.start) - minuteOfDay(endTime(before.start, before.service.duration)))}</span>
+      <span>to travel and turn around · {before.suburb} to {shift.suburb}</span>
+     </p>
+     <button className={`day-row${done ? ' is-done' : ''}${isNext ? ' is-next' : ''}`} onClick={() => open(`Nurse case: ${shift.start} · ${shift.service.name} · ${shift.suburb}`)}>
+      <span className="day-time"><strong>{shift.start}</strong><small>{endTime(shift.start, shift.service.duration)}</small></span>
+      <span className="nday-node" aria-hidden="true"/>
+      <span className="day-what">
+       <strong>{shift.service.name}</strong>
+       <small>{shift.person}</small>
+       <small className="day-where"><MapPin size={13}/>{shift.suburb} · {shift.service.duration} min</small>
+      </span>
+      <span className="day-meta">
+       {done ? <Pill tone="teal"><BadgeCheck size={13}/> Signed</Pill> : isNext ? <Pill tone="amber">Next</Pill> : null}
+       <span className="day-go" aria-hidden="true"><ChevronRight size={18}/></span>
+      </span>
+     </button>
+    </li>;
+   })}</ol>
+   {/* The end of the rail, and the one line a total belongs on: after the work, in the place a
+       person checks rather than plans from. It carries the shape of the day beside the money so
+       that the last thing on the screen is still the day rather than a number about it. */}
+   <div className="day-total">
+    <span className="nday-node is-end" aria-hidden="true"/>
+    <strong className="day-total-end">{day.dayEnds}</strong>
+    <span className="day-total-say">
+     <strong>Your day ends</strong>
+     <small>{day.signed === day.visits ? `Every visit signed off · ${day.visits} today`
+      : day.signed ? `${day.signed} of ${day.visits} signed off`
+       : `${day.visits} visits, none signed off yet`}</small>
+    </span>
+    <span className="day-total-money">
+     <small>Your share of today, at the catalogue&rsquo;s rates</small>
+     <strong>{money(day.earned)}</strong>
+    </span>
+   </div>
+  </div> : <EmptyState title="You are off duty" body="Nothing is sent to a nurse who is off duty, and going off duty never cancels a visit you have already accepted. Turn availability back on when you are ready." action="Go available" onAction={() => setAvailable(true)}/>}
  </>;
 }
 export function ReviewQueue({ open }: { open: (s: string) => void }) {
@@ -203,20 +292,38 @@ export function ReviewQueue({ open }: { open: (s: string) => void }) {
    </div>
   </div>
   <NotConnected of="screening"/>
-  {/* Waiting time is the doctor's ordering, so it is the column that is set in tabular figures and
-      aligned right — a queue you cannot read down is a queue you work in the order it was drawn. */}
+  {/* A ROW WITH SOMEBODY ON IT. This was a reference, two lines of running text and a time, three
+      times over, on one white card — a spreadsheet under an instrument deck. What is on it now is
+      the same six facts given the weight each one is worked in: the person it is about at the head
+      of the row, the case and the reference under that, what the nurse found as a chip, and the
+      wait set large in the column the queue is ordered by with its own bar under it, so the three
+      bars read down the list as the pressure the deck draws at the top of the screen.
+      Colour is spent once and only on the badge that means something: out of range is mango, and
+      it is also a rail down the left edge of the row, because a state told in colour alone is a
+      state a colour-blind reader is not told. Waiting time is tabular and right-aligned — a queue
+      you cannot read down is a queue you work in the order it was drawn. */}
   {rows.length ? <ol className="review-list">{rows.map(review => <li key={review.ref}>
-   <button className="review-row" onClick={() => open(`Doctor review: ${review.ref}`)}>
-    <span className="review-ref">{review.ref}</span>
-    {/* What the case is and who sent it. This line used to repeat "a registered doctor signs this
-        off" under every row — true, and said once at the top of the screen, where a sentence that
-        is the same on every row belongs. */}
-    <span className="review-what"><strong>{review.what}</strong><small>{review.from}</small></span>
-    {review.flag ? <Pill tone="amber">{review.flag}</Pill> : <span className="review-routine">Routine</span>}
-    <span className="review-waited">{review.waited}</span>
-    <ChevronRight size={18}/>
-    <span className="c-bars review-pressure" aria-hidden="true">
-     <i style={{ width: `${Math.max(4, review.minutes / longestWait * 100)}%` }}/>
+   <button className={`review-row${review.flag ? ' is-flagged' : ''}`} onClick={() => open(`Doctor review: ${review.ref}`)}>
+    <span className="review-face" aria-hidden="true">{initialsOf(review.patient)}</span>
+    <span className="review-what">
+     <span className="review-ref">{review.ref}</span>
+     <strong>{review.kind} · {review.patient}</strong>
+     {/* What the case is and who sent it. This line used to repeat "a registered doctor signs this
+         off" under every row — true, and said once at the top of the screen, where a sentence that
+         is the same on every row belongs. */}
+     <small>{review.from}</small>
+     <span className="review-found">{review.found}</span>
+    </span>
+    <span className="review-meta">
+     <span className="review-flag">{review.flag ? <Pill tone="amber">{review.flag}</Pill> : <span className="review-routine">Routine</span>}</span>
+     <span className="review-wait">
+      <strong className="review-waited">{review.waited}</strong>
+      <small>waiting</small>
+      <span className="c-bars review-pressure" aria-hidden="true">
+       <i style={{ width: `${Math.max(4, review.minutes / longestWait * 100)}%` }}/>
+      </span>
+     </span>
+     <span className="review-go" aria-hidden="true"><ChevronRight size={18}/></span>
     </span>
    </button>
   </li>)}</ol>

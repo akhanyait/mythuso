@@ -296,25 +296,17 @@
 .clinical .staff-blank h2 { color: var(--charcoal); font-weight: 500; font-size: 20px; }
 .clinical .staff-blank p { color: var(--faint); }
 
-/* The two lists a clinical screen is mostly made of — a nurse's later visits and a doctor's queue.
-   They were white boxes with a shadow; they are the same frosted pane as a panel, and a row inside
-   one is separated by a hairline rather than by an inset shadow. */
-.clinical .day-list, .clinical .review-list {
- background: var(--pane);
- backdrop-filter: var(--pane-blur);
- -webkit-backdrop-filter: var(--pane-blur);
- border: 1px solid var(--pane-line);
- border-radius: var(--r-panel);
- box-shadow: var(--pane-shadow);
- padding: var(--space-8);
-}
-.clinical .day-list > li + li > .day-row, .clinical .review-list > li + li > .review-row { box-shadow: 0 -1px 0 var(--pane-line); }
-.clinical .day-row, .clinical .review-row { color: var(--faint); border-radius: var(--r-control); }
-.clinical .day-row:hover, .clinical .review-row:hover { background: color-mix(in srgb, var(--surface) 90%, transparent); box-shadow: none; }
+/* The two lists a clinical screen is mostly made of — a nurse's day and a doctor's queue.
+   They were one pane holding rows separated by hairlines. Each row is its own card now, on a rail
+   or in a column: see "Below the deck" at the foot of this sheet, which is where both are drawn.
+   What is left here is the colour a row's text takes. This sheet's own hairline separator went with
+   the pane, and it was deleted rather than overridden: `.clinical .review-list > li + li >
+   .review-row` is three classes deep, so it beat the card's own shadow and, through it, the second
+   of the two rings core.css draws round a focused control. surface/app.css keeps a copy of the same
+   selector that cannot be deleted from here, and is answered at the foot of this sheet. A
+   superseded rule left in place because something later wins anyway is a rule waiting to win. */
 .clinical .day-row strong, .clinical .review-row strong, .clinical .review-ref { color: var(--charcoal); }
 .clinical .day-time strong { font-weight: 500; }
-.clinical .day-total { border-top-color: var(--pane-line); color: var(--faint); }
-.clinical .day-total > strong { color: var(--charcoal); font-weight: 400; letter-spacing: -.6px; }
 .clinical .review-routine, .clinical .review-waited { color: var(--faint); }
 /* The next visit is the one card on the schedule that is the screen's subject; a duty toggle beside
    the date is a control on the whole day and reads as a chip rather than a button. */
@@ -1111,43 +1103,538 @@
  *   .demo-pill's shadow, and the desktop `nav button` block, which no clinical shell renders.
  */
 
-/* ---- The queue reads like the deck above it ----------------------------------------------------
+
+/* ---- Below the deck ============================================================================
  *
- * The instrument deck at the top of a doctor's screen draws the queue as bars, longest first. This
- * is the same bar, on the row it measures, so that the shape at the top of the screen and the shape
- * on the row are one measurement rather than two drawings that happen to be near each other. A
- * doctor scanning the list sees the gap between a case that has waited three hours and one that has
- * waited twenty minutes instead of reading two numbers and subtracting.
+ * The founder's verdict on the last pass was that the two clinical portals were "still looking
+ * dry", and it was a verdict about everything under the instrument deck rather than about the deck.
+ * He was right, and the reason is worth writing down because it is the defect this codebase keeps
+ * producing: a dark, composed, drawn band at the top of a screen, and then a spreadsheet. A
+ * doctor's queue was three lines of running text on one white card. A nurse's day was a lime card,
+ * a section heading, two grey rows in a second white card, and a hairline total — four objects in
+ * four boxes with nothing running between them, so the one question a schedule is read for, what
+ * does my day look like, had to be answered by reading three times and subtracting.
  *
- * It states nothing the row does not already say in words, so it is aria-hidden and owes no ratio —
- * the same standing the hairline in the token contract has. It is never a target: the row is the
- * control and this lies under it, through it, with no pointer events of its own. */
-.clinical .review-row { position: relative; }
-.clinical .review-pressure {
+ * Everything below is one move made twice: give the rows the same language the deck already
+ * speaks, so the page does not change dialect a quarter of the way down it.
+ *
+ *   THE DAY HANGS OFF ONE RAIL. A time gutter, a rail beside it, the visit to the right of that —
+ *   for the visit in hand, for every visit after it, and for the total that closes the day. The
+ *   rail is solid through a visit and dashed through the gap between two, and the gap carries how
+ *   long it is and which suburb it ends in. Both are arithmetic on the rows either side of it:
+ *   nothing in this product knows how long the drive from Rosebank to Parktown takes, and the
+ *   sentence is careful to say that the gap is for travelling and turning round rather than to
+ *   claim it is a journey time.
+ *
+ *   THE QUEUE ROWS BECOME CARDS THAT LIFT. A disc with the patient's initials, the case and the
+ *   reference, what the nurse found as a chip, and the wait set large in the column the queue is
+ *   ordered by with its own bar under it — so the bars read down the list as the same pressure the
+ *   deck draws at the top of the screen, at the same scale, from the same minutes.
+ *
+ * COLOUR IS SPENT ON TWO STATES AND ON NOTHING ELSE. Out of range is mango and signed is teal;
+ * everything else on both screens is charcoal, faint and the glass floor, so a doctor's queue
+ * carries one colour and a nurse's day carries at most one. Neither state is told in colour alone —
+ * an out-of-range row also carries a rail down its left edge, and a signed visit also carries a
+ * check, a hollow node and the word — because a state a colour-blind reader cannot see is a state
+ * that has not been told.
+ *
+ * EVERY PAIR IS COMPUTED, with the same sRGB relative-luminance formula scripts/check-boundaries.mjs
+ * uses on the ninety-two declared pairs, and computed against the ground each one actually lands on.
+ * Both lists sit inside the workbench's board, whose ground is --studio-paper, so that is the ground
+ * most of these are measured over rather than the aurora:
+ *
+ *   charcoal on a card over studioPaper   16.60    faint on the same card          5.60
+ *   charcoal on the initials disc         14.81    (the card, plus charcoal at 6%)
+ *   charcoal on the found chip            15.35    (the card, plus charcoal at 4%)
+ *   charcoal on the end cap               14.29    faint on the end cap            4.82
+ *   charcoal on a signed row              14.64    faint on a signed row           4.94
+ *   charcoal on paleSage                  11.11    — the visit in hand
+ *   charcoal on cloud                     13.53    — the visit in hand, once signed
+ *   mangoInk on mangoSoft                  6.52    — out of range, and next on the rail
+ *   tealInk on tealSoft                    5.05    — signed
+ *
+ * And against the two grounds the rest of the clinical estate uses, because both lists are written
+ * to be dropped anywhere on it: charcoal 16.28 and faint 5.49 on --glass-floor; charcoal 14.48 and
+ * faint 4.89 on --glass-floor-ground, which is the darkest the aurora may reach.
+ *
+ * ONE PAIR WAS MEASURED AND REFUSED. faint on a charcoal-6% tint over --glass-floor-ground is 4.34,
+ * which fails — so the initials disc, the deepest tint here, carries charcoal rather than faint. It
+ * is the failure this project keeps finding: a colour that clears on the ground it was chosen
+ * against and not on the one it could land on. */
+
+/* ---- The nurse's day, as one rail -------------------------------------------------------------
+   The gutter is two custom properties rather than a number repeated on five selectors, because the
+   whole point of the rail is that the lead card, the rows, the gaps between them and the closing
+   total all hang off the same two columns. A gutter that drifts by four pixels between two of them
+   is a rail with a kink in it, which is worse than no rail. */
+.clinical .nday {
+ --nday-time: 104px;
+ --nday-rail: 26px;
+ /* A rail is structure rather than information — the times and the labels carry the facts —
+    so it owes no ratio. It does have to be seen: --stone measures 1.09 against the floor and was
+    invisible on a screen rather than quiet on one. */
+ --nday-line: color-mix(in srgb, var(--charcoal) 26%, transparent);
+ max-width: 1080px;
+ display: grid;
+}
+/* The rail's own column, present on every node. It is a line and a dot and nothing else: no text,
+   no target, aria-hidden in the markup.
+   Each segment runs past the top and bottom of its own box by exactly that card's own padding, so
+   it reaches the card's edge and the dashed segment in the gap below picks it up there. Overshoot
+   by a guessed number instead and the rail is either broken between two cards or drawn twice. */
+.clinical .nday-node { position: relative; align-self: stretch; min-height: 100%; }
+.clinical .nday-node::before {
+ content: '';
  position: absolute;
- left: var(--space-12);
- /* Half the row, not all of it. At full width the longest case drew a rounded rule six pixels above
-    the hairline separating it from the next row, and two lines that close together read as one
-    doubled divider rather than as a measurement. */
- right: 45%;
- bottom: 6px;
- height: 3px;
+ left: 50%;
+ width: 2px;
+ margin-left: -1px;
+ top: calc(var(--rail-pad, 16px) * -1);
+ bottom: calc(var(--rail-pad, 16px) * -1);
+ background: var(--nday-line);
+}
+.clinical .nday-node::after {
+ content: '';
+ position: absolute;
+ left: 50%;
+ top: var(--node-top, 50%);
+ width: 13px;
+ height: 13px;
+ /* Centred on the point rather than offset by half of itself in two places: a dot that grows for
+    the next-visit marker then grows about its own centre instead of drifting down and right. */
+ translate: -50% -50%;
+ border-radius: 50%;
+ background: var(--charcoal);
+ /* A ring of the ground so the rail does not show through the dot. */
+ box-shadow: 0 0 0 4px var(--glass-floor);
+}
+/* The first node starts the rail rather than continuing one, and the last one ends it. */
+.clinical .nday > :first-child .nday-node::before { top: var(--node-top, 50%); }
+.clinical .nday .day-total .nday-node::before { bottom: calc(100% - var(--node-top, 50%)); }
+
+/* The visit in hand. Sage and charcoal at 11.11, which keeps it the one card on the screen that is
+   not glass without shouting — that decision is older than this pass and is not being reopened.
+   What changes is that it is now the head of a rail instead of a slab on its own: the time is in
+   the same gutter as every row below it, the card's own left padding is gone so that gutter starts
+   where every other one does, and the rail leaves the card and carries on.
+
+   Every selector here carries `.nday` and it is not decoration. surface/clinical-screens.css styles
+   `.clinical .next-visit` at desk width, is imported after this sheet, and therefore wins a tie —
+   which is how the third column arrived without the rail column in it. Three classes rather than
+   two, so the card is drawn by the sheet that knows it is on a rail. */
+.clinical .nday .next-visit {
+ background: var(--pale-sage);
+ color: var(--charcoal);
+ border-radius: var(--r-panel);
+ box-shadow: none;
+ padding: var(--space-20) var(--space-24) var(--space-24) 0;
+ --rail-pad: 24px;
+ --nday-line: var(--sage-slate);
+ display: grid;
+ grid-template-columns: var(--nday-time) var(--nday-rail) minmax(0, 1fr);
+ grid-template-areas: 'when node body' 'when node actions';
+ column-gap: 0;
+ row-gap: var(--space-16);
+ align-items: start;
+}
+/* At desk width the card is 1080 wide and its content filled about half of it. The third column is
+   what she does about it: time, then what and who, then the two buttons — which is the arrangement
+   clinical-screens.css introduced, restated here with the rail column in it. */
+@media (min-width: 1000px) {
+ .clinical .nday .next-visit {
+  grid-template-columns: var(--nday-time) var(--nday-rail) minmax(0, 1fr) minmax(200px, auto);
+  grid-template-areas: 'when node body actions';
+  align-items: center;
+  column-gap: 0 var(--space-40);
+ }
+ .clinical .nday .next-visit .next-body { padding-right: 0; }
+ .clinical .nday .next-actions { flex-direction: column; align-items: stretch; align-self: center; }
+ .clinical .nday .next-actions > button { flex: 0 0 auto; width: 100%; }
+}
+.clinical .nday .next-visit .nday-node { grid-area: node; }
+.clinical .nday .next-visit .nday-node::after { background: var(--charcoal); box-shadow: 0 0 0 4px var(--pale-sage); }
+.clinical .nday .next-visit .next-when, .clinical .day-time, .clinical .nday-gap-dur, .clinical .day-total-end { padding-left: var(--space-12); }
+.clinical .nday .next-visit .next-when { grid-area: when; }
+.clinical .nday .next-visit .next-body { grid-area: body; padding-left: var(--space-24); }
+.clinical .nday .next-visit .next-actions { grid-area: actions; padding-left: var(--space-24); }
+/* The time, right against the rail, so the column of times reads as a column. */
+.clinical .nday .next-when {
+ display: flex;
+ flex-direction: column;
+ align-items: flex-end;
+ text-align: right;
+ gap: 2px;
+ padding-right: var(--space-12);
+}
+.clinical .next-when > span:first-child { color: var(--charcoal); font-weight: 600; font-size: 13px; letter-spacing: .08em; }
+.clinical .next-when > strong { font-weight: 400; font-size: 32px; letter-spacing: -1.2px; line-height: 1.1; }
+.clinical .next-when > span:last-child,
+.clinical .next-where, .clinical .next-note { color: var(--charcoal); }
+.clinical .next-when > span:last-child { font-size: 13px; }
+.clinical .next-body h2 { color: var(--charcoal); font-weight: 500; }
+.clinical .next-who { color: var(--charcoal); }
+.clinical .next-note { border-top-color: var(--sage-slate); }
+/* A signed visit stops being sage. It is finished work, and the screen's subject is what is left —
+   the marker on the rail below moves to the visit she should be doing instead. */
+/* --stone on --cloud is 1.09: the rail simply stopped at the top of a signed card. The default
+   rail tone is a charcoal mix, so it composites correctly on whatever the card happens to be. */
+.clinical .nday .next-visit.is-signed { background: var(--cloud); }
+.clinical .nday .next-visit.is-signed .nday-node::after { background: var(--surface); box-shadow: 0 0 0 3px var(--charcoal), 0 0 0 6px var(--cloud); }
+.clinical .nday .next-visit.is-signed .next-note { border-top-color: var(--stone); }
+/* Both actions were inverted for a navy ground: the primary was white-on-indigo and the secondary
+   was a white wash at 12% alpha. On sage they are the same two buttons as everywhere else — the
+   thing to press is charcoal, and the other one is a hairline on solid white, because a translucent
+   control here would be glass on a ground darker than the floor. */
+.clinical .next-actions > .primary { background: var(--charcoal); color: var(--surface); border: 1px solid var(--charcoal); }
+.clinical .next-actions > .primary:hover { background: var(--ink); color: var(--surface); }
+.clinical .next-actions > .secondary { background: var(--surface); border-color: var(--stone); color: var(--charcoal); }
+.clinical .next-actions > .secondary:hover { background: var(--mist); }
+
+/* The gap between two visits. It is drawn as a gap — a dashed rail and two quiet lines — because a
+   gap drawn as a card is another visit. */
+.clinical .nday-gap {
+ display: grid;
+ grid-template-columns: var(--nday-time) var(--nday-rail) minmax(0, 1fr);
+ align-items: center;
+ margin: 0;
+ padding: var(--space-12) 0;
+ font-size: 13px;
+ line-height: 1.5;
+ color: var(--faint);
+}
+.clinical .nday-gap-rail { grid-column: 2; justify-self: center; width: 0; align-self: stretch; margin: calc(var(--space-12) * -1) 0; border-left: 2px dashed var(--nday-line); }
+.clinical .nday-gap-dur { grid-column: 1; text-align: right; padding-right: var(--space-12); color: var(--charcoal); font-variant-numeric: tabular-nums; font-weight: 500; }
+.clinical .nday-gap > span:last-child { grid-column: 3; padding-left: var(--space-16); overflow-wrap: anywhere; }
+
+/* The rest of the day. The list stops being a white box holding two rows and becomes what it always
+   was — the rail, with a card on it for each visit. */
+.clinical .nday .day-list {
+ background: none;
+ backdrop-filter: none;
+ -webkit-backdrop-filter: none;
+ border: 0;
+ box-shadow: none;
+ padding: 0;
+ display: grid;
+ max-width: none;
+}
+/* surface/app.css puts a hairline on every row after the first — `.day-list>li+li>.day-row`, three
+   classes deep. The rows are separate cards now, so it is turned off here rather than left to win
+   something later; a superseded rule kept because something happens to beat it is a rule waiting to
+   beat something else. */
+.clinical .nday .day-list > li + li > .day-row,
+.clinical .nday .day-list > li > .day-row { box-shadow: var(--pane-shadow); }
+.clinical .nday .day-row {
+ display: grid;
+ grid-template-columns: var(--nday-time) var(--nday-rail) minmax(0, 1fr) auto;
+ grid-template-areas: none;
+ align-items: center;
+ gap: 0;
+ padding: var(--space-16) var(--space-20) var(--space-16) 0;
+ border-radius: var(--r-card);
+ background: var(--pane);
+ backdrop-filter: var(--pane-blur);
+ -webkit-backdrop-filter: var(--pane-blur);
+ border: 1px solid var(--pane-line);
+ color: var(--faint);
+ --node-top: 50%;
+ transition: box-shadow var(--t-settle) var(--ease-soft), background var(--t-settle) var(--ease-soft);
+}
+.clinical .nday .day-row .nday-node { grid-area: auto; }
+.clinical .nday .day-row .nday-node::after { box-shadow: 0 0 0 4px var(--glass-floor); }
+.clinical .day-time { text-align: right; padding-right: var(--space-12); align-items: flex-end; }
+.clinical .day-time strong { font-weight: 500; font-size: 17px; color: var(--charcoal); }
+.clinical .day-time small { color: var(--faint); }
+.clinical .day-what { padding-left: var(--space-16); }
+.clinical .day-what > strong { font-size: 16px; color: var(--charcoal); font-weight: 500; }
+.clinical .day-where { display: flex; align-items: center; gap: 6px; margin-top: var(--space-4); }
+.clinical .day-where > svg { flex: 0 0 13px; }
+.clinical .day-meta { display: flex; align-items: center; gap: var(--space-12); }
+/* The affordance. A chevron floating in white space says a row might be pressable; a chevron in a
+   disc that fills when the row is under a pointer says it opens something. */
+.clinical .day-go, .clinical .review-go {
+ display: grid;
+ place-items: center;
+ width: 34px;
+ height: 34px;
+ flex: 0 0 34px;
+ border-radius: 50%;
+ background: color-mix(in srgb, var(--charcoal) 5%, transparent);
+ color: var(--charcoal);
+ transition: background var(--t-settle) var(--ease-soft), color var(--t-settle) var(--ease-soft);
+}
+/* A visit that has been signed off recedes: the node goes hollow, the card stops being glass and
+   the name stops being charcoal. It is finished, and the day is about what is not. */
+.clinical .nday .day-list > li > .day-row.is-done { background: color-mix(in srgb, var(--charcoal) 3%, transparent); box-shadow: none; }
+.clinical .nday .day-row.is-done .nday-node::after { background: var(--glass-floor); box-shadow: 0 0 0 2px var(--stone), 0 0 0 4px var(--glass-floor); }
+.clinical .nday .day-row.is-done .day-time strong, .clinical .nday .day-row.is-done .day-what > strong { color: var(--faint); }
+/* And the one she should do next, once the card above it has been signed. Bigger node, mango ring,
+   and a badge — three channels, because a marker told in colour alone is not told. */
+.clinical .nday .day-row.is-next .nday-node::after {
+ width: 17px; height: 17px;
+ box-shadow: 0 0 0 4px var(--mango-soft), 0 0 0 6px var(--mango);
+}
+.clinical .nday .day-row.is-next { background: var(--surface); }
+.clinical .day-row .pill.teal { background: var(--teal-soft); border-color: transparent; color: var(--teal-ink); }
+.clinical .day-row .pill.amber, .clinical .review-row .pill.amber { background: var(--mango-soft); border-color: transparent; color: var(--mango-ink); font-weight: 600; }
+
+/* The end of the rail. The total used to be a hairline and two words at the bottom of a white box;
+   it is the close of the day now, and it carries the shape of the day beside the money so that the
+   last thing on the screen is still the day rather than a number about it. */
+.clinical .day-total {
+ display: grid;
+ grid-template-columns: var(--nday-time) var(--nday-rail) minmax(0, 1fr) auto;
+ align-items: center;
+ gap: var(--space-8) 0;
+ /* No margin above it. The day ends when the last visit ends, so the rail runs straight from the
+    last card into this one rather than breaking for a gap that is not a gap. */
+ margin: 0;
+ padding: var(--space-20) var(--space-20) var(--space-20) 0;
+ border: 0;
+ border-radius: var(--r-card);
+ background: color-mix(in srgb, var(--charcoal) 4%, transparent);
+ color: var(--faint);
+ --node-top: 50%;
+}
+.clinical .day-total { --rail-pad: 20px; }
+.clinical .day-total .nday-node { grid-column: 2; }
+.clinical .day-total .nday-node::after {
+ background: var(--glass-floor);
+ box-shadow: 0 0 0 2px var(--charcoal), 0 0 0 5px var(--glass-floor);
+}
+.clinical .day-total > * { grid-row: 1; }
+.clinical .day-total-end { grid-column: 1; }
+.clinical .day-total-say { grid-column: 3; padding-left: var(--space-16); display: grid; gap: 2px; }
+.clinical .day-total-money { grid-column: 4; }
+.clinical .day-total-end { justify-self: end; padding-right: var(--space-12); font-size: 17px; font-weight: 500; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+.clinical .day-total-say > strong { font-size: 15px; font-weight: 500; color: var(--charcoal); }
+.clinical .day-total-say small { font-size: 13px; color: var(--faint); }
+.clinical .day-total-money { display: grid; justify-items: end; gap: 2px; text-align: right; }
+.clinical .day-total-money small { font-size: 13px; color: var(--faint); max-width: 24ch; }
+.clinical .day-total-money strong { font-size: 22px; font-weight: 400; letter-spacing: -.6px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+
+/* ---- The doctor's queue -----------------------------------------------------------------------
+   The pane the list used to be moves onto the rows: each case is its own card, and what was one box
+   of running text is three objects down a column — a disc, a case, a chip and a wait, each aligned
+   with the one above it. */
+.clinical .review-list {
+ background: none;
+ backdrop-filter: none;
+ -webkit-backdrop-filter: none;
+ border: 0;
+ box-shadow: none;
+ padding: 0;
+ display: grid;
+ gap: var(--space-12);
+}
+/* surface/app.css hairlines every row after the first, three classes deep. They are separate cards
+   now, so what that selector carries here is the card's own shadow. */
+.clinical .review-list > li + li > .review-row { box-shadow: var(--pane-shadow); }
+/* The row at the top of a list ordered longest-first is the case to open, so it is the solid one.
+   It is a rule about the order rather than about a particular case: narrow the queue to Flagged and
+   whatever is longest then becomes the solid row, because that is what the ordering now says. */
+.clinical .review-list > li:first-child > .review-row { background: var(--surface); box-shadow: var(--shadow-raised); }
+.clinical .review-row {
+ position: relative;
+ box-shadow: var(--pane-shadow);
+ display: grid;
+ grid-template-columns: auto minmax(0, 1fr) auto;
+ grid-template-areas: none;
+ align-items: center;
+ gap: var(--space-16);
+ padding: var(--space-16) var(--space-20);
+ border-radius: var(--r-card);
+ background: var(--pane);
+ backdrop-filter: var(--pane-blur);
+ -webkit-backdrop-filter: var(--pane-blur);
+ border: 1px solid var(--pane-line);
+ color: var(--faint);
+ overflow: hidden;
+ transition: box-shadow var(--t-settle) var(--ease-soft), background var(--t-settle) var(--ease-soft);
+}
+/* The person the case is about, at the head of the row. Charcoal on a 6% tint: 14.81 on the card
+   this actually sits on, and 12.87 on the darkest ground the aurora is permitted to reach. */
+.clinical .review-face {
+ display: grid;
+ place-items: center;
+ width: 44px;
+ height: 44px;
+ border-radius: 50%;
+ background: color-mix(in srgb, var(--charcoal) 6%, transparent);
+ color: var(--charcoal);
+ font-size: 15px;
+ font-weight: 600;
+ letter-spacing: .02em;
+ transition: background var(--t-settle) var(--ease-soft);
+}
+/* surface/app.css folds this row into named grid areas below 640 — "ref waited" / "what what" /
+   "flag chev" — and those names do not exist in the template above. A `grid-area: what` pointing at
+   a line nobody declared does not fall back to auto; it invents an implicit track and puts the row
+   back together in an order nobody chose, which is exactly what it did: the wait, the badge and the
+   chevron stacked into a narrow column above the patient's name. Every child this row places is
+   placed here, explicitly, at both widths. */
+.clinical .review-row .review-what,
+.clinical .review-row .review-waited,
+.clinical .review-row .review-routine,
+.clinical .review-row .review-ref { grid-area: auto; }
+.clinical .review-what { display: grid; gap: 2px; min-width: 0; }
+.clinical .review-ref { font-size: 13px; font-weight: 600; letter-spacing: .06em; color: var(--faint); }
+.clinical .review-what > strong { font-size: 16px; font-weight: 500; color: var(--charcoal); }
+.clinical .review-what > small { font-size: 13px; color: var(--faint); }
+/* What the nurse found, as a chip rather than as the second half of a sentence. Charcoal on a 4%
+   tint, which is 15.35 on the card and 13.45 on the darkest ground the aurora may reach. */
+.clinical .review-found {
+ justify-self: start;
+ margin-top: var(--space-8);
+ padding: 4px 10px;
+ border-radius: var(--r-pill);
+ background: color-mix(in srgb, var(--charcoal) 4%, transparent);
+ color: var(--charcoal);
+ font-size: 13px;
+ line-height: 1.5;
+}
+.clinical .review-meta { display: flex; align-items: center; gap: var(--space-20); }
+.clinical .review-flag { display: flex; }
+.clinical .review-routine { font-size: 13px; color: var(--faint); }
+/* The column the queue is ordered by, set as a small instrument: the figure, the word, and the bar
+   under it at the same scale the deck's wait bars are drawn at. */
+.clinical .review-wait { display: grid; justify-items: end; gap: 3px; min-width: 92px; }
+.clinical .review-waited { font-size: 20px; font-weight: 400; letter-spacing: -.4px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+.clinical .review-wait > small { font-size: 13px; color: var(--faint); }
+/* A groove, and the wait in it. Without the groove a case that arrived twenty minutes ago drew a
+   nine-pixel stub floating in white space, which reads as nothing rather than as a short wait — the
+   deck's own rings run in a track for the same reason. */
+.clinical .review-pressure {
+ position: static;
+ width: 100%;
+ height: 5px;
  pointer-events: none;
+ margin-top: var(--space-4);
+ border-radius: var(--r-pill);
+ background: color-mix(in srgb, var(--charcoal) 8%, transparent);
 }
 .clinical .review-pressure i {
  display: block;
  height: 100%;
  border-radius: var(--r-pill);
  background: color-mix(in srgb, var(--charcoal) 26%, transparent);
+ /* From the left, like the deck's own wait bars and like the scaleX the chart observer plays on
+    them. A bar that rests right-aligned and animates from the left is two drawings of one fact. */
  transform-origin: left center;
 }
-/* The row a doctor is about to open lifts rather than merely tinting, which is the depth the rest of
-   this screen now has. A shadow and not a transform: a row that moves under a pointer travelling
-   towards it is a row that gets clicked somewhere else, and this list is twelve controls deep. */
-.clinical .day-row:hover, .clinical .review-row:hover {
+/* Out of range, told twice: the pill, and a rail down the edge of the row. Inset from the corners
+   rather than run into them — a straight band clipped by a 20px radius tapers away at both ends and
+   reads as two slivers rather than as one mark. */
+.clinical .review-row.is-flagged::before {
+ content: '';
+ position: absolute;
+ left: 0;
+ top: var(--space-12);
+ bottom: var(--space-12);
+ width: 5px;
+ border-radius: 0 var(--r-pill) var(--r-pill) 0;
+ background: var(--mango);
+}
+.clinical .review-row.is-flagged .review-pressure i { background: color-mix(in srgb, var(--mango-ink) 45%, transparent); }
+
+/* ---- The filter above the queue --------------------------------------------------------------
+   The same control as the workbench's tool row — a small set of exclusive choices — so it is drawn
+   the same way: one recessed rail with the chosen option lifted out of it. Two loose pills at the
+   top of a screen and five inside the card below it is the dialect change this whole pass is about,
+   in miniature. The buttons keep their 44px height; the rail's padding is added around them rather
+   than taken out of them, because a target that shrinks to fit a decoration is not a target. */
+.clinical .queue-filter {
+ gap: var(--space-4);
+ padding: var(--space-4);
+ border-radius: var(--r-pill);
+ background: color-mix(in srgb, var(--charcoal) 5%, transparent);
+ border: 1px solid var(--pane-line);
+}
+.clinical .queue-filter > button { border-color: transparent; background: transparent; }
+.clinical .queue-filter > button:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.clinical .queue-filter > button.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); box-shadow: var(--shadow-raised); }
+
+/* ---- Hover, focus and the sense that the screen is live ---------------------------------------
+   A row lifts, and the disc and the chevron answer with it. The lift is a shadow and a ground, never
+   a translation: a row that moves under a pointer travelling towards it is a row that gets clicked
+   somewhere else, and these lists are twelve controls deep — it is also what Playwright waits for
+   before it will press anything. Every transition here is removed for a reader who asked for less. */
+.clinical .nday .day-list > li > .day-row:hover,
+.clinical .review-list > li > .review-row:hover {
  background: var(--surface);
  box-shadow: var(--shadow-raised);
 }
-/* The two lists carry the panel radius rather than the control radius now, so the deck, the lists
-   and the workbench below are three objects with one corner between them. */
-.clinical .day-row, .clinical .review-row { border-radius: var(--r-tile); }
+/* THE SECOND RING, PUT BACK. core.css draws its focus indicator as two — an outline and a
+   box-shadow — on a bare `:focus-visible`, which is one specificity point below every class rule in
+   this sheet and two below surface/app.css's row hairline. On a list whose rows are cards with
+   shadows it therefore lost silently, and a focused row was left with one ring. This is the one
+   value in this sheet copied out of another file: if the focus indicator ever changes, core.css is
+   the first place to change it and this is the second, which is written down here so that the next
+   person finds the copy rather than the bug. */
+.clinical .nday .day-list > li > .day-row:focus-visible,
+.clinical .review-list > li > .review-row:focus-visible { box-shadow: 0 0 0 7px var(--focus-edge); }
+.clinical .nday .day-row:hover .day-go, .clinical .review-row:hover .review-go,
+.clinical .nday .day-row:focus-visible .day-go, .clinical .review-row:focus-visible .review-go {
+ background: var(--charcoal);
+ color: var(--surface);
+}
+.clinical .review-row:hover .review-face,
+.clinical .review-row:focus-visible .review-face { background: color-mix(in srgb, var(--charcoal) 12%, transparent); }
+
+/* ---- The arrival ------------------------------------------------------------------------------
+   The shell already rises its own children in order; the work inside the workbench's board did not
+   rise at all, because it is three levels down from `main`. Same curve, same three delays, same
+   removal — a fourth step would put 180ms between the head of a queue and the first row of it,
+   which is long enough to be waiting rather than arriving. */
+.clinical .iq-worklist > * { animation: rise var(--t-enter) var(--ease-soft) both; }
+.clinical .iq-worklist > *:nth-child(2) { animation-delay: 40ms; }
+.clinical .iq-worklist > *:nth-child(n+3) { animation-delay: 80ms; }
+@media (prefers-reduced-motion: reduce) {
+ .clinical .iq-worklist > * { animation: none; }
+ .clinical .nday .day-row, .clinical .review-row,
+ .clinical .day-go, .clinical .review-go, .clinical .review-face { transition: none; }
+}
+
+/* ---- Narrow -----------------------------------------------------------------------------------
+   The gutter shrinks rather than disappearing: the rail is what makes the day a day, and a phone is
+   where the question "can I still make 11:30" is actually asked. The queue's row folds its meta row
+   under the body instead, because a 44px disc, a name, a pill and a wait will not sit on one line
+   of a 390px screen without one of them being set below 13px. */
+@media (max-width: 720px) {
+ .clinical .nday { --nday-time: 76px; --nday-rail: 20px; }
+ .clinical .next-visit {
+  padding: var(--space-16) var(--space-16) var(--space-20) 0;
+  grid-template-areas: 'when node body' '. node actions';
+  --node-top: 26px;
+ }
+ .clinical .next-when > strong { font-size: 22px; letter-spacing: -.6px; }
+ .clinical .next-when { padding-right: var(--space-8); }
+ .clinical .next-body, .clinical .next-actions { padding-right: var(--space-16); }
+ .clinical .nday .day-row { padding: var(--space-12) var(--space-12) var(--space-12) 0; }
+ .clinical .day-what, .clinical .nday-gap > span:last-child, .clinical .day-total-say { padding-left: var(--space-12); }
+ .clinical .day-time, .clinical .nday-gap-dur, .clinical .day-total-end { padding-right: var(--space-8); }
+ .clinical .day-time strong, .clinical .day-total-end { font-size: 15px; }
+ .clinical .day-meta { flex-direction: column-reverse; gap: var(--space-8); align-items: flex-end; }
+ /* The end cap folds rather than squeezing: the day's close on the first line, what it earned on
+    the second, both in the column the visits above them are in. Four columns on a 390px screen put
+    "Your share of today, at the catalogue's rates" on top of "Your day ends". */
+ .clinical .day-total { grid-template-columns: var(--nday-time) var(--nday-rail) minmax(0, 1fr); padding-right: var(--space-16); row-gap: var(--space-12); }
+ .clinical .day-total-end { grid-row: 1; }
+ .clinical .day-total .nday-node { grid-row: 1; }
+ .clinical .day-total-say { grid-row: 1; }
+ .clinical .day-total-money { grid-column: 3; grid-row: 2; justify-items: start; text-align: left; padding-left: var(--space-12); }
+ .clinical .day-total-money small { max-width: none; }
+
+ .clinical .review-row { grid-template-columns: auto minmax(0, 1fr); gap: var(--space-12) var(--space-16); padding: var(--space-16); }
+ .clinical .review-row .review-face { grid-column: 1; grid-row: 1; width: 40px; height: 40px; align-self: start; }
+ .clinical .review-row .review-what { grid-column: 2; grid-row: 1; }
+ /* The badge takes a line of its own and the wait keeps its column on the next. It is written as a
+    rule rather than left to wrapping: the badge, "3 h 20 m" at twenty pixels and the chevron come
+    to 260 pixels beside a 40px disc, and the row has 238 inside its padding at 390 and 168 at 320 —
+    so it wraps at every width a phone actually has, and left to itself it wrapped the chevron alone
+    onto the second line, which reads as a stray control rather than as the end of the row. */
+ .clinical .review-row .review-meta { grid-column: 2; grid-row: 2; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--space-8) var(--space-12); }
+ .clinical .review-flag { flex: 1 0 100%; }
+ .clinical .review-wait { min-width: 0; flex: 1 1 auto; }
+ .clinical .review-flag .pill { white-space: nowrap; }
+}
