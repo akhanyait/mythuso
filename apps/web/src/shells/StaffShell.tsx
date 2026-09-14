@@ -12,7 +12,8 @@ import '../surface/clinical-screens.css';
 import { NurseSchedule, ReviewQueue, nurseDayCounts, reviewQueueCounts, roleExtras, sectionDoor, sectionWorkflow } from '../features/Workspaces';
 import { useVisitQueue } from '../features/VisitQueue';
 import type { Part } from '../lib/visit-queue';
-import { cycle } from '../lib/earnings';
+import { cycle, weeks } from '../lib/earnings';
+import { ClinicalDeck, type DeckFigure } from '../features/ClinicalDeck';
 import { earningsSummary, rand } from '../features/Earnings';
 import { DispatchBoard, IncidentBoard, QualityBoard, controlTowerCounts } from '../features/Dispatch';
 import { FulfilmentQueue, partnerCounts } from '../features/Fulfilment';
@@ -272,10 +273,15 @@ const sectionBlurb: Record<string, string> = {
 /* Urgency first: what is waiting, how long it has waited, and what to do about it. Counted only on
    the sections that are a board — a strip of a nurse's earnings above a page about protocols is
    three numbers with nothing to do with the screen under them. */
-/* label, figure, unit, chip, flagged — the reference's order rather than this product's. The chip
-   floats above the figure and says how it is going; the label sits under it and says what it is.
-   `flagged` fills the chip charcoal, and exactly one per screen is the point of it. */
-type Metric = readonly [string, string, string, string, boolean, string?];
+/* A figure: what it is called, what it says, the chip that floats above it, and — on the two
+   clinical decks — the drawing of the same arithmetic that goes around it. The chip says how it is
+   going; the label sits under it and says what it is; `flagged` fills the chip charcoal, and exactly
+   one per screen is the point of it.
+   It was a six-slot tuple and the seventh thing broke it: `['Longest wait', q.longest, '', 'Oldest
+   in the queue', false]` is four positional arguments a reader has to count on their fingers, and a
+   shape hung off the end would have made it five. Named fields, same figures, same one place they
+   are decided in. */
+type Figure = DeckFigure;
 /* Counted from the boards they sit above wherever the board is in this territory, rather than typed
    beside them. They were typed, and they had drifted: the partner's strip said eight open orders
    over a queue of four, and the Control Tower's said one high-severity incident over a board
@@ -287,33 +293,59 @@ type Metric = readonly [string, string, string, string, boolean, string?];
    be counted from at all: "18 reviewed today" and its "Median 4 m 10 s" were invented, and an
    invented productivity figure on a clinical screen is the one kind of number this product must
    never carry. What the two remaining boards say about themselves, each of them still counts. */
-const metricsOf = (role: StaffRole, queue: Part[]): readonly Metric[] => {
+/* And the two clinical strips are instruments now rather than three numerals in a row — a ring of
+   the queue, a dial of what is pressing, the day drawn to scale. Every shape below is built out of
+   the same rows the figure beside it is counted from, and not one of them carries a fact of its own:
+   the doctor's ring has one arc per row on the queue underneath and the bright arcs are the rows
+   wearing a badge, so a shape that disagreed with the list would be as disprovable by looking as a
+   typed figure is. features/ClinicalDeck.tsx draws them and decides nothing. */
+const metricsOf = (role: StaffRole, queue: Part[]): readonly Figure[] => {
  if (role === 'Partner') { const c = partnerCounts();
-  return [['Open orders', String(c.open), '', c.pastWindow ? `${c.pastWindow} past its window` : 'All inside their windows', c.pastWindow > 0],
-          ['Collections', String(c.collections), '', `Next ${c.nextCollection}`, false],
-          ['Ready for release', String(c.readyForRelease), '', 'Awaiting a clinician', false]]; }
+  return [{ label: 'Open orders', value: String(c.open), chip: c.pastWindow ? `${c.pastWindow} past its window` : 'All inside their windows', flagged: c.pastWindow > 0 },
+          { label: 'Collections', value: String(c.collections), chip: `Next ${c.nextCollection}`, flagged: false },
+          { label: 'Ready for release', value: String(c.readyForRelease), chip: 'Awaiting a clinician', flagged: false }]; }
  if (role === 'Control Tower') { const c = controlTowerCounts();
-  return [['Visits on the board', String(c.waiting), '', 'Awaiting a nurse', false],
-          ['Nurses on duty', String(c.nurses), '', `${c.offDuty} off duty`, false],
-          ['Open incidents', String(c.incidents), '', c.critical ? `${c.critical} critical` : `${c.high} high`, c.critical > 0]]; }
+  return [{ label: 'Visits on the board', value: String(c.waiting), chip: 'Awaiting a nurse', flagged: false },
+          { label: 'Nurses on duty', value: String(c.nurses), chip: `${c.offDuty} off duty`, flagged: false },
+          { label: 'Open incidents', value: String(c.incidents), chip: c.critical ? `${c.critical} critical` : `${c.high} high`, flagged: c.critical > 0 }]; }
  /* The doctor's third tile used to be "18 reviewed today" over "Median 4 m 10 s". Both were typed,
     neither had a list under it to be counted from, and a productivity figure nobody can check is
     the one number a clinical screen must not carry. The longest wait replaces them: it is the same
-    queue, sorted, and a reader can see which row it names. */
+    queue, sorted, and a reader can see which row it names — and now the bars beside it are that
+    queue, each row as long as it has waited, so the word "longest" is drawn as well as said. */
  if (role === 'Doctor') { const q = reviewQueueCounts();
-  return [['Awaiting review', String(q.waiting), '', q.flagged ? `${q.flagged} out of range` : 'All inside their ranges', false],
-          ['Priority reviews', String(q.flagged), '', 'Out of range', q.flagged > 0],
-          ['Longest wait', q.longest, '', 'Oldest in the queue', false]]; }
+  return [{ label: 'Awaiting review', value: String(q.waiting), flagged: false,
+            chip: q.flagged ? `${q.flagged} out of range` : 'All inside their ranges',
+            shape: { kind: 'ring', segments: q.rows.map(row => row.flagged) } },
+          { label: 'Priority reviews', value: String(q.flagged), chip: 'Out of range', flagged: q.flagged > 0,
+            shape: { kind: 'gauge', part: q.flagged, whole: q.waiting } },
+          { label: 'Longest wait', value: q.longest, chip: 'Oldest in the queue', flagged: false,
+            shape: { kind: 'bars', values: q.rows.map(row => row.minutes) } }]; }
  if (role === 'Nurse') { const day = nurseDayCounts(queue);
   /* The week's earnings are the earnings screen's arithmetic rather than the schedule's: that
      screen already exports its summary, so the strip reads the one figure instead of keeping a
-     second that could disagree with it. */
+     second that could disagree with it. The line under it is the same register's weeks, oldest
+     first, so the figure has the four weeks behind it rather than a shape somebody drew. */
   const week = earningsSummary();
-  return [['Next visit', day.nextStart, '', day.nextWhere, false],
-          ['Today’s visits', String(day.visits), '', day.signed ? `${day.signed} signed, ${day.left} to go` : `${day.left} to sign off`, false],
-          ['This week', rand(week.thisWeek).value, '', `Pays ${cycle.paysOn}`, false, rand(week.thisWeek).prefix]]; }
+  return [{ label: 'Next visit', value: day.nextStart, chip: day.nextWhere, flagged: false,
+            shape: { kind: 'day', spans: day.spans, from: day.dayFrom, to: day.dayTo } },
+          { label: 'Today’s visits', value: String(day.visits), flagged: false,
+            chip: day.signed ? `${day.signed} signed, ${day.left} to go` : `${day.left} to sign off`,
+            shape: { kind: 'ring', segments: day.spans.map(visit => visit.signed) } },
+          { label: 'This week', value: rand(week.thisWeek).value, prefix: rand(week.thisWeek).prefix,
+            chip: `Pays ${cycle.paysOn}`, flagged: false,
+            shape: { kind: 'spark', values: weekTotals(), countTo: week.thisWeek } }]; }
  return [];
 };
+/* The weeks BEHIND this one, oldest first, so a line drawn from them runs the way time does. Sorted
+   on each week's own end date rather than on the order the contract happens to list them in — the
+   register is written newest first and a series drawn in that order would show every week falling.
+   The week in progress is deliberately not the last point on it. It is the figure above the line,
+   and a week that is still being added to, drawn as the end of a series, reads as a fall rather than
+   as a week that has not finished — the earnings contract says so in its own words, "the figure can
+   go down as well as up", and a drawing may not quietly contradict a sentence the product makes. */
+const weekTotals = () => weeks.filter(week => week.state !== 'accruing')
+ .sort((a, b) => a.ends.localeCompare(b.ends)).map(week => week.total);
 /* Three columns rather than one bold string with two middle dots in it. A reference, what the case
    is, and what state it is in are three different questions, and a reader scanning a queue answers
    the third one first — so it is a badge in its own column at the end of the row, aligned down the
@@ -334,6 +366,20 @@ const HEADS_ITSELF = BOARDS.filter(section => section !== 'Incidents').concat(['
    which is what made a clinical screen read as a dashboard. */
 const WORKBENCH: Partial<Record<StaffRole, string>> = { Nurse: 'Schedule', Doctor: 'Review queue', Partner: 'Orders' };
 
+/* The two roles whose opening screen is a deck of instruments rather than three numerals in a row.
+   Both of them open the application on one list and work it for a shift, which is the case a ring
+   and a gauge earn their place in: the shape of that list is the thing they need before the first
+   row of it. The partner and the Control Tower read several boards a day and keep the flat strip. */
+const DECK: readonly StaffRole[] = ['Nurse', 'Doctor'];
+/* What the deck is called, and what to do if a figure on it looks wrong — which is to count the rows
+   it was counted from. That second sentence is the one line on a dashboard worth what it costs.
+   The eyebrow does not repeat the role. The shell writes NURSE above this already, and a screen that
+   spends its most valuable line saying the same word twice has said nothing with it. */
+const deckHead: Partial<Record<StaffRole, { eyebrow: string; note: string }>> = {
+ Nurse: { eyebrow: 'TODAY AT A GLANCE', note: 'Every figure is counted off the visits below' },
+ Doctor: { eyebrow: 'THE QUEUE AT A GLANCE', note: 'Every figure is counted off the rows below' }
+};
+
 function StaffSection({ role, section, open }: { role: StaffRole; section: string; open: (m: string) => void }) {
  const board = BOARDS.includes(section);
  const workbench = WORKBENCH[role] === section;
@@ -344,6 +390,7 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
     and the founder asked for it back: a clinician wants the shape of the day before the first row
     of it. What did not come back is any figure that cannot be counted off the list beneath it. */
  const figures = board ? metricsOf(role, queue) : [];
+ const deck = DECK.includes(role);
  /* The sections rendered by a feature component that draws its own <h1>. */
  const headsItself = HEADS_ITSELF.includes(section);
  /* Protocols and Quality draw their own page-intro, eyebrow included, because they are whole screens
@@ -357,14 +404,21 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
       reader having to guess which one is the page. */}
   {!ownsIntro && <div className="page-intro"><div><div className="eyebrow">{role.toUpperCase()}</div>
    {headsItself ? null : <><h1>{section}</h1><p>{sectionBlurb[section] ?? sectionDoor[section] ?? ''}</p></>}</div></div>}
-  {/* The first figure in each strip takes the lime tile, and it is the first one because every one
-      of these lists is already ordered urgency-first — the comment above metricsOf says so and has
-      done since the strips were written. So the tile is a rule rather than six separate opinions
-      about which number matters, and it cannot drift out of step with the order of the strip
-      because it is the order of the strip. Nothing is typed: the figure inside it is the same
-      counted value, from the same board underneath. */}
-  {figures.length > 0 && <Metrics>{figures.map(([label, value, unit, chip, flagged, prefix], i) =>
-   <Metric key={label} label={label} value={value} unit={unit || undefined} prefix={prefix} chip={chip} flagged={flagged} lead={i === 0}/>)}</Metrics>}
+  {/* The first figure in each strip leads, and it is the first one because every one of these lists
+      is already ordered urgency-first — the comment above metricsOf says so and has done since the
+      strips were written. So the lead is a rule rather than six separate opinions about which number
+      matters, and it cannot drift out of step with the order of the strip because it is the order of
+      the strip. Nothing is typed: the figure inside it is the same counted value, from the same
+      board underneath.
+      A nurse and a doctor get the instrument deck; the two operational boards keep the flat strip,
+      and deliberately so. A controller reads six boards in a shift and a dial on each of them is a
+      dashboard rather than a tool — the deck is for the two screens a clinician opens the
+      application at and stays on. */}
+  {figures.length > 0 && (deck
+   ? <ClinicalDeck role={role} figures={figures} eyebrow={deckHead[role]?.eyebrow ?? ''} note={deckHead[role]?.note ?? ''}/>
+   : <Metrics>{figures.map((figure, i) =>
+      <Metric key={figure.label} label={figure.label} value={figure.value} unit={figure.unit} prefix={figure.prefix}
+              chip={figure.chip} flagged={figure.flagged} lead={i === 0}/>)}</Metrics>)}
   {workbench ? <ClinicalWorkbench role={role as 'Nurse' | 'Doctor' | 'Partner'} worklist={sectionBody(section, open)}/> : sectionBody(section, open)}
   {/* Secondary by construction. These were two cards with the same shield on them, the same white
       surface and the same shadow as the queue above — so a screen whose entire purpose is the queue

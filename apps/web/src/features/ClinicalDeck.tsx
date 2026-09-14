@@ -1,0 +1,239 @@
+import { useEffect, useState, type ReactNode } from 'react';
+import { Metric } from '../surface/Surface';
+import { useDecor } from '../lib/motion';
+import { money } from '../lib/catalog';
+import './clinical-deck.css';
+
+/* The instrument deck a nurse and a doctor open the workspace on.
+ *
+ * WHAT WAS WRONG WITH THE STRIP IT REPLACES. Three figures in a row, one of them on a lime tile,
+ * with nothing between them and the list underneath. Every figure the same size, the same weight and
+ * the same distance from the next, so the screen said "here are three numbers" rather than "here is
+ * the shape of your day". A clinician reads it, learns nothing she could not have learned by
+ * counting the rows, and scrolls past.
+ *
+ * WHAT A SHAPE IS ALLOWED TO BE HERE, AND THE ONE RULE THAT GOVERNS ALL OF IT. Every drawing below
+ * is built from the same arithmetic as the numeral beside it and carries no fact of its own. The
+ * doctor's ring has one arc per row on the queue below and the bright arcs are the rows carrying a
+ * badge; the nurse's day is her three visits drawn to the length each one actually takes, out of the
+ * same service durations the rows are timed from. So a reader who distrusts a picture can count the
+ * list, and a reader who distrusts a numeral can count the picture — which is the whole point of a
+ * counted figure, extended to the thing drawn around it. Nothing here may introduce a number. The
+ * figures are still decided in one place, apps/web/src/shells/StaffShell.tsx's `metricsOf`, which is
+ * the block scripts/check-boundaries.mjs reads for a typed digit.
+ *
+ * WHAT MOVES, AND WHAT IS REFUSED THE RIGHT TO MOVE. The arcs and lines draw themselves on arrival
+ * through components/ChartMotion.tsx — the same observer that draws the passport's charts, for the
+ * same reason: it settles every animation the moment a reader asks for less motion, and the resting
+ * state of every mark is the finished mark, so stillness is the complete picture and never an empty
+ * ring. One figure counts up, and it is money rather than anything clinical: a rand total that
+ * spends half a second being wrong is a flourish, and a queue length that spends half a second being
+ * wrong is a doctor reading the wrong number. The count-up never re-formats the figure either — it
+ * asks the catalogue's own formatter for each step, so the number that lands is the number the strip
+ * counted, in the shape the strip counted it in.
+ *
+ * THE DARK GROUND. studioNight, which is the ground the ThusoIQ workbench header below already
+ * stands on, so the two dark bands frame the work between them rather than one of them being an
+ * exception. Every pair on it is measured: studioPaper reads at 13.59 and studioLime at 12.03, and
+ * the two tones mixed for quiet text and for an unlit mark are computed beside the rules that use
+ * them in clinical-deck.css. Lime is spent once per deck, on the one figure the screen was opened
+ * for, which is the same discipline the lime tile it replaces was written under. */
+
+/** The drawing that belongs to one figure. Every field is counted off the rows the figure counts. */
+export type DeckShape =
+ /** One arc per row. `on` is the row carrying the badge the chip counts — flagged, or signed off. */
+ | { kind: 'ring'; segments: readonly boolean[] }
+ /** A part of a whole, as a dial. Both numbers are the strip's own. */
+ | { kind: 'gauge'; part: number; whole: number }
+ /** One bar per row, as long as that row has waited. The longest is the row the figure names. */
+ | { kind: 'bars'; values: readonly number[] }
+ /** The working day to scale, and where now sits in it. */
+ | { kind: 'day'; spans: readonly { from: number; to: number; signed: boolean }[]; from: number; to: number }
+ /** A short series under a headline figure, and the figure it counts up to. */
+ | { kind: 'spark'; values: readonly number[]; countTo: number };
+
+export type DeckFigure = {
+ label: string; value: string; unit?: string; prefix?: string; chip: string; flagged: boolean;
+ shape?: DeckShape;
+};
+
+/* ---- Geometry ----------------------------------------------------------------------------------
+   Turns rather than degrees or radians, measured clockwise from twelve o'clock, because every arc
+   in here is "this many of that many" and a fraction of a circle is what that means. */
+const TAU = Math.PI * 2;
+const at = (cx: number, cy: number, r: number, turn: number): [number, number] =>
+ [cx + r * Math.sin(turn * TAU), cy - r * Math.cos(turn * TAU)];
+const arc = (cx: number, cy: number, r: number, from: number, to: number) => {
+ const [x1, y1] = at(cx, cy, r, from);
+ const [x2, y2] = at(cx, cy, r, to);
+ return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${to - from > 0.5 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+};
+const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
+const hhmm = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(Math.round(minutes) % 60).padStart(2, '0')}`;
+
+/* ---- The instruments ---------------------------------------------------------------------------
+ *
+ * Each one is aria-hidden where it restates the chip and the numeral it sits with, and carries a
+ * counted label where it says something they do not. A ring of three arcs over the words "3" and
+ * "2 out of range" is the same sentence drawn twice, and a screen reader that reads it twice has
+ * been given noise; the shape of a day is a fact nothing else on the strip states, so it is read. */
+
+/** The queue, or the day, as arcs — one per row, the marked ones brighter and heavier. Colour is
+    never the only difference between the two states: a marked arc is also the thicker one. */
+function Ring({ segments }: { segments: readonly boolean[] }) {
+ const count = Math.max(segments.length, 1);
+ const step = 1 / count;
+ /* A gap wide enough to count the arcs across, and never wider than a third of an arc — a ring of
+    twelve cases must not dissolve into a dotted line. */
+ const gap = Math.min(0.028, step / 3);
+ return <svg className="c-plot c-ring" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+  <circle className="c-ring-track" cx="50" cy="50" r="39"/>
+  {segments.map((on, i) =>
+   <path key={i} className={`c-mark${on ? ' on' : ''}`} d={arc(50, 50, 39, i * step + gap / 2, (i + 1) * step - gap / 2)}/>)}
+ </svg>;
+}
+
+/** A part of a whole as a dial: how much of the queue is pressing rather than merely waiting. */
+function Gauge({ part, whole }: { part: number; whole: number }) {
+ const from = 0.625, sweep = 0.75;
+ const filled = whole > 0 ? clamp(part / whole, 0, 1) : 0;
+ return <svg className="c-plot c-gauge" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+  <path className="c-ring-track" d={arc(50, 50, 39, from, from + sweep)}/>
+  {filled > 0 && <path className="c-mark on" d={arc(50, 50, 39, from, from + sweep * filled)}/>}
+ </svg>;
+}
+
+/** One bar per row, as long as that row has waited. The longest is the row the figure names. */
+function Bars({ values, label }: { values: readonly number[]; label: string }) {
+ const longest = Math.max(...values, 1);
+ return <div className="c-bars c-waits" role="img" aria-label={label}>
+  {values.map((value, i) =>
+   /* A floor of four per cent so a case that has only just arrived is still a bar rather than
+      nothing at all — a queue with an invisible row in it reads as a shorter queue. */
+   <i key={i} className={value === longest ? 'on' : ''} style={{ width: `${clamp(value / longest * 100, 4, 100)}%` }}/>)}
+ </div>;
+}
+
+/** The working day to scale, each visit as long as its service actually takes, and a mark for now.
+
+    The mark is drawn only while now is inside the day. A needle parked at one end of a track from
+    seven in the evening would say the last visit is about to start, which is the kind of figure a
+    reader can disprove by looking out of the window. */
+function Day({ spans, from, to, label }: { spans: readonly { from: number; to: number; signed: boolean }[]; from: number; to: number; label: string }) {
+ const [now, setNow] = useState(() => new Date());
+ /* Once a minute, and it is freshness rather than motion: a clock that stops when a reader asks for
+    less movement is a clock that lies to them instead. The mark travels a third of a pixel a
+    minute, touches no control and is not a target. */
+ useEffect(() => { const timer = window.setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(timer); }, []);
+ const span = Math.max(to - from, 1);
+ const pct = (minute: number) => (minute - from) / span * 100;
+ const minuteNow = now.getHours() * 60 + now.getMinutes();
+ const inside = minuteNow >= from && minuteNow <= to;
+ return <>
+  <div className="c-bars c-day" role="img" aria-label={`${label}${inside ? `. It is ${hhmm(minuteNow)} now` : ''}`}>
+   {spans.map((visit, i) =>
+    <i key={i} className={`${visit.signed ? 'done' : ''}${i === 0 ? ' on' : ''}`}
+       style={{ left: `${pct(visit.from)}%`, width: `${Math.max(pct(visit.to) - pct(visit.from), 3)}%` }}/>)}
+   {inside && <span className="c-now" style={{ left: `${clamp(pct(minuteNow), 0, 100)}%` }}/>}
+  </div>
+  {/* The two ends of the track, so the blocks on it are a day rather than three shapes. The middle
+      says where now is only while now is in the day: "before the first visit" is what an empty
+      middle already says, and a third state written out in words would be saying it twice. */}
+  <div className="c-day-scale" aria-hidden="true">
+   <span>{hhmm(from)}</span>
+   <span className="c-day-now">{inside ? `now ${hhmm(minuteNow)}` : ''}</span>
+   <span>{hhmm(to)}</span>
+  </div>
+ </>;
+}
+
+/** The weeks behind the headline figure. Flat where a week was flat; it invents no trend, and the
+    week the figure itself states is not on it — see the note above `weekTotals` in the staff shell. */
+function Spark({ values, label }: { values: readonly number[]; label: string }) {
+ const high = Math.max(...values), low = Math.min(...values);
+ const spread = high - low || 1;
+ const x = (i: number) => values.length > 1 ? i / (values.length - 1) * 100 : 50;
+ const y = (value: number) => 36 - (value - low) / spread * 28;
+ const line = values.map((value, i) => `${i ? 'L' : 'M'} ${x(i).toFixed(2)} ${y(value).toFixed(2)}`).join(' ');
+ return <>
+  <svg className="c-plot c-spark" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label={label} focusable="false">
+   <path className="c-area c-fade" d={`${line} L 100 40 L 0 40 Z`}/>
+   <path className="c-mark on" d={line} vectorEffect="non-scaling-stroke"/>
+  </svg>
+  {/* What the line is, so nobody reads it as this week's own shape. */}
+  <div className="c-day-scale" aria-hidden="true"><span>{values.length} weeks before this one</span></div>
+ </>;
+}
+
+/* ---- The count-up ------------------------------------------------------------------------------
+   Money only, and it lands on the figure the strip worked out rather than on one of its own: each
+   step asks the catalogue's formatter, so the last step is the same call the strip made. Refused
+   motion is not a shorter count — it is no count, with the figure already there on the first
+   painted frame, because a reader who asked for stillness asked to be told the number. */
+const RISE = 700;
+function useCountUp(target: number, allowed: boolean) {
+ const [shown, setShown] = useState(target);
+ useEffect(() => {
+  if (!allowed) { setShown(target); return; }
+  let frame = 0;
+  const began = performance.now();
+  const step = (stamp: number) => {
+   const through = Math.min(1, (stamp - began) / RISE);
+   setShown(Math.round(target * (1 - (1 - through) ** 3)));
+   if (through < 1) frame = requestAnimationFrame(step);
+  };
+  frame = requestAnimationFrame(step);
+  return () => { cancelAnimationFrame(frame); setShown(target); };
+ }, [target, allowed]);
+ return shown;
+}
+/** The digits of a formatted amount, without the R the strip draws separately. */
+const digitsOf = (amount: number) => { const text = money(amount); return text.slice(text.search(/\d/)); };
+
+/* ---- The deck ---------------------------------------------------------------------------------- */
+export function ClinicalDeck({ role, figures, eyebrow, note }: { role: string; figures: readonly DeckFigure[]; eyebrow: string; note: string }) {
+ const { playing } = useDecor();
+ /* The first figure is the one the screen was opened for. metricsOf orders every strip urgency-first
+    and has done since the strips were written, so the lead is the order of the strip rather than a
+    second opinion about which number matters — and it cannot drift out of step with it. */
+ const [lead, ...rest] = figures;
+ const spark = figures.find(figure => figure.shape?.kind === 'spark')?.shape;
+ const rising = useCountUp(spark?.kind === 'spark' ? spark.countTo : 0, playing);
+ /* A deck with nothing on it is not a deck. The shell only renders one where a board counted some
+    figures, and this is the second lock on that rather than a shape for an empty strip. */
+ if (!lead) return null;
+ const draw = (figure: DeckFigure): ReactNode => {
+  const shape = figure.shape;
+  if (!shape) return undefined;
+  if (shape.kind === 'ring') return <Ring segments={shape.segments}/>;
+  if (shape.kind === 'gauge') return <Gauge part={shape.part} whole={shape.whole}/>;
+  if (shape.kind === 'bars') return <Bars values={shape.values} label={`${shape.values.length} waiting, the longest of them ${figure.value}`}/>;
+  if (shape.kind === 'day') return <Day spans={shape.spans} from={shape.from} to={shape.to}
+   label={`${shape.spans.length} visits between ${hhmm(shape.from)} and ${hhmm(shape.to)}, ${shape.spans.filter(visit => visit.signed).length} signed off`}/>;
+  return <Spark values={shape.values} label={`The ${shape.values.length} weeks before this one, oldest first: ${shape.values.map(week => money(week)).join(', ')}`}/>;
+ };
+ /* The figure a count-up owns is re-rendered from the count rather than from the strip's string. It
+    is the same string on the last frame: both are money() of the same total. */
+ const figureValue = (figure: DeckFigure) =>
+  figure.shape?.kind === 'spark' ? digitsOf(rising) : figure.value;
+ const instrument = (figure: DeckFigure, isLead: boolean) =>
+  <div className={`c-instrument c-instrument-${figure.shape?.kind ?? 'plain'}${isLead ? ' lead' : ''}`} key={figure.label}>
+   <Metric label={figure.label} value={figureValue(figure)} unit={figure.unit} prefix={figure.prefix}
+           chip={figure.chip} flagged={figure.flagged} visual={draw(figure)}/>
+  </div>;
+ return <section className="c-deck" aria-label={`${role} — the shape of the work below`}>
+  <div className="c-deck-head">
+   {/* What the deck is, not which workspace it is in: the shell's own eyebrow says DOCTOR three
+       lines above this one, and a screen that says the same word twice at the top of itself has
+       spent its most valuable line saying nothing. */}
+   <span className="c-deck-eyebrow">{eyebrow}</span>
+   {/* Not a disclosure and not a boast: the one sentence that tells a reader what to do if a figure
+       looks wrong, which is to count the rows it was counted from. */}
+   <span className="c-deck-note">{note}</span>
+  </div>
+  <div className="c-deck-figures">
+   <div className="c-deck-lead">{instrument(lead, true)}</div>
+   <div className="c-deck-rest">{rest.map(figure => instrument(figure, false))}</div>
+  </div>
+ </section>;
+}

@@ -106,32 +106,9 @@
 .landing .landing-nav { background: var(--studio-paper); }
 .landing .landing-nav nav { background: transparent; border: 1px solid var(--studio-line); border-radius: 999px; padding: 4px 14px; }
 .landing .landing-nav .primary { border-radius: 999px; background: var(--studio-ink); color: white; }
-.landing .editorial-hero { display: flex; flex-direction: column; gap: 0; padding-top: 38px; padding-bottom: 0; }
-.landing .editorial-hero .landing-hero-copy { order: 0; display: grid; width: 100%; flex: none; }
-.landing .editorial-hero .landing-hero-slide { display: grid; grid-template-columns: minmax(0,2.2fr) minmax(240px,1fr); gap: 50px; align-items: end; padding-bottom: 32px; }
-.landing .editorial-hero h1 { max-width: none; font-size: clamp(54px,7.65vw,110px); font-weight: 500; line-height: .97; letter-spacing: -.07em; }
-.landing .editorial-hero h1 > span { display: block; }
-.landing .editorial-hero h1 .landing-h1-accent { color: var(--studio-olive); }
-.landing .editorial-hero .landing-hero-eyebrow { display: flex; align-items: center; gap: 8px; padding: 0; border: 0; border-radius: 0; background: transparent; letter-spacing: 1.6px; text-transform: uppercase; font-size: 13px; margin-bottom: 22px; }
 .landing-hero-eyebrow > span { width: 7px; height: 7px; background: var(--brand-orange); border-radius: 50%; }
 .editorial-intro { padding-bottom: 4px; }
-.editorial-star { display: block; font-size: 40px; color: var(--studio-olive); margin-bottom: 10px; line-height: 1; }
-.landing .editorial-hero .landing-hero-lede { margin: 0 0 20px; font-size: 15px; line-height: 1.65; max-width: 320px; color: var(--studio-ink-muted); }
-.landing .editorial-hero .primary { border-radius: 999px; background: var(--studio-ink); color: white; min-height: 50px; }
-.editorial-story { order: 1; display: grid; grid-template-columns: minmax(0,2.2fr) minmax(240px,1fr); gap: 20px; }
-.landing .editorial-hero .landing-portrait { display: block; margin: 0; position: relative; align-self: stretch; }
-.landing .editorial-hero .landing-portrait-frame { height: 460px; aspect-ratio: auto; border-radius: 30px; background: var(--studio-night); }
-.landing .editorial-hero .landing-slide { inset: 0; }
-.landing .editorial-hero .landing-portrait-frame img { object-fit: cover; object-position: 65% 45%; }
 .landing .editorial-hero .landing-portrait-frame::before { display: none; }
-.landing .editorial-hero .landing-portrait-place { position: absolute; top: 20px; left: 20px; right: auto; bottom: auto; z-index: 4; background: var(--studio-paper); color: var(--studio-ink); border: 0; }
-.landing .editorial-hero .landing-portrait figcaption { font-size: 13px; padding: 10px 4px; margin: 0; color: var(--studio-ink-muted); }
-.editorial-photo-caption { position: absolute; z-index: 2; bottom: 32px; left: 32px; color: white; padding: 18px 24px; border-radius: 22px; background: #19291fe8; }
-.editorial-photo-caption > span { font-size: 13px; letter-spacing: 1.6px; }
-.editorial-photo-caption > strong { display: block; font-size: 40px; line-height: 1.05; font-weight: 500; letter-spacing: -1.6px; margin-top: 12px; }
-.editorial-photo-cards { position: absolute; z-index: 3; right: 20px; bottom: 20px; display: grid; gap: 10px; }
-.landing .editorial-hero .landing-hero-card { position: static; background: var(--surface); border: 0; padding: 12px; box-shadow: none; max-width: 220px; border-radius: 18px; }
-.landing .editorial-hero .landing-hero-card.at-top { display: none; }
 .editorial-care-note { align-self: start; min-height: 460px; padding: 28px; border-radius: 30px; background: var(--studio-lime); color: var(--studio-ink-deep); display: flex; flex-direction: column; justify-content: space-between; }
 .editorial-note-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 600; letter-spacing: 1px; }
 .care-orbit { position: relative; height: 150px; width: 180px; align-self: center; display: grid; place-items: center; }
@@ -158,12 +135,8 @@
 .editorial-care-note p { margin: 12px 0 20px; font-size: 15px; line-height: 1.5; }
 .editorial-care-note > a { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--studio-ink-deep); color: white; padding: 14px 20px; border-radius: 999px; font-size: 14px; min-height: 48px; }
 .editorial-care-note > small { font-size: 13px; margin-top: 12px; }
-.landing .editorial-hero .landing-hero-foot { order: 2; display: flex; gap: 14px; margin-top: 8px; max-width: 440px; }
-.landing .editorial-hero .landing-slide-rule { flex: 1; min-width: 60px; }
-.editorial-trust { order: 3; display: flex; justify-content: end; margin-top: -45px; margin-bottom: 30px; margin-left: 470px; }
 .landing .editorial-hero .landing-hero-marks { margin: 0; gap: 26px; }
 .landing .editorial-hero .landing-hero-marks[hidden] { display: none; }
-.landing .editorial-hero .studio-bar-wrap { order: 4; width: 100%; margin: 0; }
 .landing .studio-bar { background: var(--studio-night); border-radius: 20px; }
 .landing .landing-figures { background: transparent; border-bottom: 1px solid var(--studio-line); padding-block: 46px; }
 .landing .landing-figure-source { background: transparent; padding: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
@@ -324,11 +297,6 @@
  .desk-services { grid-column: 1 / -1; grid-row: 4; }
  .desk-trend { grid-column: 1 / -1; }
  .desk-family { grid-column: 1 / -1; }
- .landing .editorial-hero .landing-hero-slide { grid-template-columns: minmax(0,1.7fr) minmax(220px,1fr); gap: 24px; }
- .landing .editorial-hero h1 { font-size: clamp(56px,8vw,80px); }
- .editorial-story { grid-template-columns: minmax(0,1.7fr) minmax(220px,1fr); }
- .editorial-photo-cards { display: none; }
- .editorial-trust { margin: 24px 0; justify-content: start; }
  .landing .landing-nav nav { border-radius: 20px; }
 }
 @media (max-width: 600px) {
@@ -366,71 +334,464 @@
  .wb-atmosphere > span { width: 54px; height: 54px; }
  .wb-atmosphere h2 { font-size: 29px; }
  .patient-surface .wb-write { padding: 20px; }
- .landing .editorial-hero { padding-top: 28px; }
- .landing .editorial-hero .landing-hero-slide { grid-template-columns: 1fr; gap: 22px; padding-bottom: 24px; }
- .landing .editorial-hero h1 { font-size: clamp(47px,13.5vw,78px); }
- .editorial-star { display: none; }
- .landing .editorial-hero .landing-hero-lede { max-width: 100%; font-size: 14px; }
- .editorial-story { display: flex; flex-direction: column; gap: 12px; }
- .landing .editorial-hero .landing-portrait-frame { height: 370px; border-radius: 26px; }
- .landing .editorial-hero .landing-portrait-frame img { object-position: 65% center; }
- .editorial-photo-caption { bottom: 18px; left: 18px; padding: 14px 18px; }
- .editorial-photo-caption > strong { font-size: 32px; }
- .editorial-care-note { width: 100%; min-height: 0; padding: 22px; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 15px; align-items: center; }
  .editorial-note-top { grid-column: 1 / -1; }
  .care-orbit { display: none; }
  .editorial-care-note > div > strong { font-size: 46px; }
  .editorial-care-note p { margin: 8px 0 0; font-size: 13px; }
  .editorial-care-note > a { padding: 12px; font-size: 13px; }
  .editorial-care-note > small { grid-column: 1 / -1; margin: 0; }
- .landing .editorial-hero .landing-hero-foot { margin-top: 24px; flex-wrap: wrap; }
- .landing .editorial-hero .landing-hero-marks { gap: 16px; flex-wrap: wrap; }
  .landing .landing-figures strong { font-size: 48px; }
  .landing .landing-final { border-radius: 26px; }
 }
 @media (prefers-reduced-motion: reduce) { .overview-reading { transition: none; } }
-/* Keep photo and price in their intended columns, independent of the legacy carousel order. */
-.landing .editorial-story > .landing-portrait { order: 0; grid-column: 1; }
-.editorial-story > .editorial-care-note { order: 1; grid-column: 2; }
-.landing .editorial-hero .landing-hero-slide { align-items: center; }
-.landing .editorial-hero .landing-hero-slide:nth-child(4) h1 { font-size: clamp(50px,6.15vw,88px); }
-.landing .editorial-hero .landing-portrait-place { padding: 9px 12px; border-radius: 999px; display: flex; width: fit-content; gap: 6px; font-size: 13px; }
 @media (max-width: 600px) {
- .landing .editorial-hero .landing-hero-slide:nth-child(4) h1 { font-size: clamp(40px,11.5vw,65px); }
  .editorial-care-note > div > strong { font-size: 42px; }
  .editorial-care-note strong i { display: block; font-size: 13px; line-height: 1.5; }
  .editorial-care-note > a { gap: 6px; }
  .editorial-care-note > a > svg { flex-shrink: 0; }
 }
-/* Longer stories stay on two lines. */
-.landing .editorial-hero .landing-hero-slide:nth-child(2) h1 { font-size: clamp(50px,6.15vw,88px); }
 .patient-surface .wb-habit.selected, .patient-surface .wb-habit.selected span, .patient-surface .wb-habit.selected svg { color: var(--studio-ink-deep); }
-@media (max-width: 600px) {
- .landing .editorial-hero .landing-hero-slide:nth-child(2) h1 { font-size: clamp(40px,11.5vw,65px); }
-}
 @media (max-width: 600px) {
  .reading-plot { top: 58px; bottom: auto; }
 }
-/* Landscape source images and a separate caption tray prevent faces being cropped or covered. */
-.landing .editorial-hero .landing-portrait-frame { display: grid; height: auto; aspect-ratio: auto; }
-.landing .editorial-hero .landing-slide { position: relative; inset: auto; grid-area: 1 / 1; display: flex; flex-direction: column; min-width: 0; }
-.editorial-photo-visual { position: relative; width: 100%; aspect-ratio: 7 / 4; overflow: hidden; }
-.landing .editorial-hero .editorial-photo-visual img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center; }
-.landing .editorial-hero .landing-slide:first-child .editorial-photo-visual img { object-fit: cover; object-position: 65% 45%; }
-.editorial-photo-footer { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 22px; background: var(--studio-night); }
-.editorial-photo-footer .editorial-photo-caption { position: static; background: none; padding: 0; border-radius: 0; min-width: 0; }
-.editorial-photo-footer .editorial-photo-caption > strong { font-size: 27px; letter-spacing: -.8px; margin-top: 8px; }
-.editorial-photo-footer .editorial-photo-cards { position: static; display: grid; flex: 0 0 auto; }
-.landing .editorial-hero .landing-hero-card { max-width: 210px; }
-.editorial-story > .editorial-care-note { align-self: stretch; margin-bottom: 40px; }
-@media (max-width: 999px) {
- .landing .editorial-hero .landing-portrait-place { position: static; margin: 0 0 12px; padding: 0; min-height: 24px; }
- .editorial-photo-footer { flex-direction: column; align-items: stretch; gap: 14px; }
- .editorial-photo-footer .editorial-photo-cards { display: grid; }
- .landing .editorial-hero .landing-hero-card { max-width: none; }
+
+/* ---- The hero: one picture, the full width of the page, with the words on it -------------------
+ *
+ * Asked for on 14 September in three sentences — make it 100% wide, put the big text inside the
+ * hero, better the animation. What it replaced was a band of paper carrying a 110px headline above
+ * a boxed photograph: roughly the top third of a 900px screen spent before the picture began, and
+ * a picture that then sat in a centred column with the page's margins showing either side of it.
+ *
+ * The composition now is a stage and a ledge. The stage runs edge to edge and carries the
+ * photograph, the eyebrow, the headline, the sentence and the one call to action. The ledge under
+ * it is paper, and it carries what a reader consults rather than reads first: the price panel, the
+ * three marks and the controls for the four banners.
+ *
+ * WHY THE TYPE ON THE PICTURE IS SAFE, and it is measured rather than judged.
+ *
+ * Nothing on this stage is read off a photograph. .hero-stage::after lays three gradients of
+ * --studio-ink-deep over every pixel of it, and the words are placed only where they are deep
+ * enough. That is not a judgement: the page was rendered with every glyph turned transparent, the
+ * stage photographed, and each run of type measured against the BRIGHTEST pixel inside its own text
+ * rectangle — the worst ground a letter of it can land on — over all four banners at 1440px and at
+ * 390px. The floor of each, in ratios against that worst pixel:
+ *
+ *   headline, --surface            10.27   (large text, floor 3)
+ *   headline accent, --brand-mint   7.23   (large text, floor 3)
+ *   eyebrow, --studio-paper         7.54   (13px, floor 4.5)
+ *   lede, --studio-paper           11.18   (16px, floor 4.5)
+ *   photography note                9.04   (13px, floor 4.5)
+ *   place chip, on its own pill     9.46   (13px, floor 4.5)
+ *
+ * The place chip, the caption plate and the two floating cards carry their own grounds, which is
+ * what lets them sit high on the picture where the scrim is shallow. A translucent panel over a
+ * photograph can be any brightness, so a panel commits to one end of the range and stays there: the
+ * three on the right are LIGHT panels with dark words, and the chip is a dark pill with paper on
+ * it. Measured at their worst — the panel over a black pixel, the pill over a white one — the
+ * plate's olive label is 5.06, its line 11.94, a card's title 9.14 and a card's body 5.43.
+ *
+ * This project has already shipped a headline at 1.28:1, and a headline over a photograph is
+ * exactly where that happens a second time if it is left to the eye.
+ *
+ * THE ENTRANCE. Gated on html[data-motion="on"], which apps/web/src/lib/motion.ts sets in a layout
+ * effect — before the first paint, so nothing flashes in and then hides itself, and never at all
+ * for a reader who has asked their system for less motion. Every one of these animations ends at
+ * the element's ordinary style, so removing them removes the movement and nothing else: the page
+ * under prefers-reduced-motion is this page, arrived.
+ *
+ * Nothing here is keyed to .is-on. An animation that restarts when the banner changes is an
+ * animation that can still be running when somebody presses pause, and the pause control's own
+ * test asserts that nothing is. The one thing that does follow the showing banner is the drift on
+ * the photograph, and that is gated on [data-decor='on'], which the pause control clears. */
+.landing .editorial-hero {
+ --hero-pad: clamp(20px, 4.6vw, 64px);
+ display: grid;
+ grid-template-columns: minmax(0, 1fr);
+ gap: 0;
+ padding: 0;
 }
-@media (max-width: 600px) {
- .editorial-photo-footer { padding: 18px; }
- .editorial-photo-footer .editorial-photo-caption > strong { font-size: 25px; }
- .editorial-story > .editorial-care-note { margin-bottom: 0; }
+.landing .editorial-hero > * { min-width: 0; }
+
+/* The stage. The photograph and the copy are two layers in one cell, so the stage is as tall as
+   whichever of them is taller and neither can push the other down the page. */
+.hero-stage {
+ position: relative;
+ isolation: isolate;
+ display: grid;
+ grid-template-columns: minmax(0, 1fr);
+ min-height: clamp(540px, 74vh, 700px);
+ background: var(--studio-ink-deep);
+}
+.hero-stage > * { grid-area: 1 / 1; min-width: 0; }
+/* The scrim. Up from the foot for the headline and everything beside it, in from the left for the
+   half of the frame the copy column stands on, and a light one down from the top so the place chip
+   and the navigation above it never sit on a bright sky. */
+.hero-stage::after {
+ content: '';
+ grid-area: 1 / 1;
+ z-index: 2;
+ pointer-events: none;
+ background:
+  linear-gradient(to top,
+   color-mix(in srgb, var(--studio-ink-deep) 96%, transparent) 0%,
+   color-mix(in srgb, var(--studio-ink-deep) 92%, transparent) 34%,
+   color-mix(in srgb, var(--studio-ink-deep) 76%, transparent) 52%,
+   color-mix(in srgb, var(--studio-ink-deep) 44%, transparent) 74%,
+   color-mix(in srgb, var(--studio-ink-deep) 18%, transparent) 100%),
+  linear-gradient(100deg,
+   color-mix(in srgb, var(--studio-ink-deep) 88%, transparent) 0%,
+   color-mix(in srgb, var(--studio-ink-deep) 80%, transparent) 30%,
+   color-mix(in srgb, var(--studio-ink-deep) 62%, transparent) 50%,
+   color-mix(in srgb, var(--studio-ink-deep) 20%, transparent) 70%,
+   color-mix(in srgb, var(--studio-ink-deep) 4%, transparent) 88%,
+   transparent 100%),
+  linear-gradient(to bottom,
+   color-mix(in srgb, var(--studio-ink-deep) 46%, transparent) 0%,
+   color-mix(in srgb, var(--studio-ink-deep) 10%, transparent) 22%,
+   transparent 42%);
+}
+
+/* The photograph layer. The figure fills the stage; its frame, its four slides and the crops inside
+   them all stretch to it, so the picture is genuinely edge to edge rather than a panel with rounded
+   corners pretending to be. */
+.landing .editorial-hero .landing-portrait {
+ /* z-index:auto deliberately: the figure must NOT open a stacking context, or the two floating
+    cards inside it could never rise above the scrim that is painted over the whole stage. */
+ z-index: auto;
+ display: block;
+ position: relative;
+ margin: 0;
+ gap: 0;
+}
+.landing .editorial-hero .landing-portrait-frame {
+ position: absolute;
+ inset: 0;
+ display: block;
+ height: auto;
+ aspect-ratio: auto;
+ border: 0;
+ border-radius: 0;
+ background: var(--studio-ink-deep);
+ overflow: hidden;
+}
+.landing .editorial-hero .landing-slide { position: absolute; inset: 0; z-index: auto; display: block; }
+.editorial-photo-visual { position: absolute; inset: 0; overflow: hidden; }
+.landing .editorial-hero .editorial-photo-visual img {
+ position: absolute;
+ inset: 0;
+ width: 100%;
+ height: 100%;
+ object-fit: cover;
+ object-position: center 38%;
+}
+/* The first crop is the only portrait-ish one of the four; its subject sits right of centre and
+   high, so it is pulled down rather than sharing the others' framing. */
+.landing .editorial-hero .landing-slide:first-child .editorial-photo-visual img { object-position: 62% 42%; }
+
+/* The two standing lines. The place chip carries its own ground so it is readable at the top of any
+   of the four photographs; the photography disclosure sits in the foot of the scrim with the rest
+   of the words. Neither belongs to a banner and neither may be carried off by a rotation. */
+.landing .editorial-hero .landing-portrait-place {
+ position: absolute;
+ z-index: 4;
+ top: var(--hero-pad);
+ left: var(--hero-pad);
+ right: auto;
+ bottom: auto;
+ display: inline-flex;
+ align-items: center;
+ gap: 8px;
+ width: fit-content;
+ max-width: calc(100% - var(--hero-pad) * 2);
+ margin: 0;
+ padding: 9px 15px;
+ border: 0;
+ border-radius: var(--r-pill);
+ background: color-mix(in srgb, var(--studio-ink-deep) 86%, transparent);
+ backdrop-filter: blur(10px);
+ font-size: 13px;
+ font-weight: 500;
+ line-height: 1.4;
+ color: var(--studio-paper);
+ text-align: left;
+}
+.landing .editorial-hero .landing-portrait-place svg { color: var(--brand-mint); }
+.landing .editorial-hero .landing-portrait figcaption {
+ position: absolute;
+ z-index: 4;
+ left: var(--hero-pad);
+ right: auto;
+ bottom: calc(var(--hero-pad) * .8);
+ max-width: calc(100% - var(--hero-pad) * 2);
+ margin: 0;
+ padding: 0;
+ border: 0;
+ background: none;
+ box-shadow: none;
+ font-size: 13px;
+ line-height: 1.5;
+ color: color-mix(in srgb, var(--studio-paper) 84%, var(--studio-ink-deep));
+ text-align: left;
+}
+
+/* The caption and the two floating cards. They belong to the picture rather than to the scrim, so
+   they sit on its right where the photographs leave room, and they fall in under the words on a
+   phone rather than crowding a face. */
+.editorial-photo-footer {
+ position: absolute;
+ z-index: 3;
+ right: var(--hero-pad);
+ top: calc(var(--hero-pad) + 34px);
+ bottom: auto;
+ display: grid;
+ justify-items: stretch;
+ gap: 12px;
+ width: min(300px, 42%);
+}
+.editorial-photo-caption {
+ position: static;
+ padding: 14px 18px;
+ border-radius: var(--r-panel);
+ background: color-mix(in srgb, var(--studio-paper) 92%, transparent);
+ backdrop-filter: blur(16px) saturate(1.15);
+ box-shadow: var(--shadow-raised);
+ color: var(--studio-ink-deep);
+ text-align: left;
+}
+.editorial-photo-caption > span { font-size: 13px; font-weight: 600; letter-spacing: .16em; color: var(--studio-olive); }
+.editorial-photo-caption > strong { display: block; margin-top: 6px; font-size: 20px; line-height: 1.2; font-weight: 500; letter-spacing: -.02em; }
+.editorial-photo-cards { position: static; display: grid; gap: 12px; width: 100%; }
+/* Light glass with dark words on it, never the other way round: a translucent panel over a
+   photograph can be any brightness, and only a light one keeps its text legible at both extremes.
+   92% paper over black composites to rgb(226,225,220), the darkest this panel can go, and every
+   colour set on it is measured against that rather than against paper. */
+.landing .editorial-hero .landing-hero-card {
+ position: static;
+ display: flex;
+ align-items: flex-start;
+ gap: 12px;
+ width: 100%;
+ max-width: none;
+ padding: 13px 16px;
+ border: 0;
+ border-radius: var(--r-panel);
+ background: color-mix(in srgb, var(--studio-paper) 92%, transparent);
+ backdrop-filter: blur(16px) saturate(1.15);
+ box-shadow: var(--shadow-raised);
+ font-size: 14px;
+ color: var(--studio-ink-muted);
+}
+.landing .editorial-hero .landing-hero-card.at-top { display: flex; }
+
+/* The words. One block, anchored to the foot of the stage on the left, which is where the scrim is
+   deepest and where all four photographs have the least happening. */
+.landing .editorial-hero .landing-hero-copy {
+ z-index: 5;
+ align-self: end;
+ display: grid;
+ grid-template-columns: minmax(0, 1fr);
+ width: 100%;
+ padding: clamp(90px, 18vh, 200px) var(--hero-pad) calc(var(--hero-pad) * .8 + 42px);
+}
+.landing .editorial-hero .landing-hero-slide {
+ display: block;
+ max-width: min(700px, 58%);
+ padding: 0;
+ color: var(--surface);
+}
+.landing .editorial-hero .landing-hero-eyebrow {
+ display: flex;
+ align-items: center;
+ gap: 9px;
+ margin: 0 0 20px;
+ padding: 0;
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ font-size: 13px;
+ font-weight: 600;
+ letter-spacing: .14em;
+ text-transform: uppercase;
+ color: var(--studio-paper);
+}
+.landing .editorial-hero h1 {
+ max-width: none;
+ margin: 0;
+ font-size: clamp(40px, 5.8vw, 86px);
+ font-weight: 500;
+ line-height: .98;
+ letter-spacing: -.055em;
+ color: var(--surface);
+}
+/* Each half of the headline is a line in a clipped box so the entrance can lift it out from under
+   its own baseline. The padding and the matching negative margin are there because a box clipped at
+   the baseline eats the descender of "Small steps." and "Your skill." */
+.landing .editorial-hero .h1-line { display: block; overflow: hidden; padding-bottom: .1em; margin-bottom: -.1em; }
+.landing .editorial-hero .h1-line > span { display: block; }
+.landing .editorial-hero h1 .landing-h1-accent { color: var(--brand-mint); }
+.editorial-intro { padding: 0; }
+.landing .editorial-hero .landing-hero-lede {
+ margin: 26px 0 0;
+ max-width: 46ch;
+ font-size: 16px;
+ line-height: 1.6;
+ color: var(--studio-paper);
+}
+.landing .editorial-hero .primary {
+ margin: 26px 0 0;
+ min-height: 54px;
+ padding: 14px 26px;
+ border-radius: var(--r-pill);
+ background: var(--studio-lime);
+ color: var(--studio-ink-deep);
+ font-size: 16px;
+ font-weight: 600;
+}
+.landing .editorial-hero .primary:hover { background: var(--surface); color: var(--studio-ink-deep); }
+
+/* ---- The ledge --------------------------------------------------------------------------------
+   Paper again, directly under the stage. The price panel is lifted into the picture's bottom right
+   from the width where there is room for it to overlap without covering anything. */
+.hero-ledge {
+ position: relative;
+ z-index: 1;
+ display: grid;
+ grid-template-columns: minmax(0, 1fr);
+ gap: 22px;
+ padding: clamp(22px, 2.6vw, 34px) var(--hero-pad) clamp(24px, 3vw, 40px);
+}
+.hero-ledge > * { min-width: 0; }
+.editorial-trust { display: block; margin: 0; }
+.landing .editorial-hero .landing-hero-marks { margin: 0; gap: 14px 26px; }
+.landing .editorial-hero .landing-hero-foot { display: grid; margin: 0; }
+.landing .editorial-hero .landing-slide-rule { min-width: 44px; }
+.editorial-care-note {
+ align-self: start;
+ min-height: 0;
+ padding: 26px;
+ border-radius: var(--r-panel);
+ background: var(--studio-lime);
+ color: var(--studio-ink-deep);
+ display: grid;
+ grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+ gap: 16px;
+ align-items: center;
+}
+.editorial-care-note > .editorial-note-top, .editorial-care-note > small { grid-column: 1 / -1; }
+.editorial-care-note .care-orbit { display: none; }
+.editorial-care-note > div > strong { font-size: clamp(40px, 6vw, 52px); letter-spacing: -.04em; }
+.editorial-care-note strong i { display: block; font-size: 13px; line-height: 1.5; }
+.editorial-care-note p { margin: 10px 0 0; font-size: 14px; }
+.editorial-care-note > a { gap: 10px; padding: 13px 18px; font-size: 14px; }
+.editorial-care-note > a > svg { flex-shrink: 0; }
+.editorial-care-note > small { margin: 0; }
+.landing .editorial-hero .studio-bar-wrap { width: 100%; margin: 0; padding: 0 var(--hero-pad) clamp(24px, 3vw, 40px); }
+
+@media (min-width: 760px) {
+ .editorial-photo-footer { width: min(300px, 38%); }
+ .landing .editorial-hero .landing-hero-foot { grid-template-columns: auto minmax(44px, 1fr) auto auto; gap: 12px; align-items: center; }
+ .landing .editorial-hero .landing-slide-index { grid-area: 1 / 1; }
+ .landing .editorial-hero .landing-slide-rule { grid-area: 1 / 2; }
+ .landing .editorial-hero .landing-hero-foot .m-pause { grid-area: 1 / 3; }
+ .landing .editorial-hero .landing-slide-steps { grid-area: 1 / 4; }
+}
+@media (min-width: 1024px) {
+ .hero-ledge { grid-template-columns: auto minmax(0, 1fr) 320px; column-gap: clamp(24px, 3vw, 48px); align-items: center; }
+ .editorial-trust { grid-column: 1; grid-row: 1; }
+ .landing .editorial-hero .landing-hero-foot { grid-column: 2; grid-row: 1; justify-self: end; width: min(460px, 100%); }
+ /* Lifted into the photograph. The panel is opaque, so the overlap costs the picture a corner the
+    composition was leaving empty and costs no word any contrast. */
+ .editorial-care-note {
+  grid-column: 3;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  justify-content: space-between;
+  padding: 26px 28px;
+  margin-top: clamp(-290px, -20vw, -150px);
+ }
+ .editorial-care-note .care-orbit { display: grid; }
+ .editorial-care-note > div > strong { font-size: 52px; }
+ .editorial-care-note strong i { display: inline; }
+ .editorial-care-note p { margin: 12px 0 20px; font-size: 15px; }
+}
+@media (max-width: 759px) {
+ /* On a phone the caption, the disclosure and the two cards fall in under the words rather than
+    beside them: a 390px frame has one column, and a card floated over a face is a card covering the
+    only thing the photograph is for. The copy's foot padding is what makes room for them. */
+ .hero-stage { min-height: clamp(700px, 102vh, 900px); }
+ .hero-stage::after {
+  background:
+   linear-gradient(to top,
+    color-mix(in srgb, var(--studio-ink-deep) 96%, transparent) 0%,
+    color-mix(in srgb, var(--studio-ink-deep) 94%, transparent) 55%,
+    color-mix(in srgb, var(--studio-ink-deep) 86%, transparent) 72%,
+    color-mix(in srgb, var(--studio-ink-deep) 50%, transparent) 84%,
+    color-mix(in srgb, var(--studio-ink-deep) 20%, transparent) 94%,
+    color-mix(in srgb, var(--studio-ink-deep) 10%, transparent) 100%),
+   linear-gradient(to bottom,
+    color-mix(in srgb, var(--studio-ink-deep) 46%, transparent) 0%,
+    color-mix(in srgb, var(--studio-ink-deep) 10%, transparent) 18%,
+    transparent 34%);
+ }
+ .editorial-photo-footer { left: var(--hero-pad); right: var(--hero-pad); top: auto; bottom: calc(var(--hero-pad) + 26px); width: auto; }
+ .editorial-photo-caption, .landing .editorial-hero .landing-portrait figcaption { text-align: left; }
+ .editorial-photo-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .landing .editorial-hero .landing-hero-card { padding: 12px; gap: 10px; border-radius: var(--r-card); }
+ .landing .editorial-hero .landing-hero-card .landing-hero-disc { width: 34px; height: 34px; }
+ .landing .editorial-hero .landing-hero-copy { padding-bottom: calc(var(--hero-pad) + 300px); }
+ .landing .editorial-hero .landing-hero-slide { max-width: none; }
+ .landing .editorial-hero .landing-portrait figcaption { bottom: calc(var(--hero-pad) * .5); text-align: left; }
+ .landing .editorial-hero .landing-hero-lede { margin-top: 18px; font-size: 15px; }
+ .landing .editorial-hero .landing-hero-marks { gap: 14px 18px; }
+}
+@media (max-width: 419px) {
+ .editorial-photo-cards { grid-template-columns: minmax(0, 1fr); }
+ /* The cards go to one column here, which is 110px of extra stack; the head padding goes up with
+    it so the photograph still has a band of its own above the words rather than a sliver. */
+ .landing .editorial-hero .landing-hero-copy { padding: clamp(150px, 24vh, 220px) var(--hero-pad) calc(var(--hero-pad) + 372px); }
+}
+/* The price panel goes to one column before the two it has get narrow enough to break "Find your
+   care" over three lines and "/ visit" off the end of the numeral it belongs to. */
+@media (max-width: 479px) {
+ .editorial-care-note { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+ .editorial-care-note strong i { display: inline; }
+}
+
+/* ---- The arrival ------------------------------------------------------------------------------
+   Six beats over about a second and a half: the picture eases up and settles, the eyebrow, then the
+   headline's two lines out from under their own baseline, then the sentence, then the action, then
+   the cards and the chips. Transform and opacity only, so the compositor does all of it and a
+   mid-range Android phone is not asked to lay the page out sixty times a second.
+
+   Every one of them ends at the element's ordinary style. Remove the rules and the page is this
+   page, already arrived — which is what a reader who has asked for less motion gets. */
+@keyframes hero-photo-in { from { opacity: 0; transform: scale(1.1); } to { opacity: 1; transform: none; } }
+@keyframes hero-photo-drift { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.08) translate3d(-1.4%, -1.4%, 0); } }
+@keyframes hero-line-up { from { opacity: 0; transform: translate3d(0, 108%, 0); } to { opacity: 1; transform: none; } }
+@keyframes hero-rise-in { from { opacity: 0; transform: translate3d(0, 18px, 0); } to { opacity: 1; transform: none; } }
+@keyframes hero-card-in { from { opacity: 0; transform: translate3d(0, 26px, 0) scale(.965); } to { opacity: 1; transform: none; } }
+@keyframes hero-chip-in { from { opacity: 0; transform: translate3d(0, -12px, 0); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: no-preference) {
+ html[data-motion="on"] .landing .editorial-hero .editorial-photo-visual { animation: hero-photo-in 1500ms var(--ease-soft) both; }
+ html[data-motion="on"] .landing .editorial-hero .landing-portrait-place { animation: hero-chip-in 620ms var(--ease-soft) 260ms both; }
+ html[data-motion="on"] .landing .editorial-hero .landing-hero-eyebrow { animation: hero-rise-in 620ms var(--ease-soft) 200ms both; }
+ html[data-motion="on"] .landing .editorial-hero .h1-line > span { animation: hero-line-up 880ms var(--ease-soft) 300ms both; }
+ html[data-motion="on"] .landing .editorial-hero .landing-h1-accent > span { animation-delay: 400ms; }
+ html[data-motion="on"] .landing .editorial-hero .landing-hero-lede { animation: hero-rise-in 700ms var(--ease-soft) 660ms both; }
+ html[data-motion="on"] .landing .editorial-hero .landing-hero-slide .primary { animation: hero-rise-in 700ms var(--ease-soft) 780ms both; }
+ html[data-motion="on"] .landing .editorial-hero .editorial-photo-caption { animation: hero-rise-in 700ms var(--ease-soft) 860ms both; }
+ html[data-motion="on"] .landing .editorial-hero .landing-hero-card.at-top { animation: hero-card-in 760ms var(--ease-soft) 940ms both; }
+ html[data-motion="on"] .landing .editorial-hero .landing-hero-card.at-foot { animation: hero-card-in 760ms var(--ease-soft) 1040ms both; }
+ html[data-motion="on"] .landing .editorial-hero .landing-portrait figcaption { animation: hero-rise-in 700ms var(--ease-soft) 1100ms both; }
+ html[data-motion="on"] .hero-ledge > * { animation: hero-rise-in 720ms var(--ease-soft) 1160ms both; }
+ /* The one thing that goes on moving, and the only one keyed to the banner that is showing: a slow
+    drift across the photograph, which has no text on it and no box anything is measured against.
+    [data-decor='on'] is the page's pause control, so this stops when a reader stops it. */
+ html[data-decor="on"] .landing .editorial-hero .landing-slide.is-on .editorial-photo-visual img {
+  animation: hero-photo-drift 34s var(--ease-soft) infinite alternate;
+  will-change: transform;
+ }
 }

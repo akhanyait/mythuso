@@ -1110,3 +1110,44 @@
  *   --indigo, .timeline's indigo dots, .avatar's --accent-soft, .icon-button's shadow,
  *   .demo-pill's shadow, and the desktop `nav button` block, which no clinical shell renders.
  */
+
+/* ---- The queue reads like the deck above it ----------------------------------------------------
+ *
+ * The instrument deck at the top of a doctor's screen draws the queue as bars, longest first. This
+ * is the same bar, on the row it measures, so that the shape at the top of the screen and the shape
+ * on the row are one measurement rather than two drawings that happen to be near each other. A
+ * doctor scanning the list sees the gap between a case that has waited three hours and one that has
+ * waited twenty minutes instead of reading two numbers and subtracting.
+ *
+ * It states nothing the row does not already say in words, so it is aria-hidden and owes no ratio —
+ * the same standing the hairline in the token contract has. It is never a target: the row is the
+ * control and this lies under it, through it, with no pointer events of its own. */
+.clinical .review-row { position: relative; }
+.clinical .review-pressure {
+ position: absolute;
+ left: var(--space-12);
+ /* Half the row, not all of it. At full width the longest case drew a rounded rule six pixels above
+    the hairline separating it from the next row, and two lines that close together read as one
+    doubled divider rather than as a measurement. */
+ right: 45%;
+ bottom: 6px;
+ height: 3px;
+ pointer-events: none;
+}
+.clinical .review-pressure i {
+ display: block;
+ height: 100%;
+ border-radius: var(--r-pill);
+ background: color-mix(in srgb, var(--charcoal) 26%, transparent);
+ transform-origin: left center;
+}
+/* The row a doctor is about to open lifts rather than merely tinting, which is the depth the rest of
+   this screen now has. A shadow and not a transform: a row that moves under a pointer travelling
+   towards it is a row that gets clicked somewhere else, and this list is twelve controls deep. */
+.clinical .day-row:hover, .clinical .review-row:hover {
+ background: var(--surface);
+ box-shadow: var(--shadow-raised);
+}
+/* The two lists carry the panel radius rather than the control radius now, so the deck, the lists
+   and the workbench below are three objects with one corner between them. */
+.clinical .day-row, .clinical .review-row { border-radius: var(--r-tile); }

@@ -69,3 +69,44 @@ test('a lazily loaded nurse workspace animates earnings and replays only when th
  await expect.poll(() => chart.evaluate(el => el.getAnimations({ subtree: true }).length)).toBe(0);
  await expect(page.locator('.earn-legend')).toContainText('R 299');
 });
+
+/* The clinical deck — the ring, the dial, the day and the bars a nurse and a doctor now open the
+   workspace on. Two properties, and they are the same two the charts above are held to: a mark may
+   draw itself, and a reader who has asked for stillness gets the finished drawing rather than an
+   empty one. The second is the one that matters clinically: a ring stuck at nought over the numeral
+   3 is a screen arguing with itself, and a count-up that never starts is a nurse told she earned
+   nothing this week. */
+test('the clinical deck draws itself, and is already drawn when motion is refused', async ({ page }) => {
+ await openWorkspace(page, 'Doctor');
+ const ring = page.locator('.c-deck .c-ring');
+ await ring.scrollIntoViewIfNeeded();
+ const figure = page.locator('.s-metric').filter({ hasText: 'Awaiting review' }).locator('.s-metric-value');
+ const counted = await figure.innerText();
+ await expect.poll(() => ring.evaluate(el => el.getAnimations({ subtree: true }).length)).toBeGreaterThan(0);
+ /* The arcs move and the figure does not. Animate presentation, never a reading. */
+ expect(await figure.innerText()).toBe(counted);
+ await page.emulateMedia({ reducedMotion: 'reduce' });
+ await expect.poll(() => ring.evaluate(el => el.getAnimations({ subtree: true }).length)).toBe(0);
+ /* Complete rather than merely still: no arc is left with the dash that hides it. */
+ expect(await ring.evaluate(el => [...el.querySelectorAll('.c-mark')].map(mark => getComputedStyle(mark).strokeDashoffset)))
+  .toEqual(new Array(await page.locator('.c-deck .c-ring .c-mark').count()).fill('0px'));
+ expect(await figure.innerText()).toBe(counted);
+});
+
+test("the nurse's week counts up to the figure it was counted at, and starts there under reduced motion", async ({ page }) => {
+ await page.emulateMedia({ reducedMotion: 'reduce' });
+ await openWorkspace(page, 'Nurse');
+ const week = page.locator('.s-metric').filter({ hasText: 'This week' }).locator('.s-metric-value');
+ await expect(week).toBeVisible();
+ /* Read at once. Under refused motion there is no count to wait for, so whatever is on the first
+    painted frame is the final figure — and it is never nought, which is what a count-up that has
+    been switched off rather than never started leaves behind. */
+ const settled = await week.innerText();
+ expect(settled).not.toMatch(/^R?\s*0$/);
+ await page.waitForTimeout(900);
+ expect(await week.innerText()).toBe(settled);
+ /* And with motion allowed it lands on the same figure rather than on one of its own. */
+ await page.emulateMedia({ reducedMotion: 'no-preference' });
+ await page.reload();
+ await expect(week).toHaveText(settled);
+});

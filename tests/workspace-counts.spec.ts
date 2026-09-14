@@ -171,10 +171,18 @@ test("the doctor's strip counts the queue it sits above", async ({ page }) => {
  const rowCount = await rows.count();
  expect(rowCount).toBeGreaterThan(1);
  await expect(page.locator('.s-metric', { hasText: 'Awaiting review' })).toContainText(String(rowCount));
+ /* And the ring around that figure is the same queue: one arc per row, and the lit arcs are the rows
+    carrying the badge. A drawing that disagreed with the list would be a typed figure in a nicer
+    coat — disprovable by looking down the screen, which is the whole defect this file exists for. */
+ await expect(page.locator('.c-deck .c-ring .c-mark')).toHaveCount(rowCount);
  /* Out of range is a badge on the row, so the strip's figure and the badges are two renderings of
     one fact and have to agree. */
  const flagged = await page.locator('.review-list').getByText('Out of range').count();
  await expect(page.locator('.s-metric', { hasText: 'Priority reviews' })).toContainText(String(flagged));
+ await expect(page.locator('.c-deck .c-ring .c-mark.on')).toHaveCount(flagged);
+ /* One bar per row on the wait instrument, and one on each row of the queue itself. */
+ await expect(page.locator('.c-deck .c-waits > i')).toHaveCount(rowCount);
+ await expect(page.locator('.review-list .review-pressure')).toHaveCount(rowCount);
  /* The longest wait has to be a wait that is on the queue, rather than a figure of its own. */
  const longest = (await page.locator('.s-metric', { hasText: 'Longest wait' }).textContent()) ?? '';
  const stated = longest.match(/\d+\s*h\s*\d+\s*m|\d+\s*m/)?.[0];
@@ -186,13 +194,22 @@ test("the doctor's strip counts the queue it sits above", async ({ page }) => {
 test("the nurse's strip counts the day it sits above", async ({ page }) => {
  await openWorkspace(page, 'Nurse');
  await goSection(page, 'Schedule');
+ /* The figure itself, rather than the whole of the metric. It used to read the metric's text and
+    take the first number in it, which on this strip was the *chip* — "3 to sign off" — and agreed
+    with the visit count by luck. The strip is a deck of instruments now and each figure carries a
+    drawing with a scale on it, so reading the whole block would have taken a number off the axis.
+    Narrower, and it asserts the thing it always meant to: the numeral, against the rows. */
+ const figure = (label: string) =>
+  page.locator('.s-metric').filter({ hasText: label }).locator('.s-metric-value');
  /* The next visit on the strip is the first visit of the day, not a second opinion about it. */
- const next = (await page.locator('.s-metric', { hasText: 'Next visit' }).textContent()) ?? '';
+ const next = (await figure('Next visit').textContent()) ?? '';
  const time = next.match(/\d{2}:\d{2}/)?.[0];
- expect(time).toBeTruthy();
+ expect(time, `the next-visit figure reads "${next}"`).toBeTruthy();
  await expect(page.locator('.shift-head').first()).toContainText(time as string);
  /* Today's visits counts the day: the one being worked, plus the ones still to come. */
  const later = await page.locator('.day-list > *').count();
- const visits = (await page.locator('.s-metric', { hasText: 'visits' }).textContent()) ?? '';
- expect(Number(visits.match(/\b(\d+)\b/)?.[1])).toBe(later + 1);
+ const visits = (await figure('Today’s visits').textContent()) ?? '';
+ expect(Number(visits.match(/\b(\d+)\b/)?.[1]), `the visits figure reads "${visits}"`).toBe(later + 1);
+ /* And the deck's drawing is the same day: one block per visit, the same count as the numeral. */
+ await expect(page.locator('.c-deck .c-day > i')).toHaveCount(later + 1);
 });

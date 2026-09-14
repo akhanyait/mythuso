@@ -3,7 +3,7 @@ import { useDecor } from '../lib/motion';
 
 // Animate only plotted marks. Labels, tables, reference bands and hit targets remain stationary.
 // The observer also covers workspaces loaded after sign-in and charts added by record filters.
-const plots = '.chart-plot, .reading-plot, .earn-bar, .fc-track, .alloc-bar, .vetting-progress, .s-segments, .share-cell';
+const plots = '.chart-plot, .reading-plot, .earn-bar, .fc-track, .alloc-bar, .vetting-progress, .s-segments, .share-cell, .c-plot, .c-bars';
 export function ChartMotion() {
  useDecor();
  useEffect(() => {
@@ -31,6 +31,21 @@ export function ChartMotion() {
     plot.querySelectorAll('.chart-area').forEach(area => animate(area, [{ opacity: 0 }, { opacity: getComputedStyle(area).opacity }], 550, 120));
     const points = plot.querySelectorAll('circle');
     points.forEach((point, i) => animate(point, [{ opacity: 0 }, { opacity: 1 }], 160, 650 * i / Math.max(points.length - 1, 1)));
+   } else if (plot.matches('.c-plot')) {
+    /* The clinical deck's arcs and lines. Each one draws itself along its own path, which is the
+       same movement the passport's charts make and is chosen for the same reason: the resting state
+       of a path with no dash on it is the finished path, so a reader who has asked for stillness
+       gets the complete picture rather than an empty ring. Nothing here moves a reading — an arc is
+       as long as the rows it counts before, during and after. */
+    plot.querySelectorAll<SVGGeometryElement>('.c-mark').forEach((mark, i) => {
+     const length = mark.getTotalLength();
+     if (!length) return;
+     animate(mark, [
+      { strokeDasharray: `${length} ${length}`, strokeDashoffset: length },
+      { strokeDasharray: `${length} ${length}`, strokeDashoffset: 0 }
+     ], 760, Math.min(i * 90, 320));
+    });
+    plot.querySelectorAll('.c-fade').forEach(mark => animate(mark, [{ opacity: 0 }, { opacity: getComputedStyle(mark).opacity }], 520, 180));
    } else {
     const vertical = plot.matches('.reading-plot');
     // Only marks, never the percentages printed beside the dispatch allocation bars.

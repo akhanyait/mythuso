@@ -85,16 +85,33 @@ const reviewQueue: Review[] = [
 export const reviewQueueCounts = () => ({
  waiting: reviewQueue.length,
  flagged: reviewQueue.filter(review => review.flag).length,
- longest: [...reviewQueue].sort((a, b) => b.minutes - a.minutes)[0].waited
+ longest: [...reviewQueue].sort((a, b) => b.minutes - a.minutes)[0].waited,
+ /* The queue row by row, so a figure drawn as a ring or a bar is the same arithmetic as the figure
+    drawn as a numeral rather than a second opinion about it. A shape a reader cannot check against
+    the list underneath is the typed figure problem again wearing a nicer coat: three arcs, three
+    rows, and the flagged ones are the ones carrying the badge. */
+ rows: reviewQueue.map(review => ({ ref: review.ref, minutes: review.minutes, flagged: Boolean(review.flag) }))
 });
+
+/** Minutes since midnight, for a day drawn to scale rather than as three equal blocks. */
+export const minuteOfDay = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
 
 export const nurseDayCounts = (queue: Part[]) => {
  const signed = nurseDay.filter(shift => signOffFor(queue, referenceFor(shift))).length;
  const [first] = nurseDay;
+ /* Each visit as the span of the day it actually occupies — its start, and its end worked out from
+    the service's own duration. The strip draws the day from these, so the block a reader sees is
+    the visit the row underneath describes and is as long as that visit is. */
+ const spans = nurseDay.map(shift => ({
+  from: minuteOfDay(shift.start),
+  to: minuteOfDay(endTime(shift.start, shift.service.duration)),
+  signed: Boolean(signOffFor(queue, referenceFor(shift)))
+ }));
  return {
   visits: nurseDay.length, signed, left: nurseDay.length - signed,
   nextStart: first.start, nextWhere: `${first.suburb} · ${first.service.duration} min`,
-  earned: nurseDay.reduce((total, shift) => total + shift.service.nurseShare, 0)
+  earned: nurseDay.reduce((total, shift) => total + shift.service.nurseShare, 0),
+  spans, dayFrom: spans[0].from, dayTo: spans[spans.length - 1].to
  };
 };
 
@@ -164,6 +181,14 @@ export function ReviewQueue({ open }: { open: (s: string) => void }) {
     actually on the screen, so switching to Flagged cannot leave the sentence describing a case the
     filter has hidden. */
  const longest = [...rows].sort((a, b) => b.minutes - a.minutes)[0];
+ /* The same bars the deck above draws, one per row, on the row they describe. The queue is worked
+    longest first and the words at the top of the screen say so; this is that sentence drawn, so a
+    doctor scanning down sees the gap between a case that has waited three hours and one that has
+    waited twenty minutes rather than reading two numbers and subtracting. It is decoration of a
+    figure already written on the row — aria-hidden, never a target, and it carries no number of its
+    own: the divisor is the longest row on the screen, so the filter narrowing the list rescales the
+    bars with it rather than leaving them measured against a case nobody can see. */
+ const longestWait = longest?.minutes ?? 1;
  return <>
   <div className="shift-head">
    {/* The one line, and it carries the figures now. There used to be a strip of three summary tiles
@@ -190,6 +215,9 @@ export function ReviewQueue({ open }: { open: (s: string) => void }) {
     {review.flag ? <Pill tone="amber">{review.flag}</Pill> : <span className="review-routine">Routine</span>}
     <span className="review-waited">{review.waited}</span>
     <ChevronRight size={18}/>
+    <span className="c-bars review-pressure" aria-hidden="true">
+     <i style={{ width: `${Math.max(4, review.minutes / longestWait * 100)}%` }}/>
+    </span>
    </button>
   </li>)}</ol>
    : <EmptyState title="Nothing is flagged" body="Every case in the queue is inside its reference range. Switch back to everything to work the queue in the order it arrived." action="Show everything" onAction={() => setFlaggedOnly(false)}/>}

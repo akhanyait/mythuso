@@ -140,8 +140,9 @@ const heroHref = (goes: HeroDestination) => {
  return section ? `${appHref}&${searchForSection(section).slice(1)}` : appHref;
 };
 
-/* Editorial cover: a typographic opening, a cinematic image, and an independent price panel.
-   The four contract-backed stories retain their real destinations and accessible controls. */
+/* Editorial cover: one full-bleed photograph with the banner's words composed on it, and a ledge
+   of secondary matter beneath. The four contract-backed stories retain their real destinations and
+   accessible controls. */
 const editorialPhotos: Record<string, string> = {
  'care-that-comes-to-you': '/editorial/care-at-home.png',
  'for-your-family': '/editorial/family-care.png',
@@ -164,23 +165,17 @@ function Hero() {
  const named = (i: number) => `${slides[i].headline.lead} ${slides[i].headline.accent}`;
  const hold = canHover ? { onMouseEnter: () => setHeld(true), onMouseLeave: () => setHeld(false) } : {};
  return <section className="landing-hero editorial-hero" role="group" aria-roledescription="carousel" aria-label="MyThuso in four pictures" data-ambient="paused">
-  <div className="landing-hero-copy" {...hold}>
-   {slides.map((slide, i) => <article key={slide.id} className={`landing-hero-slide${i === index ? ' is-on' : ''}`}
-    aria-roledescription="slide" aria-label={`${i + 1} of ${slides.length}`} aria-hidden={i !== index} inert={i !== index}>
-    <div className="editorial-heading">
-     <p className="landing-hero-eyebrow"><span/> {slide.eyebrow}</p>
-     <h1><span>{slide.headline.lead}</span>{' '}<span className="landing-h1-accent">{slide.headline.accent}</span></h1>
-    </div>
-    <div className="editorial-intro">
-     <span className="editorial-star" aria-hidden="true">✳</span>
-     <p className="landing-hero-lede">{slide.body}</p>
-     <a className="primary" href={heroHref(slide.action.goes)} tabIndex={i === index ? undefined : -1}>{slide.action.label}<ArrowRight size={18}/></a>
-    </div>
-   </article>)}
-  </div>
-  <div className="editorial-story">
+  {/* The stage. One picture, edge to edge, with the banner's own words set on it rather than in a
+      band of paper above it — asked for on 14 September in those terms. The photograph is the
+      figure and the copy is a layer over it; both are the same four slides, cross-faded together.
+
+      Everything a reader reads here sits on a scrim rather than on a photograph, and the ratio each
+      run of type actually measured — over all four banners, at both viewports, against the
+      brightest pixel under it — is written down above .hero-stage in surface/revamp.css. A headline
+      has already shipped on this project at 1.28:1; composing type over an image is exactly where
+      that happens again if it is left to the eye. */}
+  <div className="hero-stage">
    <figure className="landing-portrait" {...hold}>
-    <p className="landing-portrait-place"><MapPin size={15} aria-hidden="true"/>{standing.place}</p>
     <div className="landing-portrait-frame">
      {slides.map((slide, i) => <div key={slide.id} className={`landing-slide${i === index ? ' is-on' : ''}`} aria-hidden={i !== index} inert={i !== index}>
       <div className="editorial-photo-visual">
@@ -197,8 +192,36 @@ function Hero() {
       </div>
      </div>)}
     </div>
+    <p className="landing-portrait-place"><MapPin size={15} aria-hidden="true"/>{standing.place}</p>
     <figcaption>{standing.photographNote}</figcaption>
    </figure>
+   <div className="landing-hero-copy" {...hold}>
+    {slides.map((slide, i) => <article key={slide.id} className={`landing-hero-slide${i === index ? ' is-on' : ''}`}
+     aria-roledescription="slide" aria-label={`${i + 1} of ${slides.length}`} aria-hidden={i !== index} inert={i !== index}>
+     <div className="editorial-heading">
+      <p className="landing-hero-eyebrow"><span/> {slide.eyebrow}</p>
+      {/* Each half of the headline is a line inside a clipped box, so the entrance can lift it up
+          from under its own baseline. The nesting is what makes the mask possible; the space
+          between the two halves stays in the markup, so the accessible name is still one
+          sentence. */}
+      <h1>
+       <span className="h1-line"><span>{slide.headline.lead}</span></span>{' '}
+       <span className="h1-line landing-h1-accent"><span>{slide.headline.accent}</span></span>
+      </h1>
+     </div>
+     <div className="editorial-intro">
+      <p className="landing-hero-lede">{slide.body}</p>
+      <a className="primary" href={heroHref(slide.action.goes)} tabIndex={i === index ? undefined : -1}>{slide.action.label}<ArrowRight size={18}/></a>
+     </div>
+    </article>)}
+   </div>
+  </div>
+
+  {/* The ledge. What a reader consults rather than reads first: the price, what the visit includes,
+      and the controls for the four banners. It is on paper so the stage above it stays one image,
+      and the price panel is lifted into the picture's bottom edge from the width where there is
+      room for it to overlap without covering anything. */}
+  <div className="hero-ledge">
    <aside className="editorial-care-note">
     <span className="editorial-note-top">CARE, ON YOUR TERMS<House size={22}/></span>
     <div className="care-orbit" aria-hidden="true"><i/><i/><i/><Heart size={45} strokeWidth={1.2}/></div>
@@ -206,23 +229,24 @@ function Hero() {
     <a href="#services">Find your care<ArrowRight size={20}/></a>
     <small>Planned launch pricing</small>
    </aside>
+   <div className="editorial-trust">
+    {slides.map((slide, i) => <ul key={slide.id} className="landing-hero-marks" hidden={i !== index}>
+     {slide.marks.map(mark => <li key={mark.icon}><span className="landing-hero-disc tint-mint"><HeroGlyph name={mark.icon} size={21}/></span><span>{mark.lines.map(line => <i key={line}>{line}</i>)}</span></li>)}
+    </ul>)}
+   </div>
+   <div className="landing-hero-foot">
+    <p className="landing-slide-index"><span className="visually-hidden">Banner </span>{String(index + 1).padStart(2, '0')}<i aria-hidden="true">/</i><span className="visually-hidden">of </span>{String(slides.length).padStart(2, '0')}</p>
+    <span className={`landing-slide-rule${rotating ? '' : ' is-still'}`} aria-hidden="true" style={{ ['--slide-ms' as string]: `${SLIDE_MS}ms` }}>
+     {slides.map((slide, i) => <i key={slide.id} className={i === index ? 'is-on' : ''}><b/></i>)}
+    </span>
+    <MotionPause/>
+    <span className="landing-slide-steps">
+     <button type="button" className="landing-slide-step m-press" onClick={() => setIndex(step(-1))} aria-label={`Show the previous banner: ${named(step(-1))}`}><ArrowLeft size={18}/></button>
+     <button type="button" className="landing-slide-step m-press" onClick={() => setIndex(step(1))} aria-label={`Show the next banner: ${named(step(1))}`}><ArrowRight size={18}/></button>
+    </span>
+   </div>
   </div>
-  <div className="landing-hero-foot">
-   <p className="landing-slide-index"><span className="visually-hidden">Banner </span>{String(index + 1).padStart(2, '0')}<i aria-hidden="true">/</i><span className="visually-hidden">of </span>{String(slides.length).padStart(2, '0')}</p>
-   <span className={`landing-slide-rule${rotating ? '' : ' is-still'}`} aria-hidden="true" style={{ ['--slide-ms' as string]: `${SLIDE_MS}ms` }}>
-    {slides.map((slide, i) => <i key={slide.id} className={i === index ? 'is-on' : ''}><b/></i>)}
-   </span>
-   <MotionPause/>
-   <span className="landing-slide-steps">
-    <button type="button" className="landing-slide-step m-press" onClick={() => setIndex(step(-1))} aria-label={`Show the previous banner: ${named(step(-1))}`}><ArrowLeft size={18}/></button>
-    <button type="button" className="landing-slide-step m-press" onClick={() => setIndex(step(1))} aria-label={`Show the next banner: ${named(step(1))}`}><ArrowRight size={18}/></button>
-   </span>
-  </div>
-  <div className="editorial-trust">
-   {slides.map((slide, i) => <ul key={slide.id} className="landing-hero-marks" hidden={i !== index}>
-    {slide.marks.map(mark => <li key={mark.icon}><span className="landing-hero-disc tint-mint"><HeroGlyph name={mark.icon} size={21}/></span><span>{mark.lines.map(line => <i key={line}>{line}</i>)}</span></li>)}
-   </ul>)}
-  </div>
+
   <nav className="studio-bar-wrap" aria-label="Jump to a section"><ul className="studio-bar">
    {barSections.map(([id, label]) => <li key={id}><a href={`#${id}`}>{barIcons[id]}<span>{label}</span><i aria-hidden="true"><ArrowRight size={17}/></i></a></li>)}
   </ul></nav>

@@ -1,0 +1,301 @@
+/* The clinical instrument deck.
+ *
+ * A dark band at the top of a nurse's day and a doctor's queue, carrying three instruments: a ring
+ * of the rows, a dial of what is pressing, the day drawn to scale. It stands on studioNight — the
+ * same ground the ThusoIQ header further down the screen already stands on — so the two dark bands
+ * bracket the work between them instead of one of them being an exception nobody explained.
+ *
+ * EVERY PAIR ON THIS GROUND IS COMPUTED, with the same sRGB relative-luminance formula
+ * scripts/check-boundaries.mjs uses on the ninety-two declared pairs. Two of them are in the token
+ * contract already and the rest are color-mix()es of two tokens, which is the practice studio.css
+ * established for exactly this case and for exactly the same reason: the palette has no muted tone
+ * for a dark ground, and adding one regenerates the iOS and Android token files.
+ *
+ *   studioPaper on studioNight   13.59      studioLime on studioNight   12.03
+ *   paper at 72% over night      7.73       — quiet text: the labels and the note
+ *   paper at 40% over night      3.42       — an unlit mark. 3.52 against lime, 3.98 against paper,
+ *                                             so it clears SC 1.4.11's 3:1 against the ground it is
+ *                                             drawn on and against both marks it sits beside.
+ *   paper at 24% over night      2.11       — the groove a ring runs in. It carries nothing and
+ *                                             owes no ratio: the unlit segments are the marks, drawn
+ *                                             at 40% on top of it. At 16% the gauge's empty third
+ *                                             could not be seen at all, which made a two-thirds dial
+ *                                             look like a full one.
+ *
+ * And the lead's own panel, which is the night lifted a little rather than a second colour:
+ *
+ *   paper at 6% over night — the lead ground.  paper on it 11.47, lime 9.86, quiet text 6.53
+ *   paper at 44% over night — the unlit mark ON that lighter ground, 3.24 against it and 3.14
+ *                             against lime. The 40% above measures 2.89 there and would have been
+ *                             the kind of failure this project keeps finding: a colour that clears
+ *                             on the ground it was chosen against and not on the one it lands on.
+ *
+ * AND COLOUR IS NEVER THE ONLY DIFFERENCE. A flagged arc is the brighter one AND the thicker one; a
+ * signed visit is filled AND carries the heavier weight. Lime is spent once per deck, on the figure
+ * the screen was opened for, which is the discipline the lime tile this replaces was written under.
+ *
+ * NOTHING HERE ANIMATES ITSELF. The marks are drawn on arrival by components/ChartMotion.tsx, which
+ * settles every one of them the instant a reader asks for less motion — and because no mark is
+ * hidden by a rule in this sheet, stillness is the finished picture rather than an empty ring. */
+
+.c-deck {
+ --c-ink: var(--studio-paper);
+ --c-quiet: color-mix(in srgb, var(--studio-paper) 72%, var(--studio-night));
+ --c-accent: var(--studio-lime);
+ --c-mark: color-mix(in srgb, var(--studio-paper) 40%, var(--studio-night));
+ --c-track: color-mix(in srgb, var(--studio-paper) 24%, var(--studio-night));
+ --c-edge: color-mix(in srgb, var(--studio-paper) 14%, var(--studio-night));
+ background: var(--studio-night);
+ color: var(--c-ink);
+ border-radius: var(--r-panel);
+ padding: var(--space-20) var(--space-24) var(--space-24);
+ margin: 0 0 var(--space-24);
+ /* One shadow. The reference stacks two and the result on a cream ground is a smudge rather than a
+    lift; the token file declares one raised elevation and this is it. */
+ box-shadow: var(--shadow-raised);
+}
+
+.c-deck-head {
+ display: flex;
+ align-items: baseline;
+ justify-content: space-between;
+ flex-wrap: wrap;
+ gap: var(--space-8) var(--space-16);
+ padding-bottom: var(--space-20);
+ border-bottom: 1px solid var(--c-edge);
+}
+/* The same eyebrow the workbench header below wears, so the two dark bands are recognisably one
+   family rather than two dark rectangles that happen to share a colour. */
+.c-deck-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; color: var(--c-accent); }
+.c-deck-note { font-size: 13px; line-height: 1.5; color: var(--c-quiet); }
+
+/* ---- The three instruments ---------------------------------------------------------------------
+   Not a row of three equal cells. The lead takes its own column and the other two share the next,
+   which is what makes the deck say what the screen is for before it says anything else — a strip of
+   three identical boxes is the composition this whole piece of work exists to replace. */
+.c-deck-figures { display: grid; gap: var(--space-16); padding-top: var(--space-20); align-items: stretch; }
+.c-deck-rest { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: var(--space-20) var(--space-24); align-items: stretch; }
+/* The lead is a panel and the other two are not: the night lifted six per cent, which is depth by
+   one step of the same colour rather than by a second shadow inside a shadowed card. It is what
+   makes the deck say what the screen is for before it says anything else — a row of three identical
+   cells is the composition this whole piece of work exists to replace. */
+.c-deck-lead {
+ background: color-mix(in srgb, var(--studio-paper) 6%, var(--studio-night));
+ --c-mark: color-mix(in srgb, var(--studio-paper) 44%, var(--studio-night));
+ border-radius: var(--r-card);
+ padding: var(--space-16) var(--space-20) var(--space-20);
+}
+@media (min-width: 900px) {
+ .c-deck-figures { grid-template-columns: minmax(300px, 1.05fr) minmax(0, 1.35fr); gap: var(--space-24); }
+ /* The two columns' interiors line up rather than their boxes: the lead is a padded panel, so the
+    pair beside it is inset by the same amount and the chips across the deck sit on one line and the
+    labels under them on another. Without it the panel's own padding read as a misalignment. */
+ .c-deck-rest { padding: var(--space-16) 0 var(--space-20) var(--space-8); }
+}
+
+.c-instrument { min-width: 0; display: flex; }
+/* Stretched rather than hugged, so a day drawn to scale is as wide as the column it was given and
+   not as wide as the four characters of the time above it. */
+.c-instrument .s-metric { gap: var(--space-8); width: 100%; align-items: stretch; flex: 1; }
+/* The labels sit on one line across the deck, whatever height the drawing above each of them takes.
+   Three figures at three heights is the one thing a row of numerals must never do, and it is the
+   defect the chip line in surface.css was written to stop happening at the top of the strip. */
+.c-instrument .s-metric-label { margin-top: auto; padding-top: var(--space-4); }
+.c-instrument .s-metric-value { color: var(--c-ink); }
+.c-instrument .s-metric-value small { color: var(--c-quiet); }
+.c-instrument .s-metric-label { color: var(--c-quiet); font-weight: 500; }
+/* The chip on the dark ground: outlined in the quiet tone, and filled paper for the one figure that
+   is out of range. Not lime — lime is the lead's, and a chip that took it would leave the deck with
+   two accents and therefore with none. */
+.c-instrument .s-metric-chip {
+ background: transparent;
+ border-color: var(--c-mark);
+ color: var(--c-quiet);
+ white-space: normal;
+ line-height: 1.4;
+}
+.c-instrument .s-metric-chip.flagged { background: var(--c-ink); border-color: var(--c-ink); color: var(--studio-night); }
+/* The chip's line reserves its own height here rather than inheriting the strip rule, because the
+   deck is not a .s-metrics grid and three figures at three heights is the one thing a row of
+   numerals must never do. */
+.c-instrument .s-metric-chip-line { min-height: 26px; }
+
+/* ---- Where the numeral sits ---------------------------------------------------------------------
+   Two arrangements, and the shape decides which. A dial puts the numeral in the middle of itself,
+   which is the whole reason to draw a ring rather than a bar. Everything else puts the numeral above
+   the drawing, because a line under a figure is read as that figure's history and a line through one
+   is read as an error. */
+.s-metric-figure { display: block; position: relative; min-width: 0; }
+
+.c-instrument-ring .s-metric-figure,
+.c-instrument-gauge .s-metric-figure {
+ width: 148px;
+ max-width: 100%;
+ aspect-ratio: 1;
+ display: grid;
+ place-items: center;
+}
+/* The pair beside the lead are drawn smaller than it. A dial the same size as the lead's is a second
+   lead, and a deck with two leads has none. */
+.c-deck-rest .c-instrument-ring .s-metric-figure,
+.c-deck-rest .c-instrument-gauge .s-metric-figure { width: 132px; }
+.c-instrument-ring .s-metric-figure > .c-plot,
+.c-instrument-gauge .s-metric-figure > .c-plot { position: absolute; inset: 0; width: 100%; height: 100%; }
+.c-instrument-ring .s-metric-value,
+.c-instrument-gauge .s-metric-value { position: relative; justify-content: center; }
+/* The dial's numeral sits a little above centre: the gauge opens at the bottom and a figure centred
+   in the circle reads as sitting on the gap rather than inside the dial. */
+.c-instrument-gauge .s-metric-value { transform: translateY(-4px); }
+
+.c-instrument-bars .s-metric-figure,
+.c-instrument-day .s-metric-figure,
+.c-instrument-spark .s-metric-figure { display: grid; gap: var(--space-12); }
+.c-instrument-bars .s-metric-figure > .c-bars,
+.c-instrument-day .s-metric-figure > .c-bars,
+.c-instrument-spark .s-metric-figure > .c-plot { order: 1; }
+
+/* ---- The marks ---------------------------------------------------------------------------------- */
+.c-plot { display: block; width: 100%; overflow: hidden; }
+/* The groove and the unlit segments are the same width, so the track is the ring's empty part rather
+   than a halo sitting behind marks that are narrower than it. */
+.c-ring-track { fill: none; stroke: var(--c-track); stroke-width: 10; stroke-linecap: round; }
+.c-mark { fill: none; stroke: var(--c-mark); stroke-width: 10; stroke-linecap: round; }
+/* Brighter and heavier — the lit arc bulges out of the groove. Either channel alone would be a state
+   told in colour only, which this design does not permit anywhere else either. */
+.c-mark.on { stroke: var(--c-accent); stroke-width: 16; }
+/* Butt, not round, and this was a bug worth writing down. A round cap extends half the stroke past
+   each end of its arc, so at a sixteen-wide stroke the two caps either side of a gap grew eight units
+   each into a gap seven units wide — and a ring of three cases was drawn as one unbroken circle. The
+   segments are the count; a count you cannot count is not one. */
+.c-ring .c-mark { stroke-linecap: butt; }
+/* The lead figure is the only one that spends the accent. On the other two instruments a lit mark is
+   the quiet tone — still the brightest thing in its own drawing at 7.73 on this ground, still two
+   channels apart from an unlit one at 3.42, and not a second thing on the deck claiming to be the
+   most important. Paper was tried here first and a two-thirds white dial beside a lime ring read as
+   the louder of the two, which is a hierarchy saying the opposite of what the strip's order says. */
+.c-instrument:not(.lead) .c-mark.on { stroke: var(--c-quiet); }
+/* Except the spark's line, which is two pixels wide: a hairline in the quiet tone on a dark ground
+   disappears, and the line is the only thing in that drawing carrying the shape. */
+.c-instrument:not(.lead) .c-spark .c-mark.on { stroke: var(--c-ink); }
+
+.c-spark { height: 52px; }
+.c-area { fill: var(--c-mark); stroke: none; opacity: .3; mask-image: linear-gradient(to bottom, #000, transparent); -webkit-mask-image: linear-gradient(to bottom, #000, transparent); }
+.c-spark .c-mark { stroke-width: 2; stroke-linejoin: round; }
+.c-instrument.lead .c-area { fill: var(--c-accent); }
+
+/* ---- Bars, and a day -----------------------------------------------------------------------------
+   `.c-bars` is the one class in this sheet that is not the deck's alone: the review queue's own rows
+   carry a bar of the same kind, so that the shape at the top of the screen and the shape on the row
+   are recognisably the same measurement. Everything the deck styles about it is therefore scoped to
+   the deck, and only the two lines that make it a bar at all are not. */
+.c-bars { display: flex; min-width: 0; }
+.c-deck .c-waits { flex-direction: column; gap: 7px; }
+.c-deck .c-waits i { display: block; height: 9px; border-radius: var(--r-pill); background: var(--c-mark); transform-origin: left center; }
+.c-deck .c-waits i.on { background: var(--c-quiet); height: 11px; }
+.c-deck .c-instrument.lead .c-waits i.on { background: var(--c-accent); }
+
+/* The day: a groove from the first visit to the last, with each visit lying in it at the length that
+   visit actually takes. */
+.c-deck .c-day { position: relative; display: block; height: 34px; border-radius: var(--r-pill); background: var(--c-track); overflow: hidden; }
+.c-deck .c-day i {
+ position: absolute;
+ top: 6px;
+ bottom: 6px;
+ border-radius: var(--r-pill);
+ background: var(--c-mark);
+ transform-origin: left center;
+}
+.c-deck .c-day i.on { background: var(--c-accent); }
+.c-deck .c-day i.done { background: var(--c-ink); }
+/* The two ends of the day, and where now is between them. 13px, which is the floor of the type scale
+   rather than the smallest size that would have fitted. */
+.c-day-scale {
+ order: 2;
+ display: flex;
+ justify-content: space-between;
+ gap: var(--space-8);
+ margin-top: -4px;
+ font-size: 13px;
+ line-height: 1.4;
+ color: var(--c-quiet);
+ font-variant-numeric: tabular-nums;
+}
+.c-day-scale .c-day-now { color: var(--c-ink); }
+/* Now. A hairline rather than a filled needle, and it never animates: a mark that slid into place
+   would be a clock being drawn rather than a clock being read. */
+.c-deck .c-day .c-now {
+ position: absolute;
+ top: 0;
+ bottom: 0;
+ width: 2px;
+ margin-left: -1px;
+ background: var(--c-ink);
+ border-radius: var(--r-pill);
+}
+
+/* ---- Narrow ------------------------------------------------------------------------------------
+   Below 900 the deck is one column, and nothing is dropped: a phone gets the same three instruments
+   at the same figures. The dials scale with the viewport rather than stepping at a breakpoint, so a
+   600px tablet is not simply a wide phone with a small ring on it. */
+@media (max-width: 899px) {
+ .c-deck { padding: var(--space-16) var(--space-16) var(--space-20); border-radius: var(--r-card); }
+ /* The dial grows as the column does. Below 900 the deck is one column, so the lead's own panel is
+    as wide as the screen — a 124px ring in a 560px panel is a button in a field, and the dial is the
+    subject of that panel.
+    900 rather than a narrower step, and the arithmetic decided it rather than taste: two columns at
+    720 leave the pair 308 pixels between them, and a pair of dials with "3 h 20 m" set at 42 needs
+    324. A breakpoint that produces a column its own contents do not fit in is a breakpoint chosen
+    for the shape of the layout rather than for the words in it. */
+ .c-deck-lead .c-instrument-ring .s-metric-figure,
+ .c-deck-lead .c-instrument-gauge .s-metric-figure { width: clamp(124px, 26vw, 168px); }
+ /* And the pair beside it stay smaller than the lead's, whatever the screen does. A dial the same
+    size as the lead's is a second lead. */
+ .c-deck-rest .c-instrument-ring .s-metric-figure,
+ .c-deck-rest .c-instrument-gauge .s-metric-figure { width: clamp(116px, 19vw, 138px); }
+ .c-deck-rest { gap: var(--space-20) var(--space-16); }
+ /* The pair below the lead stay two-up while the column is wide enough for a dial and its label, and
+    fall to one when it is not. auto-fit decides it from the width the screen actually has, so a
+    320px reader and a reader at 200% zoom get the same rule rather than a breakpoint guessed for
+    one of them. */
+ .c-deck .c-instrument .s-metric-value { font-size: 36px; }
+ .c-deck .c-instrument .s-metric-value small { font-size: 16px; }
+ /* The flat clinical strip moves its chip below the label on a phone and takes the pill off it: one
+    column of 104 pixels cannot carry a pill and a numeral. The deck is not that strip — every figure
+    on it has the width of the screen — so the chip stays a pill, and stays above the figure it is
+    the status of, which is where it is written and where a screen reader already meets it. */
+ .c-deck .c-instrument .s-metric-chip-line { order: 0; min-height: 26px; }
+ .c-deck .c-instrument .s-metric { gap: var(--space-8); }
+ .c-deck .c-instrument .s-metric-chip {
+  padding: 3px 10px;
+  border: 1px solid var(--c-mark);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-quiet);
+ }
+ .c-deck .c-instrument .s-metric-chip.flagged { background: var(--c-ink); border-color: var(--c-ink); color: var(--studio-night); font-weight: 500; }
+}
+
+/* ---- One column, with room in it ----------------------------------------------------------------
+   Between a phone and a laptop the deck is a single column, so the lead's panel is as wide as the
+   screen and a dial stacked above a two-word label leaves half of it empty. The dial moves to the
+   left of its own chip and label instead — the same three pieces, in the arrangement that fits the
+   box they are in. Below 520 it goes back to stacking: a 124px dial and a wrapping chip beside it on
+   a 320px screen is two narrow columns rather than one composition. */
+@media (min-width: 520px) and (max-width: 899px) {
+ .c-deck-lead .c-instrument-ring .s-metric,
+ .c-deck-lead .c-instrument-gauge .s-metric {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: 'figure chip' 'figure label';
+  align-content: center;
+  column-gap: var(--space-24);
+  row-gap: var(--space-4);
+ }
+ .c-deck-lead .c-instrument-ring .s-metric-figure,
+ .c-deck-lead .c-instrument-gauge .s-metric-figure { grid-area: figure; align-self: center; }
+ .c-deck-lead .c-instrument-ring .s-metric-chip-line,
+ .c-deck-lead .c-instrument-gauge .s-metric-chip-line { grid-area: chip; align-self: end; }
+ .c-deck-lead .c-instrument-ring .s-metric-label,
+ .c-deck-lead .c-instrument-gauge .s-metric-label { grid-area: label; align-self: start; margin-top: 0; }
+}

@@ -14,7 +14,7 @@ import './surface.css';
 
 /** A number with its status above it and its name below — the reference's signature, and the
     inversion of what this product did everywhere, which was a small label above a bold figure. */
-export function Metric({ value, unit, prefix, label, chip, flagged = false, lead = false }: {
+export function Metric({ value, unit, prefix, label, chip, flagged = false, lead = false, visual }: {
  value: string;
  /** Trailing: BPM, %, kg. */
  unit?: string;
@@ -31,6 +31,13 @@ export function Metric({ value, unit, prefix, label, chip, flagged = false, lead
      reading, and nothing in this product may issue one. Use it on the figure a person came to
      act on, not on the figure that happens to be interesting. */
  lead?: boolean;
+ /** A drawing of the same arithmetic the figure states — a ring of the rows it counts, a gauge of
+     the proportion, the shape of a day. It is presentation and never a second number: whatever is
+     handed in here is built from the value beside it, so a reader who distrusts the picture can
+     read the numeral, and a reader who distrusts the numeral can count the picture. It renders in
+     the same box as the value, which is what lets a surface put the numeral inside a ring without
+     every screen rearranging its own markup. */
+ visual?: ReactNode;
 }) {
  /* The chip sits on a line of its own whether or not this metric has one. A strip where some
     figures carry a chip and some do not was drawing them at two different heights — the back
@@ -42,7 +49,9 @@ export function Metric({ value, unit, prefix, label, chip, flagged = false, lead
    <span className="s-metric-chip-line">
     {chip && <span className={`s-metric-chip${flagged ? ' flagged' : ''}`}>{chip}</span>}
    </span>
-   <span className="s-metric-value">{prefix && <small>{prefix}</small>}{value}{unit && <small>{unit}</small>}</span>
+   {visual
+    ? <span className="s-metric-figure">{visual}<span className="s-metric-value">{prefix && <small>{prefix}</small>}{value}{unit && <small>{unit}</small>}</span></span>
+    : <span className="s-metric-value">{prefix && <small>{prefix}</small>}{value}{unit && <small>{unit}</small>}</span>}
    <span className="s-metric-label">{label}</span>
   </div>
  );
