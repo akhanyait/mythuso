@@ -1,0 +1,196 @@
+{
+ "engine": "clinical",
+ "_note": "Clinical Intelligence is decision support with a doctor's signature: the clinical inbox, review and sign, structured consultations, triage on ratified protocols, result acknowledgement, Home Guidance and PROMs. Every protocol in packages/catalog/protocols.json is a draft today, so every triage and guidance call is refused in practice until the board ratifies one. Wave 2 contract; Wave 5 build.",
+ "version": 1,
+ "resources": ["reviews", "consultations", "triage", "results", "guidance", "proms"],
+ "doors": ["screening-result", "media-session"],
+ "doorsToAdd": [],
+ "refusals": [
+  {"id": "triage-without-ratified-protocol", "status": 409, "statement": "Nothing is triaged without a ratified protocol.", "why": "Software does not triage until the board has ratified the rules it triages by."},
+  {"id": "model-lowers-priority", "status": 409, "statement": "No model output lowers a priority the rules set.", "why": "§15D: generative AI may explain a priority; it may not lower one."},
+  {"id": "you-have-x", "status": 422, "statement": "No output tells a patient they have a condition.", "why": "Findings are \"consistent with\", for a clinician to confirm (§5.3)."},
+  {"id": "auto-signed-note", "status": 409, "statement": "Nothing is signed automatically.", "why": "A note is signed by a doctor's own action."},
+  {"id": "result-complete-before-acknowledgement", "status": 409, "statement": "A result is not complete until a clinician acknowledges it.", "why": "An unacknowledged result is a loop nobody closed."}
+ ],
+ "routes": [
+  {
+   "method": "GET",
+   "path": "/v1/clinical/reviews",
+   "version": 1,
+   "summary": "Read the clinical inbox.",
+   "callers": ["doctor"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "stateCode", "type": "string", "required": false, "why": "Filter by state."}
+   ],
+   "response": [
+    {"field": "reviews", "type": "list", "required": true, "why": "Reviews waiting, with references only.", "object": true}
+   ],
+   "refusals": [
+    {"id": "not-on-panel", "status": 403, "statement": "Only a doctor on the panel reads the inbox.", "why": "The inbox is other people's care."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/reviews/{reviewRef}/sign",
+   "version": 1,
+   "summary": "A doctor signs a review, under a named protocol version.",
+   "callers": ["doctor"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "reviewRef", "type": "string", "required": true, "why": "The review."},
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The encounter reviewed."},
+    {"field": "protocolVersionId", "type": "string", "required": true, "why": "The ratified protocol id@version."}
+   ],
+   "response": [
+    {"field": "signedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "protocol-version-required", "status": 422, "statement": "A review is signed under a named protocol version.", "why": "Every recommendation cites the version it was made under."},
+    {"id": "protocol-not-ratified", "status": 409, "statement": "That protocol version is not ratified.", "why": "A draft carries no authority."}
+   ],
+   "emits": ["review.signed@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/consultations",
+   "version": 1,
+   "summary": "Write a structured consultation; sign-off is blocked until it is complete.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Whose consultation."},
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The encounter."},
+    {"field": "subjective", "type": "string", "required": false, "why": "What the patient reports."},
+    {"field": "objective", "type": "string", "required": false, "why": "What was examined and measured."},
+    {"field": "assessment", "type": "string", "required": false, "why": "The clinician's assessment."},
+    {"field": "plan", "type": "string", "required": false, "why": "What happens next."}
+   ],
+   "response": [
+    {"field": "consultationEntryRef", "type": "string", "required": true, "why": "The entry in the Passport."},
+    {"field": "signable", "type": "boolean", "required": true, "why": "Whether every required section is complete."}
+   ],
+   "refusals": [
+    {"id": "required-sections-missing", "status": 422, "statement": "Sign-off is blocked until every required section is complete.", "why": "§5.2: not free text only."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The consultation is written through the Passport gateway, which emits passport.entry.written.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§5.2", "what": "SOAP-style note; sign-off blocked until complete"},
+   "status": "proposed",
+   "through": "passport-gateway"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/triage",
+   "version": 1,
+   "summary": "Triage on the rule engine: hard red-flag gate, priority and reason codes.",
+   "callers": ["nurse", "doctor", "engine"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "intakeEntryRef", "type": "string", "required": true, "why": "The intake in the record."},
+    {"field": "protocolVersionId", "type": "string", "required": true, "why": "The ratified protocol id@version."}
+   ],
+   "response": [
+    {"field": "triageRef", "type": "string", "required": true, "why": "The decision."},
+    {"field": "priorityCode", "type": "string", "required": true, "why": "The priority the rules set."},
+    {"field": "careSetting", "type": "string", "required": true, "why": "Where the patient should be seen."},
+    {"field": "reasonCodes", "type": "list", "required": true, "why": "Why."}
+   ],
+   "refusals": [
+    {"id": "protocol-not-ratified", "status": 409, "statement": "Triage runs only on a ratified protocol; until one is ratified, software does not triage.", "why": "The open conflict in the build plan: the board ratifies first."},
+    {"id": "priority-lowered", "status": 409, "statement": "Nothing lowers a priority the rules set.", "why": "A red flag is never AI-gated."}
+   ],
+   "emits": ["triage.completed@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15B", "what": "SATS-aligned rules with a hard red-flag gate"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/results/{resultRef}/acknowledge",
+   "version": 1,
+   "summary": "A clinician acknowledges a result.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["diagnostics"],
+   "request": [
+    {"field": "resultRef", "type": "string", "required": true, "why": "The result entry."}
+   ],
+   "response": [
+    {"field": "acknowledgedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "already-acknowledged", "status": 409, "statement": "That result has already been acknowledged.", "why": "An acknowledgement is recorded once, by name."},
+    {"id": "result-not-yours", "status": 403, "statement": "That result is for another clinician's patient.", "why": "Acknowledgement is by the clinician responsible."}
+   ],
+   "emits": ["result.acknowledged@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/guidance",
+   "version": 1,
+   "summary": "Deliver Home Guidance from a ratified script: one of four outcomes.",
+   "callers": ["nurse", "doctor", "engine"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "triageRef", "type": "string", "required": true, "why": "The triage the guidance follows."},
+    {"field": "scriptRef", "type": "string", "required": true, "why": "The ratified script and version."}
+   ],
+   "response": [
+    {"field": "guidanceRef", "type": "string", "required": true, "why": "The guidance."},
+    {"field": "outcomeCode", "type": "string", "required": true, "why": "One of the four outcomes."}
+   ],
+   "refusals": [
+    {"id": "script-not-ratified", "status": 409, "statement": "Guidance is given only from a ratified script.", "why": "Clinical words come from the board."},
+    {"id": "tells-a-diagnosis", "status": 422, "statement": "Guidance never tells a patient they have a condition.", "why": "§5.3, applied to patients."}
+   ],
+   "emits": ["guidance.delivered@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§8", "what": "Home Guidance recovery pathways"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/proms",
+   "version": 1,
+   "summary": "A patient answers outcome measures at 7 and 30 days.",
+   "callers": ["patient"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "episodeRef", "type": "string", "required": true, "why": "The episode."},
+    {"field": "dayMark", "type": "integer", "required": true, "why": "Seven or thirty."},
+    {"field": "answers", "type": "list", "required": true, "why": "The answers.", "object": true}
+   ],
+   "response": [
+    {"field": "promEntryRef", "type": "string", "required": true, "why": "The entry in the Passport."}
+   ],
+   "refusals": [
+    {"id": "not-due", "status": 409, "statement": "These questions are asked at 7 and 30 days, not before.", "why": "An early answer measures nothing."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The answers are written through the Passport gateway.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed",
+   "through": "passport-gateway"
+  }
+ ]
+}

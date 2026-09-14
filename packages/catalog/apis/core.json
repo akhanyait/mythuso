@@ -1,0 +1,275 @@
+{
+ "engine": "core",
+ "_note": "ThusoIQ Core's routes are called by engines, not people: the bus, the closed loop, the alert router, the protocol registry, the permission check and the audit export. Wave 2 contract; Wave 3 build. Nothing here runs yet.",
+ "version": 1,
+ "resources": ["events", "loops", "alerts", "protocols", "permission-checks", "audit-exports"],
+ "doors": [],
+ "doorsToAdd": [],
+ "refusals": [
+  {"id": "publish-only-what-you-own", "status": 403, "statement": "An engine publishes only the events it owns.", "why": "A second publisher is a second source of truth for the same fact."},
+  {"id": "no-loop-without-an-outcome", "status": 422, "statement": "A loop is not closed without an outcome.", "why": "The closed loop exists so that no concern is done until what happened is recorded."},
+  {"id": "no-ratification-without-a-signature", "status": 422, "statement": "A protocol is ratified with a named role and a date.", "why": "A recommendation cites the board's authority; the registry must say whose it was and when."},
+  {"id": "no-subscription-to-a-withdrawn-version", "status": 410, "statement": "A withdrawn event version is neither published nor subscribed to.", "why": "Its correction is the next version."}
+ ],
+ "routes": [
+  {
+   "method": "POST",
+   "path": "/v1/core/events",
+   "version": 1,
+   "summary": "Publish an event to the bus.",
+   "callers": ["engine"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "eventType", "type": "string", "required": true, "why": "A declared event type."},
+    {"field": "eventVersion", "type": "integer", "required": true, "why": "Its live version."},
+    {"field": "event", "type": "string", "required": true, "why": "The envelope and payload, in the frozen shape.", "object": true}
+   ],
+   "response": [
+    {"field": "eventId", "type": "string", "required": true, "why": "The id the bus assigned."},
+    {"field": "accepted", "type": "boolean", "required": true, "why": "Whether the bus took it."}
+   ],
+   "refusals": [
+    {"id": "not-the-owner", "status": 403, "statement": "An engine publishes only the events it owns.", "why": "Ownership is checked against the certificate's engine id, not the payload's claim."},
+    {"id": "withdrawn-version", "status": 410, "statement": "That event version is withdrawn and is not published.", "why": "A withdrawn version has no subscribers and its correction is the next version."},
+    {"id": "refused-field", "status": 422, "statement": "The event carries a field the bus refuses.", "why": "The never-lists in packages/catalog/events.json are enforced at publish as well as at build."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Publishing carries another engine's event; Core adds none of its own.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-2", "what": "Event bus with versioned JSON event contracts"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/loops",
+   "version": 1,
+   "summary": "Open a concern with an owner, a deadline and a fallback.",
+   "callers": ["engine"],
+   "purpose": ["treatment", "dispatch", "emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "sourceEngine", "type": "string", "required": true, "why": "The engine the concern came from."},
+    {"field": "ownerRole", "type": "string", "required": true, "why": "Who owns it first."},
+    {"field": "fallbackRole", "type": "string", "required": true, "why": "Who owns it when the deadline passes."},
+    {"field": "dueBy", "type": "instant", "required": true, "why": "The deadline."}
+   ],
+   "response": [
+    {"field": "loopRef", "type": "string", "required": true, "why": "The loop opened."}
+   ],
+   "refusals": [
+    {"id": "no-owner", "status": 422, "statement": "Every concern has an owner.", "why": "A concern with no owner is one nobody is waiting on."},
+    {"id": "no-fallback", "status": 422, "statement": "Every concern has a fallback for when its owner does not answer.", "why": "Unacknowledged items escalate automatically, or they wait for somebody to notice."}
+   ],
+   "emits": ["loop.opened@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/loops/{loopRef}/acknowledge",
+   "version": 1,
+   "summary": "The owner takes the concern on.",
+   "callers": ["engine", "nurse", "doctor", "ops-desk"],
+   "purpose": ["treatment", "dispatch", "emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "loopRef", "type": "string", "required": true, "why": "The loop."}
+   ],
+   "response": [
+    {"field": "acknowledgedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "loop-closed", "status": 409, "statement": "That concern is already closed.", "why": "Acknowledging a closed loop would reopen it without an outcome."}
+   ],
+   "emits": ["loop.acknowledged@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/loops/{loopRef}/escalate",
+   "version": 1,
+   "summary": "Move the concern to its fallback.",
+   "callers": ["engine", "ops-desk"],
+   "purpose": ["treatment", "dispatch", "emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "loopRef", "type": "string", "required": true, "why": "The loop."},
+    {"field": "reasonCode", "type": "string", "required": true, "why": "A code, never free text."}
+   ],
+   "response": [
+    {"field": "ownerRole", "type": "string", "required": true, "why": "The new owner."},
+    {"field": "dueBy", "type": "instant", "required": true, "why": "The new deadline."}
+   ],
+   "refusals": [
+    {"id": "no-fallback-left", "status": 409, "statement": "There is nobody left on the rota to escalate to.", "why": "The desk is told, rather than the loop quietly stopping."}
+   ],
+   "emits": ["loop.escalated@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/loops/{loopRef}/close",
+   "version": 1,
+   "summary": "Close the concern with its outcome.",
+   "callers": ["nurse", "doctor", "ops-desk"],
+   "purpose": ["treatment", "dispatch", "emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "loopRef", "type": "string", "required": true, "why": "The loop."},
+    {"field": "outcomeRef", "type": "string", "required": true, "why": "Where the outcome is recorded."}
+   ],
+   "response": [
+    {"field": "closedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "no-outcome", "status": 422, "statement": "A loop is not closed without an outcome.", "why": "An outcome-less close is a loop closed by pressing a button."}
+   ],
+   "emits": ["loop.closed@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/alerts",
+   "version": 1,
+   "summary": "Raise an alert: routed by rung, de-duplicated, suppressible, snoozed only with a reason.",
+   "callers": ["engine"],
+   "purpose": ["treatment", "emergency"],
+   "request": [
+    {"field": "sourceEngine", "type": "string", "required": true, "why": "Where the concern came from."},
+    {"field": "rung", "type": "integer", "required": true, "why": "The rung on the escalation ladder."},
+    {"field": "ownerRole", "type": "string", "required": true, "why": "Who owns it."},
+    {"field": "recordEntryRef", "type": "string", "required": false, "why": "The record entry the concern is about. Never the reading itself."},
+    {"field": "dedupeKey", "type": "string", "required": true, "why": "Two alerts with one key are one alert."},
+    {"field": "snoozeReasonCode", "type": "string", "required": false, "why": "Required to snooze."}
+   ],
+   "response": [
+    {"field": "alertRef", "type": "string", "required": true, "why": "The alert."},
+    {"field": "suppressed", "type": "boolean", "required": true, "why": "Whether a suppression window absorbed it."}
+   ],
+   "refusals": [
+    {"id": "reading-in-alert", "status": 422, "statement": "An alert carries a reference to the record entry, never a reading.", "why": "Alerts are copied into digests and escalated to people outside the care team."},
+    {"id": "snooze-without-reason", "status": 422, "statement": "An alert is snoozed only with a reason.", "why": "A silent snooze is how an alert is lost."}
+   ],
+   "emits": ["alert.raised@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§14", "what": "Routed alerts: dedup, suppression, snooze with reason"},
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/core/protocols/{protocolVersionId}",
+   "version": 1,
+   "summary": "Read a protocol version from the registry.",
+   "callers": ["nurse", "doctor", "engine", "medical-director"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "protocolVersionId", "type": "string", "required": true, "why": "id@version."}
+   ],
+   "response": [
+    {"field": "protocolVersionId", "type": "string", "required": true, "why": "The version read."},
+    {"field": "name", "type": "string", "required": true, "why": "The protocol's name."},
+    {"field": "statusCode", "type": "string", "required": true, "why": "draft, ratified or retired."}
+   ],
+   "refusals": [
+    {"id": "unknown-version", "status": 404, "statement": "No such protocol version is registered.", "why": "A version the registry does not hold cannot be cited."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading the registry changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-2", "what": "Protocol registry with versioning and board sign-off"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/protocols/{protocolId}/ratify",
+   "version": 1,
+   "summary": "The Medical Director ratifies a protocol version.",
+   "callers": ["medical-director"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "protocolId", "type": "string", "required": true, "why": "The protocol."},
+    {"field": "protocolVersion", "type": "integer", "required": true, "why": "The version ratified."},
+    {"field": "ratifiedOn", "type": "iso-date", "required": true, "why": "The day of the board's sign-off."}
+   ],
+   "response": [
+    {"field": "protocolVersionId", "type": "string", "required": true, "why": "id@version ratified."}
+   ],
+   "refusals": [
+    {"id": "unsigned-ratification", "status": 422, "statement": "A protocol is ratified with a named role and a date.", "why": "The registry records whose authority a recommendation borrows."},
+    {"id": "draft-with-no-content", "status": 409, "statement": "A draft with no content cannot be ratified.", "why": "The board ratifies words; a name and a number are not a protocol."}
+   ],
+   "emits": ["protocol.ratified@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/core/permission-checks",
+   "version": 1,
+   "summary": "Check role × scope × purpose before an engine acts.",
+   "callers": ["engine"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "roleId", "type": "string", "required": true, "why": "The role asking."},
+    {"field": "scope", "type": "list", "required": true, "why": "What it wants to reach."},
+    {"field": "purposeOfUse", "type": "string", "required": true, "why": "Why."}
+   ],
+   "response": [
+    {"field": "allowed", "type": "boolean", "required": true, "why": "The answer."},
+    {"field": "refusalId", "type": "string", "required": false, "why": "Which refusal applied, when refused."}
+   ],
+   "refusals": [
+    {"id": "unknown-role", "status": 422, "statement": "That role is not in the scope matrix.", "why": "An unknown role is refused, never defaulted."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A check changes nothing; the gate that acts on it writes the audit entry.",
+   "idempotent": false,
+   "reads": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-2", "what": "Role and scope matrix enforced on every API"},
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/core/audit-exports",
+   "version": 1,
+   "summary": "Export the append-only audit trail for a period.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "from", "type": "iso-date", "required": true, "why": "First day."},
+    {"field": "to", "type": "iso-date", "required": true, "why": "Last day."}
+   ],
+   "response": [
+    {"field": "auditExportRef", "type": "string", "required": true, "why": "The export."},
+    {"field": "entryCount", "type": "integer", "required": true, "why": "How many entries."},
+    {"field": "chainIntact", "type": "boolean", "required": true, "why": "Whether the chain verified across the period."}
+   ],
+   "refusals": [
+    {"id": "range-too-wide", "status": 422, "statement": "An export covers a bounded period.", "why": "An unbounded export is a copy of the whole trail in one place."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An export is itself an audit entry in the chain it exports.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-2", "what": "Audit trail: append-only and exportable"},
+   "status": "proposed"
+  }
+ ]
+}

@@ -1,0 +1,418 @@
+{
+ "engine": "trust",
+ "_note": "Trust is Verify: the vetting routes the identity service already answers (built), and the in-service monitoring the Full Scope adds — the gates and badge worked out on read, shift-start face match, the patient's QR check at the door, and complaints. The Trust Score's number never leaves this engine. Wave 2 contract; Wave 4 extends.",
+ "version": 1,
+ "resources": ["standing", "parties", "evidence", "identity-callbacks", "shift-starts", "door-verifications", "complaints"],
+ "doors": ["credential-answer"],
+ "doorsToAdd": [
+  {"id": "kyc-result", "why": "Replaces the legacy identity callback route.", "capabilityNamed": {"section": "FS-E6", "what": "KYC and liveness provider"}},
+  {"id": "afis-result", "why": "Criminal-record clearance results from the accredited AFIS partner.", "capabilityNamed": {"section": "FS-E6", "what": "AFIS clearance partner"}}
+ ],
+ "refusals": [
+  {"id": "raw-score-leaves-verify", "status": 403, "statement": "A Trust Score's number never leaves Verify.", "why": "packages/catalog/trust.json: the number is the vetting team's; a roster sees the badge."},
+  {"id": "weight-nobody-decided", "status": 409, "statement": "No score is built from a weight nobody decided.", "why": "While a weight is blank, only the Verified badge exists."},
+  {"id": "activation-past-a-failed-gate", "status": 409, "statement": "Nobody is activated past a failed hard-stop gate.", "why": "A hard gate failing is score nought and offline (§11)."},
+  {"id": "clearance-document-stored", "status": 422, "statement": "A clearance is stored as its result, reference and date — never the document.", "why": "§11: vetting data is special personal information."}
+ ],
+ "routes": [
+  {
+   "method": "GET",
+   "path": "/v1/trust/standing",
+   "version": 1,
+   "summary": "A vetted person reads their own standing, gates and checks.",
+   "callers": ["self"],
+   "purpose": ["vetting"],
+   "request": [],
+   "response": [
+    {"field": "party", "type": "string", "required": true, "why": "Who.", "object": true},
+    {"field": "standing", "type": "string", "required": true, "why": "Their standing.", "object": true},
+    {"field": "gates", "type": "list", "required": true, "why": "The seven gates, worked out.", "object": true},
+    {"field": "checks", "type": "list", "required": true, "why": "Their checks.", "object": true}
+   ],
+   "refusals": [
+    {"id": "no-standing", "status": 404, "statement": "You have no vetting standing yet.", "why": "Better to say so than show an empty page."},
+    {"id": "not-on-the-vetting-register", "status": 403, "statement": "You are not on the vetting register.", "why": "Standing is for vetted people."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading your own standing changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /vetting/me'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/trust/parties/{id}",
+   "version": 1,
+   "summary": "A reviewer reads a party's standing.",
+   "callers": ["vetting-team", "operator"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "id", "type": "string", "required": true, "why": "The party."}
+   ],
+   "response": [
+    {"field": "party", "type": "string", "required": true, "why": "Who.", "object": true},
+    {"field": "standing", "type": "string", "required": true, "why": "Their standing.", "object": true},
+    {"field": "gates", "type": "list", "required": true, "why": "Gates.", "object": true}
+   ],
+   "refusals": [
+    {"id": "refused", "status": 403, "statement": "The vetting vault refused this.", "why": "Who may do what with vetting evidence is the vault's decision, written to the audit chain."},
+    {"id": "no-such-party", "status": 404, "statement": "There is no such party.", "why": "An unknown id is refused, not guessed."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading is audited in the chain; it is not news.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /vetting/party'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/parties",
+   "version": 1,
+   "summary": "Enrol a party for vetting.",
+   "callers": ["vetting-team", "operator"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "id", "type": "string", "required": true, "why": "The party id."},
+    {"field": "roleId", "type": "string", "required": true, "why": "A role from packages/catalog/vetting.json."},
+    {"field": "reference", "type": "string", "required": true, "why": "The register's reference."},
+    {"field": "code", "type": "string", "required": false, "why": "A step-up code."}
+   ],
+   "response": [
+    {"field": "party", "type": "string", "required": true, "why": "The party enrolled.", "object": true}
+   ],
+   "refusals": [
+    {"id": "second-factor-required", "status": 401, "statement": "This needs a current second-factor code.", "why": "Vetting actions are stepped up for anybody who can prescribe, sign, dispense or dispatch."},
+    {"id": "refused", "status": 403, "statement": "The vetting vault refused this.", "why": "Who may do what with vetting evidence is the vault's decision, written to the audit chain."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /vetting/parties'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/evidence",
+   "version": 1,
+   "summary": "Submit a piece of vetting evidence.",
+   "callers": ["self", "vetting-team"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "partyId", "type": "string", "required": false, "why": "Whose evidence; defaults to the caller."},
+    {"field": "checkId", "type": "string", "required": true, "why": "The check it answers."},
+    {"field": "document", "type": "string", "required": true, "why": "The document, base64."},
+    {"field": "filename", "type": "string", "required": false, "why": "Its name."},
+    {"field": "issuedOn", "type": "string", "required": false, "why": "When it was issued."},
+    {"field": "expiresOn", "type": "string", "required": false, "why": "When it expires."},
+    {"field": "code", "type": "string", "required": false, "why": "A step-up code."}
+   ],
+   "response": [
+    {"field": "evidenceId", "type": "string", "required": true, "why": "The evidence."},
+    {"field": "state", "type": "string", "required": true, "why": "Its state."},
+    {"field": "version", "type": "string", "required": true, "why": "The stored version.", "object": true}
+   ],
+   "refusals": [
+    {"id": "no-document", "status": 400, "statement": "No document was attached.", "why": "Evidence is a document or it is nothing."},
+    {"id": "second-factor-required", "status": 401, "statement": "This needs a current second-factor code.", "why": "Vetting actions are stepped up for anybody who can prescribe, sign, dispense or dispatch."},
+    {"id": "refused", "status": 403, "statement": "The vetting vault refused this.", "why": "Who may do what with vetting evidence is the vault's decision, written to the audit chain."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /vetting/evidence'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/evidence/{evidenceId}/open",
+   "version": 1,
+   "summary": "Open a stored version of evidence.",
+   "callers": ["vetting-team", "self"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "evidenceId", "type": "string", "required": true, "why": "The evidence."},
+    {"field": "version", "type": "integer", "required": true, "why": "Which version."},
+    {"field": "code", "type": "string", "required": false, "why": "A step-up code."}
+   ],
+   "response": [
+    {"field": "filename", "type": "string", "required": true, "why": "Its name."},
+    {"field": "document", "type": "string", "required": true, "why": "The document, base64."}
+   ],
+   "refusals": [
+    {"id": "no-version", "status": 400, "statement": "Say which version to open.", "why": "A version is opened by number."},
+    {"id": "second-factor-required", "status": 401, "statement": "This needs a current second-factor code.", "why": "Vetting actions are stepped up for anybody who can prescribe, sign, dispense or dispatch."},
+    {"id": "refused", "status": 403, "statement": "The vetting vault refused this.", "why": "Who may do what with vetting evidence is the vault's decision, written to the audit chain."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Opening is audited in the chain; it is not news.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /vetting/evidence/open'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/evidence/{evidenceId}/decide",
+   "version": 1,
+   "summary": "A reviewer decides a piece of evidence.",
+   "callers": ["vetting-team"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "evidenceId", "type": "string", "required": true, "why": "The evidence."},
+    {"field": "decision", "type": "string", "required": true, "why": "verified, declined or in-review."},
+    {"field": "reason", "type": "string", "required": false, "why": "Why."},
+    {"field": "issuedOn", "type": "string", "required": false, "why": "Issue date read off it."},
+    {"field": "expiresOn", "type": "string", "required": false, "why": "Expiry read off it."},
+    {"field": "code", "type": "string", "required": false, "why": "A step-up code."}
+   ],
+   "response": [
+    {"field": "evidence", "type": "string", "required": true, "why": "The evidence decided.", "object": true}
+   ],
+   "refusals": [
+    {"id": "no-decision", "status": 400, "statement": "Say what the decision is.", "why": "A decision is one of three words."},
+    {"id": "second-factor-required", "status": 401, "statement": "This needs a current second-factor code.", "why": "Vetting actions are stepped up for anybody who can prescribe, sign, dispense or dispatch."},
+    {"id": "refused", "status": 403, "statement": "The vetting vault refused this.", "why": "Who may do what with vetting evidence is the vault's decision, written to the audit chain."}
+   ],
+   "emits": ["person.verified@1", "person.probation@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§11", "what": "Onboarding gates and their review"},
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /vetting/evidence/decide'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/evidence/{evidenceId}/second",
+   "version": 1,
+   "summary": "A second reviewer confirms a decision.",
+   "callers": ["vetting-team"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "evidenceId", "type": "string", "required": true, "why": "The evidence."},
+    {"field": "code", "type": "string", "required": false, "why": "A step-up code."}
+   ],
+   "response": [
+    {"field": "evidence", "type": "string", "required": true, "why": "The evidence.", "object": true}
+   ],
+   "refusals": [
+    {"id": "second-factor-required", "status": 401, "statement": "This needs a current second-factor code.", "why": "Vetting actions are stepped up for anybody who can prescribe, sign, dispense or dispatch."},
+    {"id": "refused", "status": 403, "statement": "The vetting vault refused this.", "why": "Who may do what with vetting evidence is the vault's decision, written to the audit chain."}
+   ],
+   "emits": ["person.verified@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§11", "what": "Every review step logged with reason codes"},
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /vetting/evidence/second'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/parties/{partyId}/suspend",
+   "version": 1,
+   "summary": "Suspend a party.",
+   "callers": ["vetting-team", "operator"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "partyId", "type": "string", "required": true, "why": "The party."},
+    {"field": "reason", "type": "string", "required": true, "why": "Why."},
+    {"field": "code", "type": "string", "required": false, "why": "A step-up code."}
+   ],
+   "response": [
+    {"field": "suspended", "type": "boolean", "required": true, "why": "Now true."}
+   ],
+   "refusals": [
+    {"id": "second-factor-required", "status": 401, "statement": "This needs a current second-factor code.", "why": "Vetting actions are stepped up for anybody who can prescribe, sign, dispense or dispatch."},
+    {"id": "refused", "status": 403, "statement": "The vetting vault refused this.", "why": "Who may do what with vetting evidence is the vault's decision, written to the audit chain."}
+   ],
+   "emits": ["person.suspended@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§11", "what": "Review workflow: suspend (person.suspended)"},
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /vetting/parties/suspend'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/parties/{partyId}/restore",
+   "version": 1,
+   "summary": "Restore a suspended party.",
+   "callers": ["vetting-team", "operator"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "partyId", "type": "string", "required": true, "why": "The party."},
+    {"field": "code", "type": "string", "required": false, "why": "A step-up code."}
+   ],
+   "response": [
+    {"field": "suspended", "type": "boolean", "required": true, "why": "Now false."}
+   ],
+   "refusals": [
+    {"id": "second-factor-required", "status": 401, "statement": "This needs a current second-factor code.", "why": "Vetting actions are stepped up for anybody who can prescribe, sign, dispense or dispatch."},
+    {"id": "refused", "status": 403, "statement": "The vetting vault refused this.", "why": "Who may do what with vetting evidence is the vault's decision, written to the audit chain."}
+   ],
+   "emits": ["person.reinstated@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§11", "what": "Review workflow: reinstate (person.reinstated)"},
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /vetting/parties/restore'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/identity-callbacks",
+   "version": 1,
+   "summary": "The identity provider reports a verification result. A legacy supplier callback.",
+   "callers": ["kyc-provider"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "reference", "type": "string", "required": false, "why": "The session reference."},
+    {"field": "SmileJobID", "type": "string", "required": false, "why": "The provider's job id, when reference is absent."},
+    {"field": "ResultCode", "type": "string", "required": true, "why": "The provider's result code."},
+    {"field": "ResultText", "type": "string", "required": false, "why": "The provider's text."},
+    {"field": "signature", "type": "string", "required": false, "why": "HMAC over timestamp and partner id. Checked only for live sessions."},
+    {"field": "timestamp", "type": "string", "required": false, "why": "Within fifteen minutes, when signed."}
+   ],
+   "response": [
+    {"field": "ok", "type": "boolean", "required": true, "why": "Always true on success."},
+    {"field": "repeated", "type": "boolean", "required": true, "why": "Whether this result had already arrived."}
+   ],
+   "refusals": [
+    {"id": "callback-refused", "status": 401, "statement": "That callback was refused.", "why": "Every reason collapses into one answer to the caller; the reason goes to the audit chain."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /vetting/identity/callback'"},
+   "legacyCallback": {"door": "kyc-result", "why": "Built before the doors existed. It should become the kyc-result door, with a signature checked for every session, not only live ones."}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/trust/parties/{partyId}/gates",
+   "version": 1,
+   "summary": "Read a party's seven gates, worked out on read.",
+   "callers": ["vetting-team", "self"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "partyId", "type": "string", "required": true, "why": "The party."}
+   ],
+   "response": [
+    {"field": "gates", "type": "list", "required": true, "why": "Each gate and whether it passes.", "object": true},
+    {"field": "currentGate", "type": "string", "required": true, "why": "The first gate not yet passed."}
+   ],
+   "refusals": [
+    {"id": "no-such-party", "status": 404, "statement": "There is no such party.", "why": "Gates are worked out for somebody on the register."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Gates are worked out on read and written down nowhere.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§11", "what": "The seven onboarding gates"},
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/trust/parties/{partyId}/badge",
+   "version": 1,
+   "summary": "Read the outward view: the badge tier, and nothing it was worked out from.",
+   "callers": ["patient", "caregiver", "dispatcher", "nurse"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "partyId", "type": "string", "required": true, "why": "The party."}
+   ],
+   "response": [
+    {"field": "badgeTier", "type": "string", "required": true, "why": "Verified, Trusted or Senior."},
+    {"field": "verified", "type": "boolean", "required": true, "why": "Whether they hold a current verification."}
+   ],
+   "refusals": [
+    {"id": "no-current-verification", "status": 404, "statement": "That person has no current verification, so there is no badge to show.", "why": "No badge is shown for somebody who may not be dispatched."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading a badge changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§11", "what": "Badge tier only, never a raw score"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/shift-starts",
+   "version": 1,
+   "summary": "Face match at shift start, before going online.",
+   "callers": ["nurse", "locum", "responder", "courier"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "livenessCaptureRef", "type": "string", "required": true, "why": "The capture, held by the provider for the match and not by MyThuso."}
+   ],
+   "response": [
+    {"field": "online", "type": "boolean", "required": true, "why": "Whether they may go online."}
+   ],
+   "refusals": [
+    {"id": "face-mismatch", "status": 403, "statement": "The face did not match, so you stay offline and the desk is told.", "why": "Account sharing is the biggest fraud vector in gig networks (§11)."}
+   ],
+   "emits": ["trust.shift_start.matched@1", "trust.shift_start.refused@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E6", "what": "Shift-start face match"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/door-verifications",
+   "version": 1,
+   "summary": "A patient scans the lanyard QR at the door.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit expected."},
+    {"field": "lanyardCode", "type": "string", "required": true, "why": "The code scanned."}
+   ],
+   "response": [
+    {"field": "matched", "type": "boolean", "required": true, "why": "Whether it is the person expected."},
+    {"field": "badgeTier", "type": "string", "required": false, "why": "Their badge, when matched."}
+   ],
+   "refusals": [
+    {"id": "not-the-person-expected", "status": 409, "statement": "This is not the person expected. Do not open the door; the desk has been told.", "why": "A mismatch triggers an immediate SOS (§11)."}
+   ],
+   "emits": ["trust.door.verified@1", "trust.door.mismatched@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E6", "what": "Patient-side QR at the door"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trust/complaints",
+   "version": 1,
+   "summary": "Make a complaint about a person, reviewed within 24 hours.",
+   "callers": ["patient", "caregiver", "thuso-line-agent"],
+   "purpose": ["vetting"],
+   "request": [
+    {"field": "partyRef", "type": "string", "required": true, "why": "Who the complaint is about."},
+    {"field": "categoryCode", "type": "string", "required": true, "why": "The kind, as a code."}
+   ],
+   "response": [
+    {"field": "complaintRef", "type": "string", "required": true, "why": "The complaint."},
+    {"field": "reviewBy", "type": "instant", "required": true, "why": "When it will have been reviewed."}
+   ],
+   "refusals": [
+    {"id": "unknown-party", "status": 404, "statement": "That person is not on the vetting register.", "why": "A complaint is about somebody Verify can review."}
+   ],
+   "emits": ["person.under_review@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E6", "what": "Ratings, complaints and auto-suspend"},
+   "status": "proposed"
+  }
+ ]
+}

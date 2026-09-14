@@ -1,0 +1,321 @@
+{
+ "engine": "movement",
+ "_note": "Movement is Thuso Ride and Access & Admission: trips, responder heartbeats, hand-over, the facility directory at level zero, admission requests at level one with the facility's decision, arrival and hand-over, and the pre-arrival packet through a Passport share link. Thuso Ride is transport, not an ambulance. Wave 2 contract; Wave 5 build.",
+ "version": 1,
+ "resources": ["trips", "responder-heartbeats", "facilities", "admissions"],
+ "doors": [],
+ "doorsToAdd": [
+  {"id": "responder-position", "why": "A responder app's position stream from a fleet or telematics supplier is a door to add.", "capabilityNamed": {"section": "§12", "what": "Live GPS trace per job"}},
+  {"id": "facility-decision", "why": "A facility system answering an admission (level 4) is a supplier callback; a door to add.", "capabilityNamed": {"section": "§15C", "what": "Provider accepts, declines or asks for more"}},
+  {"id": "ems-dispatch", "why": "The ambulance partner's dispatch messages arrive on a door to add.", "capabilityNamed": {"section": "§12", "what": "EMS partner call or API for P1"}}
+ ],
+ "refusals": [
+  {"id": "p1-not-an-ambulance", "status": 422, "statement": "A P1 goes to a licensed ambulance partner and never to Thuso Ride.", "why": "Only a licensed ambulance service may give care in transit (§12)."},
+  {"id": "self-assigned-p2", "status": 409, "statement": "A responder cannot assign themselves a P2.", "why": "A clinician sets the priority."},
+  {"id": "pending-bed-shown-as-booked", "status": 422, "statement": "A pending bed is never shown as booked.", "why": "§15C: requesting, accepted, wait-listed and alternative offered are four different things."},
+  {"id": "responder-reads-more-than-the-summary", "status": 403, "statement": "A responder reads the emergency summary during a trip and nothing more.", "why": "Transport, not care."}
+ ],
+ "routes": [
+  {
+   "method": "POST",
+   "path": "/v1/movement/trips",
+   "version": 1,
+   "summary": "Request a trip: P3 scheduled, or P2 with a clinician-set priority.",
+   "callers": ["nurse", "doctor", "dispatcher", "thuso-line-agent"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "priorityClass", "type": "string", "required": true, "why": "P2 or P3."},
+    {"field": "pickupWindowStart", "type": "instant", "required": true, "why": "When pick-up may begin."},
+    {"field": "prioritySetByRef", "type": "string", "required": false, "why": "The clinician who set a P2. Required for P2."}
+   ],
+   "response": [
+    {"field": "tripRef", "type": "string", "required": true, "why": "The trip."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "Where it stands."}
+   ],
+   "refusals": [
+    {"id": "p1-refused", "status": 422, "statement": "A P1 goes to a licensed ambulance partner, never to Thuso Ride.", "why": "The legal line in §12."},
+    {"id": "p2-without-clinician", "status": 422, "statement": "A P2 needs a priority set by a clinician.", "why": "The app cannot set it and neither can a responder."}
+   ],
+   "emits": ["trip.requested@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§12", "what": "P3 scheduled trips; P2 with a clinician-set priority"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/responder-heartbeats",
+   "version": 1,
+   "summary": "A responder's heartbeat while online.",
+   "callers": ["responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "lat", "type": "coordinate", "required": true, "why": "Latitude."},
+    {"field": "lng", "type": "coordinate", "required": true, "why": "Longitude."},
+    {"field": "online", "type": "boolean", "required": true, "why": "Whether they are available."}
+   ],
+   "response": [
+    {"field": "nextBeatSeconds", "type": "integer", "required": true, "why": "When to send the next one."}
+   ],
+   "refusals": [
+    {"id": "not-verified", "status": 403, "statement": "A responder without a current verification is not online.", "why": "Zero unverified dispatches."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A position is not an event.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§12", "what": "GPS heartbeat every 10 s while online"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/trips/{tripRef}/accept",
+   "version": 1,
+   "summary": "A responder accepts a trip.",
+   "callers": ["responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "tripRef", "type": "string", "required": true, "why": "The trip."}
+   ],
+   "response": [
+    {"field": "pickupPoint", "type": "string", "required": true, "why": "Where to go, released on accepting."}
+   ],
+   "refusals": [
+    {"id": "trip-taken", "status": 409, "statement": "Somebody else accepted that trip first.", "why": "First to accept within the window gets it."},
+    {"id": "self-assigned-p2", "status": 409, "statement": "A responder cannot take a P2 that was not offered to them.", "why": "A clinician sets the priority and dispatch offers it."}
+   ],
+   "emits": ["trip.accepted@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§12", "what": "First responder to accept gets the job"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/trips/{tripRef}/decline",
+   "version": 1,
+   "summary": "A responder declines a trip.",
+   "callers": ["responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "tripRef", "type": "string", "required": true, "why": "The trip."}
+   ],
+   "response": [
+    {"field": "declined", "type": "boolean", "required": true, "why": "Whether it was."}
+   ],
+   "refusals": [
+    {"id": "trip-not-offered", "status": 404, "statement": "That trip was not offered to you.", "why": "Nothing to decline."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The cascade offers it to the next three responders through the same trip.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§12", "what": "Auto-cascade to the next responders"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/trips/{tripRef}/handover",
+   "version": 1,
+   "summary": "Confirm the hand-over at the destination.",
+   "callers": ["responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "tripRef", "type": "string", "required": true, "why": "The trip."},
+    {"field": "receivingRole", "type": "string", "required": true, "why": "The receiving nurse or desk, by role."},
+    {"field": "checklistComplete", "type": "boolean", "required": true, "why": "Whether the hand-over checklist was followed."}
+   ],
+   "response": [
+    {"field": "handedOverAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "unnamed-receiver", "status": 422, "statement": "A hand-over names who received the patient.", "why": "A hand-over to nobody is a patient left at a door."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An admission's hand-over is recorded through the admission, which emits admission.handover_complete.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§12", "what": "Facility handover confirmed in-app"},
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/movement/facilities",
+   "version": 1,
+   "summary": "Search the facility directory (level zero).",
+   "callers": ["patient", "caregiver", "nurse", "doctor", "ops-desk", "thuso-line-agent"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "zone", "type": "string", "required": false, "why": "Where."},
+    {"field": "capability", "type": "string", "required": false, "why": "What care is needed."}
+   ],
+   "response": [
+    {"field": "facilities", "type": "list", "required": true, "why": "Facilities, phone, hours and capabilities.", "object": true}
+   ],
+   "refusals": [
+    {"id": "no-availability-claim", "status": 422, "statement": "The directory lists facilities; it never says a bed is free.", "why": "There is no universal South African bed API (§15C)."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "L0 facility and service directory"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/admissions",
+   "version": 1,
+   "summary": "Request an admission (level one).",
+   "callers": ["nurse", "doctor", "ops-desk"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "facilityRef", "type": "string", "required": true, "why": "The facility asked."},
+    {"field": "bedCategory", "type": "string", "required": true, "why": "The bed category requested."},
+    {"field": "priorityCode", "type": "string", "required": true, "why": "The priority."},
+    {"field": "arrivalWindowStart", "type": "instant", "required": true, "why": "Requested arrival."}
+   ],
+   "response": [
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "requesting."}
+   ],
+   "refusals": [
+    {"id": "bed-promised", "status": 409, "statement": "A bed is booked only when the facility accepts; until then it is pending.", "why": "Never present a pending bed as booked."}
+   ],
+   "emits": ["admission.requested@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "Bed or admission request (admission.requested)"},
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/movement/admissions/{admissionRef}",
+   "version": 1,
+   "summary": "Read an admission's state.",
+   "callers": ["patient", "caregiver", "nurse", "doctor", "ops-desk"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "requesting, accepted, wait-listed, declined or alternative offered."},
+    {"field": "receivingPoint", "type": "string", "required": false, "why": "Only once accepted."}
+   ],
+   "refusals": [
+    {"id": "not-found", "status": 404, "statement": "There is no admission of yours with that reference.", "why": "The answer says nothing about anybody else's."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "Requesting, accepted, wait-listed shown clearly"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/admissions/{admissionRef}/packet",
+   "version": 1,
+   "summary": "Send the pre-arrival packet as a scoped, expiring Passport share link.",
+   "callers": ["nurse", "doctor", "ops-desk"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
+    {"field": "shareLinkRef", "type": "string", "required": true, "why": "The share link the Passport created."}
+   ],
+   "response": [
+    {"field": "sentAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "unrestricted-access", "status": 422, "statement": "The facility gets a scoped, expiring link, never unrestricted record access.", "why": "§15C: the facility can ask for more rather than receive everything."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The share link is created by the Passport, which emits passport.share.link_created.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "Pre-arrival packet, scoped to treatment"},
+   "status": "proposed",
+   "through": "passport-gateway"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/admissions/{admissionRef}/decision",
+   "version": 1,
+   "summary": "The facility desk accepts, wait-lists or declines.",
+   "callers": ["facility-desk", "ops-desk"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
+    {"field": "decisionCode", "type": "string", "required": true, "why": "accepted, waitlisted or declined."},
+    {"field": "receivingPoint", "type": "string", "required": false, "why": "Required when accepted."},
+    {"field": "alternativeOffered", "type": "boolean", "required": true, "why": "Whether an alternative was offered."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "The new state."}
+   ],
+   "refusals": [
+    {"id": "acceptance-without-receiving-point", "status": 422, "statement": "An acceptance names where the patient goes.", "why": "An acceptance with no destination is still pending."}
+   ],
+   "emits": ["admission.accepted@1", "admission.waitlisted@1", "admission.declined@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "admission.accepted / waitlisted / declined"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/admissions/{admissionRef}/arrival",
+   "version": 1,
+   "summary": "The facility confirms arrival and verifies the pre-triage.",
+   "callers": ["facility-desk"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
+    {"field": "receivingPoint", "type": "string", "required": true, "why": "Where the patient was received."},
+    {"field": "agreedWithPretriage", "type": "boolean", "required": true, "why": "Whether the facility's triage agreed."}
+   ],
+   "response": [
+    {"field": "arrivedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "arrival-before-acceptance", "status": 409, "statement": "An admission that was never accepted has no arrival.", "why": "The state machine is followed, not skipped."}
+   ],
+   "emits": ["admission.arrived@1", "triage.verified@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "admission.arrived / triage.verified"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/movement/admissions/{admissionRef}/handover",
+   "version": 1,
+   "summary": "A named receiving clinician takes the hand-over.",
+   "callers": ["facility-desk"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "admissionRef", "type": "string", "required": true, "why": "The admission."},
+    {"field": "receivingRole", "type": "string", "required": true, "why": "The receiving clinician or desk, by role."},
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The Passport encounter updated."}
+   ],
+   "response": [
+    {"field": "handedOverAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "unnamed-receiver", "status": 422, "statement": "A hand-over names the receiving clinician or desk.", "why": "The loop closes on a person, not on a building."}
+   ],
+   "emits": ["admission.handover_complete@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15C", "what": "admission.handover_complete"},
+   "status": "proposed"
+  }
+ ]
+}

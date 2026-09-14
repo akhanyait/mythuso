@@ -1,0 +1,237 @@
+{
+ "engine": "medicines",
+ "_note": "Medicines & Labs is Thuso Pharmacy: the formulary, interaction checks at prescribe and dispense, prescriptions through the §5.4 states, collections with a chain of custody (§10), the partner pharmacy's queue and lab orders. Lab results arrive on a door to add. Wave 2 contract; Wave 4 build.",
+ "version": 1,
+ "resources": ["formulary", "interaction-checks", "prescriptions", "collections", "orders", "lab-orders"],
+ "doors": ["pharmacy-order"],
+ "doorsToAdd": [
+  {"id": "lab-result", "why": "The partner lab's results are supplier callbacks; a door to add.", "capabilityNamed": {"section": "FS-E8", "what": "Lab sample queue and result screens"}}
+ ],
+ "refusals": [
+  {"id": "prescriber-verifies-own-script", "status": 403, "statement": "The prescriber cannot verify their own script.", "why": "§5.4: separation of duties."},
+  {"id": "schedule-five-six-by-driver", "status": 403, "statement": "A driver never carries Schedule 5 or 6.", "why": "§10: controlled substances go nurse-only or with the patient present."},
+  {"id": "lab-result-complete-before-acknowledgement", "status": 409, "statement": "A lab result is not complete until it is acknowledged.", "why": "Full Scope Engine 8."},
+  {"id": "reward-for-taking-a-medicine", "status": 422, "statement": "Nothing rewards taking a medicine.", "why": "Section 18A of the Medicines and Related Substances Act; held pending counsel."}
+ ],
+ "routes": [
+  {
+   "method": "GET",
+   "path": "/v1/medicines/formulary",
+   "version": 1,
+   "summary": "Search the coded medicine list.",
+   "callers": ["doctor", "nurse", "pharmacist"],
+   "purpose": ["dispensing"],
+   "request": [
+    {"field": "query", "type": "string", "required": true, "why": "What to look for."}
+   ],
+   "response": [
+    {"field": "medicines", "type": "list", "required": true, "why": "Coded entries.", "object": true}
+   ],
+   "refusals": [
+    {"id": "formulary-not-licensed", "status": 503, "statement": "The coded medicine list is not licensed yet.", "why": "NAPPI data needs a licence; a development list is labelled as one."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Searching changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§9", "what": "Formulary: the medicines knowledge engine"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/interaction-checks",
+   "version": 1,
+   "summary": "Check allergies, interactions and duplicate therapy.",
+   "callers": ["doctor", "pharmacist"],
+   "purpose": ["dispensing", "treatment"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Whose medicines."},
+    {"field": "medicationCodes", "type": "list", "required": true, "why": "The codes to check."},
+    {"field": "stageCode", "type": "string", "required": true, "why": "prescribe or dispense."}
+   ],
+   "response": [
+    {"field": "flags", "type": "list", "required": true, "why": "What was flagged.", "object": true},
+    {"field": "checkRef", "type": "string", "required": true, "why": "The check, cited by the prescription."}
+   ],
+   "refusals": [
+    {"id": "check-without-allergies", "status": 422, "statement": "An interaction check that cannot see allergies is not run.", "why": "A clean result that never looked is worse than none."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A check changes nothing.",
+   "idempotent": false,
+   "reads": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§5.4", "what": "Allergy, drug-drug and duplicate-therapy checks"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/prescriptions",
+   "version": 1,
+   "summary": "Prescribe, after the interaction check.",
+   "callers": ["doctor"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "For whom."},
+    {"field": "medicationCode", "type": "string", "required": true, "why": "The coded medicine."},
+    {"field": "dosage", "type": "string", "required": true, "why": "The dosage, written to the MedicationRequest."},
+    {"field": "checkRef", "type": "string", "required": true, "why": "The interaction check at prescribe time."}
+   ],
+   "response": [
+    {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."},
+    {"field": "medicationRequestRef", "type": "string", "required": true, "why": "The MedicationRequest in the Passport."}
+   ],
+   "refusals": [
+    {"id": "no-interaction-check", "status": 422, "statement": "A prescription is written only after the interaction check.", "why": "§5.4: checks at prescribe time."}
+   ],
+   "emits": ["prescription.prescribed@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§5.4", "what": "Dispensary state: prescribed"},
+   "status": "proposed",
+   "through": "passport-gateway"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/prescriptions/{prescriptionRef}/verify",
+   "version": 1,
+   "summary": "A pharmacist verifies the prescription.",
+   "callers": ["pharmacist"],
+   "purpose": ["dispensing"],
+   "request": [
+    {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."}
+   ],
+   "response": [
+    {"field": "verifiedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "prescriber-verifies-own", "status": 403, "statement": "The prescriber cannot verify their own prescription.", "why": "Separation of duties."}
+   ],
+   "emits": ["prescription.verified@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§5.4", "what": "Pharmacist verification as a distinct role"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/prescriptions/{prescriptionRef}/dispense",
+   "version": 1,
+   "summary": "A licensed pharmacy dispenses.",
+   "callers": ["pharmacist", "pharmacy"],
+   "purpose": ["dispensing"],
+   "request": [
+    {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."},
+    {"field": "dispenseEntryRef", "type": "string", "required": true, "why": "The dispense record in the Passport."}
+   ],
+   "response": [
+    {"field": "dispensedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "not-verified", "status": 409, "statement": "Nothing is dispensed before a pharmacist verifies it.", "why": "The states are followed in order."},
+    {"id": "unlicensed-pharmacy", "status": 403, "statement": "Only a licensed pharmacy dispenses.", "why": "Full Scope Engine 8."}
+   ],
+   "emits": ["dispense.completed@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§5.4", "what": "Dispensary state: dispensed"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/collections",
+   "version": 1,
+   "summary": "Collect a sealed, scanned bag with the patient's authorisation.",
+   "callers": ["nurse", "courier", "responder"],
+   "purpose": ["dispensing"],
+   "request": [
+    {"field": "prescriptionRef", "type": "string", "required": true, "why": "The prescription."},
+    {"field": "authorisationRef", "type": "string", "required": true, "why": "The patient's authorisation in the Passport."},
+    {"field": "sealRef", "type": "string", "required": true, "why": "The tamper-evident bag's QR."},
+    {"field": "scheduleClass", "type": "string", "required": true, "why": "The medicine schedule."}
+   ],
+   "response": [
+    {"field": "collectionRef", "type": "string", "required": true, "why": "The collection."}
+   ],
+   "refusals": [
+    {"id": "schedule-five-six-by-driver", "status": 403, "statement": "A driver never carries Schedule 5 or 6.", "why": "§10."},
+    {"id": "no-authorisation", "status": 403, "statement": "Nobody collects without the patient's authorisation.", "why": "Collection on behalf of a patient is by their authority."}
+   ],
+   "emits": ["delivery.collected@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§10", "what": "Scan at pharmacy, sealed tamper-evident bag with QR"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/collections/{collectionRef}/handover",
+   "version": 1,
+   "summary": "Hand the bag over with the PIN.",
+   "callers": ["nurse", "courier", "responder"],
+   "purpose": ["dispensing"],
+   "request": [
+    {"field": "collectionRef", "type": "string", "required": true, "why": "The collection."},
+    {"field": "handoverPin", "type": "string", "required": true, "why": "The patient's or next of kin's PIN."},
+    {"field": "sealIntact", "type": "boolean", "required": true, "why": "Whether the seal held."}
+   ],
+   "response": [
+    {"field": "handedOverAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "broken-seal", "status": 409, "statement": "A broken seal voids the delivery; the bag goes back to the pharmacy.", "why": "Chain of custody."},
+    {"id": "wrong-pin", "status": 403, "statement": "That PIN is not right.", "why": "The PIN proves the hand-over."}
+   ],
+   "emits": ["delivery.handed_over@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§10", "what": "Hand-over signature or PIN"},
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/medicines/orders",
+   "version": 1,
+   "summary": "The partner pharmacy reads its queue.",
+   "callers": ["pharmacy"],
+   "purpose": ["dispensing"],
+   "request": [],
+   "response": [
+    {"field": "orders", "type": "list", "required": true, "why": "Orders waiting.", "object": true}
+   ],
+   "refusals": [
+    {"id": "another-pharmacys-queue", "status": 403, "statement": "That queue belongs to another pharmacy.", "why": "A pharmacy sees its own orders."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/medicines/lab-orders",
+   "version": 1,
+   "summary": "Order a lab test from the partner lab.",
+   "callers": ["doctor", "nurse"],
+   "purpose": ["diagnostics"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "For whom."},
+    {"field": "serviceRequestRef", "type": "string", "required": true, "why": "The ServiceRequest in the Passport."},
+    {"field": "collectionMode", "type": "string", "required": true, "why": "home or lab."}
+   ],
+   "response": [
+    {"field": "labOrderRef", "type": "string", "required": true, "why": "The order."}
+   ],
+   "refusals": [
+    {"id": "lab-not-contracted", "status": 503, "statement": "No partner lab is contracted yet.", "why": "An order to nobody is a sample that sits."}
+   ],
+   "emits": ["lab.order.placed@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E8", "what": "Home sample collection with results into the Passport"},
+   "status": "proposed"
+  }
+ ]
+}

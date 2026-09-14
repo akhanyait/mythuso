@@ -1,0 +1,199 @@
+{
+ "_note": "ThusoIQ's engine API contracts, version one, frozen. The Full Scope's Core acceptance test is \"role and scope matrix enforced on every API\", and the build plan's Wave 2 writes that matrix down before any engine builds further: every engine's routes live in one file under packages/catalog/apis/, and this file holds what they share — the path convention, the callers, the refusals every route inherits, what may never cross an API, the document sections a route may cite, and the development mock's rules. scripts/check-boundaries.mjs holds all twelve engine files to it, and packages/catalog/apis.lock freezes every route exactly as events.lock freezes events. Nothing here is a running service. The identity service and the Passport P0 answer the routes marked built, in development; everything else is a proposal answered only by packages/mock-api, on loopback, with synthetic data.",
+ "_decided": "The founder delegated the API conventions to the programme on 14 September 2026 (\"propose\"). They are decided for this build and are marked as the programme's decision, awaiting a Head of Engineering, who may overturn any of them — by withdrawing and versioning, not by editing a frozen route.",
+ "decidedBy": "Programme (founder delegated)",
+ "decidedOn": "2026-09-14",
+ "awaiting": "Head of Engineering",
+ "version": 1,
+ "frozen": true,
+ "lock": "packages/catalog/apis.lock",
+
+ "conventions": {
+  "pathPattern": "/v1/<engine>/<resource>[/{id}[/<action>]]",
+  "why": "One shape for every engine, so a path says whose store it touches before anybody reads the handler. The engine is exactly an engine id from packages/catalog/events.json; the resource is one lower-case hyphenated word; an id is a parameter in braces; an action is one more word, and only after an id — a verb on a collection is a resource of its own (permission-checks, not permissions/check).",
+  "passportPaths": {
+   "engine": "record",
+   "mount": "/v1/record",
+   "namedIn": "§26",
+   "paths": ["/fhir/{resourceType}", "/fhir/{resourceType}/{id}", "/consent/grant", "/consent/revoke", "/audit/mine", "/share/link", "/export", "/breakglass", "/hl7v2/inbound", "/summary/emergency"],
+   "why": "The Health Passport's paths are named in ThusoIQ Master §26 and the P0 service already answers most of them. They keep their names and are mounted under /v1/record by reference, so the module contract a hospital integrator reads and the path this contract freezes are the same string."
+  },
+  "idempotency": {
+   "field": "idempotencyKey",
+   "type": "string",
+   "appliesToEngines": ["money"],
+   "appliesToPurposes": ["dispatch"],
+   "appliesToMethods": ["POST", "PUT", "PATCH", "DELETE"],
+   "exceptRoutesThatRead": true,
+   "why": "A charge sent twice is a patient charged twice, and a dispatch sent twice is two nurses driving to one door while another patient waits. Every money write and every dispatch write carries a key the caller chose, and the same key twice is the same act once."
+  },
+  "references": {
+   "storeSuffixes": ["Ref", "Refs"],
+   "contractSuffixes": ["Id", "Ids"],
+   "why": "A field ending Ref points at something an engine stores — a visit, a trip, a payment — and is held to the rule that no route names another engine's resource except through a gateway. A field ending Id names an entry in a contract — a service in services.json, a protocol version in protocols.json, a purpose in consent.json — which every engine may name, because a contract is read by everybody and stored by nobody."
+  },
+  "fieldTypesFrom": "packages/catalog/feeds.json",
+  "purposesFrom": "apps/api/src/protection/contract.ts",
+  "eventsFrom": "packages/catalog/events.json"
+ },
+
+ "engineFiles": [
+  "packages/catalog/apis/core.json",
+  "packages/catalog/apis/access.json",
+  "packages/catalog/apis/pulse.json",
+  "packages/catalog/apis/care.json",
+  "packages/catalog/apis/clinical.json",
+  "packages/catalog/apis/safety.json",
+  "packages/catalog/apis/movement.json",
+  "packages/catalog/apis/trust.json",
+  "packages/catalog/apis/record.json",
+  "packages/catalog/apis/medicines.json",
+  "packages/catalog/apis/devices.json",
+  "packages/catalog/apis/money.json"
+ ],
+
+ "routeShape": [
+  { "key": "method", "required": true, "why": "GET, POST, PUT, PATCH or DELETE." },
+  { "key": "path", "required": true, "why": "The convention above, or a §26 Passport path for the record engine." },
+  { "key": "version", "required": true, "why": "The route's version. A changed shape is a new version, never an edit." },
+  { "key": "summary", "required": true, "why": "What the route does, in a sentence." },
+  { "key": "callers", "required": true, "why": "Role ids that may call it, from packages/catalog/vetting.json, the grant roles in packages/catalog/consent.json, or the callers below. A route with no callers is a route anybody can call." },
+  { "key": "purpose", "required": true, "why": "Purposes of use from the gate's Purpose union. POPIA section 13 ties processing to a purpose; a route with none cannot be checked against one." },
+  { "key": "request", "required": true, "why": "Fields in, each with a type from packages/catalog/feeds.json, whether it is required and why it is there." },
+  { "key": "response", "required": true, "why": "Fields out, in the same shape." },
+  { "key": "refusals", "required": true, "why": "At least one {id, status, statement, why}. The route inherits the shared refusals below as well." },
+  { "key": "emits", "required": true, "why": "Event type@version strings, each live and owned by the route's engine; or an empty list with emitsNoneBecause." },
+  { "key": "idempotent", "required": true, "why": "Whether the same call twice is the same act once." },
+  { "key": "endpointNamed", "required": true, "why": "{ section } only when a document gives the route's method and path — which today means the Health Passport's §26 paths and nothing else — or null." },
+  { "key": "capabilityNamed", "required": true, "why": "{ section, what } when a document names the capability, message set or state the route serves, with the words in a few; or null. The route that serves it is still the programme's design, and a route with neither is plainly ours." },
+  { "key": "status", "required": true, "why": "proposed, or built with evidence naming the handler file and the handler as it is registered there." },
+  { "key": "reads", "required": false, "why": "True on a POST that changes nothing — a check whose answer is the whole of what it does. Such a route is not a write, so the idempotency rule does not reach it; a route that says it reads and emits an event is refused." },
+  { "key": "through", "required": false, "why": "passport-gateway or tool-gateway, when the route reaches another engine's data through one of the two synchronous doors rather than through events." },
+  { "key": "emitsNoneBecause", "required": false, "why": "Required when emits is empty." },
+  { "key": "evidence", "required": false, "why": "Required when status is built: { file, handler }." },
+  { "key": "withdrawn", "required": false, "why": "As for events: { on, supersededBy, why }, the route keeps its lock line and loses its callers." }
+ ],
+
+ "callers": [
+  { "id": "anonymous", "name": "Nobody signed in", "why": "Starting a sign-in and reading a public contract are the only things somebody with no session may do." },
+  { "id": "patient", "name": "A patient, in their own session", "why": "The person a record, a booking or a payment is about. Not a vetting role, because a patient is not vetted." },
+  { "id": "self", "name": "The person the resource is about", "why": "A nurse reading her own vetting standing, or anybody reading their own account. The subject token of the session must be the subject of the resource." },
+  { "id": "thuso-line-agent", "name": "Thuso Line desk agent", "why": "Books and supports by phone, WhatsApp and USSD on a patient's behalf, and is recorded as the actor rather than the patient." },
+  { "id": "dispatcher", "name": "Care dispatcher", "why": "Matches visits to nurses when the automatic offer has not been accepted." },
+  { "id": "ops-desk", "name": "Operations and safety desk", "why": "Receives panic, overdue check-ins and SOS, and holds escalation authority on the rota." },
+  { "id": "vetting-team", "name": "Verify vetting team", "why": "The only people who see a Trust Score's number and the evidence behind a gate." },
+  { "id": "medical-director", "name": "Medical Director", "why": "The only role that ratifies a clinical protocol." },
+  { "id": "responder", "name": "Thuso Ride responder", "why": "Transport, not medical care. Sees the emergency summary during a trip through the responder-on-trip grant and nothing else." },
+  { "id": "facility-desk", "name": "Partner facility admissions desk", "why": "Accepts, wait-lists or declines an admission request and opens a pre-arrival packet through a share link." },
+  { "id": "engine", "name": "Another ThusoIQ engine, over mutual TLS", "why": "Core's routes are called by engines, not by people. The engine id is the certificate's subject." }
+ ],
+ "callersFrom": ["packages/catalog/vetting.json#roles", "packages/catalog/consent.json#grants.recipientRoles"],
+
+ "supplierCallers": [
+  { "id": "payment-provider", "why": "Payment results arrive on the payment-result door." },
+  { "id": "payout-provider", "why": "Payout advice arrives on the payout-advice door." },
+  { "id": "sms-provider", "why": "Delivery receipts arrive on the message-delivery door." },
+  { "id": "whatsapp-provider", "why": "Inbound WhatsApp is a door to add, not a route." },
+  { "id": "ussd-aggregator", "why": "USSD sessions are a door to add, not a route." },
+  { "id": "kyc-provider", "why": "Identity verification results belong on a door; the identity service's existing callback is the one legacy exception, and it says so." },
+  { "id": "afis-partner", "why": "Criminal-record clearance results are a door to add." },
+  { "id": "lab-system", "why": "Lab results arrive on a door to add." },
+  { "id": "hospital-system", "why": "HL7 v2 ADT and discharge messages arrive on a door to add." },
+  { "id": "ems-partner", "why": "Ambulance dispatch acknowledgements arrive on the emergency-acknowledgement door." },
+  { "id": "device-partner", "why": "Device and wearable readings from a vendor cloud arrive on a door to add." },
+  { "id": "speech-provider", "why": "Speech transcripts arrive on the speech-transcript door." }
+ ],
+
+ "sharedRefusals": [
+  { "id": "caller-not-allowed", "status": 403, "statement": "This route does not take calls from your role.", "why": "The role and scope matrix is enforced on every route, and the refusal says which half refused rather than failing silently." },
+  { "id": "purpose-not-allowed", "status": 403, "statement": "This route does not serve the purpose you gave.", "why": "A read made for billing that reaches a diagnosis is the processing POPIA section 13 forbids, and it is refused before anything is opened." },
+  { "id": "required-field-missing", "status": 400, "statement": "A field this route needs was not sent.", "why": "A route that guesses a missing field has invented part of somebody's request." },
+  { "id": "idempotency-key-required", "status": 400, "statement": "A money or dispatch write needs an idempotency key.", "why": "Without one, a retry on a bad connection is a second charge or a second nurse." }
+ ],
+
+ "neverCrossesAnApi": {
+  "fromEventNeverList": ["idNumber", "passportNumber", "transcript", "cardNumber", "bankAccount", "score"],
+  "trustNames": { "words": ["trust", "badge", "tier"], "outsideEngine": "trust", "only": "badgeTier", "why": "A trust-named field that is a number is the Trust Score renamed, and no route anywhere carries one. Outside Verify's own routes a trust-named field is the badge tier or nothing; inside them a person reading their own vetting standing is reading about themselves, which is what those routes are for. The event contract's trust words include standing; this list does not, because the identity service's consent routes already answer with a consent's standing — whether a purpose was agreed to — which is not about anybody's trust, and a word list that refuses a built route for sharing a word has stopped being about the Trust Score." },
+  "sealedCategoriesFrom": "packages/catalog/records.json#sensitivity",
+  "why": "The event contract already refuses these on the bus. The same refusal holds for every request and response: no identity number, no transcript, no card or bank number, no Trust Score under any name, no numeric trust-named field and no trust-named field outside Verify but the badge tier, and no field named for a sealed category. Names, phone numbers and email addresses are not in this list — the identity service takes them, and it is the one place that may."
+ },
+ "objectFields": {
+  "allowedTypes": ["string", "list"],
+  "why": "packages/catalog/feeds.json has no object type, and this contract extends nothing there. A field whose value is a JSON object keeps the nearest type — string for one object, list for a list of them — and says \"object\": true, so the generated clients type it as an object rather than lying that it is text, and the mock answers it with an empty object rather than a string."
+ },
+ "legacyCallbacks": {
+  "why": "A supplier never calls a route. The identity service already answers one supplier callback — POST /vetting/identity/callback, the identity provider's result — which predates the doors. It is mapped here because it is built, marked legacyCallback with the door it should become, and refused everywhere else: no route may be a supplier callback unless it is built, marked, and names a door to add in its own engine file."
+ },
+
+ "clinicalContent": {
+  "words": ["value", "reading", "readings", "diagnosis", "diagnoses", "findings", "symptoms", "assessment", "dose", "dosage", "icd10", "soap", "observation", "observations"],
+  "measuresFrom": "packages/catalog/records.json#observations.measures",
+  "recordsFrom": "packages/catalog/records.json#records",
+  "onlyThrough": "passport-gateway",
+  "why": "No engine holds a copy of a record. A route in any engine but record that carries clinical content — a reading, a finding, a dose, a clinical record by name — must declare that it goes through the Passport's consent gateway; otherwise it carries a reference to the entry, and the entry stays where the grant decides who reads it."
+ },
+
+ "gateways": [
+  { "id": "passport-gateway", "engine": "record", "why": "The one synchronous door to clinical data: consent, purpose and scope checked and logged on every call." },
+  { "id": "tool-gateway", "engine": "access", "path": "/v1/access/tools/{tool}", "why": "Gilbert's allow-listed tool calls (§15D). A tool reaches another engine's action only by name from the allow-list, never a generic call." }
+ ],
+
+ "documentSections": [
+  { "id": "§4", "document": "ThusoIQ Master v3.5", "title": "Product Architecture — The Engine Model (what ThusoIQ Core owns)" },
+  { "id": "§5.1", "document": "ThusoIQ Master v3.5", "title": "Appointment Engine" },
+  { "id": "§5.2", "document": "ThusoIQ Master v3.5", "title": "Consultation Engine" },
+  { "id": "§5.4", "document": "ThusoIQ Master v3.5", "title": "Dispensary Engine" },
+  { "id": "§5.5", "document": "ThusoIQ Master v3.5", "title": "Wearable Ingestion Engine" },
+  { "id": "§8", "document": "ThusoIQ Master v3.5", "title": "Home Guidance & Recovery Pathways Engine" },
+  { "id": "§9", "document": "ThusoIQ Master v3.5", "title": "ThusoIQ Formulary — the medicines knowledge engine" },
+  { "id": "§10", "document": "ThusoIQ Master v3.5", "title": "Medicine collection & delivery — nurses, drivers, couriers" },
+  { "id": "§11", "document": "ThusoIQ Master v3.5", "title": "ThusoIQ Verify — The Vetting Engine" },
+  { "id": "§12", "document": "ThusoIQ Master v3.5", "title": "Thuso Ride — Emergency & Patient Transport Layer" },
+  { "id": "§13", "document": "ThusoIQ Master v3.5", "title": "ThusoIQ Sentinel — The Pre-emptive Emergency Layer" },
+  { "id": "§14", "document": "ThusoIQ Master v3.5", "title": "Clinician Anomaly Alerting" },
+  { "id": "§15", "document": "ThusoIQ Master v3.5", "title": "Next-of-Kin Alerting" },
+  { "id": "§15B", "document": "ThusoIQ Master v3.5", "title": "Thuso Triage Intelligence Engine" },
+  { "id": "§15C", "document": "ThusoIQ Master v3.5", "title": "Thuso Access & Admission Engine — hospital and bed booking" },
+  { "id": "§15D", "document": "ThusoIQ Master v3.5", "title": "Gilbert Technology Architecture & AI Model Strategy (the tool gateway)" },
+  { "id": "§26", "document": "ThusoIQ Master v3.5", "title": "Health Passport — Module contract — events and APIs" },
+  { "id": "§36", "document": "ThusoIQ Master v3.5", "title": "Thuso Market — Orders, payments, fulfilment, returns" },
+  { "id": "FS-2", "document": "MyThuso Full Scope v1.0", "title": "2. ThusoIQ Core" },
+  { "id": "FS-E1", "document": "MyThuso Full Scope v1.0", "title": "Engine 1 — Access (Gilbert)" },
+  { "id": "FS-E2", "document": "MyThuso Full Scope v1.0", "title": "Engine 2 — Care (Thuso Nurse)" },
+  { "id": "FS-E3", "document": "MyThuso Full Scope v1.0", "title": "Engine 3 — Clinical Intelligence (Thuso AI)" },
+  { "id": "FS-E4", "document": "MyThuso Full Scope v1.0", "title": "Engine 4 — Safety (Sentinel)" },
+  { "id": "FS-E5", "document": "MyThuso Full Scope v1.0", "title": "Engine 5 — Movement (Thuso Ride and Access & Admission)" },
+  { "id": "FS-E6", "document": "MyThuso Full Scope v1.0", "title": "Engine 6 — Trust (Verify)" },
+  { "id": "FS-E7", "document": "MyThuso Full Scope v1.0", "title": "Engine 7 — Record (Health Passport)" },
+  { "id": "FS-E8", "document": "MyThuso Full Scope v1.0", "title": "Engine 8 — Medicines & Labs (Thuso Pharmacy)" },
+  { "id": "FS-E9", "document": "MyThuso Full Scope v1.0", "title": "Engine 9 — Devices (Thuso Kit)" },
+  { "id": "FS-E10", "document": "MyThuso Full Scope v1.0", "title": "Engine 10 — Money (Thuso Money)" }
+ ],
+ "_documentSectionsNote": "The sections the build plan's ◆ marks rest on: the ThusoIQ Master's §5, §8–§15D, §26 and §36, and the Full Scope's Core and engine tables. The documents are not in the repository, so this list is the copy the check holds routes to; a section added here should be one somebody can open.",
+
+ "mock": {
+  "package": "packages/mock-api",
+  "flag": "MYTHUSO_MOCK",
+  "flagValue": "synthetic-data-only",
+  "roleHeader": "x-mythuso-role",
+  "purposeHeader": "x-mythuso-purpose",
+  "refusalHeader": "x-mythuso-mock-refusal",
+  "why": "Screens are built against the contract before any engine exists, so the mock answers every route from fixtures derived from this contract and refuses exactly as the route declares: the wrong role, the wrong purpose, a missing field, a missing idempotency key, and — when a test asks for it by id — each of the route's own refusals with its status and its sentence. It binds to loopback, refuses to start without the flag, and nothing in deploy/ may name it."
+ },
+
+ "refusals": [
+  { "id": "every-route-names-its-scope", "statement": "Every route names the roles that may call it and the purposes it serves.", "why": "The Full Scope's Core acceptance test is a role and scope matrix enforced on every API. A route that names neither has no matrix to enforce." },
+  { "id": "every-route-refuses-something", "statement": "Every route declares at least one refusal of its own, with a status, a sentence and the reason.", "why": "The valuable part of a route is what it will not do. A route that only says yes is a route whose no is invented at three in the morning by whoever is on call." },
+  { "id": "every-route-says-what-it-emits", "statement": "Every route names the events it emits, each live and owned by its own engine, or says why it emits none.", "why": "Cross-engine work travels as events. A route that changes something and tells nobody is a direct call waiting to be written." },
+  { "id": "no-engine-reads-another-engines-store", "statement": "No route names another engine's resource in its path or its fields, except through the Passport gateway or Gilbert's tool gateway.", "why": "An engine that reads another's store is two engines that must be deployed, secured and changed together. The two synchronous doors are the only exceptions, and each checks who is asking and why." },
+  { "id": "clinical-content-only-through-the-record", "statement": "Clinical content crosses an API only through the Passport gateway. Everywhere else a route carries a reference to the entry.", "why": "No engine holds a copy of a record. A reading in a devices payload that is not going through the gateway is a second copy with none of the record's protections." },
+  { "id": "money-and-dispatch-writes-are-idempotent", "statement": "Every money write and every dispatch write is idempotent and requires an idempotency key.", "why": "A retry on a dropped connection must not charge twice or send two nurses." },
+  { "id": "suppliers-arrive-through-doors", "statement": "A supplier never calls a route. It calls a door in packages/catalog/feeds.json, which answers no until its switch-on conditions are evidenced.", "why": "A supplier callback added as a route skips every condition a door holds: the contract, the credential, the named operator and the refused fields." },
+  { "id": "nothing-identifying-or-sealed-crosses-an-api", "statement": "No request or response carries an identity number, a transcript, a card or bank number, a Trust Score under any name, a trust-named field other than the badge tier, or a field named for a sealed category.", "why": "Every one of these is refused on the bus already, and an API is a wider audience than the bus: it reaches phones, browsers and partners." },
+  { "id": "built-means-a-handler-exists", "statement": "A route marked built names the file and the handler that answers it, and the check finds that handler there.", "why": "A contract that says built about something nobody wrote is the readiness overstatement this repository exists to refuse." },
+  { "id": "named-means-a-section-exists", "statement": "A route says a document names its endpoint only when the document gives the method and the path, and says a document names its capability only by citing the section and the words.", "why": "\"The documents say so\" is only evidence when a reader can open the section and find it there. Only §26 names endpoints; elsewhere the documents name what an engine does, and counting the route that does it as named in the documents overstates how much of the design is theirs." },
+  { "id": "api-frozen-means-frozen", "statement": "While the API contract is frozen, no route in apis.lock may disappear or change shape. A new version is a new entry, and a wrong one is withdrawn, not edited.", "why": "A screen built against version one is still in somebody's pocket. Editing version one in place breaks it without a word." },
+  { "id": "api-freezing-cannot-be-switched-off", "statement": "The API contract is frozen, and the build refuses a contract that says it is not.", "why": "Every lock check sits behind the flag; a boolean that switches them off is a door any change walks through." },
+  { "id": "the-mock-is-not-a-service", "statement": "The development mock answers only on loopback, only with the development flag set, and only with synthetic data, and nothing that deploys may name it.", "why": "A mock that answers every route with a yes, reachable from outside, is a fake health service with a real address." }
+ ]
+}

@@ -1,0 +1,360 @@
+{
+ "engine": "record",
+ "_note": "Record is the Health Passport. Its §26 paths keep their names and are mounted under /v1/record by reference; the P0 service answers most of them already, in development, on synthetic data, on loopback. Share links and export are proposed; the HL7 v2 inbound path is a supplier's, so it is a door to add rather than a route. Every read goes through the consent gateway.",
+ "version": 1,
+ "resources": ["fhir", "consent", "audit", "share", "export", "breakglass", "summary", "dev-subjects", "session-ends", "consent-checks"],
+ "doors": [],
+ "doorsToAdd": [
+  {"id": "hl7v2-inbound", "why": "ADT, ORU and ORM messages from partner systems are supplier callbacks. §26 names the path /hl7v2/inbound; it is mounted as a door with mutual TLS per partner, not answered as a route.", "passportPath": "/hl7v2/inbound", "capabilityNamed": {"section": "§26", "what": "POST /hl7v2/inbound, the ADT/ORU/ORM bridge"}}
+ ],
+ "refusals": [
+  {"id": "read-without-a-grant", "status": 401, "statement": "Nothing is read without a grant, a break-glass justification or the patient's own session.", "why": "§19: patient-controlled by construction."},
+  {"id": "sealed-without-a-tick", "status": 403, "statement": "Sealed content is opened only by a named tick.", "why": "Sealed by default."},
+  {"id": "break-glass-beyond-the-summary", "status": 403, "statement": "Break-glass opens the emergency summary and nothing more.", "why": "§21."},
+  {"id": "identifiable-grant-to-a-payer", "status": 403, "statement": "No scheme, insurer or employer receives an identifiable grant.", "why": "Aggregate only."}
+ ],
+ "routes": [
+  {
+   "method": "POST",
+   "path": "/v1/record/dev-subjects",
+   "version": 1,
+   "summary": "Create a synthetic subject and patient session. Development only.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "subject", "type": "string", "required": true, "why": "The synthetic subject token."},
+    {"field": "patientSession", "type": "string", "required": true, "why": "A development patient session."}
+   ],
+   "refusals": [
+    {"id": "not-loopback", "status": 403, "statement": "The Passport answers only on the machine itself.", "why": "It is development only, on synthetic data, until the DPIA is signed."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A synthetic subject is not a record event.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/dev/subjects'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/record/session-ends",
+   "version": 1,
+   "summary": "End a patient session.",
+   "callers": ["patient"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "ended", "type": "boolean", "required": true, "why": "Now true."}
+   ],
+   "refusals": [
+    {"id": "patient-session-required", "status": 401, "statement": "This needs your own session.", "why": "Only you end your session."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Ending a session is written to the audit chain, not the bus.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/session/end'"}
+  },
+  {
+   "method": "POST",
+   "path": "/consent/grant",
+   "version": 1,
+   "summary": "Grant a recipient part of your record, for a purpose, until a time.",
+   "callers": ["patient"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "subject", "type": "string", "required": true, "why": "Your subject token."},
+    {"field": "recipientRole", "type": "string", "required": true, "why": "A grant role from packages/catalog/consent.json."},
+    {"field": "scope", "type": "list", "required": true, "why": "Record ids."},
+    {"field": "purpose", "type": "string", "required": true, "why": "A purpose the role allows."},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "Within the ceiling packages/catalog/consent.json sets."},
+    {"field": "sealedIncluded", "type": "boolean", "required": true, "why": "True only when you ticked a sealed category in."}
+   ],
+   "response": [
+    {"field": "grantId", "type": "string", "required": true, "why": "The grant."},
+    {"field": "artefact", "type": "string", "required": true, "why": "The signed artefact."},
+    {"field": "grant", "type": "string", "required": true, "why": "The grant as recorded.", "object": true}
+   ],
+   "refusals": [
+    {"id": "patient-session-required", "status": 401, "statement": "A grant is made in your own session.", "why": "Nobody grants access to somebody else's record."},
+    {"id": "expiry-too-long", "status": 403, "statement": "That grant would last longer than the ceiling allows.", "why": "The ceiling lives in packages/catalog/consent.json and is read, not restated."},
+    {"id": "sealed-not-ticked", "status": 403, "statement": "A sealed category is included only when you tick it in.", "why": "Sealed by default."},
+    {"id": "aggregate-only", "status": 403, "statement": "A scheme receives aggregates, and there is no identifiable grant for one.", "why": "The identifiable grant to a payer does not exist."}
+   ],
+   "emits": ["passport.consent.granted@3"],
+   "idempotent": false,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/consent/grant'"}
+  },
+  {
+   "method": "POST",
+   "path": "/consent/revoke",
+   "version": 1,
+   "summary": "Revoke a grant, in one tap.",
+   "callers": ["patient"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "grantId", "type": "string", "required": true, "why": "The grant."}
+   ],
+   "response": [
+    {"field": "revoked", "type": "boolean", "required": true, "why": "Whether it was."}
+   ],
+   "refusals": [
+    {"id": "patient-session-required", "status": 401, "statement": "A grant is revoked in your own session.", "why": "Only the patient revokes."},
+    {"id": "not-found", "status": 404, "statement": "There is no such grant of yours.", "why": "Says nothing about anybody else's."}
+   ],
+   "emits": ["passport.consent.revoked@3"],
+   "idempotent": false,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/consent/revoke'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/record/consent-checks",
+   "version": 1,
+   "summary": "An engine holding a grant checks a category before asking for it.",
+   "callers": ["nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator", "responder-on-trip", "caregiver", "next-of-kin"],
+   "purpose": ["treatment", "dispensing", "dispatch", "emergency"],
+   "request": [
+    {"field": "category", "type": "string", "required": true, "why": "A record id."}
+   ],
+   "response": [
+    {"field": "allowed", "type": "boolean", "required": true, "why": "Always true when answered."},
+    {"field": "sealed", "type": "boolean", "required": true, "why": "Whether the category is sealed."}
+   ],
+   "refusals": [
+    {"id": "no-grant", "status": 401, "statement": "There is no grant, session or credential behind this request.", "why": "No code path reads a record without a grant, a break-glass justification or the patient's own session (§19)."},
+    {"id": "grant-refused", "status": 403, "statement": "That grant is revoked, expired, for another purpose, or for aggregates only.", "why": "The gateway validates the grant on every call."},
+    {"id": "out-of-scope", "status": 403, "statement": "That category is outside what the grant opens.", "why": "The gateway filters every read to the grant's scope."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A check reads nothing; the read itself emits passport.access.read.",
+   "idempotent": false,
+   "reads": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/consent/check'"}
+  },
+  {
+   "method": "GET",
+   "path": "/audit/mine",
+   "version": 1,
+   "summary": "Read who opened your record, and whether the chain holds.",
+   "callers": ["patient"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "entries", "type": "list", "required": true, "why": "Every access, refusals included.", "object": true},
+    {"field": "chain", "type": "string", "required": true, "why": "Whether the chain is intact.", "object": true}
+   ],
+   "refusals": [
+    {"id": "patient-session-required", "status": 401, "statement": "Your access log is read in your own session.", "why": "It is yours to read without asking anybody."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading your own log is recorded in the log itself.",
+   "idempotent": false,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/audit/mine'"}
+  },
+  {
+   "method": "POST",
+   "path": "/breakglass",
+   "version": 1,
+   "summary": "Open the emergency summary without a grant, with a justification. Reviewed within 24 hours.",
+   "callers": ["operator", "doctor", "nurse"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "subject", "type": "string", "required": true, "why": "The subject token."},
+    {"field": "reasonCode", "type": "string", "required": true, "why": "unresponsive, no-means-to-consent or cannot-communicate."},
+    {"field": "note", "type": "string", "required": true, "why": "At least six words, with nothing that identifies the patient."}
+   ],
+   "response": [
+    {"field": "summary", "type": "string", "required": true, "why": "The emergency summary, and nothing more.", "object": true},
+    {"field": "reviewDueBy", "type": "instant", "required": true, "why": "When the board must have reviewed it."}
+   ],
+   "refusals": [
+    {"id": "breakglass-role", "status": 401, "statement": "Only a registered clinician or the dispatch desk can break glass, with a credential.", "why": "Who is breaking the glass comes from a credential, never the request body."},
+    {"id": "breakglass-justification", "status": 400, "statement": "Break-glass needs a reason and a note.", "why": "A break-glass with no reason is a back door with a label."}
+   ],
+   "emits": ["passport.access.breakglass@1"],
+   "idempotent": false,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/breakglass'"}
+  },
+  {
+   "method": "GET",
+   "path": "/summary/emergency",
+   "version": 1,
+   "summary": "Read the patient-configured emergency summary.",
+   "callers": ["patient", "responder-on-trip", "doctor-assigned", "nurse-assigned"],
+   "purpose": ["emergency", "treatment"],
+   "request": [
+    {"field": "subject", "type": "string", "required": true, "why": "The subject token."}
+   ],
+   "response": [
+    {"field": "summary", "type": "string", "required": true, "why": "The emergency summary.", "object": true}
+   ],
+   "refusals": [
+    {"id": "no-grant", "status": 401, "statement": "There is no grant, session or credential behind this request.", "why": "No code path reads a record without a grant, a break-glass justification or the patient's own session (§19)."},
+    {"id": "grant-refused", "status": 403, "statement": "That grant is revoked, expired, for another purpose, or for aggregates only.", "why": "The gateway validates the grant on every call."},
+    {"id": "out-of-scope", "status": 403, "statement": "That category is outside what the grant opens.", "why": "The gateway filters every read to the grant's scope."}
+   ],
+   "emits": ["passport.access.read@1"],
+   "idempotent": false,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/summary/emergency'"}
+  },
+  {
+   "method": "POST",
+   "path": "/fhir/{resourceType}",
+   "version": 1,
+   "summary": "Write a FHIR resource under consent, with provenance.",
+   "callers": ["patient", "nurse-assigned", "doctor-assigned", "pharmacist"],
+   "purpose": ["treatment", "dispensing", "subject-access"],
+   "request": [
+    {"field": "resourceType", "type": "string", "required": true, "why": "Patient, Observation, AllergyIntolerance, MedicationStatement or Consent."},
+    {"field": "subject", "type": "string", "required": true, "why": "The subject token."},
+    {"field": "category", "type": "string", "required": true, "why": "The record category."},
+    {"field": "resource", "type": "string", "required": true, "why": "The FHIR resource.", "object": true},
+    {"field": "provenance", "type": "string", "required": true, "why": "Activity and source system.", "object": true},
+    {"field": "markedPrivate", "type": "boolean", "required": false, "why": "Whether the patient marked it private."}
+   ],
+   "response": [
+    {"field": "id", "type": "string", "required": true, "why": "The resource id."},
+    {"field": "version", "type": "integer", "required": true, "why": "Its version."}
+   ],
+   "refusals": [
+    {"id": "no-grant", "status": 401, "statement": "There is no grant, session or credential behind this request.", "why": "No code path reads a record without a grant, a break-glass justification or the patient's own session (§19)."},
+    {"id": "grant-refused", "status": 403, "statement": "That grant is revoked, expired, for another purpose, or for aggregates only.", "why": "The gateway validates the grant on every call."},
+    {"id": "out-of-scope", "status": 403, "statement": "That category is outside what the grant opens.", "why": "The gateway filters every read to the grant's scope."},
+    {"id": "no-provenance", "status": 400, "statement": "A write says where it came from.", "why": "An entry without provenance cannot be trusted or corrected."},
+    {"id": "identity-in-resource", "status": 400, "statement": "A clinical resource carries no identity.", "why": "Identity lives in the identity service."}
+   ],
+   "emits": ["passport.entry.written@1"],
+   "idempotent": false,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "parts[0] === 'fhir'"}
+  },
+  {
+   "method": "GET",
+   "path": "/fhir/{resourceType}/{id}",
+   "version": 1,
+   "summary": "Read a FHIR resource under consent.",
+   "callers": ["patient", "nurse-assigned", "doctor-assigned", "pharmacist", "caregiver"],
+   "purpose": ["treatment", "dispensing", "subject-access"],
+   "request": [
+    {"field": "resourceType", "type": "string", "required": true, "why": "The resource type."},
+    {"field": "id", "type": "string", "required": true, "why": "The resource."}
+   ],
+   "response": [
+    {"field": "resource", "type": "string", "required": false, "why": "The resource; null when sealed content exists and has not been opened to you.", "object": true},
+    {"field": "sealedContentExists", "type": "boolean", "required": false, "why": "Said to clinicians rather than hidden."}
+   ],
+   "refusals": [
+    {"id": "no-grant", "status": 401, "statement": "There is no grant, session or credential behind this request.", "why": "No code path reads a record without a grant, a break-glass justification or the patient's own session (§19)."},
+    {"id": "grant-refused", "status": 403, "statement": "That grant is revoked, expired, for another purpose, or for aggregates only.", "why": "The gateway validates the grant on every call."},
+    {"id": "out-of-scope", "status": 403, "statement": "That category is outside what the grant opens.", "why": "The gateway filters every read to the grant's scope."},
+    {"id": "not-found", "status": 404, "statement": "There is no such resource here.", "why": "An unknown type or id is refused."}
+   ],
+   "emits": ["passport.access.read@1"],
+   "idempotent": false,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "parts[0] === 'fhir'"}
+  },
+  {
+   "method": "GET",
+   "path": "/fhir/{resourceType}",
+   "version": 1,
+   "summary": "Search a subject's resources of one type under consent.",
+   "callers": ["patient", "nurse-assigned", "doctor-assigned", "pharmacist", "caregiver"],
+   "purpose": ["treatment", "dispensing", "subject-access"],
+   "request": [
+    {"field": "resourceType", "type": "string", "required": true, "why": "The resource type."},
+    {"field": "subject", "type": "string", "required": true, "why": "The subject token."}
+   ],
+   "response": [
+    {"field": "entries", "type": "list", "required": true, "why": "Entries the grant opens.", "object": true},
+    {"field": "sealedContentExists", "type": "boolean", "required": false, "why": "Said rather than hidden."}
+   ],
+   "refusals": [
+    {"id": "no-grant", "status": 401, "statement": "There is no grant, session or credential behind this request.", "why": "No code path reads a record without a grant, a break-glass justification or the patient's own session (§19)."},
+    {"id": "grant-refused", "status": 403, "statement": "That grant is revoked, expired, for another purpose, or for aggregates only.", "why": "The gateway validates the grant on every call."},
+    {"id": "out-of-scope", "status": 403, "statement": "That category is outside what the grant opens.", "why": "The gateway filters every read to the grant's scope."}
+   ],
+   "emits": ["passport.access.read@1"],
+   "idempotent": false,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "parts[0] === 'fhir'"}
+  },
+  {
+   "method": "POST",
+   "path": "/share/link",
+   "version": 1,
+   "summary": "Create a share link with a scope, an expiry and a passcode.",
+   "callers": ["patient", "responder-on-trip"],
+   "purpose": ["treatment", "emergency"],
+   "request": [
+    {"field": "scope", "type": "list", "required": true, "why": "Record ids the link opens."},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "When it ends."},
+    {"field": "purpose", "type": "string", "required": true, "why": "Why."}
+   ],
+   "response": [
+    {"field": "linkRef", "type": "string", "required": true, "why": "The link."},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "When it ends."}
+   ],
+   "refusals": [
+    {"id": "link-without-expiry", "status": 422, "statement": "Every link ends.", "why": "A link that does not expire is a copy of the record at a public address."},
+    {"id": "responder-without-trip", "status": 403, "statement": "A responder makes a link only during an active trip.", "why": "§26: patient, or a responder with an active job."}
+   ],
+   "emits": ["passport.share.link_created@1"],
+   "idempotent": false,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/export",
+   "version": 1,
+   "summary": "Export the whole record: FHIR bundle, IPS and PDF.",
+   "callers": ["patient"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "format", "type": "string", "required": true, "why": "fhir-bundle, ips or pdf."},
+    {"field": "code", "type": "string", "required": true, "why": "A current second-factor code: an export is stepped up."}
+   ],
+   "response": [
+    {"field": "exportRef", "type": "string", "required": true, "why": "The export, collected by your session only."}
+   ],
+   "refusals": [
+    {"id": "step-up-required", "status": 401, "statement": "An export needs your second factor.", "why": "It puts the whole record in one place."}
+   ],
+   "emits": ["passport.export.generated@1"],
+   "idempotent": false,
+   "endpointNamed": {"section": "§26"},
+   "capabilityNamed": null,
+   "status": "proposed"
+  }
+ ]
+}

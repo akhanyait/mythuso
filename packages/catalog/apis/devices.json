@@ -1,0 +1,225 @@
+{
+ "engine": "devices",
+ "_note": "Devices is Thuso Kit: the device registry, reading ingestion to the §5.5 canonical schema through the Passport gateway, wearable links with consent, kits issued against a deposit, and device health. Vendor clouds arrive on doors to add. Wave 2 contract; Wave 4 build.",
+ "version": 1,
+ "resources": ["registry", "readings", "wearable-links", "kits"],
+ "doors": [],
+ "doorsToAdd": [
+  {"id": "device-reading", "why": "Readings pushed from a vendor cloud are supplier callbacks; a door to add.", "capabilityNamed": {"section": "§5.5", "what": "Pluggable vendor adapters to the canonical schema"}},
+  {"id": "wearable-sync", "why": "Apple Health and Health Connect sync arrives on the phone, but a partner cloud sync is a door.", "capabilityNamed": {"section": "FS-E9", "what": "Apple Health and Google Health Connect sync"}}
+ ],
+ "refusals": [
+  {"id": "ingestion-after-withdrawal", "status": 403, "statement": "Nothing is ingested after consent is withdrawn.", "why": "§5.5: ingestion stops immediately."},
+  {"id": "consumer-device-clinical-weight", "status": 422, "statement": "A consumer device does not carry clinical weight or trigger dispatch.", "why": "Full Scope Engine 9."},
+  {"id": "reading-without-source-and-quality", "status": 422, "statement": "A reading carries its source and quality.", "why": "§5.5."},
+  {"id": "simulator-as-real", "status": 422, "statement": "A simulator reading is labelled and never presented as real.", "why": "§5.5."}
+ ],
+ "routes": [
+  {
+   "method": "POST",
+   "path": "/v1/devices/registry",
+   "version": 1,
+   "summary": "Register a device.",
+   "callers": ["operator"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "serial", "type": "string", "required": true, "why": "The serial."},
+    {"field": "model", "type": "string", "required": true, "why": "The model."},
+    {"field": "firmware", "type": "string", "required": true, "why": "Firmware version."},
+    {"field": "calibratedOn", "type": "iso-date", "required": false, "why": "Last calibration."},
+    {"field": "deviceClass", "type": "string", "required": true, "why": "certified or consumer."}
+   ],
+   "response": [
+    {"field": "deviceRef", "type": "string", "required": true, "why": "The device."}
+   ],
+   "refusals": [
+    {"id": "duplicate-serial", "status": 409, "statement": "That serial is already registered.", "why": "One device, one entry, one recall linkage."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Registering a device changes nobody's care; staleness and recall are the events.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§4", "what": "Device registry: serial, firmware, calibration"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/registry/{deviceRef}/recall",
+   "version": 1,
+   "summary": "Recall a device and link every holder.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "deviceRef", "type": "string", "required": true, "why": "The device."},
+    {"field": "reasonCode", "type": "string", "required": true, "why": "A code."}
+   ],
+   "response": [
+    {"field": "holdersLinked", "type": "integer", "required": true, "why": "How many holders were found."}
+   ],
+   "refusals": [
+    {"id": "recall-without-reason", "status": 422, "statement": "A recall says why.", "why": "Holders are told something they can act on."}
+   ],
+   "emits": ["device.recalled@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§4", "what": "Device registry: recall linkage"},
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/devices/registry/{deviceRef}/health",
+   "version": 1,
+   "summary": "Read whether a device is stale or recalled.",
+   "callers": ["nurse", "operator"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "deviceRef", "type": "string", "required": true, "why": "The device."}
+   ],
+   "response": [
+    {"field": "lastSyncAt", "type": "instant", "required": false, "why": "Last sync."},
+    {"field": "stale", "type": "boolean", "required": true, "why": "Whether it is stale."},
+    {"field": "recalled", "type": "boolean", "required": true, "why": "Whether it is recalled."}
+   ],
+   "refusals": [
+    {"id": "unknown-device", "status": 404, "statement": "That device is not registered.", "why": "An unregistered device has no health to report."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/readings",
+   "version": 1,
+   "summary": "Ingest a reading to the canonical schema, written through the Passport gateway.",
+   "callers": ["patient", "nurse", "locum"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Whose reading (the schema's patientId)."},
+    {"field": "deviceRef", "type": "string", "required": true, "why": "The registered device."},
+    {"field": "metric", "type": "string", "required": true, "why": "Which measure."},
+    {"field": "value", "type": "number", "required": true, "why": "The value, written to the Observation and never kept here."},
+    {"field": "unit", "type": "string", "required": true, "why": "The unit."},
+    {"field": "takenAt", "type": "instant", "required": true, "why": "When it was taken."},
+    {"field": "source", "type": "string", "required": true, "why": "Which adapter."},
+    {"field": "quality", "type": "string", "required": true, "why": "The sample quality."},
+    {"field": "consentState", "type": "string", "required": true, "why": "The consent standing at capture."}
+   ],
+   "response": [
+    {"field": "readingRef", "type": "string", "required": true, "why": "The ingestion."},
+    {"field": "observationRef", "type": "string", "required": true, "why": "The Observation in the Passport."}
+   ],
+   "refusals": [
+    {"id": "consent-withdrawn", "status": 403, "statement": "Ingestion stopped when consent was withdrawn.", "why": "§5.5."},
+    {"id": "no-source-or-quality", "status": 422, "statement": "A reading without its source and quality is not ingested.", "why": "§5.5."},
+    {"id": "simulator-as-real", "status": 422, "statement": "A simulator reading is not stored as real.", "why": "§5.5."}
+   ],
+   "emits": ["reading.ingested@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§5.5", "what": "Canonical reading schema"},
+   "status": "proposed",
+   "through": "passport-gateway"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/wearable-links",
+   "version": 1,
+   "summary": "Link Apple Health or Health Connect, with consent.",
+   "callers": ["patient"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "platform", "type": "string", "required": true, "why": "apple-health or health-connect."},
+    {"field": "consentVersion", "type": "integer", "required": true, "why": "The wearable-readings consent version agreed."}
+   ],
+   "response": [
+    {"field": "linkRef", "type": "string", "required": true, "why": "The link."}
+   ],
+   "refusals": [
+    {"id": "consent-missing", "status": 403, "statement": "A wearable is linked only with consent to read it.", "why": "The wearable-readings purpose in packages/catalog/consent.json."},
+    {"id": "consumer-clinical-weight", "status": 422, "statement": "A consumer wearable guides conversation and carries no clinical weight.", "why": "Full Scope Engine 9."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A link is an arrangement; each reading it brings emits reading.ingested.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E9", "what": "Apple Health and Google Health Connect sync"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/kits",
+   "version": 1,
+   "summary": "Issue a kit against a deposit.",
+   "callers": ["operator", "nurse"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "kitSerial", "type": "string", "required": true, "why": "The kit."},
+    {"field": "holderRef", "type": "string", "required": true, "why": "Who holds it."},
+    {"field": "depositRef", "type": "string", "required": true, "why": "The deposit taken."}
+   ],
+   "response": [
+    {"field": "kitRef", "type": "string", "required": true, "why": "The issued kit."}
+   ],
+   "refusals": [
+    {"id": "kit-without-deposit", "status": 409, "statement": "A kit is issued against a deposit.", "why": "Full Scope Engine 9."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Issuing a kit is registry bookkeeping.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/kits/{kitRef}/return",
+   "version": 1,
+   "summary": "Return a kit.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "kitRef", "type": "string", "required": true, "why": "The kit."}
+   ],
+   "response": [
+    {"field": "returnedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "kit-not-issued", "status": 409, "statement": "That kit was never issued.", "why": "Nothing to return."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Registry bookkeeping.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices/kits/{kitRef}/loss",
+   "version": 1,
+   "summary": "Report a kit lost.",
+   "callers": ["operator", "nurse"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "kitRef", "type": "string", "required": true, "why": "The kit."},
+    {"field": "reasonCode", "type": "string", "required": true, "why": "A code."}
+   ],
+   "response": [
+    {"field": "recordedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "loss-without-reason", "status": 422, "statement": "A loss is reported with a reason.", "why": "Kit loss is a pilot measure."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Registry bookkeeping.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  }
+ ]
+}

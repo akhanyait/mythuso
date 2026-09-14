@@ -1,0 +1,965 @@
+{
+ "engine": "access",
+ "_note": "Access is how a person reaches MyThuso: the identity service's sign-in, account, consent and operator routes (built, in development), and Gilbert's bookings, conversations, handover, allow-listed tools and household arrangements (proposed). Wave 2 contract; Wave 3 build.",
+ "version": 1,
+ "resources": ["sign-ins", "sessions", "sign-outs", "account-names", "second-factors", "second-factor-confirmations", "second-factor-removals", "account-data", "erasure-requests", "erasure-cancellations", "account-exports", "correction-requests", "consent-contract", "consents", "access-log", "subject-requests", "health", "audit-chain", "witness-statements", "access-log-integrity", "verification-status", "rate-limits", "doors", "bookings", "conversations", "tools", "households", "sponsors", "bill-splits"],
+ "doors": ["message-delivery"],
+ "doorsToAdd": [
+  {"id": "whatsapp-inbound", "why": "Inbound WhatsApp from the provider is a supplier callback, so it is a door to add to packages/catalog/feeds.json, not a route.", "capabilityNamed": {"section": "FS-E1", "what": "Thuso Line phone and WhatsApp booking"}},
+  {"id": "ussd-session", "why": "USSD sessions arrive from an aggregator; a door to add.", "capabilityNamed": {"section": "FS-E1", "what": "USSD *120# and IVR booking and check-in"}}
+ ],
+ "refusals": [
+  {"id": "tool-not-on-allow-list", "status": 403, "statement": "Gilbert reaches only the tools on its allow-list.", "why": "§15D: never a generic tool in front of a patient-facing model."},
+  {"id": "booking-invents-a-slot", "status": 409, "statement": "A booking is made only against a slot that was offered.", "why": "An invented slot is a nurse who is not coming."},
+  {"id": "answer-lowers-an-emergency", "status": 422, "statement": "No answer lowers an emergency.", "why": "Generative output may explain a priority; it may not lower one."},
+  {"id": "scheme-or-employer-as-caller", "status": 403, "statement": "No Access route takes a call from a scheme or an employer.", "why": "Neither has any business in a person's way into care."}
+ ],
+ "forbiddenCallers": ["scheme-aggregate", "employer"],
+ "routes": [
+  {
+   "method": "POST",
+   "path": "/v1/access/sign-ins",
+   "version": 1,
+   "summary": "Start a sign-in: a one-time code to a phone number.",
+   "callers": ["anonymous"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "phone", "type": "string", "required": true, "why": "The number the code goes to."}
+   ],
+   "response": [
+    {"field": "challengeId", "type": "string", "required": true, "why": "The challenge to verify."},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "When the code stops working."},
+    {"field": "developmentCode", "type": "string", "required": false, "why": "Development only; never in production."}
+   ],
+   "refusals": [
+    {"id": "invalid-phone", "status": 400, "statement": "That is not a phone number we can send a code to.", "why": "Refused before anything is sent."},
+    {"id": "rate-limited", "status": 429, "statement": "Too many codes asked for. Wait and try again.", "why": "A code endpoint without a limit hands out accounts."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/start'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/sign-ins/{challengeId}/verify",
+   "version": 1,
+   "summary": "Verify the one-time code.",
+   "callers": ["anonymous"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "challengeId", "type": "string", "required": true, "why": "The challenge."},
+    {"field": "code", "type": "string", "required": true, "why": "The code received."}
+   ],
+   "response": [
+    {"field": "person", "type": "string", "required": false, "why": "The signed-in person, when no second factor is needed.", "object": true},
+    {"field": "secondFactorRequired", "type": "boolean", "required": false, "why": "Whether a second factor is needed."},
+    {"field": "challengeToken", "type": "string", "required": false, "why": "Carries the sign-in to the second factor."},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "When the session or the token ends."}
+   ],
+   "refusals": [
+    {"id": "wrong-code", "status": 400, "statement": "That code is not the one we sent.", "why": "Refused and counted."},
+    {"id": "expired", "status": 400, "statement": "That code has expired.", "why": "A code lives for minutes."},
+    {"id": "too-many-attempts", "status": 429, "statement": "Too many wrong codes.", "why": "Guessing is stopped."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/verify'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/sign-ins/{challengeToken}/second-factor",
+   "version": 1,
+   "summary": "Complete a sign-in with an authenticator or recovery code.",
+   "callers": ["anonymous"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "challengeToken", "type": "string", "required": true, "why": "From the verify step."},
+    {"field": "code", "type": "string", "required": true, "why": "An authenticator or recovery code."}
+   ],
+   "response": [
+    {"field": "person", "type": "string", "required": true, "why": "The signed-in person.", "object": true},
+    {"field": "expiresAt", "type": "instant", "required": true, "why": "When the session ends."}
+   ],
+   "refusals": [
+    {"id": "wrong-code", "status": 401, "statement": "That code did not match.", "why": "Refused and counted."},
+    {"id": "too-many-attempts", "status": 429, "statement": "Too many wrong codes.", "why": "Guessing is stopped."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/second-factor'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/sessions",
+   "version": 1,
+   "summary": "Read the current session.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "person", "type": "string", "required": true, "why": "Who is signed in.", "object": true},
+    {"field": "secondFactor", "type": "string", "required": true, "why": "Enrolment state.", "object": true},
+    {"field": "erasure", "type": "string", "required": false, "why": "A pending erasure request.", "object": true}
+   ],
+   "refusals": [
+    {"id": "no-session", "status": 401, "statement": "You are not signed in.", "why": "An account route answers only the person whose session it is."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading your own session changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /auth/session'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/sign-outs",
+   "version": 1,
+   "summary": "Sign out and clear the session.",
+   "callers": ["anonymous", "self"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "ok", "type": "boolean", "required": true, "why": "Always true; signing out never fails."}
+   ],
+   "refusals": [
+    {"id": "origin-not-allowed", "status": 403, "statement": "This request did not come from a MyThuso page.", "why": "A cross-site sign-out is refused like any other cross-site write."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/logout'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/account-names",
+   "version": 1,
+   "summary": "Set the name on your account.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "name", "type": "string", "required": false, "why": "The name you want used; empty clears it."}
+   ],
+   "response": [
+    {"field": "person", "type": "string", "required": true, "why": "The updated person.", "object": true}
+   ],
+   "refusals": [
+    {"id": "no-session", "status": 401, "statement": "You are not signed in.", "why": "An account route answers only the person whose session it is."},
+    {"id": "encryption-unavailable", "status": 503, "statement": "Your name cannot be stored safely right now.", "why": "A name is sealed at rest or not stored."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/name'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/second-factors",
+   "version": 1,
+   "summary": "Read your second-factor state and where it is required.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "enrolled", "type": "boolean", "required": true, "why": "Whether one is set up."},
+    {"field": "confirmed", "type": "boolean", "required": true, "why": "Whether it was confirmed."},
+    {"field": "recoveryCodesLeft", "type": "integer", "required": true, "why": "How many recovery codes remain."},
+    {"field": "requiredFor", "type": "list", "required": true, "why": "Capabilities that demand it, and why.", "object": true}
+   ],
+   "refusals": [
+    {"id": "no-session", "status": 401, "statement": "You are not signed in.", "why": "An account route answers only the person whose session it is."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /account/second-factor'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/second-factors",
+   "version": 1,
+   "summary": "Begin enrolling a second factor.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "secret", "type": "string", "required": true, "why": "Shown once, to add to an authenticator."},
+    {"field": "uri", "type": "string", "required": true, "why": "The same, as a scannable link."}
+   ],
+   "refusals": [
+    {"id": "no-session", "status": 401, "statement": "You are not signed in.", "why": "An account route answers only the person whose session it is."},
+    {"id": "already-enrolled", "status": 409, "statement": "A second factor is already set up.", "why": "Replacing one is disable then begin, each stepped up."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/second-factor/begin'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/second-factor-confirmations",
+   "version": 1,
+   "summary": "Confirm the second factor with its first code.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "code", "type": "string", "required": true, "why": "The first code from the authenticator."}
+   ],
+   "response": [
+    {"field": "recoveryCodes", "type": "list", "required": true, "why": "Shown once."},
+    {"field": "shownOnce", "type": "boolean", "required": true, "why": "Always true."}
+   ],
+   "refusals": [
+    {"id": "no-session", "status": 401, "statement": "You are not signed in.", "why": "An account route answers only the person whose session it is."},
+    {"id": "wrong-code", "status": 400, "statement": "That code did not match.", "why": "A factor is confirmed by using it."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/second-factor/confirm'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/second-factor-removals",
+   "version": 1,
+   "summary": "Turn the second factor off, with a current code.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "code", "type": "string", "required": true, "why": "A current code: removing a factor is stepped up."}
+   ],
+   "response": [
+    {"field": "enrolled", "type": "boolean", "required": true, "why": "Now false."},
+    {"field": "confirmed", "type": "boolean", "required": true, "why": "Now false."},
+    {"field": "recoveryCodesLeft", "type": "integer", "required": true, "why": "Now nought."}
+   ],
+   "refusals": [
+    {"id": "second-factor-required", "status": 401, "statement": "Turning this off needs a current code.", "why": "Somebody holding an unlocked phone should not be able to remove the lock."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/second-factor/disable'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/account-data",
+   "version": 1,
+   "summary": "See what the service holds about you and how long it keeps it.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "holdings", "type": "list", "required": true, "why": "What is held.", "object": true},
+    {"field": "retained", "type": "list", "required": true, "why": "What is kept after erasure, and why.", "object": true},
+    {"field": "responseDays", "type": "integer", "required": true, "why": "Days to respond to a request."},
+    {"field": "respondBy", "type": "instant", "required": true, "why": "The date that works out to."}
+   ],
+   "refusals": [
+    {"id": "no-session", "status": 401, "statement": "You are not signed in.", "why": "An account route answers only the person whose session it is."},
+    {"id": "refused", "status": 403, "statement": "The gate refused this read.", "why": "A subject-access read goes through the same gate as everybody else's, and is audited."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /account/data'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/erasure-requests",
+   "version": 1,
+   "summary": "Ask for your account to be erased.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "code", "type": "string", "required": false, "why": "A current code, when a second factor is set up."}
+   ],
+   "response": [
+    {"field": "requestedAt", "type": "instant", "required": true, "why": "When."},
+    {"field": "eraseAfter", "type": "instant", "required": true, "why": "When erasure happens unless cancelled."},
+    {"field": "retained", "type": "list", "required": true, "why": "What is kept, and the law that keeps it.", "object": true}
+   ],
+   "refusals": [
+    {"id": "second-factor-required", "status": 401, "statement": "Erasing your account needs a current code.", "why": "An erasure cannot be taken back once it runs."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/erasure'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/erasure-cancellations",
+   "version": 1,
+   "summary": "Cancel a pending erasure.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "cancelled", "type": "boolean", "required": true, "why": "Whether one was pending."}
+   ],
+   "refusals": [
+    {"id": "no-session", "status": 401, "statement": "You are not signed in.", "why": "An account route answers only the person whose session it is."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/erasure/cancel'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/account-exports",
+   "version": 1,
+   "summary": "Export everything the identity service holds about you.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "code", "type": "string", "required": false, "why": "A current code: an export puts a whole record in one place."}
+   ],
+   "response": [
+    {"field": "exportedAt", "type": "instant", "required": true, "why": "When."},
+    {"field": "account", "type": "string", "required": true, "why": "The account.", "object": true},
+    {"field": "consent", "type": "list", "required": true, "why": "Consent history.", "object": true},
+    {"field": "signInLog", "type": "list", "required": true, "why": "Sign-ins.", "object": true},
+    {"field": "recordAccessLog", "type": "list", "required": true, "why": "Who opened your record.", "object": true}
+   ],
+   "refusals": [
+    {"id": "second-factor-required", "status": 401, "statement": "An export needs a current code.", "why": "It is the one answer that puts everything in one place."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/export'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/correction-requests",
+   "version": 1,
+   "summary": "Ask for a correction to something held about you.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "field", "type": "string", "required": true, "why": "What is wrong."},
+    {"field": "shouldSay", "type": "string", "required": true, "why": "What it should say."},
+    {"field": "because", "type": "string", "required": true, "why": "Why."}
+   ],
+   "response": [
+    {"field": "requestId", "type": "string", "required": true, "why": "The request."},
+    {"field": "respondBy", "type": "instant", "required": true, "why": "When an answer is owed."}
+   ],
+   "refusals": [
+    {"id": "correction-refused", "status": 400, "statement": "That cannot be corrected here; a note can be attached instead.", "why": "Some records are a history and are annotated, not rewritten."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/correction'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/correction-requests",
+   "version": 1,
+   "summary": "Read your correction requests and their answers.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "requests", "type": "list", "required": true, "why": "Requests.", "object": true},
+    {"field": "answers", "type": "list", "required": true, "why": "Answers.", "object": true},
+    {"field": "responseDays", "type": "integer", "required": true, "why": "Days to respond."}
+   ],
+   "refusals": [
+    {"id": "no-session", "status": 401, "statement": "You are not signed in.", "why": "An account route answers only the person whose session it is."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /account/correction'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/consent-contract",
+   "version": 1,
+   "summary": "Read the consent purposes, bases and rules.",
+   "callers": ["anonymous"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "rules", "type": "string", "required": true, "why": "The consent rules.", "object": true},
+    {"field": "required", "type": "list", "required": true, "why": "Required purposes.", "object": true},
+    {"field": "optional", "type": "list", "required": true, "why": "Optional purposes.", "object": true}
+   ],
+   "refusals": [
+    {"id": "not-found", "status": 404, "statement": "There is no consent contract at that address.", "why": "The contract is one resource; nothing else is served here."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading the contract changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /consent/contract'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/consents",
+   "version": 1,
+   "summary": "Read where your consents stand.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "standing", "type": "list", "required": true, "why": "Each purpose, the version agreed and when.", "object": true}
+   ],
+   "refusals": [
+    {"id": "no-session", "status": 401, "statement": "You are not signed in.", "why": "An account route answers only the person whose session it is."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /consent'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/consents",
+   "version": 1,
+   "summary": "Give consent to a version of a purpose.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "purposeId", "type": "string", "required": true, "why": "The purpose."},
+    {"field": "version", "type": "integer", "required": true, "why": "The version of the wording shown."},
+    {"field": "route", "type": "string", "required": false, "why": "Only web-account may be declared by the person."},
+    {"field": "locale", "type": "string", "required": false, "why": "The language shown."}
+   ],
+   "response": [
+    {"field": "recorded", "type": "boolean", "required": true, "why": "Whether it was recorded."},
+    {"field": "wordingHash", "type": "string", "required": true, "why": "The fingerprint of the words agreed to."},
+    {"field": "at", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "route-not-yours-to-declare", "status": 403, "statement": "Only a consent given in your own account can be recorded from here.", "why": "Spoken and paper consent are recorded by the person who took them."},
+    {"id": "consent-refused", "status": 400, "statement": "That consent could not be recorded.", "why": "An unknown purpose or a superseded version is refused, not guessed."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /consent/give'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/consents/{purposeId}/withdraw",
+   "version": 1,
+   "summary": "Withdraw a consent, in one action.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "purposeId", "type": "string", "required": true, "why": "The purpose withdrawn."}
+   ],
+   "response": [
+    {"field": "withdrawn", "type": "boolean", "required": true, "why": "Whether it was."},
+    {"field": "retained", "type": "list", "required": true, "why": "What is kept anyway, and why.", "object": true}
+   ],
+   "refusals": [
+    {"id": "withdrawal-refused", "status": 400, "statement": "There is nothing to withdraw for that purpose.", "why": "An acknowledgement is not a consent and cannot be withdrawn."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /consent/withdraw'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/access-log",
+   "version": 1,
+   "summary": "Read who opened your record.",
+   "callers": ["self"],
+   "purpose": ["subject-access"],
+   "request": [],
+   "response": [
+    {"field": "entries", "type": "list", "required": true, "why": "Every access, refusals included.", "object": true},
+    {"field": "refusalsIncluded", "type": "boolean", "required": true, "why": "Always true."}
+   ],
+   "refusals": [
+    {"id": "not-configured", "status": 503, "statement": "The access log is not available on this service.", "why": "Better to say so than to show an empty log."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading your own log is written into the log.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /consent/access-log'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/subject-requests",
+   "version": 1,
+   "summary": "Operators read outstanding correction and erasure requests.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "entries", "type": "list", "required": true, "why": "Requests.", "object": true},
+    {"field": "outstanding", "type": "integer", "required": true, "why": "How many are open."},
+    {"field": "overdue", "type": "integer", "required": true, "why": "How many are late."}
+   ],
+   "refusals": [
+    {"id": "refused", "status": 403, "statement": "Only a cleared operator reads requests.", "why": "The requests are about other people."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /operator/requests'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/subject-requests/{requestId}/respond",
+   "version": 1,
+   "summary": "An operator answers a correction or erasure request.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "requestId", "type": "string", "required": true, "why": "The request."},
+    {"field": "kind", "type": "string", "required": true, "why": "correction or erasure."},
+    {"field": "outcome", "type": "string", "required": true, "why": "corrected, refused or noted."},
+    {"field": "response", "type": "string", "required": true, "why": "The answer, in words."}
+   ],
+   "response": [
+    {"field": "recorded", "type": "boolean", "required": true, "why": "Whether it was."},
+    {"field": "at", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "not-your-own", "status": 403, "statement": "Nobody answers their own request.", "why": "The proof of an answer means nothing if the requester wrote it."},
+    {"id": "already-answered", "status": 409, "statement": "That request has already been answered.", "why": "An answer is recorded once."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /operator/requests/respond'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/health",
+   "version": 1,
+   "summary": "Whether the identity service is up.",
+   "callers": ["anonymous"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "ok", "type": "boolean", "required": true, "why": "Up."},
+    {"field": "environment", "type": "string", "required": true, "why": "Which environment."}
+   ],
+   "refusals": [
+    {"id": "too-many-requests", "status": 429, "statement": "Too many health checks.", "why": "A health route is rate-limited like any other."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/audit-chain",
+   "version": 1,
+   "summary": "Verify the identity service's audit chain. Loopback only.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "configured", "type": "boolean", "required": true, "why": "Whether a chain exists."},
+    {"field": "intact", "type": "boolean", "required": false, "why": "Whether it verified."}
+   ],
+   "refusals": [
+    {"id": "loopback-only", "status": 403, "statement": "This is answered only on the machine itself.", "why": "The chain's head is not published from here."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Verifying changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/audit'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/witness-statements",
+   "version": 1,
+   "summary": "Check a witness statement against the chain. Loopback only.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "statement", "type": "string", "required": true, "why": "The statement carried off the machine."}
+   ],
+   "response": [
+    {"field": "configured", "type": "boolean", "required": true, "why": "Whether a chain exists."}
+   ],
+   "refusals": [
+    {"id": "unreadable-statement", "status": 400, "statement": "That statement could not be read.", "why": "A witness that cannot be parsed proves nothing."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Checking changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /health/witness'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/access-log-integrity",
+   "version": 1,
+   "summary": "Verify the sealed access log. Loopback only.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "configured", "type": "boolean", "required": true, "why": "Whether one exists."}
+   ],
+   "refusals": [
+    {"id": "loopback-only", "status": 403, "statement": "This is answered only on the machine itself.", "why": "Integrity detail is not for the network."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Verifying changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/access-log'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/verification-status",
+   "version": 1,
+   "summary": "Read the credential-verification integration summary. Loopback only.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "configured", "type": "boolean", "required": true, "why": "Whether it is configured."}
+   ],
+   "refusals": [
+    {"id": "loopback-only", "status": 403, "statement": "This is answered only on the machine itself.", "why": "Integration detail is not for the network."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/verification'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/rate-limits",
+   "version": 1,
+   "summary": "Read the caller limits and whether they are settled. Loopback only.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "limit", "type": "integer", "required": true, "why": "Calls per window."},
+    {"field": "windowSeconds", "type": "integer", "required": true, "why": "The window."},
+    {"field": "settled", "type": "boolean", "required": true, "why": "Whether the number was decided rather than chosen."}
+   ],
+   "refusals": [
+    {"id": "loopback-only", "status": 403, "statement": "This is answered only on the machine itself.", "why": "Limits are not advertised to the network."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/limits'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/doors",
+   "version": 1,
+   "summary": "List the supplier doors and why each is locked.",
+   "callers": ["anonymous"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "feeds", "type": "list", "required": true, "why": "Every door, its conditions and its refused fields.", "object": true}
+   ],
+   "refusals": [
+    {"id": "not-found", "status": 404, "statement": "There is no such list here.", "why": "The doors are listed from packages/catalog/feeds.json and nowhere else."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /feeds'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/bookings",
+   "version": 1,
+   "summary": "Book a visit: service, person, time, review — from slots Care offered.",
+   "callers": ["patient", "caregiver", "guardian", "thuso-line-agent"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Who the visit is for."},
+    {"field": "serviceId", "type": "string", "required": true, "why": "From packages/catalog/services.json."},
+    {"field": "mode", "type": "string", "required": true, "why": "home or video."},
+    {"field": "slotRef", "type": "string", "required": true, "why": "A slot that was offered."}
+   ],
+   "response": [
+    {"field": "bookingRef", "type": "string", "required": true, "why": "The booking."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "requested until Care confirms."}
+   ],
+   "refusals": [
+    {"id": "slot-not-offered", "status": 409, "statement": "That time was not offered, so it cannot be booked.", "why": "A booking never invents a slot."},
+    {"id": "service-not-here", "status": 422, "statement": "That service is not offered where the visit would be.", "why": "Coverage is packages/catalog/geography.json's to decide."}
+   ],
+   "emits": ["booking.requested@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/access/bookings/{bookingRef}",
+   "version": 1,
+   "summary": "Read a booking's state, worked out from appointment events.",
+   "callers": ["patient", "caregiver", "guardian", "thuso-line-agent"],
+   "purpose": ["subject-access", "dispatch"],
+   "request": [
+    {"field": "bookingRef", "type": "string", "required": true, "why": "The booking."}
+   ],
+   "response": [
+    {"field": "bookingRef", "type": "string", "required": true, "why": "The booking."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "Where it stands."},
+    {"field": "scheduledFor", "type": "instant", "required": false, "why": "The time held, once held."}
+   ],
+   "refusals": [
+    {"id": "booking-not-found", "status": 404, "statement": "There is no booking of yours with that reference.", "why": "The answer never says whether it exists for somebody else."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading a booking changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/conversations/{conversationRef}/messages",
+   "version": 1,
+   "summary": "Send Gilbert a message in an episode.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "conversationRef", "type": "string", "required": true, "why": "The episode."},
+    {"field": "message", "type": "string", "required": true, "why": "What the person typed or said. Held for the conversation only."}
+   ],
+   "response": [
+    {"field": "answerId", "type": "string", "required": false, "why": "The approved answer given, if one was."},
+    {"field": "interactionStateCode", "type": "string", "required": true, "why": "The Gilbert Pulse state: idle, listening, thinking, guiding, escalate or handover."},
+    {"field": "escalated", "type": "boolean", "required": true, "why": "Whether the emergency numbers were shown, decided by the terms in packages/catalog/gilbert-emergency-terms.json and the matching rules in packages/catalog/assistant.json — never restated here."}
+   ],
+   "refusals": [
+    {"id": "not-an-answer-gilbert-gives", "status": 422, "statement": "Gilbert does not answer that. It can put you through to a nurse.", "why": "Gilbert gives approved answers only, and never lowers an emergency; which words escalate is packages/catalog/gilbert-emergency-terms.json's to say."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Gilbert's own events are Pulse's, declared in packages/catalog/assistant.json; this route emits none of Access's.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/conversations/{conversationRef}/handover",
+   "version": 1,
+   "summary": "Hand a Gilbert episode to a nurse, with a structured summary.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "conversationRef", "type": "string", "required": true, "why": "The episode."},
+    {"field": "summaryEntryRef", "type": "string", "required": true, "why": "The summary written to the record through the gateway."}
+   ],
+   "response": [
+    {"field": "handoverRef", "type": "string", "required": true, "why": "The handover."}
+   ],
+   "refusals": [
+    {"id": "no-summary", "status": 422, "statement": "A handover goes with a structured summary, or it does not go.", "why": "A nurse should not have to read a conversation to know why she is calling."}
+   ],
+   "emits": ["conversation.handover@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/tools/{tool}",
+   "version": 1,
+   "summary": "Gilbert's allow-listed tool call: appointment, admission, ride, dispensary, market, passport, messaging, clinician queue.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["treatment", "dispatch", "dispensing", "subject-access"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "tool", "type": "string", "required": true, "why": "A tool on the allow-list."},
+    {"field": "arguments", "type": "string", "required": true, "why": "The tool's arguments, in the named route's own request shape.", "object": true}
+   ],
+   "response": [
+    {"field": "result", "type": "string", "required": true, "why": "The named route's own response.", "object": true}
+   ],
+   "refusals": [
+    {"id": "tool-not-allowed", "status": 403, "statement": "That tool is not on Gilbert's allow-list.", "why": "A patient-facing model reaches only named actions (§15D)."},
+    {"id": "generic-record-tool", "status": 403, "statement": "Gilbert never gets a general-purpose record tool.", "why": "A generic FHIR tool in front of a model is unrestricted access with a conversation in front of it."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A tool call emits what the named route emits, in that route's own engine.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15D", "what": "Consent-aware tool gateway with an allow-list"},
+   "status": "proposed",
+   "through": "tool-gateway"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/households",
+   "version": 1,
+   "summary": "Create a household of people cared for together.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "memberSubjectRefs", "type": "list", "required": true, "why": "Who is in it."}
+   ],
+   "response": [
+    {"field": "householdRef", "type": "string", "required": true, "why": "The household."}
+   ],
+   "refusals": [
+    {"id": "membership-is-not-consent", "status": 422, "statement": "Joining a household shares nobody's record.", "why": "Each member's record stays their own; a grant is a separate act."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A household is an arrangement of accounts; no engine acts on its creation.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/sponsors",
+   "version": 1,
+   "summary": "Name somebody who pays for a person's care.",
+   "callers": ["patient", "sponsor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "sponsoredSubjectRef", "type": "string", "required": true, "why": "Whose care is paid for."}
+   ],
+   "response": [
+    {"field": "sponsorshipRef", "type": "string", "required": true, "why": "The sponsorship."}
+   ],
+   "refusals": [
+    {"id": "sponsor-reads-nothing", "status": 403, "statement": "A sponsor pays, and reads nothing about the care.", "why": "Paying for a visit is not a grant."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Money learns of a sponsor when it bills, from its own route.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/access/bill-splits",
+   "version": 1,
+   "summary": "Split a plan's cost between family members.",
+   "callers": ["patient", "caregiver", "sponsor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "planRef", "type": "string", "required": true, "why": "The plan split."},
+    {"field": "shares", "type": "list", "required": true, "why": "Who pays what share.", "object": true}
+   ],
+   "response": [
+    {"field": "splitRef", "type": "string", "required": true, "why": "The split."}
+   ],
+   "refusals": [
+    {"id": "shares-must-total", "status": 422, "statement": "The shares must add up to the whole.", "why": "A split that does not add up leaves somebody owing an amount nobody agreed."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Money bills each share through its own routes.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  }
+ ]
+}

@@ -1,0 +1,391 @@
+{
+ "engine": "safety",
+ "_note": "Safety is the nurse in the field and the patient in trouble: visit check-in timers, panic with a time-bound live location, patient SOS, next-of-kin nomination and alerting, safeguarding reports, Sentinel deviations at tiers one to three, and the security incident register the identity service already keeps. Wave 2 contract; Waves 3 to 5 build.",
+ "version": 1,
+ "resources": ["checkins", "panics", "sos", "next-of-kin", "safeguarding-reports", "sentinel-deviations", "incident-kinds", "incidents"],
+ "doors": ["emergency-acknowledgement"],
+ "doorsToAdd": [],
+ "refusals": [
+  {"id": "dispatch-without-a-human", "status": 409, "statement": "Nothing is dispatched without a human, except for an unresponsive patient or an SOS.", "why": "High specificity for dispatching paramedics; a human confirms (§13)."},
+  {"id": "consumer-wearable-raises-tier-four", "status": 422, "statement": "A consumer wearable alone never raises dispatch.", "why": "BYO signals guide conversation; certified devices carry clinical weight."},
+  {"id": "next-of-kin-see-clinical-detail", "status": 422, "statement": "Next of kin see plain language, never clinical detail.", "why": "§15."},
+  {"id": "location-kept-after-the-window", "status": 409, "statement": "A location is not kept after the incident window.", "why": "A safety feature that keeps positions is a tracking system."}
+ ],
+ "routes": [
+  {
+   "method": "POST",
+   "path": "/v1/safety/checkins",
+   "version": 1,
+   "summary": "Start a visit timer.",
+   "callers": ["nurse", "locum", "responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit timed."},
+    {"field": "expectedMinutes", "type": "integer", "required": true, "why": "How long the visit should take."}
+   ],
+   "response": [
+    {"field": "checkinRef", "type": "string", "required": true, "why": "The check-in."},
+    {"field": "dueAt", "type": "instant", "required": true, "why": "When it goes overdue."}
+   ],
+   "refusals": [
+    {"id": "visit-not-assigned", "status": 403, "statement": "That visit is not yours to time.", "why": "A timer belongs to the nurse at the door."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A timer emits checkin.overdue when it runs out, not when it starts.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E4", "what": "Nurse safety suite: check-in timers"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/checkins/{checkinRef}/extend",
+   "version": 1,
+   "summary": "Extend a visit timer.",
+   "callers": ["nurse", "locum", "responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "checkinRef", "type": "string", "required": true, "why": "The check-in."},
+    {"field": "extraMinutes", "type": "integer", "required": true, "why": "How much longer."}
+   ],
+   "response": [
+    {"field": "dueAt", "type": "instant", "required": true, "why": "The new deadline."}
+   ],
+   "refusals": [
+    {"id": "extension-limit", "status": 409, "statement": "That is as long as a visit can run without the desk calling.", "why": "An endless extension is a timer that never fires."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Extending is a check-in, and a check-in is not news.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E4", "what": "Nurse safety suite: check-in timers"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/checkins/{checkinRef}/close",
+   "version": 1,
+   "summary": "Check out: close the timer.",
+   "callers": ["nurse", "locum", "responder"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "checkinRef", "type": "string", "required": true, "why": "The check-in."}
+   ],
+   "response": [
+    {"field": "closedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "already-closed", "status": 409, "statement": "That check-in is already closed.", "why": "Closed once."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A safe check-out is the absence of an event.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E4", "what": "Nurse safety suite: check-in timers"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/panics",
+   "version": 1,
+   "summary": "Press panic: live location to the desk for a fixed window.",
+   "callers": ["nurse", "locum", "responder", "courier"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "appointmentRef", "type": "string", "required": false, "why": "The visit, if there is one."},
+    {"field": "locationShareMinutes", "type": "integer", "required": true, "why": "How long the location is shared."}
+   ],
+   "response": [
+    {"field": "panicRef", "type": "string", "required": true, "why": "The panic."},
+    {"field": "locationShareEndsAt", "type": "instant", "required": true, "why": "When sharing stops."}
+   ],
+   "refusals": [
+    {"id": "share-without-end", "status": 422, "statement": "Live location is shared for a fixed window, and the window always ends.", "why": "A share with no end is a tracker."}
+   ],
+   "emits": ["panic.raised@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E4", "what": "Panic button and live location"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/sos",
+   "version": 1,
+   "summary": "A patient presses SOS: urgent visit, and the ambulance partner where needed.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Who needs help."},
+    {"field": "channel", "type": "string", "required": true, "why": "app, band or phone."}
+   ],
+   "response": [
+    {"field": "sosRef", "type": "string", "required": true, "why": "The SOS."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "Where it stands."}
+   ],
+   "refusals": [
+    {"id": "wearable-alone", "status": 422, "statement": "A consumer wearable alone does not raise an SOS dispatch.", "why": "A person presses SOS; a band on its own does not."}
+   ],
+   "emits": ["sos.raised@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E4", "what": "Thuso SOS: app and Band button, urgent visit"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/next-of-kin",
+   "version": 1,
+   "summary": "Nominate next of kin with a consent scope.",
+   "callers": ["patient"],
+   "purpose": ["subject-access"],
+   "request": [
+    {"field": "contactRef", "type": "string", "required": true, "why": "The contact, held by the identity service."},
+    {"field": "scopeCode", "type": "string", "required": true, "why": "emergency-only or any-escalation."},
+    {"field": "fallbackOrder", "type": "integer", "required": true, "why": "Who is tried first."}
+   ],
+   "response": [
+    {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."}
+   ],
+   "refusals": [
+    {"id": "nomination-without-consent", "status": 422, "statement": "Next of kin are nominated with explicit consent and a scope, or not at all.", "why": "§15: voluntary, specific and informed."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A nomination is an arrangement; nobody is told anything until an alert.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15", "what": "NOK nominated with explicit, revocable consent and a scope"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/next-of-kin/{nominationRef}/alert",
+   "version": 1,
+   "summary": "Alert next of kin, in plain language, within their scope.",
+   "callers": ["engine", "ops-desk"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."},
+    {"field": "severityCode", "type": "string", "required": true, "why": "Routine, moderate or major."}
+   ],
+   "response": [
+    {"field": "notificationRef", "type": "string", "required": true, "why": "The notification."},
+    {"field": "channel", "type": "string", "required": true, "why": "The channel chosen by severity."}
+   ],
+   "refusals": [
+    {"id": "clinical-detail", "status": 422, "statement": "Next of kin are never sent clinical detail.", "why": "Plain language, not raw data."},
+    {"id": "outside-scope", "status": 403, "statement": "That alert is outside the scope the patient chose.", "why": "Emergency-only means emergency only."}
+   ],
+   "emits": ["nok.notified@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15", "what": "NOK alerting by severity, in plain language"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/safeguarding-reports",
+   "version": 1,
+   "summary": "Report a safeguarding concern.",
+   "callers": ["nurse", "locum", "doctor", "responder", "courier", "thuso-line-agent"],
+   "purpose": ["emergency"],
+   "request": [
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Who the concern is about."},
+    {"field": "categoryCode", "type": "string", "required": true, "why": "Elder or child, and the kind."}
+   ],
+   "response": [
+    {"field": "reportRef", "type": "string", "required": true, "why": "The report."}
+   ],
+   "refusals": [
+    {"id": "report-without-reporter", "status": 422, "statement": "A safeguarding report is made by a named reporter.", "why": "The safeguarding lead must be able to ask what was seen."}
+   ],
+   "emits": ["safeguarding.reported@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E4", "what": "Safeguarding protocol and in-app reporting"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/sentinel-deviations",
+   "version": 1,
+   "summary": "Raise a baseline deviation on the Sentinel ladder, tiers one to three.",
+   "callers": ["engine"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "readingEntryRef", "type": "string", "required": true, "why": "The reading entry deviated from."},
+    {"field": "rung", "type": "integer", "required": true, "why": "One to three."},
+    {"field": "deviceClass", "type": "string", "required": true, "why": "certified or consumer."}
+   ],
+   "response": [
+    {"field": "deviationRef", "type": "string", "required": true, "why": "The deviation."}
+   ],
+   "refusals": [
+    {"id": "consumer-device-raises", "status": 422, "statement": "A consumer device alone does not raise a Sentinel rung.", "why": "Certified devices carry clinical weight."},
+    {"id": "rung-beyond-three", "status": 422, "statement": "The seed scope has rungs one to three; beyond that needs a human and an ambulance contract.", "why": "Tiers four and five are Series A."}
+   ],
+   "emits": ["sentinel.tier_raised@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§13", "what": "Baseline deviation on the escalation ladder"},
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/safety/incident-kinds",
+   "version": 1,
+   "summary": "Read the kinds of security incident and the notification rule.",
+   "callers": ["anonymous"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "kinds", "type": "list", "required": true, "why": "Incident kinds.", "object": true},
+    {"field": "notificationRule", "type": "string", "required": true, "why": "When the regulator and subjects are told."}
+   ],
+   "refusals": [
+    {"id": "not-found", "status": 404, "statement": "There is no such list here.", "why": "The kinds are one resource."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /incidents/kinds'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/incidents",
+   "version": 1,
+   "summary": "Report a security incident.",
+   "callers": ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "kind", "type": "string", "required": true, "why": "The kind."},
+    {"field": "whatHappened", "type": "string", "required": true, "why": "What happened."},
+    {"field": "informationReached", "type": "boolean", "required": true, "why": "Whether personal information was reached."},
+    {"field": "peopleAffected", "type": "integer", "required": false, "why": "How many, if known."},
+    {"field": "discoveredAt", "type": "integer", "required": false, "why": "When it was discovered, as epoch milliseconds."}
+   ],
+   "response": [
+    {"field": "incidentId", "type": "string", "required": true, "why": "The incident."},
+    {"field": "notificationOwed", "type": "boolean", "required": true, "why": "Whether notification is owed."}
+   ],
+   "refusals": [
+    {"id": "incident-refused", "status": 400, "statement": "That incident report could not be recorded.", "why": "An unknown kind is refused, not filed as something else."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/incidents/{incidentId}/contain",
+   "version": 1,
+   "summary": "Record how an incident was contained.",
+   "callers": ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "incidentId", "type": "string", "required": true, "why": "The incident."},
+    {"field": "containment", "type": "string", "required": true, "why": "What was done."}
+   ],
+   "response": [
+    {"field": "contained", "type": "boolean", "required": true, "why": "Always true."}
+   ],
+   "refusals": [
+    {"id": "no-such-incident", "status": 404, "statement": "There is no such incident.", "why": "Containment is recorded against a report."},
+    {"id": "no-containment", "status": 400, "statement": "Say what was done to contain it.", "why": "An empty containment is not one."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents/contain'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/incidents/{incidentId}/notified",
+   "version": 1,
+   "summary": "Record that the regulator or the affected people were told.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "incidentId", "type": "string", "required": true, "why": "The incident."},
+    {"field": "who", "type": "string", "required": true, "why": "regulator or subjects."}
+   ],
+   "response": [
+    {"field": "recorded", "type": "boolean", "required": true, "why": "Whether it was."}
+   ],
+   "refusals": [
+    {"id": "no-audience", "status": 400, "statement": "Say who was told.", "why": "Notification has an audience."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents/notified'"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/safety/incidents/{incidentId}/close",
+   "version": 1,
+   "summary": "Close an incident.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [
+    {"field": "incidentId", "type": "string", "required": true, "why": "The incident."}
+   ],
+   "response": [
+    {"field": "closed", "type": "boolean", "required": true, "why": "Whether it closed."},
+    {"field": "at", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "close-refused", "status": 409, "statement": "That incident cannot be closed yet.", "why": "It is contained and the people owed notification have been told, or it stays open."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents/close'"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/safety/incidents",
+   "version": 1,
+   "summary": "Read the incident register.",
+   "callers": ["operator"],
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "total", "type": "integer", "required": true, "why": "All incidents."},
+    {"field": "open", "type": "integer", "required": true, "why": "Open."},
+    {"field": "incidents", "type": "list", "required": true, "why": "The register.", "object": true}
+   ],
+   "refusals": [
+    {"id": "refused", "status": 403, "statement": "Only a cleared operator reads the register.", "why": "Incidents describe other people's information."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /incidents'"}
+  }
+ ]
+}

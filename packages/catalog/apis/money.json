@@ -1,0 +1,220 @@
+{
+ "engine": "money",
+ "_note": "Money is Thuso Money: payments, payouts, wallets, vouchers, gifts, group wallets, claims and Market orders. Every write is idempotent with a key. MyThuso never holds a card number. Wave 2 contract; Waves 3 and 5 build.",
+ "version": 1,
+ "resources": ["payments", "payouts", "wallets", "vouchers", "gifts", "groups", "claims", "market-orders"],
+ "doors": ["payment-result", "payout-advice"],
+ "doorsToAdd": [
+  {"id": "claim-response", "why": "The switching partner's claim responses are supplier callbacks; a door to add.", "capabilityNamed": {"section": "FS-E10", "what": "First scheme claim switched through a partner"}}
+ ],
+ "refusals": [
+  {"id": "card-number-held", "status": 422, "statement": "MyThuso never holds a card number.", "why": "The provider's page takes it."},
+  {"id": "payout-line-names-its-amount", "status": 422, "statement": "A payout line does not name its own amount for a visit.", "why": "The share is packages/catalog/earnings.json's arithmetic."},
+  {"id": "suspension-touches-earned-money", "status": 409, "statement": "A suspension never touches money already earned.", "why": "Money does not subscribe to a suspension."},
+  {"id": "scheme-hears-about-a-grant", "status": 403, "statement": "A scheme receives nothing about a person's grant.", "why": "Money serves only the scheme's aggregate role."},
+  {"id": "charge-without-a-key", "status": 400, "statement": "Nothing is charged without an idempotency key.", "why": "A retry is not a second charge."}
+ ],
+ "routes": [
+  {
+   "method": "POST",
+   "path": "/v1/money/payments",
+   "version": 1,
+   "summary": "Pay a payable: card, EFT, debit order, wallet or cash with OTP.",
+   "callers": ["patient", "caregiver", "sponsor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "payableRef", "type": "string", "required": true, "why": "What is being paid for, Money's own payable."},
+    {"field": "method", "type": "string", "required": true, "why": "card, eft, debit-order, wallet or cash-otp."},
+    {"field": "amountCents", "type": "integer", "required": true, "why": "The payable's amount, in cents."}
+   ],
+   "response": [
+    {"field": "paymentRef", "type": "string", "required": true, "why": "The payment."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "pending, succeeded or failed."}
+   ],
+   "refusals": [
+    {"id": "card-number-sent", "status": 422, "statement": "MyThuso never takes a card number; the provider's page does.", "why": "Refused before it is logged."},
+    {"id": "amount-mismatch", "status": 409, "statement": "That amount is not what is owed.", "why": "A payable's amount comes from the catalogue."},
+    {"id": "cash-without-otp", "status": 422, "statement": "Cash is reconciled with the patient's one-time code.", "why": "Cash leakage is a pilot measure."}
+   ],
+   "emits": ["payment.succeeded@1", "payment.failed@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E10", "what": "Card, EFT, debit order, cash with OTP reconciliation"},
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/money/payouts",
+   "version": 1,
+   "summary": "Read your payouts.",
+   "callers": ["nurse", "locum", "doctor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "periodEnd", "type": "iso-date", "required": false, "why": "Which week."}
+   ],
+   "response": [
+    {"field": "payouts", "type": "list", "required": true, "why": "Payouts and their lines.", "object": true}
+   ],
+   "refusals": [
+    {"id": "someone-elses-payout", "status": 403, "statement": "Those payouts are somebody else's.", "why": "Earnings are private."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E10", "what": "Nurse weekly payouts and doctor per-case fees"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/wallets",
+   "version": 1,
+   "summary": "Open a prepaid wallet.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."}
+   ],
+   "response": [
+    {"field": "walletRef", "type": "string", "required": true, "why": "The wallet."}
+   ],
+   "refusals": [
+    {"id": "wallet-exists", "status": 409, "statement": "You already have a wallet.", "why": "One wallet per person."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A wallet with nothing in it is not news.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E10", "what": "Prepaid wallet"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/vouchers",
+   "version": 1,
+   "summary": "Redeem a voucher into a wallet.",
+   "callers": ["patient", "caregiver", "sponsor", "corner"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "voucherCode", "type": "string", "required": true, "why": "The voucher."}
+   ],
+   "response": [
+    {"field": "redeemedCents", "type": "integer", "required": true, "why": "How much it added."},
+    {"field": "walletRef", "type": "string", "required": true, "why": "Where."}
+   ],
+   "refusals": [
+    {"id": "voucher-spent", "status": 409, "statement": "That voucher has been used.", "why": "A voucher is redeemed once."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A redemption is a wallet balance change reconciled daily, not a payment.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E10", "what": "Vouchers in retail and spaza channels"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/gifts",
+   "version": 1,
+   "summary": "Gift a visit.",
+   "callers": ["caregiver", "sponsor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "beneficiarySubjectRef", "type": "string", "required": true, "why": "Who receives the gift."},
+    {"field": "serviceId", "type": "string", "required": true, "why": "The service gifted."}
+   ],
+   "response": [
+    {"field": "giftRef", "type": "string", "required": true, "why": "The gift."}
+   ],
+   "refusals": [
+    {"id": "gift-books-for-them", "status": 409, "statement": "A gifted visit is booked by the person receiving it.", "why": "Paying is not deciding when somebody is visited."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The gift becomes a payable when the visit is booked.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E10", "what": "Gift-a-visit"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/groups",
+   "version": 1,
+   "summary": "Create a group wallet for a stokvel, church or employer.",
+   "callers": ["patient", "sponsor", "employer"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "groupKind", "type": "string", "required": true, "why": "stokvel, church or employer."},
+    {"field": "memberSubjectRefs", "type": "list", "required": true, "why": "Members."}
+   ],
+   "response": [
+    {"field": "groupRef", "type": "string", "required": true, "why": "The group."}
+   ],
+   "refusals": [
+    {"id": "group-sees-care", "status": 403, "statement": "A group pays for visits and learns nothing about anybody's care.", "why": "An employer's wallet is not an employer's window."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A group is an arrangement; payments from it emit payment events.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E10", "what": "Group wallets for stokvels, churches and employers"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/claims",
+   "version": 1,
+   "summary": "Submit a claim with tariff and ICD-10 coding from a signed review.",
+   "callers": ["engine", "operator"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The encounter claimed for."},
+    {"field": "tariffCode", "type": "string", "required": true, "why": "The tariff code."},
+    {"field": "icd10Codes", "type": "list", "required": true, "why": "The coding, from Clinical, through the gateway."}
+   ],
+   "response": [
+    {"field": "claimRef", "type": "string", "required": true, "why": "The claim."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "submitted."}
+   ],
+   "refusals": [
+    {"id": "claim-without-signed-review", "status": 409, "statement": "Nothing is claimed for an encounter a doctor has not signed.", "why": "A claim is for care that happened and was reviewed."}
+   ],
+   "emits": ["claim.submitted@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E10", "what": "Billing & Claims: tariff and ICD-10 coding"},
+   "status": "proposed",
+   "through": "passport-gateway"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/market-orders",
+   "version": 1,
+   "summary": "Place a Thuso Market order.",
+   "callers": ["patient", "caregiver"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "productIds", "type": "list", "required": true, "why": "Products from packages/catalog/shop.json."},
+    {"field": "deliveryZone", "type": "string", "required": true, "why": "Where it goes."}
+   ],
+   "response": [
+    {"field": "marketOrderRef", "type": "string", "required": true, "why": "The order."},
+    {"field": "totalCents", "type": "integer", "required": true, "why": "The total."}
+   ],
+   "refusals": [
+    {"id": "medicine-in-shop", "status": 422, "statement": "The shop does not sell medicines.", "why": "Section 22 and the shop contract's never-sold list."}
+   ],
+   "emits": ["market.order.placed@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§36", "what": "Market orders, payments, fulfilment"},
+   "status": "proposed"
+  }
+ ]
+}

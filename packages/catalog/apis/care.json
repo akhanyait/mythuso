@@ -1,0 +1,323 @@
+{
+ "engine": "care",
+ "_note": "Care is the nurse's day: offers matched by scope, distance, continuity and Trust Score, the visit started and completed with the visit code, the protocol checklist, capture, handover, offline sync, and the lists a nurse works from. Wave 2 contract; Wave 3 build.",
+ "version": 1,
+ "resources": ["offers", "visits", "sync-batches", "shifts", "services", "locum-shifts", "circuits"],
+ "doors": ["nurse-roster", "nurse-position", "interpreter-roster"],
+ "doorsToAdd": [],
+ "refusals": [
+  {"id": "offer-without-trust-score", "status": 409, "statement": "Nobody without a current Trust Score is offered a visit.", "why": "No score, no dispatch: the rule Verify enforces at the bus."},
+  {"id": "visit-without-code", "status": 403, "statement": "A visit starts and completes only with the visit code.", "why": "The code is the proof the right nurse is at the right door."},
+  {"id": "location-beyond-the-visit", "status": 403, "statement": "A nurse's location is not shared beyond the visit.", "why": "Tracking is on the day, for the visit, and ends with it."},
+  {"id": "carer-without-their-rn", "status": 409, "statement": "A supervised carer is not dispatched without their registered nurse.", "why": "Supervision ratios are enforced in dispatch or not at all."}
+ ],
+ "routes": [
+  {
+   "method": "POST",
+   "path": "/v1/care/offers",
+   "version": 1,
+   "summary": "Offer a visit to the best eligible clinician.",
+   "callers": ["dispatcher", "engine"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit to fill."},
+    {"field": "serviceId", "type": "string", "required": true, "why": "The service, which sets the scope needed."}
+   ],
+   "response": [
+    {"field": "offerRef", "type": "string", "required": true, "why": "The offer."},
+    {"field": "offerExpiresAt", "type": "instant", "required": true, "why": "When it lapses to the next clinician."}
+   ],
+   "refusals": [
+    {"id": "no-current-trust-score", "status": 409, "statement": "Nobody without a current Trust Score is offered a visit.", "why": "Verify ranks; Care never offers past a failed gate."},
+    {"id": "carer-without-rn", "status": 409, "statement": "A supervised carer is not offered a visit without their registered nurse.", "why": "Supervision is enforced in the offer."}
+   ],
+   "emits": ["appointment.offered@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/offers/{offerRef}/accept",
+   "version": 1,
+   "summary": "Accept an offer.",
+   "callers": ["nurse", "locum"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "offerRef", "type": "string", "required": true, "why": "The offer."}
+   ],
+   "response": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit now held."},
+    {"field": "scheduledFor", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "offer-expired", "status": 410, "statement": "That offer has lapsed.", "why": "It went to the next clinician."},
+    {"id": "not-your-offer", "status": 403, "statement": "That offer was made to somebody else.", "why": "An offer is personal."}
+   ],
+   "emits": ["appointment.booked@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/offers/{offerRef}/decline",
+   "version": 1,
+   "summary": "Decline an offer.",
+   "callers": ["nurse", "locum"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "offerRef", "type": "string", "required": true, "why": "The offer."}
+   ],
+   "response": [
+    {"field": "declined", "type": "boolean", "required": true, "why": "Whether it was."}
+   ],
+   "refusals": [
+    {"id": "offer-expired", "status": 410, "statement": "That offer has already lapsed.", "why": "Nothing to decline."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Declining ends one offer; the next is made through POST /v1/care/offers, which emits it.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/visits/{appointmentRef}/start",
+   "version": 1,
+   "summary": "Start a visit with the visit code.",
+   "callers": ["nurse", "locum"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit."},
+    {"field": "visitCode", "type": "string", "required": true, "why": "The code the patient gives at the door."}
+   ],
+   "response": [
+    {"field": "startedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "visit-code-wrong", "status": 403, "statement": "The visit code did not match, so the visit has not started.", "why": "A failed code stops the visit."},
+    {"id": "not-today", "status": 409, "statement": "That visit is not today.", "why": "A visit starts on its day."}
+   ],
+   "emits": ["appointment.in_progress@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E2", "what": "OTP start and completion"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/visits/{appointmentRef}/checklist",
+   "version": 1,
+   "summary": "Record the protocol checklist for the visit.",
+   "callers": ["nurse", "locum"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit."},
+    {"field": "protocolVersionId", "type": "string", "required": true, "why": "The ratified protocol, id@version."},
+    {"field": "completedItems", "type": "list", "required": true, "why": "Checklist item ids completed."}
+   ],
+   "response": [
+    {"field": "recordedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "protocol-not-ratified", "status": 409, "statement": "A checklist runs only under a ratified protocol.", "why": "An unratified checklist is a list of guesses in a clinical record."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The checklist is part of the encounter, written through the gateway.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/visits/{appointmentRef}/capture",
+   "version": 1,
+   "summary": "Attach observations already written through the gateway to the visit.",
+   "callers": ["nurse", "locum"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit."},
+    {"field": "observationRefs", "type": "list", "required": true, "why": "Observation entries in the Passport."}
+   ],
+   "response": [
+    {"field": "attachedCount", "type": "integer", "required": true, "why": "How many were attached."}
+   ],
+   "refusals": [
+    {"id": "capture-without-visit", "status": 409, "statement": "Nothing is captured against a visit that has not started.", "why": "Readings belong to a visit that happened."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "The observations were written through the gateway, which emitted passport.entry.written.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/visits/{appointmentRef}/handover",
+   "version": 1,
+   "summary": "Hand the visit to a doctor for review.",
+   "callers": ["nurse", "locum"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit."},
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The encounter to review."}
+   ],
+   "response": [
+    {"field": "reviewQueued", "type": "boolean", "required": true, "why": "Whether it went into the clinical inbox."}
+   ],
+   "refusals": [
+    {"id": "encounter-incomplete", "status": 422, "statement": "The encounter has required sections missing.", "why": "A doctor reviews a complete encounter, not a draft."}
+   ],
+   "emits": ["visit.handover.submitted@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/visits/{appointmentRef}/complete",
+   "version": 1,
+   "summary": "Complete a visit with the visit code.",
+   "callers": ["nurse", "locum"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit."},
+    {"field": "visitCode", "type": "string", "required": true, "why": "The patient's code again, at the end."},
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The signed encounter."}
+   ],
+   "response": [
+    {"field": "completedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "visit-code-wrong", "status": 403, "statement": "The visit code did not match, so the visit is not complete.", "why": "Completion is confirmed by the patient, not assumed."},
+    {"id": "encounter-unsigned", "status": 409, "statement": "The encounter is not signed.", "why": "A visit is complete when its record is."}
+   ],
+   "emits": ["appointment.completed@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E2", "what": "OTP start and completion"},
+   "status": "proposed"
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/sync-batches",
+   "version": 1,
+   "summary": "Upload the offline queue.",
+   "callers": ["nurse", "locum"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "batchRef", "type": "string", "required": true, "why": "The batch, chosen on the phone."},
+    {"field": "operationRefs", "type": "list", "required": true, "why": "The queued operations, in order."}
+   ],
+   "response": [
+    {"field": "acceptedCount", "type": "integer", "required": true, "why": "How many applied."},
+    {"field": "conflictRefs", "type": "list", "required": true, "why": "Operations shown back to the nurse."}
+   ],
+   "refusals": [
+    {"id": "conflict-not-merged", "status": 409, "statement": "A conflict is shown to the nurse, never merged silently.", "why": "Two versions of a visit merged by software is a record nobody wrote."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A sync replays calls that each emit their own events.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/care/shifts",
+   "version": 1,
+   "summary": "Read your shifts.",
+   "callers": ["nurse", "locum", "dispatcher"],
+   "purpose": ["dispatch"],
+   "request": [],
+   "response": [
+    {"field": "shifts", "type": "list", "required": true, "why": "Shifts.", "object": true}
+   ],
+   "refusals": [
+    {"id": "someone-elses-shifts", "status": 403, "statement": "Those shifts are somebody else's.", "why": "A roster shows a nurse her own day."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/care/services",
+   "version": 1,
+   "summary": "Read the services offered where you are.",
+   "callers": ["patient", "caregiver", "nurse", "dispatcher", "thuso-line-agent"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "zone", "type": "string", "required": false, "why": "Where the visit would be."}
+   ],
+   "response": [
+    {"field": "services", "type": "list", "required": true, "why": "Services from packages/catalog/services.json.", "object": true}
+   ],
+   "refusals": [
+    {"id": "zone-not-covered", "status": 404, "statement": "MyThuso does not visit there yet.", "why": "Better to say so than list services nobody can deliver."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/care/locum-shifts",
+   "version": 1,
+   "summary": "Read open locum shifts at hospitals and care homes.",
+   "callers": ["locum"],
+   "purpose": ["dispatch"],
+   "request": [],
+   "response": [
+    {"field": "shifts", "type": "list", "required": true, "why": "Open shifts.", "object": true}
+   ],
+   "refusals": [
+    {"id": "unverified-locum", "status": 403, "statement": "Locum shifts are shown only to verified locums.", "why": "A shift is an offer of work."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  },
+  {
+   "method": "GET",
+   "path": "/v1/care/circuits",
+   "version": 1,
+   "summary": "Read the rural circuit routes.",
+   "callers": ["nurse", "dispatcher"],
+   "purpose": ["dispatch"],
+   "request": [],
+   "response": [
+    {"field": "circuits", "type": "list", "required": true, "why": "Routes.", "object": true}
+   ],
+   "refusals": [
+    {"id": "circuit-not-published", "status": 404, "statement": "That circuit is not running yet.", "why": "An unpublished route is not a promise."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
+  }
+ ]
+}
