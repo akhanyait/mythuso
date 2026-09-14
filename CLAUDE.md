@@ -57,6 +57,13 @@ persist patient data. Checked.
 
 **No WebViews in the native apps.** Each app is genuinely native. Checked.
 
+**Gilbert's emergency terms are a versioned configuration.** Change them only in
+`packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role,
+terms added and removed as "group: term", why, the new `termsHash`), and keep the shared fixtures
+passing on all three platforms — `npm run check` replays the changelog and fails otherwise. The list
+has no clinical reviewer yet, and needs one before real patients. The 30-second listening cap and
+"Your Thuso AI Doctor · not a person, and not a doctor" are founder decisions, not edits.
+
 ## Working here
 
 ```
