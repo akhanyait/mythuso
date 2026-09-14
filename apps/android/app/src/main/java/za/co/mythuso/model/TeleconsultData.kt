@@ -13,9 +13,9 @@
 package za.co.mythuso.model
 
 val callMedia = MediaPosture(
-    false, "never-asked", "This build has never asked this device for the camera or the microphone. Neither permission is declared, no media of any kind is captured, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
+    false, "never-asked", "The consultation has never asked this device for the camera or the microphone. It declares neither permission, no media of any kind is captured, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
     listOf(
-        MediaState("never-asked", "Never asked", "MyThuso has not requested the camera or the microphone on this device. There is nothing to allow and nothing to withdraw, because no question was put to you."),
+        MediaState("never-asked", "Never asked", "The consultation has not requested the camera or the microphone on this device. There is nothing to allow and nothing to withdraw, because no question was put to you."),
         MediaState("refused", "You said no", "You were asked and you declined. The consultation is offered by voice on your phone line instead, and the refusal is remembered so you are not asked again every time."),
         MediaState("granted", "Allowed", "You allowed it for consultations. It is used only while a call is running, and you can take it back in your phone's settings without telling us first.")
     ),
@@ -71,7 +71,7 @@ val callConsent = listOf(
 
 val callRecording = RecordingPolicy(
     false, "This preview does not offer recording, and it does not offer a switch for it either.",
-    "Consent to a consultation is not consent to a recording, and the honest way to hold that apart is to ask twice. But this build has no microphone permission, no camera permission and nowhere to put a recording, so a recording switch here would be a control that cannot do what it says — and a patient who is taught to tick it in a preview has been taught to tick it. A refusal is easier to design honestly than a promise: what the screen does instead is say what a recording would be for, who could open it, how long it would live and how it would be asked for, so that the design can be argued with before anything can be captured.",
+    "Consent to a consultation is not consent to a recording, and the honest way to hold that apart is to ask twice. But the consultation holds no microphone permission, no camera permission and nowhere to put a recording, so a recording switch here would be a control that cannot do what it says — and a patient who is taught to tick it in a preview has been taught to tick it. A refusal is easier to design honestly than a promise: what the screen does instead is say what a recording would be for, who could open it, how long it would live and how it would be asked for, so that the design can be argued with before anything can be captured.",
     listOf(
         "The written consultation record is the record. It is the same structure a nurse's visit and a doctor's review write into, and it is what a later clinician actually reads.",
         "Who was in the room, and what each of them was consented to, is written into the record with the consultation — because “was anyone else listening” is a question a patient may ask a year later and deserve an answer to.",
@@ -240,7 +240,7 @@ val callRules = listOf(
     CallRule("dropped-is-not-finished", "A dropped call is not a finished one", "A call that dropped is not a consultation that ended. Until a doctor has reached a decision and signed it, this is an interrupted encounter in your record — it says so in those words, it carries no diagnosis, and it is never charged for."),
     CallRule("audio-is-not-lesser", "Sound only is a consultation", "Sound only is an ordinary way to be seen in South Africa, not a failure. What changes is not how seriously you are taken but what the doctor is allowed to conclude on their own, and this screen says which of those things they still can."),
     CallRule("examination-is-attributed", "A doctor on a screen examines nothing", "On a call the doctor examines nobody. Anything felt, measured or looked at closely is the nurse's finding, recorded under her name and her SANC registration — never written up afterwards as the doctor's own examination."),
-    CallRule("no-media-in-this-build", "Nothing here is connected", "MyThuso has never asked this device for the camera or the microphone, and this build declares neither permission. That is not the same as you refusing: no question was put to you, so there is nothing to withdraw."),
+    CallRule("no-media-in-this-build", "Nothing here is connected", "The consultation has never asked this device for the camera or the microphone, and declares neither permission. That is not the same as you refusing: no question was put to you, so there is nothing to withdraw."),
     CallRule("the-nurse-is-the-examination", "The nurse in the house is the examination", "Everything a doctor on a screen concludes rests on somebody who is physically present. That is why MyThuso does not sell a call on its own: the value is not the video, it is the person standing next to the patient with a stethoscope."),
     CallRule("a-review-is-not-a-consultation", "Reading results is not a consultation", "A doctor reading vitals and signing them is doing a review. It is named a review, recorded as a review, and it becomes a consultation only when a doctor decides somebody should be spoken to — at which point it is charged and recorded as one."),
     CallRule("a-wait-has-an-end", "A wait has an end, and the end is a different plan", "Fifteen minutes, and then the visit stops waiting. A queue a patient cannot leave is how somebody sits in a chair for an hour being told that a doctor is coming.")

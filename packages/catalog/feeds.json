@@ -1,5 +1,5 @@
 {
- "_note": "The eleven places the outside world would have to reach in, described before anybody has signed a contract to reach in through one of them. Fifteen capabilities are declared in capabilities.json and none is connected; most of them are blocked on something no engineer can produce — a contracted SMS provider, a payment provider, a nurse roster, live device positions, agreements with thirteen credentialing authorities, a pharmacy network, an interpreter service, an ambulance partner, a media stack, an AI licence. None of that can be built here. What can be built is the shape of the hole each one leaves: what would have to arrive, what the product does while it does not, what would have to be true before the switch is thrown, and — the part that is worth the most — what must never arrive at all. When a vendor is finally signed, connecting them should be a data change and a small adapter, not a rebuild and not a re-litigation of what the screens already promise.",
+ "_note": "The twelve places the outside world would have to reach in, described before anybody has signed a contract to reach in through one of them. Fifteen capabilities are declared in capabilities.json and none is connected; most of them are blocked on something no engineer can produce — a contracted SMS provider, a payment provider, a nurse roster, live device positions, agreements with thirteen credentialing authorities, a pharmacy network, an interpreter service, an ambulance partner, a media stack, an AI licence. None of that can be built here. What can be built is the shape of the hole each one leaves: what would have to arrive, what the product does while it does not, what would have to be true before the switch is thrown, and — the part that is worth the most — what must never arrive at all. When a vendor is finally signed, connecting them should be a data change and a small adapter, not a rebuild and not a re-litigation of what the screens already promise.",
  "_honestyNote": "Nothing in this file connects anything, and it is written so that it cannot. Every route it declares refuses every payload, including a perfectly formed one, and answers with the capability's own not-connected sentence out of capabilities.json. `beforeSwitchOn` makes `connected: true` harder to reach rather than easier: scripts/check-boundaries.mjs refuses a connected capability unless every switch-on condition of every feed serving it is recorded as met and names a file that exists. A seam that made the boolean easier to flip would be the opposite of the thing this repository is careful about.",
  "_whyNoNativeEmitter": "Every other contract in packages/catalog is generated into Swift and Kotlin, because all three apps render it. This one is not, and the reason is not that it was skipped. A feed schema is a contract between this service and a supplier; no phone has any business holding the shape of a payment provider's callback, and emitting it would put a vendor's integration surface into two app-store binaries for no reader. What the apps render is the capability's notice, which comes from capabilities.json and is generated. The seam behind the notice is the server's.",
  "_supplierNote": "Every supplier named here becomes an operator under POPIA section 21 the moment a contract is signed, and one outside South Africa raises section 72. Neither is answered anywhere and neither can be from inside a repository: a section 72 determination is a legal determination about a named recipient in a named country, and there is no named recipient. So each feed carries the question against the thing that will raise it, unanswered and marked unanswered, rather than a subprocessor register with nothing in it.",
@@ -90,11 +90,6 @@
   }
  ],
  "noSeam": [
-  {
-   "capability": "voice",
-   "decision": "No route, and this is a decision rather than an omission.",
-   "why": "The blocker on voice is not a vendor. capabilities.json names three things and only the first is procurement: there is no speech model, no microphone permission is declared on either app, and nothing has been designed for what happens to a recording of a person describing a symptom in their own home. Building the ingestion half of that would be building the easy half of a thing whose hard half is undecided, and the route would sit in the source looking like readiness. The capability also carries a neverSoften note forbidding a microphone affordance anywhere, and a transcript route is a microphone affordance with the drawing left off."
-  },
   {
    "capability": "devices",
    "decision": "No new route. The seam already exists and it is apps/api/src/capture/**.",
@@ -1281,7 +1276,7 @@
    "capabilities": [
     "teleconsultation"
    ],
-   "supplier": "A media stack. Neither app declares a camera or a microphone permission, deliberately, and a doctor panel with a real rota does not exist.",
+   "supplier": "A media stack. Neither app declares a camera permission, and the microphone permission Gilbert's push-to-talk declares is not the consultation's to use. A doctor panel with a real rota does not exist.",
    "route": "POST /feeds/media-session",
    "arrives": "One lifecycle event from one consultation: somebody joined, the line dropped, it ended.",
    "derivedFrom": [
@@ -1292,7 +1287,7 @@
     "sample": [
      "packages/catalog/teleconsult.json"
     ],
-    "unchanged": "This build has never asked either device for a camera or a microphone and no connection is opened. The four-rung connection ladder, the ninety-second hold and the seven encounter outcomes are the design of a consultation drawn at full size, and they are right."
+    "unchanged": "The consultation has never asked either device for a camera or a microphone and no connection is opened. The four-rung connection ladder, the ninety-second hold and the seven encounter outcomes are the design of a consultation drawn at full size, and they are right."
    },
    "accepts": [
     {
@@ -1337,7 +1332,7 @@
     {
      "id": "the-permission-is-declared-against-this-capability-before-it-is-asked-for",
      "must": "A camera or microphone permission appears under requiresPermissions on the teleconsultation capability before either app declares one.",
-     "why": "Neither app asks the device for anything today, and several notices a person reads depend on that being true. The boundary check already refuses an undeclared permission on either platform. Declaring one is not a build step; it is a decision about pointing a camera at somebody in their own home, and it belongs in the file that also holds what is blocking the feature.",
+     "why": "Neither app asks the device for a camera today, and the only microphone either one asks for is Gilbert's, named under the voice capability. A permission declared for one feature is not a permission for another. The boundary check already refuses an undeclared permission on either platform. Declaring one is not a build step; it is a decision about pointing a camera at somebody in their own home, and it belongs in the file that also holds what is blocking the feature.",
      "met": false,
      "evidence": null
     },
@@ -1540,6 +1535,170 @@
    "operator": {
     "becomesAnOperator": true,
     "section72": "Every clinical model of consequence is hosted offshore, and the payload is a reading from a patient. This is the transfer that would need a determination first rather than last. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "speech-transcript",
+   "name": "What a speech provider heard",
+   "capabilities": [
+    "voice"
+   ],
+   "supplier": "A South African speech provider, for languages other than English and phones that cannot recognise speech offline. None is contracted.",
+   "route": "POST /feeds/speech-transcript",
+   "arrives": "One finished transcript of one push-to-talk turn.",
+   "derivedFrom": [
+    "packages/catalog/assistant.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "voice",
+    "sample": [
+     "packages/catalog/assistant.json"
+    ],
+    "unchanged": "Phones that recognise English offline hear it on the phone; everywhere else Gilbert is typed to. Neither needs this door."
+   },
+   "accepts": [
+    {
+     "field": "sessionId",
+     "type": "string",
+     "required": true,
+     "why": "Which conversation. Never a person."
+    },
+    {
+     "field": "language",
+     "type": "string",
+     "required": true,
+     "why": "Which language was heard. Code-switching is ordinary here."
+    },
+    {
+     "field": "heardText",
+     "type": "string",
+     "required": true,
+     "why": "What was heard, for the person to correct before it is sent, kept no longer than assistant.json's transcriptLifetime."
+    },
+    {
+     "field": "confidence",
+     "type": "number",
+     "required": false,
+     "why": "How sure the provider was, 0 to 1: a reason to check harder, never to act alone."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When it was heard."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-data-processing-agreement-is-signed",
+     "must": "A data processing agreement limits what the provider may do with a transcript, and for how long.",
+     "why": "A voice describing a symptom is special personal information, and the provider becomes an operator under POPIA section 21.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "hosting-is-south-african-or-approved",
+     "must": "Speech is processed in South Africa, or a section 72 determination names where.",
+     "why": "Speech infrastructure routes to the nearest large region, often off the continent.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-provider-keeps-no-audio",
+     "must": "The provider keeps no audio after transcribing, and trains nothing on it.",
+     "why": "Otherwise assistant.json's promise that no recording is kept is false the day this door opens.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "each-language-passes-a-clinical-comprehension-test",
+     "must": "Each language passes a clinical comprehension test with South African speakers before it is switched on.",
+     "why": "Section 15D's language gate. An emergency word misheard is an ambulance number not shown.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "model-improvement-has-its-own-consent",
+     "must": "Using speech to improve a model is asked separately, off until agreed, and can be withdrawn.",
+     "why": "No model exists. When one does, being heard must not cost consent to training.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "audio",
+     "refusal": "A transcript event may not carry audio.",
+     "why": "No recording is kept, and this door is where one would begin.",
+     "also": [
+      "audioData",
+      "audioContent",
+      "audioBase64",
+      "pcm",
+      "speechAudio",
+      "rawAudio"
+     ]
+    },
+    {
+     "field": "audioUrl",
+     "refusal": "A transcript event may not carry a link to audio.",
+     "why": "A link to a recording is a recording kept somewhere else.",
+     "also": [
+      "audioUri",
+      "audioLink",
+      "speechUrl",
+      "clipUrl"
+     ]
+    },
+    {
+     "field": "audioRecording",
+     "refusal": "A transcript event may not carry a recording, or say one exists.",
+     "why": "Providers keep audio by default, and this field is how that arrives.",
+     "also": [
+      "storedAudio",
+      "retainedAudio",
+      "audioFile",
+      "recordingKey"
+     ]
+    },
+    {
+     "field": "voiceprint",
+     "refusal": "A transcript event may not carry a voiceprint.",
+     "why": "Gilbert identifies nobody by their body.",
+     "also": [
+      "voiceId",
+      "speakerId",
+      "voiceSignature",
+      "voiceBiometric"
+     ]
+    },
+    {
+     "field": "speakerEmbedding",
+     "refusal": "A transcript event may not carry a speaker embedding.",
+     "why": "An embedding is a voiceprint in another shape.",
+     "also": [
+      "voiceEmbedding",
+      "dvector",
+      "xvector",
+      "speakerVector"
+     ]
+    },
+    {
+     "field": "speechDiagnosis",
+     "refusal": "A transcript event may not carry a clinical conclusion.",
+     "why": "A provider hears words. What they mean clinically is not its to say.",
+     "also": [
+      "diagnosis",
+      "vocalBiomarker",
+      "conditionDetected",
+      "healthPrediction"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "Where a provider would process a voice, and whether that transfer is lawful, depends on a recipient nobody has named. Not determined.",
     "determined": false
    }
   }

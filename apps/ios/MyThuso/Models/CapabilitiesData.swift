@@ -9,9 +9,9 @@
 // platform at once.
 //
 // The keys beginning with an underscore in the contract are commentary and are not written out.
-// `requiresPermissions` is empty on every capability, which is why both apps may still declare no
-// permission at all — scripts/check-boundaries.mjs refuses any permission no capability has asked
-// for.
+// `requiresPermissions` names the only permissions either app may declare — today three, all for
+// Gilbert's push-to-talk — and scripts/check-boundaries.mjs refuses any permission no capability
+// has asked for.
 
 import Foundation
 
@@ -145,10 +145,10 @@ extension Capabilities {
         Capability(id: "teleconsultation", name: "The consultation call", connected: false,
                    evidence: nil,
                    blockedBy: [
-                       "No media stack. Neither app declares a camera or microphone permission, deliberately.",
+                       "No media stack. Neither app declares a camera permission, and the consultation asks for no microphone — the only microphone either app asks for is Gilbert's push-to-talk, named under the voice capability.",
                        "A doctor panel with a real rota."
                    ],
-                   notice: "This build has never asked this device for the camera or the microphone, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
+                   notice: "The consultation has never asked this device for the camera or the microphone, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
                    state: "simulated",
                    simulation: Simulation(supplier: "A simulated session broker, in process.",
                                               notice: "The call is simulated. No camera or microphone is opened, and no media stack exists behind this screen.",
@@ -177,19 +177,19 @@ extension Capabilities {
                    surfaces: ["capture", "screening-result", "review-queue"],
                    neverSoften: nil,
                    requiresPermissions: []),
-        Capability(id: "voice", name: "Talking to MyThuso", connected: false,
+        Capability(id: "voice", name: "Talking to Gilbert", connected: false,
                    evidence: nil,
                    blockedBy: [
-                       "No speech model, no vendor and no licence — the same gap as screening, and the same procurement decision.",
-                       "No microphone permission is declared on either native app, deliberately. Declaring one is not a build step; it is a decision about recording people in their homes.",
-                       "Nothing has been designed for what happens to a recording of a person describing a symptom. Until that is answered under POPIA, there is nothing to switch on."
+                       "No contracted South African speech provider: so English only, only on phones that recognise it offline, and nothing heard on the web.",
+                       "No language model. Gilbert answers only from its approved sentences, and says so when it cannot assess something.",
+                       "No decision about a recording beyond keeping none, so nothing is recorded and no transcript leaves the phone."
                    ],
-                   notice: "MyThuso cannot listen to you. Nothing here has a microphone, no speech is recorded or sent anywhere, and this is a drawing of an assistant rather than one.",
-                   state: "absent",
+                   notice: "Gilbert listens only after you tap the sphere on a phone, hears English only, turns speech into text on the phone and keeps no recording. On the web you type. Nothing you say or type is sent anywhere.",
+                   state: "on-device",
                    simulation: nil,
                    surfaces: ["assistant", "voice", "home"],
-                   neverSoften: "No microphone affordance may be drawn — not an enabled one, not a disabled one, not a decorative one. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.",
-                   requiresPermissions: []),
+                   neverSoften: "No listening affordance may be drawn unless the microphone is actually open, and none at all on the web — not an enabled one, not a disabled one, not a decorative one. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.",
+                   requiresPermissions: ["NSMicrophoneUsageDescription", "NSSpeechRecognitionUsageDescription", "android.permission.RECORD_AUDIO"]),
         Capability(id: "devices", name: "The connected kit", connected: false,
                    evidence: nil,
                    blockedBy: [
@@ -308,8 +308,8 @@ extension Capabilities {
         CapabilityRule(id: "a-simulation-is-not-reachable-from-the-network",
                        statement: "No simulator may be reached over HTTP. The eleven feed routes go on refusing every payload, and a simulated event enters in process through a function of its own.",
                        why: "apps/api/src/feeds/index.ts argues that a route which could accept under some condition is a route somebody finds the condition for, usually late at night with a vendor on the phone. A simulation flag on those routes would be exactly that condition. So `decide` still has no acceptance to construct, and the simulators sit beside the boundary rather than inside it."),
-        CapabilityRule(id: "voice-stays-absent",
-                       statement: "`voice` is the one capability not simulated, and that is a decision rather than an omission.",
-                       why: "Simulating speech means one of two things: declaring a microphone permission, which the capability forbids anywhere in either app, or rendering a transcript of something nobody said. The blocker on voice was never the vendor — it is that nothing has been designed for what happens to a recording of a person describing a symptom in their own home. A simulator would produce a working screen on top of that undecided question, which is the shape of every readiness claim this file exists to refuse.")
+        CapabilityRule(id: "voice-is-on-device",
+                       statement: "`voice` alone is on-device: the phone recognises speech, Gilbert answers from a contract, and nothing is connected.",
+                       why: "English push-to-talk on the phone, decided on 14 September 2026, is neither a stand-in answering (simulated) nor a supplier (connected). The state says exactly what is true, and the notice stays.")
     ]
 }

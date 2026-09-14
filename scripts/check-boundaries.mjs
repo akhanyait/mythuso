@@ -25,6 +25,7 @@ import { emitWellbeing } from './emit-wellbeing.mjs';
 import { emitShop } from './emit-shop.mjs';
 import { emitRewards } from './emit-rewards.mjs';
 import { emitThusoIQ } from './emit-thusoiq.mjs';
+import { emitAssistant } from './emit-assistant.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -860,7 +861,8 @@ const generated = [
  { source: 'packages/catalog/wellbeing.json', command: 'npm run wellbeing', files: emitWellbeing() },
  { source: 'packages/catalog/shop.json', command: 'npm run shop', files: emitShop() },
  { source: 'packages/catalog/rewards.json', command: 'npm run rewards', files: emitRewards() },
- { source: 'packages/catalog/thusoiq.json', command: 'npm run thusoiq-contract', files: emitThusoIQ() }
+ { source: 'packages/catalog/thusoiq.json', command: 'npm run thusoiq-contract', files: emitThusoIQ() },
+ { source: 'packages/catalog/assistant.json', command: 'npm run assistant', files: emitAssistant() }
 ];
 for(const {source,command,files} of generated) {
  for(const file of files) {
@@ -1837,8 +1839,16 @@ for(const [platform,paths] of Object.entries(teleconsultSources)) {
   if(mediaApis.test(read(file))) throw new Error(`The ${platform} teleconsultation screen reaches for media (${file}). This build captures nothing and the screens say so — an app that says "we never asked" while holding a camera handle is lying to the patient rather than to the reviewer.`);
  }
 }
-if(/android\.permission\.(CAMERA|RECORD_AUDIO)/.test(read('apps/android/app/src/main/AndroidManifest.xml'))) throw new Error('The Android manifest declares a camera or microphone permission. The teleconsultation screens tell the patient neither is declared.');
-if(/INFOPLIST_KEY_NS(Camera|Microphone)UsageDescription/.test(read('apps/ios/MyThuso.xcodeproj/project.pbxproj'))) throw new Error('The iOS target declares a camera or microphone usage description. The teleconsultation screens tell the patient neither is declared.');
+/* Narrowed on 14 September 2026, when the founder gave Gilbert push-to-talk. The camera is still refused
+   outright. The microphone may now be declared, but only because the voice capability names it — the
+   consultation tells a patient it has never asked for one, and a permission declared for one feature
+   is not a permission for another. The teleconsultation screens themselves are still held to no media
+   API at all, above. */
+const teleconsultVoiceAsks = new Set((JSON.parse(read('packages/catalog/capabilities.json')).capabilities.find(c => c.id === 'voice')?.requiresPermissions ?? []).map(p => p.permission));
+if(/android\.permission\.CAMERA/.test(read('apps/android/app/src/main/AndroidManifest.xml'))) throw new Error('The Android manifest declares a camera permission. The teleconsultation screens tell the patient none is declared.');
+if(/INFOPLIST_KEY_NSCameraUsageDescription/.test(read('apps/ios/MyThuso.xcodeproj/project.pbxproj'))) throw new Error('The iOS target declares a camera usage description. The teleconsultation screens tell the patient none is declared.');
+if(/android\.permission\.RECORD_AUDIO/.test(read('apps/android/app/src/main/AndroidManifest.xml')) && !teleconsultVoiceAsks.has('android.permission.RECORD_AUDIO')) throw new Error('The Android manifest declares RECORD_AUDIO and the voice capability does not name it. The consultation tells a patient it has never asked for the microphone; the only feature allowed one is Gilbert\'s push-to-talk, by name.');
+if(/INFOPLIST_KEY_NSMicrophoneUsageDescription/.test(read('apps/ios/MyThuso.xcodeproj/project.pbxproj')) && !teleconsultVoiceAsks.has('NSMicrophoneUsageDescription')) throw new Error('The iOS target declares a microphone usage description and the voice capability does not name it. The consultation tells a patient it has never asked for the microphone; the only feature allowed one is Gilbert\'s push-to-talk, by name.');
 if(teleconsult.media.declared) throw new Error('packages/catalog/teleconsult.json says media is declared. Nothing in this repository declares it, so the screens would be describing a build that does not exist.');
 if(!teleconsult.media.states.some(s=>s.id==='never-asked')||!teleconsult.media.states.some(s=>s.id==='refused')) {
  throw new Error('The media posture must tell "we never asked" from "you refused". One screen for both tells a patient their answer did not matter.');
@@ -2565,7 +2575,15 @@ for(const c of capabilities.capabilities) {
   *     the SMS provider is still unsigned the day the simulated one works perfectly.
   *  4. Nothing simulated is reachable over the network, which the eleven feed routes enforce for
   *     real and this field records as an intention somebody would have to edit to break. */
- const STATES = ['absent', 'simulated', 'connected'];
+ /* A fourth state since 14 September 2026, and it belongs to voice alone: `on-device` says the phone
+    does the work and nothing is connected. It carries no simulation and it keeps its notice. */
+ const STATES = ['absent', 'on-device', 'simulated', 'connected'];
+ if(c.state === 'on-device') {
+  if(c.id !== 'voice') throw new Error(`Capability "${c.id}" is marked on-device. That state was made for Gilbert's push-to-talk, where the phone's own recogniser does the work and nothing leaves it; another capability claiming it needs its own argument written into packages/catalog/capabilities.json first.`);
+  if(!c.onDevice?.what || !c.onDevice?.whyNotConnected) throw new Error(`Capability "${c.id}" is on-device and does not say what runs on the device and why that is not connected. The state is a claim about where work happens, and a claim with no sentence is a softer word for connected.`);
+  if(!c.blockedBy?.length || !c.notice) throw new Error(`Capability "${c.id}" is on-device and has dropped what blocks it or the notice it shows. Working on the phone unblocks nothing that needed a supplier.`);
+  if(c.simulation) throw new Error(`Capability "${c.id}" is on-device and carries a simulation block. Nothing stands in for the recogniser; it is the phone's.`);
+ }
  if(!STATES.includes(c.state)) throw new Error(`Capability "${c.id}" has state ${JSON.stringify(c.state)}, which is not one of ${STATES.join(', ')}. A capability with an unreadable state is one every screen guesses about.`);
  if(c.connected !== (c.state === 'connected')) throw new Error(`Capability "${c.id}" says state "${c.state}" and connected ${c.connected}. Those are the same fact written twice and they disagree, which is the drift the simulated state was introduced to survive.`);
  if(c.state === 'simulated') {
@@ -2592,7 +2610,12 @@ for(const c of capabilities.capabilities) {
    both sides, and this check is here for the day it stops being.
 
    Raised by mythuso-58, which verified the silence was total before suggesting it. */
-const permissionsFor=new Set(capabilities.capabilities.flatMap(c=>c.requiresPermissions??[]));
+const permissionsFor=new Set(capabilities.capabilities.flatMap(c=>(c.requiresPermissions??[]).map(p=>typeof p==='string'?p:p.permission)));
+/* Since voice named three, a permission is an object: the name, the platform it is declared on and the
+   feature it serves. A bare name says nothing about why, which is the half this whitelist exists for. */
+for(const c of capabilities.capabilities) for(const p of c.requiresPermissions??[]) {
+ if(typeof p==='string'||!p.permission||!['ios','android'].includes(p.platform)||!p.serves) throw new Error(`Capability "${c.id}" names a permission without the platform it is declared on and the feature it serves (${JSON.stringify(p)}). The sentence saying why is the reason the whitelist asks.`);
+}
 const androidAsks=[...read('apps/android/app/src/main/AndroidManifest.xml').matchAll(/uses-permission[^>]*android:name="([^"]+)"/g)].map(m=>m[1]);
 const iosAsks=[...read('apps/ios/MyThuso.xcodeproj/project.pbxproj').matchAll(/INFOPLIST_KEY_(NS\w*UsageDescription)/g)].map(m=>m[1]);
 for(const [platform,asks] of [['Android',androidAsks],['iOS',iosAsks]]) {
@@ -2604,38 +2627,18 @@ for(const [platform,asks] of [['Android',androidAsks],['iOS',iosAsks]]) {
 /* Two capabilities carry a neverSoften note, and both are checked rather than trusted, because both
    are the kind somebody removes to make a demo look better. */
 const voice=capabilities.capabilities.find(c=>c.id==='voice');
-if(voice&&!voice.neverSoften) throw new Error('The voice capability has lost the note forbidding a microphone affordance. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.');
-if(voice?.connected) throw new Error('packages/catalog/capabilities.json marks voice as connected. Neither native app declares a microphone permission — deliberately — so this claim is false on both platforms at once.');
-/* Declaring a microphone anywhere would make the voice notice a lie, so the manifest and the target
-   are checked here as well as under teleconsultation, where the same permissions are refused for a
-   different reason. Two features now depend on that silence. */
-if(/android\.permission\.RECORD_AUDIO/.test(read('apps/android/app/src/main/AndroidManifest.xml'))) throw new Error('The Android manifest declares RECORD_AUDIO. Both the teleconsultation contract and the voice capability tell a person nothing here has a microphone.');
-if(/INFOPLIST_KEY_NSMicrophoneUsageDescription/.test(read('apps/ios/MyThuso.xcodeproj/project.pbxproj'))) throw new Error('The iOS target declares a microphone usage description. Both the teleconsultation contract and the voice capability tell a person nothing here has a microphone.');
-/* The assistant, and the three things it may never grow.
+if(!voice?.neverSoften) throw new Error('The voice capability has lost the note forbidding a listening affordance where nothing is listening. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.');
+if(voice.connected) throw new Error('packages/catalog/capabilities.json marks voice as connected. Gilbert\'s recognition runs on the phone and no speech provider is contracted, so the claim is false on all three platforms at once.');
+if(voice.state!=='on-device') throw new Error(`The voice capability says state "${voice.state}". Gilbert listens, on the phone, in English, push-to-talk — which is on-device, and neither absent (it listens) nor connected (nothing answers from outside).`);
+/* Gilbert, and what the microphone may and may not do. Rewritten on 14 September 2026.
 
-   There is a screen in the iOS app that draws a soft luminous shape and changes it with what the
-   app knows. It is the visual language the founder asked for and it is the exact shape of a lie
-   somebody could tell by accident: a blob that pulses beside a rounded rectangle reads as a voice
-   assistant to almost everybody, and this product has no speech model, no microphone permission on
-   either platform, and no answer yet for what would happen to a recording of a person describing a
-   symptom. The contract's own words for that are in `voice.neverSoften`, and they are a rule rather
-   than advice, so they are checked rather than trusted.
-
-   Three things are asserted, and each of them is a different way the same defect arrives.
-
-   The sentence is rendered, never typed. A screen that types its own version of a notice cannot be
-   switched off with the others when an integration lands, and the copy that gets typed is always
-   the softer one. So no hand-written native source may carry a capability's notice as a string of
-   its own — the string literals are read out of the file and compared with the contract, which
-   leaves a comment free to quote the rule it is written to.
-
-   Nothing reaches for audio, and nothing draws a microphone. The API check is the same one the
-   teleconsultation screens are held to; the symbol check is the one this feature adds, because the
-   hazard here is not a media stack, it is an SF Symbol. `waveform.path.*` is allowed through: that
-   is the ECG trace on the Health Passport's heart-rate chart and it is a picture of a heartbeat.
-
-   And nothing offers to listen in words. A control's label is the last place a listening affordance
-   hides once the glyphs are gone. */
+   Until that day this block refused every microphone in the product: no audio API anywhere, no mic
+   symbol, no word offering to listen. It was right, because nothing had been decided about listening.
+   The founder has now decided — push-to-talk, English, on-device recognition only, no recording, no
+   wake word, and no microphone on the web — so the blanket refusal is replaced by narrower ones that
+   hold exactly that decision and nothing wider. They are in the bannered Gilbert section at the foot of
+   this file. What stays here is the part that was never about the microphone: no hand-written native
+   file types a capability's notice. */
 const iosSources=native.filter(f=>f.startsWith('apps/ios/') && f.endsWith('.swift'));
 const handWrittenIos=iosSources.filter(f=>!/Data\.swift$/.test(f));
 /* Swift string literals, one line at a time. A literal cannot span a line without three quotes
@@ -2659,35 +2662,15 @@ for(const file of handWrittenNative) {
   if(typed) throw new Error(`${file} types out a sentence that lives in packages/catalog/capabilities.json: "${flat.slice(0,72)}…". Render it from the contract instead — a typed copy cannot be switched off when the capability is connected, and the copy somebody types at eleven at night is always the softer one.`);
  }
 }
-/* An SF Symbol name is a string literal, so the two questions are asked of the same list: does any
-   iOS source name a microphone or an audio meter, and does any of them reach for a capture API. */
-const listeningSymbol=/^(mic|waveform)(\.|$)/;
-const audioApis=/\b(AVAudioRecorder|AVAudioEngine|AVAudioSession|AVAudioApplication|SFSpeechRecognizer|SFSpeechAudioBufferRecognitionRequest|AVCaptureDevice|requestRecordPermission)\b|\bimport\s+(Speech|AVFAudio)\b/;
-for(const file of iosSources) {
- const source=read(file);
- if(audioApis.test(source)) throw new Error(`${file} reaches for audio capture. Neither native app declares a microphone permission — deliberately — and packages/catalog/capabilities.json tells a person "nothing here has a microphone". An app holding a recorder handle while saying that is lying to the patient rather than to the reviewer.`);
- for(const literal of swiftLiterals(source)) {
-  if(!listeningSymbol.test(literal)) continue;
-  /* The one exception, and it is not an audio symbol: waveform.path.ecg is the heartbeat trace on
-     the Health Passport's chart. */
-  if(literal.startsWith('waveform.path')) continue;
-  throw new Error(`${file} draws the symbol "${literal}". ${voice.neverSoften}`);
- }
-}
-const offersToListen=/\b(tap|hold|press|touch|swipe) to (speak|talk|record|dictate)\b|^listening[.…!]*$|\b(start|stop) listening\b|\bi(?:'m| am) listening\b|\bspeak now\b/i;
-for(const file of handWrittenIos) {
- for(const literal of swiftLiterals(read(file))) {
-  if(offersToListen.test(literal.trim())) throw new Error(`${file} offers to listen, in words: "${literal}". ${voice.neverSoften}`);
- }
-}
-/* The screen itself, and the two things it must not stop doing: asking the contract for its notice,
-   and naming the capability whose refusals it renders. Deleting either leaves a beautiful shape
-   with nothing underneath it saying what it is. */
+/* The assistant screen on iOS, and the three things it must not stop doing: rendering the voice
+   notice from the contract, keeping the sentence that silence is not safety beside the conversation,
+   and answering Reduce Motion. */
 const assistant='apps/ios/MyThuso/Features/AssistantView.swift';
-if(!existsSync(assistant)) throw new Error(`${assistant} is missing. The assistant is the surface the voice capability names, and a capability with no surface is a notice nobody reads.`);
+if(!existsSync(assistant)) throw new Error(`${assistant} is missing. Gilbert is the surface the voice capability names, and a capability with no surface is a notice nobody reads.`);
 const assistantSource=read(assistant);
-if(!/CapabilityNotice\(/.test(assistantSource)) throw new Error(`${assistant} no longer renders CapabilityNotice, so whatever it now says about being unconnected is its own sentence rather than the contract's.`);
-if(!/"voice"/.test(assistantSource)) throw new Error(`${assistant} no longer names the voice capability, so the three things blocking it and the rule it is drawn to are no longer coming from packages/catalog/capabilities.json.`);
+if(!/CapabilityNotice\(/.test(assistantSource)) throw new Error(`${assistant} no longer renders CapabilityNotice, so whatever it now says about listening is its own sentence rather than the contract's.`);
+if(!/"voice"/.test(assistantSource)) throw new Error(`${assistant} no longer names the voice capability, so what blocks it and the rule it is drawn to are no longer coming from packages/catalog/capabilities.json.`);
+if(!/Gilbert\.silenceIsNotSafety/.test(assistantSource)) throw new Error(`${assistant} no longer renders silenceIsNotSafety. The emergency words are an unreviewed draft, and the sentence saying that a miss is not safety has to be on the screen before anybody needs it.`);
 if(!/accessibilityReduceMotion/.test(assistantSource)) throw new Error(`${assistant} draws an animated shape without asking for Reduce Motion. A shape that breathes forever is exactly what that setting exists for, and slowing it is not answering it.`);
 
 /* The emergency pathway is the one refusal here that is not about MyThuso, and it is the one that
@@ -4693,7 +4676,249 @@ const careLongest = Math.max(...careServices.map(s => s.duration));
 if(careRoster.shift.startsBeforeFirstSlotMinutes <= 0 || careRoster.shift.endsAfterLastVisitMinutes <= 0) throw new Error('packages/catalog/roster.json rosters a shift that starts on the first slot and ends on the last visit, so a nurse has no time to travel to either door.');
 if(careMinutes(careSlots[careSlots.length - 1]) + careLongest + careRoster.shift.endsAfterLastVisitMinutes > 24 * 60) throw new Error(`The last slot packages/catalog/scheduling.json offers is ${careSlots[careSlots.length - 1]}, the longest visit packages/catalog/services.json sells is ${careLongest} minutes, and the shift would run past midnight. A shift that wraps a day is one the roster's arithmetic reports wrongly rather than refuses.`);
 
-console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. That interpreter is now a vetted party with ${interpreterRole.checks.length} checks of their own and one capability, granted nothing that opens a record; ${interpreting.roster.length} of them carry hours rather than a conclusion, so all three platforms work out for themselves which hour answers a request and all three can still return nothing — a visit with no interpreter is held rather than dispatched and carries the contract's own word for it on all three, cancelling one costs ${interpreting.cancellation.fee} and is recorded against ${interpreting.cancellation.attributedTo} rather than the patient, and the ${interpreting.refusals.length} refusals — a family member, a child, English written at somebody — are on the screen rather than only in the file. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. The assistant draws a shape and never a microphone: no iOS source names a mic or a waveform symbol, reaches for an audio capture API or offers in words to listen, the screen renders the voice capability's notice from the contract rather than a sentence of its own, and none of the ${capabilities.capabilities.length} capabilities has its notice typed into a hand-written native file. The ingestion boundary is ${feedContract.feeds.length} doors and every one of them is locked: each names the capability whose sentence it answers with, points at the sample data that stands in for it, carries ${feedContract.feeds.reduce((t,f)=>t+f.beforeSwitchOn.length,0)} conditions that must be true before it may be switched on — every one of which a connected capability is now held to — and refuses ${feedContract.feeds.reduce((t,f)=>t+f.neverAccepts.length,0)} named fields it must never be sent, none of which any other feed accepts; every capability is either served by one or carries a written reason there is no seam, no route is typed into the server by hand, no refusal sentence is typed into the service, and nothing behind them answers in the two hundreds. The table that would settle whether the caller limit is the right number holds five integers per window and no column anybody could be identified by, and the health routes that read it answer the loopback by path rather than by method — which is now checked in both directions, because the first POST under that prefix would otherwise have been public. The chain witness renders a head to be carried off the machine and checks one back; it reaches no network and says on its own face that publishing is still absent. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}. Three bodies of prose that were written out once per platform are contracts now: the ${explanations.entries.length} reading explanations and their ${Object.keys(explanations.provenance).length} provenance sentences in records.json, where every urgent condition is a red flag sos.json actually has, no paragraph names a number, the ordinary cause is said before the frightening one and the oximeter still admits it reads high on darker skin; the ${arrivalProse.length} arrival refusals in geography.json, with the day of the visit enforced by arithmetic on all three platforms rather than by the sentence that describes it; and what the offline queue survives in capture.json, where ${fileStores.length} file-backed stores are held to one promise and the web's is held to keeping less. What a store says when the disk refuses it is a contract now too: ${writeFailures.failures.length} failures over ${outcomeNames.size} outcomes, no two of them leaving the same set true, every one of them leaving nothing deleted, none of them offered by a store with no disk to be refused by — and the ${SILENT_ABOUT_WRITE_FAILURE.length} file stores that have no sentence for a full phone and the one screen that quarantines a file without saying so are written down as gaps rather than left to be found again. Not one of those ${prosePlaces.reduce((total, place) => total + place.sentences.length, 0)} sentences is typed into a hand-written file outside the ${PROSE_QUARANTINE.length} quarantined copies waiting to adopt them, and each of those quarantines fails the build on the day it is no longer needed. And a workspace may not type the figure at the top of it: all ${METRIC_STRIPS.length} metric strips are read for a digit inside a literal, ${TYPED_FIGURES.length} figures are excused because no list on their screen could count them, and the ${FIGURE_QUARANTINE.reduce((total, [, count]) => total + count, 0)} that are typed over a list that could are ratcheted so that neither a new one nor a half-finished fix goes unnoticed. What that cannot see — whether a counted figure counts the right rows — is what tests/workspace-counts.spec.ts opens a browser for.`);
+/* ==== Gilbert and voice ========================================================================
+ *
+ * Owned by the Gilbert and Voice build (Wave 1, 14 September 2026). Everything in this block is about
+ * packages/catalog/assistant.json, the voice capability, the speech-transcript door and the three
+ * places that implement Gilbert. It is one block on purpose, so that a merge with the other seams
+ * growing checks in this file is a choice about order rather than an argument about lines.
+ *
+ * The founder's decision, which these checks hold and do not widen: voice in Release 1 is push-to-
+ * talk, English, on-device recognition only; no audio is stored or written anywhere; the transcript
+ * lives for the conversation and can be corrected before it is sent; no wake word; nothing is sent to
+ * any external provider or language model; no clinical content is invented and urgency is never
+ * lowered; and the web has no microphone. Each check below is one of those sentences made into a
+ * failure, and each was proved to fire by breaking the source it guards.
+ * ============================================================================================== */
+
+const gilbertContract = JSON.parse(read('packages/catalog/assistant.json'));
+const gilbertCanon = name => name.toLowerCase().replace(/[^a-z0-9]/g, '');
+/* The code of a file without its prose. Several of these checks look for a name that must not appear,
+   and the comments explaining why it must not appear name it. Block comments and whole-line comments
+   are removed; a trailing comment survives, which errs towards failing rather than passing. */
+const gilbertCode = source => source.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter(line => !/^\s*\/\//.test(line)).join('\n');
+
+/* ---- The contract says what the founder decided, and nothing wider --------------------------- */
+const PULSE_ORDER = ['idle', 'listening', 'thinking', 'guiding', 'escalate', 'handover'];
+if(gilbertContract.states.map(s => s.id).join() !== PULSE_ORDER.join()) throw new Error(`packages/catalog/assistant.json declares the Pulse states ${gilbertContract.states.map(s => s.id).join(', ')}. Section 15E.3 has six, in the order ${PULSE_ORDER.join(', ')}, and three platforms draw them from this list.`);
+for(const state of gilbertContract.states) {
+ for(const field of ['name', 'visual', 'meaning', 'cue', 'announcement', 'shownWhen']) if(!state[field]) throw new Error(`Pulse state "${state.id}" has no ${field}. A state a screen reader cannot announce in words is a state only sighted people are told about.`);
+}
+const webPulse = gilbertContract.states.filter(s => s.platforms.includes('web')).map(s => s.id);
+if(webPulse.includes('listening') || webPulse.includes('thinking')) throw new Error(`packages/catalog/assistant.json lets the web show ${webPulse.filter(id => id === 'listening' || id === 'thinking').join(' and ')}. The web has no microphone in this release, so it has nothing to listen with and nothing to finish transcribing.`);
+if(!/not a doctor/.test(gilbertContract.identity.whatItIsNot) || !/not a person/.test(gilbertContract.identity.whatItIsNot)) throw new Error('Gilbert\'s whatItIsNot no longer says it is not a doctor and not a person. "Your Thuso AI Doctor" is a product name, and the sentence that says so is the only thing stopping it being read as a qualification.');
+const gilbertVoice = gilbertContract.voice;
+const FOUNDER_DECIDED = { mode: 'push-to-talk', recognition: 'on-device', audioStored: false, transcriptLifetime: 'conversation', correctionBeforeSend: true, wakeWord: false, web: false, modelImprovementOffered: false };
+for(const [key, value] of Object.entries(FOUNDER_DECIDED)) {
+ if(gilbertVoice[key] !== value) throw new Error(`packages/catalog/assistant.json sets voice.${key} to ${JSON.stringify(gilbertVoice[key])}. The founder decided ${JSON.stringify(value)} on 14 September 2026, and widening it is a decision for the founder rather than an edit.`);
+}
+if(gilbertVoice.languages.length !== 1 || gilbertVoice.languages[0].id !== 'en' || !gilbertVoice.languages[0].recognitionLocales.every(locale => /^en-[A-Z]{2}$/.test(locale))) throw new Error('packages/catalog/assistant.json offers voice in a language other than English. No other language may be heard until a contracted South African provider exists and that language has passed its own clinical comprehension test — see the speech-transcript door in feeds.json.');
+if(!Number.isInteger(gilbertVoice.maxListeningSeconds) || gilbertVoice.maxListeningSeconds < 5 || gilbertVoice.maxListeningSeconds > 60) throw new Error(`voice.maxListeningSeconds is ${gilbertVoice.maxListeningSeconds}. A tap must never leave a microphone open for long: the limit is what makes tap-to-start push-to-talk rather than an open microphone.`);
+for(const field of ['howItWorks', 'beforePermission', 'unavailable', 'refused', 'failed', 'web', 'talkLabel', 'stopLabel', 'captionsLabel', 'correctLabel']) {
+ if(!gilbertVoice.sentences[field]) throw new Error(`voice.sentences.${field} is missing from packages/catalog/assistant.json. Each of these is what a person is told at one moment of push-to-talk, and a platform with no sentence for a moment will type one.`);
+}
+const GILBERT_REFUSALS = ['no-diagnosis', 'no-prescription', 'never-lowers-an-emergency', 'no-invented-slot', 'no-audio-kept', 'listening-is-the-microphone', 'not-a-person', 'crisis-is-never-left-to-gilbert', 'silence-is-not-safety'];
+for(const id of GILBERT_REFUSALS) {
+ const found = gilbertContract.refusals.find(r => r.id === id);
+ if(!found?.statement || !found?.why) throw new Error(`Gilbert has lost the refusal "${id}", or the sentence saying why. Three platforms render these word for word, and what Gilbert will not do is the half of it worth reading.`);
+}
+
+/* ---- The matcher: emergency words only raise, and nothing typed can differ by platform ---------- */
+const gilbertWords = gilbertContract.matcher.emergencyWords;
+if(gilbertWords.reviewedBy !== null && !gilbertWords.reviewedOn) throw new Error('The emergency words are marked reviewed with no date. A review is by somebody, on a day, of a version of the list.');
+const PHRASE = /^[a-z0-9]+( [a-z0-9]+)*$/;
+const seenWords = new Map();
+for(const group of gilbertWords.groups) {
+ if(group.condition === null ? !group.name : !sos.redFlags.conditions.some(c => c.id === group.condition)) throw new Error(`Emergency word group "${group.id}" maps to ${group.condition === null ? 'no condition and has no name' : `"${group.condition}", which sos.json does not have`}. Gilbert escalates using the red flags Thuso SOS already asks about, and invents none.`);
+ for(const word of group.words) {
+  /* Already in normal form, so a web regular expression, a Swift scalar loop and a Kotlin char loop
+     cannot disagree about what the word is. */
+  if(!PHRASE.test(word)) throw new Error(`Emergency word "${word}" in group "${group.id}" is not in normal form (lower-case letters and digits, single spaces). Normalisation runs on three platforms, and a word that depends on it to match is a word one of them may miss.`);
+  if(seenWords.has(word)) throw new Error(`The emergency word "${word}" is in both "${seenWords.get(word)}" and "${group.id}".`);
+  seenWords.set(word, group.id);
+ }
+}
+for(const condition of sos.redFlags.conditions) {
+ if(!gilbertWords.groups.some(g => g.condition === condition.id)) throw new Error(`No emergency word group raises the sos.json condition "${condition.id}" (${condition.name}). A person who types it to Gilbert would be told "I can't assess that" rather than shown the ambulance first.`);
+}
+const answerKinds = new Set(['situation', 'identity', 'voice', 'handover', 'emergency']);
+for(const question of gilbertContract.questions) {
+ if(!answerKinds.has(question.answer)) throw new Error(`Gilbert's question "${question.id}" answers with "${question.answer}", which no platform knows how to render.`);
+ if(question.answer === 'situation' && !gilbertContract.situations.some(s => s.id === question.id)) throw new Error(`Gilbert's question "${question.id}" answers with a situation nobody wrote.`);
+ if(!gilbertContract.questionGroups.some(g => g.id === question.group)) throw new Error(`Gilbert's question "${question.id}" is in a group that does not exist.`);
+ for(const trigger of question.triggers) if(!PHRASE.test(trigger)) throw new Error(`Trigger "${trigger}" on "${question.id}" is not in normal form, so the three platforms could disagree about whether it matched.`);
+}
+for(const kind of ['emergency', 'handover']) {
+ if(gilbertContract.questions.filter(q => q.answer === kind).length !== 1) throw new Error(`Gilbert has ${gilbertContract.questions.filter(q => q.answer === kind).length} questions answered with "${kind}". There is one way to an ambulance and one way to a nurse in the suggested questions, always.`);
+}
+if(gilbertContract.answers.emergency.state !== 'escalate') throw new Error('The emergency answer no longer puts the sphere in Escalate. An answer that shows the ambulance number in a calm glow has lowered its own urgency.');
+if(!['guiding', 'escalate'].includes(gilbertContract.answers.unmatched.state)) throw new Error(`The unmatched answer is "${gilbertContract.answers.unmatched.state}". Anything Gilbert cannot assess gets an answer at least as prominent as an approved one.`);
+for(const [where, numbers] of [['unmatched', gilbertContract.answers.unmatched.numbers], ['emergency', gilbertContract.answers.emergency.numbers]]) {
+ if(numbers[0] !== 'ambulance' || !numbers.includes('mobile')) throw new Error(`Gilbert's ${where} answer does not lead with the ambulance and include 112 from a mobile.`);
+}
+if(!gilbertContract.silenceIsNotSafety.includes('{ambulance}')) throw new Error('silenceIsNotSafety no longer names the ambulance. The sentence is there for the person Gilbert failed to recognise, and what they need from it is the number.');
+for(const run of read('packages/catalog/assistant.json').match(/\d{3,}/g) ?? []) {
+ if(SA_EMERGENCY_NUMBERS.some(([, n]) => n === run)) throw new Error(`packages/catalog/assistant.json types the emergency number ${run}. It is sos.json's, filled in by token, so a wrong digit can only be wrong in one place.`);
+}
+/* The order that makes the matcher safe, in all three implementations: emergency words first. A
+   platform that looked for a question first would answer "when is my nurse coming, my chest hurts"
+   with a date. */
+const GILBERT_MATCHERS = [
+ ['web', 'apps/web/src/lib/assistant.ts', /export function send\(/, /emergencyGroupsIn\(words\)/, /questionFor\(words\)/],
+ ['iOS', 'apps/ios/MyThuso/Models/Assistant.swift', /static func send\(/, /emergencyGroups\(in: words\)/, /question\(for: words\)/],
+ ['Android', 'apps/android/app/src/main/java/za/co/mythuso/model/Assistant.kt', /fun send\(/, /emergencyGroups\(words\)/, /question\(words\)/]
+];
+for(const [platform, file, sendAt, emergencyCall, questionCall] of GILBERT_MATCHERS) {
+ const code = gilbertCode(read(file));
+ const start = code.search(sendAt);
+ if(start < 0) throw new Error(`${file} has no send function, so ${platform} Gilbert cannot be read for the order it matches in.`);
+ const body = code.slice(start);
+ const raised = body.search(emergencyCall), asked = body.search(questionCall);
+ if(raised < 0 || asked < 0 || raised > asked) throw new Error(`${file} looks for a question before it looks for an emergency word. On ${platform} a message that asks something ordinary and mentions a chest pain would be answered as the ordinary question.`);
+}
+/* No platform types a trigger or an emergency word. They are generated or read, and a typed one is a
+   phrase one platform matches and the others do not. */
+/* An id is not a phrase. "emergency" is an answer kind and a state as well as an emergency word, and a
+   platform switching on the answer kind is reading the contract rather than typing a copy of it. */
+const gilbertIds = new Set([...answerKinds, ...PULSE_ORDER, 'unmatched', ...gilbertContract.questions.map(q => q.id), ...gilbertContract.questionGroups.map(g => g.id), ...gilbertContract.situations.map(s => s.id), ...gilbertWords.groups.map(g => g.id), ...sos.emergency.numbers.map(n => n.id)]);
+const gilbertPhrases = new Set([...seenWords.keys(), ...gilbertContract.questions.flatMap(q => q.triggers)].filter(phrase => !gilbertIds.has(phrase)));
+const GILBERT_FILES = {
+ web: ['apps/web/src/lib/assistant.ts', 'apps/web/src/features/Assistant.tsx', 'apps/web/src/components/AssistantLauncher.tsx'],
+ ios: ['apps/ios/MyThuso/Models/Assistant.swift', 'apps/ios/MyThuso/Features/AssistantView.swift', 'apps/ios/MyThuso/Features/GilbertVoice.swift'],
+ android: ['apps/android/app/src/main/java/za/co/mythuso/model/Assistant.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/GilbertScreens.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/GilbertVoice.kt']
+};
+for(const file of Object.values(GILBERT_FILES).flat()) {
+ if(!existsSync(file)) throw new Error(`${file} is missing. Gilbert is built on all three platforms from one contract.`);
+ for(const [, literal] of gilbertCode(read(file)).matchAll(/["'`]((?:[^"'`\\\n]|\\.)*)["'`]/g)) {
+  if(gilbertPhrases.has(literal.trim().toLowerCase())) throw new Error(`${file} types the phrase "${literal}", which is a trigger or an emergency word in packages/catalog/assistant.json. Read it from the contract; a typed copy is a phrase one platform matches and the others do not.`);
+ }
+}
+
+/* ---- The Pulse events: what may leave a conversation, and what never does -------------------- */
+const PULSE_EVENTS = ['pulse.session.started', 'pulse.listening.started', 'pulse.utterance.finalised', 'pulse.thinking.started', 'pulse.device.highlight', 'pulse.guidance.presented', 'pulse.escalation.started', 'pulse.handover.completed'];
+const ENGINES = ['core', 'access', 'pulse', 'care', 'clinical', 'safety', 'movement', 'trust', 'record', 'medicines', 'devices', 'money'];
+const eventFieldTypes = new Set(feedContract.fieldTypes.map(t => t.id));
+if(gilbertContract.events.map(e => e.type).join() !== PULSE_EVENTS.join()) throw new Error(`packages/catalog/assistant.json declares the Pulse events ${gilbertContract.events.map(e => e.type).join(', ')}. Section 15F.4 names eight, and the Contracts & Core architect's event shape expects exactly those.`);
+/* Nothing a person said leaves the conversation, on any event. utterance.finalised carries the
+   length, the channel and ids; the words stay on the device until consent and retention exist. */
+/* Stems rather than names, because the words arrive under many: utteranceText, heardWords, rawTranscript. */
+const NEVER_A_PAYLOAD = ['audio', 'transcript', 'utterance', 'text', 'words', 'heard', 'voiceprint', 'recording', 'embedding', 'diagnos', 'caption'];
+for(const event of gilbertContract.events) {
+ if(event.version !== 1 || event.owner !== 'pulse' || !event.summary) throw new Error(`Pulse event "${event.type}" is not version 1, owned by pulse, with a summary.`);
+ if(!event.subscribers.length || event.subscribers.some(s => !ENGINES.includes(s))) throw new Error(`Pulse event "${event.type}" names subscribers ${event.subscribers.join(', ')}. Subscribers are engine ids: ${ENGINES.join(', ')}.`);
+ if(event.subscribers.includes(event.owner)) throw new Error(`Pulse event "${event.type}" is subscribed to by its own owner. An engine that listens to itself has a function call, not an event.`);
+ for(const field of event.payload) {
+  if(!eventFieldTypes.has(field.type) || typeof field.required !== 'boolean' || !field.why) throw new Error(`Pulse event "${event.type}" carries "${field.field}" without a type from feeds.json's fieldTypes, a required flag and a reason.`);
+  if(NEVER_A_PAYLOAD.some(stem => gilbertCanon(field.field).includes(stem)) || gilbertCanon(field.field) === 'value') throw new Error(`Pulse event "${event.type}" carries "${field.field}". No audio, no words a person said and no clinical value leaves a Gilbert conversation on an event.`);
+  if(event.neverCarries.some(n => gilbertCanon(n.field) === gilbertCanon(field.field))) throw new Error(`Pulse event "${event.type}" both carries and refuses "${field.field}".`);
+ }
+ if(!event.neverCarries.every(n => n.field && n.why)) throw new Error(`Pulse event "${event.type}" refuses a field without saying why.`);
+ if(!event.neverCarries.some(n => gilbertCanon(n.field).includes('audio'))) throw new Error(`Pulse event "${event.type}" does not refuse audio. Every one of the eight says so, because the one that forgets is the one somebody extends.`);
+ if(!event.neverCarries.some(n => gilbertCanon(n.field) === 'transcript')) throw new Error(`Pulse event "${event.type}" does not refuse the transcript.`);
+}
+
+/* ---- The door a speech provider would one day knock on -------------------------------------- */
+const speechDoor = feedContract.feeds.find(f => f.id === 'speech-transcript');
+if(!speechDoor?.capabilities.includes('voice')) throw new Error('packages/catalog/feeds.json has no speech-transcript door serving the voice capability. The day a South African speech provider is contracted, what must be true first and what it must never send are already written down there.');
+if(feedContract.noSeam.some(n => n.capability === 'voice')) throw new Error('feeds.json still lists voice under noSeam. Voice has a door now; the reason there was none was that nothing had been decided about listening, and the founder has decided.');
+const speechRefuses = speechDoor.neverAccepts.flatMap(n => [n.field, ...n.also]).map(gilbertCanon);
+for(const must of ['audio', 'audiourl', 'recording', 'voiceprint', 'speakerembedding', 'diagnosis']) {
+ if(!speechRefuses.some(spelling => spelling === must || spelling.includes(must))) throw new Error(`The speech-transcript door does not refuse "${must}". A provider's defaults are to keep the audio and to add whatever else it can infer, and this is the list that turns those defaults away.`);
+}
+for(const must of ['a-data-processing-agreement-is-signed', 'hosting-is-south-african-or-approved', 'the-provider-keeps-no-audio', 'each-language-passes-a-clinical-comprehension-test', 'model-improvement-has-its-own-consent']) {
+ if(!speechDoor.beforeSwitchOn.some(c => c.id === must)) throw new Error(`The speech-transcript door has lost the switch-on condition "${must}".`);
+}
+
+/* ---- Permissions: named, platform by platform, with the words a person is asked in ------------ */
+const VOICE_PERMISSIONS = { NSMicrophoneUsageDescription: 'ios', NSSpeechRecognitionUsageDescription: 'ios', 'android.permission.RECORD_AUDIO': 'android' };
+const voiceNamed = Object.fromEntries((voice.requiresPermissions ?? []).map(p => [p.permission, p.platform]));
+if(JSON.stringify(Object.keys(voiceNamed).sort()) !== JSON.stringify(Object.keys(VOICE_PERMISSIONS).sort()) || Object.entries(VOICE_PERMISSIONS).some(([k, v]) => voiceNamed[k] !== v)) throw new Error(`The voice capability names ${Object.keys(voiceNamed).join(', ') || 'no permissions'}. Push-to-talk needs exactly the iOS microphone and speech recognition keys and Android's RECORD_AUDIO, each on its own platform, and nothing more.`);
+const gilbertPbx = read('apps/ios/MyThuso.xcodeproj/project.pbxproj');
+const appConfigs = gilbertPbx.split('\n').filter(line => /isa = XCBuildConfiguration/.test(line) && /PRODUCT_NAME = MyThuso;/.test(line));
+if(appConfigs.length !== 2) throw new Error(`Found ${appConfigs.length} build configurations for the MyThuso app target rather than Debug and Release, so the usage descriptions cannot be checked.`);
+for(const key of ['NSMicrophoneUsageDescription', 'NSSpeechRecognitionUsageDescription']) {
+ for(const config of appConfigs) {
+  const declared = config.match(new RegExp(`INFOPLIST_KEY_${key} = "((?:[^"\\\\]|\\\\.)*)";`));
+  if(!declared) throw new Error(`The MyThuso target's ${/name = (\w+)/.exec(config)?.[1]} configuration does not declare ${key}. iOS ends an app that asks for the microphone or speech recognition without one.`);
+  if(declared[1] !== gilbertVoice.usageDescriptions[key]) throw new Error(`The MyThuso target asks for ${key} in the words "${declared[1]}", and packages/catalog/assistant.json says "${gilbertVoice.usageDescriptions[key]}". The sentence in the system's permission prompt is a promise, and it is the contract's.`);
+ }
+}
+if(gilbertPbx.split('\n').some(line => /isa = XCBuildConfiguration/.test(line) && !/PRODUCT_NAME = MyThuso;/.test(line) && /UsageDescription/.test(line))) throw new Error('A build configuration other than the MyThuso app target declares a usage description.');
+if((read('apps/android/app/src/main/AndroidManifest.xml').match(/android\.permission\.RECORD_AUDIO/g) ?? []).length !== 1) throw new Error('The Android manifest does not declare RECORD_AUDIO exactly once. Gilbert\'s push-to-talk needs it, and the voice capability names it.');
+
+/* ---- iOS: the microphone lives in one file, asks for on-device recognition, and writes nothing -- */
+const IOS_VOICE = 'apps/ios/MyThuso/Features/GilbertVoice.swift';
+const IOS_SPEECH = /\b(AVAudioEngine|AVAudioSession|AVAudioApplication|SFSpeechRecognizer|SFSpeechAudioBufferRecognitionRequest|SFSpeechRecognitionTask|requestRecordPermission|installTap)\b|\bimport\s+(Speech|AVFAudio|AVFoundation)\b/;
+const IOS_RECORDING = /\b(AVAudioRecorder|AVAudioFile|AVAssetWriter|ExtAudioFile\w*|AudioFileCreate\w*|AVCaptureDevice|AVCaptureSession)\b/;
+for(const file of iosSources) {
+ const code = gilbertCode(read(file));
+ const recording = code.match(IOS_RECORDING);
+ if(recording) throw new Error(`${file} reaches for ${recording[0]}. No recording of a voice is made or kept, on the phone or anywhere else — assistant.json's no-audio-kept refusal — and that is enforced by the API not being here at all.`);
+ const speech = code.match(IOS_SPEECH);
+ if(speech && file !== IOS_VOICE) throw new Error(`${file} reaches for ${speech[0]}. The microphone and the recogniser live in ${IOS_VOICE} and nowhere else, so there is one file to read to know when this app can hear.`);
+}
+const iosVoice = gilbertCode(read(IOS_VOICE));
+if(!/requiresOnDeviceRecognition\s*=\s*true/.test(iosVoice) || /requiresOnDeviceRecognition\s*=\s*false/.test(iosVoice)) throw new Error(`${IOS_VOICE} does not set requiresOnDeviceRecognition = true. Without it Apple's recogniser sends the audio to Apple's servers whenever it thinks that would be better.`);
+if(!/supportsOnDeviceRecognition/.test(iosVoice)) throw new Error(`${IOS_VOICE} never asks supportsOnDeviceRecognition. A phone that cannot recognise English offline must be told so in the contract's words, not have its request fail silently or go to a server.`);
+const iosWrites = iosVoice.match(/\.write\(to:|FileManager|FileHandle|OutputStream|UserDefaults|NSKeyedArchiver/);
+if(iosWrites) throw new Error(`${IOS_VOICE} reaches for ${iosWrites[0]}. Nothing Gilbert hears is written anywhere: the transcript lives for the conversation, in memory.`);
+const iosInit = (iosVoice.match(/\binit\(\)[\s\S]*?\n    }/) ?? [''])[0];
+if(/request(Authorization|RecordPermission)/.test(iosInit)) throw new Error(`${IOS_VOICE} asks for permission when it is created. The microphone is asked for the first time somebody taps to talk, after the contract's explanation, never when a screen opens.`);
+for(const file of ['apps/ios/MyThuso/MyThusoApp.swift', 'apps/ios/MyThuso/Features/HomeView.swift']) {
+ if(/GilbertListener|requestAuthorization|requestRecordPermission/.test(gilbertCode(read(file)))) throw new Error(`${file} touches Gilbert's listener or a permission request. Nothing is asked at launch or on the home screen; the Gilbert screen asks on first use.`);
+}
+/* The microphone and waveform symbols, only where Gilbert is. waveform.path.* is the ECG trace on the
+   clinical charts and is a picture of a heartbeat. */
+for(const file of iosSources) {
+ if(file === assistant || file === IOS_VOICE) continue;
+ for(const literal of swiftLiterals(read(file))) {
+  if(/^(mic|waveform)(\.|$)/.test(literal) && !literal.startsWith('waveform.path')) throw new Error(`${file} draws the symbol "${literal}". A listening symbol belongs only on Gilbert's screen, where it is drawn only while voice is available. ${voice.neverSoften}`);
+ }
+}
+
+/* ---- Android: on-device recogniser only, on 12 and later, and no recorder anywhere ----------- */
+const ANDROID_ROOT = 'apps/android/app/src/main/java/za/co/mythuso';
+const ANDROID_VOICE = `${ANDROID_ROOT}/ui/GilbertVoice.kt`;
+for(const file of native.filter(f => f.endsWith('.kt'))) {
+ const code = gilbertCode(read(file));
+ const recorder = code.match(/\b(MediaRecorder|AudioRecord|MediaMuxer)\b/);
+ if(recorder) throw new Error(`${file} reaches for ${recorder[0]}. No recording of a voice is made or kept; on Android that is enforced by the recorder APIs not being here at all.`);
+ const speech = code.match(/\b(SpeechRecognizer|RecognitionListener|RecognizerIntent)\b/);
+ if(speech && file !== ANDROID_VOICE) throw new Error(`${file} reaches for ${speech[0]}. Speech recognition lives in ${ANDROID_VOICE} and nowhere else.`);
+ if(/RECORD_AUDIO/.test(code) && !/Data\.kt$/.test(file) && ![ANDROID_VOICE, `${ANDROID_ROOT}/ui/GilbertScreens.kt`].includes(file)) throw new Error(`${file} names RECORD_AUDIO. The permission is asked for by Gilbert's screen the first time somebody taps to talk, and nowhere else — never at launch.`);
+}
+const androidVoice = gilbertCode(read(ANDROID_VOICE));
+for(const [needed, why] of [
+ [/createOnDeviceSpeechRecognizer\(/, 'the recogniser must be the on-device one; createSpeechRecognizer may send audio to a server'],
+ [/isOnDeviceRecognitionAvailable\(/, 'a phone without on-device English must be told so in the contract\'s words'],
+ [/Build\.VERSION_CODES\.S\b/, 'below Android 12 there is no on-device recogniser, and voice is unavailable rather than routed elsewhere'],
+ [/EXTRA_PREFER_OFFLINE/, 'the request asks for offline recognition explicitly']
+]) if(!needed.test(androidVoice)) throw new Error(`${ANDROID_VOICE} does not contain ${needed.source}: ${why}.`);
+const androidElsewhere = androidVoice.match(/createSpeechRecognizer\(|startActivity|FileOutputStream|openFileOutput|\bFile\(|getExternal\w*|SharedPreferences|DataStore/);
+if(androidElsewhere) throw new Error(`${ANDROID_VOICE} reaches for ${androidElsewhere[0]}. Speech goes to the on-device recogniser and the words to the screen, and nothing else: no server recogniser, no recognition activity and nothing written down.`);
+
+/* ---- The web: no way of hearing at all, and the orb's name is the contract's ---------------- */
+const WEB_HEARING = /\b(getUserMedia|mediaDevices|webkitSpeechRecognition|SpeechRecognition|MediaRecorder|AudioContext|webkitAudioContext|AudioWorklet\w*|createMediaStreamSource)\b/;
+for(const file of files('apps/web/src').filter(f => /\.(ts|tsx)$/.test(f))) {
+ const code = gilbertCode(read(file));
+ const hearing = code.match(WEB_HEARING);
+ if(hearing) throw new Error(`${file} reaches for ${hearing[0]}. The web has no microphone in this release: a browser's speech recognition sends a voice to the browser's maker, and the founder decided Gilbert on the web is typed to. ${voice.neverSoften}`);
+ if(/['"`]listening['"`]|\bListening\b|\b(tap|hold|press) to (talk|speak)\b/i.test(code)) throw new Error(`${file} says Listening, or offers to. Nothing on the web listens, so no word on it may say or imply that it does.`);
+}
+const launcherLabel = (read('apps/web/src/components/AssistantLauncher.tsx').match(/className="as-launcher" aria-label="([^"]+)"/) ?? [])[1];
+if(launcherLabel !== gilbertContract.identity.callToAction) throw new Error(`The floating orb on the web is called "${launcherLabel}", and the contract's call to action is "${gilbertContract.identity.callToAction}". It is typed there only to keep the contract out of the patient's first load, and it is held to the contract here instead.`);
+if(!/\{silenceIsNotSafety\}/.test(read('apps/web/src/features/Assistant.tsx')) || !/<NotConnected of="voice"\/>/.test(read('apps/web/src/features/Assistant.tsx'))) throw new Error('apps/web/src/features/Assistant.tsx no longer renders the voice notice and silenceIsNotSafety beside the conversation.');
+
+/* ---- Listening, in words, only from the contract ------------------------------------------ */
+const LISTENING_WORDS = /\blisten(s|ing)?\b|\b(tap|hold|press|touch|swipe) to (speak|talk|record|dictate)\b|\bspeak now\b/i;
+for(const file of handWrittenNative) {
+ for(const literal of swiftLiterals(read(file))) {
+  if(PULSE_ORDER.includes(literal)) continue; /* a state's id, which is the contract's own word, read by id */
+  if(LISTENING_WORDS.test(literal)) throw new Error(`${file} types "${literal}". The words Listening and tap to talk are the contract's — the Listening state and voice.sentences in packages/catalog/assistant.json — and a typed copy is a listening affordance nobody can switch off with the rest.`);
+ }
+}
+
+console.log(`Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t,r)=>t+r.checks.length,0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(', ')}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter(o => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter(l => l.review.state !== 'source').length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. That interpreter is now a vetted party with ${interpreterRole.checks.length} checks of their own and one capability, granted nothing that opens a record; ${interpreting.roster.length} of them carry hours rather than a conclusion, so all three platforms work out for themselves which hour answers a request and all three can still return nothing — a visit with no interpreter is held rather than dispatched and carries the contract's own word for it on all three, cancelling one costs ${interpreting.cancellation.fee} and is recorded against ${interpreting.cancellation.attributedTo} rather than the patient, and the ${interpreting.refusals.length} refusals — a family member, a child, English written at somebody — are on the screen rather than only in the file. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. Gilbert listens only where the founder said it may: the audio and speech APIs live in one file per phone, which asks for on-device recognition and writes nothing down, the web reaches for no way of hearing at all, no listening word is typed outside the contract, the ${gilbertContract.matcher.emergencyWords.groups.length} emergency word groups only ever raise, the screen renders the voice capability's notice from the contract rather than a sentence of its own, and none of the ${capabilities.capabilities.length} capabilities has its notice typed into a hand-written native file. The ingestion boundary is ${feedContract.feeds.length} doors and every one of them is locked: each names the capability whose sentence it answers with, points at the sample data that stands in for it, carries ${feedContract.feeds.reduce((t,f)=>t+f.beforeSwitchOn.length,0)} conditions that must be true before it may be switched on — every one of which a connected capability is now held to — and refuses ${feedContract.feeds.reduce((t,f)=>t+f.neverAccepts.length,0)} named fields it must never be sent, none of which any other feed accepts; every capability is either served by one or carries a written reason there is no seam, no route is typed into the server by hand, no refusal sentence is typed into the service, and nothing behind them answers in the two hundreds. The table that would settle whether the caller limit is the right number holds five integers per window and no column anybody could be identified by, and the health routes that read it answer the loopback by path rather than by method — which is now checked in both directions, because the first POST under that prefix would otherwise have been public. The chain witness renders a head to be carried off the machine and checks one back; it reaches no network and says on its own face that publishing is still absent. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : 'none of them fails'}. Three bodies of prose that were written out once per platform are contracts now: the ${explanations.entries.length} reading explanations and their ${Object.keys(explanations.provenance).length} provenance sentences in records.json, where every urgent condition is a red flag sos.json actually has, no paragraph names a number, the ordinary cause is said before the frightening one and the oximeter still admits it reads high on darker skin; the ${arrivalProse.length} arrival refusals in geography.json, with the day of the visit enforced by arithmetic on all three platforms rather than by the sentence that describes it; and what the offline queue survives in capture.json, where ${fileStores.length} file-backed stores are held to one promise and the web's is held to keeping less. What a store says when the disk refuses it is a contract now too: ${writeFailures.failures.length} failures over ${outcomeNames.size} outcomes, no two of them leaving the same set true, every one of them leaving nothing deleted, none of them offered by a store with no disk to be refused by — and the ${SILENT_ABOUT_WRITE_FAILURE.length} file stores that have no sentence for a full phone and the one screen that quarantines a file without saying so are written down as gaps rather than left to be found again. Not one of those ${prosePlaces.reduce((total, place) => total + place.sentences.length, 0)} sentences is typed into a hand-written file outside the ${PROSE_QUARANTINE.length} quarantined copies waiting to adopt them, and each of those quarantines fails the build on the day it is no longer needed. And a workspace may not type the figure at the top of it: all ${METRIC_STRIPS.length} metric strips are read for a digit inside a literal, ${TYPED_FIGURES.length} figures are excused because no list on their screen could count them, and the ${FIGURE_QUARANTINE.reduce((total, [, count]) => total + count, 0)} that are typed over a list that could are ratcheted so that neither a new one nor a half-finished fix goes unnoticed. What that cannot see — whether a counted figure counts the right rows — is what tests/workspace-counts.spec.ts opens a browser for.`);
 
 /* The money and identity seams report separately, as their own line, so that three agents adding
    simulators to three different seams are appending lines rather than editing one sentence. */

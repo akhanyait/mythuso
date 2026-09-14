@@ -68,6 +68,14 @@ object EventsData {
         Event("market.order.shipped", 1, "money"),
         Event("market.order.delivered", 1, "money"),
         Event("market.order.returned", 1, "money"),
+        Event("pulse.session.started", 1, "pulse"),
+        Event("pulse.listening.started", 1, "pulse"),
+        Event("pulse.utterance.finalised", 1, "pulse"),
+        Event("pulse.thinking.started", 1, "pulse"),
+        Event("pulse.device.highlight", 1, "pulse"),
+        Event("pulse.guidance.presented", 1, "pulse"),
+        Event("pulse.escalation.started", 1, "pulse"),
+        Event("pulse.handover.completed", 1, "pulse"),
         Event("trust.weight.decided", 1, "trust"),
         Event("trust.dispatch.withheld", 1, "trust"),
         Event("record.breakglass.review_due", 1, "record"),
@@ -113,6 +121,14 @@ object EventsData {
         const val MARKET_ORDER_SHIPPED = "market.order.shipped"
         const val MARKET_ORDER_DELIVERED = "market.order.delivered"
         const val MARKET_ORDER_RETURNED = "market.order.returned"
+        const val PULSE_SESSION_STARTED = "pulse.session.started"
+        const val PULSE_LISTENING_STARTED = "pulse.listening.started"
+        const val PULSE_UTTERANCE_FINALISED = "pulse.utterance.finalised"
+        const val PULSE_THINKING_STARTED = "pulse.thinking.started"
+        const val PULSE_DEVICE_HIGHLIGHT = "pulse.device.highlight"
+        const val PULSE_GUIDANCE_PRESENTED = "pulse.guidance.presented"
+        const val PULSE_ESCALATION_STARTED = "pulse.escalation.started"
+        const val PULSE_HANDOVER_COMPLETED = "pulse.handover.completed"
         const val TRUST_WEIGHT_DECIDED = "trust.weight.decided"
         const val TRUST_DISPATCH_WITHHELD = "trust.dispatch.withheld"
         const val RECORD_BREAKGLASS_REVIEW_DUE = "record.breakglass.review_due"

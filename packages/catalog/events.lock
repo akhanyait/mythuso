@@ -48,3 +48,11 @@ trust.weight.decided@1 4cd80c394321c4a7
 trust.dispatch.withheld@1 733776b734bd84cf
 record.breakglass.review_due@1 52959d41898c35ee
 record.audit.chain_broken@1 ce47e06eb02ef48f
+pulse.session.started@1 1b9346421bcaadf6
+pulse.listening.started@1 42c2ea6326dba7fe
+pulse.utterance.finalised@1 ea43eccc97f58ecd
+pulse.thinking.started@1 d2be8e5f081a82d4
+pulse.device.highlight@1 0aa96c129aebcb1e
+pulse.guidance.presented@1 b92fdd2603c524a2
+pulse.escalation.started@1 6b38c0aaa9b7dc21
+pulse.handover.completed@1 4ef9f0d81857c4ea

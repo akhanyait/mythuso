@@ -2,44 +2,61 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { noticeFor } from './notices';
 import { goSection } from './nav';
-/* The floating assistant on the web.
+/* Gilbert on the web.
 
    What is held here, in the order a person meets it.
 
-   The orb floats on every patient page and is fetched lazily. The panel's code is requested only
+   The orb floats on every patient page and is fetched lazily: the panel's code is requested only
    when somebody opens it, so the journey watches the request rather than trusting the build. On a
    phone the orb sits above the tab bar and covers none of its buttons; on a wide screen it leaves
    the footer's help link alone.
 
-   The panel behaves like a dialog. It opens by click or keyboard and closes by Escape, by its close
-   button or by the backdrop. Focus stays inside while it is open and returns to the orb when it
-   closes, and the conversation survives closing.
+   The panel behaves like a dialog. It opens by click or keyboard, closes by Escape, its close button
+   or the backdrop, keeps focus inside and gives it back to the orb, and the conversation survives
+   closing.
 
-   It says the contract's words: the voice notice verbatim, and answers built from records.json,
-   capabilities.json and sos.json. Its emergency answer leads with the ambulance and hands over to
-   Thuso SOS.
+   It says the contract's words. The voice notice verbatim; the sentence that Gilbert not recognising
+   an emergency does not mean there is not one, beside the conversation before anything is asked; and
+   answers built from assistant.json, records.json and sos.json.
 
-   It never offers to listen. No microphone glyph, no speech wording on any control, no text box,
-   and no call to getUserMedia. The Siri comparison is placement, not hearing.
+   The matcher, typed into. A question in a person's own words gets the contract's answer. A sentence
+   with an emergency word in it is an emergency whatever else it asked. Anything nobody wrote an
+   answer for gets "I can't assess that", the ambulance numbers, Thuso SOS and a way to a nurse — and
+   the nurse handover shows what would be sent and says it was not.
 
-   Motion stops rather than slows. Under reduced motion neither the orb nor the sphere runs an
-   animation and the canvas still holds a frame; a hidden tab stops the orb too. */
+   It never offers to listen. No microphone glyph, no listening word on any control, and no call to
+   getUserMedia, SpeechRecognition, MediaRecorder or AudioContext. The web has a text box and nothing
+   that hears.
+
+   Motion stops rather than slows. */
 
 const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
+const gilbert = json('../packages/catalog/assistant.json');
 const voice = json('../packages/catalog/capabilities.json').capabilities.find((c: { id: string }) => c.id === 'voice');
 const sos = json('../packages/catalog/sos.json');
 const laboratory = json('../packages/catalog/records.json').records.find((r: { id: string }) => r.id === 'laboratory').name;
+const number = (id: string) => sos.emergency.numbers.find((n: { id: string }) => n.id === id).number;
+const say = (text: string) => text.replace('{ambulance}', number('ambulance')).replace('{mobile}', number('mobile')).replace('{seconds}', String(gilbert.voice.maxListeningSeconds));
+const cue = (id: string) => gilbert.states.find((s: { id: string }) => s.id === id).cue;
+const condition = (id: string) => sos.redFlags.conditions.find((c: { id: string }) => c.id === id).name;
 
-const launcher = (page: Page) => page.getByRole('button', { name: 'Assistant', exact: true });
-const panel = (page: Page) => page.getByRole('dialog', { name: 'Assistant' });
-const log = (page: Page) => panel(page).getByRole('log', { name: 'Conversation with the assistant' });
+const launcher = (page: Page) => page.getByRole('button', { name: gilbert.identity.callToAction, exact: true });
+const panel = (page: Page) => page.getByRole('dialog', { name: gilbert.identity.name });
+const log = (page: Page) => panel(page).getByRole('log', { name: gilbert.conversation.logLabel });
+const field = (page: Page) => panel(page).getByLabel(gilbert.conversation.inputLabel);
+const ask = async (page: Page, words: string) => {
+ await field(page).fill(words);
+ await panel(page).getByRole('button', { name: gilbert.conversation.sendLabel, exact: true }).click();
+};
 
-/* Before the app's own code runs, so a reach for the microphone from anywhere on the page counts. */
-const watchTheMicrophone = (page: Page) => page.addInitScript(() => {
- const tally = window as unknown as { __mediaAsked: number };
- tally.__mediaAsked = 0;
- if (navigator.mediaDevices) {
-  navigator.mediaDevices.getUserMedia = () => { tally.__mediaAsked += 1; return Promise.reject(new Error('Refused by the assistant spec')); };
+/* Before the app's own code runs, so a reach for any way of hearing from anywhere on the page counts. */
+const watchForListening = (page: Page) => page.addInitScript(() => {
+ const tally = window as unknown as { __heard: string[] } & Record<string, unknown>;
+ tally.__heard = [];
+ const count = (name: string) => function () { tally.__heard.push(name); throw new Error('Refused by the assistant spec'); };
+ if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = () => { tally.__heard.push('getUserMedia'); return Promise.reject(new Error('Refused by the assistant spec')); };
+ for (const name of ['SpeechRecognition', 'webkitSpeechRecognition', 'MediaRecorder', 'AudioContext', 'webkitAudioContext']) {
+  Object.defineProperty(window, name, { configurable: true, value: count(name) });
  }
 });
 
@@ -58,25 +75,30 @@ const runningIn = (described: string[]) => described.filter(d => d.startsWith('r
 type Box = { x: number; y: number; width: number; height: number };
 const overlaps = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
-test('the orb floats on every patient page, and the assistant is fetched only when it is opened', async ({ page }) => {
+test('the orb floats on every patient page, and Gilbert is fetched only when it is opened', async ({ page }) => {
  const fetched: string[] = [];
- page.on('request', request => { if (/features\/Assistant|features\/assistant\.css|lib\/assistant/.test(request.url())) fetched.push(request.url()); });
+ page.on('request', request => { if (/features\/Assistant|features\/assistant\.css|lib\/assistant|catalog\/assistant\.json/.test(request.url())) fetched.push(request.url()); });
  await page.goto('/app/');
  await expect(page.getByRole('heading', { level: 1, name: 'Hello, Lerato' })).toBeVisible();
  await expect(launcher(page)).toBeVisible();
  await expect(launcher(page)).toHaveAttribute('aria-expanded', 'false');
  await goSection(page, 'My visits');
  await expect(launcher(page)).toBeVisible();
- expect(fetched, 'a patient page fetched the assistant before anybody reached for it').toEqual([]);
+ expect(fetched, 'a patient page fetched Gilbert before anybody reached for it').toEqual([]);
  await launcher(page).click();
  await expect(panel(page)).toBeVisible();
  expect(fetched.length).toBeGreaterThan(0);
  await expect(launcher(page)).toHaveAttribute('aria-expanded', 'true');
- // the contract's own sentence, word for word
+ await expect(panel(page).getByText(gilbert.identity.descriptor, { exact: true })).toBeVisible();
+ // the contract's own sentences, word for word
  await expect(panel(page).locator('.not-connected')).toHaveText(noticeFor('voice'));
+ await expect(panel(page).locator('.as-silence')).toHaveText(say(gilbert.silenceIsNotSafety));
+ await expect(panel(page).locator('.as-silence')).toBeInViewport();
  await expect(panel(page).locator('.orb')).toHaveAttribute('aria-hidden', 'true');
+ await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'idle');
+ await expect(panel(page).locator('.as-state')).toHaveText(cue('idle'));
  await expect(log(page)).toContainText('Nothing needs you.');
- await expect(panel(page).locator('.as-rule')).toContainText(voice.neverSoften);
+ for (const refusal of gilbert.refusals) await expect(panel(page).locator('.as-rule')).toContainText(refusal.statement);
 });
 
 test('on a phone the orb sits above the tab bar, clear of every tab', async ({ page, isMobile }) => {
@@ -88,11 +110,13 @@ test('on a phone the orb sits above the tab bar, clear of every tab', async ({ p
  expect(orb.y + orb.height, 'the orb reaches down into the tab bar').toBeLessThanOrEqual(bar.y - 4);
  expect(orb.x + orb.width).toBeLessThanOrEqual(page.viewportSize()!.width);
  for (const tab of await page.locator('.tabbar button').all()) expect(overlaps(orb, (await tab.boundingBox())!)).toBe(false);
- // opened, it is a sheet from the bottom edge across the whole width
  await launcher(page).click();
- // measured once it has finished rising from the bottom edge
  await expect.poll(async () => { const sheet = (await panel(page).boundingBox())!; return Math.round(sheet.y + sheet.height); }).toBe(page.viewportSize()!.height);
  expect(Math.round((await panel(page).boundingBox())!.width)).toBe(page.viewportSize()!.width);
+ // the composer is at the foot of the sheet, where a thumb is, and inside it
+ const compose = (await panel(page).locator('.as-compose').boundingBox())!;
+ expect(Math.round(compose.y + compose.height)).toBeLessThanOrEqual(page.viewportSize()!.height);
+ expect(compose.y).toBeGreaterThan(page.viewportSize()!.height / 2);
 });
 
 test('on a wide screen the orb leaves the footer alone and the panel is anchored bottom right', async ({ page, isMobile }) => {
@@ -114,8 +138,8 @@ test('the panel opens and closes like a dialog, keeps focus inside, and gives it
  await page.goto('/app/');
  await launcher(page).click();
  await expect(panel(page)).toBeVisible();
- await expect(panel(page).getByRole('button', { name: 'Close the assistant' })).toBeFocused();
- for (let step = 0; step < 24; step++) {
+ await expect(panel(page).getByRole('button', { name: 'Close Gilbert' })).toBeFocused();
+ for (let step = 0; step < 30; step++) {
   await page.keyboard.press('Tab');
   expect(await page.evaluate(() => !!document.getElementById('assistant-panel')?.contains(document.activeElement)), `focus left the panel after ${step + 1} tabs`).toBe(true);
  }
@@ -128,11 +152,11 @@ test('the panel opens and closes like a dialog, keeps focus inside, and gives it
  await page.keyboard.press('Enter');
  await expect(panel(page)).toBeVisible();
  await panel(page).getByRole('button', { name: 'When is my nurse coming?' }).click();
- await panel(page).getByRole('button', { name: 'Close the assistant' }).click();
+ await panel(page).getByRole('button', { name: 'Close Gilbert' }).click();
  await expect(panel(page)).toBeHidden();
  await expect(launcher(page)).toBeFocused();
  await launcher(page).click();
- await expect(log(page).locator('.as-said')).toHaveText(['You asked: When is my nurse coming?']);
+ await expect(log(page).locator('.as-said')).toHaveText([`${gilbert.conversation.youAsked}: When is my nurse coming?`]);
 });
 
 test('a suggested question gets the contract’s answer, and the emergency answer hands over to Thuso SOS', async ({ page }) => {
@@ -142,46 +166,123 @@ test('a suggested question gets the contract’s answer, and the emergency answe
  await expect(log(page)).toContainText(`${laboratory} results have been released to your record.`);
  await expect(panel(page).locator('.as-name')).toHaveText('Result ready');
  await expect(panel(page).locator('.orb')).toHaveAttribute('data-depth', '2');
+ await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'guiding');
 
  await panel(page).getByRole('button', { name: 'Is everyone on my team registered?' }).click();
  await expect(panel(page).locator('.as-figure')).toContainText('45');
 
- await panel(page).getByRole('button', { name: /Why can.t you listen\?/ }).click();
- for (const reason of voice.blockedBy) await expect(log(page)).toContainText(reason);
+ await panel(page).getByRole('button', { name: 'What are you?' }).click();
+ await expect(log(page).locator('.as-reply').last()).toContainText(gilbert.identity.whatItIsNot);
+
+ await panel(page).getByRole('button', { name: 'What happens to what I say?' }).click();
+ await expect(log(page).locator('.as-reply').last()).toContainText(gilbert.voice.sentences.web);
 
  await panel(page).getByRole('button', { name: 'What if it cannot wait?' }).click();
  const answer = log(page).locator('.as-reply').last();
  await expect(answer).toContainText(sos.emergency.headline);
  await expect(answer.locator('.as-numbers li').first()).toContainText('10177');
  await expect(panel(page).locator('.as-figure')).toHaveText('10177');
+ await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'escalate');
  await answer.getByRole('button', { name: /Open Thuso SOS/ }).click();
  await expect(panel(page)).toBeHidden();
  await expect(page.getByRole('dialog', { name: 'Thuso SOS' })).toBeVisible();
+});
+
+test('a typed question in a person’s own words gets the same contract answer', async ({ page }) => {
+ await page.goto('/app/?open=assistant');
+ await ask(page, 'hi, when’s my nurse coming??');
+ // nothing matched "when’s", but "nurse coming" is a trigger, so the visit answer arrives
+ await expect(log(page).locator('.as-said').last()).toContainText('hi, when’s my nurse coming??');
+ await expect(log(page).locator('.as-reply').last()).toContainText('A nurse is expected on');
+ await expect(panel(page).locator('.as-name')).toHaveText('Visit confirmed');
+ await expect(panel(page).locator('.as-state')).toHaveText(cue('guiding'));
+ await expect(field(page)).toHaveValue('');
+ // an empty message sends nothing
+ await panel(page).getByRole('button', { name: gilbert.conversation.sendLabel, exact: true }).click();
+ await expect(log(page).locator('.as-said')).toHaveCount(1);
+});
+
+test('anything Gilbert cannot match is told so, with the ambulance, Thuso SOS and a nurse — and the handover says it was not sent', async ({ page }) => {
+ await page.goto('/app/?open=assistant');
+ const words = 'My knee has been sore since Tuesday';
+ await ask(page, words);
+ const answer = log(page).locator('.as-reply').last();
+ await expect(answer.locator('.as-headline')).toHaveText(gilbert.answers.unmatched.sentence);
+ await expect(answer).toContainText(gilbert.answers.unmatched.detail);
+ await expect(answer).toContainText(say(gilbert.answers.unmatched.ifUrgent));
+ await expect(answer.locator('.as-numbers li')).toHaveCount(2);
+ await expect(answer.locator('.as-numbers li').nth(0)).toContainText('10177');
+ await expect(answer.locator('.as-numbers li').nth(1)).toContainText('112');
+ await expect(answer.getByRole('button', { name: gilbert.answers.unmatched.sosLabel })).toBeVisible();
+ // unmatched is Guiding rather than Escalate: amber on every unrecognised sentence teaches people to ignore amber
+ await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'guiding');
+
+ await answer.getByRole('button', { name: gilbert.answers.unmatched.handoverLabel }).click();
+ const handover = log(page).locator('.as-reply').last();
+ await expect(handover.locator('.as-headline')).toHaveText(gilbert.answers.handover.title);
+ const rows = handover.locator('.as-summary > div');
+ await expect(rows.nth(0)).toContainText(words);
+ await expect(rows.nth(1)).toContainText(gilbert.answers.handover.channelTyped);
+ await expect(rows.nth(2)).toContainText(gilbert.answers.handover.nothingMatched);
+ await expect(rows.nth(3)).toContainText(gilbert.answers.handover.noFlags);
+ await expect(handover.locator('.as-notsent')).toHaveText(gilbert.answers.handover.notSent);
+ await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'handover');
+ await expect(panel(page).locator('.as-state')).toHaveText(cue('handover'));
+});
+
+test('an emergency word raises the answer, whatever else the message asked', async ({ page }) => {
+ await page.goto('/app/?open=assistant');
+ // a question Gilbert can answer, and a chest pain in the same breath: the chest pain wins
+ await ask(page, 'When is my nurse coming? My chest hurts and I feel sick');
+ const answer = log(page).locator('.as-reply').last();
+ await expect(answer).not.toContainText('A nurse is expected on');
+ await expect(answer.locator('.as-noticed')).toContainText(gilbert.answers.emergency.noticed);
+ await expect(answer.locator('.as-noticed li')).toHaveText([condition('chest-pain')]);
+ await expect(answer).toContainText(sos.emergency.headline);
+ await expect(answer.locator('.as-numbers li').first()).toContainText('10177');
+ await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'escalate');
+ await expect(panel(page).locator('.as-state')).toHaveText(cue('escalate'));
+ await expect(panel(page).locator('.as-figure')).toHaveText('10177');
+
+ // a crisis is never left to Gilbert: no sos condition, still the numbers
+ await ask(page, 'i dont want to be here, i want to die');
+ await expect(log(page).locator('.as-reply').last().locator('.as-numbers li').first()).toContainText('10177');
+ await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'escalate');
+
+ // and the nurse handover names what was noticed rather than pretending nothing matched
+ await ask(page, 'can I talk to a nurse');
+ const rows = log(page).locator('.as-reply').last().locator('.as-summary > div');
+ await expect(rows.nth(2)).toContainText(gilbert.answers.handover.matchedEmergency);
 });
 
 test('starting again clears the conversation back to its opening', async ({ page }) => {
  await page.goto('/app/?open=assistant');
  await panel(page).getByRole('button', { name: 'When is my nurse coming?' }).click();
  await expect(log(page).locator('.as-said')).toHaveCount(1);
- await panel(page).getByRole('button', { name: 'Start again' }).click();
+ await panel(page).getByRole('button', { name: gilbert.conversation.startAgainLabel }).click();
  await expect(log(page).locator('.as-said')).toHaveCount(0);
- await expect(panel(page).locator('.as-name')).toHaveText('Nothing waiting');
+ await expect(panel(page).locator('.orb')).toHaveAttribute('data-pulse', 'idle');
 });
 
-test('nothing about the assistant offers to listen', async ({ page }) => {
- await watchTheMicrophone(page);
+test('nothing about Gilbert on the web offers to listen or reaches for a way to hear', async ({ page }) => {
+ await watchForListening(page);
  await page.goto('/app/');
  await launcher(page).click();
- for (const question of ['Does anything need me?', 'When is my nurse coming?', 'What if it cannot wait?']) {
+ for (const question of ['Does anything need me?', 'What happens to what I say?', 'What if it cannot wait?']) {
   await panel(page).getByRole('button', { name: question }).click();
  }
+ await ask(page, 'can you hear me');
+ await ask(page, 'my shoulder aches');
  await expect(page.locator('[class*="lucide-mic"], [class*="lucide-audio"], [class*="waveform"], audio')).toHaveCount(0);
- await expect(panel(page).locator('input, textarea, [contenteditable="true"]')).toHaveCount(0);
+ // one text box, and it is a text box
+ await expect(panel(page).locator('input, textarea, [contenteditable="true"]')).toHaveCount(1);
+ await expect(field(page)).toHaveAttribute('type', 'text');
  const controls = [panel(page).getByRole('button'), launcher(page)];
  const names = (await Promise.all(controls.map(c => c.evaluateAll(buttons => buttons.map(b => `${b.getAttribute('aria-label') ?? ''} ${b.textContent ?? ''}`.trim()))))).flat();
  const offers = names.filter(name => /microphone|\bmic\b|voice input|dictat|speak now|(tap|hold|press) to (speak|talk)|start listening|listening|record/i.test(name));
- expect(offers, `${voice.neverSoften}`).toEqual([]);
- expect(await page.evaluate(() => (window as unknown as { __mediaAsked: number }).__mediaAsked)).toBe(0);
+ expect(offers, voice.neverSoften).toEqual([]);
+ await expect(panel(page).locator('.orb')).not.toHaveAttribute('data-pulse', /listening|thinking/);
+ expect(await page.evaluate(() => (window as unknown as { __heard: string[] }).__heard)).toEqual([]);
 });
 
 test('the orb and the sphere move, and Pause motion stops both', async ({ page }) => {
@@ -209,7 +310,7 @@ test('a hidden tab stops the orb', async ({ page }) => {
  await expect.poll(async () => runningIn(await animationsIn(page, '.as-launcher'))).toEqual([]);
 });
 
-test('under reduced motion the orb and the sphere are still, complete frames', async ({ page }) => {
+test('under reduced motion the orb and the sphere are still, complete frames, in every state', async ({ page }) => {
  await page.emulateMedia({ reducedMotion: 'reduce' });
  await page.goto('/app/');
  await expect(launcher(page)).toBeVisible();
@@ -217,11 +318,12 @@ test('under reduced motion the orb and the sphere are still, complete frames', a
  await launcher(page).click();
  const orb = panel(page).locator('.orb');
  await expect(orb).toHaveAttribute('data-motion', 'still');
- // nothing to pause, so no control offering to pause it
  await expect(panel(page).getByRole('button', { name: /Pause motion|Play motion/ })).toHaveCount(0);
  await panel(page).getByRole('button', { name: 'Are my results back?' }).click();
  await expect(panel(page).locator('.as-name')).toHaveText('Result ready');
- // the gathering reaction is suppressed as well as the breathing
+ await ask(page, 'someone has collapsed');
+ await expect(orb).toHaveAttribute('data-pulse', 'escalate');
+ // the gathering reaction is suppressed as well as the breathing, and a state change starts nothing
  expect(await animationsIn(page, '.orb')).toEqual([]);
  const box = await panel(page).locator('.orb-body').boundingBox();
  expect(box?.width ?? 0).toBeGreaterThan(60);
@@ -234,15 +336,19 @@ test('under reduced motion the orb and the sphere are still, complete frames', a
  expect(painted).toBeGreaterThan(0);
 });
 
-test('the open panel does not scroll sideways at 320px', async ({ page }) => {
+test('the open panel does not scroll sideways at 320px, with a long word typed and a handover open', async ({ page }) => {
  await page.setViewportSize({ width: 320, height: 720 });
  await page.goto('/app/?open=assistant');
  await panel(page).getByRole('button', { name: 'What if it cannot wait?' }).click();
+ await ask(page, 'Pneumonoultramicroscopicsilicovolcanoconiosisandsomemoreletters');
+ await log(page).locator('.as-reply').last().getByRole('button', { name: gilbert.answers.unmatched.handoverLabel }).click();
  const overflow = await page.evaluate(() => {
   const root = document.scrollingElement!;
   const scroller = document.querySelector('.as-scroll')!;
-  return { page: root.scrollWidth - root.clientWidth, panel: scroller.scrollWidth - scroller.clientWidth };
+  const compose = document.querySelector('.as-compose')!;
+  return { page: root.scrollWidth - root.clientWidth, panel: scroller.scrollWidth - scroller.clientWidth, compose: compose.scrollWidth - compose.clientWidth };
  });
  expect(overflow.page).toBeLessThanOrEqual(1);
  expect(overflow.panel).toBeLessThanOrEqual(1);
+ expect(overflow.compose).toBeLessThanOrEqual(1);
 });

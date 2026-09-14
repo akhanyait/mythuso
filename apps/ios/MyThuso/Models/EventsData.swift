@@ -71,6 +71,14 @@ enum EventsData {
         Event(type: "market.order.shipped", version: 1, owner: "money"),
         Event(type: "market.order.delivered", version: 1, owner: "money"),
         Event(type: "market.order.returned", version: 1, owner: "money"),
+        Event(type: "pulse.session.started", version: 1, owner: "pulse"),
+        Event(type: "pulse.listening.started", version: 1, owner: "pulse"),
+        Event(type: "pulse.utterance.finalised", version: 1, owner: "pulse"),
+        Event(type: "pulse.thinking.started", version: 1, owner: "pulse"),
+        Event(type: "pulse.device.highlight", version: 1, owner: "pulse"),
+        Event(type: "pulse.guidance.presented", version: 1, owner: "pulse"),
+        Event(type: "pulse.escalation.started", version: 1, owner: "pulse"),
+        Event(type: "pulse.handover.completed", version: 1, owner: "pulse"),
         Event(type: "trust.weight.decided", version: 1, owner: "trust"),
         Event(type: "trust.dispatch.withheld", version: 1, owner: "trust"),
         Event(type: "record.breakglass.review_due", version: 1, owner: "record"),
@@ -116,6 +124,14 @@ enum EventsData {
         static let marketOrderShipped = "market.order.shipped"
         static let marketOrderDelivered = "market.order.delivered"
         static let marketOrderReturned = "market.order.returned"
+        static let pulseSessionStarted = "pulse.session.started"
+        static let pulseListeningStarted = "pulse.listening.started"
+        static let pulseUtteranceFinalised = "pulse.utterance.finalised"
+        static let pulseThinkingStarted = "pulse.thinking.started"
+        static let pulseDeviceHighlight = "pulse.device.highlight"
+        static let pulseGuidancePresented = "pulse.guidance.presented"
+        static let pulseEscalationStarted = "pulse.escalation.started"
+        static let pulseHandoverCompleted = "pulse.handover.completed"
         static let trustWeightDecided = "trust.weight.decided"
         static let trustDispatchWithheld = "trust.dispatch.withheld"
         static let recordBreakglassReviewDue = "record.breakglass.review_due"
