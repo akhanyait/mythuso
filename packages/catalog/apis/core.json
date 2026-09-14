@@ -35,7 +35,9 @@
    "refusals": [
     {"id": "not-the-owner", "status": 403, "statement": "An engine publishes only the events it owns.", "why": "Ownership is checked against the certificate's engine id, not the payload's claim."},
     {"id": "withdrawn-version", "status": 410, "statement": "That event version is withdrawn and is not published.", "why": "A withdrawn version has no subscribers and its correction is the next version."},
-    {"id": "refused-field", "status": 422, "statement": "The event carries a field the bus refuses.", "why": "The never-lists in packages/catalog/events.json are enforced at publish as well as at build."}
+    {"id": "refused-field", "status": 422, "statement": "The event carries a field the bus refuses.", "why": "The never-lists in packages/catalog/events.json are enforced at publish as well as at build."},
+    {"id": "undeclared-event", "status": 422, "statement": "That event type and version is not declared, and is not published.", "why": "An undeclared event has no frozen shape to check and no subscriber anyone has reviewed."},
+    {"id": "not-the-frozen-shape", "status": 422, "statement": "The event is not the shape its version was frozen with.", "why": "A subscriber built against a version must be handed that version's fields, of their declared types, and nothing else."}
    ],
    "emits": [],
    "emitsNoneBecause": "Publishing carries another engine's event; Core adds none of its own.",

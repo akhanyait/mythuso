@@ -10,7 +10,8 @@
     "apps/web",
     "apps/api",
     "apps/passport",
-    "packages/mock-api"
+    "packages/mock-api",
+    "packages/engines"
   ],
   "engines": {
     "node": ">=22.12.0"
@@ -22,8 +23,8 @@
     "vetting": "node scripts/emit-vetting.mjs",
     "records": "node scripts/emit-records.mjs",
     "generate": "npm run tokens && npm run vetting && npm run records && npm run earnings && npm run sos && npm run teleconsult && npm run locales && npm run dispensing && npm run programmes && npm run interpreting && npm run scheduling && npm run geography && npm run capabilities && npm run cancellation && npm run passport && npm run capture && npm run framing && npm run wellbeing && npm run rewards && npm run shop && npm run thusoiq-contract && npm run events && npm run consent-grants && npm run protocols && npm run assistant && npm run apis && npm run plans && npm run money",
-    "check": "npm run check -w @mythuso/thusoiq && npm run check -w @mythuso/commerce && npm run check -w @mythuso/geo && npm run check -w @mythuso/web && npm run check -w @mythuso/api && npm run check -w @mythuso/passport && npm run check -w @mythuso/mock-api && tsc -p packages/engines/src/money/tsconfig.json && node scripts/check-boundaries.mjs",
-    "test": "npm run test -w @mythuso/geo && npm run test -w @mythuso/thusoiq && npm run test -w @mythuso/commerce && npm run test -w @mythuso/api && npm run test -w @mythuso/passport && npm run test -w @mythuso/mock-api && node --test \"packages/engines/src/money/**/*.test.ts\" && playwright test",
+    "check": "npm run check -w @mythuso/thusoiq && npm run check -w @mythuso/commerce && npm run check -w @mythuso/geo && npm run check -w @mythuso/web && npm run check -w @mythuso/api && npm run check -w @mythuso/passport && npm run check -w @mythuso/mock-api && npm run check -w @mythuso/engines && node scripts/check-boundaries.mjs",
+    "test": "npm run test -w @mythuso/geo && npm run test -w @mythuso/thusoiq && npm run test -w @mythuso/commerce && npm run test -w @mythuso/api && npm run test -w @mythuso/passport && npm run test -w @mythuso/mock-api && npm run test -w @mythuso/engines && playwright test",
     "preview": "npm run preview -w @mythuso/web -- --host 0.0.0.0",
     "api": "npm run dev -w @mythuso/api",
     "test:live": "playwright test tests/live-identity.spec.ts",
@@ -56,6 +57,7 @@
     "protocols": "node scripts/emit-protocols.mjs",
     "passport-p0": "npm run dev -w @mythuso/passport",
     "assistant": "node scripts/emit-assistant.mjs",
+    "engines": "node packages/engines/src/server.ts",
     "money": "node scripts/emit-money.mjs"
   },
   "devDependencies": {

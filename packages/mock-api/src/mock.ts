@@ -74,7 +74,7 @@ const paramsIn = (path: string): string[] => [...path.matchAll(/\{([^}]+)\}/g)].
 
 /* A path whose escapes do not decode is not a path to any route. It used to throw out of the request
    handler — an unhandled rejection that could take the process down — and now it is a refusal. */
-function match(routes: Route[], method: string, path: string): { route: Route; params: Record<string, string> } | 'malformed' | null {
+export function match(routes: Route[], method: string, path: string): { route: Route; params: Record<string, string> } | 'malformed' | null {
  let asked: string[];
  try {
   asked = segmentsOf(path).map(segment => decodeURIComponent(segment));
