@@ -166,3 +166,36 @@ test('holds together at 320px and at 200% zoom', async ({ page }) => {
     await expect(page.locator('.status-row')).toHaveCount(capabilities.length);
   }
 });
+
+/* The open-source register, checked against its contract the same way the capabilities are.
+ *
+ * The specification names HAPI FHIR, Open Wearables, Whisper and thirty others, and "MyThuso uses
+ * HAPI FHIR" is a sentence somebody may already have been told. So this page lists every one of them
+ * with the specification's decision and whether it is adopted — and the assertion that matters is
+ * that the adopted count is counted off the contract rather than typed on the page. */
+const register = JSON.parse(readFileSync(new URL('../packages/catalog/open-source.json', import.meta.url), 'utf8')) as {
+  components: { id: string; name: string; kind: string; specDecision: string; adoption: { status: string } }[];
+  decisions: { id: string }[];
+  rules: { id: string; statement: string; why: string }[];
+};
+
+test('lists every registered open-source component under its decision, with whether it is adopted', async ({ page }) => {
+  const section = page.locator('.oss-register');
+  await expect(section.locator('.oss-row')).toHaveCount(register.components.length);
+  const adopted = register.components.filter(c => c.adoption.status === 'adopted');
+  await expect(section.locator('.oss-count strong')).toHaveText(String(adopted.length));
+  await expect(section.locator('.oss-count')).toContainText(`of ${register.components.length} registered components are adopted`);
+  await expect(section.locator('.oss-state').filter({ hasText: /^Not adopted$/ })).toHaveCount(register.components.length - adopted.length);
+  const rule = register.rules.find(r => r.id === 'open-source-is-not-production-approved')!;
+  await expect(section).toContainText(rule.statement);
+  for (const c of register.components) {
+    const row = page.locator(`#oss-${c.id}`);
+    await expect(row, `${c.id} has no row in the register`).toHaveCount(1);
+    await expect(row.locator('.oss-name')).toHaveText(c.name);
+    /* The row sits under the heading of its own decision, not merely somewhere on the page. */
+    const heading = row.locator('xpath=../preceding-sibling::h3[1]');
+    await expect(heading).toHaveText(c.specDecision);
+  }
+  /* A declined vendor reads as declined, never as a licence to be weighed. */
+  for (const c of register.components.filter(c => c.kind === 'refused')) await expect(page.locator(`#oss-${c.id} .oss-licence`)).toHaveText('Declined');
+});
