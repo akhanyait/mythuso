@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The brand's own two ends: Vital Teal into Deep Indigo, the same pair as packages/illustrations/app-icon.svg.
+<!-- The wordmark's own two ends: its teal into its navy, the same pair as packages/illustrations/app-icon.svg.
      A vector rather than five rendered PNGs, because an icon that is two colours and one corner
      radius has no business being a bitmap on a metered connection. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -9,8 +9,8 @@
     <path android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
             <gradient android:startX="0" android:startY="0" android:endX="108" android:endY="108" android:type="linear">
-                <item android:offset="0" android:color="#FF14B8A6"/>
-                <item android:offset="1" android:color="#FF1E3A8A"/>
+                <item android:offset="0" android:color="#FF1D9E75"/>
+                <item android:offset="1" android:color="#FF0F3B4A"/>
             </gradient>
         </aapt:attr>
     </path>
