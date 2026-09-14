@@ -5,8 +5,8 @@
  "resources": ["registry", "readings", "wearable-links", "kits"],
  "doors": [],
  "doorsToAdd": [
-  {"id": "device-reading", "why": "Readings pushed from a vendor cloud are supplier callbacks; a door to add.", "capabilityNamed": {"section": "§5.5", "what": "Pluggable vendor adapters to the canonical schema"}},
-  {"id": "wearable-sync", "why": "Apple Health and Health Connect sync arrives on the phone, but a partner cloud sync is a door.", "capabilityNamed": {"section": "FS-E9", "what": "Apple Health and Google Health Connect sync"}}
+  {"id": "device-reading", "why": "Readings pushed from a vendor cloud are supplier callbacks; a door to add.", "capabilityNamed": {"section": "§5.5", "what": "Pluggable adapters per vendor"}},
+  {"id": "wearable-sync", "why": "Apple Health and Health Connect sync arrives on the phone, but a partner cloud sync is a door.", "capabilityNamed": {"section": "FS-E9", "what": "Apple Health and Google Health Connect wearable sync"}}
  ],
  "refusals": [
   {"id": "ingestion-after-withdrawal", "status": 403, "statement": "Nothing is ingested after consent is withdrawn.", "why": "§5.5: ingestion stops immediately."},
@@ -14,6 +14,7 @@
   {"id": "reading-without-source-and-quality", "status": 422, "statement": "A reading carries its source and quality.", "why": "§5.5."},
   {"id": "simulator-as-real", "status": 422, "statement": "A simulator reading is labelled and never presented as real.", "why": "§5.5."}
  ],
+ "ownIds": [],
  "routes": [
   {
    "method": "POST",
@@ -62,7 +63,7 @@
    "emits": ["device.recalled@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§4", "what": "Device registry: recall linkage"},
+   "capabilityNamed": {"section": "§4", "what": "recall linkage"},
    "status": "proposed"
   },
   {
@@ -120,7 +121,7 @@
    "emits": ["reading.ingested@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§5.5", "what": "Canonical reading schema"},
+   "capabilityNamed": {"section": "§5.5", "what": "Canonical schema"},
    "status": "proposed",
    "through": "passport-gateway"
   },
@@ -146,7 +147,7 @@
    "emitsNoneBecause": "A link is an arrangement; each reading it brings emits reading.ingested.",
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "FS-E9", "what": "Apple Health and Google Health Connect sync"},
+   "capabilityNamed": {"section": "FS-E9", "what": "Apple Health and Google Health Connect wearable sync"},
    "status": "proposed"
   },
   {

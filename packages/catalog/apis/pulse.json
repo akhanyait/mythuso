@@ -8,6 +8,7 @@
  "refusals": [
   {"id": "no-routes-of-its-own", "status": 404, "statement": "Gilbert Pulse answers no HTTP route of its own.", "why": "The patient-facing layer speaks through Access, where the callers, purposes and allow-list are enforced."}
  ],
+ "ownIds": [],
  "noRoutesBecause": "The Pulse Interaction Engine coordinates what the patient sees and hears on the device. Everything it asks of another engine goes through Access's tool gateway.",
  "routes": [
  ]

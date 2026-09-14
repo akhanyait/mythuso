@@ -11,13 +11,17 @@
   {"id": "no-ratification-without-a-signature", "status": 422, "statement": "A protocol is ratified with a named role and a date.", "why": "A recommendation cites the board's authority; the registry must say whose it was and when."},
   {"id": "no-subscription-to-a-withdrawn-version", "status": 410, "statement": "A withdrawn event version is neither published nor subscribed to.", "why": "Its correction is the next version."}
  ],
+ "ownIds": [
+  {"field": "eventId", "why": "The id the bus assigns to an event it accepted."}
+ ],
  "routes": [
   {
    "method": "POST",
    "path": "/v1/core/events",
    "version": 1,
    "summary": "Publish an event to the bus.",
-   "callers": ["engine"],
+   "callers": ["engine:access", "engine:pulse", "engine:care", "engine:clinical", "engine:safety", "engine:movement", "engine:trust", "engine:record", "engine:medicines", "engine:devices", "engine:money"],
+   "callerJustifications": {"engine:access": "booking.requested@1", "engine:pulse": "pulse.session.started@1", "engine:care": "appointment.requested@1", "engine:clinical": "triage.completed@2", "engine:safety": "sos.raised@1", "engine:movement": "trip.requested@1", "engine:trust": "person.verified@1", "engine:record": "passport.record.created@1", "engine:medicines": "prescription.prescribed@1", "engine:devices": "reading.ingested@1", "engine:money": "payment.succeeded@1"},
    "purpose": ["audit"],
    "request": [
     {"field": "eventType", "type": "string", "required": true, "why": "A declared event type."},
@@ -45,7 +49,8 @@
    "path": "/v1/core/loops",
    "version": 1,
    "summary": "Open a concern with an owner, a deadline and a fallback.",
-   "callers": ["engine"],
+   "callers": ["engine:care", "engine:safety", "engine:medicines", "engine:access", "engine:money", "engine:movement"],
+   "callerJustifications": {"engine:care": "appointment.follow_up_required@1", "engine:safety": "checkin.overdue@1", "engine:medicines": "lab.result.received@1", "engine:access": "conversation.handover@1", "engine:money": "market.order.shipped@1", "engine:movement": "admission.waitlisted@1"},
    "purpose": ["treatment", "dispatch", "emergency"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -72,7 +77,8 @@
    "path": "/v1/core/loops/{loopRef}/acknowledge",
    "version": 1,
    "summary": "The owner takes the concern on.",
-   "callers": ["engine", "nurse", "doctor", "ops-desk"],
+   "callers": ["nurse", "doctor", "ops-desk", "engine:care", "engine:safety"],
+   "callerJustifications": {"engine:care": "loop.opened@1", "engine:safety": "loop.opened@1"},
    "purpose": ["treatment", "dispatch", "emergency"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -95,7 +101,8 @@
    "path": "/v1/core/loops/{loopRef}/escalate",
    "version": 1,
    "summary": "Move the concern to its fallback.",
-   "callers": ["engine", "ops-desk"],
+   "callers": ["ops-desk", "engine:safety"],
+   "callerJustifications": {"engine:safety": "loop.opened@1"},
    "purpose": ["treatment", "dispatch", "emergency"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -144,7 +151,8 @@
    "path": "/v1/core/alerts",
    "version": 1,
    "summary": "Raise an alert: routed by rung, de-duplicated, suppressible, snoozed only with a reason.",
-   "callers": ["engine"],
+   "callers": ["engine:safety", "engine:devices", "engine:clinical", "engine:medicines"],
+   "callerJustifications": {"engine:safety": "sentinel.rung_raised@1", "engine:devices": "device.stale@1", "engine:clinical": "triage.completed@2", "engine:medicines": "lab.result.received@1"},
    "purpose": ["treatment", "emergency"],
    "request": [
     {"field": "sourceEngine", "type": "string", "required": true, "why": "Where the concern came from."},
@@ -165,7 +173,7 @@
    "emits": ["alert.raised@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§14", "what": "Routed alerts: dedup, suppression, snooze with reason"},
+   "capabilityNamed": {"section": "§14", "what": "Deduplication, suppression windows, severity tiers, snooze-with-reason"},
    "status": "proposed"
   },
   {
@@ -173,7 +181,8 @@
    "path": "/v1/core/protocols/{protocolVersionId}",
    "version": 1,
    "summary": "Read a protocol version from the registry.",
-   "callers": ["nurse", "doctor", "engine", "medical-director"],
+   "callers": ["nurse", "doctor", "medical-director", "engine:clinical", "engine:care", "engine:safety", "engine:medicines"],
+   "callerJustifications": {"engine:clinical": "protocol.ratified@1", "engine:care": "protocol.ratified@1", "engine:safety": "protocol.ratified@1", "engine:medicines": "protocol.ratified@1"},
    "purpose": ["treatment"],
    "request": [
     {"field": "protocolVersionId", "type": "string", "required": true, "why": "id@version."}
@@ -223,7 +232,8 @@
    "path": "/v1/core/permission-checks",
    "version": 1,
    "summary": "Check role × scope × purpose before an engine acts.",
-   "callers": ["engine"],
+   "callers": ["engine:care", "engine:medicines", "engine:movement", "engine:access", "engine:clinical"],
+   "callerJustifications": {"engine:care": "appointment.booked@1", "engine:medicines": "prescription.prescribed@1", "engine:movement": "trip.accepted@1", "engine:access": "booking.requested@1", "engine:clinical": "review.signed@1"},
    "purpose": ["audit"],
    "request": [
     {"field": "roleId", "type": "string", "required": true, "why": "The role asking."},
@@ -268,7 +278,7 @@
    "emitsNoneBecause": "An export is itself an audit entry in the chain it exports.",
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "FS-2", "what": "Audit trail: append-only and exportable"},
+   "capabilityNamed": {"section": "FS-2", "what": "log is append-only and exportable"},
    "status": "proposed"
   }
  ]

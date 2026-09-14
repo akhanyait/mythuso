@@ -13,6 +13,7 @@
   {"id": "lab-result-complete-before-acknowledgement", "status": 409, "statement": "A lab result is not complete until it is acknowledged.", "why": "Full Scope Engine 8."},
   {"id": "reward-for-taking-a-medicine", "status": 422, "statement": "Nothing rewards taking a medicine.", "why": "Section 18A of the Medicines and Related Substances Act; held pending counsel."}
  ],
+ "ownIds": [],
  "routes": [
   {
    "method": "GET",
@@ -87,7 +88,7 @@
    "emits": ["prescription.prescribed@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§5.4", "what": "Dispensary state: prescribed"},
+   "capabilityNamed": {"section": "§5.4", "what": "prescribed → pharmacist-verified"},
    "status": "proposed",
    "through": "passport-gateway"
   },
@@ -110,7 +111,7 @@
    "emits": ["prescription.verified@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§5.4", "what": "Pharmacist verification as a distinct role"},
+   "capabilityNamed": {"section": "§5.4", "what": "Pharmacist verification is a distinct role"},
    "status": "proposed"
   },
   {
@@ -134,7 +135,7 @@
    "emits": ["dispense.completed@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§5.4", "what": "Dispensary state: dispensed"},
+   "capabilityNamed": {"section": "§5.4", "what": "pharmacist-verified → dispensed"},
    "status": "proposed"
   },
   {
@@ -160,7 +161,7 @@
    "emits": ["delivery.collected@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§10", "what": "Scan at pharmacy, sealed tamper-evident bag with QR"},
+   "capabilityNamed": {"section": "§10", "what": "sealed tamper-evident bag with QR"},
    "status": "proposed"
   },
   {
@@ -230,7 +231,7 @@
    "emits": ["lab.order.placed@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "FS-E8", "what": "Home sample collection with results into the Passport"},
+   "capabilityNamed": {"section": "FS-E8", "what": "Home sample collection"},
    "status": "proposed"
   }
  ]

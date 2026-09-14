@@ -154,3 +154,5 @@ POST /v1/money/gifts@1 a56f7f8019269bed
 POST /v1/money/groups@1 de2f580e7298f8d0
 POST /v1/money/claims@1 b2d508a3ebaba9f2
 POST /v1/money/market-orders@1 2f8e69a90c4bdcb5
+POST /v1/clinical/triage@2 a8a371c00392e232
+POST /v1/money/claims@2 0f16f514c00f878a

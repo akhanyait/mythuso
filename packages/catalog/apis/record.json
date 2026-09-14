@@ -5,7 +5,8 @@
  "resources": ["fhir", "consent", "audit", "share", "export", "breakglass", "summary", "dev-subjects", "session-ends", "consent-checks"],
  "doors": [],
  "doorsToAdd": [
-  {"id": "hl7v2-inbound", "why": "ADT, ORU and ORM messages from partner systems are supplier callbacks. §26 names the path /hl7v2/inbound; it is mounted as a door with mutual TLS per partner, not answered as a route.", "passportPath": "/hl7v2/inbound", "capabilityNamed": {"section": "§26", "what": "POST /hl7v2/inbound, the ADT/ORU/ORM bridge"}}
+  {"id": "hl7v2-inbound", "why": "ADT, ORU and ORM messages from partner systems are supplier callbacks. §26 names the path /hl7v2/inbound; it is mounted as a door with mutual TLS per partner, not answered as a route.", "passportPath": "/hl7v2/inbound", "capabilityNamed": {"section": "§26", "what": "ADT/ORU/ORM bridge from partner systems"}},
+  {"id": "claim-submission", "why": "A claim's diagnosis coding is assembled inside the record and clinical boundary from the signed encounter and handed to the switching partner through this door. Money records the billing side and never holds the coding.", "capabilityNamed": {"section": "FS-E10", "what": "tariff and ICD-10 coding from Engine 3"}}
  ],
  "refusals": [
   {"id": "read-without-a-grant", "status": 401, "statement": "Nothing is read without a grant, a break-glass justification or the patient's own session.", "why": "§19: patient-controlled by construction."},
@@ -13,13 +14,16 @@
   {"id": "break-glass-beyond-the-summary", "status": 403, "statement": "Break-glass opens the emergency summary and nothing more.", "why": "§21."},
   {"id": "identifiable-grant-to-a-payer", "status": 403, "statement": "No scheme, insurer or employer receives an identifiable grant.", "why": "Aggregate only."}
  ],
+ "ownIds": [
+  {"field": "grantId", "why": "A consent grant the Passport holds."}
+ ],
  "routes": [
   {
    "method": "POST",
    "path": "/v1/record/dev-subjects",
    "version": 1,
    "summary": "Create a synthetic subject and patient session. Development only.",
-   "callers": ["operator"],
+   "callers": ["developer"],
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -27,7 +31,8 @@
     {"field": "patientSession", "type": "string", "required": true, "why": "A development patient session."}
    ],
    "refusals": [
-    {"id": "not-loopback", "status": 403, "statement": "The Passport answers only on the machine itself.", "why": "It is development only, on synthetic data, until the DPIA is signed."}
+    {"id": "not-loopback", "status": 403, "statement": "The Passport answers only on the machine itself.", "why": "It is development only, on synthetic data, until the DPIA is signed."},
+    {"id": "developer-credential-required", "status": 401, "statement": "Creating a synthetic subject needs a developer credential minted at the console.", "why": "Nothing reaching the loopback creates a patient on its own: a route that mints a patient session for any local caller is a door a tricked browser walks through."}
    ],
    "emits": [],
    "emitsNoneBecause": "A synthetic subject is not a record event.",
@@ -35,7 +40,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/dev/subjects'"}
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/dev/subjects'"},
+   "enforcedBy": {"mechanism": "development-token"}
   },
   {
    "method": "POST",
@@ -57,7 +63,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/session/end'"}
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/session/end'"},
+   "enforcedBy": {"mechanism": "passport-patient-session"}
   },
   {
    "method": "POST",
@@ -90,7 +97,8 @@
    "endpointNamed": {"section": "§26"},
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/consent/grant'"}
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/consent/grant'"},
+   "enforcedBy": {"mechanism": "passport-patient-session"}
   },
   {
    "method": "POST",
@@ -114,14 +122,15 @@
    "endpointNamed": {"section": "§26"},
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/consent/revoke'"}
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/consent/revoke'"},
+   "enforcedBy": {"mechanism": "passport-patient-session"}
   },
   {
    "method": "POST",
    "path": "/v1/record/consent-checks",
    "version": 1,
    "summary": "An engine holding a grant checks a category before asking for it.",
-   "callers": ["nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator", "responder-on-trip", "caregiver", "next-of-kin"],
+   "callers": ["caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"],
    "purpose": ["treatment", "dispensing", "dispatch", "emergency"],
    "request": [
     {"field": "category", "type": "string", "required": true, "why": "A record id."}
@@ -142,7 +151,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/consent/check'"}
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/consent/check'"},
+   "enforcedBy": {"mechanism": "passport-grant", "grantReads": ["records", "routine"]}
   },
   {
    "method": "GET",
@@ -165,14 +175,15 @@
    "endpointNamed": {"section": "§26"},
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/audit/mine'"}
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/audit/mine'"},
+   "enforcedBy": {"mechanism": "passport-patient-session"}
   },
   {
    "method": "POST",
    "path": "/breakglass",
    "version": 1,
    "summary": "Open the emergency summary without a grant, with a justification. Reviewed within 24 hours.",
-   "callers": ["operator", "doctor", "nurse"],
+   "callers": ["registered-clinician", "dispatch-desk"],
    "purpose": ["emergency"],
    "request": [
     {"field": "subject", "type": "string", "required": true, "why": "The subject token."},
@@ -192,14 +203,15 @@
    "endpointNamed": {"section": "§26"},
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/breakglass'"}
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/breakglass'"},
+   "enforcedBy": {"mechanism": "operator-credential"}
   },
   {
    "method": "GET",
    "path": "/summary/emergency",
    "version": 1,
    "summary": "Read the patient-configured emergency summary.",
-   "callers": ["patient", "responder-on-trip", "doctor-assigned", "nurse-assigned"],
+   "callers": ["patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "responder-on-trip"],
    "purpose": ["emergency", "treatment"],
    "request": [
     {"field": "subject", "type": "string", "required": true, "why": "The subject token."}
@@ -217,7 +229,8 @@
    "endpointNamed": {"section": "§26"},
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/summary/emergency'"}
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "url.pathname === '/summary/emergency'"},
+   "enforcedBy": {"mechanism": "passport-grant", "grantReads": ["records", "emergency-summary"], "patientToo": true}
   },
   {
    "method": "POST",
@@ -250,14 +263,15 @@
    "endpointNamed": {"section": "§26"},
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/passport/src/server.ts", "handler": "parts[0] === 'fhir'"}
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "parts[0] === 'fhir'"},
+   "enforcedBy": {"mechanism": "passport-grant", "grantWrites": true, "patientToo": true}
   },
   {
    "method": "GET",
    "path": "/fhir/{resourceType}/{id}",
    "version": 1,
    "summary": "Read a FHIR resource under consent.",
-   "callers": ["patient", "nurse-assigned", "doctor-assigned", "pharmacist", "caregiver"],
+   "callers": ["patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"],
    "purpose": ["treatment", "dispensing", "subject-access"],
    "request": [
     {"field": "resourceType", "type": "string", "required": true, "why": "The resource type."},
@@ -278,14 +292,15 @@
    "endpointNamed": {"section": "§26"},
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/passport/src/server.ts", "handler": "parts[0] === 'fhir'"}
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "parts[0] === 'fhir'"},
+   "enforcedBy": {"mechanism": "passport-grant", "grantReads": ["records", "routine"], "patientToo": true}
   },
   {
    "method": "GET",
    "path": "/fhir/{resourceType}",
    "version": 1,
    "summary": "Search a subject's resources of one type under consent.",
-   "callers": ["patient", "nurse-assigned", "doctor-assigned", "pharmacist", "caregiver"],
+   "callers": ["patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"],
    "purpose": ["treatment", "dispensing", "subject-access"],
    "request": [
     {"field": "resourceType", "type": "string", "required": true, "why": "The resource type."},
@@ -305,7 +320,8 @@
    "endpointNamed": {"section": "§26"},
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/passport/src/server.ts", "handler": "parts[0] === 'fhir'"}
+   "evidence": {"file": "apps/passport/src/server.ts", "handler": "parts[0] === 'fhir'"},
+   "enforcedBy": {"mechanism": "passport-grant", "grantReads": ["records", "routine"], "patientToo": true}
   },
   {
    "method": "POST",

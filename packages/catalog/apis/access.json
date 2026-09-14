@@ -5,7 +5,7 @@
  "resources": ["sign-ins", "sessions", "sign-outs", "account-names", "second-factors", "second-factor-confirmations", "second-factor-removals", "account-data", "erasure-requests", "erasure-cancellations", "account-exports", "correction-requests", "consent-contract", "consents", "access-log", "subject-requests", "health", "audit-chain", "witness-statements", "access-log-integrity", "verification-status", "rate-limits", "doors", "bookings", "conversations", "tools", "households", "sponsors", "bill-splits"],
  "doors": ["message-delivery"],
  "doorsToAdd": [
-  {"id": "whatsapp-inbound", "why": "Inbound WhatsApp from the provider is a supplier callback, so it is a door to add to packages/catalog/feeds.json, not a route.", "capabilityNamed": {"section": "FS-E1", "what": "Thuso Line phone and WhatsApp booking"}},
+  {"id": "whatsapp-inbound", "why": "Inbound WhatsApp from the provider is a supplier callback, so it is a door to add to packages/catalog/feeds.json, not a route.", "capabilityNamed": {"section": "FS-E1", "what": "phone and WhatsApp booking"}},
   {"id": "ussd-session", "why": "USSD sessions arrive from an aggregator; a door to add.", "capabilityNamed": {"section": "FS-E1", "what": "USSD *120# and IVR booking and check-in"}}
  ],
  "refusals": [
@@ -13,6 +13,10 @@
   {"id": "booking-invents-a-slot", "status": 409, "statement": "A booking is made only against a slot that was offered.", "why": "An invented slot is a nurse who is not coming."},
   {"id": "answer-lowers-an-emergency", "status": 422, "statement": "No answer lowers an emergency.", "why": "Generative output may explain a priority; it may not lower one."},
   {"id": "scheme-or-employer-as-caller", "status": 403, "statement": "No Access route takes a call from a scheme or an employer.", "why": "Neither has any business in a person's way into care."}
+ ],
+ "ownIds": [
+  {"field": "challengeId", "why": "A sign-in challenge the identity service issues and holds."},
+  {"field": "requestId", "why": "A correction or erasure request the identity service holds."}
  ],
  "forbiddenCallers": ["scheme-aggregate", "employer"],
  "routes": [
@@ -41,7 +45,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/start'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/start'"},
+   "enforcedBy": {"mechanism": "anonymous"}
   },
   {
    "method": "POST",
@@ -71,7 +76,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/verify'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/verify'"},
+   "enforcedBy": {"mechanism": "anonymous"}
   },
   {
    "method": "POST",
@@ -98,7 +104,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/second-factor'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/second-factor'"},
+   "enforcedBy": {"mechanism": "anonymous"}
   },
   {
    "method": "GET",
@@ -122,14 +129,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /auth/session'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /auth/session'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "POST",
    "path": "/v1/access/sign-outs",
    "version": 1,
    "summary": "Sign out and clear the session.",
-   "callers": ["anonymous", "self"],
+   "callers": ["anonymous"],
    "purpose": ["subject-access"],
    "request": [],
    "response": [
@@ -144,7 +152,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/logout'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /auth/logout'"},
+   "enforcedBy": {"mechanism": "anonymous"}
   },
   {
    "method": "POST",
@@ -169,7 +178,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/name'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/name'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "GET",
@@ -194,7 +204,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /account/second-factor'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /account/second-factor'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "POST",
@@ -218,7 +229,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/second-factor/begin'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/second-factor/begin'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "POST",
@@ -244,7 +256,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/second-factor/confirm'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/second-factor/confirm'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "POST",
@@ -270,7 +283,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/second-factor/disable'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/second-factor/disable'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "GET",
@@ -296,7 +310,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /account/data'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /account/data'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "POST",
@@ -322,7 +337,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/erasure'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/erasure'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "POST",
@@ -344,7 +360,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/erasure/cancel'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/erasure/cancel'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "POST",
@@ -372,7 +389,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/export'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/export'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "POST",
@@ -399,7 +417,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/correction'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /account/correction'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "GET",
@@ -423,7 +442,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /account/correction'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /account/correction'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "GET",
@@ -447,7 +467,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /consent/contract'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /consent/contract'"},
+   "enforcedBy": {"mechanism": "anonymous"}
   },
   {
    "method": "GET",
@@ -469,7 +490,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /consent'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /consent'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "POST",
@@ -499,7 +521,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /consent/give'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /consent/give'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "POST",
@@ -524,7 +547,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /consent/withdraw'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /consent/withdraw'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "GET",
@@ -547,14 +571,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /consent/access-log'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /consent/access-log'"},
+   "enforcedBy": {"mechanism": "identity-session"}
   },
   {
    "method": "GET",
    "path": "/v1/access/subject-requests",
    "version": 1,
    "summary": "Operators read outstanding correction and erasure requests.",
-   "callers": ["operator"],
+   "callers": ["admin"],
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -571,14 +596,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /operator/requests'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /operator/requests'"},
+   "enforcedBy": {"mechanism": "vetting-capability", "capability": "review-vetting"}
   },
   {
    "method": "POST",
    "path": "/v1/access/subject-requests/{requestId}/respond",
    "version": 1,
    "summary": "An operator answers a correction or erasure request.",
-   "callers": ["operator"],
+   "callers": ["admin"],
    "purpose": ["audit"],
    "request": [
     {"field": "requestId", "type": "string", "required": true, "why": "The request."},
@@ -600,7 +626,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /operator/requests/respond'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /operator/requests/respond'"},
+   "enforcedBy": {"mechanism": "vetting-capability", "capability": "review-vetting"}
   },
   {
    "method": "GET",
@@ -623,14 +650,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health'"},
+   "enforcedBy": {"mechanism": "anonymous"}
   },
   {
    "method": "GET",
    "path": "/v1/access/audit-chain",
    "version": 1,
    "summary": "Verify the identity service's audit chain. Loopback only.",
-   "callers": ["operator"],
+   "callers": ["loopback"],
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -646,14 +674,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/audit'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/audit'"},
+   "enforcedBy": {"mechanism": "loopback"}
   },
   {
    "method": "POST",
    "path": "/v1/access/witness-statements",
    "version": 1,
    "summary": "Check a witness statement against the chain. Loopback only.",
-   "callers": ["operator"],
+   "callers": ["loopback"],
    "purpose": ["audit"],
    "request": [
     {"field": "statement", "type": "string", "required": true, "why": "The statement carried off the machine."}
@@ -670,14 +699,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /health/witness'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /health/witness'"},
+   "enforcedBy": {"mechanism": "loopback"}
   },
   {
    "method": "GET",
    "path": "/v1/access/access-log-integrity",
    "version": 1,
    "summary": "Verify the sealed access log. Loopback only.",
-   "callers": ["operator"],
+   "callers": ["loopback"],
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -692,14 +722,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/access-log'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/access-log'"},
+   "enforcedBy": {"mechanism": "loopback"}
   },
   {
    "method": "GET",
    "path": "/v1/access/verification-status",
    "version": 1,
    "summary": "Read the credential-verification integration summary. Loopback only.",
-   "callers": ["operator"],
+   "callers": ["loopback"],
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -714,14 +745,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/verification'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/verification'"},
+   "enforcedBy": {"mechanism": "loopback"}
   },
   {
    "method": "GET",
    "path": "/v1/access/rate-limits",
    "version": 1,
    "summary": "Read the caller limits and whether they are settled. Loopback only.",
-   "callers": ["operator"],
+   "callers": ["loopback"],
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -738,7 +770,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/limits'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /health/limits'"},
+   "enforcedBy": {"mechanism": "loopback"}
   },
   {
    "method": "GET",
@@ -760,7 +793,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /feeds'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /feeds'"},
+   "enforcedBy": {"mechanism": "anonymous"}
   },
   {
    "method": "POST",

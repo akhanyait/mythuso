@@ -71,7 +71,11 @@
   { "key": "through", "required": false, "why": "passport-gateway or tool-gateway, when the route reaches another engine's data through one of the two synchronous doors rather than through events." },
   { "key": "emitsNoneBecause", "required": false, "why": "Required when emits is empty." },
   { "key": "evidence", "required": false, "why": "Required when status is built: { file, handler }." },
-  { "key": "withdrawn", "required": false, "why": "As for events: { on, supersededBy, why }, the route keeps its lock line and loses its callers." }
+  { "key": "withdrawn", "required": false, "why": "As for events: { on, supersededBy, why }, the route keeps its lock line and loses its callers." },
+  { "key": "callerJustifications", "required": false, "why": "For every engine:<id> caller, the live event that engine owns or hears which justifies the call." },
+  { "key": "enforcedBy", "required": false, "why": "Required when built: the mechanism the handler decides callers by, from enforcementMechanisms, and its parameters. The callers are worked out from it." },
+  { "key": "enforcement", "required": false, "why": "missing, when the handler does not yet enforce the intended callers; the build fails on it." },
+  { "key": "finding", "required": false, "why": "Required with enforcement: missing — what the handler does today." }
  ],
 
  "callers": [
@@ -81,13 +85,15 @@
   { "id": "thuso-line-agent", "name": "Thuso Line desk agent", "why": "Books and supports by phone, WhatsApp and USSD on a patient's behalf, and is recorded as the actor rather than the patient." },
   { "id": "dispatcher", "name": "Care dispatcher", "why": "Matches visits to nurses when the automatic offer has not been accepted." },
   { "id": "ops-desk", "name": "Operations and safety desk", "why": "Receives panic, overdue check-ins and SOS, and holds escalation authority on the rota." },
-  { "id": "vetting-team", "name": "Verify vetting team", "why": "The only people who see a Trust Score's number and the evidence behind a gate." },
   { "id": "medical-director", "name": "Medical Director", "why": "The only role that ratifies a clinical protocol." },
   { "id": "responder", "name": "Thuso Ride responder", "why": "Transport, not medical care. Sees the emergency summary during a trip through the responder-on-trip grant and nothing else." },
   { "id": "facility-desk", "name": "Partner facility admissions desk", "why": "Accepts, wait-lists or declines an admission request and opens a pre-arrival packet through a share link." },
-  { "id": "engine", "name": "Another ThusoIQ engine, over mutual TLS", "why": "Core's routes are called by engines, not by people. The engine id is the certificate's subject." }
+  { "id": "loopback", "name": "Somebody on the machine itself", "why": "The identity service answers its /health/ routes only to a caller on the loopback address. That is a place, not a role, and the contract says so rather than pretending an operator is checked." },
+  { "id": "incident-reporter", "name": "The party who reported an incident", "why": "Containing an incident is the reviewer's work or the reporter's own follow-through, and nobody else's." },
+  { "id": "developer", "name": "A developer holding a development token", "why": "Minting synthetic subjects in the Passport P0 is development-only, behind the development flag and a developer token, and never a patient or a clinician action." }
  ],
- "callersFrom": ["packages/catalog/vetting.json#roles", "packages/catalog/consent.json#grants.recipientRoles"],
+ "callersFrom": ["packages/catalog/vetting.json#roles", "packages/catalog/consent.json#grants.recipientRoles", "packages/catalog/passport-gateway.json#breakGlass.roles"],
+ "engineCallers": {"pattern": "engine:<engine id>", "why": "An engine calls another engine's route over mutual TLS because something happened that it owns or hears. A bare engine caller let any engine call clinical triage, next-of-kin alerts or a claim; each engine caller now names one engine and the live event, which that engine owns or subscribes to, that justifies the call."},
 
  "supplierCallers": [
   { "id": "payment-provider", "why": "Payment results arrive on the payment-result door." },
@@ -104,11 +110,17 @@
   { "id": "speech-provider", "why": "Speech transcripts arrive on the speech-transcript door." }
  ],
 
+ "enforcementMechanisms": [{"id": "anonymous", "callers": "anonymous", "forbiddenMarks": ["signedIn(req, res)", "asParty(req, res)", "asOperator(req, res"], "why": "The handler asks for nothing, and must not quietly ask for a session."}, {"id": "identity-session", "callers": "self", "handlerMarks": ["signedIn(req, res)", "identity.resolve(readCookie(req.headers.cookie, COOKIE))"], "why": "A signed-in person acting on their own account: the session cookie resolved to a person, through signedIn() or directly."}, {"id": "vetting-register", "callers": "every role in packages/catalog/vetting.json", "handlerMarks": ["asParty(req, res)"], "why": "Anybody on the vetting register, cleared or not."}, {"id": "vetting-register-self", "callers": "self", "handlerMarks": ["asParty(req, res)"], "why": "A vetted party reading their own standing."}, {"id": "vetting-capability", "callers": "the vetting roles granted the named capability", "handlerMarks": ["asOperator(req, res", "capability: 'review-vetting'", "vetting!."], "why": "The gate or the vault decides against a capability, which packages/catalog/vetting.json grants to roles."}, {"id": "vetting-capability-or-self", "callers": "the roles granted the capability, and self", "handlerMarks": ["vetting!."], "why": "A reviewer, or the party the evidence is about acting on their own file."}, {"id": "vetting-capability-or-reporter", "callers": "the roles granted the capability, and incident-reporter", "handlerMarks": ["incident.openedBy === held.actor.party.id"], "why": "The reviewer holding the capability in good standing, or the party who reported this incident."}, {"id": "loopback", "callers": "loopback", "pathPrefix": "/health/", "why": "Answered only to a caller on the machine itself."}, {"id": "passport-patient-session", "callers": "patient", "handlerMarks": ["tokenFor(req, 'Patient')"], "why": "The Passport's patient session."}, {"id": "passport-grant", "callers": "patient when patientToo, and the grant roles whose gateway block reads one of grantReads, or writes when grantWrites", "handlerMarks": ["requesterOf(req)"], "why": "The gateway validates a grant artefact for its role on every call, from the role's gateway block in packages/catalog/consent.json."}, {"id": "operator-credential", "callers": "the roles in packages/catalog/passport-gateway.json breakGlass.roles", "handlerMarks": ["tokenFor(req, 'Operator')"], "why": "Who breaks the glass comes from an operator credential, never the request body."}, {"id": "supplier-callback", "callers": "the supplier named", "handlerMarks": ["acceptIdentityCallback("], "why": "The legacy identity-provider callback, and nothing else."}, {"id": "development-token", "callers": "developer", "handlerMarks": ["tokenFor(req, 'Developer')"], "why": "Development-only minting behind the development flag and a developer credential minted at the console (packages/catalog/passport-gateway.json, developerCredential)."}],
+ "_enforcementNote": "A built route's callers are not written, they are worked out: from the capability in packages/catalog/vetting.json, the grant roles' gateway blocks in packages/catalog/consent.json, or the credential roles in packages/catalog/passport-gateway.json, as the route's enforcedBy says its handler decides — and the check requires the contract's callers to equal that list and finds the mechanism in the handler. The third review found twelve built routes naming callers their handlers did not enforce. Where a handler enforces nothing today, the contract keeps the intended callers, says enforcement: missing with the finding, and the build fails until the handler enforces them.",
+ "contractIds": [{"field": "serviceId", "contract": "packages/catalog/services.json"}, {"field": "protocolVersionId", "contract": "packages/catalog/protocols.json"}, {"field": "protocolId", "contract": "packages/catalog/protocols.json"}, {"field": "purposeId", "contract": "packages/catalog/consent.json"}, {"field": "roleId", "contract": "packages/catalog/vetting.json"}, {"field": "checkId", "contract": "packages/catalog/vetting.json"}, {"field": "productIds", "contract": "packages/catalog/shop.json"}, {"field": "refusalId", "contract": "packages/catalog/apis.json"}, {"field": "answerId", "contract": "packages/catalog/assistant.json"}],
+ "_contractIdsNote": "A field ending Id names either an entry in a contract, listed here with the contract it points at, or an identifier the route's own engine issues, listed in that engine file's ownIds. Anything else — patientId, visitId — is another engine's resource under a name that dodged the reference rule, and is refused; it must be an opaque Ref.",
+ "documentQuotes": {"files": {"ThusoIQ Master v3.5": "Documentation/ThusoIQ_Master_v3.5_Gilbert_Pulse_Engine.docx", "MyThuso Full Scope v1.0": "Documentation/MyThuso_Full_Scope_Document.docx"}, "why": "A capabilityNamed quote is the document's own words, found in the cited section once both are lower-cased and their punctuation set aside; or it says paraphrase: true. The documents are untracked, so the check converts them with textutil when they are present and says in a sentence that it did not compare when they are not."},
  "sharedRefusals": [
   { "id": "caller-not-allowed", "status": 403, "statement": "This route does not take calls from your role.", "why": "The role and scope matrix is enforced on every route, and the refusal says which half refused rather than failing silently." },
   { "id": "purpose-not-allowed", "status": 403, "statement": "This route does not serve the purpose you gave.", "why": "A read made for billing that reaches a diagnosis is the processing POPIA section 13 forbids, and it is refused before anything is opened." },
   { "id": "required-field-missing", "status": 400, "statement": "A field this route needs was not sent.", "why": "A route that guesses a missing field has invented part of somebody's request." },
-  { "id": "idempotency-key-required", "status": 400, "statement": "A money or dispatch write needs an idempotency key.", "why": "Without one, a retry on a bad connection is a second charge or a second nurse." }
+  { "id": "idempotency-key-required", "status": 400, "statement": "A money or dispatch write needs an idempotency key.", "why": "Without one, a retry on a bad connection is a second charge or a second nurse." },
+  { "id": "malformed-path", "status": 400, "statement": "That address could not be read.", "why": "A path that does not decode is refused in words, rather than thrown at the process that was answering it." }
  ],
 
  "neverCrossesAnApi": {
@@ -126,10 +138,12 @@
  },
 
  "clinicalContent": {
-  "words": ["value", "reading", "readings", "diagnosis", "diagnoses", "findings", "symptoms", "assessment", "dose", "dosage", "icd10", "soap", "observation", "observations"],
+  "words": ["value", "reading", "readings", "diagnosis", "diagnoses", "findings", "symptoms", "assessment", "dose", "dosage", "icd10", "icd10Codes", "soap", "observation", "observations", "reasonCodes"],
   "measuresFrom": "packages/catalog/records.json#observations.measures",
   "recordsFrom": "packages/catalog/records.json#records",
   "onlyThrough": "passport-gateway",
+  "alwaysForEngines": ["money", "core", "movement"],
+  "_alwaysNote": "The gateway exception is for engines whose work is care. Money, Core and Movement never carry clinical content, through the gateway or otherwise: a claim's coding carried to Money through the gateway was the gateway switching the rule off for the one engine that faces payers. A list of reason codes is clinical content too, because it names the discriminators that fired; a single reason code for a cancellation names no condition.",
   "why": "No engine holds a copy of a record. A route in any engine but record that carries clinical content — a reading, a finding, a dose, a clinical record by name — must declare that it goes through the Passport's consent gateway; otherwise it carries a reference to the entry, and the entry stays where the grant decides who reads it."
  },
 
@@ -178,6 +192,7 @@
   "roleHeader": "x-mythuso-role",
   "purposeHeader": "x-mythuso-purpose",
   "refusalHeader": "x-mythuso-mock-refusal",
+  "loopbackHosts": ["127.0.0.1", "localhost", "::1"],
   "why": "Screens are built against the contract before any engine exists, so the mock answers every route from fixtures derived from this contract and refuses exactly as the route declares: the wrong role, the wrong purpose, a missing field, a missing idempotency key, and — when a test asks for it by id — each of the route's own refusals with its status and its sentence. It binds to loopback, refuses to start without the flag, and nothing in deploy/ may name it."
  },
 
@@ -194,6 +209,10 @@
   { "id": "named-means-a-section-exists", "statement": "A route says a document names its endpoint only when the document gives the method and the path, and says a document names its capability only by citing the section and the words.", "why": "\"The documents say so\" is only evidence when a reader can open the section and find it there. Only §26 names endpoints; elsewhere the documents name what an engine does, and counting the route that does it as named in the documents overstates how much of the design is theirs." },
   { "id": "api-frozen-means-frozen", "statement": "While the API contract is frozen, no route in apis.lock may disappear or change shape. A new version is a new entry, and a wrong one is withdrawn, not edited.", "why": "A screen built against version one is still in somebody's pocket. Editing version one in place breaks it without a word." },
   { "id": "api-freezing-cannot-be-switched-off", "statement": "The API contract is frozen, and the build refuses a contract that says it is not.", "why": "Every lock check sits behind the flag; a boolean that switches them off is a door any change walks through." },
-  { "id": "the-mock-is-not-a-service", "statement": "The development mock answers only on loopback, only with the development flag set, and only with synthetic data, and nothing that deploys may name it.", "why": "A mock that answers every route with a yes, reachable from outside, is a fake health service with a real address." }
+  { "id": "the-mock-is-not-a-service", "statement": "The development mock answers only on loopback, addressed to a loopback name, only with the development flag set — checked by the library as well as the server — and only with synthetic data, and nothing that deploys may name it.", "why": "A mock that answers every route with a yes, reachable from outside, is a fake health service with a real address. A page that rebinds its own hostname to 127.0.0.1 arrives from loopback, so the address alone lets it in, and a library that can be imported without the flag skips the door the server goes through." },
+  { "id": "built-callers-are-enforced", "statement": "A built route's callers are exactly those its handler enforces, worked out from the mechanism it names, and a handler that enforces nothing yet fails the build.", "why": "The contract said admin-only routes were an operator's and the Passport's were narrower than the gateway allowed. A caller list that is written rather than worked out is a claim about security nobody tested." },
+  { "id": "engine-callers-are-named", "statement": "No route takes calls from any engine. Each engine caller is one engine, justified by a live event it owns or hears.", "why": "Mutual TLS proves which engine is calling. It does not make every engine entitled to call clinical triage or a next-of-kin alert." },
+  { "id": "references-are-declared", "statement": "A field ending Id is an entry in a named contract or an identifier the route's own engine issues. Anything else is a Ref.", "why": "A reference to another engine's store under a name ending Id walked round the rule that only a gateway reaches another engine's data." },
+  { "id": "quotes-are-quotes", "statement": "A capability quote is found word for word in the section it cites, or it says it is a paraphrase.", "why": "Forty phrases that read like quotes were not in the documents as written, which is the same overstatement as counting a route as named when only its capability was." }
  ]
 }

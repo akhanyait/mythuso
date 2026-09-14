@@ -12,6 +12,7 @@
   {"id": "auto-signed-note", "status": 409, "statement": "Nothing is signed automatically.", "why": "A note is signed by a doctor's own action."},
   {"id": "result-complete-before-acknowledgement", "status": 409, "statement": "A result is not complete until a clinician acknowledges it.", "why": "An unacknowledged result is a loop nobody closed."}
  ],
+ "ownIds": [],
  "routes": [
   {
    "method": "GET",
@@ -87,7 +88,7 @@
    "emitsNoneBecause": "The consultation is written through the Passport gateway, which emits passport.entry.written.",
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§5.2", "what": "SOAP-style note; sign-off blocked until complete"},
+   "capabilityNamed": {"section": "§5.2", "what": "Sign-off blocked until required fields complete"},
    "status": "proposed",
    "through": "passport-gateway"
   },
@@ -96,7 +97,7 @@
    "path": "/v1/clinical/triage",
    "version": 1,
    "summary": "Triage on the rule engine: hard red-flag gate, priority and reason codes.",
-   "callers": ["nurse", "doctor", "engine"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "intakeEntryRef", "type": "string", "required": true, "why": "The intake in the record."},
@@ -115,8 +116,38 @@
    "emits": ["triage.completed@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§15B", "what": "SATS-aligned rules with a hard red-flag gate"},
-   "status": "proposed"
+   "capabilityNamed": {"section": "§15B", "what": "it cannot lower the rule-engine priority"},
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-14", "supersededBy": "POST /v1/clinical/triage@2", "why": "It returned the rules' reason codes outside the Passport gateway, and triage.completed@1 carried them to Access, Care and Safety. A reason code names the discriminator that fired — which symptom, which red flag — and so is clinical content: it is written to the record and read there by a clinician."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/clinical/triage",
+   "version": 2,
+   "summary": "Triage on the rule engine under a ratified protocol: the hard red-flag gate, then a priority and a care setting. The reason codes are written to the record, not returned.",
+   "callers": ["nurse", "doctor", "engine:access"],
+   "callerJustifications": {"engine:access": "conversation.handover@1"},
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "intakeEntryRef", "type": "string", "required": true, "why": "The intake in the record."},
+    {"field": "protocolVersionId", "type": "string", "required": true, "why": "The ratified protocol id@version."}
+   ],
+   "response": [
+    {"field": "triageRef", "type": "string", "required": true, "why": "The decision."},
+    {"field": "priorityCode", "type": "string", "required": true, "why": "The priority the rules set."},
+    {"field": "careSetting", "type": "string", "required": true, "why": "Where the patient should be seen: a disposition, which the engines acting on it need and which names no symptom."},
+    {"field": "triageEntryRef", "type": "string", "required": true, "why": "The decision in the Passport, with the reason codes a clinician reads there."}
+   ],
+   "refusals": [
+    {"id": "protocol-not-ratified", "status": 409, "statement": "Triage runs only on a ratified protocol; until one is ratified, software does not triage.", "why": "The open conflict in the build plan: the board ratifies first."},
+    {"id": "priority-lowered", "status": 409, "statement": "Nothing lowers a priority the rules set.", "why": "A red flag is never AI-gated."}
+   ],
+   "emits": ["triage.completed@2"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "§15B", "what": "it cannot lower the rule-engine priority"},
+   "status": "proposed",
+   "through": "passport-gateway"
   },
   {
    "method": "POST",
@@ -146,7 +177,8 @@
    "path": "/v1/clinical/guidance",
    "version": 1,
    "summary": "Deliver Home Guidance from a ratified script: one of four outcomes.",
-   "callers": ["nurse", "doctor", "engine"],
+   "callers": ["nurse", "doctor", "engine:access"],
+   "callerJustifications": {"engine:access": "triage.completed@2"},
    "purpose": ["treatment"],
    "request": [
     {"field": "triageRef", "type": "string", "required": true, "why": "The triage the guidance follows."},

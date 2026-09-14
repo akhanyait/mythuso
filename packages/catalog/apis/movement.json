@@ -5,9 +5,9 @@
  "resources": ["trips", "responder-heartbeats", "facilities", "admissions"],
  "doors": [],
  "doorsToAdd": [
-  {"id": "responder-position", "why": "A responder app's position stream from a fleet or telematics supplier is a door to add.", "capabilityNamed": {"section": "§12", "what": "Live GPS trace per job"}},
-  {"id": "facility-decision", "why": "A facility system answering an admission (level 4) is a supplier callback; a door to add.", "capabilityNamed": {"section": "§15C", "what": "Provider accepts, declines or asks for more"}},
-  {"id": "ems-dispatch", "why": "The ambulance partner's dispatch messages arrive on a door to add.", "capabilityNamed": {"section": "§12", "what": "EMS partner call or API for P1"}}
+  {"id": "responder-position", "why": "A responder app's position stream from a fleet or telematics supplier is a door to add.", "capabilityNamed": {"section": "§12", "what": "Live GPS to family and care team"}},
+  {"id": "facility-decision", "why": "A facility system answering an admission (level 4) is a supplier callback; a door to add.", "capabilityNamed": {"section": "§15C", "what": "Provider accepts/declines/requests more information"}},
+  {"id": "ems-dispatch", "why": "The ambulance partner's dispatch messages arrive on a door to add.", "capabilityNamed": {"section": "§12", "what": "EMS partner call/API"}}
  ],
  "refusals": [
   {"id": "p1-not-an-ambulance", "status": 422, "statement": "A P1 goes to a licensed ambulance partner and never to Thuso Ride.", "why": "Only a licensed ambulance service may give care in transit (§12)."},
@@ -15,6 +15,7 @@
   {"id": "pending-bed-shown-as-booked", "status": 422, "statement": "A pending bed is never shown as booked.", "why": "§15C: requesting, accepted, wait-listed and alternative offered are four different things."},
   {"id": "responder-reads-more-than-the-summary", "status": 403, "statement": "A responder reads the emergency summary during a trip and nothing more.", "why": "Transport, not care."}
  ],
+ "ownIds": [],
  "routes": [
   {
    "method": "POST",
@@ -40,7 +41,7 @@
    "emits": ["trip.requested@1"],
    "idempotent": true,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§12", "what": "P3 scheduled trips; P2 with a clinician-set priority"},
+   "capabilityNamed": {"section": "§12", "what": "P3 scheduled"},
    "status": "proposed"
   },
   {
@@ -90,7 +91,7 @@
    "emits": ["trip.accepted@1"],
    "idempotent": true,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§12", "what": "First responder to accept gets the job"},
+   "capabilityNamed": {"section": "§12", "what": "first to accept within 30 s gets the job"},
    "status": "proposed"
   },
   {
@@ -114,7 +115,7 @@
    "emitsNoneBecause": "The cascade offers it to the next three responders through the same trip.",
    "idempotent": true,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§12", "what": "Auto-cascade to the next responders"},
+   "capabilityNamed": {"section": "§12", "what": "auto-cascade to the next three"},
    "status": "proposed"
   },
   {
@@ -164,7 +165,7 @@
    "emitsNoneBecause": "Reading changes nothing.",
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§15C", "what": "L0 facility and service directory"},
+   "capabilityNamed": {"section": "§15C", "what": "Facility/service directory"},
    "status": "proposed"
   },
   {
@@ -191,7 +192,7 @@
    "emits": ["admission.requested@1"],
    "idempotent": true,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§15C", "what": "Bed or admission request (admission.requested)"},
+   "capabilityNamed": {"section": "§15C", "what": "Bed/admission request"},
    "status": "proposed"
   },
   {
@@ -215,7 +216,7 @@
    "emitsNoneBecause": "Reading changes nothing.",
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§15C", "what": "Requesting, accepted, wait-listed shown clearly"},
+   "capabilityNamed": {"section": "§15C", "what": "never present a pending bed as booked"},
    "status": "proposed"
   },
   {
@@ -239,7 +240,7 @@
    "emitsNoneBecause": "The share link is created by the Passport, which emits passport.share.link_created.",
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§15C", "what": "Pre-arrival packet, scoped to treatment"},
+   "capabilityNamed": {"section": "§15C", "what": "pre-arrival packet"},
    "status": "proposed",
    "through": "passport-gateway"
   },

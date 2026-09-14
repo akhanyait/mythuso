@@ -11,6 +11,9 @@
   {"id": "next-of-kin-see-clinical-detail", "status": 422, "statement": "Next of kin see plain language, never clinical detail.", "why": "§15."},
   {"id": "location-kept-after-the-window", "status": 409, "statement": "A location is not kept after the incident window.", "why": "A safety feature that keeps positions is a tracking system."}
  ],
+ "ownIds": [
+  {"field": "incidentId", "why": "An incident in the register Safety keeps."}
+ ],
  "routes": [
   {
    "method": "POST",
@@ -109,7 +112,7 @@
    "emits": ["panic.raised@1"],
    "idempotent": true,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "FS-E4", "what": "Panic button and live location"},
+   "capabilityNamed": {"section": "FS-E4", "what": "panic button, live location"},
    "status": "proposed"
   },
   {
@@ -159,7 +162,7 @@
    "emitsNoneBecause": "A nomination is an arrangement; nobody is told anything until an alert.",
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§15", "what": "NOK nominated with explicit, revocable consent and a scope"},
+   "capabilityNamed": {"section": "§15", "what": "explicit, revocable consent and a defined scope"},
    "status": "proposed"
   },
   {
@@ -167,7 +170,8 @@
    "path": "/v1/safety/next-of-kin/{nominationRef}/alert",
    "version": 1,
    "summary": "Alert next of kin, in plain language, within their scope.",
-   "callers": ["engine", "ops-desk"],
+   "callers": ["ops-desk", "engine:core"],
+   "callerJustifications": {"engine:core": "loop.escalated@1"},
    "purpose": ["emergency"],
    "request": [
     {"field": "nominationRef", "type": "string", "required": true, "why": "The nomination."},
@@ -184,7 +188,7 @@
    "emits": ["nok.notified@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§15", "what": "NOK alerting by severity, in plain language"},
+   "capabilityNamed": {"section": "§15", "what": "Plain language, not raw data"},
    "status": "proposed"
   },
   {
@@ -215,7 +219,8 @@
    "path": "/v1/safety/sentinel-deviations",
    "version": 1,
    "summary": "Raise a baseline deviation on the Sentinel ladder, tiers one to three.",
-   "callers": ["engine"],
+   "callers": ["engine:devices"],
+   "callerJustifications": {"engine:devices": "reading.ingested@1"},
    "purpose": ["treatment"],
    "request": [
     {"field": "readingEntryRef", "type": "string", "required": true, "why": "The reading entry deviated from."},
@@ -229,10 +234,10 @@
     {"id": "consumer-device-raises", "status": 422, "statement": "A consumer device alone does not raise a Sentinel rung.", "why": "Certified devices carry clinical weight."},
     {"id": "rung-beyond-three", "status": 422, "statement": "The seed scope has rungs one to three; beyond that needs a human and an ambulance contract.", "why": "Tiers four and five are Series A."}
    ],
-   "emits": ["sentinel.tier_raised@1"],
+   "emits": ["sentinel.rung_raised@1"],
    "idempotent": false,
    "endpointNamed": null,
-   "capabilityNamed": {"section": "§13", "what": "Baseline deviation on the escalation ladder"},
+   "capabilityNamed": {"section": "§13", "what": "patient-specific baselines"},
    "status": "proposed"
   },
   {
@@ -256,14 +261,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /incidents/kinds'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /incidents/kinds'"},
+   "enforcedBy": {"mechanism": "anonymous"}
   },
   {
    "method": "POST",
    "path": "/v1/safety/incidents",
    "version": 1,
    "summary": "Report a security incident.",
-   "callers": ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin"],
+   "callers": ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner"],
    "purpose": ["audit"],
    "request": [
     {"field": "kind", "type": "string", "required": true, "why": "The kind."},
@@ -285,14 +291,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents'"},
+   "enforcedBy": {"mechanism": "vetting-register"}
   },
   {
    "method": "POST",
    "path": "/v1/safety/incidents/{incidentId}/contain",
    "version": 1,
    "summary": "Record how an incident was contained.",
-   "callers": ["nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin"],
+   "callers": ["admin", "incident-reporter"],
    "purpose": ["audit"],
    "request": [
     {"field": "incidentId", "type": "string", "required": true, "why": "The incident."},
@@ -303,7 +310,8 @@
    ],
    "refusals": [
     {"id": "no-such-incident", "status": 404, "statement": "There is no such incident.", "why": "Containment is recorded against a report."},
-    {"id": "no-containment", "status": 400, "statement": "Say what was done to contain it.", "why": "An empty containment is not one."}
+    {"id": "no-containment", "status": 400, "statement": "Say what was done to contain it.", "why": "An empty containment is not one."},
+    {"id": "refused", "status": 403, "statement": "Only the party who reported this incident, or a reviewer in good standing, records how it was contained.", "why": "Containment has an owner. A register any vetted party can write to is a register nobody can rely on."}
    ],
    "emits": [],
    "emitsNoneBecause": "The identity service publishes no events yet; what it did is written to its own audit chain.",
@@ -311,14 +319,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents/contain'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents/contain'"},
+   "enforcedBy": {"mechanism": "vetting-capability-or-reporter", "capability": "review-vetting"}
   },
   {
    "method": "POST",
    "path": "/v1/safety/incidents/{incidentId}/notified",
    "version": 1,
    "summary": "Record that the regulator or the affected people were told.",
-   "callers": ["operator"],
+   "callers": ["admin"],
    "purpose": ["audit"],
    "request": [
     {"field": "incidentId", "type": "string", "required": true, "why": "The incident."},
@@ -336,14 +345,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents/notified'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents/notified'"},
+   "enforcedBy": {"mechanism": "vetting-capability", "capability": "review-vetting"}
   },
   {
    "method": "POST",
    "path": "/v1/safety/incidents/{incidentId}/close",
    "version": 1,
    "summary": "Close an incident.",
-   "callers": ["operator"],
+   "callers": ["admin"],
    "purpose": ["audit"],
    "request": [
     {"field": "incidentId", "type": "string", "required": true, "why": "The incident."}
@@ -361,14 +371,15 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents/close'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('POST /incidents/close'"},
+   "enforcedBy": {"mechanism": "vetting-capability", "capability": "review-vetting"}
   },
   {
    "method": "GET",
    "path": "/v1/safety/incidents",
    "version": 1,
    "summary": "Read the incident register.",
-   "callers": ["operator"],
+   "callers": ["admin"],
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -385,7 +396,8 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /incidents'"}
+   "evidence": {"file": "apps/api/src/server.ts", "handler": "routes.set('GET /incidents'"},
+   "enforcedBy": {"mechanism": "vetting-capability", "capability": "review-vetting"}
   }
  ]
 }
