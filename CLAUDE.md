@@ -23,6 +23,12 @@ Three native apps and one service:
 - `apps/android` — Jetpack Compose + Material 3, API 26+.
 - `apps/api` — the identity service. Zero dependencies: `node:http`, `node:crypto`, `node:sqlite`,
   `node:test`. Holds identity only, never health information.
+- `apps/passport` — the Health Passport P0, a separate zero-dependency service with its own SQLite
+  file and its own master key, a consent gateway in front of every read and a hash-chained audit the
+  patient reads. **Development only, synthetic data only**: it refuses to start without
+  `MYTHUSO_PASSPORT_DEVELOPMENT=synthetic-data-only`, binds to loopback, and a boundary check fails if
+  anything in `deploy/` names it — because the controls it needs (a signed DPIA, an Information
+  Officer, a residency decision, KMS/HSM custody) do not exist yet.
 - `packages/catalog` — the contracts everything else derives from, as JSON.
 
 ## The rules that are not negotiable
@@ -55,8 +61,9 @@ persist patient data. Checked.
 
 ```
 npm run dev        # Vite on :5173 — app at /, landing at /landing.html
-npm run check      # typecheck all three workspaces + scripts/check-boundaries.mjs
-npm test           # api node:test + Playwright (desktop 1440×1100, mobile 390×844)
+npm run check      # typecheck every workspace (incl. apps/passport) + scripts/check-boundaries.mjs
+npm test           # package, api and passport node:test + Playwright (desktop 1440×1100, mobile 390×844)
+npm run passport-p0  # the Passport P0 service on loopback — development flag required, synthetic data only
 npm run generate   # re-emit tokens, vetting, records, earnings, locales, events, consent grants and protocols
 npm run api        # the identity service on :8787
 ```
