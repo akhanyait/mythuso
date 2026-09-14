@@ -1,0 +1,184 @@
+/**
+ * The runtime's own suite: the binder refuses what the contract does not declare, the request half of
+ * every call refuses exactly as the contract says, a handler's answer is held to its declared shape, the
+ * bus refuses what the event contract refuses and delivers only where it routes, and the trail is a
+ * chain that notices a line changed underneath it. Engines here are synthetic modules written for the
+ * test; the real engines have suites of their own.
+ */
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+import { BindingRefused, BusRefused, MEMORY, RuntimeRefusedToStart, createClock, createRuntime, defineEngine, ok, refuse, type EngineContext, type EngineModule } from './index.ts';
+
+const FLAG = { MYTHUSO_ENGINES: 'synthetic-data-only' };
+const START = '2026-09-14T09:00:00+02:00';
+const empty = { routes: {}, subscriptions: {}, store: { schema: '' } };
+const runtimeWith = (engines: EngineModule[], dataDirectory = MEMORY) => createRuntime({ env: FLAG, engines, dataDirectory, clock: createClock(START) });
+const refusalOf = (fn: () => unknown) => { try { fn(); } catch (error) { return (error as BindingRefused | BusRefused).refusal; } return null; };
+
+test('the runtime refuses to start without the synthetic-data flag, in the factory', () => {
+ assert.throws(() => createRuntime({ env: {}, engines: [], dataDirectory: MEMORY }), RuntimeRefusedToStart);
+ assert.throws(() => createRuntime({ env: { MYTHUSO_ENGINES: 'yes' }, engines: [], dataDirectory: MEMORY }), RuntimeRefusedToStart);
+});
+
+test('the binder refuses a route the contract does not declare, a withdrawn one and another engine\'s', () => {
+ const handler = () => ok({});
+ assert.equal(refusalOf(() => runtimeWith([defineEngine({ ...empty, id: 'core', routes: { 'POST /v1/core/nothing@1': handler } })])), 'route-not-in-the-contract');
+ assert.equal(refusalOf(() => runtimeWith([defineEngine({ ...empty, id: 'core', routes: { 'POST /v1/core/loops@2': handler } })])), 'route-not-in-the-contract');
+ assert.equal(refusalOf(() => runtimeWith([defineEngine({ ...empty, id: 'clinical', routes: { 'POST /v1/clinical/triage@1': handler } })])), 'route-withdrawn');
+ assert.equal(refusalOf(() => runtimeWith([defineEngine({ ...empty, id: 'care', routes: { 'POST /v1/core/loops@1': handler } })])), 'route-belongs-to-another-engine');
+ assert.equal(refusalOf(() => runtimeWith([defineEngine({ ...empty, id: 'hospital' })])), 'engine-not-declared');
+ assert.equal(refusalOf(() => runtimeWith([defineEngine({ ...empty, id: 'core' }), defineEngine({ ...empty, id: 'core' })])), 'engine-not-declared');
+});
+
+test('the binder refuses a subscription to an undeclared, withdrawn, foreign or own event', () => {
+ const on = () => {};
+ assert.equal(refusalOf(() => runtimeWith([defineEngine({ ...empty, id: 'care', subscriptions: { 'visit.teleported@1': on } })])), 'undeclared-event');
+ assert.equal(refusalOf(() => runtimeWith([defineEngine({ ...empty, id: 'care', subscriptions: { 'person.trust_updated@1': on } })])), 'no-subscription-to-a-withdrawn-version');
+ assert.equal(refusalOf(() => runtimeWith([defineEngine({ ...empty, id: 'money', subscriptions: { 'checkin.overdue@1': on } })])), 'subscription-not-declared');
+ assert.equal(refusalOf(() => runtimeWith([defineEngine({ ...empty, id: 'core', subscriptions: { 'loop.opened@1': on } })])), 'no-subscribing-to-yourself');
+});
+
+const loops = (handler: (fields: Record<string, unknown>, ctx: EngineContext, undeclared: readonly string[]) => ReturnType<typeof ok>) => defineEngine({
+ ...empty, id: 'core',
+ store: { schema: 'CREATE TABLE IF NOT EXISTS loops (ref TEXT PRIMARY KEY, owner TEXT NOT NULL);' },
+ routes: { 'POST /v1/core/loops@1': (request, ctx) => handler(request.fields, ctx, request.undeclared) },
+});
+const openLoop = { idempotencyKey: 'k-1', sourceEngine: 'care', ownerRole: 'nurse', fallbackRole: 'ops-desk', dueBy: '2026-09-14T10:00:00+02:00' };
+const asCare = (fields: Record<string, unknown>) => ({ role: 'engine:care', purpose: 'treatment', fields });
+
+test('the request half refuses exactly as the contract says, with its status and sentence', () => {
+ let ran = 0;
+ const runtime = runtimeWith([loops(() => { ran++; return ok({ loopRef: 'loop-1' }); })]);
+ const answer = (input: { role: string; purpose: string; fields: Record<string, unknown> }) => runtime.call('POST /v1/core/loops@1', input);
+ assert.deepEqual(answer({ ...asCare(openLoop), role: 'engine:trust' }).body, { error: 'caller-not-allowed', message: 'This route does not take calls from your role.' });
+ assert.equal(answer({ ...asCare(openLoop), purpose: 'billing' }).body.error, 'purpose-not-allowed');
+ assert.equal(answer(asCare({ ...openLoop, idempotencyKey: undefined })).body.error, 'idempotency-key-required');
+ assert.equal(answer(asCare({ ...openLoop, ownerRole: '' })).status, 400);
+ assert.equal(answer(asCare({ ...openLoop, dueBy: 'tomorrow' })).body.error, 'field-of-the-wrong-type');
+ assert.equal(ran, 0, 'no refused call reached the handler');
+ const done = answer(asCare(openLoop));
+ assert.deepEqual([done.status, done.body, done.answeredBy], [200, { loopRef: 'loop-1' }, 'engine']);
+ runtime.close();
+});
+
+test('a handler sees declared fields only, and the names of the rest', () => {
+ let seen: [Record<string, unknown>, readonly string[]] | null = null;
+ const runtime = runtimeWith([loops((fields, _ctx, undeclared) => { seen = [fields, undeclared]; return ok({ loopRef: 'loop-1' }); })]);
+ runtime.call('POST /v1/core/loops@1', asCare({ ...openLoop, bloodPressure: '180/110' }));
+ assert.ok(seen);
+ assert.equal('bloodPressure' in seen![0], false);
+ assert.deepEqual(seen![1], ['bloodPressure']);
+ runtime.close();
+});
+
+test('an idempotent route replays the same key as the same act once', () => {
+ let ran = 0;
+ const runtime = runtimeWith([loops((_f, ctx) => { ran++; ctx.store.prepare('INSERT INTO loops (ref, owner) VALUES (?, ?)').run(`loop-${ran}`, 'nurse'); return ok({ loopRef: `loop-${ran}` }); })]);
+ const first = runtime.call('POST /v1/core/loops@1', asCare(openLoop));
+ const second = runtime.call('POST /v1/core/loops@1', asCare(openLoop));
+ assert.deepEqual(second.body, first.body);
+ assert.equal(ran, 1);
+ runtime.close();
+});
+
+test('a declared refusal renders the contract\'s sentence; an undeclared one, a bad shape or a throw is a fault that keeps nothing', () => {
+ let mode = 'refuse';
+ let rows = 0;
+ const runtime = runtimeWith([loops((_f, ctx) => {
+  ctx.store.prepare('INSERT INTO loops (ref, owner) VALUES (?, ?)').run(`loop-${mode}`, 'nurse');
+  rows = (ctx.store.prepare('SELECT COUNT(*) AS n FROM loops').get() as { n: number }).n;
+  if (mode === 'refuse') return refuse('no-fallback');
+  if (mode === 'undeclared') return refuse('because-i-said-so');
+  if (mode === 'shape') return ok({ loopRef: 7 });
+  if (mode === 'extra') return ok({ loopRef: 'x', ownerName: 'Thandi' });
+  throw new Error('boom');
+ })]);
+ const call = () => runtime.call('POST /v1/core/loops@1', asCare({ ...openLoop, idempotencyKey: `k-${mode}` }));
+ assert.deepEqual(call(), { status: 422, body: { error: 'no-fallback', message: 'Every concern has a fallback for when its owner does not answer.' }, answeredBy: 'engine' });
+ for (mode of ['undeclared', 'shape', 'extra', 'throw']) {
+  const answer = call();
+  assert.equal(answer.status, 500, mode);
+  assert.equal(answer.body.error, 'engine-fault');
+ }
+ assert.equal(rows, 1, 'each attempt saw only its own row: every earlier one was rolled back');
+ runtime.close();
+});
+
+test('a route with no handler is answered by the contract mock', () => {
+ const runtime = runtimeWith([]);
+ const answer = runtime.handle({ method: 'GET', path: '/v1/core/protocols/injection-administration%401', headers: { 'x-mythuso-role': 'nurse', 'x-mythuso-purpose': 'treatment' }, query: {}, body: {} });
+ assert.equal(answer.answeredBy, 'mock');
+ assert.equal(answer.status, 200);
+ assert.equal(runtime.handle({ method: 'GET', path: '/v1/nowhere', headers: {}, query: {}, body: {} }).body.error, 'no-route');
+ runtime.close();
+});
+
+/* A publisher driven by the clock, so a test can publish as any engine without a route of its own. */
+const publisher = (id: string, act: (ctx: EngineContext) => void) => defineEngine({ ...empty, id, tick: act });
+const grant = { grantRef: 'grant-1', recipientRole: 'caregiver', recipientRef: 'person-synthetic-2', purpose: 'treatment', expiresAt: '2026-12-13T09:00:00+02:00' };
+
+test('the bus refuses an undeclared, withdrawn, foreign-owned, never-listed or mis-shaped event, and says so in the trail by field name', () => {
+ const results: (string | null)[] = [];
+ const as = (fn: (ctx: EngineContext) => void) => fn;
+ const cases: [string, (ctx: EngineContext) => void][] = [
+  ['undeclared-event', as(ctx => ctx.publish('record.teleported@1', {}, { subjectRef: 'subject-1', purposeOfUse: 'treatment' }))],
+  ['withdrawn-version', as(ctx => ctx.publish('passport.consent.granted@1', {}, { subjectRef: 'subject-1', purposeOfUse: 'treatment' }))],
+  ['not-the-owner', as(ctx => ctx.publish('loop.opened@1', { loopRef: 'l', sourceEngine: 'record', ownerRole: 'nurse', dueBy: START }, { subjectRef: 'subject-1', purposeOfUse: 'treatment' }))],
+  ['refused-field', as(ctx => ctx.publish('passport.consent.granted@3', { ...grant, recipientPhone: '0820000000' }, { subjectRef: 'subject-1', purposeOfUse: 'treatment' }))],
+  ['refused-field', as(ctx => ctx.publish('passport.consent.granted@3', grant, { subjectRef: '8001015009087', purposeOfUse: 'treatment' }))],
+  ['not-the-frozen-shape', as(ctx => ctx.publish('passport.consent.granted@3', { ...grant, colour: 'blue' }, { subjectRef: 'subject-1', purposeOfUse: 'treatment' }))],
+  ['not-the-frozen-shape', as(ctx => ctx.publish('passport.consent.granted@3', { ...grant, expiresAt: 'soon' }, { subjectRef: 'subject-1', purposeOfUse: 'treatment' }))],
+  ['not-the-frozen-shape', as(ctx => ctx.publish('passport.consent.granted@3', grant, { subjectRef: 'subject-1', purposeOfUse: 'curiosity' }))],
+ ];
+ const runtime = runtimeWith([publisher('record', ctx => { for (const [, act] of cases) results.push(refusalOf(() => act(ctx))); })]);
+ runtime.advance(1);
+ assert.deepEqual(results, cases.map(([id]) => id));
+ const refused = runtime.trail.all().filter(e => e.kind === 'refused');
+ assert.equal(refused.length, cases.length);
+ assert.ok(refused.every(e => !e.body.includes('0820000000') && !e.body.includes('8001015009087')), 'a refused value is never written down');
+ runtime.close();
+});
+
+test('an event is delivered to declared subscribers only, a grant only to the engine serving its role, after the publisher commits', () => {
+ const heard: string[] = [];
+ const listen = (id: string) => defineEngine({ ...empty, id, subscriptions: { 'passport.consent.granted@3': () => { heard.push(id); } } });
+ const runtime = runtimeWith([
+  publisher('record', ctx => ctx.publish('passport.consent.granted@3', grant, { subjectRef: 'subject-1', purposeOfUse: 'treatment' })),
+  listen('access'), listen('care'), listen('medicines'),
+ ]);
+ runtime.advance(60_000);
+ assert.deepEqual(heard, ['access'], 'a caregiver grant reaches access, which serves the caregiver role, and nobody else');
+ const kinds = runtime.trail.all().map(e => e.kind);
+ assert.deepEqual(kinds, ['published', 'withheld', 'delivered']);
+ runtime.close();
+});
+
+test('a subscriber that fails is rolled back and written to the trail, and the bus carries on', () => {
+ const heard: string[] = [];
+ const runtime = runtimeWith([
+  publisher('record', ctx => ctx.publish('passport.consent.granted@3', { ...grant, recipientRole: 'nurse-assigned' }, { subjectRef: 'subject-1', purposeOfUse: 'treatment' })),
+  defineEngine({ ...empty, id: 'care', subscriptions: { 'passport.consent.granted@3': () => { throw new Error('care fell over'); } } }),
+ ]);
+ runtime.advance(1);
+ runtime.advance(1);
+ assert.deepEqual(runtime.trail.all().filter(e => e.kind === 'delivery-failed').length, 2);
+ assert.deepEqual(heard, []);
+ runtime.close();
+});
+
+test('the trail is a hash chain that notices a line changed underneath it', () => {
+ const directory = mkdtempSync(join(tmpdir(), 'mythuso-engines-'));
+ const runtime = runtimeWith([publisher('record', ctx => ctx.publish('passport.consent.granted@3', grant, { subjectRef: 'subject-1', purposeOfUse: 'treatment' }))], directory);
+ runtime.advance(1);
+ runtime.advance(1);
+ assert.equal(runtime.trail.verify(), true);
+ const raw = new DatabaseSync(join(directory, 'bus-trail.sqlite'));
+ raw.prepare("UPDATE trail SET engine = 'money' WHERE seq = 1").run();
+ raw.close();
+ assert.equal(runtime.trail.verify(), false);
+ runtime.close();
+});
