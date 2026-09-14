@@ -57,7 +57,7 @@ persist patient data. Checked.
 npm run dev        # Vite on :5173 — app at /, landing at /landing.html
 npm run check      # typecheck all three workspaces + scripts/check-boundaries.mjs
 npm test           # api node:test + Playwright (desktop 1440×1100, mobile 390×844)
-npm run generate   # re-emit tokens, vetting, records, earnings and locales into Swift/Kotlin/CSS
+npm run generate   # re-emit tokens, vetting, records, earnings, locales, events, consent grants and protocols
 npm run api        # the identity service on :8787
 ```
 
@@ -76,7 +76,10 @@ A change is not done until `npm run check`, `npm test` and both native builds pa
 
 1. **The contract** in `packages/catalog/<name>.json`: the states, the kinds, the rules and the
    refusal sentences, as data. Derive every number you can from an existing contract rather than
-   restating it. Dates are day offsets from today so the preview never goes stale.
+   restating it. Dates are day offsets from today so the preview never goes stale. If the feature
+   publishes or consumes an event, declare it in an `events` array to the shape in
+   `packages/catalog/events.json` and append `type@version` to `packages/catalog/events.lock` in the
+   same change. Events are frozen: a changed shape is a new version, never an edit.
 2. **A generator** `scripts/emit-<name>.mjs` writing the contract into Swift and Kotlin, registered
    in `package.json` and in the `generated` list in `scripts/check-boundaries.mjs`. Swift escapes
    quotes; Kotlin escapes backslash, quote **and** `$`.
