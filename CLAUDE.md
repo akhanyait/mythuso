@@ -29,7 +29,12 @@ Three native apps and one service:
   `MYTHUSO_PASSPORT_DEVELOPMENT=synthetic-data-only`, binds to loopback, and a boundary check fails if
   anything in `deploy/` names it — because the controls it needs (a signed DPIA, an Information
   Officer, a residency decision, KMS/HSM custody) do not exist yet.
-- `packages/catalog` — the contracts everything else derives from, as JSON.
+- `packages/catalog` — the contracts everything else derives from, as JSON. `apis.json` and
+  `apis/<engine>.json` hold every engine's frozen API contract (who may call each route, for which
+  purpose, what it refuses and what it emits), locked in `apis.lock` beside `events.lock`.
+- `packages/mock-api` — a development mock that answers every contract route from fixtures and refuses
+  exactly as each route declares. Loopback only, refuses to start without
+  `MYTHUSO_MOCK=synthetic-data-only`, and nothing in `deploy/` may name it.
 
 ## The rules that are not negotiable
 
@@ -71,6 +76,8 @@ npm run dev        # Vite on :5173 — app at /, landing at /landing.html
 npm run check      # typecheck every workspace (incl. apps/passport) + scripts/check-boundaries.mjs
 npm test           # package, api and passport node:test + Playwright (desktop 1440×1100, mobile 390×844)
 npm run passport-p0  # the Passport P0 service on loopback — development flag required, synthetic data only
+npm run apis       # re-emit the API contracts into TypeScript, Swift and Kotlin (also part of generate)
+npm run mock-api   # the contract mock on loopback — MYTHUSO_MOCK=synthetic-data-only required
 npm run generate   # re-emit tokens, vetting, records, earnings, locales, events, consent grants and protocols
 npm run api        # the identity service on :8787
 ```
@@ -96,6 +103,11 @@ A change is not done until `npm run check`, `npm test` and both native builds pa
    same change. Events are frozen: a changed shape is a new version, never an edit, and a frozen
    version found to be wrong is marked `withdrawn` (with the day, the reason and its replacement) —
    it keeps its lock line, loses every subscriber and may not be named in code, but it is not deleted.
+   A feature that exposes or calls a route declares it in `packages/catalog/apis/<engine>.json` —
+   callers, purpose, at least one refusal, the events it emits, an idempotency key on money and
+   dispatch writes — and appends it to `apis.lock`; a changed route is a new version, as with events.
+   Mark it `built` only with the handler file as evidence. `endpointNamed` is for paths the
+   documents actually give (today only the Passport's §26); anything else is `capabilityNamed` or ours.
 2. **A generator** `scripts/emit-<name>.mjs` writing the contract into Swift and Kotlin, registered
    in `package.json` and in the `generated` list in `scripts/check-boundaries.mjs`. Swift escapes
    quotes; Kotlin escapes backslash, quote **and** `$`.

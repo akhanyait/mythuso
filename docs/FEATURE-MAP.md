@@ -477,6 +477,20 @@ live — both are built so that going live is a matter of the controls they name
 | **Two frozen events carried what they should not, and were withdrawn rather than edited.** `person.trust_updated@1` put the Trust Score's number on the bus to dispatch; `passport.consent.granted@1` and `revoked@1` told the scheme-facing engine a patient's grant scope and sealed tick | The @2 versions carry a badge tier and hard-gate status, and no scope or sealed flag; no engine serving only a non-identifiable role may publish or hear a consent event; score, points, rank, rating and their aliases are refused in any event from any contract; a withdrawn version keeps its lock line, loses every subscriber and may not be named in code; the lock fingerprint includes the type, and the build refuses a contract that is not frozen | `packages/catalog/events.json`, `events.lock`, `scripts/check-boundaries.mjs` |
 
 
+## Delivered — every engine's API contract, 14 September 2026 (seed plan, Wave 2)
+
+The documents name endpoints for one engine — the Health Passport, in §26 — and describe the rest as
+capabilities, message sets and state machines. Before any more screens are built against a guess,
+every engine now has a frozen contract for what it exposes, a generated client on all three platforms
+and a mock that answers and refuses as the contract says. The conventions were delegated by the
+founder and are recorded as awaiting a Head of Engineering.
+
+| What landed | The refusals it adds | Where |
+|---|---|---|
+| **148 routes across twelve engines, frozen.** Core 10, Access 38, Care 13, Clinical 7, Safety 15, Movement 12, Trust 15, Record 13, Medicines 9, Devices 8, Money 8; Gilbert Pulse has none of its own and says why. 57 are built — the identity service's and the Passport P0's, mapped to the handlers that answer them — and 91 are proposed. 10 have an endpoint the documents name (§26), 61 serve a capability the documents name, and 77 are ours | Every route names its callers, its purpose, at least one refusal and the events it emits; money and dispatch writes carry an idempotency key; no request or response carries a Trust Score, a transcript, a card number, an identity number or a sealed category; no engine reaches another engine's store except through the Passport gateway or Gilbert's tool gateway; clinical resources live only in the record engine; a route claims `built` only with its handler as evidence, and an endpoint only where the documents give the path | `packages/catalog/apis.json`, `apis/*.json`, `apis.lock` |
+| **59 events for the engines that had none.** Clinical, Safety, Movement, Medicines, Devices, Access bookings and Money's payments, payouts and claims — including §15C's admission sequence and §26's share-link, anomaly and discharge events, word for word | Every event obeys the existing never-lists and routing rules; a Sentinel level is a `rung`, not a tier, so it cannot be mistaken for a trust word | `packages/catalog/events.json`, `events.lock` |
+| **Typed clients and a contract mock.** Route constants and request and response shapes are generated into TypeScript, Swift and Kotlin; `packages/mock-api` answers every route from fixtures, with a contract test per route (450 tests) | The mock binds to loopback, refuses to start without its development flag and may not be named in `deploy/`; it refuses exactly as each route declares, so a screen built against it meets the real refusals first. Supplier callbacks — WhatsApp, USSD, HL7 v2, lab results, device readings, KYC and AFIS answers, responder positions — are doors still to be added to `feeds.json`, not routes | `scripts/emit-apis.mjs`, `packages/mock-api` |
+
 ## Next UI increments
 
 Remaining before a pilot-ready design: the vetting reviewer console on native, which is web-only
