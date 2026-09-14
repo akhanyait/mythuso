@@ -22,21 +22,21 @@ object ApisData {
         val status: String
     )
 
-    val POST_CORE_EVENTS = Route("postCoreEvents", "POST", "/v1/core/events", "/v1/core/events", 1, "core", listOf("engine"), listOf("audit"), false, "proposed")
-    val POST_CORE_LOOPS = Route("postCoreLoops", "POST", "/v1/core/loops", "/v1/core/loops", 1, "core", listOf("engine"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
-    val POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE = Route("postCoreLoopsByLoopRefAcknowledge", "POST", "/v1/core/loops/{loopRef}/acknowledge", "/v1/core/loops/{loopRef}/acknowledge", 1, "core", listOf("engine", "nurse", "doctor", "ops-desk"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
-    val POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE = Route("postCoreLoopsByLoopRefEscalate", "POST", "/v1/core/loops/{loopRef}/escalate", "/v1/core/loops/{loopRef}/escalate", 1, "core", listOf("engine", "ops-desk"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
+    val POST_CORE_EVENTS = Route("postCoreEvents", "POST", "/v1/core/events", "/v1/core/events", 1, "core", listOf("engine:access", "engine:pulse", "engine:care", "engine:clinical", "engine:safety", "engine:movement", "engine:trust", "engine:record", "engine:medicines", "engine:devices", "engine:money"), listOf("audit"), false, "proposed")
+    val POST_CORE_LOOPS = Route("postCoreLoops", "POST", "/v1/core/loops", "/v1/core/loops", 1, "core", listOf("engine:care", "engine:safety", "engine:medicines", "engine:access", "engine:money", "engine:movement"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
+    val POST_CORE_LOOPS_BY_LOOP_REF_ACKNOWLEDGE = Route("postCoreLoopsByLoopRefAcknowledge", "POST", "/v1/core/loops/{loopRef}/acknowledge", "/v1/core/loops/{loopRef}/acknowledge", 1, "core", listOf("nurse", "doctor", "ops-desk", "engine:care", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
+    val POST_CORE_LOOPS_BY_LOOP_REF_ESCALATE = Route("postCoreLoopsByLoopRefEscalate", "POST", "/v1/core/loops/{loopRef}/escalate", "/v1/core/loops/{loopRef}/escalate", 1, "core", listOf("ops-desk", "engine:safety"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
     val POST_CORE_LOOPS_BY_LOOP_REF_CLOSE = Route("postCoreLoopsByLoopRefClose", "POST", "/v1/core/loops/{loopRef}/close", "/v1/core/loops/{loopRef}/close", 1, "core", listOf("nurse", "doctor", "ops-desk"), listOf("treatment", "dispatch", "emergency"), true, "proposed")
-    val POST_CORE_ALERTS = Route("postCoreAlerts", "POST", "/v1/core/alerts", "/v1/core/alerts", 1, "core", listOf("engine"), listOf("treatment", "emergency"), false, "proposed")
-    val GET_CORE_PROTOCOLS_BY_PROTOCOL_VERSION_ID = Route("getCoreProtocolsByProtocolVersionId", "GET", "/v1/core/protocols/{protocolVersionId}", "/v1/core/protocols/{protocolVersionId}", 1, "core", listOf("nurse", "doctor", "engine", "medical-director"), listOf("treatment"), false, "proposed")
+    val POST_CORE_ALERTS = Route("postCoreAlerts", "POST", "/v1/core/alerts", "/v1/core/alerts", 1, "core", listOf("engine:safety", "engine:devices", "engine:clinical", "engine:medicines"), listOf("treatment", "emergency"), false, "proposed")
+    val GET_CORE_PROTOCOLS_BY_PROTOCOL_VERSION_ID = Route("getCoreProtocolsByProtocolVersionId", "GET", "/v1/core/protocols/{protocolVersionId}", "/v1/core/protocols/{protocolVersionId}", 1, "core", listOf("nurse", "doctor", "medical-director", "engine:clinical", "engine:care", "engine:safety", "engine:medicines"), listOf("treatment"), false, "proposed")
     val POST_CORE_PROTOCOLS_BY_PROTOCOL_ID_RATIFY = Route("postCoreProtocolsByProtocolIdRatify", "POST", "/v1/core/protocols/{protocolId}/ratify", "/v1/core/protocols/{protocolId}/ratify", 1, "core", listOf("medical-director"), listOf("audit"), false, "proposed")
-    val POST_CORE_PERMISSION_CHECKS = Route("postCorePermissionChecks", "POST", "/v1/core/permission-checks", "/v1/core/permission-checks", 1, "core", listOf("engine"), listOf("audit"), false, "proposed")
+    val POST_CORE_PERMISSION_CHECKS = Route("postCorePermissionChecks", "POST", "/v1/core/permission-checks", "/v1/core/permission-checks", 1, "core", listOf("engine:care", "engine:medicines", "engine:movement", "engine:access", "engine:clinical"), listOf("audit"), false, "proposed")
     val GET_CORE_AUDIT_EXPORTS = Route("getCoreAuditExports", "GET", "/v1/core/audit-exports", "/v1/core/audit-exports", 1, "core", listOf("operator"), listOf("audit"), false, "proposed")
     val POST_ACCESS_SIGN_INS = Route("postAccessSignIns", "POST", "/v1/access/sign-ins", "/v1/access/sign-ins", 1, "access", listOf("anonymous"), listOf("subject-access"), false, "built")
     val POST_ACCESS_SIGN_INS_BY_CHALLENGE_ID_VERIFY = Route("postAccessSignInsByChallengeIdVerify", "POST", "/v1/access/sign-ins/{challengeId}/verify", "/v1/access/sign-ins/{challengeId}/verify", 1, "access", listOf("anonymous"), listOf("subject-access"), false, "built")
     val POST_ACCESS_SIGN_INS_BY_CHALLENGE_TOKEN_SECOND_FACTOR = Route("postAccessSignInsByChallengeTokenSecondFactor", "POST", "/v1/access/sign-ins/{challengeToken}/second-factor", "/v1/access/sign-ins/{challengeToken}/second-factor", 1, "access", listOf("anonymous"), listOf("subject-access"), false, "built")
     val GET_ACCESS_SESSIONS = Route("getAccessSessions", "GET", "/v1/access/sessions", "/v1/access/sessions", 1, "access", listOf("self"), listOf("subject-access"), false, "built")
-    val POST_ACCESS_SIGN_OUTS = Route("postAccessSignOuts", "POST", "/v1/access/sign-outs", "/v1/access/sign-outs", 1, "access", listOf("anonymous", "self"), listOf("subject-access"), false, "built")
+    val POST_ACCESS_SIGN_OUTS = Route("postAccessSignOuts", "POST", "/v1/access/sign-outs", "/v1/access/sign-outs", 1, "access", listOf("anonymous"), listOf("subject-access"), false, "built")
     val POST_ACCESS_ACCOUNT_NAMES = Route("postAccessAccountNames", "POST", "/v1/access/account-names", "/v1/access/account-names", 1, "access", listOf("self"), listOf("subject-access"), false, "built")
     val GET_ACCESS_SECOND_FACTORS = Route("getAccessSecondFactors", "GET", "/v1/access/second-factors", "/v1/access/second-factors", 1, "access", listOf("self"), listOf("subject-access"), false, "built")
     val POST_ACCESS_SECOND_FACTORS = Route("postAccessSecondFactors", "POST", "/v1/access/second-factors", "/v1/access/second-factors", 1, "access", listOf("self"), listOf("subject-access"), false, "built")
@@ -53,14 +53,14 @@ object ApisData {
     val POST_ACCESS_CONSENTS = Route("postAccessConsents", "POST", "/v1/access/consents", "/v1/access/consents", 1, "access", listOf("self"), listOf("subject-access"), false, "built")
     val POST_ACCESS_CONSENTS_BY_PURPOSE_ID_WITHDRAW = Route("postAccessConsentsByPurposeIdWithdraw", "POST", "/v1/access/consents/{purposeId}/withdraw", "/v1/access/consents/{purposeId}/withdraw", 1, "access", listOf("self"), listOf("subject-access"), false, "built")
     val GET_ACCESS_ACCESS_LOG = Route("getAccessAccessLog", "GET", "/v1/access/access-log", "/v1/access/access-log", 1, "access", listOf("self"), listOf("subject-access"), false, "built")
-    val GET_ACCESS_SUBJECT_REQUESTS = Route("getAccessSubjectRequests", "GET", "/v1/access/subject-requests", "/v1/access/subject-requests", 1, "access", listOf("operator"), listOf("audit"), false, "built")
-    val POST_ACCESS_SUBJECT_REQUESTS_BY_REQUEST_ID_RESPOND = Route("postAccessSubjectRequestsByRequestIdRespond", "POST", "/v1/access/subject-requests/{requestId}/respond", "/v1/access/subject-requests/{requestId}/respond", 1, "access", listOf("operator"), listOf("audit"), false, "built")
+    val GET_ACCESS_SUBJECT_REQUESTS = Route("getAccessSubjectRequests", "GET", "/v1/access/subject-requests", "/v1/access/subject-requests", 1, "access", listOf("admin"), listOf("audit"), false, "built")
+    val POST_ACCESS_SUBJECT_REQUESTS_BY_REQUEST_ID_RESPOND = Route("postAccessSubjectRequestsByRequestIdRespond", "POST", "/v1/access/subject-requests/{requestId}/respond", "/v1/access/subject-requests/{requestId}/respond", 1, "access", listOf("admin"), listOf("audit"), false, "built")
     val GET_ACCESS_HEALTH = Route("getAccessHealth", "GET", "/v1/access/health", "/v1/access/health", 1, "access", listOf("anonymous"), listOf("audit"), false, "built")
-    val GET_ACCESS_AUDIT_CHAIN = Route("getAccessAuditChain", "GET", "/v1/access/audit-chain", "/v1/access/audit-chain", 1, "access", listOf("operator"), listOf("audit"), false, "built")
-    val POST_ACCESS_WITNESS_STATEMENTS = Route("postAccessWitnessStatements", "POST", "/v1/access/witness-statements", "/v1/access/witness-statements", 1, "access", listOf("operator"), listOf("audit"), false, "built")
-    val GET_ACCESS_ACCESS_LOG_INTEGRITY = Route("getAccessAccessLogIntegrity", "GET", "/v1/access/access-log-integrity", "/v1/access/access-log-integrity", 1, "access", listOf("operator"), listOf("audit"), false, "built")
-    val GET_ACCESS_VERIFICATION_STATUS = Route("getAccessVerificationStatus", "GET", "/v1/access/verification-status", "/v1/access/verification-status", 1, "access", listOf("operator"), listOf("audit"), false, "built")
-    val GET_ACCESS_RATE_LIMITS = Route("getAccessRateLimits", "GET", "/v1/access/rate-limits", "/v1/access/rate-limits", 1, "access", listOf("operator"), listOf("audit"), false, "built")
+    val GET_ACCESS_AUDIT_CHAIN = Route("getAccessAuditChain", "GET", "/v1/access/audit-chain", "/v1/access/audit-chain", 1, "access", listOf("loopback"), listOf("audit"), false, "built")
+    val POST_ACCESS_WITNESS_STATEMENTS = Route("postAccessWitnessStatements", "POST", "/v1/access/witness-statements", "/v1/access/witness-statements", 1, "access", listOf("loopback"), listOf("audit"), false, "built")
+    val GET_ACCESS_ACCESS_LOG_INTEGRITY = Route("getAccessAccessLogIntegrity", "GET", "/v1/access/access-log-integrity", "/v1/access/access-log-integrity", 1, "access", listOf("loopback"), listOf("audit"), false, "built")
+    val GET_ACCESS_VERIFICATION_STATUS = Route("getAccessVerificationStatus", "GET", "/v1/access/verification-status", "/v1/access/verification-status", 1, "access", listOf("loopback"), listOf("audit"), false, "built")
+    val GET_ACCESS_RATE_LIMITS = Route("getAccessRateLimits", "GET", "/v1/access/rate-limits", "/v1/access/rate-limits", 1, "access", listOf("loopback"), listOf("audit"), false, "built")
     val GET_ACCESS_DOORS = Route("getAccessDoors", "GET", "/v1/access/doors", "/v1/access/doors", 1, "access", listOf("anonymous"), listOf("audit"), false, "built")
     val POST_ACCESS_BOOKINGS = Route("postAccessBookings", "POST", "/v1/access/bookings", "/v1/access/bookings", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("dispatch"), true, "proposed")
     val GET_ACCESS_BOOKINGS_BY_BOOKING_REF = Route("getAccessBookingsByBookingRef", "GET", "/v1/access/bookings/{bookingRef}", "/v1/access/bookings/{bookingRef}", 1, "access", listOf("patient", "caregiver", "guardian", "thuso-line-agent"), listOf("subject-access", "dispatch"), false, "proposed")
@@ -70,7 +70,7 @@ object ApisData {
     val POST_ACCESS_HOUSEHOLDS = Route("postAccessHouseholds", "POST", "/v1/access/households", "/v1/access/households", 1, "access", listOf("patient", "caregiver"), listOf("subject-access"), false, "proposed")
     val POST_ACCESS_SPONSORS = Route("postAccessSponsors", "POST", "/v1/access/sponsors", "/v1/access/sponsors", 1, "access", listOf("patient", "sponsor"), listOf("billing"), false, "proposed")
     val POST_ACCESS_BILL_SPLITS = Route("postAccessBillSplits", "POST", "/v1/access/bill-splits", "/v1/access/bill-splits", 1, "access", listOf("patient", "caregiver", "sponsor"), listOf("billing"), false, "proposed")
-    val POST_CARE_OFFERS = Route("postCareOffers", "POST", "/v1/care/offers", "/v1/care/offers", 1, "care", listOf("dispatcher", "engine"), listOf("dispatch"), true, "proposed")
+    val POST_CARE_OFFERS = Route("postCareOffers", "POST", "/v1/care/offers", "/v1/care/offers", 1, "care", listOf("dispatcher", "engine:care"), listOf("dispatch"), true, "proposed")
     val POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT = Route("postCareOffersByOfferRefAccept", "POST", "/v1/care/offers/{offerRef}/accept", "/v1/care/offers/{offerRef}/accept", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "proposed")
     val POST_CARE_OFFERS_BY_OFFER_REF_DECLINE = Route("postCareOffersByOfferRefDecline", "POST", "/v1/care/offers/{offerRef}/decline", "/v1/care/offers/{offerRef}/decline", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "proposed")
     val POST_CARE_VISITS_BY_APPOINTMENT_REF_START = Route("postCareVisitsByAppointmentRefStart", "POST", "/v1/care/visits/{appointmentRef}/start", "/v1/care/visits/{appointmentRef}/start", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "proposed")
@@ -86,9 +86,9 @@ object ApisData {
     val GET_CLINICAL_REVIEWS = Route("getClinicalReviews", "GET", "/v1/clinical/reviews", "/v1/clinical/reviews", 1, "clinical", listOf("doctor"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_REVIEWS_BY_REVIEW_REF_SIGN = Route("postClinicalReviewsByReviewRefSign", "POST", "/v1/clinical/reviews/{reviewRef}/sign", "/v1/clinical/reviews/{reviewRef}/sign", 1, "clinical", listOf("doctor"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_CONSULTATIONS = Route("postClinicalConsultations", "POST", "/v1/clinical/consultations", "/v1/clinical/consultations", 1, "clinical", listOf("doctor", "nurse"), listOf("treatment"), false, "proposed")
-    val POST_CLINICAL_TRIAGE = Route("postClinicalTriage", "POST", "/v1/clinical/triage", "/v1/clinical/triage", 1, "clinical", listOf("nurse", "doctor", "engine"), listOf("treatment"), false, "proposed")
+    val POST_CLINICAL_TRIAGE_V2 = Route("postClinicalTriageV2", "POST", "/v1/clinical/triage", "/v1/clinical/triage", 2, "clinical", listOf("nurse", "doctor", "engine:access"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_RESULTS_BY_RESULT_REF_ACKNOWLEDGE = Route("postClinicalResultsByResultRefAcknowledge", "POST", "/v1/clinical/results/{resultRef}/acknowledge", "/v1/clinical/results/{resultRef}/acknowledge", 1, "clinical", listOf("doctor", "nurse"), listOf("diagnostics"), false, "proposed")
-    val POST_CLINICAL_GUIDANCE = Route("postClinicalGuidance", "POST", "/v1/clinical/guidance", "/v1/clinical/guidance", 1, "clinical", listOf("nurse", "doctor", "engine"), listOf("treatment"), false, "proposed")
+    val POST_CLINICAL_GUIDANCE = Route("postClinicalGuidance", "POST", "/v1/clinical/guidance", "/v1/clinical/guidance", 1, "clinical", listOf("nurse", "doctor", "engine:access"), listOf("treatment"), false, "proposed")
     val POST_CLINICAL_PROMS = Route("postClinicalProms", "POST", "/v1/clinical/proms", "/v1/clinical/proms", 1, "clinical", listOf("patient"), listOf("treatment"), false, "proposed")
     val POST_SAFETY_CHECKINS = Route("postSafetyCheckins", "POST", "/v1/safety/checkins", "/v1/safety/checkins", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND = Route("postSafetyCheckinsByCheckinRefExtend", "POST", "/v1/safety/checkins/{checkinRef}/extend", "/v1/safety/checkins/{checkinRef}/extend", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "proposed")
@@ -96,15 +96,15 @@ object ApisData {
     val POST_SAFETY_PANICS = Route("postSafetyPanics", "POST", "/v1/safety/panics", "/v1/safety/panics", 1, "safety", listOf("nurse", "locum", "responder", "courier"), listOf("emergency"), true, "proposed")
     val POST_SAFETY_SOS = Route("postSafetySos", "POST", "/v1/safety/sos", "/v1/safety/sos", 1, "safety", listOf("patient", "caregiver"), listOf("emergency"), true, "proposed")
     val POST_SAFETY_NEXT_OF_KIN = Route("postSafetyNextOfKin", "POST", "/v1/safety/next-of-kin", "/v1/safety/next-of-kin", 1, "safety", listOf("patient"), listOf("subject-access"), false, "proposed")
-    val POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_ALERT = Route("postSafetyNextOfKinByNominationRefAlert", "POST", "/v1/safety/next-of-kin/{nominationRef}/alert", "/v1/safety/next-of-kin/{nominationRef}/alert", 1, "safety", listOf("engine", "ops-desk"), listOf("emergency"), false, "proposed")
+    val POST_SAFETY_NEXT_OF_KIN_BY_NOMINATION_REF_ALERT = Route("postSafetyNextOfKinByNominationRefAlert", "POST", "/v1/safety/next-of-kin/{nominationRef}/alert", "/v1/safety/next-of-kin/{nominationRef}/alert", 1, "safety", listOf("ops-desk", "engine:core"), listOf("emergency"), false, "proposed")
     val POST_SAFETY_SAFEGUARDING_REPORTS = Route("postSafetySafeguardingReports", "POST", "/v1/safety/safeguarding-reports", "/v1/safety/safeguarding-reports", 1, "safety", listOf("nurse", "locum", "doctor", "responder", "courier", "thuso-line-agent"), listOf("emergency"), false, "proposed")
-    val POST_SAFETY_SENTINEL_DEVIATIONS = Route("postSafetySentinelDeviations", "POST", "/v1/safety/sentinel-deviations", "/v1/safety/sentinel-deviations", 1, "safety", listOf("engine"), listOf("treatment"), false, "proposed")
+    val POST_SAFETY_SENTINEL_DEVIATIONS = Route("postSafetySentinelDeviations", "POST", "/v1/safety/sentinel-deviations", "/v1/safety/sentinel-deviations", 1, "safety", listOf("engine:devices"), listOf("treatment"), false, "proposed")
     val GET_SAFETY_INCIDENT_KINDS = Route("getSafetyIncidentKinds", "GET", "/v1/safety/incident-kinds", "/v1/safety/incident-kinds", 1, "safety", listOf("anonymous"), listOf("audit"), false, "built")
-    val POST_SAFETY_INCIDENTS = Route("postSafetyIncidents", "POST", "/v1/safety/incidents", "/v1/safety/incidents", 1, "safety", listOf("nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin"), listOf("audit"), false, "built")
-    val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CONTAIN = Route("postSafetyIncidentsByIncidentIdContain", "POST", "/v1/safety/incidents/{incidentId}/contain", "/v1/safety/incidents/{incidentId}/contain", 1, "safety", listOf("nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin"), listOf("audit"), false, "built")
-    val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_NOTIFIED = Route("postSafetyIncidentsByIncidentIdNotified", "POST", "/v1/safety/incidents/{incidentId}/notified", "/v1/safety/incidents/{incidentId}/notified", 1, "safety", listOf("operator"), listOf("audit"), false, "built")
-    val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CLOSE = Route("postSafetyIncidentsByIncidentIdClose", "POST", "/v1/safety/incidents/{incidentId}/close", "/v1/safety/incidents/{incidentId}/close", 1, "safety", listOf("operator"), listOf("audit"), false, "built")
-    val GET_SAFETY_INCIDENTS = Route("getSafetyIncidents", "GET", "/v1/safety/incidents", "/v1/safety/incidents", 1, "safety", listOf("operator"), listOf("audit"), false, "built")
+    val POST_SAFETY_INCIDENTS = Route("postSafetyIncidents", "POST", "/v1/safety/incidents", "/v1/safety/incidents", 1, "safety", listOf("nurse", "locum", "doctor", "pharmacy", "laboratory", "courier", "interpreter", "operator", "admin", "employer", "sponsor", "guardian", "corner"), listOf("audit"), false, "built")
+    val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CONTAIN = Route("postSafetyIncidentsByIncidentIdContain", "POST", "/v1/safety/incidents/{incidentId}/contain", "/v1/safety/incidents/{incidentId}/contain", 1, "safety", listOf("admin", "incident-reporter"), listOf("audit"), false, "built")
+    val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_NOTIFIED = Route("postSafetyIncidentsByIncidentIdNotified", "POST", "/v1/safety/incidents/{incidentId}/notified", "/v1/safety/incidents/{incidentId}/notified", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
+    val POST_SAFETY_INCIDENTS_BY_INCIDENT_ID_CLOSE = Route("postSafetyIncidentsByIncidentIdClose", "POST", "/v1/safety/incidents/{incidentId}/close", "/v1/safety/incidents/{incidentId}/close", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
+    val GET_SAFETY_INCIDENTS = Route("getSafetyIncidents", "GET", "/v1/safety/incidents", "/v1/safety/incidents", 1, "safety", listOf("admin"), listOf("audit"), false, "built")
     val POST_MOVEMENT_TRIPS = Route("postMovementTrips", "POST", "/v1/movement/trips", "/v1/movement/trips", 1, "movement", listOf("nurse", "doctor", "dispatcher", "thuso-line-agent"), listOf("dispatch"), true, "proposed")
     val POST_MOVEMENT_RESPONDER_HEARTBEATS = Route("postMovementResponderHeartbeats", "POST", "/v1/movement/responder-heartbeats", "/v1/movement/responder-heartbeats", 1, "movement", listOf("responder"), listOf("dispatch"), true, "proposed")
     val POST_MOVEMENT_TRIPS_BY_TRIP_REF_ACCEPT = Route("postMovementTripsByTripRefAccept", "POST", "/v1/movement/trips/{tripRef}/accept", "/v1/movement/trips/{tripRef}/accept", 1, "movement", listOf("responder"), listOf("dispatch"), true, "proposed")
@@ -118,31 +118,31 @@ object ApisData {
     val POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_ARRIVAL = Route("postMovementAdmissionsByAdmissionRefArrival", "POST", "/v1/movement/admissions/{admissionRef}/arrival", "/v1/movement/admissions/{admissionRef}/arrival", 1, "movement", listOf("facility-desk"), listOf("treatment"), false, "proposed")
     val POST_MOVEMENT_ADMISSIONS_BY_ADMISSION_REF_HANDOVER = Route("postMovementAdmissionsByAdmissionRefHandover", "POST", "/v1/movement/admissions/{admissionRef}/handover", "/v1/movement/admissions/{admissionRef}/handover", 1, "movement", listOf("facility-desk"), listOf("treatment"), false, "proposed")
     val GET_TRUST_STANDING = Route("getTrustStanding", "GET", "/v1/trust/standing", "/v1/trust/standing", 1, "trust", listOf("self"), listOf("vetting"), false, "built")
-    val GET_TRUST_PARTIES_BY_ID = Route("getTrustPartiesById", "GET", "/v1/trust/parties/{id}", "/v1/trust/parties/{id}", 1, "trust", listOf("vetting-team", "operator"), listOf("vetting"), false, "built")
-    val POST_TRUST_PARTIES = Route("postTrustParties", "POST", "/v1/trust/parties", "/v1/trust/parties", 1, "trust", listOf("vetting-team", "operator"), listOf("vetting"), false, "built")
-    val POST_TRUST_EVIDENCE = Route("postTrustEvidence", "POST", "/v1/trust/evidence", "/v1/trust/evidence", 1, "trust", listOf("self", "vetting-team"), listOf("vetting"), false, "built")
-    val POST_TRUST_EVIDENCE_BY_EVIDENCE_ID_OPEN = Route("postTrustEvidenceByEvidenceIdOpen", "POST", "/v1/trust/evidence/{evidenceId}/open", "/v1/trust/evidence/{evidenceId}/open", 1, "trust", listOf("vetting-team", "self"), listOf("vetting"), false, "built")
-    val POST_TRUST_EVIDENCE_BY_EVIDENCE_ID_DECIDE = Route("postTrustEvidenceByEvidenceIdDecide", "POST", "/v1/trust/evidence/{evidenceId}/decide", "/v1/trust/evidence/{evidenceId}/decide", 1, "trust", listOf("vetting-team"), listOf("vetting"), false, "built")
-    val POST_TRUST_EVIDENCE_BY_EVIDENCE_ID_SECOND = Route("postTrustEvidenceByEvidenceIdSecond", "POST", "/v1/trust/evidence/{evidenceId}/second", "/v1/trust/evidence/{evidenceId}/second", 1, "trust", listOf("vetting-team"), listOf("vetting"), false, "built")
-    val POST_TRUST_PARTIES_BY_PARTY_ID_SUSPEND = Route("postTrustPartiesByPartyIdSuspend", "POST", "/v1/trust/parties/{partyId}/suspend", "/v1/trust/parties/{partyId}/suspend", 1, "trust", listOf("vetting-team", "operator"), listOf("vetting"), false, "built")
-    val POST_TRUST_PARTIES_BY_PARTY_ID_RESTORE = Route("postTrustPartiesByPartyIdRestore", "POST", "/v1/trust/parties/{partyId}/restore", "/v1/trust/parties/{partyId}/restore", 1, "trust", listOf("vetting-team", "operator"), listOf("vetting"), false, "built")
+    val GET_TRUST_PARTIES_BY_ID = Route("getTrustPartiesById", "GET", "/v1/trust/parties/{id}", "/v1/trust/parties/{id}", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
+    val POST_TRUST_PARTIES = Route("postTrustParties", "POST", "/v1/trust/parties", "/v1/trust/parties", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
+    val POST_TRUST_EVIDENCE = Route("postTrustEvidence", "POST", "/v1/trust/evidence", "/v1/trust/evidence", 1, "trust", listOf("admin", "self"), listOf("vetting"), false, "built")
+    val POST_TRUST_EVIDENCE_BY_EVIDENCE_ID_OPEN = Route("postTrustEvidenceByEvidenceIdOpen", "POST", "/v1/trust/evidence/{evidenceId}/open", "/v1/trust/evidence/{evidenceId}/open", 1, "trust", listOf("admin", "self"), listOf("vetting"), false, "built")
+    val POST_TRUST_EVIDENCE_BY_EVIDENCE_ID_DECIDE = Route("postTrustEvidenceByEvidenceIdDecide", "POST", "/v1/trust/evidence/{evidenceId}/decide", "/v1/trust/evidence/{evidenceId}/decide", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
+    val POST_TRUST_EVIDENCE_BY_EVIDENCE_ID_SECOND = Route("postTrustEvidenceByEvidenceIdSecond", "POST", "/v1/trust/evidence/{evidenceId}/second", "/v1/trust/evidence/{evidenceId}/second", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
+    val POST_TRUST_PARTIES_BY_PARTY_ID_SUSPEND = Route("postTrustPartiesByPartyIdSuspend", "POST", "/v1/trust/parties/{partyId}/suspend", "/v1/trust/parties/{partyId}/suspend", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
+    val POST_TRUST_PARTIES_BY_PARTY_ID_RESTORE = Route("postTrustPartiesByPartyIdRestore", "POST", "/v1/trust/parties/{partyId}/restore", "/v1/trust/parties/{partyId}/restore", 1, "trust", listOf("admin"), listOf("vetting"), false, "built")
     val POST_TRUST_IDENTITY_CALLBACKS = Route("postTrustIdentityCallbacks", "POST", "/v1/trust/identity-callbacks", "/v1/trust/identity-callbacks", 1, "trust", listOf("kyc-provider"), listOf("vetting"), false, "built")
-    val GET_TRUST_PARTIES_BY_PARTY_ID_GATES = Route("getTrustPartiesByPartyIdGates", "GET", "/v1/trust/parties/{partyId}/gates", "/v1/trust/parties/{partyId}/gates", 1, "trust", listOf("vetting-team", "self"), listOf("vetting"), false, "proposed")
+    val GET_TRUST_PARTIES_BY_PARTY_ID_GATES = Route("getTrustPartiesByPartyIdGates", "GET", "/v1/trust/parties/{partyId}/gates", "/v1/trust/parties/{partyId}/gates", 1, "trust", listOf("admin", "self"), listOf("vetting"), false, "proposed")
     val GET_TRUST_PARTIES_BY_PARTY_ID_BADGE = Route("getTrustPartiesByPartyIdBadge", "GET", "/v1/trust/parties/{partyId}/badge", "/v1/trust/parties/{partyId}/badge", 1, "trust", listOf("patient", "caregiver", "dispatcher", "nurse"), listOf("dispatch"), false, "proposed")
     val POST_TRUST_SHIFT_STARTS = Route("postTrustShiftStarts", "POST", "/v1/trust/shift-starts", "/v1/trust/shift-starts", 1, "trust", listOf("nurse", "locum", "responder", "courier"), listOf("vetting"), false, "proposed")
     val POST_TRUST_DOOR_VERIFICATIONS = Route("postTrustDoorVerifications", "POST", "/v1/trust/door-verifications", "/v1/trust/door-verifications", 1, "trust", listOf("patient", "caregiver"), listOf("vetting"), false, "proposed")
     val POST_TRUST_COMPLAINTS = Route("postTrustComplaints", "POST", "/v1/trust/complaints", "/v1/trust/complaints", 1, "trust", listOf("patient", "caregiver", "thuso-line-agent"), listOf("vetting"), false, "proposed")
-    val POST_RECORD_DEV_SUBJECTS = Route("postRecordDevSubjects", "POST", "/v1/record/dev-subjects", "/v1/record/dev-subjects", 1, "record", listOf("operator"), listOf("audit"), false, "built")
+    val POST_RECORD_DEV_SUBJECTS = Route("postRecordDevSubjects", "POST", "/v1/record/dev-subjects", "/v1/record/dev-subjects", 1, "record", listOf("developer"), listOf("audit"), false, "built")
     val POST_RECORD_SESSION_ENDS = Route("postRecordSessionEnds", "POST", "/v1/record/session-ends", "/v1/record/session-ends", 1, "record", listOf("patient"), listOf("subject-access"), false, "built")
     val POST_RECORD_CONSENT_GRANT = Route("postRecordConsentGrant", "POST", "/consent/grant", "/v1/record/consent/grant", 1, "record", listOf("patient"), listOf("subject-access"), false, "built")
     val POST_RECORD_CONSENT_REVOKE = Route("postRecordConsentRevoke", "POST", "/consent/revoke", "/v1/record/consent/revoke", 1, "record", listOf("patient"), listOf("subject-access"), false, "built")
-    val POST_RECORD_CONSENT_CHECKS = Route("postRecordConsentChecks", "POST", "/v1/record/consent-checks", "/v1/record/consent-checks", 1, "record", listOf("nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator", "responder-on-trip", "caregiver", "next-of-kin"), listOf("treatment", "dispensing", "dispatch", "emergency"), false, "built")
+    val POST_RECORD_CONSENT_CHECKS = Route("postRecordConsentChecks", "POST", "/v1/record/consent-checks", "/v1/record/consent-checks", 1, "record", listOf("caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"), listOf("treatment", "dispensing", "dispatch", "emergency"), false, "built")
     val GET_RECORD_AUDIT_MINE = Route("getRecordAuditMine", "GET", "/audit/mine", "/v1/record/audit/mine", 1, "record", listOf("patient"), listOf("subject-access"), false, "built")
-    val POST_RECORD_BREAKGLASS = Route("postRecordBreakglass", "POST", "/breakglass", "/v1/record/breakglass", 1, "record", listOf("operator", "doctor", "nurse"), listOf("emergency"), false, "built")
-    val GET_RECORD_SUMMARY_EMERGENCY = Route("getRecordSummaryEmergency", "GET", "/summary/emergency", "/v1/record/summary/emergency", 1, "record", listOf("patient", "responder-on-trip", "doctor-assigned", "nurse-assigned"), listOf("emergency", "treatment"), false, "built")
+    val POST_RECORD_BREAKGLASS = Route("postRecordBreakglass", "POST", "/breakglass", "/v1/record/breakglass", 1, "record", listOf("registered-clinician", "dispatch-desk"), listOf("emergency"), false, "built")
+    val GET_RECORD_SUMMARY_EMERGENCY = Route("getRecordSummaryEmergency", "GET", "/summary/emergency", "/v1/record/summary/emergency", 1, "record", listOf("patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "responder-on-trip"), listOf("emergency", "treatment"), false, "built")
     val POST_RECORD_FHIR_BY_RESOURCE_TYPE = Route("postRecordFhirByResourceType", "POST", "/fhir/{resourceType}", "/v1/record/fhir/{resourceType}", 1, "record", listOf("patient", "nurse-assigned", "doctor-assigned", "pharmacist"), listOf("treatment", "dispensing", "subject-access"), false, "built")
-    val GET_RECORD_FHIR_BY_RESOURCE_TYPE_BY_ID = Route("getRecordFhirByResourceTypeById", "GET", "/fhir/{resourceType}/{id}", "/v1/record/fhir/{resourceType}/{id}", 1, "record", listOf("patient", "nurse-assigned", "doctor-assigned", "pharmacist", "caregiver"), listOf("treatment", "dispensing", "subject-access"), false, "built")
-    val GET_RECORD_FHIR_BY_RESOURCE_TYPE = Route("getRecordFhirByResourceType", "GET", "/fhir/{resourceType}", "/v1/record/fhir/{resourceType}", 1, "record", listOf("patient", "nurse-assigned", "doctor-assigned", "pharmacist", "caregiver"), listOf("treatment", "dispensing", "subject-access"), false, "built")
+    val GET_RECORD_FHIR_BY_RESOURCE_TYPE_BY_ID = Route("getRecordFhirByResourceTypeById", "GET", "/fhir/{resourceType}/{id}", "/v1/record/fhir/{resourceType}/{id}", 1, "record", listOf("patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"), listOf("treatment", "dispensing", "subject-access"), false, "built")
+    val GET_RECORD_FHIR_BY_RESOURCE_TYPE = Route("getRecordFhirByResourceType", "GET", "/fhir/{resourceType}", "/v1/record/fhir/{resourceType}", 1, "record", listOf("patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"), listOf("treatment", "dispensing", "subject-access"), false, "built")
     val POST_RECORD_SHARE_LINK = Route("postRecordShareLink", "POST", "/share/link", "/v1/record/share/link", 1, "record", listOf("patient", "responder-on-trip"), listOf("treatment", "emergency"), false, "proposed")
     val POST_RECORD_EXPORT = Route("postRecordExport", "POST", "/export", "/v1/record/export", 1, "record", listOf("patient"), listOf("subject-access"), false, "proposed")
     val GET_MEDICINES_FORMULARY = Route("getMedicinesFormulary", "GET", "/v1/medicines/formulary", "/v1/medicines/formulary", 1, "medicines", listOf("doctor", "nurse", "pharmacist"), listOf("dispensing"), false, "proposed")
@@ -168,7 +168,7 @@ object ApisData {
     val POST_MONEY_VOUCHERS = Route("postMoneyVouchers", "POST", "/v1/money/vouchers", "/v1/money/vouchers", 1, "money", listOf("patient", "caregiver", "sponsor", "corner"), listOf("billing"), true, "proposed")
     val POST_MONEY_GIFTS = Route("postMoneyGifts", "POST", "/v1/money/gifts", "/v1/money/gifts", 1, "money", listOf("caregiver", "sponsor"), listOf("billing"), true, "proposed")
     val POST_MONEY_GROUPS = Route("postMoneyGroups", "POST", "/v1/money/groups", "/v1/money/groups", 1, "money", listOf("patient", "sponsor", "employer"), listOf("billing"), true, "proposed")
-    val POST_MONEY_CLAIMS = Route("postMoneyClaims", "POST", "/v1/money/claims", "/v1/money/claims", 1, "money", listOf("engine", "operator"), listOf("billing"), true, "proposed")
+    val POST_MONEY_CLAIMS_V2 = Route("postMoneyClaimsV2", "POST", "/v1/money/claims", "/v1/money/claims", 2, "money", listOf("admin", "engine:money"), listOf("billing"), true, "proposed")
     val POST_MONEY_MARKET_ORDERS = Route("postMoneyMarketOrders", "POST", "/v1/money/market-orders", "/v1/money/market-orders", 1, "money", listOf("patient", "caregiver"), listOf("billing"), true, "proposed")
 
     val routes = listOf(
@@ -236,7 +236,7 @@ object ApisData {
         GET_CLINICAL_REVIEWS,
         POST_CLINICAL_REVIEWS_BY_REVIEW_REF_SIGN,
         POST_CLINICAL_CONSULTATIONS,
-        POST_CLINICAL_TRIAGE,
+        POST_CLINICAL_TRIAGE_V2,
         POST_CLINICAL_RESULTS_BY_RESULT_REF_ACKNOWLEDGE,
         POST_CLINICAL_GUIDANCE,
         POST_CLINICAL_PROMS,
@@ -318,7 +318,7 @@ object ApisData {
         POST_MONEY_VOUCHERS,
         POST_MONEY_GIFTS,
         POST_MONEY_GROUPS,
-        POST_MONEY_CLAIMS,
+        POST_MONEY_CLAIMS_V2,
         POST_MONEY_MARKET_ORDERS
     )
 
@@ -782,15 +782,15 @@ object ApisData {
         val consultationEntryRef: String,
         val signable: Boolean
     )
-    data class PostClinicalTriageRequest(
+    data class PostClinicalTriageV2Request(
         val intakeEntryRef: String,
         val protocolVersionId: String
     )
-    data class PostClinicalTriageResponse(
+    data class PostClinicalTriageV2Response(
         val triageRef: String,
         val priorityCode: String,
         val careSetting: String,
-        val reasonCodes: List<String>
+        val triageEntryRef: String
     )
     data class PostClinicalResultsByResultRefAcknowledgeRequest(
         val resultRef: String
@@ -1438,13 +1438,13 @@ object ApisData {
     data class PostMoneyGroupsResponse(
         val groupRef: String
     )
-    data class PostMoneyClaimsRequest(
+    data class PostMoneyClaimsV2Request(
         val idempotencyKey: String,
-        val encounterRef: String,
+        val payableRef: String,
         val tariffCode: String,
-        val icd10Codes: List<String>
+        val amountCents: Int
     )
-    data class PostMoneyClaimsResponse(
+    data class PostMoneyClaimsV2Response(
         val claimRef: String,
         val stateCode: String
     )
