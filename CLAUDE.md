@@ -86,7 +86,9 @@ A change is not done until `npm run check`, `npm test` and both native builds pa
    restating it. Dates are day offsets from today so the preview never goes stale. If the feature
    publishes or consumes an event, declare it in an `events` array to the shape in
    `packages/catalog/events.json` and append `type@version` to `packages/catalog/events.lock` in the
-   same change. Events are frozen: a changed shape is a new version, never an edit.
+   same change. Events are frozen: a changed shape is a new version, never an edit, and a frozen
+   version found to be wrong is marked `withdrawn` (with the day, the reason and its replacement) —
+   it keeps its lock line, loses every subscriber and may not be named in code, but it is not deleted.
 2. **A generator** `scripts/emit-<name>.mjs` writing the contract into Swift and Kotlin, registered
    in `package.json` and in the `generated` list in `scripts/check-boundaries.mjs`. Swift escapes
    quotes; Kotlin escapes backslash, quote **and** `$`.
