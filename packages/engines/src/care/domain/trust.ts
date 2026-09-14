@@ -31,13 +31,20 @@ export type Standing =
 export interface TrustReader { standing(subjectRef: string): Standing }
 
 type Held = { badgeTier: string; hardGatesPassed: boolean; occurredAt: number };
+/** What a store keeps of a badge: the two fields the event may carry, who it is about and when it was said. */
+export type HeldBadge = { readonly subjectRef: string; readonly badgeTier: string; readonly hardGatesPassed: boolean; readonly occurredAt: string };
 
 export class TrustCache implements TrustReader {
  #held = new Map<string, Held>();
  #tiers: ReadonlySet<string>;
 
- constructor(badgeTiers: readonly string[]) {
+ constructor(badgeTiers: readonly string[], held: readonly HeldBadge[] = []) {
   this.#tiers = new Set(badgeTiers);
+  for (const b of held) this.#held.set(b.subjectRef, { badgeTier: b.badgeTier, hardGatesPassed: b.hardGatesPassed, occurredAt: Date.parse(b.occurredAt) });
+ }
+
+ state(): HeldBadge[] {
+  return [...this.#held].map(([subjectRef, h]) => ({ subjectRef, badgeTier: h.badgeTier, hardGatesPassed: h.hardGatesPassed, occurredAt: new Date(h.occurredAt).toISOString() }));
  }
 
  /** True when the event was taken; false when it was not an event Care is built against, or older than what is held. */

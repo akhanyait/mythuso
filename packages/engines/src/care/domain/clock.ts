@@ -10,4 +10,11 @@ export const dayIn = (at: Date, timezone: string): string =>
 
 export const sameDay = (a: Date, b: Date, timezone: string): boolean => dayIn(a, timezone) === dayIn(b, timezone);
 
+/** A slot on a day offset from `now`, as an instant that states the zone's own offset rather than assuming one. */
+export function instantAt(now: Date, dayOffset: number, slot: string, timezone: string): string {
+ const day = dayIn(new Date(now.getTime() + dayOffset * 86_400_000), timezone);
+ const named = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, timeZoneName: 'longOffset' }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value ?? 'GMT';
+ return `${day}T${slot}:00${named.replace('GMT', '') || '+00:00'}`;
+}
+
 export const addMinutes = (at: Date, minutes: number): Date => new Date(at.getTime() + minutes * 60_000);

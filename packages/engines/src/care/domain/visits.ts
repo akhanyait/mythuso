@@ -46,9 +46,18 @@ export class VisitDesk {
  #visits = new Map<string, Visit>();
  #codes = new Map<string, string>();
 
- constructor(options: { contract: CareContract; record: RecordPort }) {
+ constructor(options: { contract: CareContract; record: RecordPort; held?: readonly { visit: Visit; visitCode: string }[] }) {
   this.#contract = options.contract;
   this.#record = options.record;
+  for (const { visit, visitCode } of options.held ?? []) {
+   this.#visits.set(visit.appointmentRef, structuredClone(visit));
+   this.#codes.set(visit.appointmentRef, visitCode);
+  }
+ }
+
+ /** What a store keeps. The code travels beside the visit and never inside it, so a visit document can be read without reading a secret. */
+ state(): { visit: Visit; visitCode: string }[] {
+  return [...this.#visits.values()].map(visit => ({ visit: structuredClone(visit), visitCode: this.#codes.get(visit.appointmentRef)! }));
  }
 
  /** A booked visit and the patient's code for it. The code arrives from whoever issued it to the patient, never from an event. */

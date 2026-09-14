@@ -34,7 +34,8 @@
     {"id": "no-current-trust-score", "status": 409, "statement": "Nobody without a current Trust Score is offered a visit.", "why": "Verify ranks; Care never offers past a failed gate."},
     {"id": "carer-without-rn", "status": 409, "statement": "A supervised carer is not offered a visit without their registered nurse.", "why": "Supervision is enforced in the offer."},
     {"id": "service-not-offered", "status": 409, "statement": "That service is not offered yet, so nobody is matched to it.", "why": "A service later than the seed phase in packages/catalog/care.json has nobody who has agreed to deliver it."},
-    {"id": "no-eligible-clinician", "status": 409, "statement": "Everybody eligible for this visit has been asked, so it goes to a dispatcher.", "why": "An offer is never made to somebody a gate withheld just to fill the visit."}
+    {"id": "no-eligible-clinician", "status": 409, "statement": "Everybody eligible for this visit has been asked, so it goes to a dispatcher.", "why": "An offer is never made to somebody a gate withheld just to fill the visit."},
+    {"id": "visit-zone-unknown", "status": 409, "statement": "Nobody is offered a visit until Care knows the suburb it is in.", "why": "booking.requested carries no zone, and a distance measured to nowhere would rank nobody honestly."}
    ],
    "emits": ["appointment.offered@1"],
    "idempotent": true,
