@@ -82,12 +82,30 @@ ${table.roles.map(role => `        VettedRole(id: ${swift(role.id)}, name: ${swi
 ${role.grants.map(g => `                    .init(capability: ${swift(g.capability)}, refusal: ${swift(g.refusal)})`).join(',\n')}
                    ],
                    checks: [
-${role.checks.map(c => `                    .init(id: ${swift(c.id)}, name: ${swift(c.name)}, detail: ${swift(c.detail)}, authority: ${swift(c.authority)}, evidence: ${swift(c.evidence)}, renewMonths: ${swiftInt(c.renewMonths)}, risk: ${swift(c.risk)})`).join(',\n')}
+${role.checks.map(c => `                    .init(id: ${swift(c.id)}, name: ${swift(c.name)}, detail: ${swift(c.detail)}, authority: ${swift(c.authority)}, evidence: ${swift(c.evidence)}, renewMonths: ${swiftInt(c.renewMonths)}, risk: ${swift(c.risk)}, gate: ${swift(c.gate)})`).join(',\n')}
                    ])`).join(',\n')}
     ]
     static let scopes: [String: RoleScope] = [
 ${scoped.map(role => `        ${swift(role.id)}: RoleScope(label: ${swift(role.scope.label)}, note: ${swift(role.scope.note)},
                         options: [${role.scope.options.map(swift).join(', ')}])`).join(',\n')}
+    ]
+    /* The seven onboarding gates, in order, each with the rule a person is refused under and the
+       sentence they are shown. The fail rules are rendered word for word from here. */
+    static let gates: [VettingGate] = [
+${table.gates.map(g => `        .init(id: ${swift(g.id)}, order: ${g.order}, name: ${swift(g.name)}, hardStop: ${g.hardStop}, evidencedBy: ${g.evidencedBy ? swift(g.evidencedBy) : 'nil'},
+              failRule: ${swift(g.failRule)},
+              statement: ${swift(g.statement)})`).join(',\n')}
+    ]
+    static let gateRules = VettingGateRules(
+        lapse: ${swift(table.gateRules.lapse)},
+        suspended: ${swift(table.gateRules.suspended)},
+        declined: ${swift(table.gateRules.declined)},
+        notActivated: ${swift(table.gateRules.notActivated)},
+        status: ${swift(table.gateRules.status)})
+    /* Why no check sits at a gate, per role and per gate, in the role's own words. */
+    static let gateNotes: [String: [String: VettingGateNote]] = [
+${table.roles.map(role => `        ${swift(role.id)}: [${Object.entries(role.gateNotes).map(([gate, note]) => `
+            ${swift(gate)}: VettingGateNote(kind: ${swift(note.kind)}, sentence: ${swift(note.sentence)})`).join(',')}${Object.keys(role.gateNotes).length ? '\n        ' : ':'}]`).join(',\n')}
     ]
 }
 `;
@@ -120,7 +138,7 @@ ${table.roles.map(role => `    VettingRole(
 ${role.grants.map(g => `            VettingGrant(${kotlin(g.capability)}, ${kotlin(g.refusal)})`).join(',\n')}
         ),
         listOf(
-${role.checks.map(c => `            VettingCheck(${kotlin(c.id)}, ${kotlin(c.name)}, ${kotlin(c.detail)}, ${kotlin(c.authority)}, ${kotlin(c.evidence)}, ${kotlinInt(c.renewMonths)}, ${kotlin(c.risk)})`).join(',\n')}
+${role.checks.map(c => `            VettingCheck(${kotlin(c.id)}, ${kotlin(c.name)}, ${kotlin(c.detail)}, ${kotlin(c.authority)}, ${kotlin(c.evidence)}, ${kotlinInt(c.renewMonths)}, ${kotlin(c.risk)}, ${kotlin(c.gate)})`).join(',\n')}
         )
     )`).join(',\n')}
 )
@@ -131,6 +149,30 @@ ${scoped.map(role => `    ${kotlin(role.id)} to ScopeOfPractice(
         ${kotlin(role.scope.note)},
         listOf(${role.scope.options.map(kotlin).join(', ')})
     )`).join(',\n')}
+)
+
+/* The seven onboarding gates, in order, each with the rule a person is refused under and the
+   sentence they are shown. The fail rules are rendered word for word from here. */
+val vettingGates = listOf(
+${table.gates.map(g => `    VettingGate(
+        ${kotlin(g.id)}, ${g.order}, ${kotlin(g.name)}, ${g.hardStop}, ${g.evidencedBy ? kotlin(g.evidencedBy) : 'null'},
+        ${kotlin(g.failRule)},
+        ${kotlin(g.statement)}
+    )`).join(',\n')}
+)
+
+val vettingGateRules = VettingGateRules(
+    ${kotlin(table.gateRules.lapse)},
+    ${kotlin(table.gateRules.suspended)},
+    ${kotlin(table.gateRules.declined)},
+    ${kotlin(table.gateRules.notActivated)},
+    ${kotlin(table.gateRules.status)}
+)
+
+/* Why no check sits at a gate, per role and per gate, in the role's own words. */
+val vettingGateNotes: Map<String, Map<String, VettingGateNote>> = mapOf(
+${table.roles.map(role => `    ${kotlin(role.id)} to mapOf${Object.keys(role.gateNotes).length ? '' : '<String, VettingGateNote>'}(${Object.entries(role.gateNotes).map(([gate, note]) => `
+        ${kotlin(gate)} to VettingGateNote(${kotlin(note.kind)}, ${kotlin(note.sentence)})`).join(',')}${Object.keys(role.gateNotes).length ? '\n    ' : ''})`).join(',\n')}
 )
 `;
 

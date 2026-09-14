@@ -257,6 +257,14 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
                     Text(thuso(Phrase.VETTING_STATUS, store.locale), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                     StatusPill(summary.status.label, tone(summary.status))
                 }
+                /* Where the party stands among the seven gates, computed from the checks rather than
+                   stored. A fail rule is the contract's sentence, word for word; a suspension or a
+                   decline is said just below and is not said twice. */
+                val progress = gateProgress(subject)
+                ReviewLine("Onboarding", progress.status)
+                if (progress.outcome in listOf(GateOutcome.STOPPED, GateOutcome.FAILED, GateOutcome.HELD)) {
+                    progress.sentence?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Danger) }
+                }
                 when {
                     subject.declined -> Text(subject.declinedReason ?: "This application was declined.", style = MaterialTheme.typography.bodyMedium, color = Danger)
                     subject.suspended -> Text(subject.suspendedReason ?: "This party is suspended.", style = MaterialTheme.typography.bodyMedium, color = Danger)

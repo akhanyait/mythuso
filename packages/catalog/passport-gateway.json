@@ -1,0 +1,93 @@
+{
+ "_note": "The Health Passport P0 service's contract: what it stores, what its consent gateway refuses and in which words, what break-glass opens, and why it will not run anywhere but a developer's machine. apps/passport reads this file and types none of its sentences. It is not packages/catalog/passport.json, which is the fictional record the patient-facing Passport screens draw; this is the service that would one day hold a real one, and it is kept apart so that a screen fixture and a store's refusals cannot be edited as one thing.",
+
+ "_fiction": "Every subject this service has ever held is a synthetic token it minted itself. No name, identity number, phone number or address is accepted into it, and nothing here was ever about a person.",
+
+ "_whyDevelopmentOnly": "The master document says the Passport is live before the first visit only after its DPIA is signed. docs/PRIVACY-AND-SECURITY.md records that there is no DPIA, no registered Information Officer and no data residency decision, and that the keys here are an environment variable rather than an HSM or KMS. So the service refuses to start without an explicit development flag, binds to the loopback only, and scripts/check-boundaries.mjs fails the build if anything under deploy/ names it or its port.",
+
+ "service": {
+  "port": 8797,
+  "host": "127.0.0.1",
+  "developmentFlag": { "variable": "MYTHUSO_PASSPORT_DEVELOPMENT", "value": "synthetic-data-only" },
+  "masterKeyVariable": "MYTHUSO_PASSPORT_MASTER_KEY",
+  "databaseVariable": "MYTHUSO_PASSPORT_DB",
+  "identityKeyVariables": ["MYTHUSO_PROTECTION_KEYS", "MYTHUSO_ENCRYPTION_KEY", "MYTHUSO_AUTH_PEPPER"],
+  "identityDatabaseVariable": "MYTHUSO_DB",
+  "maxBodyBytes": 65536,
+  "why": "Its own port, its own database file and its own key variable, each checked against the identity service's at start-up. The development flag is a phrase rather than true, so that nobody sets it by copying a line meant for something else."
+ },
+
+ "resources": [
+  { "type": "Patient", "categories": ["patient"], "writable": true, "why": "A reference token and nothing else. Who the person is lives in the identity service." },
+  { "type": "Observation", "categories": ["vitals", "child-health", "maternal-health"], "writable": true, "why": "Readings, filed under the category a reader is granted. Maternal health is protected in packages/catalog/records.json, so an observation filed there is sealed." },
+  { "type": "AllergyIntolerance", "categories": ["allergy"], "writable": true, "why": "The first thing an emergency summary carries." },
+  { "type": "MedicationStatement", "categories": ["prescription", "dispense"], "writable": true, "why": "What the patient is taking. records.json has no category of its own for a medication statement, so it is filed under the prescription or the dispense it came from — a mapping to be settled when the record contract grows one." },
+  { "type": "Consent", "categories": ["consent"], "writable": true, "why": "The patient's own consent records, stored as FHIR Consent. The grants the gateway enforces are signed artefacts beside them, not rows anybody can edit." },
+  { "type": "Provenance", "categories": ["audit"], "writable": false, "why": "Written by the gateway on every write, never by a caller. A caller who could write provenance could write somebody else's name on their own entry." },
+  { "type": "AuditEvent", "categories": ["audit"], "writable": false, "why": "Written by the gateway on every access, granted or refused, into a hash chain the patient can read." }
+ ],
+
+ "patientFieldsRefused": ["name", "telecom", "identifier", "address", "birthDate", "photo", "contact"],
+
+ "sealed": {
+  "sensitivity": "protected",
+  "patientMayMarkPrivate": true,
+  "why": "A category packages/catalog/records.json marks protected, or any entry the patient marks private, is sealed: stored under a data key of its own, excluded from every grant unless the grant says sealedIncluded and ticks that category in its scope, and never in the emergency summary."
+ },
+
+ "clinicianIndicatorRoles": ["nurse-assigned", "doctor-assigned", "pharmacist"],
+
+ "emergencySummary": {
+  "categories": ["allergy", "prescription"],
+  "openedBy": "emergency-card",
+  "why": "Allergies and current medicines — the part of the master document's default summary this store holds in P0. A grant opens the summary when its scope includes the emergency card; break-glass opens it and nothing else. Sealed entries are never in it, because P0 has no way for a patient to opt one in."
+ },
+
+ "breakGlass": {
+  "roles": ["registered-clinician", "dispatch-desk"],
+  "justificationMinimumWords": 6,
+  "reviewWithinHours": 24,
+  "why": "When a patient cannot consent, a registered clinician or the dispatch desk may open the emergency summary only, by writing why first. Six words is long enough to be a reason rather than a keystroke; whether it is a good reason is what the review within the window decides."
+ },
+
+ "statements": {
+  "sealedExists": "Sealed content exists in this record. The patient can release it, so ask them.",
+  "breakGlassOpened": "Opened by break-glass. This access is logged, the patient and their next of kin are told, and the governance board reviews it within {hours} hours.",
+  "granted": "Opened under a consent grant, for the purpose it names.",
+  "patientSession": "Opened by the patient in their own session.",
+  "written": "Written with provenance.",
+  "keys": "Keys are envelope encryption under a master key held in an environment variable. That is not an HSM or a KMS, and nothing here claims it is."
+ },
+
+ "refusals": [
+  { "id": "not-development", "sentence": "The Health Passport service runs in development only, on synthetic data. It will not start without MYTHUSO_PASSPORT_DEVELOPMENT set to synthetic-data-only.", "why": "There is no DPIA, no Information Officer and no residency decision. A service that starts by default is a service somebody eventually starts in the wrong place." },
+  { "id": "production-environment", "sentence": "The Health Passport service will not start in a production environment. Its DPIA has not been signed.", "why": "The development flag and a production environment together are a contradiction, and the safe reading of a contradiction is no." },
+  { "id": "no-master-key", "sentence": "The Health Passport needs a master key of its own in MYTHUSO_PASSPORT_MASTER_KEY: 64 hexadecimal characters, generated for this service alone.", "why": "Its own keys are the first of the master document's three boundaries." },
+  { "id": "shared-key", "sentence": "The Health Passport's master key is the identity service's key, or is derived from it. A compromise of one would be a compromise of both, so the Passport will not start.", "why": "The design test in §16: with the Core compromised, the attacker has a store they cannot decrypt. That is false the moment the keys are related." },
+  { "id": "shared-database", "sentence": "The Health Passport's database is the identity service's database. The Passport has a store of its own or it does not run.", "why": "No other engine holds a copy, and no other engine's file holds this one." },
+  { "id": "not-loopback", "sentence": "The Health Passport answers on the loopback address only. There is no network path to it from anywhere but this machine.", "why": "Until the controls exist, the gateway is not a network service at all." },
+  { "id": "no-grant", "sentence": "Refused: there is no consent grant on this request. The Passport opens nothing without a grant, a break-glass justification or the patient's own session.", "why": "Deny by default (§19)." },
+  { "id": "bad-grant", "sentence": "Refused: this grant was not signed by the Passport, or it has been altered since.", "why": "A grant is a signed artefact. One the gateway cannot verify is not a weaker grant, it is no grant." },
+  { "id": "revoked", "sentence": "Refused: the patient has revoked this grant.", "why": "Revocation propagates immediately (§21)." },
+  { "id": "expired", "sentence": "Refused: this grant has expired. Grants expire by default, and a new one has to be asked for.", "why": "Grants expire by default (§21)." },
+  { "id": "wrong-subject", "sentence": "Refused: this grant is for a different person's record.", "why": "A grant is one subject's decision about their own record." },
+  { "id": "wrong-purpose", "sentence": "Refused: the purpose of this request is not the purpose the patient granted.", "why": "Purpose of use is on every request, and the grant is for one purpose." },
+  { "id": "out-of-scope", "sentence": "Refused: this category of record is not in the scope the patient granted.", "why": "Who × what × why × how long. The what is the scope." },
+  { "id": "aggregate-only", "sentence": "Refused: a scheme receives aggregate figures only. No grant opens an identifiable record to a scheme, an insurer or an employer.", "why": "The master document states it as a limit on the patient's own power: no such grant type exists (§17)." },
+  { "id": "emergency-only", "sentence": "Refused: a responder on a trip reads the emergency summary and nothing else.", "why": "§21: emergency summary and mobility note during a trip only." },
+  { "id": "clinical-detail", "sentence": "Refused: a care coordinator sees tasks, appointments and summaries, not clinical detail.", "why": "§21: a care coordinator's default read excludes clinical detail." },
+  { "id": "sealed-never", "sentence": "Refused: this role can never be given a sealed category, whoever asks.", "why": "§21: pharmacists, care coordinators, responders and schemes have no sealed access at all." },
+  { "id": "unknown-role", "sentence": "Refused: that is not a role a grant can name.", "why": "A grant to a role the gateway has no rules for is a grant with no rules." },
+  { "id": "unknown-category", "sentence": "Refused: that is not a record category the Passport knows.", "why": "Categories are packages/catalog/records.json's, so a scope is never a free-text promise." },
+  { "id": "wrong-category", "sentence": "Refused: this kind of resource cannot be filed under that category.", "why": "A category decides who may read an entry. Filing a reading somewhere it does not belong is how it reaches somebody it should not." },
+  { "id": "not-stored-here", "sentence": "Refused: the Passport does not accept this kind of resource from a caller.", "why": "P0 stores a minimal set, and provenance and audit are written by the gateway alone." },
+  { "id": "identity-on-patient", "sentence": "Refused: a Patient resource here is a reference token and nothing else. Names, numbers, addresses and dates of birth never enter the Passport.", "why": "The SA identity number is never a database key or a URL parameter (§19), and the identity service already holds who a person is." },
+  { "id": "not-a-token", "sentence": "Refused: a subject is an opaque token the Passport issued, never an identity number or a name.", "why": "Tokenised internal ids (§19)." },
+  { "id": "no-provenance", "sentence": "Refused: nothing is written into the Passport without provenance — the activity and the system it came from.", "why": "Provenance on every write (§20). The author is taken from the request's grant or session, never from the body." },
+  { "id": "write-not-permitted", "sentence": "Refused: this grant reads and does not write.", "why": "§21 gives writes to the patient, the assigned nurse and doctor, and the pharmacist; everybody else reads." },
+  { "id": "patient-session-required", "sentence": "Refused: only the patient's own session can do this.", "why": "Grants, revocations and the audit log belong to the patient (§26)." },
+  { "id": "breakglass-justification", "sentence": "Refused: breaking the glass needs a justification in words, written before anything is opened.", "why": "§21: by entering a justification." },
+  { "id": "breakglass-role", "sentence": "Refused: only a registered clinician or the dispatch desk may break the glass.", "why": "§21 names the two." },
+  { "id": "not-found", "sentence": "There is no such record that this request may open.", "why": "One sentence for missing and for not yours, so that a refusal does not confirm that somebody else's entry exists." }
+ ]
+}

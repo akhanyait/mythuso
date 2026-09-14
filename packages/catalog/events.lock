@@ -44,3 +44,7 @@ market.order.paid@1 35685247bf01654b
 market.order.shipped@1 5f322ee9641994a6
 market.order.delivered@1 b59e84c35cd47387
 market.order.returned@1 521cf93a22985e3b
+trust.weight.decided@1 4cd80c394321c4a7
+trust.dispatch.withheld@1 733776b734bd84cf
+record.breakglass.review_due@1 52959d41898c35ee
+record.audit.chain_broken@1 ce47e06eb02ef48f

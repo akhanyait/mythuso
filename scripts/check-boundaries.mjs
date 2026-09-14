@@ -1304,6 +1304,273 @@ for(const role of vetting.roles) {
 /* Every capability must be reachable by someone, or the matrix is describing a gate around nothing. */
 for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants.some(g=>g.capability===capability.id))) throw new Error(`Capability ${capability.id} is granted to nobody`);
 
+/* ==== VERIFY: THE SEVEN GATES ======================================================================
+   ADDED BY THE TRUST, RECORD & IDENTITY LEAD. Kept in one block so a merge with the contracts and
+   voice branches is a matter of keeping all three.
+
+   The master document puts every person through seven onboarding gates, each with a rule it refuses
+   under. Four things are held here, and each one is a way the gates quietly stop meaning anything:
+
+     1. The gates are seven, numbered 1 to 7 without a gap, and each carries its fail rule and the
+        sentence a person is shown. A gate with no fail rule is a gate nobody can fail.
+     2. Every check names a gate, and every role reaches gate 7 through gates 1 to 6 — or says, per
+        gate, in a real sentence, why no check sits there. Silence about a gate is how "the nurse
+        passed assessment" comes to mean "nobody assessed the nurse".
+     3. No role activates past a failed hard stop. Proved against the service's own arithmetic in
+        apps/api/src/vetting/gates.ts rather than a second copy of it here: for every role and every
+        check at a hard-stop gate, a party with everything else cleared and that one check declined
+        must be refused, at that gate, in that gate's words.
+     4. The fail rules are rendered from the contract on all three platforms, never typed, and the
+        gate is never a column: a stored gate number stops being true the night a clearance lapses. */
+{
+ const gateList = vetting.gates ?? [];
+ if(gateList.length !== 7) throw new Error(`packages/catalog/vetting.json declares ${gateList.length} gates. The master document's onboarding has seven — apply, identity, credentials, background, assess, train, activate — and a person told they are at "gate 4 of 7" is owed seven.`);
+ [...gateList].sort((a,b)=>a.order-b.order).forEach((gate,index)=>{
+  if(gate.order !== index+1) throw new Error(`The gates in packages/catalog/vetting.json are not numbered 1 to 7 without a gap: "${gate.id}" is ${gate.order} where ${index+1} belongs. A status of "gate 5 of 7" has to mean the fifth.`);
+ });
+ const gateIds = new Set(gateList.map(g=>g.id));
+ if(gateIds.size !== gateList.length) throw new Error('Two gates in packages/catalog/vetting.json share an id.');
+ for(const gate of gateList) {
+  for(const field of ['name','happens','failRule','statement']) if(!(typeof gate[field]==='string' && gate[field].trim().length > 3)) throw new Error(`Gate "${gate.id}" has no ${field}. A gate without a fail rule is a gate nobody can fail, and one without a statement is a gate the person at it is not told about.`);
+  if(typeof gate.hardStop !== 'boolean') throw new Error(`Gate "${gate.id}" does not say whether it is a hard stop.`);
+ }
+ const byOrder = [...gateList].sort((a,b)=>a.order-b.order);
+ if(byOrder[0].evidencedBy !== 'enrolment' || byOrder[6].evidencedBy !== 'gates' || byOrder.slice(1,6).some(g=>g.evidencedBy)) throw new Error('Only the first gate is evidenced by the enrolment and only the last by the other six. Any other gate with no checks of its own is a gate passed on nothing.');
+ for(const role of vetting.roles) {
+  for(const check of role.checks) {
+   if(!check.gate) throw new Error(`Check ${role.id}/${check.id} sits at no gate. Every check is somewhere in the seven, or it is a check nothing waits on.`);
+   if(!gateIds.has(check.gate)) throw new Error(`Check ${role.id}/${check.id} names gate "${check.gate}", which packages/catalog/vetting.json does not have.`);
+   if(check.gate === byOrder[0].id || check.gate === byOrder[6].id) throw new Error(`Check ${role.id}/${check.id} sits at "${check.gate}", which is evidenced by ${check.gate === byOrder[0].id ? 'the enrolment' : 'the other six gates'} rather than by a check.`);
+  }
+  const notes = role.gateNotes ?? {};
+  for(const noted of Object.keys(notes)) if(!gateIds.has(noted)) throw new Error(`Role ${role.id} explains gate "${noted}", which does not exist.`);
+  for(const gate of byOrder.slice(1,6)) {
+   const here = role.checks.filter(c=>c.gate===gate.id);
+   const note = notes[gate.id];
+   if(here.length && note) throw new Error(`Role ${role.id} has ${here.length} check(s) at ${gate.name} and also says why none applies there. One of the two is wrong.`);
+   if(!here.length && !(note && ['does-not-apply','not-yet-a-check'].includes(note.kind) && typeof note.sentence==='string' && note.sentence.split(' ').length >= 10)) throw new Error(`Role ${role.id} does not reach gate 7 through ${gate.name}: no check sits there and the role does not say, in a sentence, why. Add a check, or a gateNotes entry saying it does not apply or is not yet a check.`);
+  }
+ }
+ const { gateProgress } = await import('../apps/api/src/vetting/gates.ts');
+ const at = Date.now();
+ let hardStopsProved = 0;
+ for(const role of vetting.roles) {
+  for(const check of role.checks.filter(c=>gateList.find(g=>g.id===c.gate).hardStop)) {
+   const actor = { actorId: `${role.id}-proof`, roleId: role.id, records: role.checks.map(c=>({ checkId: c.id, state: c.id===check.id ? 'declined' : 'verified', secondedBy: 'second reviewer' })) };
+   const progress = gateProgress(actor, at);
+   const gate = gateList.find(g=>g.id===check.gate);
+   if(progress.activated) throw new Error(`Role ${role.id} activates with ${check.name} declined at ${gate.name}, which is a hard stop. Nothing after a failed hard stop may be reached.`);
+   if(progress.at.id !== gate.id || progress.sentence !== gate.failRule) throw new Error(`Role ${role.id} with ${check.name} declined is told it is at "${progress.at.id}" with "${progress.sentence}". A failed hard stop holds the party at ${gate.name}, in its own fail rule, word for word.`);
+   if(progress.outcome !== 'stopped' || progress.gates.some(g=>g.order > gate.order && g.state !== 'not-reached')) throw new Error(`Role ${role.id} with ${check.name} declined is "${progress.outcome}" rather than stopped, or a gate after ${gate.name} was still reached. Nothing after a failed hard stop is looked at, however green it is.`);
+   /* And a hard stop outranks an earlier gate that is merely unfinished: a background bar is not
+      hidden behind an identity check nobody has got round to. */
+   const earlier = role.checks.find(c=>gateList.find(g=>g.id===c.gate).order < gate.order);
+   if(earlier) {
+    const unfinished = gateProgress({ ...actor, records: actor.records.map(r=>r.checkId===earlier.id ? { ...r, state: 'in-review' } : r) }, at);
+    if(unfinished.at.id !== gate.id || unfinished.outcome !== 'stopped') throw new Error(`Role ${role.id} with ${check.name} declined and ${earlier.name} still in review is told it is at "${unfinished.at.id}", ${unfinished.outcome}. A failed hard stop outranks an earlier gate that is only unfinished, or the bar is hidden behind the paperwork.`);
+   }
+   hardStopsProved++;
+  }
+ }
+ if(hardStopsProved < 20) throw new Error(`Only ${hardStopsProved} hard-stop checks were proved. The contract has lost its identity or background checks, or this check has stopped reading them.`);
+ const gateModels = {
+  web: 'apps/web/src/lib/vetting.ts',
+  ios: 'apps/ios/MyThuso/Models/Vetting.swift',
+  android: 'apps/android/app/src/main/java/za/co/mythuso/model/Vetting.kt'
+ };
+ const gateScreens = {
+  web: 'apps/web/src/features/Vetting.tsx',
+  ios: 'apps/ios/MyThuso/Features/VettingView.swift',
+  android: 'apps/android/app/src/main/java/za/co/mythuso/ui/VettingScreens.kt'
+ };
+ for(const [platform,file] of Object.entries(gateModels)) {
+  const source = read(file);
+  if(!/failRule/.test(source) || !/function gateProgress|func gateProgress|fun gateProgress/.test(source)) throw new Error(`${file} no longer works out gate progress from the contract's failRule. The ${platform} vetting screen would have nothing to say about where a person is stuck, or something typed.`);
+ }
+ for(const [platform,file] of Object.entries(gateScreens)) {
+  const source = read(file);
+  if(!/gateProgress\(subject\)/.test(source) || !/\.sentence/.test(source) || !/\.status/.test(source)) throw new Error(`${file} no longer shows where the party stands among the seven gates, or no longer renders the gate's own sentence. The ${platform} status screen is the one a person reads to find out why they are not activated.`);
+ }
+ const gateSentences = [...gateList.map(g=>g.failRule), ...gateList.map(g=>g.statement), ...Object.values(vetting.gateRules).filter(v=>typeof v==='string' && v.split(' ').length > 6), ...vetting.roles.flatMap(r=>Object.values(r.gateNotes ?? {}).map(n=>n.sentence))];
+ const handWritten = [...files('apps/web/src').filter(f=>/\.tsx?$/.test(f)), ...native.filter(f=>!/Data\.(swift|kt)$/.test(f)), ...files('apps/api/src')];
+ for(const file of handWritten) {
+  const source = read(file);
+  const typed = gateSentences.find(sentence=>source.includes(sentence));
+  if(typed) throw new Error(`${file} types a gate sentence out of packages/catalog/vetting.json: "${typed.slice(0,80)}…". The fail rules are rendered from the contract (VettingData on the phones), so a reworded rule is reworded everywhere at once.`);
+ }
+ for(const table of tablesIn(read('apps/api/src/vetting/store.ts'))) {
+  const stored = table.columns.find(column=>/gate/i.test(column));
+  if(stored) throw new Error(`apps/api/src/vetting/store.ts stores ${table.name}.${stored}. Where a party stands among the gates is computed from its checks on every read — apps/api/src/vetting/gates.ts — and a stored gate is a claim that stops being true the night a clearance lapses.`);
+ }
+}
+
+/* ==== VERIFY: TRUST SCORE v1 =======================================================================
+   ADDED BY THE TRUST, RECORD & IDENTITY LEAD.
+
+   "No Trust Score, no dispatch", and a safety instrument rather than a leaderboard. Four things
+   would quietly turn it into something else, and each is held here:
+
+     1. A weight becomes a number without a recorded decision. The weights are a governance decision
+        nobody has taken; a number typed into packages/catalog/trust.json before one is a formula with
+        no author, and while any weight is null the only reachable tier is Verified.
+     2. A refusal is typed in the service rather than looked up, so the contract and the dispatch
+        board say different things.
+     3. A patient receives a number. The patient view is the badge and nothing it was worked out
+        from, and no screen on any platform reads a score's value.
+     4. The dispatch path stops asking. The roster simulator ranks through the trust module or the
+        rule is a paragraph. */
+{
+ const trust = JSON.parse(read('packages/catalog/trust.json'));
+ const gateIdsForTrust = new Set((vetting.gates ?? []).map(g=>g.id));
+ for(const hard of trust.hardGates) {
+  if(!hard.failing?.trim()) throw new Error(`Trust hard gate "${hard.id}" has no sentence for failing.`);
+  for(const gate of hard.gates) if(!gateIdsForTrust.has(gate)) throw new Error(`Trust hard gate "${hard.id}" reads gate "${gate}", which packages/catalog/vetting.json does not have.`);
+ }
+ let undecided = 0;
+ for(const input of trust.softInputs) {
+  if(!input.setBy?.trim()) throw new Error(`The Trust Score input "${input.id}" does not say who sets its weight. A weight with no owner is a weight somebody will set in a pull request.`);
+  const decided = input.decision && ['decidedBy','decidedOn','minute'].every(field => typeof input.decision[field]==='string' && input.decision[field].trim());
+  if(input.weight !== null && !decided) throw new Error(`The Trust Score input "${input.id}" has weight ${input.weight} and no recorded decision by ${input.setBy}. The weights are a governance decision nobody has made: record who decided, on what day and in which minute, or put it back to null.`);
+  if(input.weight === null) undecided++;
+ }
+ if(undecided) {
+  const reachable = trust.tiers.filter(tier => tier.needs !== 'weights');
+  if(reachable.length !== 1 || reachable[0].id !== 'verified') throw new Error(`While ${undecided} Trust Score weight(s) are undecided the only reachable tier is Verified, and packages/catalog/trust.json makes ${reachable.map(t=>t.name).join(', ') || 'none'} reachable.`);
+  for(const tier of trust.tiers.filter(t => t.needs === 'weights')) if(!(typeof tier.unavailable === 'string' && tier.unavailable.split(' ').length >= 8)) throw new Error(`The ${tier.name} tier needs weights nobody has decided and does not say so in a sentence. A tier nobody can hold has to tell the person looking at it why.`);
+ }
+ for(const refusal of trust.refusals) if(!refusal.sentence?.trim() || !refusal.why?.trim()) throw new Error(`The Trust Score refusal "${refusal.id}" is missing its sentence or its reasoning.`);
+ const trustSentences = [...trust.refusals.map(r=>r.sentence), ...Object.values(trust.reasons), ...trust.hardGates.map(h=>h.failing), ...trust.tiers.map(t=>t.unavailable).filter(Boolean)];
+ const trustSources = files('apps/api/src/trust').filter(f=>f.endsWith('.ts'));
+ if(!trustSources.length) throw new Error('apps/api/src/trust is gone, so nothing computes a Trust Score and nothing refuses a dispatch without one.');
+ const refusalIds = new Set(trust.refusals.map(r=>r.id));
+ for(const file of [...trustSources, 'apps/api/src/simulation/roster.ts']) {
+  const source = read(file);
+  const typed = trustSentences.find(sentence => source.includes(sentence));
+  if(typed) throw new Error(`${file} types a Trust Score sentence out of packages/catalog/trust.json: "${typed.slice(0,80)}". Look it up with refusal() or reason() — a typed copy goes on refusing in the old words after the contract has changed.`);
+  for(const [, id] of source.matchAll(/refusal\('([a-z-]+)'/g)) if(!refusalIds.has(id)) throw new Error(`${file} refuses with "${id}", which packages/catalog/trust.json does not hold.`);
+ }
+ /* The patient view. Held on the contract, on the function that builds it, on the ranked entry a
+    dispatch desk receives, on the feed a roster supplier would send, and on every screen. */
+ for(const field of ['value','reasons','hardGates']) {
+  if(trust.patientView.fields.includes(field)) throw new Error(`packages/catalog/trust.json lets a patient receive the score's ${field}. A patient is told the badge — Verified, Trusted, Senior — and never a number or what it was worked out from.`);
+ }
+ if(!trust.patientView.never.includes('value')) throw new Error('packages/catalog/trust.json no longer says a patient never receives the score\'s value.');
+ if(!/contract\.patientView\.fields/.test(read('apps/api/src/trust/score.ts'))) throw new Error('forPatient() in apps/api/src/trust/score.ts no longer builds the patient view from the contract\'s own list of fields.');
+ const rankedType = read('apps/api/src/trust/dispatch.ts').match(/export type Ranked = \{([^}]*)\}/)?.[1];
+ if(rankedType === undefined) throw new Error('apps/api/src/trust/dispatch.ts no longer declares Ranked as one type this check can read.');
+ if(/\b(value|reasons|score)\s*:/.test(rankedType)) throw new Error(`A ranked dispatch entry carries the score itself (${rankedType.trim()}). The desk is told who to send, with the badge; the number and its reasons stay with the vetting team.`);
+ const feedsForTrust = JSON.parse(read('packages/catalog/feeds.json'));
+ for(const feed of feedsForTrust.feeds) for(const accepted of feed.accepts ?? []) if(/score|trust/i.test(accepted.field)) throw new Error(`The ${feed.id} feed accepts "${accepted.field}". A Trust Score is computed by Verify from vetting evidence, never received from a supplier.`);
+ for(const file of [...files('apps/web/src').filter(f=>/\.tsx?$/.test(f)), ...native]) {
+  const source = read(file);
+  if(/trust\w*\??\.value\b|score\??\.value\b/i.test(source)) throw new Error(`${file} reads a Trust Score's value. No screen shows a raw score — patients see a badge tier, and only the vetting team a number, on a surface built for them.`);
+ }
+ const rosterSource = read('apps/api/src/simulation/roster.ts');
+ if(!/rankForDispatch\(/.test(rosterSource) || !/trustScore\(/.test(rosterSource)) throw new Error('apps/api/src/simulation/roster.ts no longer ranks dispatch through the Trust Score. "No Trust Score, no dispatch" is enforced by the ranking or it is not enforced.');
+ /* The events this branch declares, in the shape the three Wave 1 branches agreed. The architect owns
+    person.*, credential.*, partner.* and passport.*, and nothing here may declare one of them. */
+ const engines = new Set(['core','access','pulse','care','clinical','safety','movement','trust','record','medicines','devices','money']);
+ const fieldTypes = new Set(feedsForTrust.fieldTypes.map(t=>t.id));
+ for(const event of trust.events ?? []) {
+  if(/^(person|credential|partner|passport)\./.test(event.type)) throw new Error(`packages/catalog/trust.json declares ${event.type}, which the contracts branch owns. Subscribe to it; do not redeclare it.`);
+  if(event.version !== 1 || !['trust','record'].includes(event.owner) || !event.summary?.trim()) throw new Error(`Event ${event.type} is not in the agreed shape: version 1, owner trust or record, and a summary.`);
+  for(const field of event.payload) if(!fieldTypes.has(field.type) || typeof field.required !== 'boolean' || !field.why?.trim()) throw new Error(`Event ${event.type} carries ${field.field} as "${field.type}", or without saying why. Field types are packages/catalog/feeds.json's.`);
+  if(!event.neverCarries?.length || event.neverCarries.some(n=>!n.why?.trim())) throw new Error(`Event ${event.type} does not say what it never carries, and why. What an event refuses to carry is the part of it worth writing down.`);
+  for(const subscriber of event.subscribers) if(!engines.has(subscriber)) throw new Error(`Event ${event.type} is subscribed to by "${subscriber}", which is not an engine.`);
+ }
+}
+
+/* ==== HEALTH PASSPORT P0 ===========================================================================
+   ADDED BY THE TRUST, RECORD & IDENTITY LEAD.
+
+   The Passport is "its own service, database and encryption keys. No other engine holds a copy"
+   (master document §16), and it holds the one thing in this repository that cannot be re-issued
+   after a breach. So it exists in development only, on synthetic data, and what keeps it there is
+   checked rather than hoped:
+
+     1. Nothing under deploy/ names it, its workspace or its port. docs/PRIVACY-AND-SECURITY.md
+        records that there is no DPIA, no Information Officer and no residency decision; the day
+        those exist, this is the check to change, deliberately, with the reason.
+     2. apps/api and apps/passport never import each other. Two services that share a module share a
+        compromise.
+     3. No Passport table has a column for a name, a phone number, an address or an identity number,
+        and no file in it holds a realistic South African identity number.
+     4. The service still refuses to start without its development flag, still binds to the loopback,
+        and its audit log is still append-only.
+     5. The grant-roles fixture is deleted the day packages/catalog/consent.json carries grants. */
+{
+ const passportDir = 'apps/passport';
+ if(!existsSync(`${passportDir}/src`)) throw new Error('apps/passport is gone. Passport P0 is a Phase 0 foundation; removing it is a decision to write down, not a directory to delete.');
+ const gatewayContract = JSON.parse(read('packages/catalog/passport-gateway.json'));
+ const passportPort = String(gatewayContract.service.port);
+ const deployNames = new RegExp(`apps/passport|@mythuso/passport|passport-p0|MYTHUSO_PASSPORT|\\b${passportPort}\\b`, 'i');
+ for(const file of files('deploy')) {
+  const found = read(file).match(deployNames);
+  if(found) throw new Error(`${file} names the Health Passport service ("${found[0]}"). Passport P0 runs in development only: there is no signed DPIA, no registered Information Officer and no data residency decision (docs/PRIVACY-AND-SECURITY.md), and the master document says the Passport goes live only after its DPIA is signed. No nginx location, systemd unit or deploy step may reach it until then.`);
+ }
+ const passportSources = files(passportDir).filter(f=>/\.(ts|json)$/.test(f) && !f.includes('node_modules'));
+ for(const file of passportSources) {
+  const found = read(file).match(/from\s+['"][^'"]*(apps\/api|@mythuso\/api|\.\.\/api\/|protection\/|vetting\/|simulation\/)[^'"]*['"]/);
+  if(found) throw new Error(`${file} imports from the identity service (${found[0]}). The Passport shares no module with apps/api: a compromise of the Core must leave "a gateway they cannot authenticate to and a store they cannot decrypt" (§16).`);
+ }
+ for(const file of files('apps/api')) {
+  if(!/\.(ts|json)$/.test(file) || file.includes('node_modules')) continue;
+  const found = read(file).match(/from\s+['"][^'"]*(apps\/passport|@mythuso\/passport|passport\/src)[^'"]*['"]/);
+  if(found) throw new Error(`${file} imports the Health Passport service (${found[0]}). The identity service reaches the Passport through its gateway or not at all, and it holds no clinical table of its own.`);
+ }
+ const identityColumn = /(^|_)(name|names|surname|first_?name|phone|mobile|msisdn|cell|email|address|birth|dob|id_?number|identity_?number|sa_?id|national_?id|passport_?number)(_|$)/i;
+ let passportTables = 0;
+ for(const file of passportSources.filter(f=>f.endsWith('.ts'))) {
+  for(const table of tablesIn(read(file))) {
+   passportTables++;
+   for(const identifier of [table.name, ...table.columns]) if(identityColumn.test(identifier)) throw new Error(`${file} gives the Passport a place to hold who somebody is: ${table.name}.${identifier}. The Passport knows a person as an opaque token it minted; names, numbers and addresses live in the identity service and never here.`);
+  }
+ }
+ if(passportTables < 5) throw new Error(`scripts/check-boundaries.mjs read ${passportTables} tables out of apps/passport, so the check on what they may hold is reading nothing.`);
+ const realisticSaId = digits => {
+  const month = Number(digits.slice(2,4)), day = Number(digits.slice(4,6));
+  if(month < 1 || month > 12 || day < 1 || day > 31 || !/[01]/.test(digits[10])) return false;
+  let sum = 0;
+  for(let i = 0; i < 13; i++) { let d = Number(digits[12-i]); if(i % 2 === 1) { d *= 2; if(d > 9) d -= 9; } sum += d; }
+  return sum % 10 === 0;
+ };
+ for(const file of passportSources) {
+  for(const [digits] of read(file).matchAll(/(?<!\d)\d{13}(?!\d)/g)) if(realisticSaId(digits)) throw new Error(`${file} holds ${digits}, which reads as a valid South African identity number. The Passport's fixtures are synthetic tokens and obviously invalid values, never a number that could be somebody's.`);
+ }
+ const passportConfig = read(`${passportDir}/src/config.ts`);
+ const passportServer = read(`${passportDir}/src/server.ts`);
+ if(!/developmentFlag/.test(passportConfig) || !/PassportRefusedToStart\(refusalOf\('not-development'\)\)/.test(passportConfig)) throw new Error('apps/passport/src/config.ts no longer refuses to start without the development flag. Until the DPIA is signed the service does not run anywhere it has not been told, in so many words, that the data is synthetic.');
+ if(!/sharesIdentityKey\(/.test(passportConfig) || !/refusalOf\('shared-key'\)/.test(passportConfig)) throw new Error('apps/passport/src/config.ts no longer refuses a master key shared with, or derived from, the identity service\'s keys.');
+ if(passportServer.indexOf('loadPassportConfig()') < 0 || passportServer.indexOf('loadPassportConfig()') > passportServer.indexOf('createServer(passport.handle)')) throw new Error('apps/passport/src/server.ts no longer loads, and so refuses, its configuration before it creates a server.');
+ if(!/listen\(config\.port, config\.host/.test(passportServer) || /0\.0\.0\.0/.test(passportServer) || !/LOOPBACK\.has\(req\.socket\.remoteAddress/.test(passportServer)) throw new Error('apps/passport/src/server.ts no longer binds to the configured loopback host and refuses requests that did not arrive on it.');
+ if(!/DPIA/.test(passportServer.slice(0, 2500))) throw new Error('apps/passport/src/server.ts no longer says at the top why it runs in development only. The reason is the DPIA, and it belongs where the next person to open the file reads first.');
+ for(const file of passportSources) if(/UPDATE\s+audit_events|DELETE\s+FROM\s+audit_events/i.test(read(file)) && !file.includes('/test/')) throw new Error(`${file} rewrites the Passport's audit log. It is append-only; the chain shows tampering, and the service itself must never be the thing it shows.`);
+ const consentContract = JSON.parse(read('packages/catalog/consent.json'));
+ const fixture = `${passportDir}/src/grant-roles.fixture.ts`;
+ if(consentContract.grants && existsSync(fixture)) throw new Error(`packages/catalog/consent.json now carries grants, and ${fixture} still exists. The fixture was always a stand-in for that contract: read the roles from consent.json in apps/passport/src/contract.ts and delete the fixture.`);
+ if(!consentContract.grants && !existsSync(fixture)) throw new Error(`${fixture} is gone and packages/catalog/consent.json has no grants, so the Passport's gateway has no roles to decide anything against.`);
+ /* ---- Integration, Wave 1: what each grant role may do at the Passport gateway -----------------
+    The Passport's roles came from a local fixture until consent.json carried grants. They now come
+    from the contract, and what a role may do at the gateway lives on the role, so the grant sheet,
+    the gateway and this check read one list. Only clinicians write; aggregate reading and a
+    non-identifiable role are the same fact and must agree; a grant bound to a trip opens the
+    emergency summary and nothing else. */
+ if (consentContract.grants) {
+  const GATEWAY_READS = new Set(['records', 'routine', 'emergency-summary', 'aggregate']);
+  for (const role of consentContract.grants.recipientRoles) {
+   const g = role.gateway, where = `The grant role ${role.id} in packages/catalog/consent.json`;
+   if (!g || !GATEWAY_READS.has(g.reads) || typeof g.writes !== 'boolean' || typeof g.sealedMayBeIncluded !== 'boolean' || typeof g.clinician !== 'boolean') throw new Error(`${where} does not say what it may do at the Passport gateway (reads, writes, sealedMayBeIncluded, clinician), so the gateway would have to guess.`);
+   if (g.writes && !g.clinician) throw new Error(`${where} may write to a record without being a clinician. Only the patient's own session and the treating clinicians write.`);
+   if ((g.reads === 'aggregate') !== (role.identifiable === false)) throw new Error(`${where} reads "${g.reads}" while identifiable is ${role.identifiable}. Reading aggregates and being a non-identifiable role are the same fact, and they must agree.`);
+   if (role.boundTo === 'trip' && g.reads !== 'emergency-summary') throw new Error(`${where} is bound to a trip but reads more than the emergency summary.`);
+   if (g.reads === 'aggregate' && g.sealedMayBeIncluded) throw new Error(`${where} could have a sealed category ticked into an aggregate.`);
+  }
+ }
+ const rootPackage = JSON.parse(read('package.json'));
+ if(!rootPackage.workspaces.includes(passportDir) || !/-w @mythuso\/passport/.test(rootPackage.scripts.check) || !/-w @mythuso\/passport/.test(rootPackage.scripts.test)) throw new Error('The root package.json no longer typechecks and tests apps/passport. A service nobody tests is a service whose refusals nobody has seen fire.');
+ if(!/Health Passport P0/.test(read('docs/PRIVACY-AND-SECURITY.md'))) throw new Error('docs/PRIVACY-AND-SECURITY.md no longer records the Health Passport P0 service and what it is absent of in production.');
+}
+
 /* What is left to check about the native vetting models is what is still written by hand. The
    tables themselves are generated above, so a refusal sentence cannot say one thing on iOS and
    another on Android — there is only one sentence and one writer of it. The lifecycle is a
@@ -1320,7 +1587,7 @@ for(const [platform,file] of Object.entries(nativeVetting)) {
  if(!/(?<![\d.])45(?![\d.])/.test(source)) throw new Error(`The 45-day renewal warning is missing from ${platform} (${file})`);
  /* A generated table is only worth having if it is the only one. Pasting the roles back in here
     would leave two, and two is where drift comes from. */
- if(/(static let (capabilities|authorities|roles|scopes)\b|val vetting(Capabilities|Authorities|Roles|Scopes)\s*[:=])/.test(source)) throw new Error(`${file} declares a vetting table of its own. That table is generated into VettingData — the app should read that one.`);
+ if(/(static let (capabilities|authorities|roles|scopes|gates|gateRules|gateNotes)\b|val vetting(Capabilities|Authorities|Roles|Scopes|Gates|GateRules|GateNotes)\s*[:=])/.test(source)) throw new Error(`${file} declares a vetting table of its own. That table is generated into VettingData — the app should read that one.`);
 }
 /* Read only so the line below can say how much was generated. Nothing about the contract is checked
    against a native file any more: there is one copy of it and a generator between it and the two

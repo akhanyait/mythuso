@@ -114,14 +114,14 @@ val vettingRoles = listOf(
             VettingGrant("write-clinical-note", "Nothing may be written into a patient's record by somebody the platform has not cleared to attend them.")
         ),
         listOf(
-            VettingCheck("sanc-registration", "SANC registration", "Verified against the South African Nursing Council register", "sanc", "Registration number and current receipt", 12, "high"),
-            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
-            VettingCheck("qualifications", "Qualifications", "Certified copies checked against the issuing institution", "institution", "Diploma or degree certificate", null, "standard"),
-            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high"),
-            VettingCheck("indemnity", "Professional indemnity", "Cover in force for the scope of practice", "insurer", "Schedule of cover", 12, "standard"),
-            VettingCheck("references", "Two clinical references", "Contacted directly, never through the applicant", "internal", "Two named referees", null, "standard"),
-            VettingCheck("kit-training", "Thuso Kit training", "Device handling, infection control and escalation drill", "internal", "Training record", 24, "standard"),
-            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard")
+            VettingCheck("sanc-registration", "SANC registration", "Verified against the South African Nursing Council register", "sanc", "Registration number and current receipt", 12, "high", "credentials"),
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high", "identity"),
+            VettingCheck("qualifications", "Qualifications", "Certified copies checked against the issuing institution", "institution", "Diploma or degree certificate", null, "standard", "credentials"),
+            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high", "background"),
+            VettingCheck("indemnity", "Professional indemnity", "Cover in force for the scope of practice", "insurer", "Schedule of cover", 12, "standard", "credentials"),
+            VettingCheck("references", "Two clinical references", "Contacted directly, never through the applicant", "internal", "Two named referees", null, "standard", "background"),
+            VettingCheck("kit-training", "Thuso Kit training", "Device handling, infection control and escalation drill", "internal", "Training record", 24, "standard", "train"),
+            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard", "train")
         )
     ),
     VettingRole(
@@ -131,12 +131,12 @@ val vettingRoles = listOf(
             VettingGrant("take-visit", "A locum cannot pick up a shift until the same checks a rostered nurse passes are in date.")
         ),
         listOf(
-            VettingCheck("sanc-registration", "SANC registration", "Verified against the South African Nursing Council register", "sanc", "Registration number and current receipt", 12, "high"),
-            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
-            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high"),
-            VettingCheck("indemnity", "Professional indemnity", "Cover in force for the scope of practice", "insurer", "Schedule of cover", 12, "standard"),
-            VettingCheck("shift-eligibility", "Shift eligibility", "Hours worked elsewhere declared, so a nurse is not dispatched exhausted", "internal", "Declared employment", 6, "standard"),
-            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard")
+            VettingCheck("sanc-registration", "SANC registration", "Verified against the South African Nursing Council register", "sanc", "Registration number and current receipt", 12, "high", "credentials"),
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high", "identity"),
+            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high", "background"),
+            VettingCheck("indemnity", "Professional indemnity", "Cover in force for the scope of practice", "insurer", "Schedule of cover", 12, "standard", "credentials"),
+            VettingCheck("shift-eligibility", "Shift eligibility", "Hours worked elsewhere declared, so a nurse is not dispatched exhausted", "internal", "Declared employment", 6, "standard", "assess"),
+            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard", "train")
         )
     ),
     VettingRole(
@@ -154,14 +154,14 @@ val vettingRoles = listOf(
             VettingGrant("refer-patient", "A referral carries the referring clinician's registration to the person receiving it.")
         ),
         listOf(
-            VettingCheck("hpcsa-registration", "HPCSA registration", "Verified against the Health Professions Council register", "hpcsa", "Registration number and annual receipt", 12, "high"),
-            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
-            VettingCheck("qualifications", "Qualifications", "Primary medical qualification checked with the issuing institution", "institution", "MBChB or equivalent", null, "standard"),
-            VettingCheck("prescribing-authority", "Prescribing authority", "Section 22A authority to prescribe scheduled medicines", "sahpra", "Practice number and authority", 12, "high"),
-            VettingCheck("indemnity", "Professional indemnity", "Cover in force for telemedicine and asynchronous review", "insurer", "Schedule of cover naming telemedicine", 12, "high"),
-            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high"),
-            VettingCheck("cpd", "Continuing professional development", "HPCSA CPD points current for the cycle", "hpcsa", "CPD statement", 12, "standard"),
-            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard")
+            VettingCheck("hpcsa-registration", "HPCSA registration", "Verified against the Health Professions Council register", "hpcsa", "Registration number and annual receipt", 12, "high", "credentials"),
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high", "identity"),
+            VettingCheck("qualifications", "Qualifications", "Primary medical qualification checked with the issuing institution", "institution", "MBChB or equivalent", null, "standard", "credentials"),
+            VettingCheck("prescribing-authority", "Prescribing authority", "Section 22A authority to prescribe scheduled medicines", "sahpra", "Practice number and authority", 12, "high", "credentials"),
+            VettingCheck("indemnity", "Professional indemnity", "Cover in force for telemedicine and asynchronous review", "insurer", "Schedule of cover naming telemedicine", 12, "high", "credentials"),
+            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high", "background"),
+            VettingCheck("cpd", "Continuing professional development", "HPCSA CPD points current for the cycle", "hpcsa", "CPD statement", 12, "standard", "train"),
+            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard", "train")
         )
     ),
     VettingRole(
@@ -172,13 +172,13 @@ val vettingRoles = listOf(
             VettingGrant("view-patient-summary", "A pharmacy sees the prescription and the allergies that bear on filling it. Nothing else, and only while licensed.")
         ),
         listOf(
-            VettingCheck("company-registration", "Company registration", "CIPC record, and who may sign for the company", "cipc", "CIPC certificate and resolution", null, "standard"),
-            VettingCheck("signatory", "Authorised signatory", "The named person who may bind the company, verified as a person", "dha", "Identity document and board resolution", null, "high"),
-            VettingCheck("pharmacy-registration", "Pharmacy registration", "Registered with the South African Pharmacy Council", "sapc", "SAPC registration certificate", 12, "high"),
-            VettingCheck("responsible-pharmacist", "Responsible pharmacist", "A named, registered pharmacist accountable for the premises", "sapc", "Personal SAPC registration", 12, "high"),
-            VettingCheck("dispensing-licence", "Dispensing licence", "Section 22C(1)(a) licence to dispense from these premises", "sahpra", "Licence certificate", 36, "high"),
-            VettingCheck("cold-chain", "Cold chain", "Monitored storage for medicines that require it", "internal", "Temperature log and calibration record", 12, "standard"),
-            VettingCheck("operator-agreement", "Operator agreement", "POPIA operator agreement signed, with breach notification terms", "internal", "Signed agreement", 24, "high")
+            VettingCheck("company-registration", "Company registration", "CIPC record, and who may sign for the company", "cipc", "CIPC certificate and resolution", null, "standard", "identity"),
+            VettingCheck("signatory", "Authorised signatory", "The named person who may bind the company, verified as a person", "dha", "Identity document and board resolution", null, "high", "identity"),
+            VettingCheck("pharmacy-registration", "Pharmacy registration", "Registered with the South African Pharmacy Council", "sapc", "SAPC registration certificate", 12, "high", "credentials"),
+            VettingCheck("responsible-pharmacist", "Responsible pharmacist", "A named, registered pharmacist accountable for the premises", "sapc", "Personal SAPC registration", 12, "high", "credentials"),
+            VettingCheck("dispensing-licence", "Dispensing licence", "Section 22C(1)(a) licence to dispense from these premises", "sahpra", "Licence certificate", 36, "high", "credentials"),
+            VettingCheck("cold-chain", "Cold chain", "Monitored storage for medicines that require it", "internal", "Temperature log and calibration record", 12, "standard", "assess"),
+            VettingCheck("operator-agreement", "Operator agreement", "POPIA operator agreement signed, with breach notification terms", "internal", "Signed agreement", 24, "high", "train")
         )
     ),
     VettingRole(
@@ -189,13 +189,13 @@ val vettingRoles = listOf(
             VettingGrant("view-results", "A laboratory sees the order and its own results, and only while accredited for the test.")
         ),
         listOf(
-            VettingCheck("company-registration", "Company registration", "CIPC record, and who may sign for the company", "cipc", "CIPC certificate and resolution", null, "standard"),
-            VettingCheck("signatory", "Authorised signatory", "The named person who may bind the company, verified as a person", "dha", "Identity document and board resolution", null, "high"),
-            VettingCheck("iso-15189", "ISO 15189 accreditation", "SANAS accreditation for the tests actually offered", "sanas", "Schedule of accreditation", 36, "high"),
-            VettingCheck("pathologist", "Responsible pathologist", "A named HPCSA-registered pathologist accountable for the reports", "hpcsa", "Personal HPCSA registration", 12, "high"),
-            VettingCheck("test-scope", "Test scope", "Every test on the MyThuso menu appears on the accreditation schedule", "internal", "Mapped test list", 12, "high"),
-            VettingCheck("turnaround", "Turnaround commitment", "Agreed times per test, and what happens when they slip", "internal", "Signed service levels", 12, "standard"),
-            VettingCheck("operator-agreement", "Operator agreement", "POPIA operator agreement signed, with breach notification terms", "internal", "Signed agreement", 24, "high")
+            VettingCheck("company-registration", "Company registration", "CIPC record, and who may sign for the company", "cipc", "CIPC certificate and resolution", null, "standard", "identity"),
+            VettingCheck("signatory", "Authorised signatory", "The named person who may bind the company, verified as a person", "dha", "Identity document and board resolution", null, "high", "identity"),
+            VettingCheck("iso-15189", "ISO 15189 accreditation", "SANAS accreditation for the tests actually offered", "sanas", "Schedule of accreditation", 36, "high", "credentials"),
+            VettingCheck("pathologist", "Responsible pathologist", "A named HPCSA-registered pathologist accountable for the reports", "hpcsa", "Personal HPCSA registration", 12, "high", "credentials"),
+            VettingCheck("test-scope", "Test scope", "Every test on the MyThuso menu appears on the accreditation schedule", "internal", "Mapped test list", 12, "high", "assess"),
+            VettingCheck("turnaround", "Turnaround commitment", "Agreed times per test, and what happens when they slip", "internal", "Signed service levels", 12, "standard", "assess"),
+            VettingCheck("operator-agreement", "Operator agreement", "POPIA operator agreement signed, with breach notification terms", "internal", "Signed agreement", 24, "high", "train")
         )
     ),
     VettingRole(
@@ -205,12 +205,12 @@ val vettingRoles = listOf(
             VettingGrant("transport-sample", "Chain of custody starts with a vetted courier. An unvetted driver cannot be handed a sealed sample.")
         ),
         listOf(
-            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
-            VettingCheck("driving-licence", "Driving licence and PDP", "Valid licence and professional driving permit", "rtmc", "Licence card and PDP", 24, "high"),
-            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high"),
-            VettingCheck("cold-chain-training", "Cold chain and biohazard training", "Packaging, temperature and spillage handling", "internal", "Training record", 12, "standard"),
-            VettingCheck("vehicle", "Vehicle and container", "Roadworthy vehicle and a calibrated transport container", "internal", "Roadworthy certificate and calibration record", 12, "standard"),
-            VettingCheck("popia-training", "POPIA and confidentiality", "A courier learns who is ill from an address. That is special personal information", "internal", "Signed undertaking", 12, "standard")
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high", "identity"),
+            VettingCheck("driving-licence", "Driving licence and PDP", "Valid licence and professional driving permit", "rtmc", "Licence card and PDP", 24, "high", "credentials"),
+            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high", "background"),
+            VettingCheck("cold-chain-training", "Cold chain and biohazard training", "Packaging, temperature and spillage handling", "internal", "Training record", 12, "standard", "train"),
+            VettingCheck("vehicle", "Vehicle and container", "Roadworthy vehicle and a calibrated transport container", "internal", "Roadworthy certificate and calibration record", 12, "standard", "assess"),
+            VettingCheck("popia-training", "POPIA and confidentiality", "A courier learns who is ill from an address. That is special personal information", "internal", "Signed undertaking", 12, "standard", "train")
         )
     ),
     VettingRole(
@@ -220,12 +220,12 @@ val vettingRoles = listOf(
             VettingGrant("interpret-consultation", "An interpreter whose checks have not passed is never named on a roster, never joins a call and is never sent to a house. There is no once-off exception, because there is no part of a consultation an interpreter does not hear.")
         ),
         listOf(
-            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
-            VettingCheck("sasl-accreditation", "SASL interpreting accreditation", "Accreditation as a South African Sign Language interpreter, verified with the accrediting body", "sati", "Accreditation certificate and current membership", 12, "high"),
-            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years, like anybody else who comes into a patient's home", "saps", "SAPS clearance certificate", 24, "high"),
-            VettingCheck("health-interpreting", "Interpreting in a health setting", "Clinical vocabulary, the boundaries of the role, and how to say that a meaning did not carry rather than smoothing it over", "internal", "Training record", 24, "standard"),
-            VettingCheck("confidentiality-undertaking", "Confidentiality undertaking", "Signed on the same terms as the clinicians. An interpreter hears the consultation itself, not a summary of it, and is held to it as its own check rather than as a line inside another one", "internal", "Signed undertaking", 12, "high"),
-            VettingCheck("popia-training", "POPIA and special personal information", "What health information is under POPIA, and what may never leave the room it was signed in", "internal", "Training record", 12, "standard")
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high", "identity"),
+            VettingCheck("sasl-accreditation", "SASL interpreting accreditation", "Accreditation as a South African Sign Language interpreter, verified with the accrediting body", "sati", "Accreditation certificate and current membership", 12, "high", "credentials"),
+            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years, like anybody else who comes into a patient's home", "saps", "SAPS clearance certificate", 24, "high", "background"),
+            VettingCheck("health-interpreting", "Interpreting in a health setting", "Clinical vocabulary, the boundaries of the role, and how to say that a meaning did not carry rather than smoothing it over", "internal", "Training record", 24, "standard", "train"),
+            VettingCheck("confidentiality-undertaking", "Confidentiality undertaking", "Signed on the same terms as the clinicians. An interpreter hears the consultation itself, not a summary of it, and is held to it as its own check rather than as a line inside another one", "internal", "Signed undertaking", 12, "high", "train"),
+            VettingCheck("popia-training", "POPIA and special personal information", "What health information is under POPIA, and what may never leave the room it was signed in", "internal", "Training record", 12, "standard", "train")
         )
     ),
     VettingRole(
@@ -236,11 +236,11 @@ val vettingRoles = listOf(
             VettingGrant("view-patient-summary", "An operator sees an address, a service and a window — never a clinical record, and nothing at all while unvetted.")
         ),
         listOf(
-            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
-            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high"),
-            VettingCheck("references", "Employment references", "Contacted directly, never through the applicant", "internal", "Two named referees", null, "standard"),
-            VettingCheck("escalation-training", "Escalation training", "Incident severity, the five-minute acknowledgement and when to call emergency services", "internal", "Training record and drill", 12, "high"),
-            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard")
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high", "identity"),
+            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high", "background"),
+            VettingCheck("references", "Employment references", "Contacted directly, never through the applicant", "internal", "Two named referees", null, "standard", "background"),
+            VettingCheck("escalation-training", "Escalation training", "Incident severity, the five-minute acknowledgement and when to call emergency services", "internal", "Training record and drill", 12, "high", "train"),
+            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard", "train")
         )
     ),
     VettingRole(
@@ -252,11 +252,11 @@ val vettingRoles = listOf(
             VettingGrant("view-billing", "Finance sees a service code and an amount. It never sees why the service was needed.")
         ),
         listOf(
-            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
-            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high"),
-            VettingCheck("references", "Employment references", "Contacted directly, never through the applicant", "internal", "Two named referees", null, "standard"),
-            VettingCheck("access-role", "Access role", "The least privilege that lets this person do their job, approved by name", "internal", "Approved role assignment", 6, "high"),
-            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard")
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high", "identity"),
+            VettingCheck("police-clearance", "Police clearance", "SAPS clearance, renewed every two years", "saps", "SAPS clearance certificate", 24, "high", "background"),
+            VettingCheck("references", "Employment references", "Contacted directly, never through the applicant", "internal", "Two named referees", null, "standard", "background"),
+            VettingCheck("access-role", "Access role", "The least privilege that lets this person do their job, approved by name", "internal", "Approved role assignment", 6, "high", "assess"),
+            VettingCheck("popia-training", "POPIA and confidentiality", "Handling special personal information, and the undertaking that goes with it", "internal", "Signed undertaking", 12, "standard", "train")
         )
     ),
     VettingRole(
@@ -267,11 +267,11 @@ val vettingRoles = listOf(
             VettingGrant("sponsor-care", "An employer may pay for care and still never see who used it. Payment is verified separately from access, and access is never granted.")
         ),
         listOf(
-            VettingCheck("company-registration", "Company registration", "CIPC record, and who may sign for the company", "cipc", "CIPC certificate and resolution", null, "standard"),
-            VettingCheck("signatory", "Authorised signatory", "The named person who may bind the company, verified as a person", "dha", "Identity document and board resolution", null, "high"),
-            VettingCheck("tax-clearance", "Tax clearance", "A current SARS tax compliance status", "internal", "Tax compliance pin", 12, "standard"),
-            VettingCheck("operator-agreement", "Operator agreement", "POPIA operator agreement, stating that the employer receives aggregate figures and never a named result", "internal", "Signed agreement", 24, "high"),
-            VettingCheck("aggregate-only", "Aggregate-only undertaking", "Written acknowledgement that no individual employee result is ever disclosed, in any circumstance", "internal", "Signed undertaking", 24, "high")
+            VettingCheck("company-registration", "Company registration", "CIPC record, and who may sign for the company", "cipc", "CIPC certificate and resolution", null, "standard", "identity"),
+            VettingCheck("signatory", "Authorised signatory", "The named person who may bind the company, verified as a person", "dha", "Identity document and board resolution", null, "high", "identity"),
+            VettingCheck("tax-clearance", "Tax clearance", "A current SARS tax compliance status", "internal", "Tax compliance pin", 12, "standard", "credentials"),
+            VettingCheck("operator-agreement", "Operator agreement", "POPIA operator agreement, stating that the employer receives aggregate figures and never a named result", "internal", "Signed agreement", 24, "high", "train"),
+            VettingCheck("aggregate-only", "Aggregate-only undertaking", "Written acknowledgement that no individual employee result is ever disclosed, in any circumstance", "internal", "Signed undertaking", 24, "high", "train")
         )
     ),
     VettingRole(
@@ -281,10 +281,10 @@ val vettingRoles = listOf(
             VettingGrant("sponsor-care", "Sponsorship is a payment, not a permission. Until identity and the recipient's consent are both recorded, no visit can be paid for.")
         ),
         listOf(
-            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
-            VettingCheck("recipient-consent", "Recipient's consent", "The person being sponsored agrees, in their own account, in their own words", "internal", "Recorded consent with wording and version", 12, "high"),
-            VettingCheck("payment-source", "Payment source", "Verified through a regulated payment provider", "internal", "Provider verification reference", 12, "standard"),
-            VettingCheck("no-access-acknowledgement", "No-access acknowledgement", "Written acknowledgement that paying for care grants no clinical access whatsoever", "internal", "Signed acknowledgement", null, "high")
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high", "identity"),
+            VettingCheck("recipient-consent", "Recipient's consent", "The person being sponsored agrees, in their own account, in their own words", "internal", "Recorded consent with wording and version", 12, "high", "assess"),
+            VettingCheck("payment-source", "Payment source", "Verified through a regulated payment provider", "internal", "Provider verification reference", 12, "standard", "credentials"),
+            VettingCheck("no-access-acknowledgement", "No-access acknowledgement", "Written acknowledgement that paying for care grants no clinical access whatsoever", "internal", "Signed acknowledgement", null, "high", "train")
         )
     ),
     VettingRole(
@@ -296,10 +296,10 @@ val vettingRoles = listOf(
             VettingGrant("view-clinical-record", "Even a verified guardian sees only the scope granted, for the duration granted.")
         ),
         listOf(
-            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high"),
-            VettingCheck("legal-authority", "Legal authority", "Birth certificate, court order or curatorship, checked as a document", "dha", "Unabridged birth certificate or court order", null, "high"),
-            VettingCheck("relationship", "Relationship to the patient", "Confirmed with the patient or, for a minor, with the registered parent", "internal", "Confirmation record", 12, "high"),
-            VettingCheck("scope-acknowledgement", "Scope acknowledgement", "Written acknowledgement of what guardianship does and does not reach", "internal", "Signed acknowledgement", 12, "standard")
+            VettingCheck("identity", "Identity", "Home Affairs verification through an accredited provider", "dha", "Identity document", null, "high", "identity"),
+            VettingCheck("legal-authority", "Legal authority", "Birth certificate, court order or curatorship, checked as a document", "dha", "Unabridged birth certificate or court order", null, "high", "credentials"),
+            VettingCheck("relationship", "Relationship to the patient", "Confirmed with the patient or, for a minor, with the registered parent", "internal", "Confirmation record", 12, "high", "assess"),
+            VettingCheck("scope-acknowledgement", "Scope acknowledgement", "Written acknowledgement of what guardianship does and does not reach", "internal", "Signed acknowledgement", 12, "standard", "train")
         )
     ),
     VettingRole(
@@ -310,11 +310,11 @@ val vettingRoles = listOf(
             VettingGrant("guardian-access", "In-person identity recovery at a Corner is only offered at inspected sites with a trained, vetted attendant.")
         ),
         listOf(
-            VettingCheck("site-inspection", "Site inspection", "A private consulting space, hand washing, and a lockable record store", "internal", "Inspection report", 12, "high"),
-            VettingCheck("waste-disposal", "Medical waste disposal", "A contracted, licensed healthcare risk-waste service", "internal", "Waste contract and collection manifests", 12, "high"),
-            VettingCheck("attendant-vetting", "Attendant vetting", "Every person working the site is vetted in their own right", "internal", "Linked personal vetting records", 12, "high"),
-            VettingCheck("privacy-layout", "Privacy layout", "Nobody waiting can see or hear a consultation", "internal", "Floor plan and inspection sign-off", 12, "standard"),
-            VettingCheck("landlord-consent", "Landlord consent", "Written permission to provide a health service on the premises", "internal", "Signed consent", 24, "standard")
+            VettingCheck("site-inspection", "Site inspection", "A private consulting space, hand washing, and a lockable record store", "internal", "Inspection report", 12, "high", "assess"),
+            VettingCheck("waste-disposal", "Medical waste disposal", "A contracted, licensed healthcare risk-waste service", "internal", "Waste contract and collection manifests", 12, "high", "credentials"),
+            VettingCheck("attendant-vetting", "Attendant vetting", "Every person working the site is vetted in their own right", "internal", "Linked personal vetting records", 12, "high", "identity"),
+            VettingCheck("privacy-layout", "Privacy layout", "Nobody waiting can see or hear a consultation", "internal", "Floor plan and inspection sign-off", 12, "standard", "assess"),
+            VettingCheck("landlord-consent", "Landlord consent", "Written permission to provide a health service on the premises", "internal", "Signed consent", 24, "standard", "credentials")
         )
     )
 )
@@ -359,5 +359,95 @@ val vettingScopes: Map<String, ScopeOfPractice> = mapOf(
         "Services offered",
         "A site offers only what its inspection covers. A room that passed for screening has not passed for vaccination.",
         listOf("Screening", "Identity recovery", "Vaccination support")
+    )
+)
+
+/* The seven onboarding gates, in order, each with the rule a person is refused under and the
+   sentence they are shown. The fail rules are rendered word for word from here. */
+val vettingGates = listOf(
+    VettingGate(
+        "apply", 1, "Apply", true, "enrolment",
+        "No consent to vet, no processing. Nothing about a person is checked until they have agreed to be checked.",
+        "You choose the role and agree to be vetted. You can withdraw that agreement, and vetting stops when you do."
+    ),
+    VettingGate(
+        "identity", 2, "Identity", true, null,
+        "An identity that does not match is a hard stop. Nothing at a later gate is looked at, whatever it says.",
+        "Your identity is matched against Home Affairs through an accredited provider, before anything else about you is looked at."
+    ),
+    VettingGate(
+        "credentials", 3, "Credentials", false, null,
+        "A registration, licence or cover that is not current is a hold until it is renewed. Nothing is offered in the meantime.",
+        "Your registration, licences and cover are checked with the body that issued them, and their renewal dates are watched from then on."
+    ),
+    VettingGate(
+        "background", 4, "Background", true, null,
+        "A listing on the National Register for Sex Offenders or the Child Protection Register is a permanent bar, and so is a violent, sexual or fraud conviction. Any other finding goes to a review panel, never to one reviewer.",
+        "Your police clearance and your references are checked. Referees are contacted directly, never through you."
+    ),
+    VettingGate(
+        "assess", 5, "Assess", false, null,
+        "Below the threshold, the assessment may be taken once more. A second result below it ends the application.",
+        "You are assessed on the work itself: an interview and a test of the skills the role needs."
+    ),
+    VettingGate(
+        "train", 6, "Train", false, null,
+        "Training that is not complete means the person is not activated, however far through it they are.",
+        "You complete MyThuso’s protocol, POPIA and safeguarding training, and sign the conduct agreement."
+    ),
+    VettingGate(
+        "activate", 7, "Activate", false, "gates",
+        "Nobody goes live without a current Trust Score, and nobody is activated before gates 1 to 6 have passed.",
+        "Your first Trust Score is computed and you go onto the roster, on probation for your first visits."
+    )
+)
+
+val vettingGateRules = VettingGateRules(
+    "A check past its renewal date holds the file at its gate until it is renewed. Nothing was decided against the person; the date passed.",
+    "Suspended by a reviewer. Every gate already passed stays passed, and nothing is offered until the suspension is lifted.",
+    "This application was declined with a reason, and it stays declined until a reviewer decides it again.",
+    "Not activated. Every gate from 1 to 6 has to pass first, in its own right.",
+    "Gate {order} of {total} — {name}"
+)
+
+/* Why no check sits at a gate, per role and per gate, in the role's own words. */
+val vettingGateNotes: Map<String, Map<String, VettingGateNote>> = mapOf(
+    "nurse" to mapOf(
+        "assess" to VettingGateNote("not-yet-a-check", "The interview and clinical scenario the master document asks for are not yet a check in this contract. Until one is added, a nurse passes gate 5 on nothing, and this sentence is where that is admitted.")
+    ),
+    "locum" to mapOf<String, VettingGateNote>(),
+    "doctor" to mapOf(
+        "assess" to VettingGateNote("not-yet-a-check", "The telemedicine competency and protocol sign-off the master document asks of a doctor are not yet a check in this contract. Until one is added, a doctor passes gate 5 on nothing, and this sentence is where that is admitted.")
+    ),
+    "pharmacy" to mapOf(
+        "background" to VettingGateNote("not-yet-a-check", "A pharmacy is a company, and the person whose background matters is the responsible pharmacist. That clearance is not yet a check of its own here, so gate 4 is passed on nothing until it is.")
+    ),
+    "laboratory" to mapOf(
+        "background" to VettingGateNote("does-not-apply", "A laboratory is vetted as a company: its registration, its signatory and its accreditation. The people who carry samples to it are couriers, and they pass gate 4 in their own right.")
+    ),
+    "courier" to mapOf<String, VettingGateNote>(),
+    "interpreter" to mapOf(
+        "assess" to VettingGateNote("not-yet-a-check", "The language assessment an interpreter should sit is not yet a check in this contract. The accreditation at gate 3 is the nearest thing to it, and it is not the same thing.")
+    ),
+    "operator" to mapOf(
+        "credentials" to VettingGateNote("does-not-apply", "A Control Tower operator holds no professional registration. The role is employment, and nothing about it is licensed by a council."),
+        "assess" to VettingGateNote("not-yet-a-check", "The structured interview for an operator is not yet a check in this contract. Until one is added, an operator passes gate 5 on nothing, and this sentence is where that is admitted.")
+    ),
+    "admin" to mapOf(
+        "credentials" to VettingGateNote("does-not-apply", "Admin staff hold no professional registration. The role is employment, and nothing about it is licensed by a council.")
+    ),
+    "employer" to mapOf(
+        "background" to VettingGateNote("does-not-apply", "An employer never enters a home and never sees a named result, so there is no history a clearance would be checked against. The signatory is identified at gate 2."),
+        "assess" to VettingGateNote("does-not-apply", "An employer pays for a programme and receives aggregate figures. There is no skill in that for an assessment to test.")
+    ),
+    "sponsor" to mapOf(
+        "background" to VettingGateNote("does-not-apply", "A sponsor pays for somebody else’s visits and is never granted access to a person, a home or a record, so there is nothing a criminal record would be checked against.")
+    ),
+    "guardian" to mapOf(
+        "background" to VettingGateNote("does-not-apply", "Guardianship is a legal fact established at gate 3 by a birth certificate, a court order or a curatorship, and a criminal record does not change who a child’s parent is. Whether a record should narrow what guardian access reaches is a question for the governance board, not a default this contract takes.")
+    ),
+    "corner" to mapOf(
+        "background" to VettingGateNote("does-not-apply", "A site has no history of its own. Every person who works there is vetted in their own right, which is what the attendant vetting check at gate 2 records."),
+        "train" to VettingGateNote("does-not-apply", "A site is not trained. Its attendants are, under the roles they are vetted in.")
     )
 )

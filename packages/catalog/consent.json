@@ -320,6 +320,7 @@
     "boundTo": null,
     "identifiable": true,
     "defaultPurpose": "treatment",
+    "gateway": { "reads": "records", "writes": false, "sealedMayBeIncluded": true, "clinician": false },
     "why": "Master section 21 gives the typical caregiver scope as medicines, appointments and the care plan — enough to help somebody keep to their treatment, and nothing about why they are on it. A caregiver's grant is renewed each quarter because families change faster than records do."
    },
    {
@@ -334,6 +335,7 @@
     "boundTo": null,
     "identifiable": true,
     "defaultPurpose": "emergency",
+    "gateway": { "reads": "records", "writes": false, "sealedMayBeIncluded": true, "clinician": false },
     "why": "Next of kin are told when something is wrong. They need the emergency card, which the patient configures, and not the record behind it. Renewed yearly so that an estranged relative does not stay on a card nobody reviewed."
    },
    {
@@ -360,6 +362,7 @@
     "boundTo": "episode",
     "identifiable": true,
     "defaultPurpose": "treatment",
+    "gateway": { "reads": "records", "writes": true, "sealedMayBeIncluded": true, "clinician": true },
     "why": "The care-relevant record for a patient she is assigned to, bound to the episode of care. Sealed categories are not in it: Master section 21 says a nurse must request them. Fourteen days covers a visit and its follow-up; a longer episode is a new grant, not a longer one."
    },
    {
@@ -394,6 +397,7 @@
     "boundTo": "episode",
     "identifiable": true,
     "defaultPurpose": "treatment",
+    "gateway": { "reads": "records", "writes": true, "sealedMayBeIncluded": true, "clinician": true },
     "why": "The full clinical record for an assigned patient, bound to the episode — every record in the patients and clinical areas that is not sealed, and everything the assigned nurse can see, because a doctor reviewing a nurse's assessment must be able to read what she read. Sealed categories still need a request."
    },
    {
@@ -411,6 +415,7 @@
     "boundTo": "episode",
     "identifiable": true,
     "defaultPurpose": "dispensing",
+    "gateway": { "reads": "records", "writes": true, "sealedMayBeIncluded": false, "clinician": true },
     "why": "Medicines, allergies and the conditions a dispensing decision depends on. A week covers a dispense and its counselling call; a repeat is a new grant."
    },
    {
@@ -427,6 +432,7 @@
     "boundTo": "episode",
     "identifiable": true,
     "defaultPurpose": "dispatch",
+    "gateway": { "reads": "routine", "writes": false, "sealedMayBeIncluded": false, "clinician": false },
     "why": "Tasks, appointments and transport, and no clinical detail. A coordinator gets the right person to the right door and does not need to know why they are going."
    },
    {
@@ -442,6 +448,7 @@
     "boundTo": "trip",
     "identifiable": true,
     "defaultPurpose": "dispatch",
+    "gateway": { "reads": "emergency-summary", "writes": false, "sealedMayBeIncluded": false, "clinician": false },
     "why": "The emergency summary and the mobility note, for the length of one trip. A responder provides transport, not medical care, and the grant ends when the trip does — the day's expiry is only the backstop for a trip that is never closed."
    },
    {
@@ -454,6 +461,7 @@
     "boundTo": null,
     "identifiable": false,
     "defaultPurpose": null,
+    "gateway": { "reads": "aggregate", "writes": false, "sealedMayBeIncluded": false, "clinician": false },
     "why": "A scheme receives counts and outcomes across many members for a programme it funds. It opens no record, so its scope is empty and it has no purpose from the gate's list: none of those purposes is a reason for a scheme to read one person's record. Renewed with the contract year."
    }
   ],

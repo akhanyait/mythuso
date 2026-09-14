@@ -55,10 +55,14 @@ import { authorityVerifiers, integrationSummary, isConfirmation, type AuthorityA
 import { authorityAnswerDueAt, daysUntil, expiryFrom, noticesFor, resolve, type RenewalNotice } from './expiry.ts';
 import type { IdentityCallback, IdentityProvider } from './identityProvider.ts';
 import { catalogueCheck, roleChecks, roleName, type AuthorityAnswerRow, type VettingStore } from './store.ts';
+import { GATE_RULES, gateProgress, type GateProgress } from './gates.ts';
 
 export { openVettingStore, vettingSource, SEALED_COLUMNS, roleChecks, roleGrants, roleName, knownRole } from './store.ts';
 export type { VettingStore, BootstrapCeremonyRecord, AuthorityAnswerRow } from './store.ts';
 export * from './contract.ts';
+/* The seven gates: where a party stands, computed from its checks on every read. */
+export { GATES, GATE_RULES, gateProgress, statusFor } from './gates.ts';
+export type { GateOutcome, GateProgress, GateStanding, GateState } from './gates.ts';
 export { RENEWAL_MILESTONES, AUTHORITY_ANSWER_MONTHS, authorityAnswerDueAt, daysUntil, expiryFrom, noticesFor, resolve, severityFor, dedupeKey } from './expiry.ts';
 export type { RenewalNotice, NoticeSeverity } from './expiry.ts';
 /* The verification layer. Exported from here rather than reached into, the same way everything else
@@ -520,7 +524,7 @@ export class VettingVault {
   * by review with no authority confirmation behind any of it, and the sentence says exactly that
   * rather than letting the green tick do the talking.
   */
- standing(partyId: string, at: number = this.#now()): { party: Party; checks: ResolvedEvidence[]; standing: Standing; assurance: PartyAssurance } | null {
+ standing(partyId: string, at: number = this.#now()): { party: Party; checks: ResolvedEvidence[]; standing: Standing; assurance: PartyAssurance; gates: GateProgress } | null {
   const party = this.#store.findParty(partyId);
   if (!party) return null;
   const evidence = this.#store.evidenceForParty(partyId);
@@ -534,21 +538,41 @@ export class VettingVault {
     secondedAt: null, secondedBy: null, declinedReason: null, bootstrappedAt: null, createdAt: party.createdAt
    }, at);
   });
+  /* One description of the party feeds both answers, so the gate a person is told they are at and
+     the clearance the access gate enforces are arithmetic over the same rows and cannot disagree. */
+  const actor = {
+   actorId: party.id, roleId: party.roleId,
+   records: evidence.map(record => ({
+    checkId: record.checkId, state: record.state,
+    ...(record.expiresOn ? { expiresOn: record.expiresOn } : {}),
+    ...(record.secondedBy ? { secondedBy: record.secondedBy } : {})
+   })),
+   ...(party.suspendedAt ? { suspended: true, ...(party.suspendedReason ? { suspendedReason: party.suspendedReason } : {}) } : {}),
+   ...(party.declinedAt ? { declined: true, ...(party.declinedReason ? { declinedReason: party.declinedReason } : {}) } : {})
+  };
   return {
    party,
    checks,
    assurance: partyAssurance(checks),
-   standing: standingOf({
-    actorId: party.id, roleId: party.roleId,
-    records: evidence.map(record => ({
-     checkId: record.checkId, state: record.state,
-     ...(record.expiresOn ? { expiresOn: record.expiresOn } : {}),
-     ...(record.secondedBy ? { secondedBy: record.secondedBy } : {})
-    })),
-    ...(party.suspendedAt ? { suspended: true } : {}),
-    ...(party.declinedAt ? { declined: true } : {})
-   }, at)
+   standing: standingOf(actor, at),
+   gates: gateProgress(actor, at)
   };
+ }
+
+ /**
+  * Whether a party may be activated, and the sentence they are refused with where not.
+  *
+  * Activation is gate 7, and it is refused until gates 1 to 6 have passed — each in its own right,
+  * resolved now. There is no switch here that activates somebody, and deliberately so: activation is
+  * what the checks add up to, and a method that set it would be a second answer to the same question
+  * that could be written down once and then disagree with the checks for ever. A declined check at a
+  * hard-stop gate refuses with that gate's fail rule, however many later gates are green.
+  */
+ activation(partyId: string, at: number = this.#now()): Answer<{ gates: GateProgress }> {
+  const held = this.standing(partyId, at);
+  if (!held) return { ok: false, reason: GATE_RULES.notActivated };
+  if (held.gates.activated) return { ok: true, gates: held.gates };
+  return { ok: false, reason: held.gates.sentence ?? GATE_RULES.notActivated };
  }
 
  /**

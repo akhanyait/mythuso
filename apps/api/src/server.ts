@@ -537,7 +537,7 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
       suspendedAt: result.party.suspendedAt, suspendedReason: result.party.suspendedReason,
       declinedAt: result.party.declinedAt, declinedReason: result.party.declinedReason
     },
-    standing: result.standing, assurance: result.assurance, checks: result.checks.map(evidenceOut)
+    standing: result.standing, assurance: result.assurance, gates: result.gates, checks: result.checks.map(evidenceOut)
   });
 
   /* Your own standing. The one vetting route that demands nothing beyond being on the register: a

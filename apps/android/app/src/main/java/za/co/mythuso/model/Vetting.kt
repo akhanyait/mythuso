@@ -34,8 +34,18 @@ data class VettingAuthority(
 data class VettingGrant(val capability: String, val refusal: String)
 data class VettingCheck(
     val id: String, val name: String, val detail: String, val authority: String,
-    val evidence: String, val renewMonths: Int?, val risk: String
+    val evidence: String, val renewMonths: Int?, val risk: String,
+    /* Which of the seven onboarding gates this check sits at. */
+    val gate: String
 )
+/* One of the seven onboarding gates, generated into VettingData.kt. `evidencedBy` is "enrolment" for
+   Apply and "gates" for Activate: the two gates no check carries. */
+data class VettingGate(
+    val id: String, val order: Int, val name: String, val hardStop: Boolean, val evidencedBy: String?,
+    val failRule: String, val statement: String
+)
+data class VettingGateRules(val lapse: String, val suspended: String, val declined: String, val notActivated: String, val status: String)
+data class VettingGateNote(val kind: String, val sentence: String)
 data class VettingRole(
     val id: String, val name: String, val party: String, val workspace: String,
     val summary: String, val grants: List<VettingGrant>, val checks: List<VettingCheck>
@@ -178,6 +188,82 @@ fun summarise(subject: VettingSubject): VettingSummary {
         passing.size, checks.size, if (checks.isEmpty()) 0f else passing.size.toFloat() / checks.size,
         status == SubjectStatus.CLEARED || status == SubjectStatus.EXPIRING
     )
+}
+
+/* ---- The seven gates -------------------------------------------------------------------------
+   Apply, identity, credentials, background, assess, train, activate. Every check in the contract
+   names its gate, and where a party stands is worked out from the checks every time it is asked and
+   never written down: a stored "gate 3" stops being true the night a clearance lapses. The same
+   arithmetic is in apps/api/src/vetting/gates.ts and lib/vetting.ts, and every sentence comes out of
+   VettingData — the fail rules are rendered word for word, never paraphrased.
+
+   A declined check at a hard-stop gate stops the party there and outranks anything still pending
+   earlier. A lapsed check holds the party at its gate with the lapse sentence rather than the gate's
+   fail rule, because a clearance that ran out is not a listing on a register. */
+enum class GateState { PASSED, NOT_CHECKED, PENDING, HELD, FAILED, NOT_REACHED }
+enum class GateOutcome { ACTIVATED, IN_PROGRESS, HELD, FAILED, STOPPED, SUSPENDED, DECLINED }
+data class GateStanding(val gate: VettingGate, val state: GateState, val outstanding: List<VettingCheck>, val note: VettingGateNote?)
+data class GateProgress(
+    val gates: List<GateStanding>, val at: VettingGate, val status: String,
+    val outcome: GateOutcome, val sentence: String?
+) {
+    val activated: Boolean get() = outcome == GateOutcome.ACTIVATED
+}
+fun gateStatus(gate: VettingGate): String = vettingGateRules.status
+    .replace("{order}", gate.order.toString())
+    .replace("{total}", vettingGates.size.toString())
+    .replace("{name}", gate.name)
+fun gateProgress(subject: VettingSubject): GateProgress {
+    val checks = vettingRoleById(subject.roleId)?.checks.orEmpty()
+    val notes = vettingGateNotes[subject.roleId].orEmpty()
+    var standings = vettingGates.sortedBy { it.order }.map { gate ->
+        when (gate.evidencedBy) {
+            "enrolment" -> GateStanding(gate, GateState.PASSED, emptyList(), null)
+            "gates" -> GateStanding(gate, GateState.PENDING, emptyList(), null)
+            else -> {
+                val here = checks.filter { it.gate == gate.id }
+                if (here.isEmpty()) GateStanding(gate, GateState.NOT_CHECKED, emptyList(), notes[gate.id])
+                else {
+                    val states = here.map { stateOf(subject, it.id) }
+                    val outstanding = here.filter { check ->
+                        val record = recordFor(subject, check.id)
+                        !(resolveState(record) in passingStates && (check.risk != "high" || !record.secondedBy.isNullOrBlank()))
+                    }
+                    val state = when {
+                        CheckState.DECLINED in states -> GateState.FAILED
+                        CheckState.LAPSED in states -> GateState.HELD
+                        outstanding.isNotEmpty() -> GateState.PENDING
+                        else -> GateState.PASSED
+                    }
+                    GateStanding(gate, state, outstanding, null)
+                }
+            }
+        }
+    }
+    fun finish(at: VettingGate, outcome: GateOutcome, sentence: String?): GateProgress {
+        val suspended = subject.suspended && outcome == GateOutcome.IN_PROGRESS
+        return GateProgress(
+            standings, at, gateStatus(at),
+            if (suspended) GateOutcome.SUSPENDED else outcome,
+            if (suspended) subject.suspendedReason ?: vettingGateRules.suspended else sentence
+        )
+    }
+    val stop = standings.firstOrNull { it.gate.hardStop && it.state == GateState.FAILED }
+    if (stop != null) {
+        standings = standings.map { if (it.gate.order > stop.gate.order) it.copy(state = GateState.NOT_REACHED) else it }
+        return finish(stop.gate, GateOutcome.STOPPED, stop.gate.failRule)
+    }
+    val first = standings.firstOrNull { it.gate.evidencedBy != "gates" && it.state != GateState.PASSED && it.state != GateState.NOT_CHECKED }
+    if (first != null) return when (first.state) {
+        GateState.FAILED -> finish(first.gate, GateOutcome.FAILED, first.gate.failRule)
+        GateState.HELD -> finish(first.gate, GateOutcome.HELD, vettingGateRules.lapse)
+        else -> finish(first.gate, GateOutcome.IN_PROGRESS, null)
+    }
+    val activate = standings.first { it.gate.evidencedBy == "gates" }.gate
+    if (subject.declined) return finish(activate, GateOutcome.DECLINED, subject.declinedReason ?: vettingGateRules.declined)
+    if (subject.suspended) return finish(activate, GateOutcome.SUSPENDED, subject.suspendedReason ?: vettingGateRules.suspended)
+    standings = standings.map { if (it.gate.id == activate.id) it.copy(state = GateState.PASSED) else it }
+    return finish(activate, GateOutcome.ACTIVATED, null)
 }
 
 /* ---- The blocking matrix ---------------------------------------------------------------------

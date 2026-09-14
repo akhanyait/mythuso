@@ -1,0 +1,12 @@
+{
+  "name": "@mythuso/passport",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Health Passport P0: a separate store, its own keys, a consent gateway in front of every read. Development only, synthetic data only.",
+  "scripts": {
+    "dev": "node --watch src/server.ts",
+    "check": "tsc -b",
+    "test": "node --test \"test/**/*.test.ts\""
+  }
+}
