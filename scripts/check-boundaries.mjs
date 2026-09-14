@@ -1220,6 +1220,80 @@ for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants
  }
 }
 
+/* ==== HEALTH PASSPORT P0 ===========================================================================
+   ADDED BY THE TRUST, RECORD & IDENTITY LEAD.
+
+   The Passport is "its own service, database and encryption keys. No other engine holds a copy"
+   (master document §16), and it holds the one thing in this repository that cannot be re-issued
+   after a breach. So it exists in development only, on synthetic data, and what keeps it there is
+   checked rather than hoped:
+
+     1. Nothing under deploy/ names it, its workspace or its port. docs/PRIVACY-AND-SECURITY.md
+        records that there is no DPIA, no Information Officer and no residency decision; the day
+        those exist, this is the check to change, deliberately, with the reason.
+     2. apps/api and apps/passport never import each other. Two services that share a module share a
+        compromise.
+     3. No Passport table has a column for a name, a phone number, an address or an identity number,
+        and no file in it holds a realistic South African identity number.
+     4. The service still refuses to start without its development flag, still binds to the loopback,
+        and its audit log is still append-only.
+     5. The grant-roles fixture is deleted the day packages/catalog/consent.json carries grants. */
+{
+ const passportDir = 'apps/passport';
+ if(!existsSync(`${passportDir}/src`)) throw new Error('apps/passport is gone. Passport P0 is a Phase 0 foundation; removing it is a decision to write down, not a directory to delete.');
+ const gatewayContract = JSON.parse(read('packages/catalog/passport-gateway.json'));
+ const passportPort = String(gatewayContract.service.port);
+ const deployNames = new RegExp(`apps/passport|@mythuso/passport|passport-p0|MYTHUSO_PASSPORT|\\b${passportPort}\\b`, 'i');
+ for(const file of files('deploy')) {
+  const found = read(file).match(deployNames);
+  if(found) throw new Error(`${file} names the Health Passport service ("${found[0]}"). Passport P0 runs in development only: there is no signed DPIA, no registered Information Officer and no data residency decision (docs/PRIVACY-AND-SECURITY.md), and the master document says the Passport goes live only after its DPIA is signed. No nginx location, systemd unit or deploy step may reach it until then.`);
+ }
+ const passportSources = files(passportDir).filter(f=>/\.(ts|json)$/.test(f) && !f.includes('node_modules'));
+ for(const file of passportSources) {
+  const found = read(file).match(/from\s+['"][^'"]*(apps\/api|@mythuso\/api|\.\.\/api\/|protection\/|vetting\/|simulation\/)[^'"]*['"]/);
+  if(found) throw new Error(`${file} imports from the identity service (${found[0]}). The Passport shares no module with apps/api: a compromise of the Core must leave "a gateway they cannot authenticate to and a store they cannot decrypt" (§16).`);
+ }
+ for(const file of files('apps/api')) {
+  if(!/\.(ts|json)$/.test(file) || file.includes('node_modules')) continue;
+  const found = read(file).match(/from\s+['"][^'"]*(apps\/passport|@mythuso\/passport|passport\/src)[^'"]*['"]/);
+  if(found) throw new Error(`${file} imports the Health Passport service (${found[0]}). The identity service reaches the Passport through its gateway or not at all, and it holds no clinical table of its own.`);
+ }
+ const identityColumn = /(^|_)(name|names|surname|first_?name|phone|mobile|msisdn|cell|email|address|birth|dob|id_?number|identity_?number|sa_?id|national_?id|passport_?number)(_|$)/i;
+ let passportTables = 0;
+ for(const file of passportSources.filter(f=>f.endsWith('.ts'))) {
+  for(const table of tablesIn(read(file))) {
+   passportTables++;
+   for(const identifier of [table.name, ...table.columns]) if(identityColumn.test(identifier)) throw new Error(`${file} gives the Passport a place to hold who somebody is: ${table.name}.${identifier}. The Passport knows a person as an opaque token it minted; names, numbers and addresses live in the identity service and never here.`);
+  }
+ }
+ if(passportTables < 5) throw new Error(`scripts/check-boundaries.mjs read ${passportTables} tables out of apps/passport, so the check on what they may hold is reading nothing.`);
+ const realisticSaId = digits => {
+  const month = Number(digits.slice(2,4)), day = Number(digits.slice(4,6));
+  if(month < 1 || month > 12 || day < 1 || day > 31 || !/[01]/.test(digits[10])) return false;
+  let sum = 0;
+  for(let i = 0; i < 13; i++) { let d = Number(digits[12-i]); if(i % 2 === 1) { d *= 2; if(d > 9) d -= 9; } sum += d; }
+  return sum % 10 === 0;
+ };
+ for(const file of passportSources) {
+  for(const [digits] of read(file).matchAll(/(?<!\d)\d{13}(?!\d)/g)) if(realisticSaId(digits)) throw new Error(`${file} holds ${digits}, which reads as a valid South African identity number. The Passport's fixtures are synthetic tokens and obviously invalid values, never a number that could be somebody's.`);
+ }
+ const passportConfig = read(`${passportDir}/src/config.ts`);
+ const passportServer = read(`${passportDir}/src/server.ts`);
+ if(!/developmentFlag/.test(passportConfig) || !/PassportRefusedToStart\(refusalOf\('not-development'\)\)/.test(passportConfig)) throw new Error('apps/passport/src/config.ts no longer refuses to start without the development flag. Until the DPIA is signed the service does not run anywhere it has not been told, in so many words, that the data is synthetic.');
+ if(!/sharesIdentityKey\(/.test(passportConfig) || !/refusalOf\('shared-key'\)/.test(passportConfig)) throw new Error('apps/passport/src/config.ts no longer refuses a master key shared with, or derived from, the identity service\'s keys.');
+ if(passportServer.indexOf('loadPassportConfig()') < 0 || passportServer.indexOf('loadPassportConfig()') > passportServer.indexOf('createServer(passport.handle)')) throw new Error('apps/passport/src/server.ts no longer loads, and so refuses, its configuration before it creates a server.');
+ if(!/listen\(config\.port, config\.host/.test(passportServer) || /0\.0\.0\.0/.test(passportServer) || !/LOOPBACK\.has\(req\.socket\.remoteAddress/.test(passportServer)) throw new Error('apps/passport/src/server.ts no longer binds to the configured loopback host and refuses requests that did not arrive on it.');
+ if(!/DPIA/.test(passportServer.slice(0, 2500))) throw new Error('apps/passport/src/server.ts no longer says at the top why it runs in development only. The reason is the DPIA, and it belongs where the next person to open the file reads first.');
+ for(const file of passportSources) if(/UPDATE\s+audit_events|DELETE\s+FROM\s+audit_events/i.test(read(file)) && !file.includes('/test/')) throw new Error(`${file} rewrites the Passport's audit log. It is append-only; the chain shows tampering, and the service itself must never be the thing it shows.`);
+ const consentContract = JSON.parse(read('packages/catalog/consent.json'));
+ const fixture = `${passportDir}/src/grant-roles.fixture.ts`;
+ if(consentContract.grants && existsSync(fixture)) throw new Error(`packages/catalog/consent.json now carries grants, and ${fixture} still exists. The fixture was always a stand-in for that contract: read the roles from consent.json in apps/passport/src/contract.ts and delete the fixture.`);
+ if(!consentContract.grants && !existsSync(fixture)) throw new Error(`${fixture} is gone and packages/catalog/consent.json has no grants, so the Passport's gateway has no roles to decide anything against.`);
+ const rootPackage = JSON.parse(read('package.json'));
+ if(!rootPackage.workspaces.includes(passportDir) || !/-w @mythuso\/passport/.test(rootPackage.scripts.check) || !/-w @mythuso\/passport/.test(rootPackage.scripts.test)) throw new Error('The root package.json no longer typechecks and tests apps/passport. A service nobody tests is a service whose refusals nobody has seen fire.');
+ if(!/Health Passport P0/.test(read('docs/PRIVACY-AND-SECURITY.md'))) throw new Error('docs/PRIVACY-AND-SECURITY.md no longer records the Health Passport P0 service and what it is absent of in production.');
+}
+
 /* What is left to check about the native vetting models is what is still written by hand. The
    tables themselves are generated above, so a refusal sentence cannot say one thing on iOS and
    another on Android — there is only one sentence and one writer of it. The lifecycle is a
