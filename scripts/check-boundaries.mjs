@@ -1144,6 +1144,82 @@ for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants
  }
 }
 
+/* ==== VERIFY: TRUST SCORE v1 =======================================================================
+   ADDED BY THE TRUST, RECORD & IDENTITY LEAD.
+
+   "No Trust Score, no dispatch", and a safety instrument rather than a leaderboard. Four things
+   would quietly turn it into something else, and each is held here:
+
+     1. A weight becomes a number without a recorded decision. The weights are a governance decision
+        nobody has taken; a number typed into packages/catalog/trust.json before one is a formula with
+        no author, and while any weight is null the only reachable tier is Verified.
+     2. A refusal is typed in the service rather than looked up, so the contract and the dispatch
+        board say different things.
+     3. A patient receives a number. The patient view is the badge and nothing it was worked out
+        from, and no screen on any platform reads a score's value.
+     4. The dispatch path stops asking. The roster simulator ranks through the trust module or the
+        rule is a paragraph. */
+{
+ const trust = JSON.parse(read('packages/catalog/trust.json'));
+ const gateIdsForTrust = new Set((vetting.gates ?? []).map(g=>g.id));
+ for(const hard of trust.hardGates) {
+  if(!hard.failing?.trim()) throw new Error(`Trust hard gate "${hard.id}" has no sentence for failing.`);
+  for(const gate of hard.gates) if(!gateIdsForTrust.has(gate)) throw new Error(`Trust hard gate "${hard.id}" reads gate "${gate}", which packages/catalog/vetting.json does not have.`);
+ }
+ let undecided = 0;
+ for(const input of trust.softInputs) {
+  if(!input.setBy?.trim()) throw new Error(`The Trust Score input "${input.id}" does not say who sets its weight. A weight with no owner is a weight somebody will set in a pull request.`);
+  const decided = input.decision && ['decidedBy','decidedOn','minute'].every(field => typeof input.decision[field]==='string' && input.decision[field].trim());
+  if(input.weight !== null && !decided) throw new Error(`The Trust Score input "${input.id}" has weight ${input.weight} and no recorded decision by ${input.setBy}. The weights are a governance decision nobody has made: record who decided, on what day and in which minute, or put it back to null.`);
+  if(input.weight === null) undecided++;
+ }
+ if(undecided) {
+  const reachable = trust.tiers.filter(tier => tier.needs !== 'weights');
+  if(reachable.length !== 1 || reachable[0].id !== 'verified') throw new Error(`While ${undecided} Trust Score weight(s) are undecided the only reachable tier is Verified, and packages/catalog/trust.json makes ${reachable.map(t=>t.name).join(', ') || 'none'} reachable.`);
+  for(const tier of trust.tiers.filter(t => t.needs === 'weights')) if(!(typeof tier.unavailable === 'string' && tier.unavailable.split(' ').length >= 8)) throw new Error(`The ${tier.name} tier needs weights nobody has decided and does not say so in a sentence. A tier nobody can hold has to tell the person looking at it why.`);
+ }
+ for(const refusal of trust.refusals) if(!refusal.sentence?.trim() || !refusal.why?.trim()) throw new Error(`The Trust Score refusal "${refusal.id}" is missing its sentence or its reasoning.`);
+ const trustSentences = [...trust.refusals.map(r=>r.sentence), ...Object.values(trust.reasons), ...trust.hardGates.map(h=>h.failing), ...trust.tiers.map(t=>t.unavailable).filter(Boolean)];
+ const trustSources = files('apps/api/src/trust').filter(f=>f.endsWith('.ts'));
+ if(!trustSources.length) throw new Error('apps/api/src/trust is gone, so nothing computes a Trust Score and nothing refuses a dispatch without one.');
+ const refusalIds = new Set(trust.refusals.map(r=>r.id));
+ for(const file of [...trustSources, 'apps/api/src/simulation/roster.ts']) {
+  const source = read(file);
+  const typed = trustSentences.find(sentence => source.includes(sentence));
+  if(typed) throw new Error(`${file} types a Trust Score sentence out of packages/catalog/trust.json: "${typed.slice(0,80)}". Look it up with refusal() or reason() — a typed copy goes on refusing in the old words after the contract has changed.`);
+  for(const [, id] of source.matchAll(/refusal\('([a-z-]+)'/g)) if(!refusalIds.has(id)) throw new Error(`${file} refuses with "${id}", which packages/catalog/trust.json does not hold.`);
+ }
+ /* The patient view. Held on the contract, on the function that builds it, on the ranked entry a
+    dispatch desk receives, on the feed a roster supplier would send, and on every screen. */
+ for(const field of ['value','reasons','hardGates']) {
+  if(trust.patientView.fields.includes(field)) throw new Error(`packages/catalog/trust.json lets a patient receive the score's ${field}. A patient is told the badge — Verified, Trusted, Senior — and never a number or what it was worked out from.`);
+ }
+ if(!trust.patientView.never.includes('value')) throw new Error('packages/catalog/trust.json no longer says a patient never receives the score\'s value.');
+ if(!/contract\.patientView\.fields/.test(read('apps/api/src/trust/score.ts'))) throw new Error('forPatient() in apps/api/src/trust/score.ts no longer builds the patient view from the contract\'s own list of fields.');
+ const rankedType = read('apps/api/src/trust/dispatch.ts').match(/export type Ranked = \{([^}]*)\}/)?.[1];
+ if(rankedType === undefined) throw new Error('apps/api/src/trust/dispatch.ts no longer declares Ranked as one type this check can read.');
+ if(/\b(value|reasons|score)\s*:/.test(rankedType)) throw new Error(`A ranked dispatch entry carries the score itself (${rankedType.trim()}). The desk is told who to send, with the badge; the number and its reasons stay with the vetting team.`);
+ const feedsForTrust = JSON.parse(read('packages/catalog/feeds.json'));
+ for(const feed of feedsForTrust.feeds) for(const accepted of feed.accepts ?? []) if(/score|trust/i.test(accepted.field)) throw new Error(`The ${feed.id} feed accepts "${accepted.field}". A Trust Score is computed by Verify from vetting evidence, never received from a supplier.`);
+ for(const file of [...files('apps/web/src').filter(f=>/\.tsx?$/.test(f)), ...native]) {
+  const source = read(file);
+  if(/trust\w*\??\.value\b|score\??\.value\b/i.test(source)) throw new Error(`${file} reads a Trust Score's value. No screen shows a raw score — patients see a badge tier, and only the vetting team a number, on a surface built for them.`);
+ }
+ const rosterSource = read('apps/api/src/simulation/roster.ts');
+ if(!/rankForDispatch\(/.test(rosterSource) || !/trustScore\(/.test(rosterSource)) throw new Error('apps/api/src/simulation/roster.ts no longer ranks dispatch through the Trust Score. "No Trust Score, no dispatch" is enforced by the ranking or it is not enforced.');
+ /* The events this branch declares, in the shape the three Wave 1 branches agreed. The architect owns
+    person.*, credential.*, partner.* and passport.*, and nothing here may declare one of them. */
+ const engines = new Set(['core','access','pulse','care','clinical','safety','movement','trust','record','medicines','devices','money']);
+ const fieldTypes = new Set(feedsForTrust.fieldTypes.map(t=>t.id));
+ for(const event of trust.events ?? []) {
+  if(/^(person|credential|partner|passport)\./.test(event.type)) throw new Error(`packages/catalog/trust.json declares ${event.type}, which the contracts branch owns. Subscribe to it; do not redeclare it.`);
+  if(event.version !== 1 || !['trust','record'].includes(event.owner) || !event.summary?.trim()) throw new Error(`Event ${event.type} is not in the agreed shape: version 1, owner trust or record, and a summary.`);
+  for(const field of event.payload) if(!fieldTypes.has(field.type) || typeof field.required !== 'boolean' || !field.why?.trim()) throw new Error(`Event ${event.type} carries ${field.field} as "${field.type}", or without saying why. Field types are packages/catalog/feeds.json's.`);
+  if(!event.neverCarries?.length || event.neverCarries.some(n=>!n.why?.trim())) throw new Error(`Event ${event.type} does not say what it never carries, and why. What an event refuses to carry is the part of it worth writing down.`);
+  for(const subscriber of event.subscribers) if(!engines.has(subscriber)) throw new Error(`Event ${event.type} is subscribed to by "${subscriber}", which is not an engine.`);
+ }
+}
+
 /* What is left to check about the native vetting models is what is still written by hand. The
    tables themselves are generated above, so a refusal sentence cannot say one thing on iOS and
    another on Android — there is only one sentence and one writer of it. The lifecycle is a

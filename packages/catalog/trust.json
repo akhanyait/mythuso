@@ -1,0 +1,193 @@
+{
+ "_note": "ThusoIQ Verify's Trust Score, version 1: what it is computed from, who may see it and in what form, and — the half nobody has decided — how much each input weighs. The master document (§11) names the inputs and the rules and leaves the weights to governance. This file does not guess them. Every soft input carries weight null and names who sets it; while any weight is null the score is the hard gates alone, the only badge anybody can hold is Verified, and Trusted and Senior say in words why nobody holds them. apps/api/src/trust reads this file and the roster simulator ranks by it. There is no emitter beside it on purpose: no native screen shows a Trust Score yet, and generating a safety instrument's shape into two binaries with nothing to render it would be a second copy with no reader.",
+
+ "_fiction": "Nothing here scores a real person. The people it is applied to are packages/catalog/roster.json's nine, none of whom exists.",
+
+ "principle": {
+  "sentence": "No Trust Score, no dispatch.",
+  "why": "The master document's own words, and the whole of the design. A dispatch decision for somebody without a current score is refused by the arithmetic that ranks candidates, not by a controller remembering to look."
+ },
+
+ "scale": {
+  "min": 0,
+  "max": 100,
+  "why": "An explainable score from 0 to 100 per person and partner (§11). Only 0 is reachable today, for somebody failing a hard gate. Every other number needs weights, and a score of 64 computed from weights nobody chose would be a number with no author."
+ },
+
+ "audience": {
+  "numberSeenBy": ["vetting-team"],
+  "badgeSeenBy": ["patient", "family", "roster"],
+  "why": "A safety instrument, not a leaderboard. A patient is told the nurse at the door is Verified and is never told a number, because a number invites a comparison between two nurses that it cannot bear — and a nurse who can see a colleague's score has been handed a ranking nobody designed."
+ },
+
+ "hardGates": [
+  {
+   "id": "credential-validity",
+   "name": "Credential validity",
+   "gates": ["identity", "credentials"],
+   "failing": "An identity, registration, licence or cover is not in order, so the Trust Score is 0 and this person is offline."
+  },
+  {
+   "id": "background-status",
+   "name": "Background status",
+   "gates": ["background"],
+   "failing": "The background check is not clear, so the Trust Score is 0 and this person is offline."
+  }
+ ],
+
+ "softInputs": [
+  { "id": "tenure", "name": "Tenure", "measures": "How long the person has worked on the platform without a break in vetting.", "weight": null, "setBy": "Clinical Governance Lead", "decision": null },
+  { "id": "completed-jobs", "name": "Completed jobs", "measures": "Visits, trips or orders finished, not accepted.", "weight": null, "setBy": "Clinical Governance Lead", "decision": null },
+  { "id": "rating-trend", "name": "Rating trend", "measures": "The direction of patient and family ratings over time, never a single rating.", "weight": null, "setBy": "Clinical Governance Lead", "decision": null },
+  { "id": "complaint-rate", "name": "Complaint rate", "measures": "Upheld complaints per completed job, after review.", "weight": null, "setBy": "Clinical Governance Lead", "decision": null },
+  { "id": "incident-severity", "name": "Incident severity", "measures": "The severity of reviewed incidents the person was involved in.", "weight": null, "setBy": "Clinical Governance Lead", "decision": null },
+  { "id": "training-currency", "name": "Training currency", "measures": "Whether mandatory training is inside its renewal window.", "weight": null, "setBy": "Clinical Governance Lead", "decision": null },
+  { "id": "punctuality", "name": "Punctuality", "measures": "Arrival against the window the patient was given.", "weight": null, "setBy": "Clinical Governance Lead", "decision": null },
+  { "id": "protocol-adherence", "name": "Protocol adherence", "measures": "Deviations from protocol recorded by the consultation engine and reviewed.", "weight": null, "setBy": "Clinical Governance Lead", "decision": null }
+ ],
+
+ "weightsRule": {
+  "sentence": "The weights are a governance decision nobody has made yet. Until every one is decided, the score is the hard gates alone.",
+  "why": "A weight becomes a number only beside a recorded decision — who took it, on what day, in which minute — and scripts/check-boundaries.mjs fails the build otherwise. The service refuses to compute a weighted score at all until the weighted computation itself has been written and reviewed, because a formula nobody reviewed would be the same guess as a weight nobody chose."
+ },
+
+ "tiers": [
+  {
+   "id": "verified",
+   "name": "Verified",
+   "order": 1,
+   "needs": "hard-gates",
+   "sentence": "Identity, credentials and background are all in order today.",
+   "unavailable": null
+  },
+  {
+   "id": "trusted",
+   "name": "Trusted",
+   "order": 2,
+   "needs": "weights",
+   "threshold": null,
+   "setBy": "Clinical Governance Lead",
+   "unavailable": "Nobody is Trusted yet. Trusted needs a score built from tenure, ratings, complaints and the rest, and the weights that build it have not been decided."
+  },
+  {
+   "id": "senior",
+   "name": "Senior",
+   "order": 3,
+   "needs": "weights",
+   "threshold": null,
+   "setBy": "Clinical Governance Lead",
+   "unavailable": "Nobody is Senior yet. Senior needs a higher score than Trusted, and neither the weights nor the threshold have been decided."
+  }
+ ],
+
+ "reasons": {
+  "hardGatesPass": "Identity, credentials and background all pass today.",
+  "weightsUndecided": "The score is the hard gates alone, because the weights for everything else have not been decided.",
+  "notActivated": "There is no Trust Score yet. The first one is computed at gate 7, and this person has not reached it.",
+  "suspended": "Suspended by a reviewer, so the Trust Score is 0 and this person is offline.",
+  "declined": "The application was declined, so the Trust Score is 0 and this person is offline."
+ },
+
+ "currency": {
+  "sentence": "A Trust Score is current on the day it was computed, in the timezone the scheduling contract names.",
+  "why": "A score is resolved from checks that are themselves resolved against the day, so a score from yesterday may be carrying a clearance that lapsed at midnight. The day is the scheduling contract's, not the server's, for the same reason the roster's shift is."
+ },
+
+ "refusals": [
+  {
+   "id": "no-score",
+   "sentence": "Not offered for dispatch: there is no current Trust Score for this person. No Trust Score, no dispatch.",
+   "why": "The principle itself. A person nobody has scored is not ranked last; they are not ranked at all, and the board says so beside the people it does offer."
+  },
+  {
+   "id": "stale-score",
+   "sentence": "Not offered for dispatch: this person's Trust Score was computed on an earlier day and has not been worked out again today.",
+   "why": "A different situation from never having been scored, and a controller can do something about it: recompute. Collapsing the two would send somebody looking for an application that does not exist."
+  },
+  {
+   "id": "offline",
+   "sentence": "Not offered for dispatch: a hard gate is failing, so the Trust Score is 0 and this person is offline.",
+   "why": "Any hard gate failing is score 0 and offline (§11). The reason itself lives in the score's reasons, for the vetting team; the dispatch board is told only that a hard gate failed."
+  },
+  {
+   "id": "weighted-not-built",
+   "sentence": "A weighted Trust Score has not been built. The weights have been recorded, and the computation that uses them has to be written and reviewed before any number above 0 is shown.",
+   "why": "The day a governance decision fills in the weights, the service must not start producing numbers from a formula nobody reviewed. It refuses loudly instead."
+  }
+ ],
+
+ "patientView": {
+  "fields": ["tier"],
+  "never": ["value", "reasons", "inputs", "hardGates"],
+  "why": "What a patient or a family member may receive about the person coming to the door: the badge, and nothing it was worked out from. The reasons name credentials and background, which is vetting data — special personal information about the nurse — and a patient has no business with it."
+ },
+
+ "events": [
+  {
+   "type": "trust.weight.decided",
+   "version": 1,
+   "owner": "trust",
+   "summary": "The Clinical Governance Lead recorded a weight for one soft input of the Trust Score.",
+   "payload": [
+    { "field": "input", "type": "string", "required": true, "why": "Which soft input, by its id in this file." },
+    { "field": "weight", "type": "number", "required": true, "why": "The weight decided. It lands in this file only beside the decision that set it." },
+    { "field": "decidedBy", "type": "string", "required": true, "why": "The role that decided, so a weight is never authorless." },
+    { "field": "decidedOn", "type": "iso-date", "required": true, "why": "A decision is a day, not a moment." },
+    { "field": "minute", "type": "string", "required": true, "why": "The governance minute it is recorded in, so the reasoning can be read rather than assumed." }
+   ],
+   "neverCarries": [
+    { "field": "partyId", "why": "A weight is a policy about everybody. An event tying it to one person is a weight tuned to an outcome." },
+    { "field": "value", "why": "Nobody's score travels with a policy change." }
+   ],
+   "subscribers": ["trust", "core"]
+  },
+  {
+   "type": "trust.dispatch.withheld",
+   "version": 1,
+   "owner": "trust",
+   "summary": "A dispatch ranking left somebody out because they had no current Trust Score, or a hard gate was failing.",
+   "payload": [
+    { "field": "partyId", "type": "string", "required": true, "why": "Who was left out, by the register's id." },
+    { "field": "refusal", "type": "string", "required": true, "why": "The refusal id from this file, so every reader says the same sentence." },
+    { "field": "at", "type": "instant", "required": true, "why": "When the ranking ran." }
+   ],
+   "neverCarries": [
+    { "field": "value", "why": "The number stays with the vetting team. A roster or a dispatch desk is told only that a person is out, and why in one sentence." },
+    { "field": "reasons", "why": "The reasons name credentials and background, which are vetting data and never leave Verify." },
+    { "field": "patientId", "why": "Whose visit it was is the dispatch engine's fact, not Verify's." }
+   ],
+   "subscribers": ["movement", "care", "core"]
+  },
+  {
+   "type": "record.breakglass.review_due",
+   "version": 1,
+   "owner": "record",
+   "summary": "A break-glass opening of an emergency summary is waiting for the governance review the master document requires within 24 hours.",
+   "payload": [
+    { "field": "auditSeq", "type": "integer", "required": true, "why": "The entry in the Passport's own hash-chained audit log, which is where the justification lives." },
+    { "field": "requesterRole", "type": "string", "required": true, "why": "A registered clinician or the dispatch desk: the two roles that may break the glass." },
+    { "field": "dueBy", "type": "instant", "required": true, "why": "The end of the review window." }
+   ],
+   "neverCarries": [
+    { "field": "summary", "why": "The review is of the access, not a second copy of what was opened." },
+    { "field": "justification", "why": "Read inside the Passport, where it is audited. An event bus is not where a clinician's reasons for opening a record go." },
+    { "field": "subject", "why": "The reviewer opens the audit entry, which carries the opaque token. The event does not need it and would carry it further than the entry does." }
+   ],
+   "subscribers": ["safety", "record", "core"]
+  },
+  {
+   "type": "record.audit.chain_broken",
+   "version": 1,
+   "owner": "record",
+   "summary": "The Passport's audit chain stopped verifying at an entry: a row was altered, removed or reordered.",
+   "payload": [
+    { "field": "firstBrokenSeq", "type": "integer", "required": true, "why": "The first entry that does not follow its predecessor." },
+    { "field": "detectedAt", "type": "instant", "required": true, "why": "When the walk found it." }
+   ],
+   "neverCarries": [
+    { "field": "entry", "why": "The broken entry is evidence, and it stays where it is. Copying it into an event is copying it somewhere it can be altered too." }
+   ],
+   "subscribers": ["core", "safety"]
+  }
+ ]
+}

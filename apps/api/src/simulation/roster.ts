@@ -53,6 +53,9 @@ import scheduling from '../../../../packages/catalog/scheduling.json' with { typ
 import services from '../../../../packages/catalog/services.json' with { type: 'json' };
 import vetting from '../../../../packages/catalog/vetting.json' with { type: 'json' };
 import { resolveState, standingOf, type ActorVetting, type CheckRecord, type CheckState } from '../protection/gate.ts';
+import { distanceKm } from '../../../../packages/geo/index.ts';
+import { gateProgress } from '../vetting/gates.ts';
+import { rankForDispatch, trustScore, type TrustScore } from '../trust/index.ts';
 import { refusalSaying, simulationOf } from './contract.ts';
 import {
  isRefusal, produced, refuse, register,
@@ -255,4 +258,37 @@ export function rosterFor(zoneId: string, on: string, at: Date = new Date()) {
   elsewhere: events.filter(event => event.payload.zone !== zoneId),
   refused: answers.filter(isRefusal)
  };
+}
+
+/* ---- Who is sent, in what order --------------------------------------------------------------
+
+   "No Trust Score, no dispatch." The roster above answers who is on duty and cleared; this answers
+   who a visit in a zone is offered to, and in what order — proximity first, then the Trust Score,
+   which is the order the master document gives. Everybody the roster offers is scored from where they
+   stand among the seven gates, resolved at `at`, and a person without a current, online score is
+   never ranked: they come back in `withheld`, beside the ranking, with packages/catalog/trust.json's
+   sentence, for the same reason the roster returns its refusals rather than filtering them away.
+
+   Every nurse the roster clears scores today, so in the preview nobody it offers is withheld — which
+   is the point rather than a gap: a score is computed from the same checks the roster was cleared
+   on, and the two can only disagree if one of them is stored. `scoreOf` is injectable so that the
+   case the rule exists for — a score that was never computed, or was computed yesterday and not
+   since — can be produced and watched being refused. The distance is the straight line between two
+   suburb centres, which is the only distance this product has and is labelled as one wherever it is
+   printed. Nothing ranked carries the score's value or its reasons. */
+export const trustScoreFor = (nurse: SimulatedNurse, at: Date = new Date()): TrustScore | null =>
+ trustScore(nurse.id, gateProgress(nurse.vetting, at.getTime()), at.getTime());
+
+export function dispatchFor(
+ zoneId: string,
+ at: Date = new Date(),
+ scoreOf: (nurse: SimulatedNurse) => TrustScore | null = nurse => trustScoreFor(nurse, at)
+) {
+ const target = ZONES.find(zone => zone.id === zoneId) ?? null;
+ const { offered, elsewhere, refused } = rosterFor(zoneId, isoIn(at), at);
+ const candidates = [...offered, ...elsewhere]
+  .map(event => nurseById(String(event.payload.partyId)))
+  .filter((nurse): nurse is SimulatedNurse => nurse !== null)
+  .map(nurse => ({ partyId: nurse.id, km: target && nurse.zone ? distanceKm(nurse.zone.at, target.at) : null, score: scoreOf(nurse) }));
+ return { ...rankForDispatch(candidates, at.getTime()), refused };
 }
