@@ -6,11 +6,32 @@ struct HomeView: View {
     let firstRun: () -> Void
     @EnvironmentObject private var store: PreviewStore
     @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var askingGilbert = false
     private var stacked: Bool { typeSize.isAccessibilitySize }
 
     var body: some View {
         content
             .thusoGround()
+            /* Gilbert floats bottom right on the patient's home, as it does on every patient page on the
+               web: presence and placement, a lit thing in reach of a thumb. Pressing it opens Gilbert in a
+               sheet and asks the phone for nothing — the microphone is asked for on Gilbert's own screen,
+               the first time somebody taps to talk. The sphere is a still frame under Reduce Motion. */
+            .overlay(alignment: .bottomTrailing) {
+                Button { askingGilbert = true } label: {
+                    ZStack {
+                        Circle().fill(ThusoTheme.brandInk).frame(width: 60, height: 60)
+                        AssistantSphere(size: 76)
+                    }
+                    .frame(width: 64, height: 64)
+                    .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Gilbert.callToAction)
+                .accessibilityHint(Gilbert.descriptor)
+                .padding(.trailing, ThusoSpacing.space16)
+                .padding(.bottom, ThusoSpacing.space12)
+            }
+            .sheet(isPresented: $askingGilbert) { NavigationStack { AssistantView() } }
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {

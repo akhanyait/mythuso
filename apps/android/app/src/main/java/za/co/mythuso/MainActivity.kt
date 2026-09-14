@@ -72,6 +72,8 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
        doorstep or an operator with three late visits is doing. While a workspace is open the bottom
        bar is that role's, and leaving it puts the patient's tabs back. */
     var workspace by remember { mutableStateOf<String?>(null) }
+    /* Gilbert's sheet, over whichever patient page is open. See ui/GilbertScreens.kt. */
+    var askingGilbert by remember { mutableStateOf(false) }
     var section by remember { mutableStateOf("") }
     val tabs = listOf(
         Destination("Home", Icons.Outlined.Home, Phrase.HOME),
@@ -286,7 +288,12 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                         "Passport" -> PassportScreen(go)
                         else -> MoreScreen(go, { onboarding = true })
                     }
+                    /* Gilbert floats bottom right on every patient page and only on them, as on the web: its
+                       questions are a patient's. It asks the phone for nothing; the sheet asks for the
+                       microphone the first time somebody taps to talk. */
+                    if (role == null && detail == null) GilbertOrb(Modifier.align(androidx.compose.ui.Alignment.BottomEnd)) { askingGilbert = true }
                 }
+                if (askingGilbert) GilbertSheet(onDismiss = { askingGilbert = false }, open = go)
             }
         }
     }

@@ -1,0 +1,539 @@
+{
+ "_note": "Gilbert, as data. Everything a person reads from the assistant on the web, on iOS and on Android lives here: what Gilbert is called and what it is not, the six Pulse states and when each may be shown, the four situations and the questions it answers, the matcher that decides which answer a sentence gets, the voice policy the founder set on 14 September 2026, the refusals, and the Pulse events other engines may one day subscribe to. The web reads this file. iOS and Android cannot, so scripts/emit-assistant.mjs writes it into AssistantData.swift and AssistantData.kt, and scripts/check-boundaries.mjs compares both with this file on every build. Until this file existed the four situation sentences were typed in apps/ios/MyThuso/Features/AssistantView.swift and copied word for word into apps/web/src/lib/assistant.ts, with nothing comparing them.",
+ "_whatGilbertIsInThisBuild": "A deterministic matcher over approved sentences. No language model, no speech provider and no network call sits behind any answer. A sentence is normalised, checked against the emergency words first, then against the trigger phrases of the suggested questions, and anything that matches neither gets one honest answer. That is the whole of it, and it is the reason every answer below can be read in advance by the people accountable for it.",
+ "_tokens": "Sentences may carry {ambulance} and {mobile}, filled from packages/catalog/sos.json by number id, and the situation sentences carry {firstDay}, {day}, {month}, {slot}, {laboratory} and {expiryWarningDays}, filled at runtime from scheduling.json, records.json and vetting.json because a date written here would be wrong by tomorrow. {seconds} is voice.maxListeningSeconds. No emergency number and no count of days is typed anywhere in this file; the build fails if one is.",
+ "version": 1,
+ "identity": {
+  "name": "Gilbert",
+  "descriptor": "Your Thuso AI Doctor",
+  "pulseName": "Gilbert Pulse",
+  "callToAction": "Ask Gilbert",
+  "poweredBy": "Powered by ThusoIQ",
+  "whatItIs": "Gilbert is a short list of approved answers with a name. It matches what you type, or say on a phone, against that list and replies in sentences people at MyThuso wrote down in advance.",
+  "whatItIsNot": "Gilbert is not a doctor, not a nurse and not a person. “Your Thuso AI Doctor” is the product's name, not a qualification: Gilbert cannot examine you, cannot tell you what you have and cannot prescribe anything, and no language model is behind it.",
+  "poweredByMeans": "ThusoIQ is the name of MyThuso's clinical rules platform. In this build Gilbert uses two things from it and nothing else: the approved sentences in this file and the emergency red flags Thuso SOS already asks about."
+ },
+ "states": [
+  {
+   "id": "idle",
+   "name": "Idle",
+   "visual": "A soft glow with slow particles inside it.",
+   "meaning": "Gilbert is available.",
+   "cue": "Ready",
+   "announcement": "Gilbert is ready.",
+   "shownWhen": "Nothing is happening: no microphone is open, no work is under way and no answer has been asked for yet.",
+   "platforms": ["web", "ios", "android"]
+  },
+  {
+   "id": "listening",
+   "name": "Listening",
+   "visual": "The sphere swells and its surface ripples with the loudness of your voice.",
+   "meaning": "The microphone is open and you are speaking.",
+   "cue": "Listening",
+   "announcement": "Listening. Tap Stop when you have finished.",
+   "shownWhen": "Exactly while the microphone is open, and at no other moment. The indicator is driven by the microphone rather than by a timer, so the two cannot come apart.",
+   "platforms": ["ios", "android"]
+  },
+  {
+   "id": "thinking",
+   "name": "Thinking",
+   "visual": "The particles quicken and a lime accent appears.",
+   "meaning": "Your phone is finishing turning what you said into text.",
+   "cue": "Working",
+   "announcement": "Turning what you said into text.",
+   "shownWhen": "Only while real work is under way — the phone's own recogniser finishing a transcript after the microphone has closed. Gilbert's matcher answers in the same moment it is asked, so it never shows this state, and nothing adds a pause to make an answer look considered.",
+   "platforms": ["ios", "android"]
+  },
+  {
+   "id": "guiding",
+   "name": "Guiding",
+   "visual": "A steady glow.",
+   "meaning": "Gilbert is showing an approved answer.",
+   "cue": "Answer",
+   "announcement": "Gilbert answered.",
+   "shownWhen": "The latest answer is one of the approved answers and is not the emergency answer.",
+   "platforms": ["web", "ios", "android"]
+  },
+  {
+   "id": "escalate",
+   "name": "Escalate",
+   "visual": "A controlled amber accent, and the sphere stops reacting to anything.",
+   "meaning": "Human help is needed now.",
+   "cue": "Get help now",
+   "announcement": "This may be an emergency. The ambulance numbers are on the screen.",
+   "shownWhen": "The latest message carried an emergency word, or asked the emergency question. The ambulance numbers are the first thing in the answer.",
+   "platforms": ["web", "ios", "android"]
+  },
+  {
+   "id": "handover",
+   "name": "Handover",
+   "visual": "The sphere dims and holds still behind the summary.",
+   "meaning": "Gilbert has put together what a nurse would receive.",
+   "cue": "For a nurse",
+   "announcement": "Here is what a nurse would receive. It has not been sent.",
+   "shownWhen": "You asked to talk to a nurse. In this preview the summary is shown to you and sent to nobody.",
+   "platforms": ["web", "ios", "android"]
+  }
+ ],
+ "statesWhy": "Six states from section 15E.3 of the ThusoIQ master document, and each one is a promise about what is actually happening rather than a mood. Listening and Thinking are native only: the web has no microphone in this release, so it has nothing to listen with and nothing to finish transcribing. An unmatched question is Guiding, not Escalate — amber on every sentence Gilbert did not understand would teach people to ignore amber, and the unmatched answer carries the emergency numbers anyway.",
+ "situations": [
+  {
+   "id": "settled",
+   "name": "Nothing waiting",
+   "sentence": "Nothing needs you. This is the state a well person is in most of the time, and it is the one the drawing is quietest in.",
+   "figure": null,
+   "figureLabel": null,
+   "depth": 0
+  },
+  {
+   "id": "visit",
+   "name": "Visit confirmed",
+   "sentence": "A nurse is expected on {firstDay}. You will be told who is coming before they leave.",
+   "figure": "{day}",
+   "figureLabel": "{month} · {slot}",
+   "depth": 1
+  },
+  {
+   "id": "result",
+   "name": "Result ready",
+   "sentence": "{laboratory} results have been released to your record. A doctor reads them before you are asked to do anything about them.",
+   "figure": null,
+   "figureLabel": null,
+   "depth": 2
+  },
+  {
+   "id": "credential",
+   "name": "Credential lapsing",
+   "sentence": "A registration on your team is inside its last weeks. When it lapses, the work it carried is withdrawn by arithmetic rather than by anybody remembering to.",
+   "figure": "{expiryWarningDays}",
+   "figureLabel": "days before it stops carrying anything",
+   "depth": 3
+  }
+ ],
+ "situationsFallback": {
+  "firstDay": "the first day offered",
+  "laboratory": "Laboratory"
+ },
+ "questions": [
+  {
+   "id": "settled",
+   "asks": "Does anything need me?",
+   "group": "situations",
+   "answer": "situation",
+   "triggers": ["does anything need me", "anything need me", "what needs me", "anything waiting", "anything for me", "any updates", "whats new"]
+  },
+  {
+   "id": "visit",
+   "asks": "When is my nurse coming?",
+   "group": "situations",
+   "answer": "situation",
+   "triggers": ["when is my nurse", "nurse coming", "my visit", "next visit", "when does my nurse", "when will the nurse"]
+  },
+  {
+   "id": "result",
+   "asks": "Are my results back?",
+   "group": "situations",
+   "answer": "situation",
+   "triggers": ["are my results back", "my results", "results back", "test results", "lab results", "blood results"]
+  },
+  {
+   "id": "credential",
+   "asks": "Is everyone on my team registered?",
+   "group": "situations",
+   "answer": "situation",
+   "triggers": ["everyone on my team registered", "team registered", "is my nurse registered", "registration", "credentials", "registered"]
+  },
+  {
+   "id": "identity",
+   "asks": "What are you?",
+   "group": "always",
+   "answer": "identity",
+   "triggers": ["what are you", "who are you", "are you a doctor", "are you human", "are you a person", "are you real", "who is gilbert", "what is gilbert"]
+  },
+  {
+   "id": "voice",
+   "asks": "What happens to what I say?",
+   "group": "always",
+   "answer": "voice",
+   "triggers": ["what happens to what i say", "can you hear me", "can you listen", "are you listening", "recording", "record me", "microphone", "my voice"]
+  },
+  {
+   "id": "nurse",
+   "asks": "Can I talk to a nurse?",
+   "group": "always",
+   "answer": "handover",
+   "triggers": ["talk to a nurse", "speak to a nurse", "can i talk to a nurse", "real person", "a human", "call a nurse"]
+  },
+  {
+   "id": "emergency",
+   "asks": "What if it cannot wait?",
+   "group": "always",
+   "answer": "emergency",
+   "triggers": ["what if it cannot wait", "cannot wait", "cant wait"]
+  }
+ ],
+ "questionGroups": [
+  {
+   "id": "situations",
+   "heading": "What the drawing can say",
+   "lead": "Four situations, and the shape each one takes. Nothing on this screen is watching for them yet — you are choosing which to look at."
+  },
+  {
+   "id": "always",
+   "heading": "What Gilbert will always answer",
+   "lead": null
+  }
+ ],
+ "matcher": {
+  "rule": "A message is lower-cased, apostrophes are removed and everything that is not a letter or a digit becomes a space. The emergency words are checked first, as whole words, and any one of them ends the matching: the answer is the emergency answer, whatever else the message said. Otherwise the longest trigger phrase found in the message chooses the question, and a tie goes to the question listed first. A message that contains no trigger gets the unmatched answer, and so does every other message nobody wrote an answer for.",
+  "why": "Deterministic on purpose. The same words get the same answer on every platform, every time, and every answer that can ever be shown is in this file where somebody accountable can read it. A language model would answer more questions and nobody could say in advance what it would say to any of them.",
+  "emergencyWords": {
+   "reviewedBy": null,
+   "reviewedOn": null,
+   "draftedBy": "The Gilbert and Voice build, 14 September 2026, from the conditions in packages/catalog/sos.json. Not reviewed by a clinician.",
+   "use": "These words only ever raise. A match turns the answer into the emergency answer; the absence of a match lowers nothing, decides nothing and is never shown as reassurance. False positives are acceptable — somebody asking about a stroke they had years ago is shown the ambulance numbers — and a miss is not made safe by Gilbert being silent about it, which is why the sentence under silenceIsNotSafety stays on the screen beside every conversation.",
+   "groups": [
+    {
+     "id": "chest-pain",
+     "condition": "chest-pain",
+     "words": ["chest pain", "chest hurts", "chest is tight", "tight chest", "chest tightness", "pressure in my chest", "heart attack", "crushing pain"]
+    },
+    {
+     "id": "breathing",
+     "condition": "breathing",
+     "words": ["cant breathe", "cannot breathe", "can not breathe", "struggling to breathe", "short of breath", "shortness of breath", "breathless", "gasping", "choking", "not breathing", "blue lips"]
+    },
+    {
+     "id": "bleeding",
+     "condition": "bleeding",
+     "words": ["bleeding", "haemorrhage", "hemorrhage", "spurting blood", "blood everywhere"]
+    },
+    {
+     "id": "unresponsive",
+     "condition": "unresponsive",
+     "words": ["unconscious", "unresponsive", "not responding", "collapsed", "passed out", "fainted", "wont wake", "cant wake", "not waking"]
+    },
+    {
+     "id": "stroke",
+     "condition": "stroke",
+     "words": ["stroke", "face drooping", "face dropped", "slurred", "cant move my arm", "numb on one side", "cant speak"]
+    },
+    {
+     "id": "seizure",
+     "condition": "seizure",
+     "words": ["seizure", "fitting", "having a fit", "convulsing", "convulsion", "epileptic fit"]
+    },
+    {
+     "id": "infant",
+     "condition": "infant",
+     "words": ["floppy baby", "baby is floppy", "baby not feeding", "baby wont feed", "baby is limp", "rash does not fade", "rash doesnt fade"]
+    },
+    {
+     "id": "obstetric",
+     "condition": "obstetric",
+     "words": ["pregnant and bleeding", "waters broke", "baby is coming", "in labour", "in labor", "contractions"]
+    },
+    {
+     "id": "crisis",
+     "condition": null,
+     "name": "Words about harming yourself",
+     "words": ["kill myself", "suicide", "suicidal", "end my life", "want to die", "hurt myself", "harm myself", "overdose", "overdosed", "took too many pills", "poisoned"]
+    },
+    {
+     "id": "general",
+     "condition": null,
+     "name": "Words about an emergency",
+     "words": ["emergency", "ambulance", "dying", "severe pain", "worst headache"]
+    }
+   ]
+  }
+ },
+ "answers": {
+  "unmatched": {
+   "state": "guiding",
+   "sentence": "I can't assess that.",
+   "detail": "I answer only from a short list of approved sentences, and what you said is not one I can match. That is not a judgement that it is minor.",
+   "ifUrgent": "If this might be an emergency, do not wait for me. Call one of these now:",
+   "numbers": ["ambulance", "mobile"],
+   "sosLabel": "Open Thuso SOS",
+   "handoverLabel": "Talk to a nurse"
+  },
+  "emergency": {
+   "state": "escalate",
+   "noticed": "You mentioned something Thuso SOS treats as an emergency:",
+   "numbers": ["ambulance", "mobile"],
+   "sosLabel": "Open Thuso SOS"
+  },
+  "identity": {
+   "state": "guiding"
+  },
+  "voice": {
+   "state": "guiding"
+  },
+  "handover": {
+   "state": "handover",
+   "title": "What a nurse would receive",
+   "lead": "This is the summary a nurse would be handed if MyThuso had nurses on the other end. Read it the way they would.",
+   "notSent": "This was not sent. MyThuso is a preview: no nurse is on the other end, nobody has read this, and it is gone when you close Gilbert.",
+   "fields": [
+    { "id": "words", "label": "Your words, as you sent them" },
+    { "id": "channel", "label": "How you asked" },
+    { "id": "matched", "label": "What Gilbert matched" },
+    { "id": "flags", "label": "Emergency words Gilbert noticed" }
+   ],
+   "channelTyped": "Typed",
+   "channelSpoken": "Spoken, turned into text on this phone, and checked by you before sending",
+   "channelChosen": "Chosen from Gilbert's suggested questions",
+   "nothingAsked": "Nothing yet. You have not asked Gilbert anything in this conversation.",
+   "nothingMatched": "Nothing. Gilbert could not assess it.",
+   "matchedEmergency": "Emergency words, so Gilbert showed the ambulance numbers instead of answering.",
+   "noFlags": "None noticed. That does not mean there were none."
+  }
+ },
+ "silenceIsNotSafety": "Gilbert not recognising an emergency does not mean there is not one. If you think it is an emergency, call {ambulance}, or {mobile} from a mobile.",
+ "conversation": {
+  "inputLabel": "Ask Gilbert a question",
+  "inputHint": "Type in your own words",
+  "sendLabel": "Send",
+  "startAgainLabel": "Start again",
+  "youAsked": "You asked",
+  "youSaid": "You said",
+  "logLabel": "Conversation with Gilbert",
+  "refusalsHeading": "What Gilbert will not do",
+  "turnLimit": 24
+ },
+ "voice": {
+  "mode": "push-to-talk",
+  "gesture": "tap-to-start-tap-to-stop",
+  "gestureWhy": "Tap to start and a large Stop to finish, rather than holding. Holding a control down for as long as you speak shuts out VoiceOver and TalkBack, which turn a hold into a separate gesture, and anybody with a tremor or using Switch Control. The microphone still closes on its own after maxListeningSeconds, so a tap is never an open microphone left behind.",
+  "maxListeningSeconds": 30,
+  "languages": [
+   { "id": "en", "name": "English", "recognitionLocales": ["en-ZA", "en-GB", "en-US"] }
+  ],
+  "recognition": "on-device",
+  "audioStored": false,
+  "transcriptLifetime": "conversation",
+  "correctionBeforeSend": true,
+  "wakeWord": false,
+  "modelImprovementOffered": false,
+  "web": false,
+  "decidedBy": "The founder, 14 September 2026.",
+  "sentences": {
+   "howItWorks": "Tap the sphere and speak in English. Gilbert listens until you tap Stop, or for {seconds} seconds at most, turns what you say into text on this phone, and shows it to you to correct before anything is sent.",
+   "beforePermission": "Your phone is about to ask whether MyThuso may use the microphone and speech recognition. Gilbert uses them only after you tap the sphere, in English, on this phone. No recording is made and nothing you say leaves the phone.",
+   "askPermissionLabel": "Continue",
+   "notNowLabel": "Not now",
+   "unavailable": "Speaking to Gilbert is not available on this phone. It needs English speech recognition that runs on the phone itself, and this phone does not offer it, so what you said could not be kept on the phone. You can still type.",
+   "refused": "The microphone or speech recognition is switched off for MyThuso, so Gilbert cannot hear you. You can still type, and you can change this in your phone's Settings.",
+   "failed": "Gilbert did not catch that. Nothing was kept. Try again, or type instead.",
+   "web": "Gilbert cannot hear you on the web. A browser's speech recognition sends your voice to the company that makes the browser, so on the web you type.",
+   "talkLabel": "Tap to talk to Gilbert",
+   "stopLabel": "Stop",
+   "captionsLabel": "What Gilbert has heard so far",
+   "correctLabel": "Check what Gilbert heard, and correct it before you send it",
+   "discardLabel": "Discard"
+  },
+  "usageDescriptions": {
+   "NSMicrophoneUsageDescription": "Gilbert uses the microphone only after you tap the sphere, to hear a question in English. No recording is made.",
+   "NSSpeechRecognitionUsageDescription": "Gilbert turns what you say into text on this phone, so you can check it before it is sent. Nothing you say leaves the phone."
+  },
+  "androidPermission": "android.permission.RECORD_AUDIO"
+ },
+ "refusals": [
+  {
+   "id": "no-diagnosis",
+   "statement": "Gilbert never tells you what you have.",
+   "why": "No sentence in this file names a condition as yours, and the matcher can only choose among sentences in this file. A conversational impression turned into a diagnosis is the failure section 15A of the master document names first."
+  },
+  {
+   "id": "no-prescription",
+   "statement": "Gilbert never suggests a medicine, a dose, or a change to either.",
+   "why": "Only an authorised prescriber may. Gilbert has no Formulary, no record of what you take and no one to sign for it."
+  },
+  {
+   "id": "never-lowers-an-emergency",
+   "statement": "Gilbert never makes an emergency sound less urgent. An emergency word always wins, whatever else was said in the same message.",
+   "why": "The emergency words are checked before anything else, and a match cannot be overruled by a question found in the same sentence. A rule engine's priority may be explained by an assistant; it may not be lowered by one."
+  },
+  {
+   "id": "no-invented-slot",
+   "statement": "Gilbert never offers an appointment, a nurse or a hospital bed that nobody has confirmed.",
+   "why": "The only visit Gilbert mentions is the first day the scheduling contract offers, and it is labelled as a situation the drawing can show. Availability comes from a provider, and no provider is connected."
+  },
+  {
+   "id": "no-audio-kept",
+   "statement": "No recording of your voice is made or kept — not on the phone, not anywhere else.",
+   "why": "The microphone's sound is read once for its loudness and handed to the phone's own recogniser, and nothing writes it to a file. The build refuses the recording and audio-file APIs in both apps."
+  },
+  {
+   "id": "listening-is-the-microphone",
+   "statement": "Gilbert shows Listening only while the microphone is open, and the microphone is never open without it.",
+   "why": "A listening indicator that runs ahead of the microphone teaches people to talk to nothing; a microphone that runs without one is a recording nobody agreed to. Both are driven from the same open and close, and nothing on the web offers to listen at all."
+  },
+  {
+   "id": "not-a-person",
+   "statement": "Gilbert is not a person and not a doctor.",
+   "why": "The name, the descriptor and the sphere are a brand. A person who believes they are talking to a clinician will tell it things, and wait for it, in ways they would not wait for a list of sentences."
+  },
+  {
+   "id": "crisis-is-never-left-to-gilbert",
+   "statement": "A crisis is never left to Gilbert alone. Words about harming yourself, or somebody in danger, get the emergency numbers rather than a conversation.",
+   "why": "There is no clinician behind Gilbert and no line it can put anybody through to. The honest thing it can do in a crisis is get out of the way of the people who can help."
+  },
+  {
+   "id": "silence-is-not-safety",
+   "statement": "Gilbert not recognising an emergency does not mean there is not one.",
+   "why": "The emergency words are a draft, they have not been reviewed by a clinician, and no list of words catches every way a person describes something frightening. So the sentence stays beside the conversation on every platform instead of appearing only after a match."
+  }
+ ],
+ "events": [
+  {
+   "type": "pulse.session.started",
+   "version": 1,
+   "owner": "pulse",
+   "summary": "Somebody opened Gilbert.",
+   "payload": [
+    { "field": "sessionId", "type": "string", "required": true, "why": "Which conversation. Minted on the device when Gilbert opens and forgotten when it closes; it identifies a conversation and never a person." },
+    { "field": "platform", "type": "string", "required": true, "why": "web, ios or android. Voice exists on two of the three, so a count of sessions means nothing without it." },
+    { "field": "voiceAvailable", "type": "boolean", "required": true, "why": "Whether on-device English recognition exists on this device. How often it does not is the case for a South African speech provider, made in numbers rather than asserted." },
+    { "field": "at", "type": "instant", "required": true, "why": "When." }
+   ],
+   "neverCarries": [
+    { "field": "audio", "why": "No audio exists to carry. Nothing records it." },
+    { "field": "transcript", "why": "Nothing has been said yet, and nothing said is ever carried beyond utterance.finalised." },
+    { "field": "patientId", "why": "A session is a conversation, not a person. Joining the two is a decision for the Access engine under consent, not a field on an animation event." },
+    { "field": "location", "why": "Gilbert has no reason to know where anybody is, and no location permission exists." }
+   ],
+   "subscribers": ["core", "trust"]
+  },
+  {
+   "type": "pulse.listening.started",
+   "version": 1,
+   "owner": "pulse",
+   "summary": "The microphone opened and the Listening state began.",
+   "payload": [
+    { "field": "sessionId", "type": "string", "required": true, "why": "Which conversation." },
+    { "field": "language", "type": "string", "required": true, "why": "Always en in this release. Carried so the day another language is added its first session is visible rather than inferred." },
+    { "field": "recognition", "type": "string", "required": true, "why": "Always on-device in this release. A value of anything else is an incident." },
+    { "field": "at", "type": "instant", "required": true, "why": "When the microphone opened. Paired with the utterance to prove the indicator and the microphone were open for the same span." }
+   ],
+   "neverCarries": [
+    { "field": "audio", "why": "No sound leaves the phone, in any encoding, sampled or whole." },
+    { "field": "audioLevel", "why": "The loudness drives the sphere and nothing else. A stream of levels is a coarse recording of a voice." },
+    { "field": "transcript", "why": "Nothing said is carried on this event." },
+    { "field": "voiceprint", "why": "Gilbert does not identify speakers and never will by voice." }
+   ],
+   "subscribers": ["core", "trust"]
+  },
+  {
+   "type": "pulse.utterance.finalised",
+   "version": 1,
+   "owner": "pulse",
+   "summary": "A person sent a message — typed, chosen or spoken and corrected — and the matcher ran on it.",
+   "payload": [
+    { "field": "sessionId", "type": "string", "required": true, "why": "Which conversation." },
+    { "field": "channel", "type": "string", "required": true, "why": "typed, chosen or spoken. Spoken means it was turned into text on the phone and the person saw it before it was sent." },
+    { "field": "language", "type": "string", "required": true, "why": "The language the message was written or heard in, by locale id. Always English in this release; carried so that the first message in another language is counted rather than assumed." },
+    { "field": "characterCount", "type": "integer", "required": true, "why": "How long the message was. Enough to see that long messages go unmatched more often, which is the evidence for writing more answers, without carrying a word of it." },
+    { "field": "corrected", "type": "boolean", "required": true, "why": "Whether the person changed the transcript before sending. How often recognition had to be corrected is how on-device English is judged in South African homes." },
+    { "field": "matchedQuestion", "type": "string", "required": false, "why": "The id of the question the matcher chose, or absent when nothing matched." },
+    { "field": "emergencyGroups", "type": "list", "required": true, "why": "The ids of the emergency word groups that matched — ids from this file, never the words that matched them. Empty when none did, which the Safety engine must not read as safe." },
+    { "field": "at", "type": "instant", "required": true, "why": "When it was sent." }
+   ],
+   "neverCarries": [
+    { "field": "transcript", "why": "The words themselves stay in the conversation on the device. The argument for carrying them — clinical review of unmatched questions — is real, and it needs consent, retention and access answers under POPIA that do not exist. Until they do, the length, the channel and the ids are what leaves." },
+    { "field": "audio", "why": "No sound exists to carry." },
+    { "field": "recognitionAlternatives", "why": "The recogniser's other guesses are a transcript with extra steps." },
+    { "field": "diagnosis", "why": "The matcher chooses among approved answers. It concludes nothing, so there is nothing of this kind to send." }
+   ],
+   "subscribers": ["core", "safety"]
+  },
+  {
+   "type": "pulse.thinking.started",
+   "version": 1,
+   "owner": "pulse",
+   "summary": "The phone began finishing a transcript after the microphone closed, and the Thinking state began.",
+   "payload": [
+    { "field": "sessionId", "type": "string", "required": true, "why": "Which conversation." },
+    { "field": "at", "type": "instant", "required": true, "why": "When the work began. Thinking must end when the work does; paired with utterance.finalised this shows that it did." }
+   ],
+   "neverCarries": [
+    { "field": "transcript", "why": "Partial or final, the words are not carried here." },
+    { "field": "audio", "why": "No sound exists to carry." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "pulse.device.highlight",
+   "version": 1,
+   "owner": "pulse",
+   "summary": "Gilbert pointed at a reading from a connected device. Declared for the Devices engine and not emitted in this release: no device is connected, so there is nothing true to point at.",
+   "payload": [
+    { "field": "sessionId", "type": "string", "required": true, "why": "Which conversation." },
+    { "field": "readingKind", "type": "string", "required": true, "why": "Which kind of reading, by the id records.json gives it. The value belongs to the record; the highlight names only which one." },
+    { "field": "at", "type": "instant", "required": true, "why": "When." }
+   ],
+   "neverCarries": [
+    { "field": "value", "why": "Pulse highlights a reading and never restates it. A value copied into an interaction event is a second copy of a clinical record with weaker protection." },
+    { "field": "transcript", "why": "Nothing said is carried on this event." },
+    { "field": "audio", "why": "No sound exists to carry." }
+   ],
+   "subscribers": ["devices", "record"]
+  },
+  {
+   "type": "pulse.guidance.presented",
+   "version": 1,
+   "owner": "pulse",
+   "summary": "An approved answer was put on the screen.",
+   "payload": [
+    { "field": "sessionId", "type": "string", "required": true, "why": "Which conversation." },
+    { "field": "answerId", "type": "string", "required": true, "why": "Which answer, by id — a question id, unmatched, emergency or handover. Every answer that can be shown is in this file, so an id is a complete account of what was said." },
+    { "field": "contractVersion", "type": "integer", "required": true, "why": "The version of this file the answer came from. An answer is only auditable against the words that were approved when it was given." },
+    { "field": "state", "type": "string", "required": true, "why": "The Pulse state the answer put the sphere in." },
+    { "field": "at", "type": "instant", "required": true, "why": "When." }
+   ],
+   "neverCarries": [
+    { "field": "transcript", "why": "What was asked is not carried here." },
+    { "field": "audio", "why": "No sound exists to carry." },
+    { "field": "diagnosis", "why": "No answer in this file is one." }
+   ],
+   "subscribers": ["core", "trust"]
+  },
+  {
+   "type": "pulse.escalation.started",
+   "version": 1,
+   "owner": "pulse",
+   "summary": "The emergency answer was shown and the sphere went to Escalate.",
+   "payload": [
+    { "field": "sessionId", "type": "string", "required": true, "why": "Which conversation." },
+    { "field": "reason", "type": "string", "required": true, "why": "emergency-word or emergency-question." },
+    { "field": "emergencyGroups", "type": "list", "required": true, "why": "Which groups matched, by id. The sos.json condition each maps to is in this file." },
+    { "field": "at", "type": "instant", "required": true, "why": "When. Safety measures from here, and nothing downstream may wait for the conversation to finish." }
+   ],
+   "neverCarries": [
+    { "field": "transcript", "why": "An emergency is acted on by its group, not by re-reading what somebody typed in a fright." },
+    { "field": "audio", "why": "No sound exists to carry." },
+    { "field": "triagePriority", "why": "Gilbert does not assign one. Only the Triage engine may, and Gilbert may never lower it." }
+   ],
+   "subscribers": ["safety", "care", "core"]
+  },
+  {
+   "type": "pulse.handover.completed",
+   "version": 1,
+   "owner": "pulse",
+   "summary": "The summary a nurse would receive was assembled. In this release it is shown to the person and sent to nobody.",
+   "payload": [
+    { "field": "sessionId", "type": "string", "required": true, "why": "Which conversation." },
+    { "field": "sent", "type": "boolean", "required": true, "why": "Always false in this release. The day it is true, a nurse queue exists and this field is how anybody can tell." },
+    { "field": "summaryFields", "type": "list", "required": true, "why": "The ids of the fields the summary held, so the Care engine can see what a handover will need without seeing a handover." },
+    { "field": "at", "type": "instant", "required": true, "why": "When." }
+   ],
+   "neverCarries": [
+    { "field": "transcript", "why": "The words stay on the device in this release. A real handover will need them, and it will need the consent and retention answers that do not exist yet." },
+    { "field": "audio", "why": "No sound exists to carry." },
+    { "field": "diagnosis", "why": "A handover says what was asked, not what it means." }
+   ],
+   "subscribers": ["care", "core"]
+  }
+ ]
+}

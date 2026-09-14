@@ -1,151 +1,121 @@
 import SwiftUI
 
-/* A drawing of an assistant, and nothing else.
+/* Gilbert, on iOS.
 
-   The founder asked for the AI-sphere language: one luminous volumetric orb on a dark ground,
-   breathing at rest, reacting when it has something to work through, with minimal centred type
-   around it. This screen is that. What it is not — and what nothing on it may ever imply it is —
-   is a voice product.
+   Everything on this screen that a person reads comes from packages/catalog/assistant.json, through
+   the generated AssistantData.swift and the reasoning in Models/Assistant.swift. The microphone is
+   GilbertVoice.swift's alone. This file arranges them.
 
-   packages/catalog/capabilities.json carries `voice` with connected: false and three things
-   blocking it: no speech model, vendor or licence; no microphone permission declared on either
-   native app, deliberately; and nothing designed for what happens to a recording of a person
-   describing a symptom under POPIA. Its neverSoften note is the rule this file is written to:
+   WHAT A PERSON OPENED IT FOR decides the order. The sphere, the state it is in said in words, and
+   the way to speak. Then the voice notice, rendered by CapabilityNotice from capabilities.json rather
+   than typed. Then the conversation, then the suggested questions and the refusals. The composer is
+   pinned to the bottom edge, where a thumb is, and carries the sentence that must not scroll away:
+   Gilbert not recognising an emergency does not mean there is not one. At accessibility text sizes a
+   pinned sentence that long would take the screen, so it moves to the head of the conversation there
+   instead — still beside it, and still before anything is asked.
 
-       "No microphone affordance may be drawn — not an enabled one, not a disabled one, not a
-        decorative one. A control that looks like it is listening and is not is worse than no
-        control, and on a health product it is the kind of worse that gets believed."
+   TAP TO TALK, AND A LARGE STOP, rather than holding. Holding a control for as long as you speak
+   shuts out VoiceOver, which turns a hold into a separate gesture, Switch Control, and anybody with
+   a tremor. So a tap on the sphere, or on the Tap to talk button under it, opens the microphone; a
+   full-width Stop closes it; and the contract's listening limit closes it anyway, so a tap is never
+   a microphone left open. The button is drawn only when this phone can recognise English on its own.
+   Where it cannot, the contract's unavailable sentence is drawn instead — never a disabled
+   microphone, because a person reads the shape rather than the state.
 
-   THE SPHERE IS THE ANSWER TO THAT RULE RATHER THAN A DECORATION ON TOP OF IT. Every shape a
-   person expects an assistant to be — the capsule, the bar meter, the ring around a glyph — is a
-   picture of hearing. A sphere is a picture of presence: it has no mouth and no aperture, it is lit
-   rather than listening, and there is nothing on it to press. So there is no microphone glyph here,
-   no waveform, no listening ring, no tap-to-speak, and no disabled control with an explanation
-   attached. The reason a disabled one is refused as firmly as an enabled one is that a person does
-   not read the disabled state — they read the shape, learn that this app listens, and one day say
-   something to it that it never heard. On a health product that sentence could be a symptom.
+   LISTENING IS THE MICROPHONE. The Pulse state shown is Listening exactly while GilbertListener's
+   phase is .listening, Thinking exactly while it is .finishing — the recogniser completing a
+   transcript after the microphone closed — and otherwise the state of the latest answer. The sphere's
+   `level` is the live loudness only while Listening, and under Reduce Motion it is ignored and the
+   sphere is a still frame. Every change of state is announced to VoiceOver in the contract's words.
 
-   The contract's own notice sits directly under the sphere, rendered by CapabilityNotice from
-   packages/catalog/capabilities.json rather than typed here, on the light panel it has everywhere
-   else in the app. It is the second thing on the screen on purpose: the drawing is the first thing
-   a person sees and the sentence correcting what they assumed about it is the next.
+   THE TRANSCRIPT IS CORRECTED BEFORE IT IS SENT. What was heard is put into an editable field with
+   Send and Discard. Nothing goes to the matcher until the person presses Send, and nothing is kept
+   when they press Discard.
 
-   What the orb shows is honest on its own terms. It reflects one of four situations, each of which
-   is a real thing this product has a contract for: a visit on the first day the scheduling contract
-   offers, a laboratory result released, a registration inside the forty-five days after which
-   vetting withdraws dispatch by arithmetic, and nothing at all — which is the state a well person
-   should be in most of the time. Nothing on the screen is connected to any of them yet, which the
-   notice says once, in the contract's own words, and the chooser repeats in its own.
-
-   Two things about how it is drawn.
-
-   Green is a fill and never a label. Since 14 September the screen is in the wordmark's colours —
-   brandInk ground, a brandGreen body, brandMint light, one lime glint — because the founder asked for
-   the logo rather than the Care Studio's sage. Every word on this screen is white (12.04:1 on
-   brandInk, the lighter of the ground's tones) or brandMint (8.09, the reversed lockup's second tone),
-   and the state is never carried by the colour alone either — the line under the sphere says which
-   state this is, in words, for a reader who cannot tell four greens apart or is listening to the
-   screen.
-
-   The animation stops rather than slows. Under Reduce Motion the sphere is a still object with
-   every layer still drawn, not a blank circle: AssistantSphere pauses its timeline and substitutes
-   one fixed moment. The gathering reaction is suppressed on the same setting, here, because it is
-   this screen that starts it. */
-
-// MARK: - The four things the drawing can say
-
-/// One situation the orb can be in. `depth` is where it sits on the green ramp: 0 is the lightest
-/// and widest, 3 the deepest and most concentrated. It is never the only thing that says which
-/// state this is — `name` says it in words, and the words are what a screen reader gets.
-struct AssistantState: Identifiable, Hashable {
-    let id: String
-    let name: String
-    let sentence: String
-    /// A figure worth setting large, where the app genuinely has one. Nil where a number would have
-    /// to be invented to fill the space, which is most of the time.
-    let figure: String?
-    let figureLabel: String?
-    let depth: Int
-}
-
-extension AssistantState {
-    /* Each of these derives from a contract this app already holds rather than from a sentence
-       typed here. The date is the first day packages/catalog/scheduling.json offers, so it moves
-       with the calendar instead of going stale; the result is the laboratory record type from
-       packages/catalog/records.json; and forty-five is VettingClock.expiryWarningDays, the point at
-       which a lapsing registration starts removing what it carried. */
-    static var all: [AssistantState] {
-        let firstOffered = Scheduling.offeredDays().first
-        let firstSlot = Scheduling.slots.first ?? ""
-        let laboratory = Records.type("laboratory")?.name ?? "Laboratory"
-        return [
-            .init(id: "settled", name: "Nothing waiting",
-                  sentence: "Nothing needs you. This is the state a well person is in most of the time, and it is the one the drawing is quietest in.",
-                  figure: nil, figureLabel: nil, depth: 0),
-            .init(id: "visit", name: "Visit confirmed",
-                  sentence: "A nurse is expected on \(firstOffered.map { Scheduling.longDate($0.date) } ?? "the first day offered"). You will be told who is coming before they leave.",
-                  figure: firstOffered?.day, figureLabel: "\(firstOffered?.month ?? "") · \(firstSlot)", depth: 1),
-            .init(id: "result", name: "Result ready",
-                  sentence: "\(laboratory) results have been released to your record. A doctor reads them before you are asked to do anything about them.",
-                  figure: nil, figureLabel: nil, depth: 2),
-            .init(id: "credential", name: "Credential lapsing",
-                  sentence: "A registration on your team is inside its last weeks. When it lapses, the work it carried is withdrawn by arithmetic rather than by anybody remembering to.",
-                  figure: "\(VettingClock.expiryWarningDays)",
-                  figureLabel: "days before it stops carrying anything", depth: 3)
-        ]
-    }
-}
-
-// MARK: - The screen
+   Colour. Every word is white (12.04:1 on brandInk) or brandMint (8.09), and ink on the white field
+   and buttons (12.04). Orange marks the emergency question and the escalated sphere as an edge and a
+   fill, never as text. */
 
 struct AssistantView: View {
-    @State private var showing = AssistantState.all[0]
-    /// The moment the sphere was last handed something new. It drives the gathering reaction and
-    /// nothing else; the sphere ignores it entirely under Reduce Motion.
+    @StateObject private var listener = GilbertListener()
+    @State private var turns = Gilbert.opening()
+    @State private var draft = ""
+    @State private var correction = ""
     @State private var gatheredAt: Date?
+    @State private var showingSos = false
+    @FocusState private var correcting: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
-    private let states = AssistantState.all
-    /// The capability this screen depends on. Named once, here, so the sentence below the sphere
-    /// and the reasons further down come from the same row of the contract.
+    @Environment(\.scenePhase) private var scenePhase
+    /// The capability this screen depends on, named once so the notice and the rule come from one row.
     private let capability = "voice"
 
-    var body: some View {
-        ScrollView {
-            VStack(spacing: ThusoSpacing.space32) {
-                stage
-                CapabilityNotice(of: capability)
-                chooser
-                refusals
-            }
-            .padding(.top, ThusoSpacing.space16)
-            .padding(.bottom, ThusoSpacing.space40)
+    private var asked: Bool { turns.count > 1 }
+    private var latest: Gilbert.Reply { turns.last?.reply ?? .unmatched }
+    private var pulse: Gilbert.Pulse {
+        switch listener.phase {
+        case .listening: return .listening
+        case .finishing: return .thinking
+        default: return asked ? Gilbert.pulse(of: latest) : .idle
         }
-        .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
-        .background(ground.ignoresSafeArea())
-        /* Inline rather than large, and the reason is legibility before taste. The system large
-           title ignores toolbarColorScheme on this OS and came out near-black on a night ground —
-           about 1.2:1, which is no title at all. The inline title answers the setting. A principal
-           toolbar item would have given this screen the colour outright and was tried first; it
-           takes the bar's name away with it, and AssistantTests asks the accessibility tree for a
-           navigation bar called Assistant to know the screen opened. The name is worth more than
-           the control. It also costs the drawing nothing: a hundred points of large title above a
-           shape meant to dominate is a hundred points spent arguing with it. */
-        .navigationTitle("Assistant").navigationBarTitleDisplayMode(.inline)
-        .toolbarColorScheme(.dark, for: .navigationBar)
-        .onAppear { gather() }
-        .onChange(of: showing.id) { _, _ in gather() }
     }
 
-    /// Reduce Motion is answered by never starting the reaction, not by shortening it. A gathering
-    /// that runs for a third of a second is still a thing that moved.
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: ThusoSpacing.space24) {
+                    stage
+                    voiceArea
+                    CapabilityNotice(of: capability)
+                    if typeSize.isAccessibilitySize { silence }
+                    conversation
+                    suggestions
+                    refusals
+                }
+                .padding(.top, ThusoSpacing.space16)
+                .padding(.bottom, ThusoSpacing.space24)
+            }
+            .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: turns.last?.id) { _, id in
+                guard let id else { return }
+                if reduceMotion { proxy.scrollTo(id, anchor: .top) } else { withAnimation { proxy.scrollTo(id, anchor: .top) } }
+            }
+        }
+        .background(ground.ignoresSafeArea())
+        .safeAreaInset(edge: .bottom, spacing: 0) { composer }
+        .navigationTitle(Gilbert.name).navigationBarTitleDisplayMode(.inline)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .navigationDestination(isPresented: $showingSos) { SosView() }
+        .onAppear { gather() }
+        .onChange(of: turns.last?.id) { _, _ in gather() }
+        .onChange(of: pulse) { _, now in
+            AccessibilityNotification.Announcement(Gilbert.spec(now).announcement).post()
+        }
+        .onChange(of: listener.phase) { _, phase in
+            if case .heard(let words) = phase { correction = words; correcting = true }
+        }
+        .onChange(of: scenePhase) { _, phase in if phase != .active { listener.cancel() } }
+        .onDisappear { listener.cancel() }
+    }
+
+    /// Reduce Motion is answered by never starting the reaction, not by shortening it.
     private func gather() { gatheredAt = reduceMotion ? nil : Date() }
 
-    /* The ground the sphere is lit against. Two steps rather than one: a flat fill under a
-       luminous object is the thing that makes it look pasted on, and the darker top gives the
-       title something to sit on. brandInk in the middle, recessed at the ends by the design
-       system's ink at 45%. Every word on this screen was measured against the lighter of the two —
-       brandInk itself — so the ratios below are the worst case rather than the flattering one. */
+    private func sendDraft() {
+        let words = draft
+        draft = ""
+        turns = Gilbert.send(words, channel: .typed, to: turns)
+    }
+
+    private func sendCorrection() {
+        turns = Gilbert.send(correction, channel: .spoken, to: turns)
+        correction = ""
+        listener.sent()
+    }
+
+    /* The ground the sphere is lit against: brandInk, recessed at the ends by the design system's ink at
+       45%. Every word was measured against brandInk itself, the lighter of the two. */
     private var ground: some View {
         ZStack {
             ThusoTheme.brandInk
@@ -154,137 +124,377 @@ struct AssistantView: View {
         }
     }
 
-    // MARK: - The sphere and the few words around it
+    // MARK: - The sphere and the state, in words
 
-    /* One thing on this screen is large and it is the drawing. Everything under it is centred,
-       narrow and quiet: a label, a figure where the app genuinely has one, and a sentence. The
-       sphere gives up a little size at the accessibility text sizes so the words it is explaining
-       still fit on a screen with it. */
     private var stage: some View {
-        VStack(spacing: ThusoSpacing.space24) {
-            AssistantSphere(size: typeSize.isAccessibilitySize ? 208 : 276,
-                            depth: showing.depth, gatheredAt: gatheredAt)
-            VStack(spacing: ThusoSpacing.space12) {
-                Text(showing.name)
+        VStack(spacing: ThusoSpacing.space16) {
+            sphere
+            VStack(spacing: ThusoSpacing.space8) {
+                Text(Gilbert.spec(pulse).cue)
                     .thusoFont(ThusoType.caption, weight: .semibold)
-                    .tracking(1.4)
-                    .foregroundStyle(ThusoTheme.brandMint)
-                if let figure = showing.figure {
-                    /* A semantic style at the lightest weight, not a point size: the genre's big
-                       thin numeral, but one that still answers the text-size setting. */
+                    .foregroundStyle(ThusoTheme.surface)
+                    .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space4)
+                    .overlay(Capsule().stroke(pulse == .escalate ? ThusoTheme.brandOrange : ThusoTheme.brandMint.opacity(0.62),
+                                              lineWidth: pulse == .escalate ? 2 : 1))
+                if let stageName {
+                    Text(stageName)
+                        .thusoFont(ThusoType.caption, weight: .semibold)
+                        .tracking(1.4)
+                        .foregroundStyle(ThusoTheme.brandMint)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let figure = stageFigure {
                     Text(figure).font(.system(.largeTitle, design: .default, weight: .ultraLight))
                         .foregroundStyle(ThusoTheme.surface)
-                    if let label = showing.figureLabel {
-                        Text(label).thusoFont(ThusoType.caption)
-                            .foregroundStyle(ThusoTheme.brandMint)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 }
-                Text(showing.sentence)
-                    .thusoFont(ThusoType.cardTitle)
-                    .foregroundStyle(ThusoTheme.surface)
-                    .lineSpacing(5)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                Text(Gilbert.descriptor)
+                    .thusoFont(ThusoType.caption)
+                    .foregroundStyle(ThusoTheme.brandMint)
             }
-            /* Read as one thing. Four fragments of text stacked under a drawing are four stops for
-               a listener and one thought for everybody else. */
             .accessibilityElement(children: .combine)
             .frame(maxWidth: 420)
         }
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - The legend
-
-    /* Four pills rather than a segmented control: a segmented control is thirty-two points tall at
-       every text size, which is the defect that was taken out of the Health Passport. The button's
-       own frame is the frame a thumb has to hit, and it is forty-four.
-
-       They choose which of the four the drawing is showing, and the screen says plainly that this
-       is a legend rather than a status — nothing here is connected to a visit, a result or a
-       register, so there is nothing for the app to work out on its own. */
-    private var chooser: some View {
-        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            SceneHeading("What the drawing can say")
-            Text("Four situations, and the shape each one takes. Nothing on this screen is watching for them yet — you are choosing which to look at.")
-                .thusoFont(ThusoType.caption)
-                .foregroundStyle(ThusoTheme.brandMint)
-                .fixedSize(horizontal: false, vertical: true)
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: ThusoSpacing.space8) { pills(filling: false) }
-                VStack(spacing: ThusoSpacing.space8) { pills(filling: true) }
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("What the drawing can say")
+    /// Only what has a name of its own; every other answer is named by the state pill above it.
+    private var stageName: String? {
+        switch latest {
+        case .situation(let situation): return situation.name
+        case .emergency: return Gilbert.emergency.lines.first?.name
+        default: return asked ? nil : Gilbert.callToAction
         }
     }
 
-    @ViewBuilder private func pills(filling: Bool) -> some View {
-        ForEach(states) { state in
-            let chosen = state.id == showing.id
-            Button { showing = state } label: {
-                Text(state.name).font(.footnote.weight(.semibold))
-                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(chosen ? ThusoTheme.ink : ThusoTheme.surface)
-                    .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8)
-                    .frame(maxWidth: filling ? .infinity : nil, minHeight: 44)
-                    /* The unchosen fill is a seven-per-cent lift off the ground rather than a
-                       colour of its own: white still measures 9.80:1 on it, and white at 44% gives
-                       the edge 3.63:1 against the ground — a control's boundary has a contrast floor
-                       of its own and translucency is the usual way it is missed. The chosen pill is
-                       the wordmark's green, 3.55 off the ground, with the design system's ink on it
-                       at 5.27 — the same chosen pill the clinical decks draw. */
-                    .background(chosen ? AnyShapeStyle(ThusoTheme.brandGreen)
-                                       : AnyShapeStyle(Color.white.opacity(0.07)),
-                                in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
-                        .stroke(chosen ? ThusoTheme.brandGreen : ThusoTheme.surface.opacity(0.44), lineWidth: 1))
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            /* Chosen is said, not only drawn — four identical buttons is what a listener gets
-               otherwise, and the pale fill means nothing to them. */
-            .accessibilityAddTraits(chosen ? [.isButton, .isSelected] : .isButton)
+    private var stageFigure: String? {
+        switch latest {
+        case .situation(let situation): return situation.figure
+        case .emergency: return Gilbert.emergency.lines.first?.number
+        default: return nil
         }
     }
 
-    /* What is actually in the way, in the contract's own words rather than a summary of them. The
-       last block is the rule this screen is held to; it is written for whoever changes the screen
-       next, and it is on the screen because a rule kept in a file is a rule somebody breaks by
-       accident at eleven at night. */
+    private var canTalk: Bool {
+        switch listener.phase {
+        case .idle, .failed: return true
+        default: return false
+        }
+    }
+
+    @ViewBuilder private var sphere: some View {
+        let drawing = AssistantSphere(size: typeSize.isAccessibilitySize ? 176 : 232,
+                                      depth: asked ? Gilbert.depth(of: latest) : 0,
+                                      gatheredAt: gatheredAt,
+                                      level: listener.phase == .listening && !reduceMotion ? listener.level : 0,
+                                      pulse: pulse)
+        if listener.phase == .listening {
+            Button { listener.stop() } label: { drawing }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Gilbert.voice.stopLabel)
+        } else if listener.available && canTalk {
+            Button { listener.talk() } label: { drawing }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Gilbert.voice.talkLabel)
+                .accessibilityHint(Gilbert.voice.howItWorks)
+        } else {
+            drawing
+        }
+    }
+
+    // MARK: - Speaking
+
+    @ViewBuilder private var voiceArea: some View {
+        switch listener.phase {
+        case .unavailable:
+            SceneNote(text: Gilbert.voice.unavailable)
+        case .refused:
+            SceneNote(text: Gilbert.voice.refused)
+        case .idle, .failed:
+            VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+                if listener.phase == .failed { SceneNote(text: Gilbert.voice.failed) }
+                Button { listener.talk() } label: {
+                    Label(Gilbert.voice.talkLabel, systemImage: "mic.fill")
+                        .font(.body.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                }
+                .buttonStyle(SceneButtonStyle(filled: true))
+                .accessibilityHint(Gilbert.voice.howItWorks)
+                Text(Gilbert.voice.howItWorks)
+                    .font(.footnote).foregroundStyle(ThusoTheme.brandMint)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
+            }
+        case .explaining:
+            SceneCard {
+                Text(Gilbert.voice.beforePermission).font(.body).foregroundStyle(ThusoTheme.surface)
+                    .fixedSize(horizontal: false, vertical: true)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: ThusoSpacing.space8) { permissionButtons }
+                    VStack(spacing: ThusoSpacing.space8) { permissionButtons }
+                }
+            }
+        case .listening:
+            SceneCard {
+                Text(Gilbert.voice.captionsLabel).thusoFont(ThusoType.caption, weight: .semibold)
+                    .foregroundStyle(ThusoTheme.brandMint)
+                Text(listener.captions.isEmpty ? "…" : listener.captions)
+                    .font(.title3).foregroundStyle(ThusoTheme.surface)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(Gilbert.voice.captionsLabel)
+                    .accessibilityValue(listener.captions)
+                    .accessibilityAddTraits(.updatesFrequently)
+                Button { listener.stop() } label: {
+                    Label(Gilbert.voice.stopLabel, systemImage: "stop.fill")
+                        .font(.title3.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 60)
+                }
+                .buttonStyle(SceneButtonStyle(filled: true))
+                .accessibilityIdentifier("gilbert-stop")
+            }
+        case .finishing:
+            SceneNote(text: Gilbert.spec(.thinking).announcement)
+        case .heard:
+            SceneCard {
+                Text(Gilbert.voice.correctLabel).thusoFont(ThusoType.caption, weight: .semibold)
+                    .foregroundStyle(ThusoTheme.brandMint)
+                    .fixedSize(horizontal: false, vertical: true)
+                TextField(Gilbert.conversation.inputHint, text: $correction, axis: .vertical)
+                    .lineLimit(1...6)
+                    .focused($correcting)
+                    .foregroundStyle(ThusoTheme.brandInk)
+                    .padding(ThusoSpacing.space12)
+                    .frame(minHeight: 44)
+                    .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                    .accessibilityLabel(Gilbert.voice.correctLabel)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: ThusoSpacing.space8) { correctionButtons }
+                    VStack(spacing: ThusoSpacing.space8) { correctionButtons }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var permissionButtons: some View {
+        Button { listener.consent() } label: { Text(Gilbert.voice.askPermissionLabel).frame(maxWidth: .infinity, minHeight: 44) }
+            .buttonStyle(SceneButtonStyle(filled: true))
+        Button { listener.notNow() } label: { Text(Gilbert.voice.notNowLabel).frame(maxWidth: .infinity, minHeight: 44) }
+            .buttonStyle(SceneButtonStyle(filled: false))
+    }
+
+    @ViewBuilder private var correctionButtons: some View {
+        Button(action: sendCorrection) { Text(Gilbert.conversation.sendLabel).frame(maxWidth: .infinity, minHeight: 44) }
+            .buttonStyle(SceneButtonStyle(filled: true))
+            .disabled(correction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        Button { correction = ""; listener.discard() } label: { Text(Gilbert.voice.discardLabel).frame(maxWidth: .infinity, minHeight: 44) }
+            .buttonStyle(SceneButtonStyle(filled: false))
+    }
+
+    // MARK: - The conversation
+
+    private var conversation: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
+            ForEach(turns) { turn in
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+                    if let asked = turn.asked {
+                        Text(asked)
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(ThusoTheme.brandInk)
+                            .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space8)
+                            .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityLabel("\(turn.channel == .spoken ? Gilbert.conversation.youSaid : Gilbert.conversation.youAsked): \(asked)")
+                    }
+                    SceneCard {
+                        Text(Gilbert.name.uppercased())
+                            .thusoFont(ThusoType.caption, weight: .semibold).tracking(1.2)
+                            .foregroundStyle(ThusoTheme.brandMint)
+                            .accessibilityHidden(true)
+                        replyBody(turn.reply)
+                    }
+                    .accessibilityElement(children: .contain)
+                }
+                .id(turn.id)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Gilbert.conversation.logLabel)
+    }
+
+    @ViewBuilder private func replyBody(_ reply: Gilbert.Reply) -> some View {
+        switch reply {
+        case .situation(let situation):
+            SceneText(situation.sentence)
+        case .identity:
+            SceneText(Gilbert.whatItIs)
+            SceneText(Gilbert.whatItIsNot)
+        case .voice:
+            SceneText(Gilbert.voice.howItWorks)
+            if let kept = Gilbert.refusals.first(where: { $0.id == "no-audio-kept" }) { SceneText(kept.statement) }
+            if !listener.available { SceneText(Gilbert.voice.unavailable) }
+        case .emergency(let groups):
+            if !groups.isEmpty {
+                SceneText(Gilbert.emergency.noticed)
+                ForEach(groups) { group in
+                    Text(group.name).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.surface)
+                        .padding(.leading, ThusoSpacing.space12)
+                        .overlay(alignment: .leading) { Rectangle().fill(ThusoTheme.brandOrange).frame(width: 2) }
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            SceneText(Gilbert.emergency.headline, weight: .semibold)
+            SceneText(Gilbert.emergency.lead)
+            lines(Gilbert.emergency.lines)
+            SceneText(Gilbert.emergency.notAnAmbulance, quiet: true)
+            Button { showingSos = true } label: {
+                Label(Gilbert.emergency.sosLabel, systemImage: "cross.case.fill").frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(SceneButtonStyle(filled: true))
+        case .unmatched:
+            SceneText(Gilbert.unmatched.sentence, weight: .semibold)
+            SceneText(Gilbert.unmatched.detail)
+            SceneText(Gilbert.unmatched.ifUrgent)
+            lines(Gilbert.unmatched.lines)
+            Button { turns = Gilbert.handOver(turns: turns) } label: {
+                Label(Gilbert.unmatched.handoverLabel, systemImage: "person.fill").frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(SceneButtonStyle(filled: true))
+            Button { showingSos = true } label: {
+                Label(Gilbert.unmatched.sosLabel, systemImage: "cross.case.fill").frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(SceneButtonStyle(filled: false, urgent: true))
+        case .handover(let rows):
+            SceneText(Gilbert.handover.title, weight: .semibold)
+            SceneText(Gilbert.handover.lead)
+            ForEach(rows, id: \.label) { row in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(row.label).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.brandMint)
+                    Text(row.value).font(.body).foregroundStyle(ThusoTheme.surface).fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .combine)
+            }
+            SceneText(Gilbert.handover.notSent, weight: .semibold)
+        }
+    }
+
+    /* The numbers in a real column: one width for the digits, so the names start at the same edge.
+       Printed, never dialled — the SOS screen says nothing here dials. */
+    private func lines(_ lines: [GilbertLine]) -> some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
+            ForEach(lines, id: \.number) { line in
+                HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
+                    Text(line.number).font(.title2.weight(.semibold).monospacedDigit()).foregroundStyle(ThusoTheme.surface)
+                        .frame(minWidth: 72, alignment: .leading)
+                    Text(line.name).font(.body).foregroundStyle(ThusoTheme.surface).fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+
+    // MARK: - What to ask, and what Gilbert will not do
+
+    private var suggestions: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space20) {
+            ForEach(Gilbert.questionGroups, id: \.id) { group in
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+                    SceneHeading(group.heading)
+                    if let lead = group.lead {
+                        Text(lead).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.brandMint)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    ForEach(Gilbert.questions.filter { $0.group == group.id }) { question in
+                        Button { turns = Gilbert.choose(question, turns: turns) } label: {
+                            Text(question.asks).frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                                .multilineTextAlignment(.leading)
+                        }
+                        .buttonStyle(SceneButtonStyle(filled: false, urgent: question.answer == "emergency"))
+                    }
+                }
+            }
+            if asked {
+                Button { turns = Gilbert.opening() } label: {
+                    Label(Gilbert.conversation.startAgainLabel, systemImage: "arrow.counterclockwise")
+                        .frame(minHeight: 44)
+                }
+                .foregroundStyle(ThusoTheme.surface)
+            }
+        }
+    }
+
     private var refusals: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            SceneHeading("Why it cannot listen")
-            SceneCard {
-                ForEach(Array(Capabilities.blocking(capability).enumerated()), id: \.offset) { index, reason in
-                    if index > 0 {
-                        Rectangle().fill(ThusoTheme.surface.opacity(0.14)).frame(height: 1)
-                            .accessibilityHidden(true)
-                    }
-                    Text(reason).font(.footnote).foregroundStyle(ThusoTheme.surface)
+            SceneHeading(Gilbert.conversation.refusalsHeading)
+            SceneCard(spacing: ThusoSpacing.space8) {
+                ForEach(Gilbert.refusals) { refusal in
+                    Text(refusal.statement).font(.footnote).foregroundStyle(ThusoTheme.surface)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.vertical, ThusoSpacing.space4)
                 }
             }
-            if let rule = Capabilities.neverSoften(capability) {
-                SceneCard(spacing: ThusoSpacing.space8) {
-                    Text("The rule this screen is built to")
-                        .thusoFont(ThusoType.caption, weight: .semibold)
-                        .foregroundStyle(ThusoTheme.brandMint)
-                    Text(rule).font(.footnote).foregroundStyle(ThusoTheme.surface)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            Text("\(Gilbert.poweredBy). \(Gilbert.poweredByMeans)")
+                .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.brandMint)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var silence: some View {
+        Text(Gilbert.silenceIsNotSafety)
+            .font(.footnote).foregroundStyle(ThusoTheme.brandMint)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    // MARK: - Typing
+
+    /* Side by side at ordinary sizes; stacked, with a full-width Send, at the accessibility sizes. Side by
+       side at AccessibilityXXXL the button broke its own label into "Sen" and "d" — a word cut in half is
+       not a label, and the reader who asked for the largest type is the one who cannot guess it. */
+    private var composer: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+            if typeSize.isAccessibilitySize {
+                VStack(spacing: ThusoSpacing.space8) { composerField; composerSend(fill: true) }
+            } else {
+                HStack(spacing: ThusoSpacing.space8) { composerField; composerSend(fill: false) }
+                silence
             }
         }
+        .padding(.horizontal, ThusoSpacing.space20)
+        .padding(.vertical, ThusoSpacing.space12)
+        .background(ThusoTheme.brandInk)
+        .overlay(alignment: .top) { Rectangle().fill(ThusoTheme.brandMint.opacity(0.22)).frame(height: 1) }
     }
 }
 
-// MARK: - Two small pieces this screen is the only user of
+extension AssistantView {
+    fileprivate var composerField: some View {
+        TextField(Gilbert.conversation.inputHint, text: $draft)
+            .submitLabel(.send)
+            .onSubmit(sendDraft)
+            .foregroundStyle(ThusoTheme.brandInk)
+            .padding(.horizontal, ThusoSpacing.space12)
+            .frame(minHeight: 44)
+            .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            .accessibilityLabel(Gilbert.conversation.inputLabel)
+            .accessibilityIdentifier("gilbert-input")
+    }
 
-/// A section title on the night ground. The shared CareSectionHeader sets charcoal, which is the
-/// right answer on every other screen in this app and unreadable on this one.
+    fileprivate func composerSend(fill: Bool) -> some View {
+        Button(action: sendDraft) {
+            Text(Gilbert.conversation.sendLabel).font(.body.weight(.semibold))
+                .padding(.horizontal, ThusoSpacing.space16)
+                .frame(maxWidth: fill ? .infinity : nil, minHeight: 44)
+                .frame(minWidth: 44)
+        }
+        .buttonStyle(SceneButtonStyle(filled: true))
+        .accessibilityIdentifier("gilbert-send")
+    }
+}
+
+// MARK: - Small pieces this screen is the only user of
+
+/// A section title on the night ground. The shared header sets charcoal, which is unreadable here.
 private struct SceneHeading: View {
     let text: String
     init(_ text: String) { self.text = text }
@@ -296,18 +506,58 @@ private struct SceneHeading: View {
 }
 
 /// A panel that belongs to the dark ground: a lift rather than a fill, and a hairline rather than a
-/// shadow — the same separation rule the light cards follow, spelled the other way up.
+/// shadow.
 private struct SceneCard<Content: View>: View {
     var spacing: CGFloat = ThusoSpacing.space12
     @ViewBuilder var content: Content
-    private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)
-    }
+    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous) }
     var body: some View {
         VStack(alignment: .leading, spacing: spacing) { content }
             .padding(ThusoSpacing.space16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.white.opacity(0.06), in: shape)
             .overlay(shape.stroke(ThusoTheme.surface.opacity(0.16), lineWidth: 1))
+    }
+}
+
+private struct SceneNote: View {
+    let text: String
+    var body: some View {
+        Text(text).font(.footnote).foregroundStyle(ThusoTheme.surface)
+            .padding(ThusoSpacing.space12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(ThusoTheme.surface.opacity(0.08), in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+private struct SceneText: View {
+    let text: String
+    var weight: Font.Weight = .regular
+    var quiet = false
+    init(_ text: String, weight: Font.Weight = .regular, quiet: Bool = false) { self.text = text; self.weight = weight; self.quiet = quiet }
+    var body: some View {
+        Text(text).font(.body.weight(weight)).foregroundStyle(quiet ? ThusoTheme.brandMint : ThusoTheme.surface)
+            .lineSpacing(3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// White and ink when filled; a mint hairline (4.14:1 against the ground) when not; an orange edge for
+/// the one question that leads to an ambulance.
+private struct SceneButtonStyle: ButtonStyle {
+    let filled: Bool
+    var urgent = false
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
+        configuration.label
+            .font(.body.weight(.semibold))
+            .foregroundStyle(filled ? ThusoTheme.brandInk : ThusoTheme.surface)
+            .padding(.horizontal, ThusoSpacing.space12)
+            .background(filled ? AnyShapeStyle(ThusoTheme.surface.opacity(configuration.isPressed ? 0.85 : 1))
+                               : AnyShapeStyle(Color.white.opacity(configuration.isPressed ? 0.14 : 0.07)), in: shape)
+            .overlay(shape.stroke(urgent ? ThusoTheme.brandOrange : (filled ? Color.clear : ThusoTheme.brandMint.opacity(0.62)), lineWidth: urgent ? 2 : 1))
+            .contentShape(shape)
     }
 }

@@ -17,10 +17,11 @@
    rather than empty on most capabilities:
      - `evidence` is null until something exists to point at. It becomes String? / String?.
      - `neverSoften` is carried by two capabilities — voice and emergency — and by no others.
-     - `requiresPermissions` is on none of them today. Both apps declare zero permissions, and
-       scripts/check-boundaries.mjs will only allow one that some capability has named here. The
-       field is written out as an empty list rather than skipped so that the day it stops being
-       empty is a data change and not a change to this generator.
+     - `requiresPermissions` is carried by voice alone: each entry names a permission, the platform
+       it is declared on and the feature it serves. The apps are given the permission names only —
+       what each serves is for the reader of the contract and for scripts/check-boundaries.mjs, which
+       allows no permission a capability has not named here. It is written out as an empty list on
+       the others rather than skipped, so a new one is a data change and not a generator change.
 
    The keys beginning with an underscore — _note, _honestyNote, _permissionsNote — are commentary
    for whoever opens the contract, and they are deliberately not emitted. No other emitter carries
@@ -48,6 +49,8 @@ const swift = value => {
 const kotlin = value => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$')}"`;
 const listSwift = values => values.length ? `[${values.map(swift).join(', ')}]` : '[]';
 const listKotlin = values => values.length ? `listOf(${values.map(kotlin).join(', ')})` : 'emptyList()';
+/* A permission is written into the contract with the feature it serves. The apps need its name. */
+const permissionNames = capability => (capability.requiresPermissions ?? []).map(p => (typeof p === 'string' ? p : p.permission));
 const optionalSwift = value => (value ? swift(value) : 'nil');
 const optionalKotlin = value => (value ? kotlin(value) : 'null');
 
@@ -63,9 +66,9 @@ const banner = count => [
  'platform at once.',
  '',
  'The keys beginning with an underscore in the contract are commentary and are not written out.',
- '`requiresPermissions` is empty on every capability, which is why both apps may still declare no',
- 'permission at all — scripts/check-boundaries.mjs refuses any permission no capability has asked',
- 'for.'
+ '`requiresPermissions` names the only permissions either app may declare — today three, all for',
+ 'Gilbert\'s push-to-talk — and scripts/check-boundaries.mjs refuses any permission no capability',
+ 'has asked for.'
 ].map(line => (line ? `// ${line}` : '//')).join('\n');
 
 export function emitCapabilities(root = '') {
@@ -86,7 +89,7 @@ export function emitCapabilities(root = '') {
      capability whose block did not reach the native apps would render the absent sentence — a nurse
      told nothing is connected while a simulator answers her, which is the disclosure failure the
      third state was introduced to prevent rather than a cosmetic one. */
-  if (!['absent', 'simulated', 'connected'].includes(capability.state)) throw new Error(`Capability "${capability.id}" has state ${JSON.stringify(capability.state)}. A generated file cannot carry a state nothing declares.`);
+  if (!['absent', 'on-device', 'simulated', 'connected'].includes(capability.state)) throw new Error(`Capability "${capability.id}" has state ${JSON.stringify(capability.state)}. A generated file cannot carry a state nothing declares.`);
   if ((capability.state === 'simulated') !== Boolean(capability.simulation)) throw new Error(`Capability "${capability.id}" says state "${capability.state}" and ${capability.simulation ? 'carries' : 'carries no'} simulation block. One of the two is wrong and the generated file would ship it to three platforms.`); }
  for (const rule of contract.rules) {
   for (const field of ['id', 'statement', 'why']) {
@@ -115,7 +118,7 @@ ${c.simulation.refuses.map(x => `                                               
                                               ])` : 'nil'},
                    surfaces: ${listSwift(c.surfaces ?? [])},
                    neverSoften: ${optionalSwift(c.neverSoften)},
-                   requiresPermissions: ${listSwift(c.requiresPermissions ?? [])})`).join(',\n')}
+                   requiresPermissions: ${listSwift(permissionNames(c))})`).join(',\n')}
     ]
 
     /* How the notices are meant to be used. Rendered on the readiness screens rather than only
@@ -139,8 +142,8 @@ package za.co.mythuso.model
 
 /** One thing MyThuso either does or only draws. \`evidence\` is null until there is a file to open,
  *  \`neverSoften\` is carried only by the two capabilities somebody would be tempted to soften, and
- *  \`requiresPermissions\` is empty on all of them — which is what lets both apps ask a device for
- *  nothing at all. */
+ *  \`requiresPermissions\` names the only permissions an app may declare, and only voice carries
+ *  any. */
 data class Simulation(val supplier: String, val notice: String, val refuses: List<String>)
 
 data class Capability(
@@ -150,7 +153,7 @@ data class Capability(
     val evidence: String?,
     val blockedBy: List<String>,
     val notice: String,
-    /** "absent", "simulated" or "connected". A simulated capability is never quieter than an absent
+    /** "absent", "on-device", "simulated" or "connected". A simulated capability is never quieter than an absent
      *  one: it renders [Simulation.notice] where the absent notice would have gone. */
     val state: String,
     val simulation: Simulation?,
@@ -180,7 +183,7 @@ ${c.simulation.refuses.map(x => `            ${kotlin(x)}`).join(',\n')}
         ))` : 'null'},
         ${listKotlin(c.surfaces ?? [])},
         ${optionalKotlin(c.neverSoften)},
-        ${listKotlin(c.requiresPermissions ?? [])})`).join(',\n')}
+        ${listKotlin(permissionNames(c))})`).join(',\n')}
 )
 
 /* How the notices are meant to be used. Rendered on the readiness screens rather than only obeyed,

@@ -2,20 +2,24 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentTyp
 import { OPEN_PARAM } from '../lib/roles';
 import type { PanelProps } from '../features/Assistant';
 
-/* The floating way into the assistant, bottom right, on every patient page.
+/* The floating way into Gilbert, bottom right, on every patient page.
 
    This file is in the patient entry, so it is a button, a CSS orb and a lazy import, and nothing
-   more. The panel, the sphere's canvas, the conversation and their stylesheet are a separate chunk,
-   fetched the first time somebody reaches for the orb. That happens on hover or focus, as a
-   prefetch, or on the press itself. A patient on metered data who never touches it never downloads
-   it. Where it sits is the shell's business (see the `assistant` slot in shells/PatientShell.tsx),
-   which is why there is no measuring here.
+   more. The panel, the sphere's canvas, the conversation, the contract behind it and their
+   stylesheet are a separate chunk, fetched the first time somebody reaches for the orb — on hover
+   or focus as a prefetch, or on the press itself. A patient on metered data who never touches it
+   never downloads it. Where it sits is the shell's business (the `assistant` slot in
+   shells/PatientShell.tsx).
 
-   What the Siri comparison is and is not. It is presence and placement: a small lit thing that is
-   always in reach. It is not listening. There is no hold-to-talk gesture and no long-press, and the
-   orb never reacts to sound, because `voice` in packages/catalog/capabilities.json is not connected
-   and its neverSoften rule forbids any microphone affordance, decorative ones included. A press
-   opens a panel of questions, and that is all a press does. */
+   The name is typed here rather than imported, and that is the one exception to reading
+   packages/catalog/assistant.json: importing the contract into the entry would put every sentence
+   Gilbert can say into the first load of every patient. scripts/check-boundaries.mjs holds this
+   label to the contract's callToAction instead.
+
+   What the Siri comparison is and is not, on the web. It is presence and placement: a small lit
+   thing always in reach. It is not listening. There is no hold-to-talk gesture and no long-press,
+   and the orb never reacts to sound — the web has no microphone in this release. A press opens a
+   panel with a text box, and that is all a press does. */
 
 const load = () => import('../features/Assistant');
 let pending: ReturnType<typeof load> | null = null;
@@ -32,7 +36,7 @@ export function AssistantLauncher({ openModal }: { openModal: (modal: string) =>
  const Panel = useMemo(() => lazy<ComponentType<PanelProps>>(() => prefetch().catch(() => {
   pending = null;
   return { default: ({ open: showing }: PanelProps) => showing
-   ? <p className="al-note" role="alert">The assistant could not be downloaded. <button type="button" onClick={() => setAttempt(n => n + 1)}>Try again</button></p>
+   ? <p className="al-note" role="alert">Gilbert could not be downloaded. <button type="button" onClick={() => setAttempt(n => n + 1)}>Try again</button></p>
    : null };
  })), [attempt]);
 
@@ -42,13 +46,13 @@ export function AssistantLauncher({ openModal }: { openModal: (modal: string) =>
  }, [open]);
 
  return <div className="al-dock">
-  <button ref={button} type="button" className="as-launcher" aria-label="Assistant" aria-haspopup="dialog"
+  <button ref={button} type="button" className="as-launcher" aria-label="Ask Gilbert" aria-haspopup="dialog"
    aria-expanded={open} aria-controls={opened ? 'assistant-panel' : undefined}
    onPointerEnter={() => void prefetch()} onFocus={() => void prefetch()}
    onClick={() => { setOpened(true); setOpen(!open); }}>
    <span className="al-glow"/><span className="al-orb"/><span className="al-ring"/><span className="al-spark"><i/></span>
   </button>
-  {opened && <Suspense fallback={open ? <p className="al-note" role="status">Opening the assistant.</p> : null}>
+  {opened && <Suspense fallback={open ? <p className="al-note" role="status">Opening Gilbert.</p> : null}>
    <Panel open={open} dismiss={() => setOpen(false)} openModal={modal => { setOpen(false); openModal(modal); }}/>
   </Suspense>}
  </div>;

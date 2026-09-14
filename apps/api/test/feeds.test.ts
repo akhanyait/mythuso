@@ -241,7 +241,7 @@ describe('what a vendor is handed', () => {
     assert.match(body.holds, /refuses every payload/);
     assert.equal(body.feeds.length, FEEDS.length);
     for (const feed of body.feeds) assert.equal(feed.connected, false, feed.id);
-    assert.equal(body.noSeam.length, 3);
+    assert.equal(body.noSeam.length, 2);
   });
   test('a feed describes what would have to arrive and what never may', async () => {
     const body = await (await get('/feeds/nurse-position')).json() as {

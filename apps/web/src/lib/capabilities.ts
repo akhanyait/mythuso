@@ -37,7 +37,7 @@ export const capability = (id: string): Capability => {
 
 export const isConnected = (id: string) => capability(id).connected;
 
-export type CapabilityState = 'absent' | 'simulated' | 'connected';
+export type CapabilityState = 'absent' | 'on-device' | 'simulated' | 'connected';
 /* Three states, not two. `simulated` was added when the founder asked to walk the whole product end
    to end before a single supplier had been signed, and the honest way to give him that was a third
    state rather than the second one — marking these connected would have taken the notice off every

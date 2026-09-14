@@ -1,47 +1,37 @@
 import SwiftUI
 
-/* The sphere the assistant screen is built around, and the reason it is a sphere.
+/* Gilbert Pulse: the sphere Gilbert is drawn as, and the reason it is a sphere.
 
-   packages/catalog/capabilities.json carries `voice` with connected: false, and its neverSoften
-   note forbids drawing a microphone affordance of any kind — not an enabled one, not a disabled
-   one, not a decorative one. That rule removes the entire visual vocabulary a person expects an
-   assistant to be made of: the capsule, the bar meter, the pulsing ring around a glyph. What is
-   left has to suggest presence without suggesting hearing, and a sphere is the one form that does.
-   It has no mouth and no aperture. It is lit rather than listening.
+   Section 15E of the ThusoIQ master document chose a non-human sphere so that Gilbert is never drawn
+   as a clinician: it has no face, no mouth and no aperture, and it is lit rather than listening. That
+   is still the rule. What changed on 14 September 2026 is that Gilbert may now listen on a phone —
+   push-to-talk, English, on-device — and the founder asked for the sphere to react to a voice the way
+   Siri's wave does. So the sphere takes two inputs it did not have, and neither of them is ever the
+   only thing that says what is happening: the screen says the state in words beside it.
 
-   So this file draws a volumetric orb and nothing else. There is no gesture on it, no tap target
-   inside it, no symbol anywhere in it, and it is accessibilityHidden — everything it means is said
-   in words beside it, because a reader who is listening to this screen must get the meaning and not
-   a description of a green shape.
+   `level` is the live loudness of the microphone, 0 to 1. GilbertListener publishes it only while the
+   microphone is open and resets it to zero when it closes, and the screen passes zero under Reduce
+   Motion, so a sphere that is reacting is a microphone that is open. It swells the body, pushes the
+   halo and orbits outwards, and ripples the surface with rings shed outwards — the web's drawing of
+   the same thing, which is where it was designed.
+
+   `pulse` is the Pulse state, carried in form as well as tone. Thinking quickens the particles and
+   brings the lime in; Escalate brings the roof's orange into the bleed and the orbit as a controlled
+   accent; Handover dims the body and holds it still behind the summary.
 
    HOW IT IS PUT TOGETHER, outside in: an ambient bleed that has no edge at all and dissolves into
    the ground; three concentric halo rings; two tilted orbit rings whose brightness travels round
-   their circumference; the body, which is a radial gradient with a deep core and a bright rim, with
-   three slow caustics drifting inside it, one travelling sheen, a terminator shadow at the
-   bottom-right that is what makes it read as a ball rather than a disc, and a single specular
-   highlight well off centre — centred, it hollows the shape into a ring; and finally a field of
-   fine particles on a flattened orbital plane, drawn in one Canvas rather than as twenty-six views.
+   their circumference; the body, a radial gradient with a deep core and a bright rim, a travelling
+   sheen, a bounce light in the shadow and one specular highlight well off centre; and a field of
+   fine particles on a flattened orbital plane, drawn in one Canvas with the ripple.
 
    NOTHING IS RANDOM. Every particle's radius, size, speed and twinkle comes from its index through
-   the golden angle and a couple of modulo terms, so the drawing is the same drawing on every run
-   and a screenshot test can be trusted. A random field would look the same and would make every
-   comparison a coin toss.
+   the golden angle and a couple of modulo terms, so the drawing is the same drawing on every run and
+   a screenshot can be trusted.
 
-   THE TWO THINGS IT DOES OVER TIME. At rest it breathes: one 6.5-second sine drives a scale and a
-   luminance swell across the bleed, the body and the highlight, and the orbit rings drift against
-   it. When the screen hands it a new state it gathers — the rings tighten inwards, the halo
-   brightens, the caustics move at nearly three times their resting speed — holds for about a
-   second, and settles. That envelope is computed from the clock rather than from withAnimation,
-   because a gradient's colour stops and a Canvas's contents are not animatable data: SwiftUI would
-   step them rather than interpolate them, and half of the drawing would arrive late.
-
-   AND UNDER REDUCE MOTION IT STOPS, RATHER THAN SLOWING. The timeline is paused and the clock is
-   replaced by one fixed moment, chosen because the caustics are balanced there rather than stacked.
-   Every layer still draws. What a person gets is the whole sphere, still — never a blank circle and
-   never a half-built one, which is what happens when an animated drawing is switched off by
-   removing the thing that was animating it. The same pause covers the two cheaper cases: the
-   sphere is off screen, or the app is not in front. A 30fps redraw behind a screen nobody is
-   looking at is the cost this product can least justify on a phone somebody keeps to book a nurse. */
+   AND UNDER REDUCE MOTION IT STOPS, RATHER THAN SLOWING. The timeline is paused, the clock is one
+   fixed moment and the level is ignored. Every layer still draws: the whole sphere, still, in the
+   state it is in. The same pause covers the sphere being off screen or the app not in front. */
 
 struct AssistantSphere: View {
     var size: CGFloat = 272
@@ -52,6 +42,10 @@ struct AssistantSphere: View {
     /// When the screen last handed the sphere something new to show. Nil means it has always been
     /// showing this, so there is nothing to gather about.
     var gatheredAt: Date?
+    /// The microphone's loudness, 0 to 1, while Listening and at no other time. Ignored under Reduce Motion.
+    var level: Double = 0
+    /// The Pulse state being drawn.
+    var pulse: Gilbert.Pulse = .idle
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -90,6 +84,10 @@ struct AssistantSphere: View {
        rather than as tone: settled wears a thick soft shell and the lapsing credential a thin hot
        one, so a reader who cannot separate four greens still sees a different shape. */
     private var rimStart: CGFloat { 0.70 + CGFloat(step) * 0.055 }
+    /// The bleed's colour: the wordmark's green, and the roof's orange while escalated.
+    private var accent: Color { pulse == .escalate ? ThusoTheme.brandOrange : ThusoTheme.brandGreen }
+    /// The travelling glint in the orbits: lime while Thinking, orange while escalated.
+    private var glint: Color { pulse == .escalate ? ThusoTheme.brandOrange : ThusoTheme.brandLime }
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30,
@@ -97,12 +95,18 @@ struct AssistantSphere: View {
             let clock = reduceMotion ? Self.stillMoment : context.date.timeIntervalSinceReferenceDate
             let breath = reduceMotion ? 0 : sin(clock * 2 * .pi / Self.breathPeriod)
             let gather = gathering(at: context.date)
+            let heard = reduceMotion ? 0 : min(1, max(0, level))
             ZStack {
                 bleed(breath: breath, gather: gather)
+                    .scaleEffect(1 + 0.20 * heard)
                 halo(breath: breath, gather: gather)
+                    .scaleEffect(1 + 0.14 * heard)
                 orbits(clock: clock, breath: breath, gather: gather)
+                    .scaleEffect(1 + 0.10 * heard)
                 sphere(clock: clock, breath: breath, gather: gather)
-                particles(clock: clock, gather: gather)
+                    .scaleEffect(1 + 0.09 * heard)
+                    .opacity(pulse == .handover ? 0.72 : 1)
+                particles(clock: clock, gather: gather, heard: heard)
             }
         }
         .frame(width: size, height: size)
@@ -134,8 +138,8 @@ struct AssistantSphere: View {
     private func bleed(breath: Double, gather: Double) -> some View {
         ZStack {
             Circle().fill(RadialGradient(gradient: Gradient(stops: [
-                .init(color: ThusoTheme.brandGreen.opacity(0.58 + gather * 0.18), location: 0),
-                .init(color: ThusoTheme.brandGreen.opacity(0.26), location: 0.38),
+                .init(color: accent.opacity((pulse == .escalate ? 0.46 : 0.58) + gather * 0.18), location: 0),
+                .init(color: accent.opacity(pulse == .escalate ? 0.18 : 0.26), location: 0.38),
                 .init(color: mid.opacity(0.09), location: 0.72),
                 .init(color: mid.opacity(0), location: 1)
             ]), center: .center, startRadius: size * 0.26, endRadius: size * spread))
@@ -185,7 +189,7 @@ struct AssistantSphere: View {
             .stroke(AngularGradient(gradient: Gradient(stops: [
                 .init(color: ThusoTheme.brandMint.opacity(0), location: 0),
                 .init(color: ThusoTheme.brandMint.opacity(opacity), location: 0.15),
-                .init(color: ThusoTheme.brandLime.opacity(opacity * 0.55), location: 0.32),
+                .init(color: glint.opacity(opacity * (pulse == .thinking || pulse == .escalate ? 0.95 : 0.55)), location: 0.32),
                 .init(color: ThusoTheme.brandMint.opacity(0), location: 0.58),
                 .init(color: ThusoTheme.brandMint.opacity(0), location: 1)
             ]), center: .center, angle: .degrees(angle)), lineWidth: weight)
@@ -314,25 +318,49 @@ struct AssistantSphere: View {
        stops them reading as a clock face. They draw inwards and brighten while the sphere gathers.
        One in five is lime and the rest mint, chosen by index like everything else here, so the field
        is the same field on every run. */
-    private func particles(clock: Double, gather: Double) -> some View {
-        Canvas { context, box in
+    private func particles(clock: Double, gather: Double, heard: Double) -> some View {
+        let quick = pulse == .thinking ? 2.4 : 1.0
+        let limeEvery = pulse == .thinking ? 2 : 5
+        return Canvas { context, box in
             let centre = CGPoint(x: box.width / 2, y: box.height / 2)
             let extent = Double(size)
             for index in 0..<26 {
                 let seed = Double(index)
-                let drift = 0.05 + fmod(seed, 5) * 0.011
+                let drift = (0.05 + fmod(seed, 5) * 0.011) * quick
                 let angle = seed * 2.39996 + clock * drift * (1 + gather * 1.7)
-                let orbit = (0.335 + fmod(seed * 0.37, 1) * 0.19) * (1 - gather * 0.10)
-                let wobble = sin(clock * 0.6 + seed) * extent * 0.012
+                let orbit = (0.335 + fmod(seed * 0.37, 1) * 0.19) * (1 - gather * 0.10) * (1 + heard * 0.08)
+                let wobble = sin(clock * (0.6 + heard * 5) + seed) * extent * (0.012 + heard * 0.03)
                 let reach = extent * orbit + wobble
                 let point = CGPoint(x: centre.x + CGFloat(cos(angle) * reach),
                                     y: centre.y + CGFloat(sin(angle) * reach * 0.62))
                 let twinkle = 0.30 + 0.42 * (0.5 + 0.5 * sin(clock * (1.1 + fmod(seed, 3) * 0.4) + seed * 1.7))
-                let dot = CGFloat(extent * (0.006 + fmod(seed * 0.11, 1) * 0.008))
+                let dot = CGFloat(extent * (0.006 + fmod(seed * 0.11, 1) * 0.008) * (1 + heard * 0.5))
                 let spot = CGRect(x: point.x - dot / 2, y: point.y - dot / 2, width: dot, height: dot)
                 context.fill(Path(ellipseIn: spot),
-                             with: .color((index % 5 == 0 ? ThusoTheme.brandLime : ThusoTheme.brandMint)
-                                            .opacity(twinkle * (0.55 + gather * 0.35))))
+                             with: .color((index % limeEvery == 0 ? ThusoTheme.brandLime : ThusoTheme.brandMint)
+                                            .opacity(min(1, twinkle * (0.55 + gather * 0.35) * (1 + heard * 0.6)))))
+            }
+            /* The ripple: the surface wavering at three frequencies that share no factor, so it never
+               settles into a pattern while somebody speaks, and three rings shed outwards. Drawn only
+               while there is a level, which is only while the microphone is open. */
+            guard heard > 0.01 else { return }
+            let body = extent * 0.315 * (1 + heard * 0.09)
+            var surface = Path()
+            for step in 0...120 {
+                let theta = Double(step) / 120 * 2 * .pi
+                let ripple = 0.035 * sin(5 * theta + clock * 7) + 0.025 * sin(3 * theta - clock * 4.3) + 0.015 * sin(9 * theta + clock * 11)
+                let r = body * (1.015 + heard * ripple)
+                let spot = CGPoint(x: centre.x + CGFloat(cos(theta) * r), y: centre.y + CGFloat(sin(theta) * r))
+                if step == 0 { surface.move(to: spot) } else { surface.addLine(to: spot) }
+            }
+            surface.closeSubpath()
+            let line = max(1, extent * 0.004)
+            context.stroke(surface, with: .color(ThusoTheme.brandMint.opacity(min(1, heard * 0.9))), lineWidth: line)
+            for ring in 0..<3 {
+                let phase = fmod(clock * 0.8 + Double(ring) / 3, 1)
+                let radius = body * (1.06 + phase * 0.5)
+                let circle = Path(ellipseIn: CGRect(x: centre.x - radius, y: centre.y - radius, width: radius * 2, height: radius * 2))
+                context.stroke(circle, with: .color(ThusoTheme.brandMint.opacity(heard * (1 - phase) * 0.6)), lineWidth: line)
             }
         }
     }

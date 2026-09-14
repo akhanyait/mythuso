@@ -1,95 +1,106 @@
 import XCTest
 
-/* The assistant screen, asked the two questions it exists to answer.
+/* Gilbert on iOS, asked the questions it exists to answer, on a running simulator.
  *
- * It draws a soft luminous shape that changes with what the app knows, and that is the exact shape
- * of a claim this product cannot make: a blob beside a rounded rectangle reads as a voice assistant
- * to almost everybody. There is no speech model, no microphone permission on either platform, and
- * nothing designed yet for what happens to a recording of a person describing a symptom. So the
- * screen has to say so, and it has to offer nothing that looks like listening.
+ * scripts/check-boundaries.mjs reads the source: that the microphone lives in one file and asks for
+ * on-device recognition, that nothing records, that the usage descriptions are the contract's words.
+ * It cannot prove any of that reached a running screen. This file opens the app and looks.
  *
- * The division of labour with scripts/check-boundaries.mjs is deliberate. That check reads the
- * source and proves the sentence on this screen is the contract's rather than one somebody typed,
- * that no iOS file names a microphone symbol or reaches for an audio API, and that no label offers
- * in words to listen. It cannot prove any of it reached a running screen. This file can: it opens
- * the app on a simulator and looks at what is actually rendered.
+ * Four things.
  *
- * Which is why the notice is asserted by its opening clause rather than word for word. A UI test
- * runs against a built app it cannot import, so restating the whole sentence here would be a second
- * copy of it — the thing the contract exists to prevent — and it would drift the first time a word
- * changed. The wording is the build's question. Whether a person opening this screen is told
- * anything at all is this one's.
+ * The screen says what it is. The voice notice is on it — asked by the identifier CapabilityNotice
+ * gives it from the capability's id, because a UI test cannot import the contract and a copy of the
+ * sentence here would be a second copy of it. The sentence itself is held word for word by the build. The contract's
+ * silenceIsNotSafety sentence is asked for by its opening words for the same reason.
+ *
+ * Typing works, and gets the contract's answers. A question in a person's own words gets the visit
+ * answer; something Gilbert cannot match gets the honest answer with the ambulance number and a way
+ * to a nurse; an emergency word in an ordinary sentence gets the ambulance.
+ *
+ * Nothing is asked at launch. Opening the app, and opening Gilbert, raises no system permission
+ * prompt: the microphone is asked for after the contract's explanation, on the first tap to talk.
+ * SpringBoard is where that prompt would appear, so it is asked directly.
+ *
+ * And the screen is usable at both ends of the text-size scale. Whether the simulator can recognise
+ * English on the device is its own business; this file does not tap to talk, because a test that
+ * depends on a simulator's speech assets would be a test of the simulator.
  */
 final class AssistantTests: XCTestCase {
     override func setUp() { continueAfterFailure = false }
 
-    /// The clause a person would notice the absence of. The rest of the sentence is held word for
-    /// word by scripts/check-boundaries.mjs, against packages/catalog/capabilities.json.
-    private let noticeOpens = "MyThuso cannot listen to you"
-
-    private func openAssistant(_ app: XCUIApplication) {
+    private func openGilbert(_ app: XCUIApplication) {
         app.tabBars.buttons.element(boundBy: 4).tap()
         XCTAssertTrue(app.navigationBars["More"].waitForExistence(timeout: 20), "the More tab did not open")
-        tapAfterScrolling(app, app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Assistant'")).firstMatch)
-        XCTAssertTrue(app.navigationBars["Assistant"].waitForExistence(timeout: 20), "the assistant screen did not open")
+        tapAfterScrolling(app, app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Gilbert'")).firstMatch)
+        XCTAssertTrue(app.navigationBars["Gilbert"].waitForExistence(timeout: 20), "Gilbert's screen did not open")
     }
 
-    func testTheScreenSaysItCannotListen() {
+    /* Kept with the result bundle, so the screens this file asserted on can be looked at afterwards
+       rather than described. Nothing is written by the app; this is the test runner's own capture. */
+    private func keep(_ app: XCUIApplication, _ name: String) {
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
+    private func systemPrompt() -> XCUIElement {
+        XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.firstMatch
+    }
+
+    func testTheScreenSaysWhatItIs() {
         let app = launchApp()
-        openAssistant(app)
-        let notice = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", noticeOpens)).firstMatch
-        XCTAssertTrue(notice.waitForExistence(timeout: 20),
-                      "the assistant screen does not tell a person it cannot listen. The sentence is in packages/catalog/capabilities.json under the voice capability and is rendered by CapabilityNotice — if it has gone, either the capability was marked connected or the notice stopped being rendered.")
+        openGilbert(app)
+        XCTAssertTrue(app.descendants(matching: .any)["capability-notice-voice"].firstMatch.waitForExistence(timeout: 20),
+                      "Gilbert's screen does not render the voice capability's notice. It is rendered by CapabilityNotice from packages/catalog/capabilities.json; if it has gone, the capability was marked connected or the notice stopped being rendered.")
+        let silence = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Gilbert not recognising an emergency")).firstMatch
+        XCTAssertTrue(silence.waitForExistence(timeout: 10), "the sentence that silence is not safety is not beside the conversation")
+        keep(app, "gilbert-open")
     }
 
-    /* Nothing on the screen may offer to listen, and the offer can arrive three ways: as a symbol,
-       as a word on a control, or as a control whose accessibility label mentions the microphone
-       that is not there. All three are asked of the live tree rather than of the source, because
-       what a person acts on is what was rendered. */
-    func testNothingOnTheScreenOffersToListen() {
+    func testNothingIsAskedAtLaunchOrOnOpeningGilbert() {
         let app = launchApp()
-        openAssistant(app)
-
-        guard let root = try? app.snapshot() else { return XCTFail("the screen produced no accessibility snapshot") }
-        var nodes: [XCUIElementSnapshot] = []
-        func walk(_ node: XCUIElementSnapshot) { nodes.append(node); node.children.forEach(walk) }
-        walk(root)
-
-        /* SwiftUI puts an SF Symbol's own name in the element's identifier, so a microphone or an
-           audio meter anywhere in the drawing shows up here under the name it was drawn with.
-           waveform.path.* is the ECG trace the Health Passport charts a heartbeat with, and it is
-           not on this screen at all — it is allowed for the same reason the build allows it. */
-        let listening = nodes.filter { node in
-            let symbol = node.identifier
-            guard symbol.hasPrefix("mic") || symbol.hasPrefix("waveform") else { return false }
-            return !symbol.hasPrefix("waveform.path")
-        }
-        XCTAssertTrue(listening.isEmpty,
-                      "the assistant screen draws \(listening.map(\.identifier).joined(separator: ", ")). No microphone affordance may be drawn — not an enabled one, not a disabled one, not a decorative one, because a control that looks like it is listening and is not is worse than no control.")
-
-        /* A control is the only thing a person can act on, so it is a control's words that could
-           make a promise. The notice and the three reasons underneath it are static text and say
-           "microphone" on purpose — they are the sentence saying there is not one. */
-        let offers = try! NSRegularExpression(pattern: "\\b(tap|hold|press|touch|swipe) to (speak|talk|record|dictate)\\b|\\bmicrophone\\b|\\b(start|stop) listening\\b|\\bspeak now\\b",
-                                              options: .caseInsensitive)
-        let controls = nodes.filter { Audit.controlTypes.contains($0.elementType) }
-        let promising = controls.map(\.label).filter { label in
-            offers.firstMatch(in: label, range: NSRange(label.startIndex..., in: label)) != nil
-        }
-        XCTAssertTrue(promising.isEmpty,
-                      "a control on the assistant screen offers to listen: \(promising.joined(separator: ", ")). Nothing here has a microphone, and a control that says otherwise teaches a person to talk to an app that never heard them.")
+        XCTAssertFalse(systemPrompt().waitForExistence(timeout: 3), "a system permission prompt appeared at launch")
+        openGilbert(app)
+        XCTAssertFalse(systemPrompt().waitForExistence(timeout: 3), "a system permission prompt appeared when Gilbert opened, before anybody tapped to talk")
     }
 
-    /* The same audit the rest of the app is held to, at both ends of the text-size scale. The
-       screen it is aimed at here is one that was drawn to look beautiful, which is exactly where a
-       thirty-two-point control and a frozen point size get in — the two defects the Health
-       Passport's segmented control was just replaced for. */
+    func testTypingGetsTheContractsAnswers() {
+        let app = launchApp()
+        openGilbert(app)
+        let field = app.textFields["gilbert-input"]
+        XCTAssertTrue(field.waitForExistence(timeout: 20), "Gilbert has no text field")
+        let send = app.buttons["gilbert-send"]
+
+        field.tap()
+        field.typeText("when is my nurse coming")
+        send.tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "A nurse is expected on")).firstMatch.waitForExistence(timeout: 10),
+                      "a typed question did not get the visit answer")
+
+        field.tap()
+        field.typeText("my knee has been sore since tuesday")
+        send.tap()
+        XCTAssertTrue(app.staticTexts["I can't assess that."].waitForExistence(timeout: 10), "an unmatched message did not get the honest answer")
+        XCTAssertTrue(app.staticTexts["10177"].exists, "the unmatched answer does not show the ambulance number")
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Talk to a nurse")).firstMatch.exists, "the unmatched answer offers no way to a nurse")
+        keep(app, "gilbert-unmatched")
+
+        field.tap()
+        field.typeText("when is my nurse coming, my chest hurts")
+        send.tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Open Thuso SOS")).firstMatch.waitForExistence(timeout: 10),
+                      "an emergency word in an ordinary question did not raise the emergency answer")
+        keep(app, "gilbert-escalate")
+    }
+
     func testTheScreenIsUsableAtBothTextSizes() {
         for (name, size) in [("the default content size", []), ("AccessibilityXXXL", Audit.largestAccessibilitySize)] {
             let app = launchApp(contentSize: size)
-            openAssistant(app)
-            let audit = ScreenAudit(app, screen: "The assistant at \(name)")
+            openGilbert(app)
+            let audit = ScreenAudit(app, screen: "Gilbert at \(name)")
             audit.sweep()
+            keep(app, "gilbert-\(name)")
             assertUsable(audit)
         }
     }

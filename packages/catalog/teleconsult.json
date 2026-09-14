@@ -3,12 +3,12 @@
  "media": {
   "declared": false,
   "state": "never-asked",
-  "sentence": "This build has never asked this device for the camera or the microphone. Neither permission is declared, no media of any kind is captured, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
+  "sentence": "The consultation has never asked this device for the camera or the microphone. It declares neither permission, no media of any kind is captured, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
   "states": [
    {
     "id": "never-asked",
     "name": "Never asked",
-    "detail": "MyThuso has not requested the camera or the microphone on this device. There is nothing to allow and nothing to withdraw, because no question was put to you."
+    "detail": "The consultation has not requested the camera or the microphone on this device. There is nothing to allow and nothing to withdraw, because no question was put to you."
    },
    {
     "id": "refused",
@@ -134,7 +134,7 @@
  "recording": {
   "offeredInPreview": false,
   "decision": "This preview does not offer recording, and it does not offer a switch for it either.",
-  "why": "Consent to a consultation is not consent to a recording, and the honest way to hold that apart is to ask twice. But this build has no microphone permission, no camera permission and nowhere to put a recording, so a recording switch here would be a control that cannot do what it says — and a patient who is taught to tick it in a preview has been taught to tick it. A refusal is easier to design honestly than a promise: what the screen does instead is say what a recording would be for, who could open it, how long it would live and how it would be asked for, so that the design can be argued with before anything can be captured.",
+  "why": "Consent to a consultation is not consent to a recording, and the honest way to hold that apart is to ask twice. But the consultation holds no microphone permission, no camera permission and nowhere to put a recording, so a recording switch here would be a control that cannot do what it says — and a patient who is taught to tick it in a preview has been taught to tick it. A refusal is easier to design honestly than a promise: what the screen does instead is say what a recording would be for, who could open it, how long it would live and how it would be asked for, so that the design can be argued with before anything can be captured.",
   "instead": [
    "The written consultation record is the record. It is the same structure a nurse's visit and a doctor's review write into, and it is what a later clinician actually reads.",
    "Who was in the room, and what each of them was consented to, is written into the record with the consultation — because “was anyone else listening” is a question a patient may ask a year later and deserve an answer to.",
@@ -391,7 +391,7 @@
   {
    "id": "no-media-in-this-build",
    "title": "Nothing here is connected",
-   "sentence": "MyThuso has never asked this device for the camera or the microphone, and this build declares neither permission. That is not the same as you refusing: no question was put to you, so there is nothing to withdraw."
+   "sentence": "The consultation has never asked this device for the camera or the microphone, and declares neither permission. That is not the same as you refusing: no question was put to you, so there is nothing to withdraw."
   },
   {
    "id": "the-nurse-is-the-examination",

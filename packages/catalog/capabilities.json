@@ -193,10 +193,10 @@
    "connected": false,
    "evidence": null,
    "blockedBy": [
-    "No media stack. Neither app declares a camera or microphone permission, deliberately.",
+    "No media stack. Neither app declares a camera permission, and the consultation asks for no microphone — the only microphone either app asks for is Gilbert's push-to-talk, named under the voice capability.",
     "A doctor panel with a real rota."
    ],
-   "notice": "This build has never asked this device for the camera or the microphone, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
+   "notice": "The consultation has never asked this device for the camera or the microphone, and no connection is opened. What follows is the design of a consultation, drawn at full size.",
    "surfaces": [
     "teleconsult",
     "waiting-room"
@@ -241,22 +241,43 @@
   },
   {
    "id": "voice",
-   "name": "Talking to MyThuso",
+   "name": "Talking to Gilbert",
    "connected": false,
    "evidence": null,
    "blockedBy": [
-    "No speech model, no vendor and no licence — the same gap as screening, and the same procurement decision.",
-    "No microphone permission is declared on either native app, deliberately. Declaring one is not a build step; it is a decision about recording people in their homes.",
-    "Nothing has been designed for what happens to a recording of a person describing a symptom. Until that is answered under POPIA, there is nothing to switch on."
+    "No contracted South African speech provider: so English only, only on phones that recognise it offline, and nothing heard on the web.",
+    "No language model. Gilbert answers only from its approved sentences, and says so when it cannot assess something.",
+    "No decision about a recording beyond keeping none, so nothing is recorded and no transcript leaves the phone."
    ],
-   "notice": "MyThuso cannot listen to you. Nothing here has a microphone, no speech is recorded or sent anywhere, and this is a drawing of an assistant rather than one.",
+   "notice": "Gilbert listens only after you tap the sphere on a phone, hears English only, turns speech into text on the phone and keeps no recording. On the web you type. Nothing you say or type is sent anywhere.",
    "surfaces": [
     "assistant",
     "voice",
     "home"
    ],
-   "neverSoften": "No microphone affordance may be drawn — not an enabled one, not a disabled one, not a decorative one. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.",
-   "state": "absent"
+   "neverSoften": "No listening affordance may be drawn unless the microphone is actually open, and none at all on the web — not an enabled one, not a disabled one, not a decorative one. A control that looks like it is listening and is not is worse than no control, and on a health product it is the kind of worse that gets believed.",
+   "state": "on-device",
+   "onDevice": {
+    "what": "English push-to-talk recognised by the phone's own recogniser with no network: on iOS with requiresOnDeviceRecognition, on Android 12 and later with the on-device recogniser.",
+    "whyNotConnected": "Nothing is contracted and nothing leaves the phone, so the notice stays."
+   },
+   "requiresPermissions": [
+    {
+     "permission": "NSMicrophoneUsageDescription",
+     "platform": "ios",
+     "serves": "Gilbert's push-to-talk, open only between a tap and Stop or the listening limit."
+    },
+    {
+     "permission": "NSSpeechRecognitionUsageDescription",
+     "platform": "ios",
+     "serves": "Turning Gilbert's push-to-talk into text on the phone itself."
+    },
+    {
+     "permission": "android.permission.RECORD_AUDIO",
+     "platform": "android",
+     "serves": "Gilbert's push-to-talk on Android 12 and later, through the on-device recogniser, asked on first use."
+    }
+   ]
   },
   {
    "id": "devices",
@@ -436,11 +457,11 @@
    "why": "apps/api/src/feeds/index.ts argues that a route which could accept under some condition is a route somebody finds the condition for, usually late at night with a vendor on the phone. A simulation flag on those routes would be exactly that condition. So `decide` still has no acceptance to construct, and the simulators sit beside the boundary rather than inside it."
   },
   {
-   "id": "voice-stays-absent",
-   "statement": "`voice` is the one capability not simulated, and that is a decision rather than an omission.",
-   "why": "Simulating speech means one of two things: declaring a microphone permission, which the capability forbids anywhere in either app, or rendering a transcript of something nobody said. The blocker on voice was never the vendor — it is that nothing has been designed for what happens to a recording of a person describing a symptom in their own home. A simulator would produce a working screen on top of that undecided question, which is the shape of every readiness claim this file exists to refuse."
+   "id": "voice-is-on-device",
+   "statement": "`voice` alone is on-device: the phone recognises speech, Gilbert answers from a contract, and nothing is connected.",
+   "why": "English push-to-talk on the phone, decided on 14 September 2026, is neither a stand-in answering (simulated) nor a supplier (connected). The state says exactly what is true, and the notice stays."
   }
  ],
- "_permissionsNote": "Neither app declares a single permission — no uses-permission in the Android manifest, no NS*UsageDescription on the iOS target. That is the strongest true sentence this product can say about itself, and several notices above depend on it: \"nothing here has a microphone\" is a special case of \"nothing here asks for anything\". A permission may be added only when a capability here names it under requiresPermissions, which forces whoever wants it to say which feature it serves, beside what is blocking that feature. scripts/check-boundaries.mjs fails an undeclared one on either platform — a whitelist, because the earlier version named RECORD_AUDIO and the microphone key specifically and would have let CAMERA or a location key through unnoticed.",
- "_simulationNote": "A capability has three states, not two. `absent` means nothing is behind it and the screen says so. `connected` means a contracted supplier answers, and the rule connected-needs-evidence holds it to a file that exists and an empty blockedBy. `simulated` is the third: a named simulator, running in this process, producing what the supplier would produce so the product can be walked end to end before anybody has signed anything. It was added because the founder asked to see the whole journey work, and the honest way to give him that is a third state rather than the second one. Marking these connected would have removed the notice from every screen and told a funder reading the status page that a health service is live. A simulated capability keeps its notice and changes what it says: not 'this is not switched on' but 'this is simulated, and here is what the simulation will not do'. blockedBy is untouched by simulation, because a simulator does not unblock anything — the SMS provider is still unsigned the day the simulated one works perfectly."
+ "_permissionsNote": "A permission may exist only when a capability names it under requiresPermissions, with its platform and the feature it serves; scripts/check-boundaries.mjs fails any other. Today there are three, all Gilbert's push-to-talk. No camera, no location, nothing for the consultation.",
+ "_simulationNote": "A capability has four states; `on-device` is voice's alone (see voice-is-on-device), and the other three are these. `absent` means nothing is behind it and the screen says so. `connected` means a contracted supplier answers, and the rule connected-needs-evidence holds it to a file that exists and an empty blockedBy. `simulated` is the third: a named simulator, running in this process, producing what the supplier would produce so the product can be walked end to end before anybody has signed anything. It was added because the founder asked to see the whole journey work, and the honest way to give him that is a third state rather than the second one. Marking these connected would have removed the notice from every screen and told a funder reading the status page that a health service is live. A simulated capability keeps its notice and changes what it says: not 'this is not switched on' but 'this is simulated, and here is what the simulation will not do'. blockedBy is untouched by simulation, because a simulator does not unblock anything — the SMS provider is still unsigned the day the simulated one works perfectly."
 }
