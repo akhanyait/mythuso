@@ -32,7 +32,9 @@
    ],
    "refusals": [
     {"id": "no-current-trust-score", "status": 409, "statement": "Nobody without a current Trust Score is offered a visit.", "why": "Verify ranks; Care never offers past a failed gate."},
-    {"id": "carer-without-rn", "status": 409, "statement": "A supervised carer is not offered a visit without their registered nurse.", "why": "Supervision is enforced in the offer."}
+    {"id": "carer-without-rn", "status": 409, "statement": "A supervised carer is not offered a visit without their registered nurse.", "why": "Supervision is enforced in the offer."},
+    {"id": "service-not-offered", "status": 409, "statement": "That service is not offered yet, so nobody is matched to it.", "why": "A service later than the seed phase in packages/catalog/care.json has nobody who has agreed to deliver it."},
+    {"id": "no-eligible-clinician", "status": 409, "statement": "Everybody eligible for this visit has been asked, so it goes to a dispatcher.", "why": "An offer is never made to somebody a gate withheld just to fill the visit."}
    ],
    "emits": ["appointment.offered@1"],
    "idempotent": true,
@@ -80,7 +82,8 @@
     {"field": "declined", "type": "boolean", "required": true, "why": "Whether it was."}
    ],
    "refusals": [
-    {"id": "offer-expired", "status": 410, "statement": "That offer has already lapsed.", "why": "Nothing to decline."}
+    {"id": "offer-expired", "status": 410, "statement": "That offer has already lapsed.", "why": "Nothing to decline."},
+    {"id": "not-your-offer", "status": 403, "statement": "That offer was made to somebody else.", "why": "An offer is personal, and so is turning it down."}
    ],
    "emits": [],
    "emitsNoneBecause": "Declining ends one offer; the next is made through POST /v1/care/offers, which emits it.",
@@ -129,7 +132,8 @@
     {"field": "recordedAt", "type": "instant", "required": true, "why": "When."}
    ],
    "refusals": [
-    {"id": "protocol-not-ratified", "status": 409, "statement": "A checklist runs only under a ratified protocol.", "why": "An unratified checklist is a list of guesses in a clinical record."}
+    {"id": "protocol-not-ratified", "status": 409, "statement": "A checklist runs only under a ratified protocol.", "why": "An unratified checklist is a list of guesses in a clinical record."},
+    {"id": "checklist-without-visit", "status": 409, "statement": "No checklist is recorded against a visit that has not started.", "why": "A checklist is a record of a visit that is happening."}
    ],
    "emits": [],
    "emitsNoneBecause": "The checklist is part of the encounter, written through the gateway.",
@@ -177,7 +181,8 @@
     {"field": "reviewQueued", "type": "boolean", "required": true, "why": "Whether it went into the clinical inbox."}
    ],
    "refusals": [
-    {"id": "encounter-incomplete", "status": 422, "statement": "The encounter has required sections missing.", "why": "A doctor reviews a complete encounter, not a draft."}
+    {"id": "encounter-incomplete", "status": 422, "statement": "The encounter has required sections missing.", "why": "A doctor reviews a complete encounter, not a draft."},
+    {"id": "handover-without-visit", "status": 409, "statement": "A visit that has not started is not handed to a doctor.", "why": "A doctor reviews what a nurse found at a visit that happened."}
    ],
    "emits": ["visit.handover.submitted@1"],
    "idempotent": false,
@@ -202,9 +207,10 @@
    ],
    "refusals": [
     {"id": "visit-code-wrong", "status": 403, "statement": "The visit code did not match, so the visit is not complete.", "why": "Completion is confirmed by the patient, not assumed."},
-    {"id": "encounter-unsigned", "status": 409, "statement": "The encounter is not signed.", "why": "A visit is complete when its record is."}
+    {"id": "encounter-unsigned", "status": 409, "statement": "The encounter is not signed.", "why": "A visit is complete when its record is."},
+    {"id": "complete-without-start", "status": 409, "statement": "A visit that never started cannot be completed.", "why": "Completion confirms a visit the code opened; without a start there is nothing to confirm."}
    ],
-   "emits": ["appointment.completed@1"],
+   "emits": ["appointment.completed@1", "visit.billable@1"],
    "idempotent": false,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E2", "what": "OTP start and completion"},
