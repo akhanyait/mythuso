@@ -67,7 +67,11 @@ object EventsData {
         Event("market.order.paid", 1, "money"),
         Event("market.order.shipped", 1, "money"),
         Event("market.order.delivered", 1, "money"),
-        Event("market.order.returned", 1, "money")
+        Event("market.order.returned", 1, "money"),
+        Event("trust.weight.decided", 1, "trust"),
+        Event("trust.dispatch.withheld", 1, "trust"),
+        Event("record.breakglass.review_due", 1, "record"),
+        Event("record.audit.chain_broken", 1, "record")
     )
 
     object Types {
@@ -109,6 +113,10 @@ object EventsData {
         const val MARKET_ORDER_SHIPPED = "market.order.shipped"
         const val MARKET_ORDER_DELIVERED = "market.order.delivered"
         const val MARKET_ORDER_RETURNED = "market.order.returned"
+        const val TRUST_WEIGHT_DECIDED = "trust.weight.decided"
+        const val TRUST_DISPATCH_WITHHELD = "trust.dispatch.withheld"
+        const val RECORD_BREAKGLASS_REVIEW_DUE = "record.breakglass.review_due"
+        const val RECORD_AUDIT_CHAIN_BROKEN = "record.audit.chain_broken"
     }
 
     fun ownerOf(type: String) = events.firstOrNull { it.type == type }?.owner

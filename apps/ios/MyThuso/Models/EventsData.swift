@@ -70,7 +70,11 @@ enum EventsData {
         Event(type: "market.order.paid", version: 1, owner: "money"),
         Event(type: "market.order.shipped", version: 1, owner: "money"),
         Event(type: "market.order.delivered", version: 1, owner: "money"),
-        Event(type: "market.order.returned", version: 1, owner: "money")
+        Event(type: "market.order.returned", version: 1, owner: "money"),
+        Event(type: "trust.weight.decided", version: 1, owner: "trust"),
+        Event(type: "trust.dispatch.withheld", version: 1, owner: "trust"),
+        Event(type: "record.breakglass.review_due", version: 1, owner: "record"),
+        Event(type: "record.audit.chain_broken", version: 1, owner: "record")
     ]
 
     enum Types {
@@ -112,6 +116,10 @@ enum EventsData {
         static let marketOrderShipped = "market.order.shipped"
         static let marketOrderDelivered = "market.order.delivered"
         static let marketOrderReturned = "market.order.returned"
+        static let trustWeightDecided = "trust.weight.decided"
+        static let trustDispatchWithheld = "trust.dispatch.withheld"
+        static let recordBreakglassReviewDue = "record.breakglass.review_due"
+        static let recordAuditChainBroken = "record.audit.chain_broken"
     }
 
     static func owner(of type: String) -> String? { events.first { $0.type == type }?.owner }
