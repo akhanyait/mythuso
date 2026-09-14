@@ -94,13 +94,28 @@
  --c-glass-edge: color-mix(in srgb, var(--studio-paper) 16%, var(--studio-night));
  /* The outline of a control standing on the night: 3.70 against it and 3.24 against the glass. The
     40% mark measures 2.89 on the glass, and a pill a reader cannot find the edge of is not a pill. */
- --c-control: color-mix(in srgb, var(--studio-paper) 44%, var(--studio-night));
+ --c-control: color-mix(in srgb, var(--studio-paper) 52%, var(--studio-night));
+ /* The ground's own light, the headline badge, the one attention stripe and a pressed pill. Named so
+    that the clinical shell can put the logo's colours in them below without restating a rule. */
+ --c-lift: color-mix(in srgb, var(--studio-paper) 7%, var(--studio-night));
+ --c-glyph: var(--indigo-soft);
+ --c-glyph-ink: var(--indigo-deep);
+ --c-attention: var(--c-accent);
+ --c-pressed: var(--c-ink);
+ --c-pressed-ink: var(--studio-night);
+ /* The pale panel's palette. Its ink, its quiet words, its marks and the edge of a hatched bar. */
+ --c-panel: var(--indigo-soft);
+ --c-panel-ink: var(--charcoal);
+ --c-panel-quiet: var(--body);
+ --c-panel-mark: var(--indigo);
+ --c-panel-chip: var(--indigo-deep);
+ --c-panel-edge: color-mix(in srgb, var(--c-panel-mark) 58%, var(--c-panel));
  /* The deck decides its own columns from its own width. See the note on .c-deck-grid in the
     component: a deck in a dialog is not a deck on a wide screen, whatever the window measures. */
  container: deck / inline-size;
  /* Lit from the top left rather than flat, so the glass and the panel have something to sit in
     front of. One gradient of the same colour, not a second colour. */
- background: radial-gradient(120% 110% at 3% -18%, color-mix(in srgb, var(--studio-paper) 7%, var(--studio-night)) 0%, transparent 58%), var(--studio-night);
+ background: radial-gradient(120% 110% at 3% -18%, var(--c-lift) 0%, transparent 58%), var(--studio-night);
  color: var(--c-ink);
  border-radius: var(--r-panel);
  padding: var(--space-24);
@@ -113,6 +128,39 @@
     the card it is supposed to be floating on. */
  position: relative;
  z-index: 1;
+}
+
+/* ---- The logo's palette, in the clinical shell ---------------------------------------------------
+   The ground is the logo's ink, lit from the top left by its green rather than by a lighter step of
+   itself, which is the icon's gradient drawn as light. The lead accent is mint, the colour the
+   reversed lockup draws "thuso" in: brandGreen measures 3.55 on the ink and 1.09 against an unlit
+   mark, so a lit arc in it would be told from an unlit one by hue alone. Mint is 8.09 on the ink,
+   6.37 on the glass and 2.01 against the unlit mark on it, and the lit mark is heavier as well.
+   Lime is the dot, spent once on a deck, as the badge inside the headline: ink on lime is 10.47.
+   Orange is the roof, and marks the one sentence the deck most needs read: 4.24 on the ink and 3.39
+   on the glass for a 3px stripe and an icon, both of which SC 1.4.11 holds to 3.
+   The pale panel is a wash of the logo's green over white rather than cream or lavender, and on it
+   the green is the mark and never the word:
+     ink on the panel (green 6% over white)   11.25   the numeral, a chip's word, a flagged chip's fill
+     ink 78% over white on the panel           5.79   labels and the scale under a chart
+     brandGreen on the panel                   3.17   every mark and the edge of a hatched bar
+     the panel on ink                         11.25   a flagged chip's word
+   On the ink the unlit marks move up with the lighter ground: paper at 40% is 3.12 on the ink, 50%
+   is 3.21 on the glass, and a control's outline at 52% is 4.23 on the ink and 3.38 on the glass. */
+.clinical .c-deck {
+ --c-lift: color-mix(in srgb, var(--brand-green) 16%, var(--brand-ink));
+ --c-accent: var(--brand-mint);
+ --c-glyph: var(--brand-lime);
+ --c-glyph-ink: var(--brand-ink);
+ --c-attention: var(--brand-orange);
+ --c-pressed: var(--brand-mint);
+ --c-pressed-ink: var(--brand-ink);
+ --c-panel: color-mix(in srgb, var(--brand-green) 6%, var(--surface));
+ --c-panel-ink: var(--brand-ink);
+ --c-panel-quiet: color-mix(in srgb, var(--brand-ink) 78%, var(--surface));
+ --c-panel-mark: var(--brand-green);
+ --c-panel-chip: var(--brand-ink);
+ --c-panel-edge: var(--brand-green);
 }
 
 .c-deck-grid { display: grid; gap: var(--space-24); align-content: start; min-width: 0; }
@@ -154,8 +202,8 @@
  height: .92em;
  margin: 0 .1em;
  border-radius: 50%;
- background: var(--indigo-soft);
- color: var(--indigo-deep);
+ background: var(--c-glyph);
+ color: var(--c-glyph-ink);
  vertical-align: -.12em;
 }
 .c-deck-glyph svg { width: 54%; height: 54%; }
@@ -169,7 +217,7 @@
 .c-deck-lead {
  background: var(--c-glass);
  border: 1px solid var(--c-glass-edge);
- --c-mark: color-mix(in srgb, var(--studio-paper) 44%, var(--studio-night));
+ --c-mark: color-mix(in srgb, var(--studio-paper) 50%, var(--studio-night));
  --c-track: color-mix(in srgb, var(--studio-paper) 30%, var(--studio-night));
  border-radius: var(--r-card);
  padding: var(--space-20);
@@ -189,13 +237,13 @@
  border-radius: var(--r-panel);
  padding: var(--space-24);
  background:
-  radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--indigo) 22%, transparent) 1px, transparent 1.6px) 0 0 / 14px 14px,
-  var(--indigo-soft);
+  radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--c-panel-mark) 22%, transparent) 1px, transparent 1.6px) 0 0 / 14px 14px,
+  var(--c-panel);
  display: flex;
  flex-direction: column;
  gap: var(--space-24);
  min-width: 0;
- color: var(--charcoal);
+ color: var(--c-panel-ink);
 }
 .c-deck-panel-figure { min-width: 0; }
 /* The chart is given room rather than left to be as tall as three bars happen to be. A panel whose
@@ -287,18 +335,18 @@
    rule written at `.c-deck-panel` painted its chip and its label in the panel's dark ink and left a
    nurse's "3 to sign off" invisible on black. A palette belongs to a ground, and the card has its
    own. */
-.c-deck-panel-figure .s-metric-value { color: var(--charcoal); }
-.c-deck-panel-figure .s-metric-value small { color: var(--body); }
-.c-deck-panel-figure .s-metric-label { color: var(--body); }
+.c-deck-panel-figure .s-metric-value { color: var(--c-panel-ink); }
+.c-deck-panel-figure .s-metric-value small { color: var(--c-panel-quiet); }
+.c-deck-panel-figure .s-metric-label { color: var(--c-panel-quiet); }
 /* Four classes and five, and the arithmetic is the point of the comment. The narrow-screen block at
    the foot of this sheet redraws every chip on the deck in the night's own palette, at three classes
    and five hundred lines further down — so the panel's chip was being painted paper grey on a pale
    panel below 1000px, which measures about 1.5 and is the "1.28:1 headline" defect wearing a
    different colour. A palette scoped to a ground has to outrank a palette scoped to a width. */
-.c-deck .c-deck-panel-figure .c-instrument .s-metric-chip { border: 1px solid var(--indigo); color: var(--indigo-deep); background: transparent; }
-.c-deck .c-deck-panel-figure .c-instrument .s-metric-chip.flagged { background: var(--indigo); border-color: var(--indigo); color: var(--indigo-soft); }
-.c-deck-panel-figure .c-day-scale { color: var(--body); }
-.c-deck-panel-figure .c-day-scale .c-day-now { color: var(--charcoal); }
+.c-deck .c-deck-panel-figure .c-instrument .s-metric-chip { border: 1px solid var(--c-panel-mark); color: var(--c-panel-chip); background: transparent; }
+.c-deck .c-deck-panel-figure .c-instrument .s-metric-chip.flagged { background: var(--c-panel-chip); border-color: var(--c-panel-chip); color: var(--c-panel); }
+.c-deck-panel-figure .c-day-scale { color: var(--c-panel-quiet); }
+.c-deck-panel-figure .c-day-scale .c-day-now { color: var(--c-panel-ink); }
 
 /* ---- Where the numeral sits ---------------------------------------------------------------------
    Two arrangements, and the shape decides which. A dial puts the numeral in the middle of itself,
@@ -364,14 +412,14 @@
    nobody can read drawn at the correct coordinates. */
 .c-deck-panel-figure .c-instrument .c-mark,
 .c-deck-panel-figure .c-instrument .c-mark.on,
-.c-deck-panel-figure .c-instrument .c-spark .c-mark.on { stroke: var(--indigo); }
-.c-deck-panel-figure .c-instrument .c-ring-track { stroke: color-mix(in srgb, var(--indigo) 18%, var(--indigo-soft)); }
+.c-deck-panel-figure .c-instrument .c-spark .c-mark.on { stroke: var(--c-panel-mark); }
+.c-deck-panel-figure .c-instrument .c-ring-track { stroke: color-mix(in srgb, var(--c-panel-mark) 18%, var(--c-panel)); }
 
 .c-spark { height: 52px; }
 .c-area { fill: var(--c-mark); stroke: none; opacity: .3; mask-image: linear-gradient(to bottom, #000, transparent); -webkit-mask-image: linear-gradient(to bottom, #000, transparent); }
 .c-spark .c-mark { stroke-width: 2; stroke-linejoin: round; }
 .c-instrument.lead .c-area { fill: var(--c-accent); }
-.c-deck-panel-figure .c-instrument .c-area { fill: var(--indigo); opacity: .15; }
+.c-deck-panel-figure .c-instrument .c-area { fill: var(--c-panel-mark); opacity: .15; }
 .c-deck-panel-figure .c-spark { height: 86px; }
 .c-deck-panel-figure .c-spark .c-mark { stroke-width: 2.5; }
 
@@ -407,18 +455,18 @@
 /* Hatched, not merely darker. The bar the figure names is solid and every other bar is the same
    indigo drawn as stripes, so which row the figure is about survives a reader who cannot separate
    two tones of one hue. */
-.c-deck-panel-figure .c-waits em { color: var(--body); }
+.c-deck-panel-figure .c-waits em { color: var(--c-panel-quiet); }
 .c-deck-panel-figure .c-waits i {
  height: 16px;
  border-radius: var(--r-control);
  background:
-  repeating-linear-gradient(-45deg, var(--indigo) 0 2px, transparent 2px 6px),
-  color-mix(in srgb, var(--indigo) 8%, var(--indigo-soft));
- box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--indigo) 58%, var(--indigo-soft));
+  repeating-linear-gradient(-45deg, var(--c-panel-mark) 0 2px, transparent 2px 6px),
+  color-mix(in srgb, var(--c-panel-mark) 8%, var(--c-panel));
+ box-shadow: inset 0 0 0 1px var(--c-panel-edge);
 }
 .c-deck-panel-figure .c-waits i.on {
  height: 22px;
- background: var(--indigo);
+ background: var(--c-panel-mark);
  box-shadow: none;
 }
 
@@ -595,14 +643,14 @@
  max-width: none;
  background: var(--c-glass);
  border: 1px solid var(--c-glass-edge);
- border-left: 3px solid var(--c-accent);
+ border-left: 3px solid var(--c-attention);
  border-radius: var(--r-control);
  padding: var(--space-12) var(--space-16);
  font-size: 14px;
  line-height: 1.55;
  color: var(--c-ink);
 }
-.c-deck .c-deck-extra .not-connected > svg { color: var(--c-accent); }
+.c-deck .c-deck-extra .not-connected > svg { color: var(--c-attention); }
 .c-deck .c-deck-extra .c-deck-aside { margin: 0; font-size: 14px; line-height: 1.55; color: var(--c-quiet); max-width: 62ch; }
 .c-deck-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-8) var(--space-12); min-width: 0; }
 .c-deck .c-deck-controls > p { margin: 0; flex: 1 1 240px; min-width: 0; align-self: center; font-size: 14px; line-height: 1.55; color: var(--c-quiet); }
@@ -628,7 +676,7 @@
  transition: background var(--t-settle) var(--ease-soft), border-color var(--t-settle) var(--ease-soft);
 }
 .c-deck .c-pill:hover { background: var(--c-glass); }
-.c-deck .c-pill[aria-pressed='true'] { background: var(--c-ink); border-color: var(--c-ink); color: var(--studio-night); }
+.c-deck .c-pill[aria-pressed='true'] { background: var(--c-pressed); border-color: var(--c-pressed); color: var(--c-pressed-ink); }
 /* A choice made from a list, on the night: the same pill, with the list's own label above it. The
    native list opens in the dark scheme so its options are not white on a white popup over a dark
    control. */
@@ -649,10 +697,10 @@
 
 /* Something that is not a figure, on the glass or on the pale panel. */
 .c-deck-lead.is-custom { display: grid; gap: var(--space-16); align-content: start; }
-.c-deck-panel-body { display: grid; gap: var(--space-12); align-content: start; min-width: 0; color: var(--charcoal); }
-.c-panel-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; text-transform: uppercase; color: var(--body); }
-.c-panel-name { display: block; font-size: 32px; font-weight: 500; line-height: 1.15; letter-spacing: -1px; color: var(--charcoal); overflow-wrap: anywhere; }
-.c-deck .c-panel-line { margin: 0; font-size: 15px; line-height: 1.55; color: var(--body); }
+.c-deck-panel-body { display: grid; gap: var(--space-12); align-content: start; min-width: 0; color: var(--c-panel-ink); }
+.c-panel-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; text-transform: uppercase; color: var(--c-panel-quiet); }
+.c-panel-name { display: block; font-size: 32px; font-weight: 500; line-height: 1.15; letter-spacing: -1px; color: var(--c-panel-ink); overflow-wrap: anywhere; }
+.c-deck .c-panel-line { margin: 0; font-size: 15px; line-height: 1.55; color: var(--c-panel-quiet); }
 
 /* ---- The sheet the work stands on -----------------------------------------------------------------
    Everything under a sub-page's deck is one sheet: the paper ground the workbench's own list stands

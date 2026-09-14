@@ -1,0 +1,367 @@
+/* The assistant's panel and its sphere. Loaded with features/Assistant.tsx behind a dynamic import,
+   so none of this reaches a patient who never opens the assistant. The floating orb that opens it
+   is in surface/care-journey.css, because it is on every page.
+
+   Colours are the logo's and nothing else: --brand-ink, --brand-green, --brand-mint, --brand-lime
+   and --brand-orange, plus white (--surface). Translucency is color-mix() of those, so nothing here
+   can drift off the brand. Every endless animation changes transform or opacity only; see
+   AssistantSphere.tsx for why, and for why reduced motion removes them rather than trusting
+   core.css to. */
+
+/* ---- The sphere ------------------------------------------------------------------------------ */
+.orb {
+ --orb: min(248px, 70vw);
+ --rim-start: 70%;
+ --spread: 108%;
+ position: relative;
+ width: var(--orb);
+ max-width: 100%;
+ aspect-ratio: 1;
+ margin-inline: auto;
+ isolation: isolate;
+ pointer-events: none;
+}
+/* Depth is carried as form as well as tone: a settled sphere wears a thick soft rim and blooms
+   wide; a sphere with something in it draws its rim thin and its glow in. */
+.orb[data-depth='1'] { --rim-start: 75.5%; --spread: 101%; }
+.orb[data-depth='2'] { --rim-start: 81%; --spread: 94%; }
+.orb[data-depth='3'] { --rim-start: 86.5%; --spread: 87%; }
+
+.orb-g { position: absolute; inset: 0; }
+.orb-g > *, .orb-g-halo i { position: absolute; left: 50%; top: 50%; translate: -50% -50%; aspect-ratio: 1; }
+
+.orb-bleed {
+ width: var(--spread);
+ border-radius: 50%;
+ background: radial-gradient(closest-side,
+  color-mix(in srgb, var(--brand-green) 58%, transparent) 0 46%,
+  color-mix(in srgb, var(--brand-green) 24%, transparent) 64%,
+  color-mix(in srgb, var(--brand-mint) 7%, transparent) 84%,
+  transparent);
+}
+.orb-g-bleed { opacity: .84; }
+
+.orb-g-halo { opacity: .72; }
+.orb-g-halo i { border-radius: 50%; border: 1px solid color-mix(in srgb, var(--brand-mint) 16%, transparent); }
+.orb-g-halo i:nth-child(1) { width: 74%; }
+.orb-g-halo i:nth-child(2) { width: 86%; border-color: color-mix(in srgb, var(--brand-mint) 9%, transparent); }
+.orb-g-halo i:nth-child(3) { width: 98%; border-color: color-mix(in srgb, var(--brand-mint) 5%, transparent); }
+
+/* An orbit is a circle, squashed and tilted. Its brightness is a conic gradient on an inner disc
+   that turns, masked to a thin ring, so the light travels round the ellipse while the ellipse holds
+   still. */
+.orb-orbit { transform: rotate(var(--tilt)) scaleY(var(--flat)); }
+.orb-orbit-a { width: 100%; --tilt: -21deg; --sway: 2.5deg; --flat: .34; --a0: 200deg; }
+.orb-orbit-b { width: 84%; --tilt: 27deg; --sway: -3deg; --flat: .23; --a0: 40deg; }
+.orb-arc {
+ position: absolute;
+ inset: 0;
+ border-radius: 50%;
+ transform: rotate(var(--a0));
+ -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 4px), black calc(100% - 3.5px), black calc(100% - 1px), transparent);
+ mask: radial-gradient(closest-side, transparent calc(100% - 4px), black calc(100% - 3.5px), black calc(100% - 1px), transparent);
+}
+.orb-orbit-a .orb-arc {
+ background: conic-gradient(transparent 0,
+  color-mix(in srgb, var(--brand-mint) 95%, transparent) 15%,
+  color-mix(in srgb, var(--brand-green) 60%, transparent) 32%,
+  transparent 58%);
+}
+/* The one warm trace in the drawing: the roof's orange, faint, in the tail of the inner orbit. */
+.orb-orbit-b .orb-arc {
+ background: conic-gradient(transparent 0,
+  color-mix(in srgb, var(--brand-mint) 80%, transparent) 15%,
+  color-mix(in srgb, var(--brand-orange) 22%, transparent) 34%,
+  transparent 58%);
+}
+
+.orb-breath { width: 63%; }
+.orb-body {
+ position: absolute;
+ inset: 0;
+ border-radius: 50%;
+ overflow: hidden;
+ background: var(--brand-ink);
+}
+.orb-drift-x, .orb-drift-y { position: absolute; inset: 0; }
+/* The key light: a green pool lit from the upper left that falls to ink at the lower-right limb.
+   The pool is larger than the body so it can drift without its own edge ever showing. */
+.orb-pool {
+ position: absolute;
+ inset: -30%;
+ background: radial-gradient(ellipse 44% 44% at 40% 36%,
+  color-mix(in srgb, var(--brand-mint) 55%, var(--brand-green)) 0%,
+  var(--brand-green) 26%,
+  color-mix(in srgb, var(--brand-green) 38%, var(--brand-ink)) 52%,
+  var(--brand-ink) 76%);
+}
+/* The light inside the body, and the thing that makes it read as luminous rather than lit: a green
+   glow held just below the centre, as if the sphere carries its own source. It breathes by opacity,
+   which the compositor does for free. */
+.orb-core {
+ position: absolute;
+ inset: 0;
+ background: radial-gradient(circle at 56% 60%,
+  color-mix(in srgb, var(--brand-lime) 18%, var(--brand-green)) 0,
+  color-mix(in srgb, var(--brand-green) 55%, transparent) 20%,
+  transparent 54%);
+}
+/* A little of the body's own light returning into the shadow side, which keeps it reading as shadow
+   rather than as a hole. */
+.orb-bounce {
+ position: absolute;
+ inset: 0;
+ background: radial-gradient(circle at 74% 78%, color-mix(in srgb, var(--brand-green) 34%, transparent), transparent 46%);
+}
+.orb-rim {
+ position: absolute;
+ inset: 0;
+ border-radius: 50%;
+ background: radial-gradient(closest-side,
+  transparent var(--rim-start),
+  color-mix(in srgb, var(--brand-mint) 26%, transparent) calc(var(--rim-start) + (100% - var(--rim-start)) * .7),
+  color-mix(in srgb, var(--brand-mint) 62%, transparent) 100%);
+}
+/* The sheen is a soft patch of light carried round the inside of the limb, not a conic wedge: a
+   conic gradient meets itself at the centre and draws a line there, which on iOS read as a
+   thumbprint and did here too. */
+.orb-sheen { position: absolute; inset: 0; }
+.orb-sheen i {
+ position: absolute;
+ left: 50%; top: 9%; width: 56%; height: 20%;
+ translate: -50% -50%;
+ border-radius: 50%;
+ background: radial-gradient(closest-side, color-mix(in srgb, var(--surface) 20%, transparent), transparent);
+}
+.orb-specular { position: absolute; inset: 0; transform-origin: 33% 29%; }
+.orb-specular i, .orb-specular b { position: absolute; translate: -50% -50%; border-radius: 50%; }
+.orb-specular i {
+ left: 34%; top: 30%; width: 32%; height: 25%;
+ background: radial-gradient(closest-side, color-mix(in srgb, var(--surface) 50%, transparent), transparent);
+}
+/* The glint, and it is the logo's lime dot: white at its heart, a breath of lime at its edge. */
+.orb-specular b {
+ left: 32%; top: 27%; width: 5%; aspect-ratio: 1;
+ background: radial-gradient(closest-side, var(--surface) 0 26%, color-mix(in srgb, var(--brand-lime) 55%, transparent) 55%, transparent);
+}
+/* One rim light, dying away on the shadow side. A rim all the way round is a drawn outline. */
+.orb-edge {
+ position: absolute;
+ inset: 0;
+ border-radius: 50%;
+ background: linear-gradient(135deg,
+  color-mix(in srgb, var(--surface) 95%, transparent),
+  color-mix(in srgb, var(--brand-mint) 45%, transparent) 42%,
+  color-mix(in srgb, var(--brand-green) 12%, transparent) 78%,
+  transparent);
+ -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 2px), black calc(100% - 1.5px), black calc(100% - .5px), transparent);
+ mask: radial-gradient(closest-side, transparent calc(100% - 2px), black calc(100% - 1.5px), black calc(100% - .5px), transparent);
+}
+.orb-particles { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* Level: loudness from 0 to 1, written as --level by AssistantSphere.tsx and only while something
+   feeds one in. Nothing in a production build does. It uses the `scale` property, which composes
+   with the transform the breathing and the gathering already animate, so the three never contend.
+   The surge is light welling up inside the body with each syllable. */
+.orb-g-body { scale: calc(1 + var(--level, 0) * .09); }
+.orb-g-halo { scale: calc(1 + var(--level, 0) * .14); }
+.orb-g-orbits { scale: calc(1 + var(--level, 0) * .1); }
+.orb-bleed { scale: calc(1 + var(--level, 0) * .2); }
+.orb-surge {
+ position: absolute;
+ inset: 0;
+ opacity: var(--level, 0);
+ background: radial-gradient(circle at 50% 56%,
+  color-mix(in srgb, var(--brand-mint) 50%, var(--brand-green)) 0,
+  color-mix(in srgb, var(--brand-green) 45%, transparent) 36%,
+  transparent 68%);
+}
+
+/* Time. One breath of 6.5 seconds (3.25 each way); the orbits sway against it; the light drifts on
+   periods that do not share a factor with it, so the drawing never visibly repeats. */
+@keyframes orb-breathe { from { transform: scale(var(--lo)); } to { transform: scale(var(--hi)); } }
+@keyframes orb-sway { from { transform: rotate(calc(var(--tilt) - var(--sway))) scaleY(var(--flat)); } to { transform: rotate(calc(var(--tilt) + var(--sway))) scaleY(var(--flat)); } }
+@keyframes orb-spin { to { transform: rotate(calc(var(--a0) + 360deg)); } }
+@keyframes orb-turn { to { transform: rotate(360deg); } }
+@keyframes orb-glow { from { opacity: .72; } to { opacity: 1; } }
+@keyframes orb-drift-x { from { transform: translateX(-3.5%); } to { transform: translateX(3.5%); } }
+@keyframes orb-drift-y { from { transform: translateY(3%); } to { transform: translateY(-3%); } }
+@keyframes orb-bounce { from { transform: translate(-3%, 2.8%); } to { transform: translate(3%, -2.8%); } }
+
+.orb-bleed { --lo: .95; --hi: 1.05; animation: orb-breathe 3.25s ease-in-out infinite alternate; }
+.orb-breath { --lo: .982; --hi: 1.018; animation: orb-breathe 3.25s ease-in-out infinite alternate; }
+.orb-specular { --lo: .95; --hi: 1.05; animation: orb-breathe 3.25s ease-in-out infinite alternate; }
+.orb-orbit { animation: orb-sway 3.25s ease-in-out infinite alternate; }
+.orb-orbit-a .orb-arc { animation: orb-spin 22.5s linear infinite; }
+.orb-orbit-b .orb-arc { animation: orb-spin 32.7s linear infinite reverse; }
+.orb-sheen { animation: orb-turn 40s linear infinite; }
+.orb-core { animation: orb-glow 3.25s ease-in-out infinite alternate; }
+.orb-drift-x { animation: orb-drift-x 13.7s ease-in-out infinite alternate; }
+.orb-drift-y { animation: orb-drift-y 16.5s ease-in-out infinite alternate; }
+.orb-bounce { animation: orb-bounce 17.5s ease-in-out infinite alternate; }
+
+.orb[data-motion='paused'] * { animation-play-state: paused; }
+/* Transitions too. core.css answers reduced motion with a 0.01ms duration on everything, and a
+   transition's property defaults to all, so a change of depth that resizes the bleed still starts
+   a transition. It is one frame long, but it is motion, and the spec caught it running. */
+.orb[data-motion='still'] * { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .orb * { animation: none !important; transition: none !important; } }
+
+/* ---- The panel -------------------------------------------------------------------------------- */
+/* A sheet from the bottom edge on a phone; a panel anchored bottom right on a wide screen, grown
+   out of the orb that opened it. The dialog carries no padding, so a click whose target is the
+   dialog itself can only have landed on the backdrop, and that closes it. */
+.as-panel {
+ position: fixed;
+ inset: auto 0 0 0;
+ width: 100%;
+ max-width: none;
+ height: min(92dvh, calc(100dvh - var(--space-24)));
+ max-height: none;
+ margin: 0;
+ padding: 0;
+ border: 0;
+ border-radius: var(--r-card) var(--r-card) 0 0;
+ overflow: hidden;
+ background: var(--brand-ink);
+ color: var(--surface);
+ box-shadow: var(--shadow-raised);
+}
+.as-panel::backdrop { background: color-mix(in srgb, var(--brand-ink) 40%, transparent); }
+.as-panel[open] { animation: as-sheet-in var(--t-enter) var(--ease-soft); }
+@keyframes as-sheet-in { from { transform: translateY(100%); } }
+@keyframes as-panel-in { from { opacity: 0; transform: scale(.15); } }
+@media (prefers-reduced-motion: reduce) { .as-panel[open] { animation: none; } }
+
+.as-frame { display: flex; flex-direction: column; height: 100%; }
+.as-head {
+ flex: 0 0 auto;
+ display: grid;
+ justify-items: center;
+ gap: var(--space-4);
+ padding: var(--space-12) var(--space-12) var(--space-12) var(--space-20);
+ border-bottom: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+}
+.as-bar { justify-self: stretch; display: flex; align-items: center; gap: var(--space-8); }
+.as-bar h2 { flex: 1; margin: 0; font-size: 18px; font-weight: 600; color: var(--surface); }
+.as-head .orb { --orb: min(172px, 44vw); margin-top: calc(-1 * var(--space-8)); }
+.as-caption { display: grid; gap: var(--space-4); justify-items: center; text-align: center; }
+.as-caption p { margin: 0; }
+.as-name { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: var(--brand-mint); }
+.as-figure { display: flex; align-items: baseline; gap: var(--space-8); font-size: 32px; font-weight: 200; line-height: 1.1; color: var(--surface); font-variant-numeric: tabular-nums; }
+.as-figure span { font-size: 14px; font-weight: 400; color: var(--brand-mint); }
+
+.as-scroll {
+ flex: 1;
+ min-height: 0;
+ overflow-y: auto;
+ overscroll-behavior: contain;
+ display: grid;
+ align-content: start;
+ gap: var(--space-24);
+ padding: var(--space-16) var(--space-20) calc(var(--space-24) + env(safe-area-inset-bottom));
+}
+.as-scroll .not-connected { margin: 0; border-left-color: var(--brand-mint); }
+
+.as-pause, .as-ask, .as-again, .as-go, .as-close {
+ display: inline-flex;
+ align-items: center;
+ gap: var(--space-8);
+ min-height: 44px;
+ font: inherit;
+ font-size: 15px;
+ cursor: pointer;
+ transition: background-color var(--t-quick) var(--ease-soft);
+}
+.as-pause, .as-ask, .as-close {
+ padding: var(--space-8) var(--space-16);
+ border-radius: var(--r-pill);
+ border: 1px solid color-mix(in srgb, var(--brand-mint) 62%, var(--brand-ink));
+ background: color-mix(in srgb, var(--surface) 6%, var(--brand-ink));
+ color: var(--surface);
+ font-weight: 500;
+ text-align: left;
+}
+.as-close { width: 44px; justify-content: center; padding: 0; }
+.as-pause:hover, .as-ask:hover, .as-close:hover { background: color-mix(in srgb, var(--surface) 14%, var(--brand-ink)); }
+.as-ask.urgent { border-color: var(--brand-orange); }
+.as-ask.urgent svg { color: var(--brand-orange); flex-shrink: 0; }
+
+/* ---- The conversation ------------------------------------------------------------------------- */
+.as-log ol { list-style: none; display: grid; gap: var(--space-20); margin: 0; padding: 0; }
+.as-turn { display: grid; gap: var(--space-8); scroll-margin-block: var(--space-16); }
+.as-said {
+ justify-self: end;
+ max-width: 85%;
+ margin: 0;
+ padding: var(--space-8) var(--space-16);
+ border-radius: var(--r-control);
+ border-end-end-radius: var(--space-4);
+ background: var(--surface);
+ color: var(--brand-ink);
+ font-size: 15px;
+ font-weight: 600;
+}
+.as-reply {
+ justify-self: start;
+ max-width: 100%;
+ padding: var(--space-16);
+ border-radius: var(--r-control);
+ border-end-start-radius: var(--space-4);
+ border: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink));
+ background: color-mix(in srgb, var(--surface) 7%, var(--brand-ink));
+ font-size: 15px;
+ line-height: 1.55;
+}
+.as-reply p { margin: 0; }
+.as-reply > * + * { margin-top: var(--space-12); }
+.as-who { display: block; font-size: 13px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--brand-mint); }
+.as-reasons { margin: 0; padding-left: var(--space-20); display: grid; gap: var(--space-8); font-size: 14px; }
+.as-headline { font-size: 18px; font-weight: 600; line-height: 1.35; }
+.as-numbers { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+/* A real column: the numbers share one width, so the names beside them start at the same edge. */
+.as-numbers li { display: grid; grid-template-columns: 4.5em minmax(0, 1fr); column-gap: var(--space-12); align-items: baseline; }
+/* White rather than lime: lime is the drawing's spark and the staff deck's one badge, and a number a
+   frightened person has to read is the last place for an accent. */
+.as-numbers strong { font-size: 24px; font-weight: 600; color: var(--surface); font-variant-numeric: tabular-nums; }
+.as-quiet { font-size: 14px; color: var(--brand-mint); }
+.as-go {
+ padding: var(--space-8) var(--space-20);
+ border: 0;
+ border-radius: var(--r-pill);
+ background: var(--surface);
+ color: var(--brand-ink);
+ font-weight: 600;
+}
+.as-go:hover { background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface)); }
+
+.as-asks { display: grid; gap: var(--space-20); padding-top: var(--space-20); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
+.as-asks h3, .as-rule h3 { margin: 0 0 var(--space-8); font-size: 15px; font-weight: 600; color: var(--surface); }
+.as-asks p { margin: 0 0 var(--space-12); font-size: 14px; line-height: 1.55; color: var(--brand-mint); }
+.as-chips { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.as-again {
+ justify-self: start;
+ padding: var(--space-8) var(--space-4);
+ border: 0;
+ background: none;
+ color: var(--surface);
+ font-weight: 500;
+ text-decoration: underline;
+ text-underline-offset: 3px;
+}
+.as-rule { padding-top: var(--space-20); border-top: 1px solid color-mix(in srgb, var(--brand-mint) 22%, var(--brand-ink)); }
+.as-rule p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--brand-mint); }
+.as-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (min-width: 1000px) {
+ .as-panel {
+  inset: auto var(--space-24) var(--space-24) auto;
+  width: 400px;
+  height: min(640px, calc(100dvh - 2 * var(--space-24)));
+  border-radius: var(--r-card);
+  transform-origin: 100% 100%;
+ }
+ .as-panel::backdrop { background: color-mix(in srgb, var(--brand-ink) 14%, transparent); }
+ .as-panel[open] { animation-name: as-panel-in; }
+ .as-head .orb { --orb: 156px; }
+}

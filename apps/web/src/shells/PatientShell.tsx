@@ -52,9 +52,14 @@ type Props = {
  location: string;
  visitCount: number;
  children: ReactNode;
+ /** The floating assistant. A slot rather than an import, so this shell stays free of it and the
+     patient app decides where it lives. It is drawn between the footer and the tab bar: a
+     zero-height row whose orb rises from it, so on a phone it always clears the bar at whatever
+     height the bar has grown to, with no measuring. */
+ assistant?: ReactNode;
 };
 
-export function PatientShell({ page, navigate, open, locale, location, visitCount, children }: Props) {
+export function PatientShell({ page, navigate, open, locale, location, visitCount, children, assistant }: Props) {
  const t = useT();
  return <div className="app-shell patient-surface">
   {/* The luminous ground, behind everything and going nowhere. See surface/patient.css for why it is
@@ -135,6 +140,7 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
     <span>© 2026 MyThuso. {t('shell.tagline')}</span>
     <button onClick={() => navigate('Help & support')}><CircleHelp size={14}/>{t('shell.help')}</button>
    </footer>
+   {assistant}
    <nav className="tabbar glass" aria-label="Primary">{tabs.map(([target, label, Icon]) =>
     <button key={target} aria-current={page === target ? 'page' : undefined} className={page === target ? 'active' : ''} onClick={() => navigate(target)}>
      <span className="tab-icon"><Icon size={21} strokeWidth={1.9}/>{target === 'My visits' && <span className="nav-count">{visitCount}</span>}</span>

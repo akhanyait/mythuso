@@ -20,8 +20,10 @@ import './clinical-deck.css';
  * a pale panel with a chart behind the numeral, and cards that cross the edge of the panel they
  * belong to. What is taken from it is the composition and the depth. What is deliberately not taken
  * is the violet: the secondary accent here is the indigo the token contract already ships, because
- * a violet product is a different company, and studioLime stays the one lead accent it has always
- * been — spent once per deck, on the figure the screen was opened for.
+ * a violet product is a different company. Since 14 September the deck is drawn in the logo's own
+ * colours in the clinical shell, at the founder's word: the lead accent is the logo's green as its
+ * reversed lockup draws it on ink, spent once per deck on the figure the screen was opened for, and
+ * the logo's lime is the dot — the badge inside the headline and nothing else.
  *
  * WHAT A SHAPE IS ALLOWED TO BE HERE, AND THE ONE RULE THAT GOVERNS ALL OF IT. Every drawing below
  * is built from the same arithmetic as the numeral beside it and carries no fact of its own. The
@@ -43,13 +45,13 @@ import './clinical-deck.css';
  * asks the catalogue's own formatter for each step, so the number that lands is the number the strip
  * counted, in the shape the strip counted it in.
  *
- * THE THREE GROUNDS. studioNight is the canvas, which is the ground the ThusoIQ workbench header
- * below already stands on, so the two dark bands frame the work between them rather than one of them
- * being an exception. On it the lead stands on dark glass — the night lifted eight per cent — and the
- * quiet half of the deck stands on indigoSoft, which is the palest thing in the indigo family and is
- * the panel the reference draws in lavender. Every pair is measured beside the rules that use it in
- * clinical-deck.css. Indigo itself is 1.45 on the night and may therefore never be a mark on it: on
- * the canvas the indigo family appears only as a pale disc with a dark icon inside it. */
+ * THE THREE GROUNDS. The canvas is the dark ground the ThusoIQ workbench header below already stands
+ * on — in the clinical shell that is the logo's ink — so the two dark bands frame the work between
+ * them rather than one of them being an exception. On it the lead stands on dark glass, the canvas
+ * lifted eight per cent, and the quiet half of the deck stands on a pale panel: a wash of the logo's
+ * green, where the reference draws lavender. Every pair is measured beside the rules that use it in
+ * clinical-deck.css. The green itself is 3.55 on the ink and so is a mark there at most, never a
+ * word; on the pale panel it is the mark and the ink is the word. */
 
 /** A word of the deck's headline, or the circular badge that stands inside the sentence in place of
     one. The badge is decorative — the sentence reads correctly with every badge removed, which is
@@ -251,7 +253,7 @@ export function ClinicalDeck({ role, figures, eyebrow, headline, note, title, le
  /* THE THREE PLACES A FIGURE CAN STAND, and which one it gets is the order of the strip rather than
     a second opinion about which number matters. metricsOf orders every strip urgency-first and has
     done since the strips were written.
-      lead   — the first figure, on dark glass under the headline, and the only one spending lime.
+      lead   — the first figure, on dark glass under the headline, and the only one spending the accent.
       float  — the middle, on a card that crosses the pale panel's leading edge.
       panel  — the last, which is the quiet half of the deck: a chart with its numeral standing on
                it, drawn large in area and moderate in type so it cannot outrank the lead. */

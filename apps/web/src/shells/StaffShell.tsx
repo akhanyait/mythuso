@@ -159,8 +159,8 @@ export default function StaffWorkspace({ role }: { role: StaffRole }) {
        and the heading in the main column says it again. Three of the same word on one screen is
        what a label costs when it is chosen for symmetry rather than for a reader. */}
    <div className="nav-label">WORKSPACE</div>
-   {/* Pill rows, and the one you are on is a filled charcoal pill with the trailing circle
-       inverted. A plain list of rows with a tinted active state told a reader which entry was
+   {/* Pill rows, and the one you are on is a filled pill in the logo's ink with its trailing circle
+       in the logo's reversed green. A plain list of rows with a tinted active state told a reader which entry was
        selected; the pill tells them where they are, which is the thing a workspace has to say
        before anything else on the screen means anything. */}
    <nav className="s-nav" aria-label="Main navigation">{sections.map(({ id, icon: Icon }) =>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, LogOut, ShieldCheck, X } from 'lucide-react';
+import { AssistantLauncher } from './components/AssistantLauncher';
 import { Modal, Pill } from './components/UI';
 import { NotConnected } from './components/NotConnected';
 import { PATIENT_SURFACE as SURFACE, PatientShell, patientSections } from './shells/PatientShell';
@@ -148,7 +149,13 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
  if (onboarding) return <Onboarding locale={locale} setLocale={setLocale} recover={onboarding === 'recovery'} onDone={() => { setOnboarding(''); setSignedIn(true); navigate('Overview'); }} onSkip={() => { setOnboarding(''); setSignedIn(true); navigate('Overview'); }}/>;
  if (!signedIn) return <SignIn live={live} onSignIn={() => setSignedIn(true)} onCreate={() => setOnboarding('first-run')} onRecover={() => setOnboarding('recovery')}/>;
  return <>
-  <PatientShell page={page} navigate={navigate} open={setModal} locale={locale} location={location} visitCount={rows.filter(row => row.group === 'upcoming').length}>
+  <PatientShell page={page} navigate={navigate} open={setModal} locale={locale} location={location} visitCount={rows.filter(row => row.group === 'upcoming').length}
+   /* The floating assistant, on every patient page and only on them: its questions are a patient's,
+      and the clinical workspaces get nothing until the assistant's scope says what a nurse or a
+      doctor could ask it. It sits inside the shell, ahead of the dialogs below, so when the SOS
+      handover closes the panel and opens Thuso SOS, focus returns to the orb first and the SOS
+      dialog then takes it. */
+   assistant={<AssistantLauncher openModal={setModal}/>}>
    {page === 'Overview' ? <Dashboard navigate={navigate} book={setBooking} open={setModal} query={query} setQuery={setQuery} visits={booked.map(row => row.visit)} location={location} viewVisit={() => setViewing(booked[0]?.id ?? null)}/>
     : page === 'Book a nurse' ? <Services book={setBooking} open={setModal} navigate={navigate} query={query} forPerson={forPerson} clearPerson={() => setForPerson(null)}/>
      : page === 'My visits' ? <Visits rows={rows} open={setModal} book={() => navigate('Book a nurse')} manage={manage} view={setViewing} track={track}/>
@@ -173,7 +180,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
             : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding('first-run')} navigate={navigate}/>
              : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
   </PatientShell>
-  {booking && <Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Booking service={booking} person={forPerson ?? undefined} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Modal>}
+  {booking &&<Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Booking service={booking} person={forPerson ?? undefined} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Modal>}
   {/* Looking at a visit, moving one and standing one down are three screens rather than three
       sentences in a roadmap dialog. Each one closes by going back to the list it came from, so no
       branch of this ends on a dialog with nothing behind it. */}

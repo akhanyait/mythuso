@@ -265,7 +265,9 @@
    before she reads a figure — and because the rule this screen exists to prove is that the two are
    not connected. Two channels: the fill AND the glyph AND the sentence under it. */
 .earnings .earn-standing { border-radius: var(--r-card); padding: var(--space-16) var(--space-20); gap: var(--space-16); align-items: flex-start; }
-.earnings .earn-standing.ok { background: var(--studio-lime); color: var(--studio-ink); }
+/* A wash of the accent rather than the accent itself: a banner the width of the column in full
+   strength is the loudest thing on the screen, and "nothing is wrong" should not be. Ink on it 10.06. */
+.earnings .earn-standing.ok { background: var(--pale-sage); color: var(--studio-ink); }
 .earnings .earn-standing.held { background: var(--studio-peach); color: var(--studio-ink); }
 .earnings .earn-standing strong { font-size: 16px; line-height: 1.35; color: var(--charcoal); }
 .earnings .earn-standing small { display: block; font-size: 14px; line-height: 1.55; margin-top: var(--space-4); color: var(--studio-ink); }

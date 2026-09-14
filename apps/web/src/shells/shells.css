@@ -87,3 +87,92 @@ a.primary { text-decoration: none }
  .staff-who { display: none }
  .staff-topbar .breadcrumb { margin-right: auto }
 }
+
+/* ---- The staff palette is the logo's ------------------------------------------------------------
+
+   On 14 September the founder looked at the redrawn nurse and doctor pages and asked for them to
+   "stick to logo colors and ui". The logo is public/brand/mythuso-logo.svg: brandInk for "my",
+   brandGreen for "thuso", brandOrange for the roof and brandLime for the dot. Its reversed lockup
+   draws "thuso" in brandMint, which is the logo saying for itself what its green becomes on a dark
+   ground. The studio palette — cream, green-black, lime as the lead — is none of those.
+
+   WHY THE RAMPS ARE RESTATED HERE AND NOT ONLY THE STUDIO NAMES. studio.css and revamp.css point
+   --canvas, --charcoal, --indigo and the rest at the studio colours on :root, and a custom property
+   is resolved where it is declared: re-pointing --studio-ink on this element would leave every ramp
+   that was built out of it at :root still holding the old green. So the same expressions are
+   declared again on the shell, where they pick up the shell's own values. The expressions are
+   studio.css's with revamp.css's overrides applied — deliberately the same shapes, so every sheet
+   below keeps the ground/ink/accent roles it was written against and only the colours move.
+
+   Scoped to the clinical shell. The patient application, the landing page and the shop keep the
+   studio palette until somebody decides otherwise for them.
+
+   MEASURED, with scripts/check-boundaries.mjs's formula on what color-mix(in srgb) resolves to:
+     ink on white 12.04   ink on paper (ink 4% over white) 11.20   the line (ink 11%) 1.22 on white
+     white on ink 12.04 (declared: surface/brandInk)   mint on ink 8.09 (declared: brandMint/brandInk)
+     lime on ink 10.47 (declared)   ink on lime 10.47 (declared)   ink on mint 8.09
+     --body (ink 80% over paper) 6.25 on paper, 5.49 on the line, 4.51 on full mint
+     --faint (ink 75% over paper) 5.42 on paper, 5.82 on white, 4.77 on the line, 5.14 on the orange
+                                  wash, 4.87 on mint at 34% — and 3.91 on full mint, where nothing
+                                  on these screens sets it
+     muted ink (ink 85% over white) 7.17 on paper, 5.18 on mint, 6.80 on the orange wash
+     green word (green 55% over ink) 5.87 on white, 5.47 on paper, 5.18 on the orange wash
+     ink on the orange wash (orange 12% over white) 10.61, danger 5.80, mangoInk 6.25
+     ink on --sage-slate (mint 80% over ink) 5.80 — a rail, a rule, the "now" segment's word
+     --teal-ink (the green word) 5.37 on --teal-soft (green 8% over white)
+   brandGreen itself is 3.39 on white and 3.55 on ink: a mark, a bar, a ring — never a word. */
+.app-shell.clinical {
+ --studio-night: var(--brand-ink);
+ --studio-paper: color-mix(in srgb, var(--brand-ink) 4%, var(--surface));
+ --studio-ink: var(--brand-ink);
+ --studio-ink-deep: var(--brand-ink);
+ /* The studio's lead accent was a fill that carried an ink word and a word on the night. Mint does
+    both, and is the logo's own green on a dark ground; lime is kept for the dot and spent by hand. */
+ --studio-lime: var(--brand-mint);
+ --studio-olive: color-mix(in srgb, var(--brand-green) 55%, var(--brand-ink));
+ --studio-peach: color-mix(in srgb, var(--brand-orange) 12%, var(--surface));
+ --studio-lilac: color-mix(in srgb, var(--brand-ink) 6%, var(--surface));
+ --studio-line: color-mix(in srgb, var(--brand-ink) 11%, var(--surface));
+ --studio-ink-muted: color-mix(in srgb, var(--brand-ink) 85%, var(--surface));
+
+ --canvas: var(--studio-paper);
+ --mist: var(--studio-paper);
+ --cloud: var(--studio-line);
+ --stone: var(--studio-line);
+ --line: var(--studio-line);
+ --ink: var(--studio-ink-deep);
+ --slate: var(--studio-ink);
+ --charcoal: var(--studio-ink);
+ --body: color-mix(in srgb, var(--studio-ink) 80%, var(--studio-paper));
+ --faint: color-mix(in srgb, var(--studio-ink) 75%, var(--studio-paper));
+ --charcoal-muted-on-cloud: color-mix(in srgb, var(--studio-ink) 82%, var(--studio-line));
+ --charcoal-muted-on-soft-sage: color-mix(in srgb, var(--studio-ink) 82%, var(--studio-peach));
+ --charcoal-muted-on-pale-sage: color-mix(in srgb, var(--studio-ink) 82%, var(--studio-lime));
+ --pale-sage: color-mix(in srgb, var(--studio-lime) 34%, var(--studio-paper));
+ --soft-sage: color-mix(in srgb, var(--studio-peach) 55%, var(--studio-paper));
+ --muted-sage: color-mix(in srgb, var(--studio-lilac) 60%, var(--studio-paper));
+ --sage-slate: color-mix(in srgb, var(--studio-lime) 80%, var(--studio-ink));
+ --indigo: var(--studio-ink);
+ --indigo-deep: var(--studio-ink-deep);
+ --indigo-soft: color-mix(in srgb, var(--studio-lime) 26%, var(--studio-paper));
+ --accent-soft: color-mix(in srgb, var(--studio-lime) 34%, var(--studio-paper));
+ --indigo-wash: color-mix(in srgb, var(--studio-ink) 7%, transparent);
+ --teal-light: var(--studio-lime);
+ --teal-mid: var(--studio-lime);
+ --aurora-cool: var(--studio-paper);
+ --aurora-sage: var(--studio-paper);
+ --aurora-warm: var(--studio-paper);
+ --glass-floor: var(--surface);
+ --glow: color-mix(in srgb, var(--studio-lime) 40%, var(--studio-paper));
+ /* Teal was the proposal's accent and is not in this logo. The screens that name it keep their roles
+    — a mark, a word, a wash — in the logo's green. The warning ink and its wash are a clinical state
+    rather than a brand colour and are left exactly as they are; --mango is only ever a fill here,
+    the stripe on a flagged row and a bar, and becomes the roof's orange at 2.84 on white where it
+    was 1.78. */
+ --teal: var(--brand-green);
+ --teal-ink: var(--studio-olive);
+ --teal-soft: color-mix(in srgb, var(--brand-green) 8%, var(--surface));
+ --mango: var(--brand-orange);
+ --shadow: 0 1px 2px color-mix(in srgb, var(--studio-ink) 7%, transparent);
+ --shadow-raised: 0 4px 16px color-mix(in srgb, var(--studio-ink) 11%, transparent);
+}

@@ -196,12 +196,17 @@
  .clinical .console-tabs { display: none; }
 }
 /* An inactive pill is glass on the aurora rather than a flat grey chip, so the column reads as the
-   same material as the work beside it. The active one stays charcoal — it is the only filled shape
-   in the sidebar and that is what makes it say where you are. */
+   same material as the work beside it. The active one is filled in the logo's ink — it is the only
+   filled shape in the sidebar and that is what makes it say where you are — and its circle is the
+   logo's reversed green, mint on ink, with the arrow in ink at 8.09. Not lime: lime is the dot, and
+   the deck beside this column already spends it on the badge inside its headline; two dots on one
+   screen and neither is the dot. Hover lifts the ink towards the green rather than to a second
+   dark: white on it is 10.03. */
 .clinical .s-nav-row { background: var(--pane); border: 1px solid var(--pane-line); }
 .clinical .s-nav-row:hover { background: color-mix(in srgb, var(--surface) 88%, transparent); }
 .clinical .s-nav-row[aria-current='page'] { background: var(--charcoal); border-color: var(--charcoal); }
-.clinical .s-nav-row[aria-current='page']:hover { background: var(--ink); }
+.clinical .s-nav-row[aria-current='page']:hover { background: color-mix(in srgb, var(--brand-green) 14%, var(--brand-ink)); }
+.clinical .s-nav-row[aria-current='page'] i { background: var(--brand-mint); color: var(--brand-ink); }
 
 /* Who is signed in. A statement, not a control — so it is the one pane in the sidebar that is
    frosted rather than filled, sitting on the ground like the pills under it. */
@@ -523,7 +528,8 @@
 .clinical .not-connected.inline { background: none; border-left: 2px solid var(--pane-line); border-radius: 0; }
 
 /* ---- Controls ---------------------------------------------------------------------------------
-   The primary action is lime on these screens, with its label in ink at 11.46. Indigo stays for
+   The primary action is the accent on these screens — mint in the clinical shell, the colour the
+   logo's reversed lockup draws its green in — with its label in the logo's ink at 8.09. Indigo stays for
    meaning — an information mark, a link out — and stops being the colour of every button, because a
    workspace where the "Assign" on a dispatch row and the "Got it" on a dialog are painted
    identically is one where the colour has stopped meaning "this is the thing to press". Fully
