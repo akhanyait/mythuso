@@ -1,17 +1,21 @@
 /**
  * The contract test suite the build plan's Wave 2 exit test names: every route once with a valid call
  * and once with an invalid one, and every refusal every route declares returned with the status and the
- * sentence the contract gives it. Plus the three things that keep the mock from being a service: it
- * will not start without the flag, it binds to loopback, and it says its answers are synthetic.
+ * sentence the contract gives it. Plus what keeps the mock from being a service: the library and the
+ * server both refuse without the flag, the server binds to loopback and refuses a request addressed to
+ * any other host, a path that does not decode is refused in words rather than thrown, and every answer
+ * says it is synthetic.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { request as httpRequest } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { createMock, loadContract, needsIdempotencyKey, type Field, type Route } from '../src/mock.ts';
-import { MockRefusedToStart, mockConfig, startMock } from '../src/server.ts';
+import { MockRefusedToStart, createMock, loadContract, needsIdempotencyKey, type Field, type Route } from '../src/mock.ts';
+import { startMock } from '../src/server.ts';
 
 const contract = loadContract();
-const mock = createMock(contract, () => new Date('2026-09-14T09:00:00+02:00'));
+const FLAG = { [contract.mock.flag]: contract.mock.flagValue };
+const mock = createMock({ env: FLAG, contract, now: () => new Date('2026-09-14T09:00:00+02:00') });
 
 const valueFor = (field: Field): unknown => {
  if (field.object) return field.type === 'list' ? [] : {};
@@ -44,6 +48,18 @@ const typeOk = (field: Field, value: unknown): boolean => {
   default: return typeof value === 'string';
  }
 };
+
+function send(port: number, path: string, headers: Record<string, string>): Promise<{ status: number; body: Record<string, unknown>; mockHeader: string | undefined }> {
+ return new Promise((resolve, reject) => {
+  const req = httpRequest({ host: '127.0.0.1', port, path, method: 'GET', headers }, res => {
+   let text = '';
+   res.on('data', chunk => { text += chunk; });
+   res.on('end', () => resolve({ status: res.statusCode ?? 0, body: JSON.parse(text || '{}'), mockHeader: res.headers['x-mythuso-mock'] as string | undefined }));
+  });
+  req.on('error', reject);
+  req.end();
+ });
+}
 
 test('the contract has routes to test', () => {
  assert.ok(contract.routes.length > 100, `only ${contract.routes.length} routes were loaded`);
@@ -106,19 +122,37 @@ test('every money and dispatch write refuses a call without an idempotency key, 
  }
 });
 
-test('the mock refuses to start without the flag, and refuses a flag that says anything else', () => {
- assert.throws(() => mockConfig({}), MockRefusedToStart);
- assert.throws(() => mockConfig({ [contract.mock.flag]: 'yes' }), MockRefusedToStart);
+test('a path that does not decode is refused with the declared refusal, not thrown', () => {
+ const answer = mock.handle({ method: 'GET', path: '/v1/trust/parties/%E0%A4%A', headers: {}, query: {}, body: {} });
+ const declared = contract.shared.find(r => r.id === 'malformed-path')!;
+ assert.equal(answer.status, declared.status);
+ assert.deepEqual(answer.body, { error: declared.id, message: declared.statement });
 });
 
-test('the mock binds to loopback and labels every answer synthetic', async () => {
- const server = startMock({ [contract.mock.flag]: contract.mock.flagValue, MYTHUSO_MOCK_PORT: '0' });
+test('the library refuses to answer anything without the flag, and refuses a flag that says anything else', () => {
+ assert.throws(() => createMock({ env: {} }), MockRefusedToStart);
+ assert.throws(() => createMock({ env: { [contract.mock.flag]: 'yes' } }), MockRefusedToStart);
+ assert.throws(() => startMock({}), MockRefusedToStart);
+});
+
+test('the server binds to loopback, refuses a request addressed to another host, survives a bad path and labels every answer synthetic', async () => {
+ const server = startMock({ ...FLAG, MYTHUSO_MOCK_PORT: '0' });
  await new Promise(resolve => server.on('listening', resolve));
  const address = server.address() as AddressInfo;
  assert.equal(address.address, '127.0.0.1');
  const route = contract.routes.find(r => r.method === 'GET' && !r.request.length)!;
- const response = await fetch(`http://127.0.0.1:${address.port}${route.mountedPath}`, { headers: { [contract.mock.roleHeader]: route.callers[0]!, [contract.mock.purposeHeader]: route.purpose[0]! } });
- assert.equal(response.status, 200);
- assert.equal(response.headers.get('x-mythuso-mock'), 'synthetic-data-only');
+ const headers = { [contract.mock.roleHeader]: route.callers[0]!, [contract.mock.purposeHeader]: route.purpose[0]! };
+
+ const rebound = await send(address.port, route.mountedPath, { ...headers, host: 'evil.example' });
+ assert.equal(rebound.status, 403);
+ assert.equal(rebound.body.error, 'not-loopback');
+
+ const malformed = await send(address.port, '/v1/trust/parties/%E0%A4%A', { host: `127.0.0.1:${address.port}` });
+ assert.equal(malformed.status, 400);
+ assert.equal(malformed.body.error, 'malformed-path');
+
+ const ok = await send(address.port, route.mountedPath, { ...headers, host: `localhost:${address.port}` });
+ assert.equal(ok.status, 200);
+ assert.equal(ok.mockHeader, 'synthetic-data-only');
  await new Promise(resolve => server.close(resolve));
 });

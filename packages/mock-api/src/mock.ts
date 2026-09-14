@@ -8,8 +8,8 @@
  * to answer — and a mock that says yes to everything teaches every screen that nothing is ever refused.
  * This one refuses exactly as the contract says each route will: a role that is not a caller, a purpose
  * the route does not serve, a missing required field, a money or dispatch write without an idempotency
- * key, and — when a test asks for it by id in the refusal header — each of the route's own refusals,
- * with the status and the sentence the contract declares.
+ * key, a path it cannot decode, and — when a test asks for it by id in the refusal header — each of the
+ * route's own refusals, with the status and the sentence the contract declares.
  *
  * ── What it never does ───────────────────────────────────────────────────────────────────────────────
  *
@@ -19,8 +19,11 @@
  * why refusals are asked for by id rather than simulated. The answers are synthetic and say so in a
  * header.
  *
- * Pure: `createMock` takes the contract and a clock and returns a handler. The HTTP server is
- * src/server.ts.
+ * ── Why the flag is checked here as well as in the server ────────────────────────────────────────────
+ *
+ * The third review found that the flag was the server's refusal only, so anything importing this
+ * library could answer every route without saying what it serves. createMock() refuses without
+ * MYTHUSO_MOCK=synthetic-data-only itself, and the server calls it.
  */
 import { readFileSync } from 'node:fs';
 
@@ -35,10 +38,13 @@ export type MockContract = {
  routes: Route[];
  shared: Refusal[];
  idempotency: { field: string; appliesToEngines: string[]; appliesToPurposes: string[]; appliesToMethods: string[] };
- mock: { flag: string; flagValue: string; roleHeader: string; purposeHeader: string; refusalHeader: string };
+ mock: { flag: string; flagValue: string; roleHeader: string; purposeHeader: string; refusalHeader: string; loopbackHosts: string[] };
 };
 export type MockRequest = { method: string; path: string; headers: Record<string, string | undefined>; query: Record<string, string>; body: Record<string, unknown> };
 export type MockAnswer = { status: number; body: Record<string, unknown> };
+export type MockOptions = { env: Record<string, string | undefined>; contract?: MockContract; now?: () => Date };
+
+export class MockRefusedToStart extends Error {}
 
 const root = new URL('../../../', import.meta.url);
 const readJson = (file: string): any => JSON.parse(readFileSync(new URL(file, root), 'utf8'));
@@ -66,8 +72,15 @@ export const needsIdempotencyKey = (contract: MockContract, route: Route): boole
 const segmentsOf = (path: string): string[] => path.split('/').filter(Boolean);
 const paramsIn = (path: string): string[] => [...path.matchAll(/\{([^}]+)\}/g)].map(m => m[1]!);
 
-function match(routes: Route[], method: string, path: string): { route: Route; params: Record<string, string> } | null {
- const asked = segmentsOf(path);
+/* A path whose escapes do not decode is not a path to any route. It used to throw out of the request
+   handler — an unhandled rejection that could take the process down — and now it is a refusal. */
+function match(routes: Route[], method: string, path: string): { route: Route; params: Record<string, string> } | 'malformed' | null {
+ let asked: string[];
+ try {
+  asked = segmentsOf(path).map(segment => decodeURIComponent(segment));
+ } catch {
+  return 'malformed';
+ }
  for (const route of routes) {
   if (route.method !== method) continue;
   const declared = segmentsOf(route.mountedPath);
@@ -76,7 +89,7 @@ function match(routes: Route[], method: string, path: string): { route: Route; p
   let ok = true;
   declared.forEach((segment, i) => {
    const param = segment.match(/^\{(.+)\}$/);
-   if (param) params[param[1]!] = decodeURIComponent(asked[i]!);
+   if (param) params[param[1]!] = asked[i]!;
    else if (segment !== asked[i]) ok = false;
   });
   if (ok) return { route, params };
@@ -101,7 +114,10 @@ export function fixtureValue(field: Field, now: Date): unknown {
 
 const refuse = (refusal: Refusal): MockAnswer => ({ status: refusal.status, body: { error: refusal.id, message: refusal.statement } });
 
-export function createMock(contract: MockContract = loadContract(), now: () => Date = () => new Date()) {
+export function createMock(options: MockOptions) {
+ const contract = options.contract ?? loadContract();
+ if (options.env[contract.mock.flag] !== contract.mock.flagValue) throw new MockRefusedToStart(`The mock answers with synthetic data only, and answers nothing until ${contract.mock.flag}=${contract.mock.flagValue} says so.`);
+ const now = options.now ?? (() => new Date());
  const replays = new Map<string, MockAnswer>();
  const shared = (id: string): Refusal => {
   const refusal = contract.shared.find(r => r.id === id);
@@ -111,6 +127,7 @@ export function createMock(contract: MockContract = loadContract(), now: () => D
 
  function handle(request: MockRequest): MockAnswer {
   const found = match(contract.routes, request.method, request.path);
+  if (found === 'malformed') return refuse(shared('malformed-path'));
   if (!found) return { status: 404, body: { error: 'no-route', message: 'No route in the contract answers that method and path.' } };
   const { route, params } = found;
   const role = request.headers[contract.mock.roleHeader];
@@ -143,5 +160,5 @@ export function createMock(contract: MockContract = loadContract(), now: () => D
   return answer;
  }
 
- return { routes: contract.routes, handle, paramsIn };
+ return { routes: contract.routes, contract, handle, paramsIn };
 }
