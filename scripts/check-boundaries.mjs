@@ -5689,3 +5689,161 @@ for (const refusal of [...shopContract.refusals, ...rewardsContract.refusals]) {
 }
 
 console.log(`The shop sells ${shopContract.products.length} things over ${shopContract.categories.length} categories and not one of them is a medicine — checked against its own never-sold vocabulary, against the ${MEDICINE_FIELDS.length} fields only a medicine would need, and against the dispensing contract's own item list, so the shop cannot become a pharmacy by increments. Section 18A of the Medicines and Related Substances Act 101 of 1965 is arithmetic rather than intention: ${rewardsContract.earnReasons.length} earning reasons and none of them about a dose, a script or a refill, and a kernel that makes a medicine earn zero and redeem zero by consulting isMedicine() rather than by trusting the catalogue. The ledger is not a clinical record — every reason states what it discloses and what it never does, and the kernel writes that sentence rather than a caller's, so a points history says a visit happened and never what it was for. Points are not money, enforced by absence: no command withdraws, transfers, pays or charges, and no field in the kernel has the shape of a card. A tier has exactly ${rewardsContract.tierInputs.length} input, names no protected category and offers nothing about being seen sooner, because a balance that moves somebody up a clinical queue is care sold by loyalty rather than given by need. Nurse recognition is worth nothing at any rate, and no file in packages/commerce may even name a payout, dispatch or earnings. What a point is worth is written once, in randPerPoint, and ${pointValueScreens.length} screens across three platforms are read to make sure none of them has quietly written it down again.`);
+
+/* ==== Plans & Pricing (Wave 1) ===================================================================
+
+   Added by the Plans & Pricing lead on 14 September 2026, the day the founder confirmed that the
+   Master Blueprint v4's MyThuso for Mom prices — R399, R749 and R1 299 a month — replace the single
+   R249 Thuso Mom the preview carried. Self-contained, so it can be moved or merged without touching
+   anything above it.
+
+   A plan price is the number a child in the city is being asked to send home every month, and the
+   ways it goes wrong here are all quiet ones: a phone that still says R249 because nobody regenerated
+   it, a Thuso Band listed as included on a screen when no Band has been built, "priority SOS" read as
+   a parent jumping a queue somebody more unwell is in, or a monthly price mistaken for medical-aid
+   cover. Each is checked below, and each was proved to fire by breaking the source and restoring it. */
+{
+ const momContract = JSON.parse(read('packages/catalog/mom-plans.json'));
+ const planModel = JSON.parse(read('packages/catalog/business-model.json'));
+ const planCapabilities = new Map(JSON.parse(read('packages/catalog/capabilities.json')).capabilities.map(c => [c.id, c]));
+ const stripped = file => read(file).replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map(l => l.replace(/(^|\s)\/\/.*$/, '')).join('\n');
+ const android = 'apps/android/app/src/main/java/za/co/mythuso';
+
+ /* 0. PlansData is generated, and is compared here rather than in the shared `generated` list above,
+       so that this section stays in one piece when branches that also edit this file are merged. The
+       comparison is the same one that list makes. It is made against both sources, because either the
+       tiers or the business model's other subscription prices can leave the phones stale. */
+ const { emitPlans } = await import('./emit-plans.mjs');
+ for (const file of emitPlans()) {
+  if (!existsSync(file.path)) throw new Error(`${file.path} has not been generated. Run: npm run plans`);
+  for (const source of ['packages/catalog/mom-plans.json', 'packages/catalog/business-model.json']) {
+   if (statSync(file.path).mtimeMs < statSync(source).mtimeMs) throw new Error(`${file.path} is older than ${source}. Run: npm run plans`);
+  }
+  if (read(file.path) !== file.content) throw new Error(`${file.path} is not what packages/catalog/mom-plans.json and packages/catalog/business-model.json generate. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: npm run plans`);
+ }
+
+ /* 1. Three tiers, each priced once, in the one file. The business model's row names the tier file
+       and carries no price of its own, so there is no second number for anything to agree with. */
+ const TIERS = ['essential', 'plus', 'premium'];
+ if (JSON.stringify(momContract.tiers.map(t => t.id)) !== JSON.stringify(TIERS)) throw new Error(`packages/catalog/mom-plans.json has tiers ${momContract.tiers.map(t => t.id).join(', ')}; the Blueprint confirmed ${TIERS.join(', ')}, in that order.`);
+ const tierPrices = momContract.tiers.map(t => t.price);
+ if (!tierPrices.every((p, i) => Number.isInteger(p) && p > 0 && (i === 0 || p > tierPrices[i - 1]))) throw new Error(`MyThuso for Mom's prices ${tierPrices.join(', ')} are not whole rands rising from Essential to Premium. A dearer tier that costs less is a typo somebody will be charged.`);
+ const momRows = planModel.subscriptions.filter(s => s.tiersIn);
+ if (momRows.length !== 1 || momRows[0].id !== 'mom' || momRows[0].tiersIn !== 'mom-plans.json') throw new Error('packages/catalog/business-model.json must have exactly one tiered subscription, `mom`, pointing at mom-plans.json. Tier prices read from a file nobody points at are prices nobody renders.');
+ if (momRows[0].price !== null) throw new Error(`packages/catalog/business-model.json gives MyThuso for Mom a price of ${momRows[0].price} beside its three tiers. That is a second copy of a plan price, and the landing page will one day quote it.`);
+
+ /* 2. No rendering types a plan price, on any platform, and every rendering reads the source. The old
+       native screens wrote "R199 / month" as strings — the drift that would have kept R249 on both
+       phones — so a rand amount beside any subscription price is refused in every plans file, and
+       the files dedicated to MyThuso for Mom may not hold the tier numbers even bare. */
+ const priced = [...new Set([...planModel.subscriptions.filter(s => s.price !== null).map(s => s.price), ...tierPrices])];
+ const randPattern = price => new RegExp(`R\\s?${String(price).replace(/\B(?=(\d{3})+$)/g, '[\\s,]?')}(?![\\d])`);
+ const planScreens = {
+  /* The panel is a dynamic import. A static one grows the patient's first load for a screen most
+     patients will not open that day, which is the cost CLAUDE.md says is paid by the people this is for. */
+  'apps/web/src/features/Pages.tsx': [/import\('\.\/MomPlans'\)/, /<MomPlansPanel\/>/, /<NotConnected of="payments"\/>/],
+  'apps/web/src/features/MomPlans.tsx': [/from '\.\.\/lib\/mom-plans'/, /<NotConnected of=\{g\.capability\}/],
+  'apps/web/src/features/Landing.tsx': [/monthlyPrices\(/],
+  'apps/web/src/features/Admin.tsx': [/subscriptionLines\(\)/],
+  'apps/web/src/lib/mom-plans.ts': [/mom-plans\.json/],
+  'apps/ios/MyThuso/Features/PassportView.swift': [/Plans\.subscriptions/, /MomPlansView\(\)/, /CapabilityNotice\(of: "payments"\)/],
+  'apps/ios/MyThuso/Features/MomPlansView.swift': [/Plans\.mom\b/, /CapabilityNotice\(of: group\.capability\)/, /CapabilityNotice\(of: "payments"\)/],
+  'apps/ios/MyThuso/Models/Plans.swift': [/PlanSubscription/],
+  [`${android}/ui/AccountScreens.kt`]: [/planSubscriptions/, /MomPlanScreen\(\)/],
+  [`${android}/ui/MomPlanScreens.kt`]: [/momPlan\b/, /NotConnected\(group\.capability\)/, /NotConnected\("payments"\)/],
+  [`${android}/model/Plans.kt`]: [/PlanSubscription/]
+ };
+ const dedicated = /(MomPlans?|mom-plans|Plans)\.(tsx|ts|swift|kt)$|MomPlanScreens\.kt$/;
+ for (const [file, reads] of Object.entries(planScreens)) {
+  if (!existsSync(file)) throw new Error(`${file} is missing. It is one of the places a plan price is drawn, and a plans screen that has moved without this list is one nobody is checking.`);
+  const code = stripped(file);
+  for (const pattern of reads) if (!pattern.test(code)) throw new Error(`${file} no longer does ${pattern}. It is how that screen reads plan prices or the notices beside them from the contracts rather than from itself.`);
+  for (const price of priced) {
+   if (randPattern(price).test(code)) throw new Error(`${file} types a plan price, R${price}. Plan prices live in packages/catalog/business-model.json and packages/catalog/mom-plans.json, and reach a phone through scripts/emit-plans.mjs — a typed copy is the one that still says R249.`);
+  }
+  if (dedicated.test(file)) for (const price of tierPrices) {
+   if (new RegExp(`(?<![\\w.])${price}(?![\\w.])`).test(code)) throw new Error(`${file} holds ${price}, a MyThuso for Mom tier price, as a literal. Read it from the tiers.`);
+  }
+ }
+ /* And the plan it replaced is gone, rather than drawn beside the three. */
+ const everyScreen = [...files('apps/web/src'), ...files('apps/ios/MyThuso'), ...files(`${android}`)].filter(f => /\.(tsx?|swift|kt)$/.test(f));
+ for (const file of everyScreen) if (/\bThuso Mom\b/.test(stripped(file))) throw new Error(`${file} still names "Thuso Mom". The founder replaced that R249 plan with MyThuso for Mom on 14 September 2026; a screen offering both is offering a plan nobody sells.`);
+
+ /* 3. Every inclusion names a capability that exists, or is marked available with evidence somebody
+       can open. There is no third way for a line on a plan to be shown. */
+ for (const tier of momContract.tiers) {
+  const ids = new Set();
+  for (const item of tier.includes) {
+   if (ids.has(item.id)) throw new Error(`Tier "${tier.id}" lists "${item.id}" twice.`);
+   ids.add(item.id);
+   if (item.available) {
+    if (!item.evidence || !existsSync(item.evidence)) throw new Error(`"${item.id}" on ${tier.name} is marked available and its evidence ${JSON.stringify(item.evidence)} is not a file that exists. Available is a claim about the world.`);
+    continue;
+   }
+   if (!item.capability) throw new Error(`"${item.id}" on ${tier.name} names no capability and is not marked available with evidence. A plan line with neither is a promise with nothing beside it.`);
+   if (!planCapabilities.has(item.capability)) throw new Error(`"${item.id}" on ${tier.name} depends on capability "${item.capability}", which packages/catalog/capabilities.json does not define — so no notice can be rendered beside it and the screen would stay silent.`);
+  }
+ }
+
+ /* 4. A device that does not exist is never included. Each of MyThuso's own devices on a plan names
+       the device and waits on thuso-devices; while that is not connected, no inclusion and no plans
+       screen on any platform may use the word "included" — the heading says "would bring" — and
+       every device line mentions nothing as bought. */
+ const ownDevices = new Set(planModel.equipment.ownDevices.map(d => d.id));
+ const devicesConnected = planCapabilities.get('thuso-devices')?.connected;
+ for (const tier of momContract.tiers) for (const item of tier.includes) {
+  if (/\b(Thuso Band|Thuso Home|Thuso Pod|dispenser|wearable)\b/i.test(item.text) && !item.device) throw new Error(`"${item.id}" on ${tier.name} names a device and does not say which of MyThuso's own devices it is, so nothing can hold it to whether that device exists.`);
+  if (!item.device) continue;
+  if (!ownDevices.has(item.device)) throw new Error(`"${item.id}" on ${tier.name} names device "${item.device}", which is not one of the own devices in packages/catalog/business-model.json.`);
+  if (item.capability !== 'thuso-devices') throw new Error(`"${item.id}" on ${tier.name} is a device and depends on "${item.capability}" rather than thuso-devices, so the sentence saying the device has not been built would not be beside it.`);
+  if (!devicesConnected && /\binclud/i.test(item.text)) throw new Error(`"${item.id}" on ${tier.name} calls a device that has not been built included. ${momContract.refusals.find(r => r.id === 'a-device-that-does-not-exist-is-not-included')?.sentence ?? ''}`);
+ }
+ /* Scoped to the plans code in the files that hold many screens. Pages.tsx also draws the nurse
+    booking, whose "not included in this nurse booking" is true and about something else; a check that
+    fails on the right word in the wrong screen gets switched off, and then it guards nothing. */
+ const planSegment = {
+  'apps/web/src/features/Pages.tsx': ['const planCopy', 'export function Privacy'],
+  'apps/web/src/features/Landing.tsx': ['<section id="plans"', '<section id="nurses"'],
+  'apps/web/src/features/Admin.tsx': ['function Growth', 'Thuso Screen packages'],
+  'apps/ios/MyThuso/Features/PassportView.swift': ['struct PlansView', 'struct WalletView'],
+  [`${android}/ui/AccountScreens.kt`]: ['private val planBlurb', '@Composable fun WalletScreen']
+ };
+ const plansCode = file => {
+  const code = stripped(file), bounds = planSegment[file];
+  if (!bounds) return code;
+  const from = code.indexOf(bounds[0]), to = code.indexOf(bounds[1], from);
+  if (from < 0 || to < 0) throw new Error(`${file} no longer has its plans code between "${bounds[0]}" and "${bounds[1]}", so this check cannot find what it guards. Move the markers with the code.`);
+  return code.slice(from, to);
+ };
+ if (!devicesConnected) for (const file of Object.keys(planScreens)) {
+  if (/\bincluded\b/i.test(plansCode(file))) throw new Error(`${file} says "included" on a plans screen while thuso-devices is not connected. A plan does not include a device that has not been built; it would bring one, with the notice beside it.`);
+ }
+
+ /* 5. No price buys clinical priority. Anything on a plan that speaks of priority must say it is
+       undecided, and that sentence must refuse being seen ahead of somebody more unwell. Nothing else
+       on the plan may speak of being faster or ahead at all. */
+ const REQUIRED_REFUSALS = ['a-device-that-does-not-exist-is-not-included', 'no-plan-buys-a-place-ahead', 'a-plan-is-not-medical-aid', 'paying-is-not-seeing'];
+ for (const id of REQUIRED_REFUSALS) if (!momContract.refusals.some(r => r.id === id && r.sentence?.trim())) throw new Error(`packages/catalog/mom-plans.json has lost the refusal "${id}". It is the half of this plan worth reading.`);
+ for (const tier of momContract.tiers) for (const item of tier.includes) {
+  if (/priorit/i.test(item.id + ' ' + item.text)) {
+   if (!item.undecided || !/more unwell|ahead of/i.test(item.undecided)) throw new Error(`"${item.id}" on ${tier.name} speaks of priority without saying what it cannot mean. A plan price may buy faster contact, never a place ahead of somebody more unwell, and until that is written down it claims nothing.`);
+  }
+  if (/\b(faster|ahead of|jump|queue|first in line|before other)/i.test(item.text)) throw new Error(`"${item.id}" on ${tier.name} reads "${item.text}". ${momContract.refusals.find(r => r.id === 'no-plan-buys-a-place-ahead').sentence}`);
+ }
+
+ /* 6. A plan price never implies scheme cover. The words belong to the refusal that denies them and
+       to nothing a person reads as what they are buying. */
+ const sold = [momContract.payer.headline, momContract.payer.statement, momContract.addOns.statement, momContract.splitting.statement,
+  ...momContract.addOns.items.map(a => a.name), ...momContract.tiers.flatMap(t => [t.name, t.cadence, ...t.includes.map(i => i.text)])];
+ for (const line of sold) if (/\b(medical aid|medical scheme|scheme|cover(ed|s|age)?|insur\w*|claim\w*|benefit)\b/i.test(line)) throw new Error(`MyThuso for Mom says "${line}". ${momContract.refusals.find(r => r.id === 'a-plan-is-not-medical-aid').sentence}`);
+
+ /* 7. The documents name the add-ons and price none of them, and neither does this. */
+ for (const addOn of momContract.addOns.items) if ('price' in addOn) throw new Error(`The add-on "${addOn.id}" has a price. The Blueprint names it and does not price it; a number here would be one somebody invented.`);
+
+ /* 8. The Blueprint's retained margin is cited, not derived from, and it has to sit inside the prices
+       it is a margin on — below the dearest tier at the top and below the cheapest at the bottom. */
+ const [retainLow, retainHigh] = momContract.economics.retainsPerParentMonthly;
+ if (!(retainLow > 0 && retainLow < retainHigh && retainLow < Math.min(...tierPrices) && retainHigh < Math.max(...tierPrices))) throw new Error(`MyThuso for Mom retains R${retainLow}–R${retainHigh} a parent a month against prices of ${tierPrices.join(', ')}. A margin larger than the price it is taken from is arithmetic nobody should present to a funder.`);
+
+ console.log(`MyThuso for Mom has ${momContract.tiers.length} tiers priced once, ${momContract.tiers.reduce((n, t) => n + t.includes.length, 0)} inclusions each beside the capability it waits on, and ${momContract.refusals.length} refusals — and no plans screen on any platform types a price.`);
+}

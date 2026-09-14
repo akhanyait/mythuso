@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, HandCoins, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, NotebookPen, PenLine, Plus, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, Users, UserPlus, Wallet, Zap } from 'lucide-react';
+import { Component, lazy, Suspense, useState, type ReactNode } from 'react';
+import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, HandCoins, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, NotebookPen, PenLine, Plus, RefreshCw, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, TriangleAlert, UserPlus, Users, Wallet, Zap } from 'lucide-react';
 import { Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
-import { EmptyState, StateBlock, useOffline, type LoadState } from '../components/States';
+import { EmptyState, Skeleton, StateBlock, useOffline, type LoadState } from '../components/States';
 import { InvitationList, scopes, type Invitation } from './Guardian';
 import { BroughtToTheVisit } from './Wellbeing';
 import type { Entry as WellbeingEntry } from '../lib/wellbeing';
@@ -24,6 +24,7 @@ import { CancelledVisit, PastVisit } from './VisitSummary';
 import { nurseFor, assignedNurse } from '../lib/arrival';
 import { ClinicianProfile } from '../components/ClinicianProfile';
 import businessModel from '../../../../packages/catalog/business-model.json';
+import { OPEN_PARAM, slugOfSection } from '../lib/roles';
 /* One service, one card, one symbol.
  *
  * Each card used to carry the service's icon twice — once in a tinted tile at the top left and
@@ -374,28 +375,71 @@ export function Family({open,navigate,members,invitations,onRevoke}:{open:(s:str
  <div className="section-title space-top"><h2>Guardians and shared access</h2><button className="secondary" onClick={()=>open('Invite a guardian')}><UserPlus size={16}/>Invite someone</button></div>
  {invitations.length?<InvitationList invitations={invitations} onRevoke={onRevoke}/>:<EmptyState title="Nobody else has access" body="When you invite a guardian or a family member, their access appears here with exactly what they can see and when it ends." action="Invite someone" onAction={()=>open('Invite a guardian')}/>}
  <div className="privacy-note"><LockKeyhole size={19}/>Paying for a family member’s care does not automatically grant access to their health records.</div></>}
-/* Five plans, none of which can be bought. That is why none of them has a primary button any more:
-   a solid teal call to action on a card marked "PHASE 2 PREVIEW" reads as the one you may sign up
-   for today, and the honest answer for all five is the same. The first card keeps its tint, which
-   marks it without promising it. One column on a phone — at two-up the names wrapped to two lines
-   and the buttons landed at five different heights. */
+/* MyThuso for Mom arrives when Care plans is opened, not with the patient's first load.
+   Imported directly, the panel, its contract and its stylesheet added 3.4 kB gzipped to what every
+   patient downloads to open the app, on metered data, for a screen most of them will not open that
+   day. So it is its own chunk, and while it arrives the space shows the shared skeleton.
+
+   If it never arrives (one bar of signal, a clinic's wifi answering with a sign-in page) a rejected
+   import must not unmount the screen, so a boundary catches it and the rest of Care plans stays. What
+   the boundary cannot do is try again in place: the browser keeps a module that failed to fetch
+   failed, so a second import of the same chunk is refused without asking the network. A "Try again"
+   that re-ran the import was a dead control, and the journey test caught it. The retry that works is
+   a fresh load of this screen, and the message says so, including what that clears, rather than
+   borrowing the shared error copy's promise that nothing entered is lost. Offline, it offers nothing:
+   there is nothing a button could fetch, and the shared offline sentence is true as written. */
+const MomPlansChunk = lazy(() => import('./MomPlans').then(m => ({ default: m.MomPlans })));
+class MomPlansBoundary extends Component<{ onFailed: () => void; children: ReactNode }, { failed: boolean }> {
+ state = { failed: false };
+ static getDerivedStateFromError() { return { failed: true }; }
+ componentDidCatch() { this.props.onFailed(); }
+ render() { return this.state.failed ? null : this.props.children; }
+}
+/* Every other parameter is kept, so a role or anything else the address carried survives the reload;
+   only the section is set, and it is set to the screen the reader was already on. */
+const reopenCarePlans = () => {
+ const search = new URLSearchParams(window.location.search);
+ search.set(OPEN_PARAM, slugOfSection('Care plans'));
+ window.location.assign(window.location.pathname + '?' + search.toString());
+};
+function MomPlansPanel() {
+ const [failed, setFailed] = useState(false);
+ const offline = useOffline();
+ if (failed && offline) return <StateBlock state="offline" subject="MyThuso for Mom">{null}</StateBlock>;
+ if (failed) return <div className="state-block error" role="alert">
+  <span className="state-icon"><TriangleAlert size={24}/></span>
+  <div><h3>MyThuso for Mom did not load</h3><p>The rest of Care plans is still here. Loading it again opens this screen afresh, which clears anything you have tried elsewhere in this preview; none of it was kept anyway.</p></div>
+  <button className="secondary" onClick={reopenCarePlans}><RefreshCw size={15}/>Load it again</button>
+ </div>;
+ return <MomPlansBoundary onFailed={() => setFailed(true)}>
+  <Suspense fallback={<div className="panel mom-plan-pending"><Skeleton rows={3}/></div>}><MomPlansChunk/></Suspense>
+ </MomPlansBoundary>;
+}
+/* No plan here can be bought. That is why none of them has a primary button any more: a solid call
+   to action on a card marked "PHASE 2" reads as the one you may sign up for today, and the honest
+   answer for all of them is the same. The tint that used to mark the first card has moved to the
+   tier a reader chooses inside MyThuso for Mom — one tinted thing per screen. One column on a phone:
+   at two-up the names wrapped to two lines and the buttons landed at different heights. */
 /* The five plans a patient can see, derived rather than typed. The prices used to be written here —
    199, 99, 249, 699 — beside the same five numbers in packages/catalog/business-model.json, which is
    where the funding proposal's commercial model actually lives. Two copies of a subscription price
    is how a landing page ends up advertising one figure while the app charges another. The
    description is the product's own words for a patient; the money is the contract's. */
+/* MyThuso for Mom is not in this list. It has three prices rather than one, it is the plan the
+   Blueprint leads with, and MomPlans draws it above these four from its own contract. The phase is
+   the business model's too; it used to be worked out from a card's position in this array, which was
+   right only until somebody reordered it. */
 const planCopy: Record<string, string> = {
  chronic: 'Monthly check-ins, doctor review and adherence support.',
  planning: 'Scheduled injection visits and discreet reminders.',
- mom: 'Support through pregnancy and baby\u2019s first year.',
  senior: 'Weekly visits, medication support and family reports.',
  recover: 'A personal care plan for your recovery at home.'
 };
-const plans = ['chronic', 'planning', 'mom', 'senior', 'recover'].map(id => {
+const plans = ['chronic', 'planning', 'senior', 'recover'].map(id => {
  const plan = businessModel.subscriptions.find(s => s.id === id)!;
  /* Thuso Recover has no price in the contract — it is sold per package, to patients and to
     hospitals — and 'Custom' is how that is said on a card rather than a number nobody set. */
- return [plan.name, plan.price === null ? 'Custom' : String(plan.price), planCopy[id]] as const;
+ return [plan.name, plan.price === null ? 'Custom' : money(plan.price), planCopy[id], plan.phase] as const;
 });
 /* What each plan actually contains, and the one thing it is not. "Explore plan" used to open a
    dialog that said the plan was on the roadmap and offered a Got it button — the end of a journey
@@ -405,7 +449,6 @@ const plans = ['chronic', 'planning', 'mom', 'senior', 'recover'].map(id => {
 const planDetail:Record<string,{includes:readonly string[];not:string;who:string}>={
  'Chronic Routine':{includes:['A nurse visit every month, at an hour you choose','Blood pressure and glucose recorded onto your Health Passport','A registered doctor reviews each set of readings','A reminder before every visit, and before a repeat runs out'],not:'It is not a medical aid and it does not pay for medicines, tests or a hospital.',who:'Somebody managing a long-term condition at home.'},
  'Family Planning Plan':{includes:['Scheduled injection visits, at the interval your method needs','A discreet reminder, worded so it says nothing on a lock screen','A nurse who is cleared for this scope, every time'],not:'It is not contraception itself, and nothing here is dispensed without a prescription.',who:'Anybody who would rather not book the same visit over and over.'},
- 'Thuso Mom':{includes:['Antenatal checks through pregnancy','A six-week check for you and the baby','Feeding and recovery support in your own home'],not:'It is not antenatal care on its own — it sits beside your clinic or your doctor, never instead of them.',who:'From pregnancy through baby’s first year.'},
  'Thuso Senior':{includes:['A weekly nurse visit','Medication laid out and checked','A monthly summary sent to the family member you name'],not:'It is not a frail-care facility and it is not a twenty-four-hour carer.',who:'An older person living at home, and the family who worry about them.'},
  'Thuso Recover':{includes:['A plan written around the operation or injury you are recovering from','Wound care and dressing changes at the interval it needs','Progress reviewed by a registered doctor'],not:'It is not physiotherapy or rehabilitation, which are separate services on the roadmap.',who:'Recovering at home after a hospital stay.'}
 };
@@ -418,17 +461,17 @@ export function PlanDetail({name,navigate}:{name:string;navigate:(s:string)=>voi
  const detail=planDetail[name];
  const [interested,setInterested]=useState(false);
  if(!entry||!detail) return null;
- const [,price,description]=entry;
+ const [,price,description,phase]=entry;
  return <div className="form-stack">
-  <div className="booking-summary"><span className="service-icon"><HeartHandshake size={23}/></span><div><h3>{name}</h3><p>{detail.who}</p></div><strong>{price==='Custom'?price:`R${price}`}</strong></div>
+  <div className="booking-summary"><span className="service-icon"><HeartHandshake size={23}/></span><div><h3>{name}</h3><p>{detail.who}</p></div><strong>{price}</strong></div>
   <p className="muted">{description}</p>
   <SectionTitle title="What is in it"/>
   <div className="panel">{detail.includes.map(line=><div className="record-row static" key={line}><span className="service-icon"><Check size={20}/></span><span><strong>{line}</strong></span></div>)}</div>
   <div className="privacy-note"><Ban size={19}/>{detail.not}</div>
   <SectionTitle title="What joining would involve"/>
   <ol className="plan-steps">{joining.map((step,i)=><li key={step}><b>{i+1}</b><span>{step}</span></li>)}</ol>
-  <div className="review-line"><span>Monthly</span><strong>{price==='Custom'?'Priced per plan':`R${price} / month`}</strong></div>
-  <div className="review-line"><span>Available from</span><strong>{plans.findIndex(([n])=>n===name)<2?'Phase 2':'Phase 3'}</strong></div>
+  <div className="review-line"><span>Monthly</span><strong>{price==='Custom'?'Priced per plan':`${price} / month`}</strong></div>
+  <div className="review-line"><span>Available from</span><strong>{`Phase ${phase}`}</strong></div>
   <NotConnected of="payments"/>
   {/* The end of the journey, and it is a real end rather than a Got it. Nothing is sent — the
       messaging capability says so in its own words, from the contract. */}
@@ -439,13 +482,19 @@ export function PlanDetail({name,navigate}:{name:string;navigate:(s:string)=>voi
   </>:<button className="primary full" onClick={()=>setInterested(true)}>Tell me when {name} opens<ArrowRight size={16}/></button>}
  </div>;
 }
-/* Five plans, and the reader is comparing two things across them: what it includes and what it
+/* Four plans, and the reader is comparing two things across them: what it includes and what it
    costs a month. Both used to land wherever the description happened to end, so R199 on the first
    card sat twenty pixels below R249 on the third and the prices could not be read as a column. The
    card is a fixed set of rows now — phase, name, description, price, action — and each row starts
    on the same line across all five. The heart tile is gone with them: it was the same glyph five
    times, which told a reader nothing except that somebody had a spare icon. */
-export function Plans({open}:{open:(s:string)=>void}) {return <><PageHeading eyebrow="THUSO ROUTINE" title="A healthier rhythm." description="Care that keeps showing up. For every chapter of life."/><div className="catalog-grid plan-grid">{plans.map(([n,p,d],i)=><div className={`panel plan-card ${i===0?'featured':''}`} key={n}><Pill tone="plain">{i<2?'PHASE 2':'PHASE 3'}</Pill><h2>{n}</h2><p>{d}</p><strong className="plan-price">{p==='Custom'?p:`R${p}`}<small>{p==='Custom'?' pricing':' / month'}</small></strong><button className="secondary" onClick={()=>open(`Care plan: ${n}`)}>Explore plan<ArrowRight size={17}/></button></div>)}</div><NotConnected of="payments"/></>}
+export function Plans({open}:{open:(s:string)=>void}) {return <><PageHeading eyebrow="THUSO ROUTINE" title="A healthier rhythm." description="Care that keeps showing up. For every chapter of life."/>
+ {/* Above the prices rather than under the last card: the figures are the thing on this screen a
+     person would most reasonably take for something they can pay. */}
+ <NotConnected of="payments"/>
+ <MomPlansPanel/>
+ <SectionTitle title="Other plans"/>
+ <div className="catalog-grid plan-grid">{plans.map(([n,p,d,phase])=><div className="panel plan-card" key={n}><Pill tone="plain">{`PHASE ${phase}`}</Pill><h2>{n}</h2><p>{d}</p><strong className="plan-price">{p}<small>{p==='Custom'?' pricing':' / month'}</small></strong><button className="secondary" onClick={()=>open(`Care plan: ${n}`)}>Explore plan<ArrowRight size={17}/></button></div>)}</div></>}
 /* Seven rights, seven identical shields. The icon was the same on every row, so it carried no
    information at all and the list had to be read word by word to be used. Each row now has the
    icon of the thing it does and a line saying what is behind it, in the settings-row pattern the

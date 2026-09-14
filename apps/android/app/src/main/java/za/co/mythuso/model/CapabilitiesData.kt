@@ -2,7 +2,7 @@
 // Do not edit by hand — run `npm run capabilities`. The build fails if this file and its source
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// The 15 things MyThuso either does or only draws, and the sentence each one shows while it
+// The 19 things MyThuso either does or only draws, and the sentence each one shows while it
 // is not connected. No screen writes its own version of that sentence: it names a capability and
 // the sentence is rendered from here, word for word, or it is not rendered at all. When an
 // integration lands, one boolean changes in the contract and the notice disappears from every
@@ -252,7 +252,8 @@ val capabilities = listOf(
     Capability("messaging", "Reaching a person", false,
         null,
         listOf(
-            "No SMS, email or push provider."
+            "No SMS, email or push provider.",
+            "No WhatsApp channel, so no report or photo after a visit reaches anybody's phone, and no decision yet on whether a visit photo may travel over WhatsApp at all."
         ),
         "Nothing is sent. No message, invitation or reminder reaches anybody.",
         "simulated",
@@ -280,6 +281,54 @@ val capabilities = listOf(
         )),
         listOf("sos", "alert"),
         "The ambulance number on this screen is real and always shown first, connected or not. The one refusal on this pathway that is not about MyThuso is the one that matters most.",
+        emptyList()),
+    Capability("doctor-review", "A doctor reviewing a nurse's visit", false,
+        null,
+        listOf(
+            "A panel of HPCSA-registered doctors, contracted and on a rota.",
+            "A Medical Director who owns the panel and signs off how a review is done."
+        ),
+        "No doctor reviews anything yet. There is no doctor panel, and a review shown in this preview was written by nobody.",
+        "absent",
+        null,
+        listOf("plans"),
+        null,
+        emptyList()),
+    Capability("medicine-collection", "Collecting chronic medicine for a patient", false,
+        null,
+        listOf(
+            "An arrangement to collect from CCMDD pick-up points and clinic pharmacies on a patient's written authorisation.",
+            "A partner pharmacy for private scripts."
+        ),
+        "No medicine is collected. MyThuso has no arrangement with CCMDD, a clinic or a pharmacy to collect on anybody's behalf.",
+        "absent",
+        null,
+        listOf("plans"),
+        null,
+        emptyList()),
+    Capability("thuso-devices", "MyThuso's own devices", false,
+        null,
+        listOf(
+            "Industrial design, firmware and a pilot run with a local electronics partner.",
+            "SAHPRA and ICASA certification."
+        ),
+        "Thuso Band and Thuso Home have not been built. They are designs with a target cost, and nobody can be given one.",
+        "absent",
+        null,
+        listOf("plans"),
+        null,
+        emptyList()),
+    Capability("carers", "Carers in the home", false,
+        null,
+        listOf(
+            "Carers recruited, trained and supervised by registered nurses, planned for phase 3.",
+            "A written scope of what a carer may and may not do in somebody's home."
+        ),
+        "No carer is employed or contracted. Carer hours are planned under a registered nurse's supervision, and none can be given yet.",
+        "absent",
+        null,
+        listOf("plans"),
+        null,
         emptyList())
 )
 

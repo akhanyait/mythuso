@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Apple, ArrowLeft, ArrowRight, Bandage, CalendarClock, CalendarDays, ChevronDown, ClipboardList, Clock3, FileText, Heart, House, IdCard, Leaf, Lock, MapPin, Menu, MessagesSquare, Moon, PersonStanding, ShieldCheck, Stethoscope, UserRoundPlus, Users, UsersRound, Wallet, X } from 'lucide-react';
 import { ServiceIcon } from '../components/UI';
 import { businessModel, liveServices, money, services } from '../lib/catalog';
+import { isTiered, monthlyPrices, tiers as momTiers } from '../lib/mom-plans';
 import { capabilities, connectedCount } from '../lib/capabilities';
 import { capabilityById, roleById } from '../lib/vetting';
 import { MotionPause } from '../components/MotionPause';
@@ -43,8 +44,11 @@ const barSections = sections.filter(([id]) => id in barIcons);
 const fromPrice = Math.min(...liveServices.map(s => s.price));
 const serviceCategories = ['All care', ...new Set(liveServices.map(s => s.category))];
 const nurseShare = Math.round((1 - businessModel.unitEconomics.platformShare) * 100);
-const plans = businessModel.subscriptions.filter(s => s.price && s.phase <= 3);
-const fromPlan = Math.min(...plans.map(s => s.price!));
+/* A plan is on the page when it has a price to show and arrives by phase 3. MyThuso for Mom has three
+   prices and no single one, so "has a price" is asked of lib/mom-plans.ts rather than of the row. */
+const plans = businessModel.subscriptions.filter(s => monthlyPrices(s).length && s.phase <= 3);
+const fromPlan = Math.min(...plans.flatMap(monthlyPrices));
+const momPhases = [...new Set(momTiers.map(t => t.phase))].join('–');
 const nurseRole = roleById('nurse')!;
 /* The checks a nurse passes before a first visit, taken from the vetting contract rather than
    described in adjectives. If a check is added to the contract it appears here; if one is removed,
@@ -391,13 +395,16 @@ export function Landing() {
     body={<>A chronic condition is not managed in a single visit. A plan is designed to cover the visit, the doctor review, the script and the medicine together, from {money(fromPlan)} a month.</>}/>
    {/* No plan is flagged as the popular one. Nobody has subscribed to any of these, so the phase
        each arrives in is the only thing there is to say about it that is true. */}
-   <ul className="landing-plans">{plans.map((s, i) => <li key={s.id} data-reveal style={{ ['--i' as string]: i }}>
-    <span className="landing-phase">Phase {s.phase}</span>
+   {/* MyThuso for Mom has three prices, and the card shows the lowest and the highest rather than
+       only the lowest: "R 399 a month" beside a plan whose Premium is R 1 299 is a figure somebody
+       would reasonably expect to pay for everything the plan is known for. */}
+   <ul className="landing-plans">{plans.map((s, i) => { const prices = monthlyPrices(s); return <li key={s.id} data-reveal style={{ ['--i' as string]: i }}>
+    <span className="landing-phase">Phase {isTiered(s) ? momPhases : s.phase}</span>
     <span className="tile-icon"><Heart size={19}/></span>
     <h3>{s.name}</h3>
-    <p className="landing-price"><strong>{money(s.price!)}</strong><span>a month</span></p>
+    <p className="landing-price"><strong>{money(Math.min(...prices))}</strong><span>{prices.length > 1 ? `to ${money(Math.max(...prices))} a month` : 'a month'}</span></p>
     <p>{s.includes}</p>
-   </li>)}</ul>
+   </li>; })}</ul>
   </section>
 
   <section id="nurses" className="landing-split reverse">

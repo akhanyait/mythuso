@@ -339,6 +339,8 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Care you pay for" -> SponsoredCareScreen(store, open)
         title == "Privacy & settings" -> PrivacyScreen(store, open)
         title == "Care plans" -> PlansScreen(open)
+        /* MyThuso for Mom by the contract's own name, so renaming the plan cannot strand its screen. */
+        title == za.co.mythuso.model.momPlan.name -> MomPlanScreen()
         title == "Thuso Wallet" -> WalletScreen(open)
         title == "Language" -> LanguageScreen(store)
         title == "Interpreters" -> InterpretingScreen()
@@ -448,7 +450,16 @@ import za.co.mythuso.model.mokoenaHousehold
     }
 }
 @Composable fun PrivacyScreen(store: PreviewStore, open: (String) -> Unit) { ScreenColumn { Heading("Your privacy matters", "Your data. Your choices.", "Demo preferences reset when the app restarts."); CareCard { Setting("Care reminders", store.reminders) { store.reminders = it }; Setting("Wearable readings", store.wearableSharing) { store.wearableSharing = it }; Setting("Product updates", store.marketing) { store.marketing = it } }; CareCard { listOf("Access history", "Request a correction", "Request account deletion", "Information Officer").forEach { item -> ToolRow(item) { open(item) } } }; Text("Production POPIA compliance requires governance, lawful processing, verified technical controls and a clinical retention schedule. These are UI previews.", style = MaterialTheme.typography.bodySmall) } }
-@Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); listOf(Triple("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), Triple("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), Triple("Thuso Mom", "R249 / month", "Pregnancy and baby’s first year"), Triple("Thuso Senior", "R699 / month", "Weekly care and family support"), Triple("Thuso Recover", "Custom pricing", "Personalised recovery support")).forEach { (name, price, description) -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Charcoal); Text(name, style = MaterialTheme.typography.titleLarge); Text(description); Text(price, style = MaterialTheme.typography.headlineSmall, color = Indigo); OutlinedButton(onClick = { open(name) }, shape = ThusoButtonShape) { Text("Explore plan") } } } } }
+/* Derived, not typed. This screen carried five prices as strings until 14 September 2026, the day the
+   R249 Thuso Mom became three MyThuso for Mom tiers on the web and would have stayed R249 here. The
+   prices are generated from the business model and mom-plans.json; only each plan's one-line
+   description is written here, because it is copy rather than a number. MyThuso for Mom leads, as it
+   does in the Blueprint and on the web, and the payments notice is above every price. */
+private val planBlurb = mapOf(
+    "chronic" to "Monthly check-ins and doctor review", "planning" to "Scheduled visits and discreet reminders",
+    "senior" to "Weekly care and family support", "recover" to "Personalised recovery support"
+)
+@Composable fun PlansScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Routine", "A healthier rhythm.", "Proposal prices · Phase 2–3 preview"); NotConnected("payments"); za.co.mythuso.model.planSubscriptions.filter { it.phase <= 3 }.sortedBy { !it.tiered }.forEach { plan -> CareCard { Icon(Icons.Outlined.FavoriteBorder, null, tint = Charcoal); Text(plan.name, style = MaterialTheme.typography.titleLarge); Text(if (plan.tiered) za.co.mythuso.model.momPlan.payerHeadline else planBlurb[plan.id] ?: plan.includes); Text(planMonthly(plan), style = MaterialTheme.typography.headlineSmall, color = Indigo); OutlinedButton(onClick = { open(plan.name) }, shape = ThusoButtonShape) { Text("Explore plan") } } } } }
 @Composable fun WalletScreen(open: (String) -> Unit) { ScreenColumn { Heading("Thuso Wallet", "A little care, set aside.", "Support your own care or someone you love."); CareCard { Text("Demo balance"); Text("R500.00", style = MaterialTheme.typography.displaySmall, color = Charcoal); ToolRow("Top up wallet") { open("Top up wallet") }; ToolRow("Sponsor care") { open("Sponsor care") }; ToolRow("Care you pay for") { open("Care you pay for") } }; CareCard { Text("Sample activity", style = MaterialTheme.typography.titleMedium); Text("Family care credit   + R500"); Text("Vitals visit   − R249") } } }
 /* A clinical workspace navigates as itself.
  *
