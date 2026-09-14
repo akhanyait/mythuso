@@ -9,6 +9,12 @@
   "disclosure": "not a person, and not a doctor",
   "descriptorLine": "Your Thuso AI Doctor · not a person, and not a doctor",
   "descriptorRule": "The descriptor is never shown or spoken on its own. Every screen, row, header and accessibility hint that says “Your Thuso AI Doctor” says descriptorLine, which carries the disclosure in the same breath. A product name that sounds like a qualification is corrected where it is read, not three screens later.",
+  "descriptorDecision": {
+   "value": "Your Thuso AI Doctor · not a person, and not a doctor",
+   "decidedBy": "Founder",
+   "on": "2026-09-14",
+   "why": "Confirmed: \"Your Thuso AI Doctor\" stays, and it is always said together with \"not a person, and not a doctor\". Changing either half is the founder's decision, not an edit."
+  },
   "pulseName": "Gilbert Pulse",
   "callToAction": "Ask Gilbert",
   "poweredBy": "Powered by ThusoIQ",
@@ -280,169 +286,9 @@
  "matcher": {
   "rule": "A message is folded to plain letters (diacritics removed, æ written ae), lower-cased, apostrophes removed, and everything that is not a letter or a digit becomes a space; the words that remain are reduced to stems by the rules under `stemming`. The emergency words are checked first, on stems, and a multi-word term may have up to `maxGap` other words between its words. Any one of them ends the matching: the answer is the emergency answer, whatever else the message said. Otherwise the longest trigger phrase found (stems, words adjacent) chooses the question, and a tie goes to the question listed first. Then `readEverything` decides whether that question may answer on its own. A message with no trigger gets the unmatched answer.",
   "why": "Deterministic on purpose. The same words get the same answer on every platform, every time, and every answer that can ever be shown is in this file where somebody accountable can read it. The first version matched whole words exactly, and the Wave 1 review showed what that costs: \"I have chest pains\" missed \"chest pain\", \"she bled\" missed \"bleeding\", and the ordinary question in the same message answered calmly instead. Stems and gaps close that; readEverything closes what no word list will.",
-  "emergencyWords": {
-   "reviewedBy": null,
-   "reviewedOn": null,
-   "draftedBy": "The Gilbert and Voice build, 14 September 2026, from the conditions in packages/catalog/sos.json; widened the same day after the Wave 1 review found word forms it missed. Not reviewed by a clinician.",
-   "use": "These words only ever raise. A match turns the answer into the emergency answer; the absence of a match lowers nothing, decides nothing and is never shown as reassurance. False positives are acceptable — somebody asking about a stroke they had years ago is shown the ambulance numbers — and a miss is not made safe by Gilbert being silent about it, which is why the sentence under silenceIsNotSafety stays on the screen beside every conversation.",
-   "groups": [
-    {
-     "id": "chest-pain",
-     "condition": "chest-pain",
-     "words": [
-      "chest pain",
-      "chest hurts",
-      "chest tight",
-      "tight chest",
-      "chest tightness",
-      "pressure in my chest",
-      "chest pressure",
-      "heart attack",
-      "crushing pain"
-     ]
-    },
-    {
-     "id": "breathing",
-     "condition": "breathing",
-     "words": [
-      "cant breathe",
-      "cannot breathe",
-      "can not breathe",
-      "struggling to breathe",
-      "hard to breathe",
-      "difficulty breathing",
-      "trouble breathing",
-      "short of breath",
-      "shortness of breath",
-      "breathless",
-      "gasping",
-      "choking",
-      "not breathing",
-      "stopped breathing",
-      "blue lips",
-      "lips are blue"
-     ]
-    },
-    {
-     "id": "bleeding",
-     "condition": "bleeding",
-     "words": [
-      "bleeding",
-      "bled",
-      "haemorrhage",
-      "hemorrhage",
-      "spurting blood",
-      "blood everywhere",
-      "lot of blood"
-     ]
-    },
-    {
-     "id": "unresponsive",
-     "condition": "unresponsive",
-     "words": [
-      "unconscious",
-      "unresponsive",
-      "not responding",
-      "collapsed",
-      "passed out",
-      "passing out",
-      "blacked out",
-      "blacking out",
-      "fainted",
-      "fainting",
-      "wont wake",
-      "cant wake",
-      "not waking"
-     ]
-    },
-    {
-     "id": "stroke",
-     "condition": "stroke",
-     "words": [
-      "stroke",
-      "face drooping",
-      "face dropped",
-      "slurred",
-      "cant move my arm",
-      "numb on one side",
-      "cant speak"
-     ]
-    },
-    {
-     "id": "seizure",
-     "condition": "seizure",
-     "words": [
-      "seizure",
-      "seizures",
-      "fitting",
-      "having a fit",
-      "fits",
-      "convulsing",
-      "convulsion",
-      "convulsions",
-      "epileptic fit"
-     ]
-    },
-    {
-     "id": "infant",
-     "condition": "infant",
-     "words": [
-      "floppy baby",
-      "baby is floppy",
-      "baby not feeding",
-      "baby wont feed",
-      "baby is limp",
-      "rash does not fade",
-      "rash doesnt fade"
-     ]
-    },
-    {
-     "id": "obstetric",
-     "condition": "obstetric",
-     "words": [
-      "pregnant and bleeding",
-      "waters broke",
-      "waters broken",
-      "baby is coming",
-      "in labour",
-      "in labor",
-      "contraction",
-      "contractions"
-     ]
-    },
-    {
-     "id": "crisis",
-     "condition": null,
-     "name": "Words about harming yourself",
-     "words": [
-      "kill myself",
-      "suicide",
-      "suicidal",
-      "end my life",
-      "want to die",
-      "hurt myself",
-      "harm myself",
-      "overdose",
-      "overdosed",
-      "overdosing",
-      "took too many pills",
-      "poisoned"
-     ]
-    },
-    {
-     "id": "general",
-     "condition": null,
-     "name": "Words about an emergency",
-     "words": [
-      "emergency",
-      "ambulance",
-      "ambulans",
-      "dying",
-      "severe pain",
-      "worst headache"
-     ]
-    }
-   ]
+  "emergencyTerms": {
+   "from": "packages/catalog/gilbert-emergency-terms.json",
+   "why": "The list of terms has a version, a changelog and a clinical review of its own, and is configured as MyThuso goes — the founder's decision of 14 September 2026. How a term is matched stays here."
   },
   "normalisation": {
    "foldings": {
@@ -682,6 +528,13 @@
   "gesture": "tap-to-start-tap-to-stop",
   "gestureWhy": "Tap to start and a large Stop to finish, rather than holding. Holding a control down for as long as you speak shuts out VoiceOver and TalkBack, which turn a hold into a separate gesture, and anybody with a tremor or using Switch Control. The microphone still closes on its own after maxListeningSeconds, so a tap is never an open microphone left behind.",
   "maxListeningSeconds": 30,
+  "listeningDecision": {
+   "maxListeningSeconds": 30,
+   "gesture": "tap-to-start-tap-to-stop",
+   "decidedBy": "Founder",
+   "on": "2026-09-14",
+   "why": "Confirmed: tap to talk, a large Stop, and the microphone closes on its own after 30 seconds. Changing the cap or the gesture is the founder's decision, not an edit."
+  },
   "languages": [
    {
     "id": "en",

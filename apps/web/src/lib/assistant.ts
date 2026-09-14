@@ -1,4 +1,5 @@
 import contract from '../../../../packages/catalog/assistant.json';
+import terms from '../../../../packages/catalog/gilbert-emergency-terms.json';
 import { labels as schedulingLabels, shortWhenText, type Visit } from './scheduling';
 import { recordById } from './records';
 import { EXPIRY_WARNING_DAYS } from './vetting';
@@ -42,7 +43,9 @@ export const conversation = contract.conversation;
 export const voice = contract.voice;
 export const answers = contract.answers;
 export const fixtures = contract.fixtures;
-export const emergencyGroupsContract = contract.matcher.emergencyWords.groups;
+/* The terms are their own versioned configuration (founder, 14 September 2026); how they match is here. */
+export const emergencyGroupsContract = terms.groups;
+export const falsePositives = terms.falsePositives;
 export const stateSpec = (id: PulseId) => states.find(s => s.id === id)!;
 export const refusal = (id: string) => refusals.find(r => r.id === id)!;
 

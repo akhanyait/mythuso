@@ -162,6 +162,9 @@ struct AssistantView: View {
                 Text(disagreements.isEmpty ? "agrees" : disagreements.joined(separator: " | "))
                     .font(.footnote).foregroundStyle(ThusoTheme.surface)
                     .accessibilityIdentifier("gilbert-self-test")
+                Text(Gilbert.falsePositiveReport().joined(separator: " | "))
+                    .font(.footnote).foregroundStyle(ThusoTheme.surface)
+                    .accessibilityIdentifier("gilbert-false-positives")
             }
             #endif
             sphere
