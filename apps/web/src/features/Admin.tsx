@@ -6,6 +6,7 @@ import { DispatchBoard, IncidentBoard, controlTowerCounts } from './Dispatch';
 import { useVettingState, VettingConsole, type VettingState } from './Vetting';
 import { summarise, type VettingSubject } from '../lib/vetting';
 import { businessModel, money, bigMoney, platformMargin, services, type Service } from '../lib/catalog';
+import { momPlan, subscriptionLines } from '../lib/mom-plans';
 export const adminTabs = ['Overview', 'Vetting', 'Operations', 'Clinical', 'Catalogue', 'Growth', 'Finance', 'Compliance'] as const;
 export type AdminTab = typeof adminTabs[number];
 /* What each tab is for, in one line, in the words somebody in this office would use. It replaces the
@@ -189,9 +190,13 @@ function Catalogue() {
  </>;
 }
 function Growth() {
- const subs = businessModel.subscriptions;
- const active: Record<string, number> = { chronic: 980, planning: 410, mom: 120, senior: 74, recover: 26, alert: 10, cover: 0 };
+ /* One line per price a person could pay each month. MyThuso for Mom is three lines, because a range
+    cannot be multiplied by a subscriber count; its 120 sample subscribers are divided across the
+    tiers here, and like every count on this tab they are illustrative rather than anybody's. */
+ const subs = subscriptionLines();
+ const active: Record<string, number> = { chronic: 980, planning: 410, 'mom-essential': 84, 'mom-plus': 28, 'mom-premium': 8, senior: 74, recover: 26, alert: 10, cover: 0 };
  const mrr = subs.reduce((t, s) => t + (s.price ?? 0) * (active[s.id] ?? 0), 0);
+ const [retainLow, retainHigh] = momPlan.economics.retainsPerParentMonthly;
  return <>
   <div className="c-figures"><Metrics>
    <Kpi label="Subscribers" value={Object.values(active).reduce((a, b) => a + b, 0).toLocaleString()} note="Across every plan"/>
@@ -207,6 +212,7 @@ function Growth() {
     <td>Phase {s.phase}</td>
    </tr>)}</tbody>
   </table></div>
+  <div className="privacy-note space-top"><Banknote size={19}/>{momPlan.name} retains {money(retainLow)} to {money(retainHigh)} per parent per month in the Blueprint’s own model. It is an indicative figure rather than a trading result, and no visit cost is worked out from it.</div>
   <SectionTitle title="Thuso Screen packages"/>
   <div className="panel">{businessModel.screening.map(p => <div className="record-row static" key={p.id}>
    <span className="service-icon"><ShieldCheck size={20}/></span>

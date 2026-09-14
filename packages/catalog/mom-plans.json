@@ -1,0 +1,86 @@
+{
+ "_note": "MyThuso for Mom: the plan a son or daughter pays for a parent. The three tiers, their prices and what each names are the Master Blueprint v4, Part D, which the founder confirmed on 14 September 2026 replaces the single R249 Thuso Mom this preview carried. The web reads this file; scripts/emit-plans.mjs writes it into Swift and Kotlin. No price here is typed anywhere else, and business-model.json's `mom` subscription points at this file rather than holding a number of its own.",
+ "_honestyNote": "Every inclusion names the capability in packages/catalog/capabilities.json that it depends on, and every screen renders that capability's notice beside it. Nothing a tier names is real today, and the valuable half of this file is the refusals and the open questions: the sentences that stop a plan price from being read as a device that exists, a place ahead of somebody more unwell, or medical-aid cover.",
+ "id": "mom",
+ "name": "MyThuso for Mom",
+ "source": "Master Blueprint v4, Part D",
+ "confirmed": "14 September 2026",
+ "payer": {
+  "headline": "A nurse for your parent, paid for by you.",
+  "statement": "The person who pays is usually not the patient. It is the son or daughter in the city, looking after a parent who cannot easily get to a clinic, with the same nurse every time and a report after every visit."
+ },
+ "tiers": [
+  {
+   "id": "essential",
+   "name": "Essential",
+   "price": 399,
+   "phase": 2,
+   "cadence": "A nurse every month",
+   "why": "Phase 2 because the Blueprint's roadmap ships Mom Essential in months 6 to 9, beside Chronic Routine and CCMDD collection, which this catalogue already places in phase 2.",
+   "includes": [
+    { "id": "monthly-visit", "text": "A nurse visit every month: blood pressure, glucose, weight, a medicine check and how they are doing", "capability": "booking" },
+    { "id": "medicine-collection", "text": "Chronic medicine collected from the CCMDD pick-up point or the clinic, with their authorisation, and delivered", "capability": "medicine-collection" },
+    { "id": "visit-report", "text": "A WhatsApp report and a photo after every visit", "capability": "messaging" }
+   ]
+  },
+  {
+   "id": "plus",
+   "name": "Plus",
+   "price": 749,
+   "phase": 3,
+   "cadence": "A nurse every fortnight",
+   "why": "Phase 3 because the Blueprint's roadmap ships Mom Plus and Premium in months 10 to 12, with MamaThuso and the first carers.",
+   "includes": [
+    { "id": "fortnightly-visit", "text": "A nurse visit every fortnight", "capability": "booking" },
+    { "id": "quarterly-screening", "text": "A screening every quarter", "capability": "booking" },
+    { "id": "doctor-review", "text": "A registered doctor reviews every visit", "capability": "doctor-review" },
+    { "id": "band", "text": "A Thuso Band with an SOS button", "capability": "thuso-devices", "device": "band" },
+    { "id": "urgent-call-out", "text": "One urgent nurse call-out", "capability": "emergency" }
+   ]
+  },
+  {
+   "id": "premium",
+   "name": "Premium",
+   "price": 1299,
+   "phase": 3,
+   "cadence": "A nurse every week",
+   "why": "Phase 3, for the same reason as Plus.",
+   "includes": [
+    { "id": "weekly-visit", "text": "A nurse visit every week", "capability": "booking" },
+    { "id": "home-station", "text": "A Thuso Home station, for video calls with the doctor and the family", "capability": "thuso-devices", "device": "home" },
+    { "id": "pill-dispenser", "text": "A pill dispenser", "capability": "thuso-devices", "device": "home" },
+    { "id": "carer-hours", "text": "Carer hours for bathing and meals", "capability": "carers" },
+    { "id": "priority-sos", "text": "What the Blueprint calls priority SOS", "capability": "emergency", "undecided": "What priority SOS adds has not been decided. It will never mean being answered ahead of somebody who is more unwell, and until it is written down this plan claims nothing for it." },
+    { "id": "family-dashboard", "text": "A family dashboard", "capability": "clinical-records" }
+   ]
+  }
+ ],
+ "openQuestions": [
+  "Whether Plus and Premium also carry what Essential names, the medicine collection and the report after each visit, has not been decided. Each plan lists only what has been decided for it.",
+  "Whether the one urgent call-out on Plus is one a month or one a year has not been written down."
+ ],
+ "addOns": {
+  "statement": "These have been named and not priced, so none of them shows a price and none can be added.",
+  "items": [
+   { "id": "extra-carer-hours", "name": "Extra carer hours" },
+   { "id": "physiotherapy", "name": "Physiotherapy" },
+   { "id": "doctor-home-visit", "name": "A doctor's home visit" },
+   { "id": "gift-a-visit", "name": "Gift a visit" },
+   { "id": "second-parent", "name": "A second parent, at a discount" }
+  ]
+ },
+ "splitting": {
+  "statement": "Brothers and sisters would split the bill between them in the app. No share has been set, and nothing is split today.",
+  "capability": "payments"
+ },
+ "refusals": [
+  { "id": "a-device-that-does-not-exist-is-not-included", "sentence": "No plan counts a device as included while the device does not exist. Thuso Band and Thuso Home have not been built, and every plan that names one says so beside it." },
+  { "id": "no-plan-buys-a-place-ahead", "sentence": "No plan buys a place ahead of somebody else. When two people need a nurse urgently, the one who is more unwell is seen first, whatever either of them pays." },
+  { "id": "a-plan-is-not-medical-aid", "sentence": "MyThuso for Mom is not medical aid, and no medical scheme pays for it. It pays for no hospital care, test or medicine beyond collecting what has already been prescribed." },
+  { "id": "paying-is-not-seeing", "sentence": "Paying for your parent's plan does not let you see their health record. The report and the photo after a visit reach you only if your parent has agreed, and they can stop them." }
+ ],
+ "economics": {
+  "retainsPerParentMonthly": [80, 400],
+  "why": "The Blueprint's Part E: MyThuso for Mom retains R80 to R400 per parent per month. It is an indicative figure from the plan, not a trading result. No visit cost or nurse share is derived from the tier prices, because the documents give none per tier, and packages/catalog/earnings.json pays a visit inside a plan at the same rate as the same visit booked on its own."
+ }
+}

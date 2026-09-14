@@ -8,7 +8,7 @@
  "subscriptions": [
   { "id": "chronic", "name": "Chronic Routine", "price": 199, "phase": 2, "includes": "Monthly visit, AI-screened vitals, doctor review, script collection, medicine delivery, adherence nudges" },
   { "id": "planning", "name": "Family Planning Plan", "price": 99, "phase": 2, "includes": "Injection every 2–3 months, reminders, discreet booking" },
-  { "id": "mom", "name": "Thuso Mom", "price": 249, "phase": 3, "includes": "Antenatal visits, immunisation schedule, home visits for baby's first year" },
+  { "id": "mom", "name": "MyThuso for Mom", "price": null, "tiersIn": "mom-plans.json", "phase": 2, "includes": "A nurse for a parent every month, fortnight or week, paid for by their children", "source": "Master Blueprint v4, Part D, confirmed 14 September 2026. The three monthly prices live in mom-plans.json and nowhere else, so this row has none." },
   { "id": "senior", "name": "Thuso Senior (Gogo)", "price": 699, "phase": 3, "includes": "Weekly elderly visit, medication management, fall-risk check, family report" },
   { "id": "recover", "name": "Thuso Recover", "price": null, "phase": 3, "includes": "Post-discharge visits for 2–6 weeks; sold to patients and hospitals" },
   { "id": "alert", "name": "Thuso Alert", "price": 79, "phase": 4, "includes": "Panic button dispatching nearest nurse and ambulance partner" },

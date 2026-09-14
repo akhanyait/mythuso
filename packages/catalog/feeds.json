@@ -90,6 +90,26 @@
   }
  ],
  "noSeam": [
+ {
+  "capability": "doctor-review",
+  "decision": "No route. Nothing outside MyThuso would send a review.",
+  "why": "A review is written by a doctor on the panel, inside the product, and signed there. What blocks it is a contracted panel and a Medical Director rather than a supplier's message shape, and a feed that accepted a review from outside would be a way for a clinical decision to arrive with nobody accountable for it."
+ },
+ {
+  "capability": "medicine-collection",
+  "decision": "No route until an arrangement with CCMDD, a clinic or a pharmacy exists and says what it would send.",
+  "why": "Collection is a nurse carrying a patient's written authorisation to a pick-up point. No partner has agreed to anything, so there is no shape to write down, and a schema invented ahead of the partner is the one the partner will not send."
+ },
+ {
+  "capability": "thuso-devices",
+  "decision": "No new route. When a Thuso Band or Thuso Home exists, its readings enter through the device seam in apps/api/src/capture/**, as every device's do.",
+  "why": "The devices have not been built. A second ingestion boundary drawn for hardware that does not exist would be two places to get device binding wrong, one of them for a device nobody can hold."
+ },
+ {
+  "capability": "carers",
+  "decision": "No route, and none planned.",
+  "why": "A carer's hours are recorded in the product by the supervising registered nurse, not reported in by anybody else. What blocks carers is recruitment, supervision and a written scope of work, none of which is a message."
+ },
   {
    "capability": "devices",
    "decision": "No new route. The seam already exists and it is apps/api/src/capture/**.",

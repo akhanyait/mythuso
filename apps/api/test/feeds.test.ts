@@ -20,6 +20,7 @@ import { createApp } from '../src/server.ts';
 import { openStore, type Store } from '../src/store.ts';
 import { loadConfig, limits } from '../src/config.ts';
 import { FEEDS, capabilityFor, decide, describe as describeFeed, canonical } from '../src/feeds/index.ts';
+import capabilityContract from '../../../packages/catalog/capabilities.json' with { type: 'json' };
 
 const ORIGIN = 'http://localhost:5173';
 const databasePath = join(mkdtempSync(join(tmpdir(), 'mythuso-feeds-')), 'identity.db');
@@ -241,7 +242,19 @@ describe('what a vendor is handed', () => {
     assert.match(body.holds, /refuses every payload/);
     assert.equal(body.feeds.length, FEEDS.length);
     for (const feed of body.feeds) assert.equal(feed.connected, false, feed.id);
-    assert.equal(body.noSeam.length, 2);
+    /* Every capability no feed serves is published with what was decided and why, and nothing else is.
+       The expected set is worked out from the capabilities contract and the feeds, not read off the
+       noSeam list: comparing that list with its own source passes when a reason is deleted, and the
+       literal 2 this replaced failed on a true change — four capabilities nothing outside MyThuso would
+       send arrived with the plans for a parent — while passing any swap of one entry for another. */
+    const fed = new Set(FEEDS.flatMap(feed => feed.capabilities));
+    const withoutADoor = capabilityContract.capabilities.map(c => c.id).filter(id => !fed.has(id)).sort();
+    const published = body.noSeam as { capability: string; decision?: string; why?: string }[];
+    assert.deepEqual(published.map(entry => entry.capability).sort(), withoutADoor);
+    for (const entry of published) {
+      assert.ok(entry.decision?.trim(), `${entry.capability} has no seam and does not say what was decided`);
+      assert.ok(entry.why?.trim(), `${entry.capability} has no seam and does not say why`);
+    }
   });
   test('a feed describes what would have to arrive and what never may', async () => {
     const body = await (await get('/feeds/nurse-position')).json() as {

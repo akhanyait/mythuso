@@ -1,0 +1,66 @@
+/* ---- MyThuso for Mom ------------------------------------------------------------------------
+   The one plan the care-plans screen leads with. It is a white panel like the others and is
+   separated by what is in it rather than by a tint: three prices in a row, then two columns. The
+   sage ground is spent once, on the tier a reader has chosen, and the choice is also a charcoal
+   border so it never rests on colour alone.
+
+   Every size is on the type scale (13, 14, 15, 16, 18, 20, 22, 24), and every gap on the spacing
+   scale. Secondary text is --body on white; inside the chosen tier everything is charcoal, because
+   the faint ink fails on sage. */
+.mom-plan{display:grid;gap:var(--space-20);padding:var(--space-24);margin:0 0 var(--space-32)}
+.mom-plan-head{max-width:68ch}
+.mom-plan-head h2{font-size:24px;line-height:1.25;margin:0;color:var(--charcoal)}
+.mom-plan-head p{font-size:15px;line-height:1.6;color:var(--body);margin:var(--space-8) 0 0}
+/* A sentence rather than an eyebrow. Set in capitals it read as a category label with a full stop on
+   the end, and on a phone it wrapped to two lines of shouting above the plan's own name. */
+.mom-plan-head .mom-plan-payer{font-size:14px;font-weight:600;color:var(--charcoal);margin:0 0 var(--space-4)}
+
+/* Three across where there is room, and stacked rows on a phone. At 390px a third of the width put
+   "A nurse every fortnight" on three lines and left the three prices at three different heights;
+   stacked, the name and cadence read on the left and the prices form one right-aligned column, which
+   is what a person comparing three amounts is doing. It is also how both native apps draw it. */
+.mom-tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-8)}
+.mom-tier{display:grid;align-content:start;gap:var(--space-4);min-height:44px;padding:var(--space-12);text-align:left;background:var(--surface);color:var(--charcoal);border:1px solid var(--line);border-radius:var(--r-control);cursor:pointer}
+.mom-tier[aria-pressed="true"]{background:var(--pale-sage);border-color:var(--charcoal)}
+.mom-tier-name{font-size:14px;font-weight:600}
+.mom-tier-price{font-size:22px;font-weight:300;letter-spacing:-.5px;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mom-tier-price small{display:block;font-size:13px;font-weight:400;letter-spacing:0;color:var(--body)}
+.mom-tier-cadence{font-size:13px;line-height:1.4;color:var(--body)}
+.mom-tier[aria-pressed="true"] .mom-tier-price small,
+.mom-tier[aria-pressed="true"] .mom-tier-cadence{color:var(--charcoal)}
+@media(max-width:599px){
+ .mom-plan{padding:var(--space-16)}
+ .mom-tiers{grid-template-columns:1fr}
+ .mom-tier{grid-template-columns:minmax(0,1fr) auto;column-gap:var(--space-12);align-items:baseline}
+ .mom-tier-name{grid-column:1}
+ .mom-tier-cadence{grid-column:1}
+ .mom-tier-price{grid-column:2;grid-row:1 / span 2;text-align:right}
+}
+
+.mom-plan-body{display:grid;gap:var(--space-24);padding-top:var(--space-20);border-top:1px solid var(--line)}
+.mom-plan-body h3{font-size:16px;line-height:1.35;margin:0 0 var(--space-12);color:var(--charcoal)}
+.mom-phase{margin-left:var(--space-8);font-size:13px;font-weight:500;color:var(--body);white-space:nowrap}
+
+.mom-groups,.mom-group>ul,.mom-refusals,.mom-open,.mom-addons{list-style:none;margin:0;padding:0}
+.mom-groups{display:grid;gap:var(--space-20)}
+.mom-group>ul{display:grid;gap:var(--space-8)}
+/* A dot rather than a tick. A tick beside "A Thuso Band with an SOS button" is the promise the
+   notice under it exists to withdraw. */
+.mom-inclusion{display:flex;gap:var(--space-12);align-items:baseline;font-size:15px;line-height:1.5;color:var(--charcoal)}
+.mom-inclusion::before{content:"";flex:0 0 6px;height:6px;border-radius:var(--r-pill);background:var(--charcoal);transform:translateY(-2px)}
+.mom-inclusion strong{font-weight:500}
+.mom-inclusion small{display:block;margin-top:var(--space-4);font-size:14px;line-height:1.55;color:var(--body)}
+.mom-group .not-connected.inline{margin:var(--space-8) 0 0 var(--space-16)}
+
+.mom-aside{display:grid;gap:var(--space-24);align-content:start}
+.mom-aside p{font-size:14px;line-height:1.6;color:var(--body);margin:0}
+.mom-refusals{display:grid;gap:var(--space-12)}
+.mom-refusals li{font-size:14px;line-height:1.6;color:var(--charcoal);padding-left:var(--space-12);border-left:2px solid var(--charcoal)}
+.mom-open{display:grid;gap:var(--space-8)}
+.mom-open li,.mom-addons li{font-size:14px;line-height:1.6;color:var(--body)}
+.mom-addons{margin-top:var(--space-8);display:grid;gap:var(--space-4)}
+
+@media(min-width:1000px){
+ .mom-plan{padding:var(--space-32)}
+ .mom-plan-body{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);column-gap:var(--space-40)}
+}

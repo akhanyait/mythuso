@@ -106,9 +106,12 @@ test('an invitation still says what it grants and when it ends, at a phone width
 test('no care plan offers a call to action it cannot honour', async ({ page }) => {
   await page.goto('/app/');
   await navigate(page, 'Care plans');
-  await expect(page.locator('.plan-card')).toHaveCount(5);
+  // four cards: MyThuso for Mom is the panel above them, with its own journey in tests/mom-plans.spec.ts
+  await expect(page.locator('.plan-card')).toHaveCount(4);
   await expect(page.locator('.plan-card button.primary')).toHaveCount(0);
-  await expect(page.locator('.not-connected')).toContainText(noticeFor('payments'));
+  /* Exactly one payments notice. The screen now carries a notice beside every group of MyThuso for
+     Mom's inclusions as well, so a bare .not-connected matches several and says nothing about money. */
+  await expect(page.locator('.not-connected').filter({ hasText: noticeFor('payments') })).toHaveCount(1);
 });
 
 /* A payment provider being unavailable is an ordinary Tuesday. The wallet list goes through the

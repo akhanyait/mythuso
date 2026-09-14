@@ -1,0 +1,76 @@
+import { useState } from 'react';
+import { NotConnected } from '../components/NotConnected';
+import { money } from '../lib/catalog';
+import { groupsOf, momPlan, tier, tiers } from '../lib/mom-plans';
+import './mom-plans.css';
+/* MyThuso for Mom, which the Blueprint calls the hero, and which is therefore the thing this screen
+ * leads with rather than the third of five identical cards.
+ *
+ * The person reading is usually the child who would pay, comparing three prices. So the three prices
+ * are one row of choices at the top, and choosing one shows what that tier names underneath. Three
+ * tall columns side by side were tried against the brief and rejected: every inclusion carries a
+ * sentence about what is not real yet, and three columns of that at a third of the width is a wall.
+ *
+ * Nothing here can be bought and nothing pretends to be. There is no button that joins, the page's
+ * payments notice sits above the prices, and each inclusion stands beside the notice of the capability
+ * it waits on — read from packages/catalog/capabilities.json, so the sentence leaves the day the thing
+ * is real and not a day before. The heading says "would bring" rather than "includes" for the same
+ * reason: a plan does not include a device that has not been built.
+ */
+export function MomPlans() {
+ const [chosen, setChosen] = useState(tiers[0].id);
+ const t = tier(chosen);
+ return <section className="panel mom-plan" aria-labelledby="mom-plan-title">
+  <header className="mom-plan-head">
+   <p className="mom-plan-payer">{momPlan.payer.headline}</p>
+   <h2 id="mom-plan-title">{momPlan.name}</h2>
+   <p>{momPlan.payer.statement}</p>
+  </header>
+  {/* A choice between three, drawn as three pressed-or-not buttons rather than tabs: nothing is
+      hidden that a reader has to discover, the price is the label, and the selection is said by
+      aria-pressed and by the border and ground together, never by colour alone. */}
+  <div className="mom-tiers" role="group" aria-label={`${momPlan.name} plans`}>
+   {tiers.map(x => <button type="button" key={x.id} className="mom-tier" aria-pressed={x.id === chosen} onClick={() => setChosen(x.id)}>
+    <span className="mom-tier-name">{x.name}</span>
+    <strong className="mom-tier-price">{money(x.price)}<small>a month</small></strong>
+    <span className="mom-tier-cadence">{x.cadence}</span>
+   </button>)}
+  </div>
+  <div className="mom-plan-body">
+   <div>
+    <h3>What {t.name} would bring <span className="mom-phase">Phase {t.phase}</span></h3>
+    <ul className="mom-groups">
+     {groupsOf(t).map(g => <li className="mom-group" key={g.items[0].id} data-capability={g.capability}>
+      <ul>
+       {g.items.map(i => <li className="mom-inclusion" key={i.id} data-inclusion={i.id}>
+        <span><strong>{i.text}</strong>{'undecided' in i && i.undecided ? <small>{i.undecided}</small> : null}</span>
+       </li>)}
+      </ul>
+      <NotConnected of={g.capability} tone="inline"/>
+     </li>)}
+    </ul>
+   </div>
+   <aside className="mom-aside" aria-label={`What ${momPlan.name} will not do, and what is not decided`}>
+    <div>
+     <h3>What no plan does</h3>
+     <ul className="mom-refusals">{momPlan.refusals.map(r => <li key={r.id} data-refusal={r.id}>{r.sentence}</li>)}</ul>
+    </div>
+    <div>
+     <h3>Not decided yet</h3>
+     <ul className="mom-open">{momPlan.openQuestions.map(q => <li key={q}>{q}</li>)}</ul>
+    </div>
+    <div>
+     <h3>Add-ons</h3>
+     <p>{momPlan.addOns.statement}</p>
+     <ul className="mom-addons">{momPlan.addOns.items.map(a => <li key={a.id}>{a.name}</li>)}</ul>
+    </div>
+    <div>
+     <h3>Sharing the cost</h3>
+     {/* The payments notice is already above the prices, and it is the capability this sentence
+         waits on. Saying it twice on one screen is the defect, not the disclosure. */}
+     <p>{momPlan.splitting.statement}</p>
+    </div>
+   </aside>
+  </div>
+ </section>;
+}

@@ -365,7 +365,8 @@
    "connected": false,
    "evidence": null,
    "blockedBy": [
-    "No SMS, email or push provider."
+    "No SMS, email or push provider.",
+    "No WhatsApp channel, so no report or photo after a visit reaches anybody's phone, and no decision yet on whether a visit photo may travel over WhatsApp at all."
    ],
    "notice": "Nothing is sent. No message, invitation or reminder reaches anybody.",
    "surfaces": [
@@ -413,6 +414,66 @@
     ],
     "reachableFromTheNetwork": false
    }
+  },
+  {
+   "id": "doctor-review",
+   "name": "A doctor reviewing a nurse's visit",
+   "connected": false,
+   "evidence": null,
+   "blockedBy": [
+    "A panel of HPCSA-registered doctors, contracted and on a rota.",
+    "A Medical Director who owns the panel and signs off how a review is done."
+   ],
+   "notice": "No doctor reviews anything yet. There is no doctor panel, and a review shown in this preview was written by nobody.",
+   "surfaces": [
+    "plans"
+   ],
+   "state": "absent"
+  },
+  {
+   "id": "medicine-collection",
+   "name": "Collecting chronic medicine for a patient",
+   "connected": false,
+   "evidence": null,
+   "blockedBy": [
+    "An arrangement to collect from CCMDD pick-up points and clinic pharmacies on a patient's written authorisation.",
+    "A partner pharmacy for private scripts."
+   ],
+   "notice": "No medicine is collected. MyThuso has no arrangement with CCMDD, a clinic or a pharmacy to collect on anybody's behalf.",
+   "surfaces": [
+    "plans"
+   ],
+   "state": "absent"
+  },
+  {
+   "id": "thuso-devices",
+   "name": "MyThuso's own devices",
+   "connected": false,
+   "evidence": null,
+   "blockedBy": [
+    "Industrial design, firmware and a pilot run with a local electronics partner.",
+    "SAHPRA and ICASA certification."
+   ],
+   "notice": "Thuso Band and Thuso Home have not been built. They are designs with a target cost, and nobody can be given one.",
+   "surfaces": [
+    "plans"
+   ],
+   "state": "absent"
+  },
+  {
+   "id": "carers",
+   "name": "Carers in the home",
+   "connected": false,
+   "evidence": null,
+   "blockedBy": [
+    "Carers recruited, trained and supervised by registered nurses, planned for phase 3.",
+    "A written scope of what a carer may and may not do in somebody's home."
+   ],
+   "notice": "No carer is employed or contracted. Carer hours are planned under a registered nurse's supervision, and none can be given yet.",
+   "surfaces": [
+    "plans"
+   ],
+   "state": "absent"
   }
  ],
  "rules": [

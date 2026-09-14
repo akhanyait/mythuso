@@ -297,15 +297,29 @@ struct PrivacyView: View {
     var body: some View { Form { Section { CareHeading(eyebrow: "Your privacy matters", title: "Your data. Your choices.", subtitle: "Demo settings reset when the app restarts.") }; Section("Optional preferences") { Toggle("Care reminders", isOn: $store.reminders); Toggle("Wearable readings", isOn: $store.wearableSharing); Toggle("Product updates", isOn: $store.marketing) }; Section("Your rights") { ForEach(["Access history", "Request a correction", "Request account deletion", "Information Officer"], id: \.self) { item in NavigationLink(item) { FeatureDetail(title: item) } } }; Section { Text("Production POPIA compliance requires lawful processing, governance, verified access controls and a clinical retention schedule. These controls are UI previews.").font(.caption).foregroundStyle(.secondary) } }.navigationTitle("Privacy & settings") }
 }
 struct PlansView: View {
-    private let plans = [("Chronic Routine", "R199 / month", "Monthly check-ins and doctor review"), ("Family Planning", "R99 / month", "Scheduled visits and discreet reminders"), ("Thuso Mom", "R249 / month", "Support for pregnancy and baby’s first year"), ("Thuso Senior", "R699 / month", "Weekly care and family support"), ("Thuso Recover", "Custom pricing", "Personalised post-discharge support")]
+    /* Derived, not typed. This list carried five prices as strings until 14 September 2026, the day the
+       R249 Thuso Mom became three MyThuso for Mom tiers on the web and would have stayed R249 here. The
+       prices are generated from the business model and mom-plans.json; only the one-line description of
+       each plan is written on this screen, because it is copy rather than a number. MyThuso for Mom
+       leads, as it does in the Blueprint and on the web, and opens its own screen. */
+    private var mom: PlanSubscription? { Plans.subscriptions.first { $0.tiered } }
+    private var plans: [PlanSubscription] { Plans.subscriptions.filter { !$0.tiered && $0.phase <= 3 } }
+    private let blurb = ["chronic": "Monthly check-ins and doctor review", "planning": "Scheduled visits and discreet reminders",
+                         "senior": "Weekly care and family support", "recover": "Personalised post-discharge support"]
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space20) {
                 DemoBadge()
                 CareHeading(eyebrow: "Thuso Routine", title: "A healthier rhythm.", subtitle: "Proposal pricing · Phase 2–3 preview")
+                CapabilityNotice(of: "payments")
+                if let mom {
+                    CareCard(padding: ThusoSpacing.space16, weight: .lead, spacing: 0) {
+                        NavigationLink { MomPlansView() } label: { planRow((mom.name, Plans.monthly(mom), Plans.mom.payerHeadline)) }.buttonStyle(.plain)
+                    }
+                }
                 CareCard(padding: ThusoSpacing.space16, spacing: 0) {
-                    ForEach(Array(plans.enumerated()), id: \.element.0) { index, plan in
-                        NavigationLink { FeatureDetail(title: plan.0) } label: { planRow(plan) }.buttonStyle(.plain)
+                    ForEach(Array(plans.enumerated()), id: \.element.id) { index, plan in
+                        NavigationLink { FeatureDetail(title: plan.name) } label: { planRow((plan.name, Plans.monthly(plan), blurb[plan.id] ?? plan.includes)) }.buttonStyle(.plain)
                         if index < plans.count - 1 { Divider().overlay(ThusoTheme.studioLine) }
                     }
                 }
@@ -318,16 +332,16 @@ struct PlansView: View {
     }
     /* One row per plan: the name, what it includes and what it costs. Five equally weighted cards
        with a heart on each of them told a reader nothing about which plan was which. */
-    private func planRow(_ plan: (String, String, String)) -> some View {
+    private func planRow(_ plan: (name: String, price: String, detail: String)) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(plan.0).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(plan.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(plan.2).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(plan.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: ThusoSpacing.space8)
-            Text(plan.1).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(plan.price).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
                 .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
             Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
                 .accessibilityHidden(true)
