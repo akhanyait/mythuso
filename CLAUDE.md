@@ -18,6 +18,10 @@ Three native apps and one service:
   data must not download a dispatch board, and the workspaces are behind dynamic imports that fetch
   when a role is opened. The patient entry was measured before and after, 287.2 kB against 286.6 —
   if that figure ever rises, the convenience has been paid for by the people this is built for.
+  Re-measured on 14 September at `c62961c`, after the redesign, Gilbert, Wave 1 and the Mom plans:
+  **319.97 kB** — every script, module preload and stylesheet `apps/web/dist/index.html` references,
+  each gzipped at level 9 after `npm run build -w @mythuso/web`. Compare a new figure only against one
+  taken the same way; a screen that is not on the patient's first view belongs behind a dynamic import.
 
 - `apps/ios` — SwiftUI, iOS 17+.
 - `apps/android` — Jetpack Compose + Material 3, API 26+.
