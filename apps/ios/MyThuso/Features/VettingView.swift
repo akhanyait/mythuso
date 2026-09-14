@@ -576,6 +576,16 @@ struct VettingStatusView: View {
             SubjectStatusPill(status: summary.status)
         }
         .accessibilityElement(children: .combine)
+        /* Where the party stands among the seven gates, computed from the checks rather than stored.
+           A fail rule is the contract's sentence, word for word; a suspension or a decline is said
+           just below and is not said twice. */
+        let progress = gateProgress(subject)
+        FactRow(label: "Onboarding", value: progress.status)
+        if [GateOutcome.stopped, .failed, .held].contains(progress.outcome), let sentence = progress.sentence {
+            Text(sentence)
+                .font(.subheadline).foregroundStyle(ThusoTheme.danger)
+                .fixedSize(horizontal: false, vertical: true)
+        }
         if subject.declined || subject.suspended {
             Label(subject.declined ? "Declined" : "Suspended", systemImage: "hand.raised.fill")
                 .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)

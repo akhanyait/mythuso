@@ -154,6 +154,73 @@ export function summarise(subject: VettingSubject) {
  };
 }
 
+/* ---- The seven gates ------------------------------------------------------------------
+   Apply, identity, credentials, background, assess, train, activate. Every check in the contract
+   names its gate, and where the party stands is worked out from the checks every time it is asked,
+   never written down: a stored "gate 3" stops being true the night a clearance lapses. The same
+   arithmetic lives in apps/api/src/vetting/gates.ts and in Vetting.swift and Vetting.kt, and every
+   sentence below comes out of packages/catalog/vetting.json — the fail rules are rendered word for
+   word, never paraphrased.
+
+   A declined check at a hard-stop gate stops the party there and outranks anything still pending
+   earlier: a background bar is not hidden behind an identity check nobody has finished. A lapsed
+   check holds the party at its gate with the lapse sentence rather than the gate's fail rule,
+   because a clearance that ran out is not a listing on a register. */
+export type VettingGate = typeof schema.gates[number];
+export type GateState = 'passed' | 'not-checked' | 'pending' | 'held' | 'failed' | 'not-reached';
+export type GateOutcome = 'activated' | 'in-progress' | 'held' | 'failed' | 'stopped' | 'suspended' | 'declined';
+export const gates: VettingGate[] = [...schema.gates].sort((a, b) => a.order - b.order);
+export const gateRules = schema.gateRules;
+type GateNote = { kind: string; sentence: string };
+export const gateStatus = (gate: { order: number; name: string }) =>
+ gateRules.status.replace('{order}', String(gate.order)).replace('{total}', String(gates.length)).replace('{name}', gate.name);
+export function gateProgress(subject: VettingSubject) {
+ const role = roleById(subject.roleId);
+ const checks = role?.checks ?? [];
+ const notes = ((role as { gateNotes?: Record<string, GateNote> } | undefined)?.gateNotes) ?? {};
+ const standings = gates.map(gate => {
+  const evidencedBy = (gate as { evidencedBy?: string }).evidencedBy;
+  const base = { gate, note: null as GateNote | null, outstanding: [] as VettingCheck[] };
+  if (evidencedBy === 'enrolment') return { ...base, state: 'passed' as GateState };
+  if (evidencedBy === 'gates') return { ...base, state: 'pending' as GateState };
+  const here = checks.filter(check => check.gate === gate.id);
+  if (!here.length) return { ...base, state: 'not-checked' as GateState, note: notes[gate.id] ?? null };
+  const states = here.map(check => stateOf(subject, check.id));
+  for (const check of here) {
+   const record = recordFor(subject, check.id);
+   const passing = passingStates.includes(resolveState(record)) && (check.risk !== 'high' || Boolean(record.secondedBy));
+   if (!passing) base.outstanding.push(check);
+  }
+  const state: GateState = states.includes('declined') ? 'failed' : states.includes('lapsed') ? 'held' : base.outstanding.length ? 'pending' : 'passed';
+  return { ...base, state };
+ });
+ const through = (s: { state: GateState }) => s.state === 'passed' || s.state === 'not-checked';
+ const activate = standings.find(s => s.gate.id === 'activate')!;
+ const finish = (at: typeof activate, outcome: GateOutcome, sentence: string | null) => {
+  const suspended = subject.suspended && outcome === 'in-progress';
+  return {
+   gates: standings, at: at.gate, status: gateStatus(at.gate),
+   outcome: suspended ? 'suspended' as GateOutcome : outcome,
+   sentence: suspended ? subject.suspendedReason ?? gateRules.suspended : sentence,
+   activated: outcome === 'activated'
+  };
+ };
+ const stop = standings.find(s => s.gate.hardStop && s.state === 'failed');
+ if (stop) {
+  for (const s of standings) if (s.gate.order > stop.gate.order) s.state = 'not-reached';
+  return finish(stop, 'stopped', stop.gate.failRule);
+ }
+ const first = standings.filter(s => s !== activate).find(s => !through(s));
+ if (first) {
+  const outcome: GateOutcome = first.state === 'failed' ? 'failed' : first.state === 'held' ? 'held' : 'in-progress';
+  return finish(first, outcome, outcome === 'failed' ? first.gate.failRule : outcome === 'held' ? gateRules.lapse : null);
+ }
+ if (subject.declined) return finish(activate, 'declined', subject.declinedReason ?? gateRules.declined);
+ if (subject.suspended) return finish(activate, 'suspended', subject.suspendedReason ?? gateRules.suspended);
+ activate.state = 'passed';
+ return finish(activate, 'activated', null);
+}
+
 /* ---- The blocking matrix ---------------------------------------------------------------
    This is the whole point of the module: not a list of documents, but a refusal with a reason
    attached to it, that other screens can ask about before offering an action. */

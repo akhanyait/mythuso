@@ -47,6 +47,8 @@ struct VettingCheck: Identifiable, Hashable {
     /// nil where a check is decided once and does not expire — an identity, a birth certificate.
     let renewMonths: Int?
     let risk: String
+    /// Which of the seven onboarding gates this check sits at.
+    let gate: String
     var isHighRisk: Bool { risk == "high" }
     var cadence: String {
         guard let renewMonths else { return "Does not expire" }
@@ -62,6 +64,28 @@ struct VettedRole: Identifiable, Hashable {
     let grants: [VettingGrant]
     let checks: [VettingCheck]
     func check(_ id: String) -> VettingCheck? { checks.first { $0.id == id } }
+}
+/// One of the seven onboarding gates, generated into VettingData.swift. `evidencedBy` is "enrolment"
+/// for Apply and "gates" for Activate: the two gates no check carries.
+struct VettingGate: Identifiable, Hashable {
+    let id: String
+    let order: Int
+    let name: String
+    let hardStop: Bool
+    let evidencedBy: String?
+    let failRule: String
+    let statement: String
+}
+struct VettingGateRules {
+    let lapse: String
+    let suspended: String
+    let declined: String
+    let notActivated: String
+    let status: String
+}
+struct VettingGateNote: Hashable {
+    let kind: String
+    let sentence: String
 }
 
 enum Vetting {
@@ -274,6 +298,83 @@ func summarise(_ subject: VettingSubject) -> VettingSummary {
     return VettingSummary(states: states, status: status, blocking: blocking, lapsed: lapsed, expiring: expiring,
                           awaitingSecond: awaitingSecond, nextDue: nextDue,
                           passed: states.filter { $0.state.passes }.count, total: checks.count)
+}
+
+// MARK: - The seven gates
+
+/* Apply, identity, credentials, background, assess, train, activate. Every check in the contract
+   names its gate, and where a party stands is worked out from the checks every time it is asked and
+   never written down: a stored "gate 3" stops being true the night a clearance lapses. The same
+   arithmetic is in apps/api/src/vetting/gates.ts and lib/vetting.ts, and every sentence comes out of
+   VettingData — the fail rules are rendered word for word, never paraphrased.
+
+   A declined check at a hard-stop gate stops the party there and outranks anything still pending
+   earlier. A lapsed check holds the party at its gate with the lapse sentence rather than the gate's
+   fail rule, because a clearance that ran out is not a listing on a register. */
+enum GateState: String { case passed, notChecked = "not-checked", pending, held, failed, notReached = "not-reached" }
+enum GateOutcome: String { case activated, inProgress = "in-progress", held, failed, stopped, suspended, declined }
+struct GateStanding: Identifiable {
+    let gate: VettingGate
+    var state: GateState
+    let outstanding: [VettingCheck]
+    let note: VettingGateNote?
+    var id: String { gate.id }
+}
+struct GateProgress {
+    let gates: [GateStanding]
+    let at: VettingGate
+    let status: String
+    let outcome: GateOutcome
+    let sentence: String?
+    var activated: Bool { outcome == .activated }
+}
+func gateStatus(_ gate: VettingGate) -> String {
+    Vetting.gateRules.status
+        .replacingOccurrences(of: "{order}", with: "\(gate.order)")
+        .replacingOccurrences(of: "{total}", with: "\(Vetting.gates.count)")
+        .replacingOccurrences(of: "{name}", with: gate.name)
+}
+func gateProgress(_ subject: VettingSubject) -> GateProgress {
+    let checks = subject.role?.checks ?? []
+    let notes = Vetting.gateNotes[subject.roleId] ?? [:]
+    var standings: [GateStanding] = Vetting.gates.sorted { $0.order < $1.order }.map { gate in
+        if gate.evidencedBy == "enrolment" { return GateStanding(gate: gate, state: .passed, outstanding: [], note: nil) }
+        if gate.evidencedBy == "gates" { return GateStanding(gate: gate, state: .pending, outstanding: [], note: nil) }
+        let here = checks.filter { $0.gate == gate.id }
+        if here.isEmpty { return GateStanding(gate: gate, state: .notChecked, outstanding: [], note: notes[gate.id]) }
+        let states = here.map { stateOf(subject, $0.id) }
+        let outstanding = here.filter { check in
+            let record = recordFor(subject, check.id)
+            return !(resolveState(record).passes && (!check.isHighRisk || !(record.secondedBy ?? "").isEmpty))
+        }
+        let state: GateState = states.contains(.declined) ? .failed : states.contains(.lapsed) ? .held : outstanding.isEmpty ? .passed : .pending
+        return GateStanding(gate: gate, state: state, outstanding: outstanding, note: nil)
+    }
+    func finish(_ at: VettingGate, _ outcome: GateOutcome, _ sentence: String?) -> GateProgress {
+        let suspended = subject.suspended && outcome == .inProgress
+        return GateProgress(gates: standings, at: at, status: gateStatus(at),
+                            outcome: suspended ? .suspended : outcome,
+                            sentence: suspended ? (subject.suspendedReason ?? Vetting.gateRules.suspended) : sentence)
+    }
+    if let stop = standings.first(where: { $0.gate.hardStop && $0.state == .failed }) {
+        for index in standings.indices where standings[index].gate.order > stop.gate.order { standings[index].state = .notReached }
+        return finish(stop.gate, .stopped, stop.gate.failRule)
+    }
+    if let first = standings.first(where: { $0.gate.evidencedBy != "gates" && $0.state != .passed && $0.state != .notChecked }) {
+        switch first.state {
+        case .failed: return finish(first.gate, .failed, first.gate.failRule)
+        case .held: return finish(first.gate, .held, Vetting.gateRules.lapse)
+        default: return finish(first.gate, .inProgress, nil)
+        }
+    }
+    guard let activateIndex = standings.firstIndex(where: { $0.gate.evidencedBy == "gates" }) else {
+        return finish(standings[standings.count - 1].gate, .inProgress, nil)
+    }
+    let activate = standings[activateIndex].gate
+    if subject.declined { return finish(activate, .declined, subject.declinedReason ?? Vetting.gateRules.declined) }
+    if subject.suspended { return finish(activate, .suspended, subject.suspendedReason ?? Vetting.gateRules.suspended) }
+    standings[activateIndex].state = .passed
+    return finish(activate, .activated, nil)
 }
 
 // MARK: - The blocking matrix

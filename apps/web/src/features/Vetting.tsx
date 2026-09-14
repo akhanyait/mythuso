@@ -7,7 +7,7 @@ import { EmptyState } from '../components/States';
 import { NotConnected } from '../components/NotConnected';
 import { useT } from '../lib/i18n';
 import {
- authorityById, capabilityById, checkById, checkStateLabels, daysUntil, decisions, eventLabels, formatDate, formatEventTime, scopeFor,
+ authorityById, capabilityById, checkById, checkStateLabels, daysUntil, decisions, eventLabels, formatDate, formatEventTime, gateProgress, scopeFor,
  inMonths, isoDate, needsSecondReviewer, recordEvent, recordFor, roleById, roles, subjectStatusLabels, summarise, today, validateCredential,
  type CheckRecord, type CheckState, type SubjectStatus, type VettingCheck, type VettingEvent, type VettingEventKind, type VettingSubject
 } from '../lib/vetting';
@@ -296,6 +296,7 @@ function SubjectDetail({ subject, vetting }: { subject: VettingSubject; vetting:
  const [declining, setDeclining] = useState('');
  const [action, setAction] = useState<'' | 'suspend' | 'appeal'>('');
  const summary = summarise(subject);
+ const progress = gateProgress(subject);
  const role = roleById(subject.roleId)!;
  const anchor = anchorFor(subject.roleId);
  /* The party's name at the size of a name, the role as its eyebrow, and the standing as a chip that
@@ -325,6 +326,11 @@ function SubjectDetail({ subject, vetting }: { subject: VettingSubject; vetting:
        : summary.blocking.length ? `${summary.blocking.length} check${summary.blocking.length === 1 ? '' : 's'} outstanding.`
         : summary.expiring.length ? `Cleared, with ${summary.expiring.length} renewal${summary.expiring.length === 1 ? '' : 's'} due.` : 'Every check passed and in date.'}
   </p>
+  {/* Where the party stands among the seven gates, computed from the checks below rather than
+      stored. A fail rule is shown in the contract's own words; a suspension or a decline is already
+      said in the line above and is not said twice. */}
+  <div className="review-line gate-progress" data-gate={progress.at.id}><span>Onboarding</span><strong className={progress.activated ? '' : 'flagged'}>{progress.status}</strong></div>
+  {(progress.outcome === 'stopped' || progress.outcome === 'failed' || progress.outcome === 'held') && <p className="helper flagged gate-rule">{progress.sentence}</p>}
   <div className="admin-actions space-top">
    {subject.suspended ? <button className="secondary" onClick={() => vetting.restore(subject)}><RotateCcw size={15}/>Lift the suspension</button>
     : <button className="secondary" onClick={() => setAction(action === 'suspend' ? '' : 'suspend')}><ShieldX size={15}/>Suspend</button>}
@@ -601,6 +607,7 @@ export function ApplicationStanding({ subjectId = 'N-205', onClose }: { subjectI
  const subject = subjectById(subjectId)!;
  const role = roleById(subject.roleId)!;
  const summary = summarise(subject);
+ const progress = gateProgress(subject);
  return <>
   <SectionTitle title="Where this application stands"/>
   <NotConnected of="credential-verification"/>
@@ -608,6 +615,8 @@ export function ApplicationStanding({ subjectId = 'N-205', onClose }: { subjectI
    <div className="review-line"><span>Applicant</span><strong>{subject.name} · {subject.reference}</strong></div>
    <div className="review-line"><span>State</span><strong className={summary.cleared ? '' : 'flagged'}>{subjectStatusLabels[summary.status]}</strong></div>
    <div className="review-line"><span>Checks passing</span><strong>{summary.passed} of {summary.total}</strong></div>
+   <div className="review-line gate-progress" data-gate={progress.at.id}><span>Onboarding</span><strong className={progress.activated ? '' : 'flagged'}>{progress.status}</strong></div>
+   {progress.sentence && <p className="helper flagged gate-rule">{progress.sentence}</p>}
    {summary.nextDue && <div className="review-line"><span>Next renewal</span><strong>{summary.nextDue.check.name} · {dueWording(summary.nextDue.days)}</strong></div>}
   </div>
 

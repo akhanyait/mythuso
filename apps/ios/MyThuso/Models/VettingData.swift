@@ -86,14 +86,14 @@ extension Vetting {
                     .init(capability: "write-clinical-note", refusal: "Nothing may be written into a patient's record by somebody the platform has not cleared to attend them.")
                    ],
                    checks: [
-                    .init(id: "sanc-registration", name: "SANC registration", detail: "Verified against the South African Nursing Council register", authority: "sanc", evidence: "Registration number and current receipt", renewMonths: 12, risk: "high"),
-                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
-                    .init(id: "qualifications", name: "Qualifications", detail: "Certified copies checked against the issuing institution", authority: "institution", evidence: "Diploma or degree certificate", renewMonths: nil, risk: "standard"),
-                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high"),
-                    .init(id: "indemnity", name: "Professional indemnity", detail: "Cover in force for the scope of practice", authority: "insurer", evidence: "Schedule of cover", renewMonths: 12, risk: "standard"),
-                    .init(id: "references", name: "Two clinical references", detail: "Contacted directly, never through the applicant", authority: "internal", evidence: "Two named referees", renewMonths: nil, risk: "standard"),
-                    .init(id: "kit-training", name: "Thuso Kit training", detail: "Device handling, infection control and escalation drill", authority: "internal", evidence: "Training record", renewMonths: 24, risk: "standard"),
-                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard")
+                    .init(id: "sanc-registration", name: "SANC registration", detail: "Verified against the South African Nursing Council register", authority: "sanc", evidence: "Registration number and current receipt", renewMonths: 12, risk: "high", gate: "credentials"),
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "qualifications", name: "Qualifications", detail: "Certified copies checked against the issuing institution", authority: "institution", evidence: "Diploma or degree certificate", renewMonths: nil, risk: "standard", gate: "credentials"),
+                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high", gate: "background"),
+                    .init(id: "indemnity", name: "Professional indemnity", detail: "Cover in force for the scope of practice", authority: "insurer", evidence: "Schedule of cover", renewMonths: 12, risk: "standard", gate: "credentials"),
+                    .init(id: "references", name: "Two clinical references", detail: "Contacted directly, never through the applicant", authority: "internal", evidence: "Two named referees", renewMonths: nil, risk: "standard", gate: "background"),
+                    .init(id: "kit-training", name: "Thuso Kit training", detail: "Device handling, infection control and escalation drill", authority: "internal", evidence: "Training record", renewMonths: 24, risk: "standard", gate: "train"),
+                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard", gate: "train")
                    ]),
         VettedRole(id: "locum", name: "Locum nurse", party: "person", workspace: "Nurse",
                    summary: "Takes shifts through Thuso Locum rather than a standing roster.",
@@ -101,12 +101,12 @@ extension Vetting {
                     .init(capability: "take-visit", refusal: "A locum cannot pick up a shift until the same checks a rostered nurse passes are in date.")
                    ],
                    checks: [
-                    .init(id: "sanc-registration", name: "SANC registration", detail: "Verified against the South African Nursing Council register", authority: "sanc", evidence: "Registration number and current receipt", renewMonths: 12, risk: "high"),
-                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
-                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high"),
-                    .init(id: "indemnity", name: "Professional indemnity", detail: "Cover in force for the scope of practice", authority: "insurer", evidence: "Schedule of cover", renewMonths: 12, risk: "standard"),
-                    .init(id: "shift-eligibility", name: "Shift eligibility", detail: "Hours worked elsewhere declared, so a nurse is not dispatched exhausted", authority: "internal", evidence: "Declared employment", renewMonths: 6, risk: "standard"),
-                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard")
+                    .init(id: "sanc-registration", name: "SANC registration", detail: "Verified against the South African Nursing Council register", authority: "sanc", evidence: "Registration number and current receipt", renewMonths: 12, risk: "high", gate: "credentials"),
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high", gate: "background"),
+                    .init(id: "indemnity", name: "Professional indemnity", detail: "Cover in force for the scope of practice", authority: "insurer", evidence: "Schedule of cover", renewMonths: 12, risk: "standard", gate: "credentials"),
+                    .init(id: "shift-eligibility", name: "Shift eligibility", detail: "Hours worked elsewhere declared, so a nurse is not dispatched exhausted", authority: "internal", evidence: "Declared employment", renewMonths: 6, risk: "standard", gate: "assess"),
+                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard", gate: "train")
                    ]),
         VettedRole(id: "doctor", name: "Doctor", party: "person", workspace: "Doctor",
                    summary: "Reviews nurse submissions, signs decisions and prescribes.",
@@ -122,14 +122,14 @@ extension Vetting {
                     .init(capability: "refer-patient", refusal: "A referral carries the referring clinician's registration to the person receiving it.")
                    ],
                    checks: [
-                    .init(id: "hpcsa-registration", name: "HPCSA registration", detail: "Verified against the Health Professions Council register", authority: "hpcsa", evidence: "Registration number and annual receipt", renewMonths: 12, risk: "high"),
-                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
-                    .init(id: "qualifications", name: "Qualifications", detail: "Primary medical qualification checked with the issuing institution", authority: "institution", evidence: "MBChB or equivalent", renewMonths: nil, risk: "standard"),
-                    .init(id: "prescribing-authority", name: "Prescribing authority", detail: "Section 22A authority to prescribe scheduled medicines", authority: "sahpra", evidence: "Practice number and authority", renewMonths: 12, risk: "high"),
-                    .init(id: "indemnity", name: "Professional indemnity", detail: "Cover in force for telemedicine and asynchronous review", authority: "insurer", evidence: "Schedule of cover naming telemedicine", renewMonths: 12, risk: "high"),
-                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high"),
-                    .init(id: "cpd", name: "Continuing professional development", detail: "HPCSA CPD points current for the cycle", authority: "hpcsa", evidence: "CPD statement", renewMonths: 12, risk: "standard"),
-                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard")
+                    .init(id: "hpcsa-registration", name: "HPCSA registration", detail: "Verified against the Health Professions Council register", authority: "hpcsa", evidence: "Registration number and annual receipt", renewMonths: 12, risk: "high", gate: "credentials"),
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "qualifications", name: "Qualifications", detail: "Primary medical qualification checked with the issuing institution", authority: "institution", evidence: "MBChB or equivalent", renewMonths: nil, risk: "standard", gate: "credentials"),
+                    .init(id: "prescribing-authority", name: "Prescribing authority", detail: "Section 22A authority to prescribe scheduled medicines", authority: "sahpra", evidence: "Practice number and authority", renewMonths: 12, risk: "high", gate: "credentials"),
+                    .init(id: "indemnity", name: "Professional indemnity", detail: "Cover in force for telemedicine and asynchronous review", authority: "insurer", evidence: "Schedule of cover naming telemedicine", renewMonths: 12, risk: "high", gate: "credentials"),
+                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high", gate: "background"),
+                    .init(id: "cpd", name: "Continuing professional development", detail: "HPCSA CPD points current for the cycle", authority: "hpcsa", evidence: "CPD statement", renewMonths: 12, risk: "standard", gate: "train"),
+                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard", gate: "train")
                    ]),
         VettedRole(id: "pharmacy", name: "Pharmacy partner", party: "organisation", workspace: "Partner",
                    summary: "Fills prescriptions raised through Thuso Doctor.",
@@ -138,13 +138,13 @@ extension Vetting {
                     .init(capability: "view-patient-summary", refusal: "A pharmacy sees the prescription and the allergies that bear on filling it. Nothing else, and only while licensed.")
                    ],
                    checks: [
-                    .init(id: "company-registration", name: "Company registration", detail: "CIPC record, and who may sign for the company", authority: "cipc", evidence: "CIPC certificate and resolution", renewMonths: nil, risk: "standard"),
-                    .init(id: "signatory", name: "Authorised signatory", detail: "The named person who may bind the company, verified as a person", authority: "dha", evidence: "Identity document and board resolution", renewMonths: nil, risk: "high"),
-                    .init(id: "pharmacy-registration", name: "Pharmacy registration", detail: "Registered with the South African Pharmacy Council", authority: "sapc", evidence: "SAPC registration certificate", renewMonths: 12, risk: "high"),
-                    .init(id: "responsible-pharmacist", name: "Responsible pharmacist", detail: "A named, registered pharmacist accountable for the premises", authority: "sapc", evidence: "Personal SAPC registration", renewMonths: 12, risk: "high"),
-                    .init(id: "dispensing-licence", name: "Dispensing licence", detail: "Section 22C(1)(a) licence to dispense from these premises", authority: "sahpra", evidence: "Licence certificate", renewMonths: 36, risk: "high"),
-                    .init(id: "cold-chain", name: "Cold chain", detail: "Monitored storage for medicines that require it", authority: "internal", evidence: "Temperature log and calibration record", renewMonths: 12, risk: "standard"),
-                    .init(id: "operator-agreement", name: "Operator agreement", detail: "POPIA operator agreement signed, with breach notification terms", authority: "internal", evidence: "Signed agreement", renewMonths: 24, risk: "high")
+                    .init(id: "company-registration", name: "Company registration", detail: "CIPC record, and who may sign for the company", authority: "cipc", evidence: "CIPC certificate and resolution", renewMonths: nil, risk: "standard", gate: "identity"),
+                    .init(id: "signatory", name: "Authorised signatory", detail: "The named person who may bind the company, verified as a person", authority: "dha", evidence: "Identity document and board resolution", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "pharmacy-registration", name: "Pharmacy registration", detail: "Registered with the South African Pharmacy Council", authority: "sapc", evidence: "SAPC registration certificate", renewMonths: 12, risk: "high", gate: "credentials"),
+                    .init(id: "responsible-pharmacist", name: "Responsible pharmacist", detail: "A named, registered pharmacist accountable for the premises", authority: "sapc", evidence: "Personal SAPC registration", renewMonths: 12, risk: "high", gate: "credentials"),
+                    .init(id: "dispensing-licence", name: "Dispensing licence", detail: "Section 22C(1)(a) licence to dispense from these premises", authority: "sahpra", evidence: "Licence certificate", renewMonths: 36, risk: "high", gate: "credentials"),
+                    .init(id: "cold-chain", name: "Cold chain", detail: "Monitored storage for medicines that require it", authority: "internal", evidence: "Temperature log and calibration record", renewMonths: 12, risk: "standard", gate: "assess"),
+                    .init(id: "operator-agreement", name: "Operator agreement", detail: "POPIA operator agreement signed, with breach notification terms", authority: "internal", evidence: "Signed agreement", renewMonths: 24, risk: "high", gate: "train")
                    ]),
         VettedRole(id: "laboratory", name: "Laboratory partner", party: "organisation", workspace: "Partner",
                    summary: "Receives samples, runs tests and returns results.",
@@ -153,13 +153,13 @@ extension Vetting {
                     .init(capability: "view-results", refusal: "A laboratory sees the order and its own results, and only while accredited for the test.")
                    ],
                    checks: [
-                    .init(id: "company-registration", name: "Company registration", detail: "CIPC record, and who may sign for the company", authority: "cipc", evidence: "CIPC certificate and resolution", renewMonths: nil, risk: "standard"),
-                    .init(id: "signatory", name: "Authorised signatory", detail: "The named person who may bind the company, verified as a person", authority: "dha", evidence: "Identity document and board resolution", renewMonths: nil, risk: "high"),
-                    .init(id: "iso-15189", name: "ISO 15189 accreditation", detail: "SANAS accreditation for the tests actually offered", authority: "sanas", evidence: "Schedule of accreditation", renewMonths: 36, risk: "high"),
-                    .init(id: "pathologist", name: "Responsible pathologist", detail: "A named HPCSA-registered pathologist accountable for the reports", authority: "hpcsa", evidence: "Personal HPCSA registration", renewMonths: 12, risk: "high"),
-                    .init(id: "test-scope", name: "Test scope", detail: "Every test on the MyThuso menu appears on the accreditation schedule", authority: "internal", evidence: "Mapped test list", renewMonths: 12, risk: "high"),
-                    .init(id: "turnaround", name: "Turnaround commitment", detail: "Agreed times per test, and what happens when they slip", authority: "internal", evidence: "Signed service levels", renewMonths: 12, risk: "standard"),
-                    .init(id: "operator-agreement", name: "Operator agreement", detail: "POPIA operator agreement signed, with breach notification terms", authority: "internal", evidence: "Signed agreement", renewMonths: 24, risk: "high")
+                    .init(id: "company-registration", name: "Company registration", detail: "CIPC record, and who may sign for the company", authority: "cipc", evidence: "CIPC certificate and resolution", renewMonths: nil, risk: "standard", gate: "identity"),
+                    .init(id: "signatory", name: "Authorised signatory", detail: "The named person who may bind the company, verified as a person", authority: "dha", evidence: "Identity document and board resolution", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "iso-15189", name: "ISO 15189 accreditation", detail: "SANAS accreditation for the tests actually offered", authority: "sanas", evidence: "Schedule of accreditation", renewMonths: 36, risk: "high", gate: "credentials"),
+                    .init(id: "pathologist", name: "Responsible pathologist", detail: "A named HPCSA-registered pathologist accountable for the reports", authority: "hpcsa", evidence: "Personal HPCSA registration", renewMonths: 12, risk: "high", gate: "credentials"),
+                    .init(id: "test-scope", name: "Test scope", detail: "Every test on the MyThuso menu appears on the accreditation schedule", authority: "internal", evidence: "Mapped test list", renewMonths: 12, risk: "high", gate: "assess"),
+                    .init(id: "turnaround", name: "Turnaround commitment", detail: "Agreed times per test, and what happens when they slip", authority: "internal", evidence: "Signed service levels", renewMonths: 12, risk: "standard", gate: "assess"),
+                    .init(id: "operator-agreement", name: "Operator agreement", detail: "POPIA operator agreement signed, with breach notification terms", authority: "internal", evidence: "Signed agreement", renewMonths: 24, risk: "high", gate: "train")
                    ]),
         VettedRole(id: "courier", name: "Sample courier", party: "person", workspace: "Partner",
                    summary: "Carries clinical samples from a home to a laboratory.",
@@ -167,12 +167,12 @@ extension Vetting {
                     .init(capability: "transport-sample", refusal: "Chain of custody starts with a vetted courier. An unvetted driver cannot be handed a sealed sample.")
                    ],
                    checks: [
-                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
-                    .init(id: "driving-licence", name: "Driving licence and PDP", detail: "Valid licence and professional driving permit", authority: "rtmc", evidence: "Licence card and PDP", renewMonths: 24, risk: "high"),
-                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high"),
-                    .init(id: "cold-chain-training", name: "Cold chain and biohazard training", detail: "Packaging, temperature and spillage handling", authority: "internal", evidence: "Training record", renewMonths: 12, risk: "standard"),
-                    .init(id: "vehicle", name: "Vehicle and container", detail: "Roadworthy vehicle and a calibrated transport container", authority: "internal", evidence: "Roadworthy certificate and calibration record", renewMonths: 12, risk: "standard"),
-                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "A courier learns who is ill from an address. That is special personal information", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard")
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "driving-licence", name: "Driving licence and PDP", detail: "Valid licence and professional driving permit", authority: "rtmc", evidence: "Licence card and PDP", renewMonths: 24, risk: "high", gate: "credentials"),
+                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high", gate: "background"),
+                    .init(id: "cold-chain-training", name: "Cold chain and biohazard training", detail: "Packaging, temperature and spillage handling", authority: "internal", evidence: "Training record", renewMonths: 12, risk: "standard", gate: "train"),
+                    .init(id: "vehicle", name: "Vehicle and container", detail: "Roadworthy vehicle and a calibrated transport container", authority: "internal", evidence: "Roadworthy certificate and calibration record", renewMonths: 12, risk: "standard", gate: "assess"),
+                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "A courier learns who is ill from an address. That is special personal information", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard", gate: "train")
                    ]),
         VettedRole(id: "interpreter", name: "SASL interpreter", party: "person", workspace: "Partner",
                    summary: "Interprets between South African Sign Language and spoken English for a visit or a call, and hears the whole of it.",
@@ -180,12 +180,12 @@ extension Vetting {
                     .init(capability: "interpret-consultation", refusal: "An interpreter whose checks have not passed is never named on a roster, never joins a call and is never sent to a house. There is no once-off exception, because there is no part of a consultation an interpreter does not hear.")
                    ],
                    checks: [
-                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
-                    .init(id: "sasl-accreditation", name: "SASL interpreting accreditation", detail: "Accreditation as a South African Sign Language interpreter, verified with the accrediting body", authority: "sati", evidence: "Accreditation certificate and current membership", renewMonths: 12, risk: "high"),
-                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years, like anybody else who comes into a patient's home", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high"),
-                    .init(id: "health-interpreting", name: "Interpreting in a health setting", detail: "Clinical vocabulary, the boundaries of the role, and how to say that a meaning did not carry rather than smoothing it over", authority: "internal", evidence: "Training record", renewMonths: 24, risk: "standard"),
-                    .init(id: "confidentiality-undertaking", name: "Confidentiality undertaking", detail: "Signed on the same terms as the clinicians. An interpreter hears the consultation itself, not a summary of it, and is held to it as its own check rather than as a line inside another one", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "high"),
-                    .init(id: "popia-training", name: "POPIA and special personal information", detail: "What health information is under POPIA, and what may never leave the room it was signed in", authority: "internal", evidence: "Training record", renewMonths: 12, risk: "standard")
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "sasl-accreditation", name: "SASL interpreting accreditation", detail: "Accreditation as a South African Sign Language interpreter, verified with the accrediting body", authority: "sati", evidence: "Accreditation certificate and current membership", renewMonths: 12, risk: "high", gate: "credentials"),
+                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years, like anybody else who comes into a patient's home", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high", gate: "background"),
+                    .init(id: "health-interpreting", name: "Interpreting in a health setting", detail: "Clinical vocabulary, the boundaries of the role, and how to say that a meaning did not carry rather than smoothing it over", authority: "internal", evidence: "Training record", renewMonths: 24, risk: "standard", gate: "train"),
+                    .init(id: "confidentiality-undertaking", name: "Confidentiality undertaking", detail: "Signed on the same terms as the clinicians. An interpreter hears the consultation itself, not a summary of it, and is held to it as its own check rather than as a line inside another one", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "high", gate: "train"),
+                    .init(id: "popia-training", name: "POPIA and special personal information", detail: "What health information is under POPIA, and what may never leave the room it was signed in", authority: "internal", evidence: "Training record", renewMonths: 12, risk: "standard", gate: "train")
                    ]),
         VettedRole(id: "operator", name: "Control Tower operator", party: "person", workspace: "Control Tower",
                    summary: "Dispatches nurses, triages incidents and escalates.",
@@ -194,11 +194,11 @@ extension Vetting {
                     .init(capability: "view-patient-summary", refusal: "An operator sees an address, a service and a window — never a clinical record, and nothing at all while unvetted.")
                    ],
                    checks: [
-                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
-                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high"),
-                    .init(id: "references", name: "Employment references", detail: "Contacted directly, never through the applicant", authority: "internal", evidence: "Two named referees", renewMonths: nil, risk: "standard"),
-                    .init(id: "escalation-training", name: "Escalation training", detail: "Incident severity, the five-minute acknowledgement and when to call emergency services", authority: "internal", evidence: "Training record and drill", renewMonths: 12, risk: "high"),
-                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard")
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high", gate: "background"),
+                    .init(id: "references", name: "Employment references", detail: "Contacted directly, never through the applicant", authority: "internal", evidence: "Two named referees", renewMonths: nil, risk: "standard", gate: "background"),
+                    .init(id: "escalation-training", name: "Escalation training", detail: "Incident severity, the five-minute acknowledgement and when to call emergency services", authority: "internal", evidence: "Training record and drill", renewMonths: 12, risk: "high", gate: "train"),
+                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard", gate: "train")
                    ]),
         VettedRole(id: "admin", name: "Internal admin staff", party: "person", workspace: "Admin",
                    summary: "Back office: catalogue, finance, growth and vetting decisions.",
@@ -208,11 +208,11 @@ extension Vetting {
                     .init(capability: "view-billing", refusal: "Finance sees a service code and an amount. It never sees why the service was needed.")
                    ],
                    checks: [
-                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
-                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high"),
-                    .init(id: "references", name: "Employment references", detail: "Contacted directly, never through the applicant", authority: "internal", evidence: "Two named referees", renewMonths: nil, risk: "standard"),
-                    .init(id: "access-role", name: "Access role", detail: "The least privilege that lets this person do their job, approved by name", authority: "internal", evidence: "Approved role assignment", renewMonths: 6, risk: "high"),
-                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard")
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "police-clearance", name: "Police clearance", detail: "SAPS clearance, renewed every two years", authority: "saps", evidence: "SAPS clearance certificate", renewMonths: 24, risk: "high", gate: "background"),
+                    .init(id: "references", name: "Employment references", detail: "Contacted directly, never through the applicant", authority: "internal", evidence: "Two named referees", renewMonths: nil, risk: "standard", gate: "background"),
+                    .init(id: "access-role", name: "Access role", detail: "The least privilege that lets this person do their job, approved by name", authority: "internal", evidence: "Approved role assignment", renewMonths: 6, risk: "high", gate: "assess"),
+                    .init(id: "popia-training", name: "POPIA and confidentiality", detail: "Handling special personal information, and the undertaking that goes with it", authority: "internal", evidence: "Signed undertaking", renewMonths: 12, risk: "standard", gate: "train")
                    ]),
         VettedRole(id: "employer", name: "Employer / B2B client", party: "organisation", workspace: "Admin",
                    summary: "Buys wellness days, screening or cover for its staff.",
@@ -221,11 +221,11 @@ extension Vetting {
                     .init(capability: "sponsor-care", refusal: "An employer may pay for care and still never see who used it. Payment is verified separately from access, and access is never granted.")
                    ],
                    checks: [
-                    .init(id: "company-registration", name: "Company registration", detail: "CIPC record, and who may sign for the company", authority: "cipc", evidence: "CIPC certificate and resolution", renewMonths: nil, risk: "standard"),
-                    .init(id: "signatory", name: "Authorised signatory", detail: "The named person who may bind the company, verified as a person", authority: "dha", evidence: "Identity document and board resolution", renewMonths: nil, risk: "high"),
-                    .init(id: "tax-clearance", name: "Tax clearance", detail: "A current SARS tax compliance status", authority: "internal", evidence: "Tax compliance pin", renewMonths: 12, risk: "standard"),
-                    .init(id: "operator-agreement", name: "Operator agreement", detail: "POPIA operator agreement, stating that the employer receives aggregate figures and never a named result", authority: "internal", evidence: "Signed agreement", renewMonths: 24, risk: "high"),
-                    .init(id: "aggregate-only", name: "Aggregate-only undertaking", detail: "Written acknowledgement that no individual employee result is ever disclosed, in any circumstance", authority: "internal", evidence: "Signed undertaking", renewMonths: 24, risk: "high")
+                    .init(id: "company-registration", name: "Company registration", detail: "CIPC record, and who may sign for the company", authority: "cipc", evidence: "CIPC certificate and resolution", renewMonths: nil, risk: "standard", gate: "identity"),
+                    .init(id: "signatory", name: "Authorised signatory", detail: "The named person who may bind the company, verified as a person", authority: "dha", evidence: "Identity document and board resolution", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "tax-clearance", name: "Tax clearance", detail: "A current SARS tax compliance status", authority: "internal", evidence: "Tax compliance pin", renewMonths: 12, risk: "standard", gate: "credentials"),
+                    .init(id: "operator-agreement", name: "Operator agreement", detail: "POPIA operator agreement, stating that the employer receives aggregate figures and never a named result", authority: "internal", evidence: "Signed agreement", renewMonths: 24, risk: "high", gate: "train"),
+                    .init(id: "aggregate-only", name: "Aggregate-only undertaking", detail: "Written acknowledgement that no individual employee result is ever disclosed, in any circumstance", authority: "internal", evidence: "Signed undertaking", renewMonths: 24, risk: "high", gate: "train")
                    ]),
         VettedRole(id: "sponsor", name: "Care sponsor", party: "person", workspace: "Patient",
                    summary: "Pays for a family member's or another person's care.",
@@ -233,10 +233,10 @@ extension Vetting {
                     .init(capability: "sponsor-care", refusal: "Sponsorship is a payment, not a permission. Until identity and the recipient's consent are both recorded, no visit can be paid for.")
                    ],
                    checks: [
-                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
-                    .init(id: "recipient-consent", name: "Recipient's consent", detail: "The person being sponsored agrees, in their own account, in their own words", authority: "internal", evidence: "Recorded consent with wording and version", renewMonths: 12, risk: "high"),
-                    .init(id: "payment-source", name: "Payment source", detail: "Verified through a regulated payment provider", authority: "internal", evidence: "Provider verification reference", renewMonths: 12, risk: "standard"),
-                    .init(id: "no-access-acknowledgement", name: "No-access acknowledgement", detail: "Written acknowledgement that paying for care grants no clinical access whatsoever", authority: "internal", evidence: "Signed acknowledgement", renewMonths: nil, risk: "high")
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "recipient-consent", name: "Recipient's consent", detail: "The person being sponsored agrees, in their own account, in their own words", authority: "internal", evidence: "Recorded consent with wording and version", renewMonths: 12, risk: "high", gate: "assess"),
+                    .init(id: "payment-source", name: "Payment source", detail: "Verified through a regulated payment provider", authority: "internal", evidence: "Provider verification reference", renewMonths: 12, risk: "standard", gate: "credentials"),
+                    .init(id: "no-access-acknowledgement", name: "No-access acknowledgement", detail: "Written acknowledgement that paying for care grants no clinical access whatsoever", authority: "internal", evidence: "Signed acknowledgement", renewMonths: nil, risk: "high", gate: "train")
                    ]),
         VettedRole(id: "guardian", name: "Guardian", party: "person", workspace: "Patient",
                    summary: "Acts for a minor or a dependent adult.",
@@ -246,10 +246,10 @@ extension Vetting {
                     .init(capability: "view-clinical-record", refusal: "Even a verified guardian sees only the scope granted, for the duration granted.")
                    ],
                    checks: [
-                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high"),
-                    .init(id: "legal-authority", name: "Legal authority", detail: "Birth certificate, court order or curatorship, checked as a document", authority: "dha", evidence: "Unabridged birth certificate or court order", renewMonths: nil, risk: "high"),
-                    .init(id: "relationship", name: "Relationship to the patient", detail: "Confirmed with the patient or, for a minor, with the registered parent", authority: "internal", evidence: "Confirmation record", renewMonths: 12, risk: "high"),
-                    .init(id: "scope-acknowledgement", name: "Scope acknowledgement", detail: "Written acknowledgement of what guardianship does and does not reach", authority: "internal", evidence: "Signed acknowledgement", renewMonths: 12, risk: "standard")
+                    .init(id: "identity", name: "Identity", detail: "Home Affairs verification through an accredited provider", authority: "dha", evidence: "Identity document", renewMonths: nil, risk: "high", gate: "identity"),
+                    .init(id: "legal-authority", name: "Legal authority", detail: "Birth certificate, court order or curatorship, checked as a document", authority: "dha", evidence: "Unabridged birth certificate or court order", renewMonths: nil, risk: "high", gate: "credentials"),
+                    .init(id: "relationship", name: "Relationship to the patient", detail: "Confirmed with the patient or, for a minor, with the registered parent", authority: "internal", evidence: "Confirmation record", renewMonths: 12, risk: "high", gate: "assess"),
+                    .init(id: "scope-acknowledgement", name: "Scope acknowledgement", detail: "Written acknowledgement of what guardianship does and does not reach", authority: "internal", evidence: "Signed acknowledgement", renewMonths: 12, risk: "standard", gate: "train")
                    ]),
         VettedRole(id: "corner", name: "Thuso Corner site", party: "site", workspace: "Admin",
                    summary: "A community location where screening and identity recovery happen in person.",
@@ -258,11 +258,11 @@ extension Vetting {
                     .init(capability: "guardian-access", refusal: "In-person identity recovery at a Corner is only offered at inspected sites with a trained, vetted attendant.")
                    ],
                    checks: [
-                    .init(id: "site-inspection", name: "Site inspection", detail: "A private consulting space, hand washing, and a lockable record store", authority: "internal", evidence: "Inspection report", renewMonths: 12, risk: "high"),
-                    .init(id: "waste-disposal", name: "Medical waste disposal", detail: "A contracted, licensed healthcare risk-waste service", authority: "internal", evidence: "Waste contract and collection manifests", renewMonths: 12, risk: "high"),
-                    .init(id: "attendant-vetting", name: "Attendant vetting", detail: "Every person working the site is vetted in their own right", authority: "internal", evidence: "Linked personal vetting records", renewMonths: 12, risk: "high"),
-                    .init(id: "privacy-layout", name: "Privacy layout", detail: "Nobody waiting can see or hear a consultation", authority: "internal", evidence: "Floor plan and inspection sign-off", renewMonths: 12, risk: "standard"),
-                    .init(id: "landlord-consent", name: "Landlord consent", detail: "Written permission to provide a health service on the premises", authority: "internal", evidence: "Signed consent", renewMonths: 24, risk: "standard")
+                    .init(id: "site-inspection", name: "Site inspection", detail: "A private consulting space, hand washing, and a lockable record store", authority: "internal", evidence: "Inspection report", renewMonths: 12, risk: "high", gate: "assess"),
+                    .init(id: "waste-disposal", name: "Medical waste disposal", detail: "A contracted, licensed healthcare risk-waste service", authority: "internal", evidence: "Waste contract and collection manifests", renewMonths: 12, risk: "high", gate: "credentials"),
+                    .init(id: "attendant-vetting", name: "Attendant vetting", detail: "Every person working the site is vetted in their own right", authority: "internal", evidence: "Linked personal vetting records", renewMonths: 12, risk: "high", gate: "identity"),
+                    .init(id: "privacy-layout", name: "Privacy layout", detail: "Nobody waiting can see or hear a consultation", authority: "internal", evidence: "Floor plan and inspection sign-off", renewMonths: 12, risk: "standard", gate: "assess"),
+                    .init(id: "landlord-consent", name: "Landlord consent", detail: "Written permission to provide a health service on the premises", authority: "internal", evidence: "Signed consent", renewMonths: 24, risk: "standard", gate: "credentials")
                    ])
     ]
     static let scopes: [String: RoleScope] = [
@@ -282,5 +282,77 @@ extension Vetting {
                         options: ["Clinical consultation", "Home visit", "Mental health", "Sexual and reproductive health", "Paediatric", "Deafblind (tactile) interpreting", "After hours"]),
         "corner": RoleScope(label: "Services offered", note: "A site offers only what its inspection covers. A room that passed for screening has not passed for vaccination.",
                         options: ["Screening", "Identity recovery", "Vaccination support"])
+    ]
+    /* The seven onboarding gates, in order, each with the rule a person is refused under and the
+       sentence they are shown. The fail rules are rendered word for word from here. */
+    static let gates: [VettingGate] = [
+        .init(id: "apply", order: 1, name: "Apply", hardStop: true, evidencedBy: "enrolment",
+              failRule: "No consent to vet, no processing. Nothing about a person is checked until they have agreed to be checked.",
+              statement: "You choose the role and agree to be vetted. You can withdraw that agreement, and vetting stops when you do."),
+        .init(id: "identity", order: 2, name: "Identity", hardStop: true, evidencedBy: nil,
+              failRule: "An identity that does not match is a hard stop. Nothing at a later gate is looked at, whatever it says.",
+              statement: "Your identity is matched against Home Affairs through an accredited provider, before anything else about you is looked at."),
+        .init(id: "credentials", order: 3, name: "Credentials", hardStop: false, evidencedBy: nil,
+              failRule: "A registration, licence or cover that is not current is a hold until it is renewed. Nothing is offered in the meantime.",
+              statement: "Your registration, licences and cover are checked with the body that issued them, and their renewal dates are watched from then on."),
+        .init(id: "background", order: 4, name: "Background", hardStop: true, evidencedBy: nil,
+              failRule: "A listing on the National Register for Sex Offenders or the Child Protection Register is a permanent bar, and so is a violent, sexual or fraud conviction. Any other finding goes to a review panel, never to one reviewer.",
+              statement: "Your police clearance and your references are checked. Referees are contacted directly, never through you."),
+        .init(id: "assess", order: 5, name: "Assess", hardStop: false, evidencedBy: nil,
+              failRule: "Below the threshold, the assessment may be taken once more. A second result below it ends the application.",
+              statement: "You are assessed on the work itself: an interview and a test of the skills the role needs."),
+        .init(id: "train", order: 6, name: "Train", hardStop: false, evidencedBy: nil,
+              failRule: "Training that is not complete means the person is not activated, however far through it they are.",
+              statement: "You complete MyThuso’s protocol, POPIA and safeguarding training, and sign the conduct agreement."),
+        .init(id: "activate", order: 7, name: "Activate", hardStop: false, evidencedBy: "gates",
+              failRule: "Nobody goes live without a current Trust Score, and nobody is activated before gates 1 to 6 have passed.",
+              statement: "Your first Trust Score is computed and you go onto the roster, on probation for your first visits.")
+    ]
+    static let gateRules = VettingGateRules(
+        lapse: "A check past its renewal date holds the file at its gate until it is renewed. Nothing was decided against the person; the date passed.",
+        suspended: "Suspended by a reviewer. Every gate already passed stays passed, and nothing is offered until the suspension is lifted.",
+        declined: "This application was declined with a reason, and it stays declined until a reviewer decides it again.",
+        notActivated: "Not activated. Every gate from 1 to 6 has to pass first, in its own right.",
+        status: "Gate {order} of {total} — {name}")
+    /* Why no check sits at a gate, per role and per gate, in the role's own words. */
+    static let gateNotes: [String: [String: VettingGateNote]] = [
+        "nurse": [
+            "assess": VettingGateNote(kind: "not-yet-a-check", sentence: "The interview and clinical scenario the master document asks for are not yet a check in this contract. Until one is added, a nurse passes gate 5 on nothing, and this sentence is where that is admitted.")
+        ],
+        "locum": [:],
+        "doctor": [
+            "assess": VettingGateNote(kind: "not-yet-a-check", sentence: "The telemedicine competency and protocol sign-off the master document asks of a doctor are not yet a check in this contract. Until one is added, a doctor passes gate 5 on nothing, and this sentence is where that is admitted.")
+        ],
+        "pharmacy": [
+            "background": VettingGateNote(kind: "not-yet-a-check", sentence: "A pharmacy is a company, and the person whose background matters is the responsible pharmacist. That clearance is not yet a check of its own here, so gate 4 is passed on nothing until it is.")
+        ],
+        "laboratory": [
+            "background": VettingGateNote(kind: "does-not-apply", sentence: "A laboratory is vetted as a company: its registration, its signatory and its accreditation. The people who carry samples to it are couriers, and they pass gate 4 in their own right.")
+        ],
+        "courier": [:],
+        "interpreter": [
+            "assess": VettingGateNote(kind: "not-yet-a-check", sentence: "The language assessment an interpreter should sit is not yet a check in this contract. The accreditation at gate 3 is the nearest thing to it, and it is not the same thing.")
+        ],
+        "operator": [
+            "credentials": VettingGateNote(kind: "does-not-apply", sentence: "A Control Tower operator holds no professional registration. The role is employment, and nothing about it is licensed by a council."),
+            "assess": VettingGateNote(kind: "not-yet-a-check", sentence: "The structured interview for an operator is not yet a check in this contract. Until one is added, an operator passes gate 5 on nothing, and this sentence is where that is admitted.")
+        ],
+        "admin": [
+            "credentials": VettingGateNote(kind: "does-not-apply", sentence: "Admin staff hold no professional registration. The role is employment, and nothing about it is licensed by a council.")
+        ],
+        "employer": [
+            "background": VettingGateNote(kind: "does-not-apply", sentence: "An employer never enters a home and never sees a named result, so there is no history a clearance would be checked against. The signatory is identified at gate 2."),
+            "assess": VettingGateNote(kind: "does-not-apply", sentence: "An employer pays for a programme and receives aggregate figures. There is no skill in that for an assessment to test.")
+        ],
+        "sponsor": [
+            "background": VettingGateNote(kind: "does-not-apply", sentence: "A sponsor pays for somebody else’s visits and is never granted access to a person, a home or a record, so there is nothing a criminal record would be checked against.")
+        ],
+        "guardian": [
+            "background": VettingGateNote(kind: "does-not-apply", sentence: "Guardianship is a legal fact established at gate 3 by a birth certificate, a court order or a curatorship, and a criminal record does not change who a child’s parent is. Whether a record should narrow what guardian access reaches is a question for the governance board, not a default this contract takes.")
+        ],
+        "corner": [
+            "background": VettingGateNote(kind: "does-not-apply", sentence: "A site has no history of its own. Every person who works there is vetted in their own right, which is what the attendant vetting check at gate 2 records."),
+            "train": VettingGateNote(kind: "does-not-apply", sentence: "A site is not trained. Its attendants are, under the roles they are vetted in.")
+        ]
     ]
 }

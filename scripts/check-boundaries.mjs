@@ -1044,6 +1044,106 @@ for(const role of vetting.roles) {
 /* Every capability must be reachable by someone, or the matrix is describing a gate around nothing. */
 for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants.some(g=>g.capability===capability.id))) throw new Error(`Capability ${capability.id} is granted to nobody`);
 
+/* ==== VERIFY: THE SEVEN GATES ======================================================================
+   ADDED BY THE TRUST, RECORD & IDENTITY LEAD. Kept in one block so a merge with the contracts and
+   voice branches is a matter of keeping all three.
+
+   The master document puts every person through seven onboarding gates, each with a rule it refuses
+   under. Four things are held here, and each one is a way the gates quietly stop meaning anything:
+
+     1. The gates are seven, numbered 1 to 7 without a gap, and each carries its fail rule and the
+        sentence a person is shown. A gate with no fail rule is a gate nobody can fail.
+     2. Every check names a gate, and every role reaches gate 7 through gates 1 to 6 — or says, per
+        gate, in a real sentence, why no check sits there. Silence about a gate is how "the nurse
+        passed assessment" comes to mean "nobody assessed the nurse".
+     3. No role activates past a failed hard stop. Proved against the service's own arithmetic in
+        apps/api/src/vetting/gates.ts rather than a second copy of it here: for every role and every
+        check at a hard-stop gate, a party with everything else cleared and that one check declined
+        must be refused, at that gate, in that gate's words.
+     4. The fail rules are rendered from the contract on all three platforms, never typed, and the
+        gate is never a column: a stored gate number stops being true the night a clearance lapses. */
+{
+ const gateList = vetting.gates ?? [];
+ if(gateList.length !== 7) throw new Error(`packages/catalog/vetting.json declares ${gateList.length} gates. The master document's onboarding has seven — apply, identity, credentials, background, assess, train, activate — and a person told they are at "gate 4 of 7" is owed seven.`);
+ [...gateList].sort((a,b)=>a.order-b.order).forEach((gate,index)=>{
+  if(gate.order !== index+1) throw new Error(`The gates in packages/catalog/vetting.json are not numbered 1 to 7 without a gap: "${gate.id}" is ${gate.order} where ${index+1} belongs. A status of "gate 5 of 7" has to mean the fifth.`);
+ });
+ const gateIds = new Set(gateList.map(g=>g.id));
+ if(gateIds.size !== gateList.length) throw new Error('Two gates in packages/catalog/vetting.json share an id.');
+ for(const gate of gateList) {
+  for(const field of ['name','happens','failRule','statement']) if(!(typeof gate[field]==='string' && gate[field].trim().length > 3)) throw new Error(`Gate "${gate.id}" has no ${field}. A gate without a fail rule is a gate nobody can fail, and one without a statement is a gate the person at it is not told about.`);
+  if(typeof gate.hardStop !== 'boolean') throw new Error(`Gate "${gate.id}" does not say whether it is a hard stop.`);
+ }
+ const byOrder = [...gateList].sort((a,b)=>a.order-b.order);
+ if(byOrder[0].evidencedBy !== 'enrolment' || byOrder[6].evidencedBy !== 'gates' || byOrder.slice(1,6).some(g=>g.evidencedBy)) throw new Error('Only the first gate is evidenced by the enrolment and only the last by the other six. Any other gate with no checks of its own is a gate passed on nothing.');
+ for(const role of vetting.roles) {
+  for(const check of role.checks) {
+   if(!check.gate) throw new Error(`Check ${role.id}/${check.id} sits at no gate. Every check is somewhere in the seven, or it is a check nothing waits on.`);
+   if(!gateIds.has(check.gate)) throw new Error(`Check ${role.id}/${check.id} names gate "${check.gate}", which packages/catalog/vetting.json does not have.`);
+   if(check.gate === byOrder[0].id || check.gate === byOrder[6].id) throw new Error(`Check ${role.id}/${check.id} sits at "${check.gate}", which is evidenced by ${check.gate === byOrder[0].id ? 'the enrolment' : 'the other six gates'} rather than by a check.`);
+  }
+  const notes = role.gateNotes ?? {};
+  for(const noted of Object.keys(notes)) if(!gateIds.has(noted)) throw new Error(`Role ${role.id} explains gate "${noted}", which does not exist.`);
+  for(const gate of byOrder.slice(1,6)) {
+   const here = role.checks.filter(c=>c.gate===gate.id);
+   const note = notes[gate.id];
+   if(here.length && note) throw new Error(`Role ${role.id} has ${here.length} check(s) at ${gate.name} and also says why none applies there. One of the two is wrong.`);
+   if(!here.length && !(note && ['does-not-apply','not-yet-a-check'].includes(note.kind) && typeof note.sentence==='string' && note.sentence.split(' ').length >= 10)) throw new Error(`Role ${role.id} does not reach gate 7 through ${gate.name}: no check sits there and the role does not say, in a sentence, why. Add a check, or a gateNotes entry saying it does not apply or is not yet a check.`);
+  }
+ }
+ const { gateProgress } = await import('../apps/api/src/vetting/gates.ts');
+ const at = Date.now();
+ let hardStopsProved = 0;
+ for(const role of vetting.roles) {
+  for(const check of role.checks.filter(c=>gateList.find(g=>g.id===c.gate).hardStop)) {
+   const actor = { actorId: `${role.id}-proof`, roleId: role.id, records: role.checks.map(c=>({ checkId: c.id, state: c.id===check.id ? 'declined' : 'verified', secondedBy: 'second reviewer' })) };
+   const progress = gateProgress(actor, at);
+   const gate = gateList.find(g=>g.id===check.gate);
+   if(progress.activated) throw new Error(`Role ${role.id} activates with ${check.name} declined at ${gate.name}, which is a hard stop. Nothing after a failed hard stop may be reached.`);
+   if(progress.at.id !== gate.id || progress.sentence !== gate.failRule) throw new Error(`Role ${role.id} with ${check.name} declined is told it is at "${progress.at.id}" with "${progress.sentence}". A failed hard stop holds the party at ${gate.name}, in its own fail rule, word for word.`);
+   if(progress.outcome !== 'stopped' || progress.gates.some(g=>g.order > gate.order && g.state !== 'not-reached')) throw new Error(`Role ${role.id} with ${check.name} declined is "${progress.outcome}" rather than stopped, or a gate after ${gate.name} was still reached. Nothing after a failed hard stop is looked at, however green it is.`);
+   /* And a hard stop outranks an earlier gate that is merely unfinished: a background bar is not
+      hidden behind an identity check nobody has got round to. */
+   const earlier = role.checks.find(c=>gateList.find(g=>g.id===c.gate).order < gate.order);
+   if(earlier) {
+    const unfinished = gateProgress({ ...actor, records: actor.records.map(r=>r.checkId===earlier.id ? { ...r, state: 'in-review' } : r) }, at);
+    if(unfinished.at.id !== gate.id || unfinished.outcome !== 'stopped') throw new Error(`Role ${role.id} with ${check.name} declined and ${earlier.name} still in review is told it is at "${unfinished.at.id}", ${unfinished.outcome}. A failed hard stop outranks an earlier gate that is only unfinished, or the bar is hidden behind the paperwork.`);
+   }
+   hardStopsProved++;
+  }
+ }
+ if(hardStopsProved < 20) throw new Error(`Only ${hardStopsProved} hard-stop checks were proved. The contract has lost its identity or background checks, or this check has stopped reading them.`);
+ const gateModels = {
+  web: 'apps/web/src/lib/vetting.ts',
+  ios: 'apps/ios/MyThuso/Models/Vetting.swift',
+  android: 'apps/android/app/src/main/java/za/co/mythuso/model/Vetting.kt'
+ };
+ const gateScreens = {
+  web: 'apps/web/src/features/Vetting.tsx',
+  ios: 'apps/ios/MyThuso/Features/VettingView.swift',
+  android: 'apps/android/app/src/main/java/za/co/mythuso/ui/VettingScreens.kt'
+ };
+ for(const [platform,file] of Object.entries(gateModels)) {
+  const source = read(file);
+  if(!/failRule/.test(source) || !/function gateProgress|func gateProgress|fun gateProgress/.test(source)) throw new Error(`${file} no longer works out gate progress from the contract's failRule. The ${platform} vetting screen would have nothing to say about where a person is stuck, or something typed.`);
+ }
+ for(const [platform,file] of Object.entries(gateScreens)) {
+  const source = read(file);
+  if(!/gateProgress\(subject\)/.test(source) || !/\.sentence/.test(source) || !/\.status/.test(source)) throw new Error(`${file} no longer shows where the party stands among the seven gates, or no longer renders the gate's own sentence. The ${platform} status screen is the one a person reads to find out why they are not activated.`);
+ }
+ const gateSentences = [...gateList.map(g=>g.failRule), ...gateList.map(g=>g.statement), ...Object.values(vetting.gateRules).filter(v=>typeof v==='string' && v.split(' ').length > 6), ...vetting.roles.flatMap(r=>Object.values(r.gateNotes ?? {}).map(n=>n.sentence))];
+ const handWritten = [...files('apps/web/src').filter(f=>/\.tsx?$/.test(f)), ...native.filter(f=>!/Data\.(swift|kt)$/.test(f)), ...files('apps/api/src')];
+ for(const file of handWritten) {
+  const source = read(file);
+  const typed = gateSentences.find(sentence=>source.includes(sentence));
+  if(typed) throw new Error(`${file} types a gate sentence out of packages/catalog/vetting.json: "${typed.slice(0,80)}…". The fail rules are rendered from the contract (VettingData on the phones), so a reworded rule is reworded everywhere at once.`);
+ }
+ for(const table of tablesIn(read('apps/api/src/vetting/store.ts'))) {
+  const stored = table.columns.find(column=>/gate/i.test(column));
+  if(stored) throw new Error(`apps/api/src/vetting/store.ts stores ${table.name}.${stored}. Where a party stands among the gates is computed from its checks on every read — apps/api/src/vetting/gates.ts — and a stored gate is a claim that stops being true the night a clearance lapses.`);
+ }
+}
+
 /* What is left to check about the native vetting models is what is still written by hand. The
    tables themselves are generated above, so a refusal sentence cannot say one thing on iOS and
    another on Android — there is only one sentence and one writer of it. The lifecycle is a
@@ -1060,7 +1160,7 @@ for(const [platform,file] of Object.entries(nativeVetting)) {
  if(!/(?<![\d.])45(?![\d.])/.test(source)) throw new Error(`The 45-day renewal warning is missing from ${platform} (${file})`);
  /* A generated table is only worth having if it is the only one. Pasting the roles back in here
     would leave two, and two is where drift comes from. */
- if(/(static let (capabilities|authorities|roles|scopes)\b|val vetting(Capabilities|Authorities|Roles|Scopes)\s*[:=])/.test(source)) throw new Error(`${file} declares a vetting table of its own. That table is generated into VettingData — the app should read that one.`);
+ if(/(static let (capabilities|authorities|roles|scopes|gates|gateRules|gateNotes)\b|val vetting(Capabilities|Authorities|Roles|Scopes|Gates|GateRules|GateNotes)\s*[:=])/.test(source)) throw new Error(`${file} declares a vetting table of its own. That table is generated into VettingData — the app should read that one.`);
 }
 /* Read only so the line below can say how much was generated. Nothing about the contract is checked
    against a native file any more: there is one copy of it and a generator between it and the two
