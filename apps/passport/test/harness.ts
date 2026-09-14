@@ -14,7 +14,7 @@ import contract from '../../../packages/catalog/passport-gateway.json' with { ty
 import { loadPassportConfig } from '../src/config.ts';
 import { PassportGateway, type GrantFields, type Requester } from '../src/gateway.ts';
 import { PassportKeys } from '../src/keys.ts';
-import { mintOperatorCredential } from '../src/operator.ts';
+import { mintDeveloperCredential, mintOperatorCredential } from '../src/operator.ts';
 import { PassportStore } from '../src/store.ts';
 
 export const START = Date.UTC(2026, 8, 14, 9, 0, 0);
@@ -45,6 +45,7 @@ export function harness() {
   advance: (ms: number) => { clock += ms; },
   at: () => clock,
   operator: (role = 'dispatch-desk') => mintOperatorCredential(config, role, clock),
+  developer: () => mintDeveloperCredential(config, clock),
   auditRows: () => store.database.prepare('SELECT * FROM audit_events ORDER BY seq').all() as Record<string, unknown>[]
  };
 }
@@ -55,7 +56,9 @@ export type Harness = ReturnType<typeof harness>;
  * medicine — and, unless asked not to, a vital-sign reading the patient marked private.
  */
 export function seed(h: Harness, options: { withPrivate?: boolean } = {}) {
- const { subject, patientSession } = h.gateway.createSubject();
+ const created = h.gateway.createSubject(h.developer());
+ if (!created.ok) throw new Error(created.reason);
+ const { subject, patientSession } = created;
  const me: Requester = { kind: 'patient', session: patientSession };
  const put = (resourceType: string, category: string, resource: Record<string, unknown>, markedPrivate = false): string => {
   const written = h.gateway.write(me, { subject, resourceType, category, resource, provenance: PROVENANCE, markedPrivate });

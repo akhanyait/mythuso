@@ -129,7 +129,13 @@ export function createPassport(env: NodeJS.ProcessEnv, now?: () => number) {
   const body = method === 'POST' ? await bodyOf(req) : {};
   if (body === null) return refuse(res, 400, 'unreadable-body', route);
 
-  if (method === 'POST' && url.pathname === '/dev/subjects') return send(res, 201, gateway.createSubject());
+  /* Two things are required to create a synthetic subject, and they are different things: the
+     development flag, which createPassport() has already demanded before this route exists at all,
+     and a developer credential on the request — "Developer <token>", minted at the console with
+     node apps/passport/src/operator.ts developer, a development-only stand-in for an authenticated
+     person. Without the credential the request is refused and audited; the loopback alone creates
+     nobody. */
+  if (method === 'POST' && url.pathname === '/dev/subjects') return answer(res, gateway.createSubject(tokenFor(req, 'Developer')), 201);
   if (method === 'POST' && url.pathname === '/session/end') return answer(res, gateway.endSession(tokenFor(req, 'Patient')));
   if (method === 'POST' && url.pathname === '/consent/grant') return answer(res, gateway.grant(tokenFor(req, 'Patient'), body as never), 201);
   if (method === 'POST' && url.pathname === '/consent/revoke') return answer(res, gateway.revoke(tokenFor(req, 'Patient'), String(body.grantId ?? '')));

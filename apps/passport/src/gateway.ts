@@ -55,7 +55,7 @@ import { AuditLog, type AuditEntry } from './audit.ts';
 import { PassportRefusedToStart, wasLoaded, type PassportConfig } from './config.ts';
 import { GATEWAY, expiryCeilingDays, grantScopeRefusal, isProtectedCategory, knownCategory, refusalOf, resourceRule, roleRule, sensitivityOf, statement, type GrantRole } from './contract.ts';
 import { PassportKeys, openBytes, readToken, sealBytes, signToken } from './keys.ts';
-import { operatorOf } from './operator.ts';
+import { developerOf, operatorOf } from './operator.ts';
 import { identityShaped } from './screen.ts';
 import { OPEN, PRIVATE, SEALED, type PassportStore, type ResourceRow } from './store.ts';
 
@@ -130,14 +130,17 @@ export class PassportGateway {
   * for an OIDC patient login: it expires, it can be ended, and it is registered, so a token that was
   * signed but never issued is not a session.
   */
- createSubject(): { subject: string; patientSession: string } {
-  const subject = `pp_${randomBytes(16).toString('hex')}`;
+ createSubject(credential: string): Answer<{ subject: string; patientSession: string }> {
   const at = this.#now();
+  const developer = developerOf(this.#keys, String(credential ?? ''), at);
+  if (!developer) return this.#refuse(401, 'developer-credential-required', { subject: null, requesterRole: UNAUTHENTICATED, requesterRef: null, action: 'dev.subjects' });
+  const subject = `pp_${randomBytes(16).toString('hex')}`;
   this.#store.addSubject(subject, at);
   const id = `sess_${randomBytes(16).toString('hex')}`;
   const expiresAt = at + GATEWAY.patientSession.lifetimeMinutes * MINUTE;
   this.#store.putSession({ id, subject, expires_at: expiresAt, revoked_at: null, created_at: at });
-  return { subject, patientSession: signToken(this.#keys, 'session', { kind: 'patient-session', id, subject, expiresAt }) };
+  this.#log({ subject, requesterRole: 'developer', requesterRef: developer.ref, action: 'dev.subjects', outcome: 'granted', reason: statement('patientSession') });
+  return { ok: true, subject, patientSession: signToken(this.#keys, 'session', { kind: 'patient-session', id, subject, expiresAt }) };
  }
 
  #session(token: string): { ok: true; subject: string; id: string } | { ok: false; id: 'patient-session-required' | 'session-ended' } {

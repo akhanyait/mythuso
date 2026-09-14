@@ -20,6 +20,7 @@ import { createProtectionModule, mintBootstrapAuthorisation } from '../src/prote
 import { SEALED_COLUMNS, VettingVault, openVettingStore, roleChecks, vettingSource } from '../src/vetting/index.ts';
 import { FORBIDDEN_KEYS, forbiddenKeysIn } from '../src/subjectExport.ts';
 import { RESPONSE_DAYS } from '../src/personalData.ts';
+import { REFUSALS as INCIDENT_REFUSALS } from '../src/incidents.ts';
 
 const ORIGIN = 'http://localhost:5173';
 const config = loadConfig({
@@ -345,6 +346,47 @@ describe('the security compromise register', () => {
     const response = await as('officer', '/incidents/contain', { incidentId: opened.incidentId, containment: '  ' });
     assert.equal(response.status, 400);
     assert.match((await response.json() as { message: string }).message, /a tick rather than a record/);
+  });
+});
+
+describe('who may record that an incident was contained', () => {
+  /* Reporting is open to every vetted party; recording containment is the reporter's, or a reviewer's
+     holding review-vetting. A sponsor marking a nurse's incident dealt with, and a nurse marking a
+     report she did not make, are the two refusals the reviewer found could happen. */
+  test('the reporter and a reviewer may; another vetted party and the reporter of a different incident may not, and each refusal is in the chain', async () => {
+    await signIn('carer', '0831110011');
+    await signIn('payer', '0831110012');
+    const nurse = await as('officer', '/vetting/parties', { id: person.carer, roleId: 'nurse', reference: 'SANC 20014477' });
+    assert.equal(nurse.status, 200, await nurse.text());
+    const sponsor = await as('officer', '/vetting/parties', { id: person.payer, roleId: 'sponsor' });
+    assert.equal(sponsor.status, 200, await sponsor.text());
+    const open = async (who: string) => {
+      const response = await as(who, '/incidents', { kind: 'lost-device', whatHappened: 'A work phone was left in a taxi.', informationReached: false });
+      assert.equal(response.status, 200, await response.clone().text());
+      return (await response.json() as { incidentId: string }).incidentId;
+    };
+    const carers = await open('carer');
+    const payers = await open('payer');
+    const untouched = await open('carer');
+    const refusedBefore = (store.database.prepare('SELECT * FROM protected_access_log').all() as unknown[]).filter(row => JSON.stringify(row).includes('incident.contain.refused')).length;
+
+    const stranger = await as('payer', '/incidents/contain', { incidentId: carers, containment: 'Marked as wiped remotely.' });
+    assert.equal(stranger.status, 403);
+    assert.equal((await stranger.json() as { message: string }).message, INCIDENT_REFUSALS.notYours);
+    const otherReporter = await as('carer', '/incidents/contain', { incidentId: payers, containment: 'Marked as recovered.' });
+    assert.equal(otherReporter.status, 403);
+    assert.equal((await otherReporter.json() as { message: string }).message, INCIDENT_REFUSALS.notYours);
+
+    assert.equal((await as('carer', '/incidents/contain', { incidentId: carers, containment: 'The phone was recovered and its sessions revoked.' })).status, 200);
+    assert.equal((await as('officer', '/incidents/contain', { incidentId: payers, containment: 'An operator revoked the sessions the lost phone held.' })).status, 200);
+
+    const refusals = (store.database.prepare('SELECT * FROM protected_access_log').all() as unknown[]).filter(row => JSON.stringify(row).includes('incident.contain.refused'));
+    assert.equal(refusals.length - refusedBefore, 2);
+    const listed = await (await as('officer', '/incidents')).json() as { incidents: { id: string; containment: string | null }[] };
+    const byId = new Map(listed.incidents.map(incident => [incident.id, incident] as const));
+    assert.equal(byId.get(carers)!.containment, 'The phone was recovered and its sessions revoked.');
+    assert.equal(byId.get(payers)!.containment, 'An operator revoked the sessions the lost phone held.');
+    assert.equal(byId.get(untouched)!.containment, null);
   });
 });
 

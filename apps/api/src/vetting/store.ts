@@ -39,7 +39,7 @@ import catalogue from '../../../../packages/catalog/vetting.json' with { type: '
 import type { ActorVetting, CheckRecord, SealedColumn } from '../protection/index.ts';
 import type { AuthorityOutcome } from './authority.ts';
 import type { Evidence, EvidenceVersion, Party, Risk, StoredState } from './contract.ts';
-import type { IdentitySession, IdentitySessionStore } from './identityProvider.ts';
+import { isIdentityMode, type IdentitySession, type IdentitySessionStore } from './identityProvider.ts';
 
 /* Structural, exactly as the audit store is: this file imports no database driver, and a test can
    hand it anything answering the same two calls. node:sqlite's DatabaseSync fits as it stands. */
@@ -266,7 +266,9 @@ function toSession(raw: unknown): IdentitySession {
  const row = raw as Record<string, unknown>;
  return {
   reference: String(row.reference), evidenceId: String(row.evidence_id), partyId: String(row.party_id),
-  mode: String(row.mode) === 'live' ? 'live' : 'sandbox',
+  /* Read as itself or as unknown, never defaulted. Anything not exactly a mode used to become
+     'sandbox', which is the mode that skipped the signature. */
+  mode: isIdentityMode(row.mode) ? row.mode : null,
   outcome: row.outcome === null || row.outcome === undefined ? null : String(row.outcome) as AuthorityOutcome,
   detail: asText(row.detail), openedAt: Number(row.opened_at), answeredAt: asNumber(row.answered_at)
  };
@@ -431,6 +433,7 @@ export function openVettingStore(db: Database): VettingStore {
     ORDER BY a.checked_at DESC`).all().map(toAnswer);
   },
   openIdentitySession(session) {
+   if (!isIdentityMode(session.mode)) throw new Error(`An identity session cannot be recorded in mode ${JSON.stringify(session.mode)}. The modes are sandbox and live, and a session in neither is one no callback could safely be accepted against.`);
    db.prepare(`INSERT INTO vetting_identity_sessions (reference, evidence_id, party_id, mode, outcome, detail, opened_at, answered_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(session.reference, session.evidenceId, session.partyId, session.mode, session.outcome,

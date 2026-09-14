@@ -25,7 +25,7 @@ type IdentityOptions = {
  * The module wired the way server.ts wires it, plus the verification layer: a real key, a real
  * gate, a real database, and whichever adapters the test wants over the honest defaults.
  */
-function harness(options: { identity?: IdentityOptions; verifiers?: Record<string, AuthorityVerifier> } = {}) {
+function harness(options: { identity?: IdentityOptions; verifiers?: Record<string, AuthorityVerifier>; explicitDevelopment?: boolean } = {}) {
  let clock = START;
  const now = () => clock;
  const db = new DatabaseSync(':memory:');
@@ -38,7 +38,10 @@ function harness(options: { identity?: IdentityOptions; verifiers?: Record<strin
   identityPartnerId: options.identity?.partnerId ?? '',
   identityApiKey: options.identity?.apiKey ?? '',
   identitySandbox: options.identity?.sandbox ?? false,
-  identityCallbackUrl: 'https://api.mythuso.invalid/vetting/identity/callback'
+  identityCallbackUrl: 'https://api.mythuso.invalid/vetting/identity/callback',
+  /* MYTHUSO_ENV=development, said in so many words — the only arrangement in which an unsigned sandbox
+     callback is accepted. A test of the refusals turns it off. */
+  explicitDevelopment: options.explicitDevelopment ?? true
  };
  const protection = createProtectionModule(config, db, { vetting: vettingSource(store), releases: { find: () => null }, now })!;
  const identity = createIdentityProvider({
@@ -539,5 +542,94 @@ describe('re-verification on a schedule', () => {
   assert.equal(report.asked, 0);
   assert.equal(report.refused.length, report.due.length);
   assert.match(report.refused[0]!.reason, /Under investigation/);
+ });
+});
+
+describe('B: the identity callback fails closed', () => {
+ /* A cleared nurse with an identity session opened under whatever the harness configures. */
+ async function opened(h: ReturnType<typeof harness>) {
+  reviewers(h);
+  clearedNurse(h);
+  const evidence = h.store.findEvidenceFor('nurse-1', 'identity')!;
+  const session = await h.vault.openIdentitySession(reviewer('admin-1'), evidence.id);
+  if (!session.ok) throw new Error(session.reason);
+  return { evidence, reference: session.reference, mode: session.mode };
+ }
+ const auditHolds = (h: ReturnType<typeof harness>, event: string) =>
+  (h.db.prepare('SELECT * FROM protected_access_log').all() as unknown[]).some(row => JSON.stringify(row).includes(event));
+
+ test('an unsigned sandbox callback is accepted only where MYTHUSO_ENV says development in so many words', async () => {
+  const explicit = harness({ identity: { provider: 'accredited-provider' } });
+  const yes = await opened(explicit);
+  assert.equal(yes.mode, 'sandbox');
+  const accepted = explicit.vault.acceptIdentityCallback({ reference: yes.reference, ResultCode: 0 });
+  assert.ok(accepted.ok, accepted.ok ? '' : accepted.reason);
+
+  const implicit = harness({ identity: { provider: 'accredited-provider' }, explicitDevelopment: false });
+  const no = await opened(implicit);
+  const refused = implicit.vault.acceptIdentityCallback({ reference: no.reference, ResultCode: 0 });
+  assert.equal(refused.ok, false);
+  assert.match(refused.ok ? '' : refused.reason, /not running in explicit development/);
+  assert.equal(implicit.vault.authorityHistory(no.evidence.id).length, 0);
+ });
+
+ test('a sandbox session found in a database served outside explicit development is refused and flagged in the chain', async () => {
+  const h = harness({ identity: { provider: 'accredited-provider' }, explicitDevelopment: false });
+  const session = await opened(h);
+  assert.equal(auditHolds(h, 'vetting.identity.sandbox.flagged'), false);
+  const refused = h.vault.acceptIdentityCallback({ reference: session.reference, ResultCode: 0, signature: 'anything', timestamp: new Date(h.at()).toISOString() });
+  assert.equal(refused.ok, false);
+  assert.equal(auditHolds(h, 'vetting.identity.sandbox.flagged'), true);
+ });
+
+ test('a stored mode that is not a mode refuses the callback, and cannot be written in the first place', async () => {
+  const h = harness({ identity: { provider: 'accredited-provider' } });
+  const session = await opened(h);
+  for (const mode of ['Live', 'staging', '']) {
+   h.db.prepare('UPDATE vetting_identity_sessions SET mode = ? WHERE reference = ?').run(mode, session.reference);
+   assert.equal(h.store.findIdentitySession(session.reference)!.mode, null, mode);
+   const refused = h.vault.acceptIdentityCallback({ reference: session.reference, ResultCode: 0 });
+   assert.equal(refused.ok, false, mode);
+   assert.match(refused.ok ? '' : refused.reason, /neither sandbox nor live/);
+  }
+  assert.throws(() => h.store.openIdentitySession({
+   reference: 'dha:synthetic', evidenceId: session.evidence.id, partyId: 'nurse-1', mode: 'staging' as never,
+   outcome: null, detail: null, openedAt: h.at(), answeredAt: null
+  }), /cannot be recorded in mode/);
+ });
+
+ test('a sandbox session with provider credentials configured still needs a signature', async () => {
+  const h = harness({ identity: { provider: 'accredited-provider', partnerId: 'partner-1', apiKey: 'secret-key', sandbox: true } });
+  const session = await opened(h);
+  assert.equal(session.mode, 'sandbox');
+  const unsigned = h.vault.acceptIdentityCallback({ reference: session.reference, ResultCode: 0 });
+  assert.equal(unsigned.ok, false);
+  assert.match(unsigned.ok ? '' : unsigned.reason, /carries no signature/);
+  const timestamp = new Date(h.at()).toISOString();
+  const signed = h.vault.acceptIdentityCallback({ reference: session.reference, ResultCode: 0, timestamp, signature: signIdentityRequest('secret-key', timestamp, 'partner-1') });
+  assert.ok(signed.ok, signed.ok ? '' : signed.reason);
+ });
+
+ test('a provider named with no environment named refuses to start, and any spelling of production is production', () => {
+  assert.throws(() => loadConfig({ MYTHUSO_IDENTITY_PROVIDER: 'accredited-provider' } as NodeJS.ProcessEnv), /MYTHUSO_ENV is not set/);
+  assert.equal(loadConfig({ MYTHUSO_ENV: ' Development ', MYTHUSO_IDENTITY_PROVIDER: 'accredited-provider' } as NodeJS.ProcessEnv).explicitDevelopment, true);
+  assert.equal(loadConfig({} as NodeJS.ProcessEnv).explicitDevelopment, false);
+  const production = { MYTHUSO_AUTH_PEPPER: 'x'.repeat(40), MYTHUSO_SMS_PROVIDER: 'test', MYTHUSO_ALLOWED_ORIGINS: 'https://mythuso.co.za', MYTHUSO_IDENTITY_SANDBOX: 'true' };
+  for (const spelling of ['Production', ' PRODUCTION ', 'prod']) {
+   assert.throws(() => loadConfig({ ...production, MYTHUSO_ENV: spelling } as NodeJS.ProcessEnv), /cannot be enabled in production/, spelling);
+  }
+ });
+
+ test('a sandbox answer never reads as a confirmation against Home Affairs', async () => {
+  const h = harness({ identity: { provider: 'accredited-provider' } });
+  const session = await opened(h);
+  const accepted = h.vault.acceptIdentityCallback({ reference: session.reference, ResultCode: 0 });
+  assert.ok(accepted.ok, accepted.ok ? '' : accepted.reason);
+  const standing = h.vault.standing('nurse-1')!;
+  const identity = standing.checks.find(check => check.checkId === 'identity')!;
+  assert.equal(identity.assurance.confirmed, false);
+  assert.doesNotMatch(identity.assurance.sentence, /confirmed against/);
+  assert.match(identity.assurance.sentence, /sandbox identity session/);
+  assert.equal(standing.assurance.confirmed, 0);
  });
 });

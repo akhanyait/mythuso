@@ -4,7 +4,7 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, request, type Server } from 'node:http';
-import { mintOperatorCredential } from '../src/operator.ts';
+import { mintDeveloperCredential, mintOperatorCredential } from '../src/operator.ts';
 import { createPassport } from '../src/server.ts';
 import { developmentEnv, sentence } from './harness.ts';
 
@@ -36,8 +36,9 @@ const call = async (path: string, init: { method?: string; body?: unknown; auth?
  return { status: response.status, body: await response.json() as Record<string, unknown> };
 };
 /* fetch will not send a Host header of the caller's choosing, which is exactly what a rebound page does. */
+const developer = () => `Developer ${mintDeveloperCredential(passport.config)}`;
 const withHost = (host: string, path: string, method = 'POST') => new Promise<{ status: number; body: Record<string, unknown> }>((resolve, reject) => {
- const req = request({ host: '127.0.0.1', port, path, method, headers: { host, 'content-type': 'application/json' } }, res => {
+ const req = request({ host: '127.0.0.1', port, path, method, headers: { host, 'content-type': 'application/json', authorization: developer() } }, res => {
   let text = '';
   res.on('data', chunk => { text += String(chunk); });
   res.on('end', () => resolve({ status: res.statusCode ?? 0, body: JSON.parse(text) as Record<string, unknown> }));
@@ -48,6 +49,19 @@ const withHost = (host: string, path: string, method = 'POST') => new Promise<{ 
 const auditRows = () => passport.store.database.prepare('SELECT * FROM audit_events ORDER BY seq').all() as Record<string, unknown>[];
 
 describe('the Passport over HTTP', () => {
+ test('C: no developer credential, no synthetic subject — refused on the loopback, and audited', async () => {
+  const before = auditRows().length;
+  for (const auth of [undefined, 'Developer forged.credential', `Operator ${mintOperatorCredential(passport.config, 'dispatch-desk')}`]) {
+   const refused = await call('/dev/subjects', { body: {}, ...(auth ? { auth } : {}) });
+   assert.equal(refused.status, 401, String(auth));
+   assert.equal(refused.body.message, sentence('developer-credential-required'));
+  }
+  const rows = auditRows().slice(before);
+  assert.equal(rows.length, 3);
+  assert.ok(rows.every(row => row.action === 'dev.subjects' && row.outcome === 'refused' && row.requester_role === 'unauthenticated'));
+  assert.equal((await call('/dev/subjects', { body: {}, auth: developer() })).status, 201);
+ });
+
  test('finding 4: a request whose Host is not a loopback name is refused, and the refusal is audited', async () => {
   const before = auditRows().length;
   for (const host of ['evil.example', `evil.example:${port}`, '127.0.0.1.evil.example']) {
@@ -62,8 +76,10 @@ describe('the Passport over HTTP', () => {
  });
 
  test('finding 6: no grant, an unreadable body and no such route are all refused into the chain', async () => {
+  /* Counted after the subject exists: creating it is itself audited under its token, and what this
+     test asserts is that a query string naming it never is. */
+  const { subject } = (await call('/dev/subjects', { body: {}, auth: developer() })).body as { subject: string };
   const before = auditRows().length;
-  const { subject } = (await call('/dev/subjects', { body: {} })).body as { subject: string };
   const noGrant = await call(`/fhir/AllergyIntolerance?subject=${subject}`);
   assert.equal(noGrant.status, 401);
   assert.equal(noGrant.body.message, sentence('no-grant'));
@@ -77,7 +93,7 @@ describe('the Passport over HTTP', () => {
  });
 
  test('subject, write, grant, read, consent check, emergency summary, break-glass, the patient\'s audit and the end of a session', async () => {
-  const created = await call('/dev/subjects', { body: {} });
+  const created = await call('/dev/subjects', { body: {}, auth: developer() });
   assert.equal(created.status, 201);
   const { subject, patientSession } = created.body as { subject: string; patientSession: string };
   const patient = `Patient ${patientSession}`;

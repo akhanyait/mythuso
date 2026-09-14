@@ -56,7 +56,12 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { answer, enquiryReference, type AuthorityAnswer, type AuthorityOutcome, type AuthorityVerifier, type Credential, type IntegrationStanding } from './authority.ts';
 
 /** Sandbox is a mode a session is opened in and carries for ever, not a flag read later. */
-export type IdentityMode = 'sandbox' | 'live';
+export const IDENTITY_MODES = ['sandbox', 'live'] as const;
+export type IdentityMode = typeof IDENTITY_MODES[number];
+/* A closed set, validated when a session is written and again when one is read. A stored value that
+   is neither — `Live`, `staging`, an empty string from a hand-edited row — is not quietly read as a
+   sandbox: it is read as unknown, and a callback against it is refused. */
+export const isIdentityMode = (value: unknown): value is IdentityMode => (IDENTITY_MODES as readonly unknown[]).includes(value);
 
 /** One verification session, from the moment it is opened to the moment it is answered. */
 export type IdentitySession = {
@@ -64,7 +69,8 @@ export type IdentitySession = {
  reference: string;
  evidenceId: string;
  partyId: string;
- mode: IdentityMode;
+ /** Null where the stored value is not a mode at all. Nothing is accepted against such a session. */
+ mode: IdentityMode | null;
  /** Null while the person has not finished. Terminal once set, which is what makes retries safe. */
  outcome: AuthorityOutcome | null;
  detail: string | null;
@@ -92,6 +98,9 @@ export type IdentityConfig = {
  identityApiKey: string;
  identitySandbox: boolean;
  identityCallbackUrl: string;
+ /* MYTHUSO_ENV said development in so many words. Optional so an older caller that does not know
+    about it gets the fail-closed answer — absent is not explicit. */
+ explicitDevelopment?: boolean;
 };
 
 /** What the provider POSTs back. Everything is optional because nothing arriving is trusted. */
@@ -107,7 +116,7 @@ export type IdentityCallback = {
 
 export type CallbackVerdict =
  | { ok: true; session: IdentitySession; outcome: AuthorityOutcome; detail: string; repeated: boolean }
- | { ok: false; reason: string; reference: string | null };
+ | { ok: false; reason: string; reference: string | null; flagged?: true };
 
 export interface IdentityProvider extends AuthorityVerifier {
  readonly mode: IdentityMode;
@@ -189,6 +198,7 @@ export function createIdentityProvider(deps: {
  if (!config.identityProvider.trim()) return null;
 
  const production = config.environment === 'production';
+ const explicitDevelopment = config.environment === 'development' && config.explicitDevelopment === true;
  const credentialled = Boolean(config.identityPartnerId.trim() && config.identityApiKey.trim());
  if (production && !credentialled) {
   throw new IdentityProviderRefused(`MYTHUSO_IDENTITY_PROVIDER names "${config.identityProvider}" and there is no partner id or API key behind it. In production this refuses to start rather than falling back to a sandbox: a sandboxed identity check reports a person as verified against Home Affairs when Home Affairs has never been asked.`);
@@ -250,10 +260,27 @@ export function createIdentityProvider(deps: {
   const session = store.findIdentitySession(reference);
   if (!session) return { ok: false, reason: 'No identity verification session was opened under that reference by this service.', reference };
 
-  /* The mode is the session's, read from the row it was opened into. Not the adapter's, and not the
-     environment's — see the header. A live session always needs a signature, whatever this process
-     happens to be configured as by the time the callback arrives. */
-  if (session.mode === 'live') {
+  /* Fail closed, in three steps.
+     A session whose stored mode is not a mode is refused outright: it is not a sandbox by default.
+     A sandbox session on a service not running in explicit development is refused and flagged — a
+     database that was opened in development and is now being served somewhere else is exactly the
+     arrangement in which a rehearsal answer could become somebody's identity confirmation.
+     And a signature is required unless all three hold at once: the session was opened as a sandbox,
+     MYTHUSO_ENV says development in so many words, and no provider credentials are configured. The
+     mode alone never decides it — the first version checked the signature only for sessions whose
+     stored mode was exactly live, so any other stored value took the unsigned path, and
+     scripts/check-boundaries.mjs now fails the build if the branch is conditioned on the mode alone. */
+  if (session.mode === null) {
+   return { ok: false, reason: 'The session this callback names was recorded with a mode that is neither sandbox nor live. A mode nobody can read is not a sandbox, so nothing is accepted against it.', reference };
+  }
+  if (session.mode === 'sandbox' && !explicitDevelopment) {
+   return { ok: false, flagged: true, reason: 'A sandbox identity session was found on a service that is not running in explicit development. A rehearsal session in this database is refused and flagged: its answer would read afterwards as a Home Affairs confirmation that never happened.', reference };
+  }
+  const unsignedAllowed = session.mode === 'sandbox' && explicitDevelopment && !credentialled;
+  if (!unsignedAllowed) {
+   if (!credentialled) {
+    return { ok: false, reason: 'This callback must be signed, and no partner key is configured to verify a signature. Nothing has been recorded.', reference };
+   }
    const { signature, timestamp } = payload;
    if (typeof signature !== 'string' || typeof timestamp !== 'string') {
     return { ok: false, reason: 'The callback carries no signature. An unsigned callback is an open endpoint for marking people identity-confirmed.', reference };
