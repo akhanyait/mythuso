@@ -8,17 +8,19 @@
  *
  *   master key (MYTHUSO_PASSPORT_MASTER_KEY)
  *     ├─ HKDF → wrapping key ─┬─ wraps each subject's general data key          (AES-256-GCM)
- *     │                       └─ wraps each subject's key per sealed category    (AES-256-GCM)
- *     ├─ HKDF → grant-signing key     signs consent artefacts                     (HMAC-SHA-256)
- *     ├─ HKDF → session-signing key   signs the development patient session       (HMAC-SHA-256)
- *     ├─ HKDF → audit key             chains the audit log                        (HMAC-SHA-256)
- *     └─ HKDF → index key             blinds which category a row is filed under  (HMAC-SHA-256)
+ *     │                       ├─ wraps each subject's key per sealed category    (AES-256-GCM)
+ *     │                       └─ wraps each subject's key per private category   (AES-256-GCM)
+ *     ├─ HKDF → grant-signing key      signs consent artefacts                    (HMAC-SHA-256)
+ *     ├─ HKDF → session-signing key    signs the development patient session      (HMAC-SHA-256)
+ *     ├─ HKDF → operator-signing key   signs the development operator credential  (HMAC-SHA-256)
+ *     ├─ HKDF → audit key              chains the audit log                       (HMAC-SHA-256)
+ *     └─ HKDF → index key              blinds which category a row is filed under (HMAC-SHA-256)
  *
  * A data key is random, 32 bytes, generated per subject per scope, and stored only wrapped: the
  * wrapped bytes are bound to the subject and scope as associated data, so a wrapped key copied onto
  * another subject's row does not unwrap. A sealed category's key is a different key from the
  * subject's general one, so a reader holding the general key — a bug, a grant path, a future cache —
- * holds nothing that opens sealed content.
+ * holds nothing that opens sealed content. Provenance for an entry is sealed under that entry's key.
  *
  * ── What it is not ───────────────────────────────────────────────────────────────────────────
  *
@@ -34,6 +36,8 @@ import { createCipheriv, createDecipheriv, createHmac, hkdfSync, randomBytes, ti
 const IV_BYTES = 12;
 const TAG_BYTES = 16;
 const KEY_BYTES = 32;
+
+export type SigningKind = 'grant' | 'session' | 'operator';
 
 const derive = (master: Buffer, label: string): Buffer => Buffer.from(hkdfSync('sha256', master, Buffer.alloc(0), `mythuso/passport/${label}/v1`, KEY_BYTES));
 
@@ -57,16 +61,14 @@ export function openBytes(key: Buffer, sealed: Uint8Array, binding: string): Buf
 
 export class PassportKeys {
  #wrap: Buffer;
- #grant: Buffer;
- #session: Buffer;
+ #signing: Record<SigningKind, Buffer>;
  #audit: Buffer;
  #index: Buffer;
 
  constructor(master: Buffer) {
   if (master.length !== KEY_BYTES) throw new Error('The Passport master key must be 32 bytes.');
   this.#wrap = derive(master, 'wrap');
-  this.#grant = derive(master, 'grant');
-  this.#session = derive(master, 'session');
+  this.#signing = { grant: derive(master, 'grant'), session: derive(master, 'session'), operator: derive(master, 'operator') };
   this.#audit = derive(master, 'audit');
   this.#index = derive(master, 'index');
  }
@@ -81,11 +83,11 @@ export class PassportKeys {
   return openBytes(this.#wrap, wrapped, `data-key|${subject}|${scope}`);
  }
 
- sign(kind: 'grant' | 'session', payload: string): string {
-  return createHmac('sha256', kind === 'grant' ? this.#grant : this.#session).update(payload).digest('base64url');
+ sign(kind: SigningKind, payload: string): string {
+  return createHmac('sha256', this.#signing[kind]).update(payload).digest('base64url');
  }
 
- verify(kind: 'grant' | 'session', payload: string, signature: string): boolean {
+ verify(kind: SigningKind, payload: string, signature: string): boolean {
   const expected = Buffer.from(this.sign(kind, payload), 'utf8');
   const given = Buffer.from(signature, 'utf8');
   return expected.length === given.length && timingSafeEqual(expected, given);
@@ -99,4 +101,23 @@ export class PassportKeys {
  categoryTag(subject: string, category: string): string {
   return createHmac('sha256', this.#index).update(`${subject}|${category}`).digest('hex');
  }
+}
+
+/* A signed token is exactly a payload and a signature, both base64url. Anything else — a third
+   segment, padding, a space — is refused before a signature is looked at. */
+export const SIGNED_TOKEN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+
+export function signToken(keys: PassportKeys, kind: SigningKind, body: Record<string, unknown>): string {
+ const payload = Buffer.from(JSON.stringify(body), 'utf8').toString('base64url');
+ return `${payload}.${keys.sign(kind, payload)}`;
+}
+
+export function readToken(keys: PassportKeys, kind: SigningKind, token: string): { payload: string; body: Record<string, unknown> } | null {
+ if (typeof token !== 'string' || !SIGNED_TOKEN.test(token)) return null;
+ const [payload, signature] = token.split('.') as [string, string];
+ if (!keys.verify(kind, payload, signature)) return null;
+ try {
+  const body = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as unknown;
+  return body && typeof body === 'object' && !Array.isArray(body) ? { payload, body: body as Record<string, unknown> } : null;
+ } catch { return null; }
 }

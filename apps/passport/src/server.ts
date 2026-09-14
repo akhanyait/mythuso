@@ -13,12 +13,18 @@
  *
  * So, until those exist:
  *   · the service refuses to start unless MYTHUSO_PASSPORT_DEVELOPMENT is set to synthetic-data-only,
- *     and refuses where the environment says production (src/config.ts);
- *   · it binds to the loopback and refuses any request that did not arrive on it;
+ *     and refuses where the environment names anything but development (src/config.ts) — and
+ *     createPassport() asks the same questions, so importing this file does not skip them;
+ *   · it binds to the loopback, refuses a request that did not arrive on it, and refuses a request
+ *     whose Host is not a loopback name, because a browser tricked by DNS rebinding connects from the
+ *     loopback address carrying somebody else's hostname;
  *   · it accepts no name, identity number, phone number or address, and mints its own subject tokens;
  *   · scripts/check-boundaries.mjs fails the build if deploy/ — nginx, systemd, deploy.sh — names this
  *     service or its port, so there is no deployment path to take by accident.
  * When the DPIA is signed, that last check is the one to change, deliberately, with the reason.
+ *
+ * Every refusal this file decides — not on the loopback, a body it cannot read, no requester, no such
+ * route — is written into the audit chain through the gateway, like every refusal the gateway decides.
  *
  * ── What it is ───────────────────────────────────────────────────────────────────────────────
  *
@@ -34,13 +40,13 @@
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { pathToFileURL } from 'node:url';
-import { PassportRefusedToStart, loadPassportConfig, refusalOf, type PassportConfig } from './config.ts';
+import { PassportRefusedToStart, loadPassportConfig } from './config.ts';
 import { GATEWAY } from './contract.ts';
 import { PassportGateway, type Answer, type Requester } from './gateway.ts';
-import { PassportKeys } from './keys.ts';
 import { PassportStore } from './store.ts';
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+const LOOPBACK_HOSTS = new Set(GATEWAY.service.loopbackHosts);
 const HEADERS = {
  'content-type': 'application/json; charset=utf-8',
  'cache-control': 'no-store',
@@ -59,6 +65,13 @@ const answer = <T>(res: ServerResponse, result: Answer<T>, okStatus = 200) => {
  return send(res, okStatus, rest);
 };
 
+/* The name in a Host header without its port: "[::1]:8797" is ::1, "localhost:8797" is localhost. */
+export function hostName(header: string | undefined): string {
+ const value = (header ?? '').trim().toLowerCase();
+ if (value.startsWith('[')) return value.slice(1, value.indexOf(']') > 0 ? value.indexOf(']') : undefined);
+ return value.split(':')[0] ?? '';
+}
+
 async function bodyOf(req: IncomingMessage): Promise<Record<string, unknown> | null> {
  const chunks: Buffer[] = [];
  let size = 0;
@@ -74,55 +87,67 @@ async function bodyOf(req: IncomingMessage): Promise<Record<string, unknown> | n
  } catch { return null; }
 }
 
-/* Who is asking comes off the Authorization header and nowhere else: "Patient <session>" or
-   "Grant <artefact>", with the purpose of use in its own header. A body can name a subject; it can
-   never name a requester. */
+/* Who is asking comes off the Authorization header and nowhere else: "Patient <session>",
+   "Grant <artefact>" or, for break-glass, "Operator <credential>", with the purpose of use in its own
+   header. A body can name a subject; it can never name a requester. */
+function authorisation(req: IncomingMessage): { scheme: string; token: string } {
+ const [scheme = '', token = '', extra] = (req.headers.authorization ?? '').split(' ');
+ return extra === undefined ? { scheme, token } : { scheme: '', token: '' };
+}
 function requesterOf(req: IncomingMessage): Requester | null {
- const header = req.headers.authorization ?? '';
- const [scheme, token] = header.split(' ');
+ const { scheme, token } = authorisation(req);
  if (scheme === 'Patient' && token) return { kind: 'patient', session: token };
  if (scheme === 'Grant' && token) return { kind: 'grant', artefact: token, purpose: String(req.headers['x-purpose-of-use'] ?? '') };
  return null;
 }
-const sessionOf = (req: IncomingMessage): string => {
- const requester = requesterOf(req);
- return requester?.kind === 'patient' ? requester.session : '';
+const tokenFor = (req: IncomingMessage, scheme: string): string => {
+ const held = authorisation(req);
+ return held.scheme === scheme ? held.token : '';
 };
 
-export function createPassport(config: Pick<PassportConfig, 'databasePath' | 'masterKey'>, now?: () => number) {
+/* The route as written in the audit chain: the path's shape, never an id or a query string. */
+const routeOf = (method: string, pathname: string): string =>
+ `${method} ${pathname.replace(/^\/fhir\/([A-Za-z]+)\/[^/]+$/, '/fhir/$1/:id').slice(0, 64)}`;
+
+/**
+ * The service, built only from an environment that passes every start-up refusal. There is no
+ * overload that takes a configuration or a key directly: a test that wants a Passport sets the
+ * development flag and a key of its own, exactly as a person running it would.
+ */
+export function createPassport(env: NodeJS.ProcessEnv, now?: () => number) {
+ const config = loadPassportConfig(env);
  const store = new PassportStore(config.databasePath);
- const keys = new PassportKeys(config.masterKey);
- const gateway = new PassportGateway({ store, keys, ...(now ? { now } : {}) });
- const noGrant = (res: ServerResponse) => send(res, 401, { error: 'refused', message: refusalOf('no-grant') });
+ const gateway = new PassportGateway({ config, store, ...(now ? { now } : {}) });
+ const refuse = (res: ServerResponse, status: number, id: string, route: string) => answer(res, gateway.refuseRequest(status, id, route));
 
  async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (!LOOPBACK.has(req.socket.remoteAddress ?? '')) return send(res, 403, { error: 'refused', message: refusalOf('not-loopback') });
-  const url = new URL(req.url ?? '/', 'http://127.0.0.1');
-  const parts = url.pathname.split('/').filter(Boolean);
   const method = req.method ?? 'GET';
+  const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+  const route = routeOf(method, url.pathname);
+  if (!LOOPBACK.has(req.socket.remoteAddress ?? '') || !LOOPBACK_HOSTS.has(hostName(req.headers.host))) return refuse(res, 403, 'not-loopback', route);
+  const parts = url.pathname.split('/').filter(Boolean);
   const body = method === 'POST' ? await bodyOf(req) : {};
-  if (body === null) return send(res, 400, { error: 'unreadable', message: 'The body is not a JSON object this service will read.' });
+  if (body === null) return refuse(res, 400, 'unreadable-body', route);
 
   if (method === 'POST' && url.pathname === '/dev/subjects') return send(res, 201, gateway.createSubject());
-  if (method === 'POST' && url.pathname === '/consent/grant') {
-   return answer(res, gateway.grant(sessionOf(req), body as never), 201);
-  }
-  if (method === 'POST' && url.pathname === '/consent/revoke') return answer(res, gateway.revoke(sessionOf(req), String(body.grantId ?? '')));
+  if (method === 'POST' && url.pathname === '/session/end') return answer(res, gateway.endSession(tokenFor(req, 'Patient')));
+  if (method === 'POST' && url.pathname === '/consent/grant') return answer(res, gateway.grant(tokenFor(req, 'Patient'), body as never), 201);
+  if (method === 'POST' && url.pathname === '/consent/revoke') return answer(res, gateway.revoke(tokenFor(req, 'Patient'), String(body.grantId ?? '')));
   if (method === 'POST' && url.pathname === '/consent/check') {
    const requester = requesterOf(req);
-   if (requester?.kind !== 'grant') return noGrant(res);
+   if (requester?.kind !== 'grant') return refuse(res, 401, 'no-grant', route);
    return answer(res, gateway.check(requester.artefact, requester.purpose, String(body.category ?? '')));
   }
-  if (method === 'GET' && url.pathname === '/audit/mine') return answer(res, gateway.auditMine(sessionOf(req)));
+  if (method === 'GET' && url.pathname === '/audit/mine') return answer(res, gateway.auditMine(tokenFor(req, 'Patient')));
   if (method === 'POST' && url.pathname === '/breakglass') {
    return answer(res, gateway.breakGlass({
-    subject: String(body.subject ?? ''), justification: String(body.justification ?? ''),
-    requesterRole: String(body.requesterRole ?? ''), requesterRef: String(body.requesterRef ?? '')
+    credential: tokenFor(req, 'Operator'), subject: String(body.subject ?? ''),
+    reasonCode: String(body.reasonCode ?? ''), note: String(body.note ?? '')
    }));
   }
   if (parts[0] === 'fhir' || url.pathname === '/summary/emergency') {
    const requester = requesterOf(req);
-   if (!requester) return noGrant(res);
+   if (!requester) return refuse(res, 401, 'no-grant', route);
    if (url.pathname === '/summary/emergency' && method === 'GET') return answer(res, gateway.emergencySummary(requester, url.searchParams.get('subject') ?? ''));
    if (method === 'POST' && parts.length === 2) {
     return answer(res, gateway.write(requester, {
@@ -135,20 +160,20 @@ export function createPassport(config: Pick<PassportConfig, 'databasePath' | 'ma
    if (method === 'GET' && parts.length === 3) return answer(res, gateway.read(requester, parts[1]!, parts[2]!));
    if (method === 'GET' && parts.length === 2) return answer(res, gateway.search(requester, parts[1]!, url.searchParams.get('subject') ?? ''));
   }
-  return send(res, 404, { error: 'no-route' });
+  return refuse(res, 404, 'no-route', route);
  }
 
  return {
-  store, gateway,
+  config, store, gateway,
   handle: (req: IncomingMessage, res: ServerResponse) => { handle(req, res).catch(() => send(res, 500, { error: 'failed' })); },
   close: () => store.close()
  };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
- let config: PassportConfig;
+ let passport: ReturnType<typeof createPassport>;
  try {
-  config = loadPassportConfig();
+  passport = createPassport(process.env);
  } catch (error) {
   if (error instanceof PassportRefusedToStart) {
    process.stderr.write(`${error.message}\n`);
@@ -156,7 +181,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   }
   throw error;
  }
- const passport = createPassport(config);
+ const config = passport.config;
  const server = createServer(passport.handle);
  server.requestTimeout = 10_000;
  server.headersTimeout = 5_000;

@@ -11,7 +11,9 @@ object ConsentGrantsData {
     data class RecipientRole(
         val id: String, val name: String, val engine: String, val defaultScope: List<String>,
         val defaultExpiryDays: Int, val sealed: Boolean, val boundTo: String?, val identifiable: Boolean,
-        val defaultPurpose: String?
+        val defaultPurpose: String?,
+        // The longest a grant to this role may run, and the purposes it may name. The gateway refuses past either.
+        val maxExpiryDays: Int, val allowedPurposes: List<String>
     )
     data class Refusal(val id: String, val statement: String)
 
@@ -21,28 +23,36 @@ object ConsentGrantsData {
     val roles = listOf(
         RecipientRole("caregiver", "Caregiver or delegate", "access",
             listOf("prescription", "appointment", "care-plan"),
-            90, false, null, true, "treatment"),
+            90, false, null, true, "treatment",
+            90, listOf("treatment", "emergency")),
         RecipientRole("next-of-kin", "Next of kin", "access",
             listOf("emergency-card"),
-            365, false, null, true, "emergency"),
+            365, false, null, true, "emergency",
+            365, listOf("emergency")),
         RecipientRole("nurse-assigned", "Assigned MyThuso nurse", "care",
             listOf("patient", "allergy", "vitals", "chronic-condition", "medical-history", "immunisation", "child-health", "care-plan", "emergency-card", "prescription", "dispense", "referral", "home-visit"),
-            14, false, "episode", true, "treatment"),
+            14, false, "episode", true, "treatment",
+            14, listOf("treatment", "emergency")),
         RecipientRole("doctor-assigned", "Assigned MyThuso doctor", "care",
             listOf("patient", "household", "allergy", "vitals", "chronic-condition", "diagnosis", "medical-history", "immunisation", "child-health", "care-plan", "emergency-card", "consultation", "procedure", "prescription", "medication-catalogue", "dispense", "laboratory", "imaging", "referral", "admission", "home-visit"),
-            14, false, "episode", true, "treatment"),
+            14, false, "episode", true, "treatment",
+            14, listOf("treatment", "diagnostics", "emergency")),
         RecipientRole("pharmacist", "Pharmacist", "medicines",
             listOf("prescription", "dispense", "allergy", "chronic-condition"),
-            7, false, "episode", true, "dispensing"),
+            7, false, "episode", true, "dispensing",
+            7, listOf("dispensing")),
         RecipientRole("care-coordinator", "Care coordinator", "core",
             listOf("task", "appointment", "transport"),
-            30, false, "episode", true, "dispatch"),
+            30, false, "episode", true, "dispatch",
+            30, listOf("dispatch")),
         RecipientRole("responder-on-trip", "Thuso Ride responder, during a trip", "movement",
             listOf("emergency-card", "transport"),
-            1, false, "trip", true, "dispatch"),
+            1, false, "trip", true, "dispatch",
+            1, listOf("dispatch", "emergency")),
         RecipientRole("scheme-aggregate", "Medical scheme, aggregate only", "money",
             listOf(),
-            365, false, null, false, null)
+            365, false, null, false, null,
+            365, listOf<String>())
     )
 
     val refusals = listOf(

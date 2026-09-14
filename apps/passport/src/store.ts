@@ -7,25 +7,42 @@
  * number, a phone number, an address or a date of birth, and scripts/check-boundaries.mjs fails the
  * build if one appears: who a person is lives in the identity service, and the Passport knows them
  * only as a token it minted itself. The category a resource is filed under is a per-subject HMAC
- * rather than the word, so the table does not say which people have a mental-health entry to anybody
+ * rather than the word, so the table does not say which people have a maternal-health entry to anybody
  * who opens the file without the index key.
  *
+ * Provenance is ciphertext too. It used to be four columns in the clear, which meant an activity like
+ * "HIV viral load at an antenatal visit" was readable with the sqlite shell for an entry whose content
+ * was sealed under its own key. It is now sealed under the same data key as the entry it describes,
+ * so a sealed entry's provenance is exactly as sealed as the entry. The same is true of a break-glass
+ * note, which is sealed under the patient's own key and never written into the audit chain.
+ *
  * What is in the clear, and why: the resource type (a reader asks for Observations, not for
- * ciphertext), whether a row is sealed (so that "sealed content exists" can be answered without
- * opening anything), and times. That is metadata about a record, and it is the least a store can hold
- * and still answer a request without decrypting everything it has.
+ * ciphertext), whether a row is open, sealed or private (so that "sealed content exists" can be
+ * answered without opening anything), which data-key scope a row is under, which resource a provenance
+ * row belongs to, and times. That is metadata about a record, and it is the least a store can hold and
+ * still answer a request without decrypting everything it has. The audit chain is also in the clear by
+ * design — the patient reads it — and so it holds sentences from the contract and tokens, never a
+ * free-text note and never what was read.
  *
  * ── Append-only where it matters ─────────────────────────────────────────────────────────────
  *
  * The audit table has no UPDATE and no DELETE anywhere in this service, and the boundary check reads
  * for both. Resources are written once per version; P0 has no supersede, so it has no update either.
- * The one UPDATE is a grant's revoked_at, which is the patient's revocation and is itself audited.
+ * The UPDATEs are a grant's revoked_at and a session's revoked_at, which are the patient ending
+ * something, and both are audited.
  */
 import { DatabaseSync } from 'node:sqlite';
 
 export const SCHEMA = `
 CREATE TABLE IF NOT EXISTS subjects (
  token TEXT PRIMARY KEY,
+ created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sessions (
+ id TEXT PRIMARY KEY,
+ subject TEXT NOT NULL,
+ expires_at INTEGER NOT NULL,
+ revoked_at INTEGER,
  created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS data_keys (
@@ -49,11 +66,10 @@ CREATE TABLE IF NOT EXISTS resources (
 CREATE INDEX IF NOT EXISTS resources_by_subject ON resources (subject, resource_type);
 CREATE TABLE IF NOT EXISTS provenance (
  id TEXT PRIMARY KEY,
+ subject TEXT NOT NULL,
  target TEXT NOT NULL,
- author_role TEXT NOT NULL,
- author_ref TEXT NOT NULL,
- source_system TEXT NOT NULL,
- activity TEXT NOT NULL,
+ key_scope TEXT NOT NULL,
+ sealed_body BLOB NOT NULL,
  recorded_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS grants (
@@ -62,6 +78,12 @@ CREATE TABLE IF NOT EXISTS grants (
  expires_at INTEGER NOT NULL,
  revoked_at INTEGER,
  artefact_hash TEXT NOT NULL,
+ created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS breakglass_notes (
+ audit_seq INTEGER PRIMARY KEY,
+ subject TEXT NOT NULL,
+ sealed_body BLOB NOT NULL,
  created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS audit_events (
@@ -82,6 +104,11 @@ CREATE TABLE IF NOT EXISTS audit_events (
 );
 `;
 
+/** Open, under a sealed category's key, or marked private by the patient under its own. */
+export const OPEN = 0;
+export const SEALED = 1;
+export const PRIVATE = 2;
+
 export type ResourceRow = {
  id: string;
  subject: string;
@@ -93,8 +120,9 @@ export type ResourceRow = {
  sealed_body: Uint8Array;
  written_at: number;
 };
-export type ProvenanceRow = { id: string; target: string; author_role: string; author_ref: string; source_system: string; activity: string; recorded_at: number };
+export type ProvenanceRow = { id: string; subject: string; target: string; key_scope: string; sealed_body: Uint8Array; recorded_at: number };
 export type GrantRow = { id: string; subject: string; expires_at: number; revoked_at: number | null; artefact_hash: string; created_at: number };
+export type SessionRow = { id: string; subject: string; expires_at: number; revoked_at: number | null; created_at: number };
 
 const rows = <T>(value: unknown): T[] => value as T[];
 const row = <T>(value: unknown): T | null => (value as T | undefined) ?? null;
@@ -115,6 +143,16 @@ export class PassportStore {
  }
  hasSubject(token: string): boolean {
   return row(this.#db.prepare('SELECT token FROM subjects WHERE token = ?').get(token)) !== null;
+ }
+
+ putSession(session: SessionRow): void {
+  this.#db.prepare('INSERT INTO sessions (id, subject, expires_at, revoked_at, created_at) VALUES (?, ?, ?, NULL, ?)').run(session.id, session.subject, session.expires_at, session.created_at);
+ }
+ session(id: string): SessionRow | null {
+  return row<SessionRow>(this.#db.prepare('SELECT * FROM sessions WHERE id = ?').get(id));
+ }
+ endSession(id: string, at: number): void {
+  this.#db.prepare('UPDATE sessions SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL').run(at, id);
  }
 
  dataKey(subject: string, scope: string): Uint8Array | null {
@@ -139,13 +177,10 @@ export class PassportStore {
    ? rows<ResourceRow>(this.#db.prepare('SELECT * FROM resources WHERE subject = ? AND resource_type = ? ORDER BY written_at, id').all(subject, resourceType))
    : rows<ResourceRow>(this.#db.prepare('SELECT * FROM resources WHERE subject = ? ORDER BY written_at, id').all(subject));
  }
- sealedExists(subject: string): boolean {
-  return row(this.#db.prepare('SELECT id FROM resources WHERE subject = ? AND sealed = 1 LIMIT 1').get(subject)) !== null;
- }
 
  putProvenance(provenance: ProvenanceRow): void {
-  this.#db.prepare('INSERT INTO provenance (id, target, author_role, author_ref, source_system, activity, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-   .run(provenance.id, provenance.target, provenance.author_role, provenance.author_ref, provenance.source_system, provenance.activity, provenance.recorded_at);
+  this.#db.prepare('INSERT INTO provenance (id, subject, target, key_scope, sealed_body, recorded_at) VALUES (?, ?, ?, ?, ?, ?)')
+   .run(provenance.id, provenance.subject, provenance.target, provenance.key_scope, provenance.sealed_body, provenance.recorded_at);
  }
  provenanceFor(target: string): ProvenanceRow[] {
   return rows<ProvenanceRow>(this.#db.prepare('SELECT * FROM provenance WHERE target = ? ORDER BY recorded_at').all(target));
@@ -160,6 +195,13 @@ export class PassportStore {
  }
  revokeGrant(id: string, at: number): void {
   this.#db.prepare('UPDATE grants SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL').run(at, id);
+ }
+
+ putBreakGlassNote(auditSeq: number, subject: string, sealed: Buffer, at: number): void {
+  this.#db.prepare('INSERT INTO breakglass_notes (audit_seq, subject, sealed_body, created_at) VALUES (?, ?, ?, ?)').run(auditSeq, subject, sealed, at);
+ }
+ breakGlassNote(auditSeq: number): { subject: string; sealed_body: Uint8Array } | null {
+  return row(this.#db.prepare('SELECT subject, sealed_body FROM breakglass_notes WHERE audit_seq = ?').get(auditSeq));
  }
 
  close(): void { this.#db.close(); }

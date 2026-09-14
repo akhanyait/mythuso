@@ -1656,8 +1656,19 @@ for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants
  const passportServer = read(`${passportDir}/src/server.ts`);
  if(!/developmentFlag/.test(passportConfig) || !/PassportRefusedToStart\(refusalOf\('not-development'\)\)/.test(passportConfig)) throw new Error('apps/passport/src/config.ts no longer refuses to start without the development flag. Until the DPIA is signed the service does not run anywhere it has not been told, in so many words, that the data is synthetic.');
  if(!/sharesIdentityKey\(/.test(passportConfig) || !/refusalOf\('shared-key'\)/.test(passportConfig)) throw new Error('apps/passport/src/config.ts no longer refuses a master key shared with, or derived from, the identity service\'s keys.');
- if(passportServer.indexOf('loadPassportConfig()') < 0 || passportServer.indexOf('loadPassportConfig()') > passportServer.indexOf('createServer(passport.handle)')) throw new Error('apps/passport/src/server.ts no longer loads, and so refuses, its configuration before it creates a server.');
+ /* createPassport() loads — and so refuses — its own configuration, the gateway refuses one nobody
+    loaded, and the process creates its server only from what createPassport() returned. Importing
+    the service is not a way round the door the process goes through. */
+ const passportGateway = read(`${passportDir}/src/gateway.ts`);
+ if(!/export function createPassport\(env: NodeJS\.ProcessEnv\b.*\)\s*\{\s*const config = loadPassportConfig\(env\);/.test(passportServer) || passportServer.indexOf('createPassport(process.env)') < 0 || passportServer.indexOf('createPassport(process.env)') > passportServer.indexOf('createServer(passport.handle)')) throw new Error('apps/passport/src/server.ts no longer loads, and so refuses, its configuration inside createPassport() before it creates a server.');
+ if(!/if \(!wasLoaded\(deps\.config\)\) throw new PassportRefusedToStart/.test(passportGateway)) throw new Error('apps/passport/src/gateway.ts no longer refuses a configuration loadPassportConfig() did not produce, so a gateway can be built that skipped the development flag, the key separation and the separate database.');
  if(!/listen\(config\.port, config\.host/.test(passportServer) || /0\.0\.0\.0/.test(passportServer) || !/LOOPBACK\.has\(req\.socket\.remoteAddress/.test(passportServer)) throw new Error('apps/passport/src/server.ts no longer binds to the configured loopback host and refuses requests that did not arrive on it.');
+ if(!/LOOPBACK_HOSTS\.has\(hostName\(req\.headers\.host\)\)/.test(passportServer)) throw new Error('apps/passport/src/server.ts no longer refuses a request whose Host is not a loopback name. A page that has rebound its own hostname to 127.0.0.1 connects from the loopback address, so the address alone lets it in.');
+ if(/requesterRole:\s*String\(body\.|requesterRef:\s*String\(body\./.test(passportServer)) throw new Error('apps/passport/src/server.ts takes who is breaking the glass from the request body. It comes from an operator credential (apps/passport/src/operator.ts) or not at all.');
+ /* A patient session here is a stand-in for the identity service's session, and it does not outlive one. */
+ const identityIdleMinutes = Number((read('apps/api/src/config.ts').match(/sessionIdleSeconds:\s*(\d+)\s*\*\s*60/) ?? [])[1]);
+ if(!(identityIdleMinutes > 0)) throw new Error('scripts/check-boundaries.mjs can no longer read sessionIdleSeconds out of apps/api/src/config.ts, so nothing holds the Passport\'s development session to it.');
+ if(gatewayContract.patientSession?.lifetimeMinutes !== identityIdleMinutes) throw new Error(`The Passport's development patient session lives ${gatewayContract.patientSession?.lifetimeMinutes} minutes and the identity service's idle limit is ${identityIdleMinutes}. A stand-in for a login does not last longer than the login it stands in for.`);
  if(!/DPIA/.test(passportServer.slice(0, 2500))) throw new Error('apps/passport/src/server.ts no longer says at the top why it runs in development only. The reason is the DPIA, and it belongs where the next person to open the file reads first.');
  for(const file of passportSources) if(/UPDATE\s+audit_events|DELETE\s+FROM\s+audit_events/i.test(read(file)) && !file.includes('/test/')) throw new Error(`${file} rewrites the Passport's audit log. It is append-only; the chain shows tampering, and the service itself must never be the thing it shows.`);
  const consentContract = JSON.parse(read('packages/catalog/consent.json'));
@@ -1679,6 +1690,30 @@ for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants
    if ((g.reads === 'aggregate') !== (role.identifiable === false)) throw new Error(`${where} reads "${g.reads}" while identifiable is ${role.identifiable}. Reading aggregates and being a non-identifiable role are the same fact, and they must agree.`);
    if (role.boundTo === 'trip' && g.reads !== 'emergency-summary') throw new Error(`${where} is bound to a trip but reads more than the emergency summary.`);
    if (g.reads === 'aggregate' && g.sealedMayBeIncluded) throw new Error(`${where} could have a sealed category ticked into an aggregate.`);
+  }
+  /* ---- Added by the Trust, Record & Identity lead, on the integrator's decision: how long, and why.
+     Every role carries maxExpiryDays and allowedPurposes, and the Passport gateway enforces both when
+     a grant is made. A ceiling below the default would make the grant sheet's own default refused; a
+     ceiling past a year is the grant nobody remembers; a trip-bound grant outliving a day is the
+     responder who can look again. A purpose outside the gate's union is a reason nobody can check,
+     and a default purpose the role may not name is a grant sheet that starts refused. And a role
+     whose default scope the gateway itself would refuse is a grant sheet offering a door that does
+     not open — which is what the responder's emergency card and transport were until this landed. */
+  const grantPurposes = new Set([...((read('apps/api/src/protection/contract.ts').match(/export type Purpose =([^;]+);/) ?? [])[1] ?? '').matchAll(/'([^']+)'/g)].map(m => m[1]));
+  if (!grantPurposes.size) throw new Error('scripts/check-boundaries.mjs can no longer read the Purpose union out of apps/api/src/protection/contract.ts, so nothing checks a grant role\'s allowed purposes.');
+  const { grantRoles: passportGrantRoles, grantScopeRefusal } = await import('../apps/passport/src/contract.ts');
+  for (const role of consentContract.grants.recipientRoles) {
+   const where = `The grant role ${role.id} in packages/catalog/consent.json`;
+   if (!Number.isInteger(role.maxExpiryDays) || role.maxExpiryDays < role.defaultExpiryDays || role.maxExpiryDays > 365) throw new Error(`${where} lets a grant run ${role.maxExpiryDays} days against a default of ${role.defaultExpiryDays}. The ceiling is a whole number of days, no shorter than the default and no longer than a year.`);
+   if (role.boundTo === 'trip' && role.maxExpiryDays !== 1) throw new Error(`${where} is bound to a trip and may be granted for ${role.maxExpiryDays} days. A trip-bound grant lasts at most a day.`);
+   if (!Array.isArray(role.allowedPurposes) || role.allowedPurposes.some(p => !grantPurposes.has(p)) || new Set(role.allowedPurposes).size !== role.allowedPurposes.length) throw new Error(`${where} allows the purposes ${JSON.stringify(role.allowedPurposes)}. Each is one purpose, once, from the gate's Purpose union in apps/api/src/protection/contract.ts.`);
+   if (role.defaultPurpose === null ? role.allowedPurposes.length !== 0 : !role.allowedPurposes.includes(role.defaultPurpose)) throw new Error(`${where} defaults to the purpose ${JSON.stringify(role.defaultPurpose)} and allows ${JSON.stringify(role.allowedPurposes)}. The default purpose is one the role may name, and a role with no default purpose — the scheme — may name none.`);
+   if (role.gateway?.reads === 'aggregate' && role.allowedPurposes.length) throw new Error(`${where} reads aggregates and may still name a purpose for reading a record.`);
+   if (role.defaultScope.length) {
+    const gatewayRole = passportGrantRoles().find(r => r.id === role.id);
+    const refusal = gatewayRole ? grantScopeRefusal(gatewayRole, role.defaultScope, false) : 'unknown-role';
+    if (refusal) throw new Error(`${where} has a default scope of ${role.defaultScope.join(', ')}, and the Passport gateway refuses that scope for this role ("${refusal}"). A grant sheet must never start from a grant the gateway will not accept.`);
+   }
   }
  }
  const rootPackage = JSON.parse(read('package.json'));
