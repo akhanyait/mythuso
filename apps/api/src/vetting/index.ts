@@ -755,7 +755,9 @@ export class VettingVault {
       interesting entry: a forged signature against a real session reference is somebody trying to
       mark a person identity-confirmed, and it is discovered by nobody unless it is in the log. */
    this.#audit.append({
-    event: 'vetting.identity.callback.refused', capability: CAPABILITY, purpose: 'vetting',
+    /* A sandbox session found where there should be none is its own event, so it can be found
+       among the ordinary refusals by name rather than by reading every reason. */
+    event: verdict.flagged ? 'vetting.identity.sandbox.flagged' : 'vetting.identity.callback.refused', capability: CAPABILITY, purpose: 'vetting',
     recordType: RECORD_TYPE, recordId: verdict.reference ?? 'identity-callback', field: 'authority',
     allowed: false, reason: verdict.reason
    });
@@ -887,8 +889,18 @@ export class VettingVault {
   }
   const expired = Boolean(row.expiresOn) && (daysUntil(row.expiresOn, at) ?? -1) < 0;
   const stale = expired || at >= authorityAnswerDueAt(row.checkedAt, evidence.renewMonths);
-  const confirmed = isConfirmation(row.outcome) && !stale;
   const asked = new Date(row.checkedAt).toISOString().slice(0, 10);
+  /* An answer recorded from an identity session that was not live is a rehearsal, and it never reads
+     as a confirmation — not "confirmed against dha", not counted as confirmed. Anything the provider
+     answered under a mode other than live is treated so, including a mode nobody can read. */
+  if (row.askedBy.startsWith('provider:') && row.askedBy !== 'provider:live') {
+   return {
+    answer: { outcome: row.outcome, checkedAt: row.checkedAt, reference: row.reference, detail: row.detail, expiresOn: row.expiresOn },
+    confirmed: false, stale, contradicts: false, integrated,
+    sentence: `${name} was answered by a sandbox identity session on ${asked}, with the outcome ${row.outcome}. That was a rehearsal: Home Affairs was not asked, and nothing about this check has been confirmed.`
+   };
+  }
+  const confirmed = isConfirmation(row.outcome) && !stale;
   const sentence = row.outcome === 'not-integrated'
    ? `${name} was put to ${evidence.authority} on ${asked} and there is no integration with that authority to answer it. This check rests on a reviewer having read a document.`
    : confirmed ? `${name} was confirmed against ${evidence.authority} on ${asked}.`

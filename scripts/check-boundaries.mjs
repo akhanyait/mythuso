@@ -2064,6 +2064,36 @@ for(const capability of vetting.capabilities) if(!vetting.roles.some(r=>r.grants
  if(!/Health Passport P0/.test(read('docs/PRIVACY-AND-SECURITY.md'))) throw new Error('docs/PRIVACY-AND-SECURITY.md no longer records the Health Passport P0 service and what it is absent of in production.');
 }
 
+/* ==== HANDLERS THAT DECIDE WHO MAY ACT =============================================================
+   ADDED BY THE TRUST, RECORD & IDENTITY LEAD, after the third review.
+
+     1. The identity callback's signature branch is never conditioned on the session's mode alone.
+        The first version read `if (session.mode === 'live')`, so every stored value that was not
+        exactly `live` skipped the signature. A signature is waived only where the session is a
+        sandbox, the environment is explicitly development, and no credentials are configured —
+        all three, on one line this check can read — and a stored mode is never defaulted to sandbox.
+     2. Recording an incident's containment is held to its reporter or a review-vetting holder.
+     3. Creating a Passport subject takes a developer credential, not the loopback alone. */
+{
+ const identitySource = read('apps/api/src/vetting/identityProvider.ts');
+ const modeAlone = identitySource.match(/if\s*\(\s*session\.mode\s*(===?\s*'live'|!==?\s*'sandbox')\s*\)/);
+ if (modeAlone) throw new Error(`apps/api/src/vetting/identityProvider.ts decides whether an identity callback needs a signature on the session's mode alone ("${modeAlone[0]}"). A mode read from a row is a string anybody with the database can change; the signature is waived only where the session is a sandbox, MYTHUSO_ENV says development and no credentials are configured, all three at once.`);
+ if (!/const unsignedAllowed = session\.mode === 'sandbox' && explicitDevelopment && !credentialled;/.test(identitySource) || !/if \(!unsignedAllowed\) \{[\s\S]{0,400}signature/.test(identitySource)) throw new Error('apps/api/src/vetting/identityProvider.ts no longer waives the callback signature only for a sandbox session in explicit development with no credentials, on one line guarding the signature check.');
+ if (!/const explicitDevelopment = config\.environment === 'development' && config\.explicitDevelopment === true;/.test(identitySource)) throw new Error('apps/api/src/vetting/identityProvider.ts no longer takes explicit development from MYTHUSO_ENV said in so many words. An unset environment is not permission to accept unsigned callbacks.');
+ const vettingStoreSource = read('apps/api/src/vetting/store.ts');
+ if (/===\s*'live'\s*\?\s*'live'\s*:\s*'sandbox'/.test(vettingStoreSource) || !/isIdentityMode\(row\.mode\)\s*\?\s*row\.mode\s*:\s*null/.test(vettingStoreSource)) throw new Error('apps/api/src/vetting/store.ts reads an identity session\'s stored mode by defaulting it rather than validating it. A value that is not a mode is unknown, never sandbox.');
+ const apiServerSource = read('apps/api/src/server.ts');
+ const containRoute = (apiServerSource.match(/routes\.set\('POST \/incidents\/contain'[\s\S]*?\n  \}\);/) ?? [])[0] ?? '';
+ if (!containRoute) throw new Error('apps/api/src/server.ts no longer declares POST /incidents/contain in a form this check can read.');
+ if (!/incident\.openedBy === held\.actor\.party\.id/.test(containRoute) || !/grants\.includes\('review-vetting'\)/.test(containRoute) || !/INCIDENT_REFUSALS\.notYours/.test(containRoute)) throw new Error('POST /incidents/contain no longer holds containment to the party who reported the incident or a reviewer holding review-vetting. Any vetted party could mark anybody\'s incident contained.');
+ for (const route of ['notified', 'close']) {
+  const body = (apiServerSource.match(new RegExp(`routes\\.set\\('POST \\/incidents\\/${route}'[\\s\\S]*?\\n  \\}\\);`)) ?? [])[0] ?? '';
+  if (!/asOperator\(req, res, 'incident'\)/.test(body)) throw new Error(`POST /incidents/${route} is no longer held to a reviewer through asOperator.`);
+ }
+ const passportServerSource = read('apps/passport/src/server.ts');
+ if (!/gateway\.createSubject\(tokenFor\(req, 'Developer'\)\)/.test(passportServerSource) || !/const developer = developerOf\(/.test(read('apps/passport/src/gateway.ts'))) throw new Error('apps/passport creates a synthetic subject without a developer credential. The loopback alone mints no patient.');
+}
+
 /* What is left to check about the native vetting models is what is still written by hand. The
    tables themselves are generated above, so a refusal sentence cannot say one thing on iOS and
    another on Android — there is only one sentence and one writer of it. The lifecycle is a

@@ -37,7 +37,7 @@ const IV_BYTES = 12;
 const TAG_BYTES = 16;
 const KEY_BYTES = 32;
 
-export type SigningKind = 'grant' | 'session' | 'operator';
+export type SigningKind = 'grant' | 'session' | 'operator' | 'developer';
 
 const derive = (master: Buffer, label: string): Buffer => Buffer.from(hkdfSync('sha256', master, Buffer.alloc(0), `mythuso/passport/${label}/v1`, KEY_BYTES));
 
@@ -68,7 +68,7 @@ export class PassportKeys {
  constructor(master: Buffer) {
   if (master.length !== KEY_BYTES) throw new Error('The Passport master key must be 32 bytes.');
   this.#wrap = derive(master, 'wrap');
-  this.#signing = { grant: derive(master, 'grant'), session: derive(master, 'session'), operator: derive(master, 'operator') };
+  this.#signing = { grant: derive(master, 'grant'), session: derive(master, 'session'), operator: derive(master, 'operator'), developer: derive(master, 'developer') };
   this.#audit = derive(master, 'audit');
   this.#index = derive(master, 'index');
  }

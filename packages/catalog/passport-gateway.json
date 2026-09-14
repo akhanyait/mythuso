@@ -70,6 +70,11 @@
   "why": "When a patient cannot consent, a registered clinician or the dispatch desk may open the emergency summary only. Who they are comes from an operator credential, never from the request body; in P0 that credential is a development-only signed token minted at the console with node apps/passport/src/operator.ts, standing in for the OIDC login and mutual TLS that do not exist. They choose one of the listed reasons and write a note. The reason's sentence goes into the patient-visible audit chain. The note does not: it is screened for phone numbers, identity numbers and email addresses and refused if it carries one, and it is then stored encrypted under the patient's own key beside the audit entry, for the governance review within the window. The chain is kept for the life of the record and read by the patient, and free text a clinician wrote under pressure is exactly where a name and an address end up; keeping the note out of it means the most widely read log never holds what the screen cannot catch."
  },
 
+ "developerCredential": {
+  "hours": 8,
+  "why": "Creating a synthetic subject mints a patient session, so it is not open to whatever reaches the loopback. It needs a developer credential minted at the console with node apps/passport/src/operator.ts developer, from the same loaded configuration as the service, under a signing key of its own — a development-only stand-in, like the operator credential, for an authenticated person that does not exist yet. A working day long, so a credential left in a shell history does not outlive the session that used it."
+ },
+
  "statements": {
   "sealedExists": "Sealed content exists in this record. The patient can release it, so ask them.",
   "breakGlassOpened": "Opened by break-glass. This access is logged, the patient and their next of kin are told, and the governance board reviews it within {hours} hours.",
@@ -88,6 +93,7 @@
   { "id": "not-loopback", "sentence": "The Health Passport answers on the loopback address, to a loopback host name, only. There is no network path to it from anywhere but this machine.", "why": "Until the controls exist, the gateway is not a network service at all, and a page in a browser that has rebound a hostname to this machine is not this machine." },
   { "id": "unreadable-body", "sentence": "Refused: the body is not a JSON object this service will read.", "why": "A body that cannot be read is refused before anything is decided, and written down like any other refusal." },
   { "id": "no-route", "sentence": "Refused: the Passport has no such route.", "why": "A probe for a route that does not exist is still a request somebody made, and the chain records it." },
+  { "id": "developer-credential-required", "sentence": "Refused: creating a synthetic subject needs a developer credential minted at the console. Nothing reaching the loopback creates a patient on its own.", "why": "A route that mints a patient session for whoever asks is a patient-minting door held open to every process on the machine and every page a browser was tricked into loading." },
   { "id": "no-grant", "sentence": "Refused: there is no consent grant on this request. The Passport opens nothing without a grant, a break-glass justification or the patient's own session.", "why": "Deny by default (§19)." },
   { "id": "bad-grant", "sentence": "Refused: this grant was not signed by the Passport, or it has been altered since.", "why": "A grant is a signed artefact. One the gateway cannot verify is not a weaker grant, it is no grant." },
   { "id": "revoked", "sentence": "Refused: the patient has revoked this grant.", "why": "Revocation propagates immediately (§21)." },

@@ -106,7 +106,9 @@ export const REFUSALS = {
   'Nothing is closed before it is contained. Record what stopped it, and by then somebody will have written the sentence the close needs anyway.',
  alreadyClosed:
   'That incident is already closed. Reopening it is not a route here: what has been learned since goes in a new incident that names this one, so the record of what was known on the day is not rewritten by what was known a month later.',
- noSuchIncident: 'There is no incident by that reference.'
+ noSuchIncident: 'There is no incident by that reference.',
+ notYours:
+  'Only the person who reported this incident, or MyThuso staff who review the vetting register, can record how it was contained. A containment written by anybody else is a stranger marking somebody else\'s report as dealt with.'
 } as const;
 
 /** What section 22 says about time, quoted rather than converted into a deadline of MyThuso's own. */

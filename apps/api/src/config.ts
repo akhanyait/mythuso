@@ -54,6 +54,9 @@ export type Config = {
   identityApiKey: string;
   identitySandbox: boolean;
   identityCallbackUrl: string;
+  /* True only where MYTHUSO_ENV says development in so many words. Unset is development for most
+     purposes and never for this one: see identityProvider.ts. */
+  explicitDevelopment: boolean;
   /* Who is accountable for the consents this service records. POPIA makes the responsible party's
      Information Officer the person a data subject complains to and the Regulator writes to; a
      service recording consent with nobody named is recording a signature with no counterparty. */
@@ -63,7 +66,15 @@ export type Config = {
 };
 export class ConfigError extends Error {}
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const environment = env.MYTHUSO_ENV === 'production' ? 'production' : 'development';
+  /* Normalised the way the Passport's check is: case and surrounding space do not change what an
+     environment is, so `Production` is production. An environment that is named and is not
+     development is treated as production — failing closed, because a mistyped `prodution` that ran
+     as development would hand out one-time codes. Unset is still development, for the developer who
+     has set nothing at all; `explicitDevelopment` records the difference, because the one thing that
+     may only happen in development somebody chose on purpose is an unsigned identity callback. */
+  const declaredEnvironment = (env.MYTHUSO_ENV ?? '').trim().toLowerCase();
+  const environment = declaredEnvironment === '' || declaredEnvironment === 'development' ? 'development' : 'production';
+  const explicitDevelopment = declaredEnvironment === 'development';
   const production = environment === 'production';
   const pepper = env.MYTHUSO_AUTH_PEPPER ?? '';
   /* A pepper is what stops a stolen database from being a stolen set of codes and sessions.
@@ -122,6 +133,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (production && identitySandbox) {
     throw new ConfigError('MYTHUSO_IDENTITY_SANDBOX cannot be enabled in production: a sandbox session answers whatever it is told to, and the answer it records is indistinguishable afterwards from one Home Affairs gave');
   }
+  /* A provider named with no environment named is not development by default. It is the one
+     configuration in which a missing line would decide whether identity callbacks need a signature,
+     so it refuses to start and makes somebody say which it is. */
+  if (identityProvider && !declaredEnvironment) {
+    throw new ConfigError(`MYTHUSO_IDENTITY_PROVIDER names "${identityProvider}" and MYTHUSO_ENV is not set. With an identity provider configured the environment has to be stated — development or production — rather than assumed, because it decides whether an identity callback may arrive unsigned.`);
+  }
   const allowedOrigins = (env.MYTHUSO_ALLOWED_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
     .split(',').map(o => o.trim()).filter(Boolean);
   if (production && allowedOrigins.some(o => o.startsWith('http://'))) {
@@ -158,6 +175,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   return {
     environment,
+    explicitDevelopment,
     port: Number(env.MYTHUSO_PORT ?? 8787),
     pepper: pepper || `development-only-${process.pid}`,
     allowedOrigins,

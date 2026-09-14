@@ -902,18 +902,37 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     });
   });
 
+  /* Who may record containment: the party who reported this incident, or staff holding review-vetting
+     and in good standing to use it. Reporting stays open to every vetted party; saying an incident has
+     been dealt with does not. Before this, any vetted party could mark any incident contained — a
+     sponsor or a guardian could write "wiped remotely" over somebody else's report, and a contained
+     incident is one step from a closed one. Anybody else is refused, and the refusal is in the chain
+     beside the attempt. /incidents/notified and /incidents/close were already held to review-vetting
+     through asOperator, which is where the standing check for this route comes from too. */
   routes.set('POST /incidents/contain', (req, res, body) => {
     const held = asParty(req, res);
     if (!held) return;
     const id = asString(body.incidentId);
     const containment = asString(body.containment);
-    if (!incidents.find(id)) return send(res, 404, { error: 'no-such-incident', message: INCIDENT_REFUSALS.noSuchIncident });
+    const incident = incidents.find(id);
+    if (!incident) return send(res, 404, { error: 'no-such-incident', message: INCIDENT_REFUSALS.noSuchIncident });
+    const reporter = incident.openedBy === held.actor.party.id;
+    if (!reporter && !held.actor.grants.includes('review-vetting')) {
+      protection!.audit.append({
+        event: 'incident.contain.refused', actorId: held.actor.party.id, actorRole: held.actor.party.roleId,
+        capability: 'review-vetting', purpose: 'vetting', recordType: 'incident', recordId: id,
+        subjectId: held.actor.party.id, field: 'containment', allowed: false, reason: INCIDENT_REFUSALS.notYours
+      });
+      return send(res, 403, { error: 'refused', message: INCIDENT_REFUSALS.notYours });
+    }
+    if (!reporter && !asOperator(req, res, 'incident')) return;
     if (!containment.trim()) return send(res, 400, { error: 'no-containment', message: 'Say what stopped it. "Contained" on its own is a tick rather than a record.' });
     incidents.contain(id, now(), containment.trim());
     protection!.audit.append({
       event: 'incident.contained', actorId: held.actor.party.id, actorRole: held.actor.party.roleId,
       capability: 'review-vetting', purpose: 'vetting', recordType: 'incident', recordId: id,
-      subjectId: held.actor.party.id, field: 'containment', allowed: true, reason: 'Containment recorded'
+      subjectId: held.actor.party.id, field: 'containment', allowed: true,
+      reason: reporter ? 'Containment recorded by the party who reported the incident' : 'Containment recorded by a reviewer holding review-vetting'
     });
     send(res, 200, { contained: true });
   });
