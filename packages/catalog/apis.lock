@@ -188,3 +188,5 @@ POST /v1/care/visits/{appointmentRef}/handover@2 56d3c99334a43e81
 POST /v1/care/visits/{appointmentRef}/complete@2 1379a901f82dd225
 POST /v1/care/sync-batches@2 0847a45f47120c57
 GET /v1/record/encounter-statuses/{encounterRef}@1 db50565464dbe5e0
+POST /v1/money/payments/{paymentRef}/cash-code@2 40faa205cd94c47c
+POST /v1/money/payments/{paymentRef}/release@2 62eb1948c1751c07

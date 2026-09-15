@@ -136,3 +136,4 @@ booking.confirmed@2 1d0e3295ccc42297
 appointment.booked@2 a37b6fca224f5d07
 appointment.in_progress@2 e0010d04702852a8
 appointment.completed@2 35e55b857fb8e390
+payment.refunded@1 ef4d06064e61318f

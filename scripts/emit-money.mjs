@@ -30,7 +30,11 @@ import { settingBounds, settingDefault } from './settings-defaults.mjs';
 
 const SOURCE = 'packages/catalog/money.json';
 const API = 'packages/catalog/apis/money.json';
-const RENDERED_REFUSALS = ['doctor-fee-undecided', 'card-number-held', 'scheme-sees-a-payment'];
+/* The cash-code refusals are the two a nurse meets at the door on a phone: a wrong code, and a payment held for
+   the desk. The others the entry route answers cannot be reached from the phone's one preview visit. */
+const RENDERED_REFUSALS = ['doctor-fee-undecided', 'card-number-held', 'scheme-sees-a-payment', 'cash-without-otp', 'cash-code-held'];
+const NURSE_WORDS = ['heading', 'ask', 'patientPhone', 'shownOnce', 'shownAlready', 'enter', 'codeLabel', 'recorded'];
+const nurseName = key => `cashNurse${key[0].toUpperCase()}${key.slice(1)}`;
 
 const swift = value => {
  if (String(value).includes('\\')) throw new Error(`Cannot write ${JSON.stringify(value)} as a Swift literal here`);
@@ -63,6 +67,11 @@ export function emitMoney(root = '') {
   return { ...fee, amount, confirmedByDefault: confirmed, range: settingBounds(SOURCE, contract, fee.amountSetting) };
  });
  const share = settingDefault(SOURCE, contract, contract.nurseShareSetting);
+ const nurseWord = key => {
+  const words = contract.cash.nurse?.[key];
+  if (typeof words !== 'string' || !words.trim()) throw new Error(`${SOURCE} has no cash.nurse.${key}, which a native cash-code screen renders.`);
+  return words;
+ };
  const feeNotes = f => [`${f.amountSetting}: ${f.amount.note}`, `${f.confirmedSetting}: ${f.confirmedByDefault.note}`];
 
  const swiftFile = `${banner()}
@@ -79,6 +88,8 @@ ${contract.states.map(s => `        .init(id: ${swift(s.id)}, name: ${swift(s.na
     ]
     static let cashCodeLength = ${contract.cash.codeLength}
     static let cashPendingWords = ${swift(contract.cash.pendingWords)}
+    static let cashAttemptLimit = ${contract.cash.attemptLimit}
+${NURSE_WORDS.map(key => `    static let ${nurseName(key)} = ${swift(nurseWord(key))}`).join('\n')}
     static let providerlessWords = ${swift(contract.providerless.words)}
     static let doctorFees: [DoctorFee] = [
 ${fees.map(f => `${comment('        ', feeNotes(f))}
@@ -113,6 +124,8 @@ ${contract.states.map(s => `        MoneyPaymentState(${kotlin(s.id)}, ${kotlin(
     )
     const val cashCodeLength = ${contract.cash.codeLength}
     const val cashPendingWords = ${kotlin(contract.cash.pendingWords)}
+    const val cashAttemptLimit = ${contract.cash.attemptLimit}
+${NURSE_WORDS.map(key => `    const val ${nurseName(key)} = ${kotlin(nurseWord(key))}`).join('\n')}
     const val providerlessWords = ${kotlin(contract.providerless.words)}
     val doctorFees = listOf(
 ${fees.map(f => `${comment('        ', feeNotes(f))}

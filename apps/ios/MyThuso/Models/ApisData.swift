@@ -180,8 +180,8 @@ enum ApisData {
     static let postMoneyPayments = Route(id: "postMoneyPayments", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 1, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
     static let getMoneyPayouts = Route(id: "getMoneyPayouts", method: "GET", path: "/v1/money/payouts", mountedPath: "/v1/money/payouts", version: 1, engine: "money", callers: ["nurse", "locum", "doctor"], purpose: ["billing"], idempotent: false, status: "built")
     static let postMoneyPaymentsV2 = Route(id: "postMoneyPaymentsV2", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 2, engine: "money", callers: ["patient", "caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "built")
-    static let postMoneyPaymentsByPaymentRefCashCode = Route(id: "postMoneyPaymentsByPaymentRefCashCode", method: "POST", path: "/v1/money/payments/{paymentRef}/cash-code", mountedPath: "/v1/money/payments/{paymentRef}/cash-code", version: 1, engine: "money", callers: ["nurse"], purpose: ["billing"], idempotent: true, status: "proposed")
-    static let postMoneyPaymentsByPaymentRefRelease = Route(id: "postMoneyPaymentsByPaymentRefRelease", method: "POST", path: "/v1/money/payments/{paymentRef}/release", mountedPath: "/v1/money/payments/{paymentRef}/release", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: true, status: "proposed")
+    static let postMoneyPaymentsByPaymentRefCashCodeV2 = Route(id: "postMoneyPaymentsByPaymentRefCashCodeV2", method: "POST", path: "/v1/money/payments/{paymentRef}/cash-code", mountedPath: "/v1/money/payments/{paymentRef}/cash-code", version: 2, engine: "money", callers: ["nurse"], purpose: ["billing"], idempotent: true, status: "built")
+    static let postMoneyPaymentsByPaymentRefReleaseV2 = Route(id: "postMoneyPaymentsByPaymentRefReleaseV2", method: "POST", path: "/v1/money/payments/{paymentRef}/release", mountedPath: "/v1/money/payments/{paymentRef}/release", version: 2, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: true, status: "built")
     static let postMoneyWallets = Route(id: "postMoneyWallets", method: "POST", path: "/v1/money/wallets", mountedPath: "/v1/money/wallets", version: 1, engine: "money", callers: ["patient", "caregiver"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyVouchers = Route(id: "postMoneyVouchers", method: "POST", path: "/v1/money/vouchers", mountedPath: "/v1/money/vouchers", version: 1, engine: "money", callers: ["patient", "caregiver", "sponsor", "corner"], purpose: ["billing"], idempotent: true, status: "proposed")
     static let postMoneyGifts = Route(id: "postMoneyGifts", method: "POST", path: "/v1/money/gifts", mountedPath: "/v1/money/gifts", version: 1, engine: "money", callers: ["caregiver", "sponsor"], purpose: ["billing"], idempotent: true, status: "proposed")
@@ -350,8 +350,8 @@ enum ApisData {
         postMoneyPayments,
         getMoneyPayouts,
         postMoneyPaymentsV2,
-        postMoneyPaymentsByPaymentRefCashCode,
-        postMoneyPaymentsByPaymentRefRelease,
+        postMoneyPaymentsByPaymentRefCashCodeV2,
+        postMoneyPaymentsByPaymentRefReleaseV2,
         postMoneyWallets,
         postMoneyVouchers,
         postMoneyGifts,
@@ -1632,19 +1632,20 @@ enum ApisData {
         let stateCode: String
         let cashCode: String?
     }
-    struct PostMoneyPaymentsByPaymentRefCashCodeRequest {
+    struct PostMoneyPaymentsByPaymentRefCashCodeV2Request {
         let idempotencyKey: String
         let paymentRef: String
         let code: String
     }
-    struct PostMoneyPaymentsByPaymentRefCashCodeResponse {
+    struct PostMoneyPaymentsByPaymentRefCashCodeV2Response {
         let stateCode: String
     }
-    struct PostMoneyPaymentsByPaymentRefReleaseRequest {
+    struct PostMoneyPaymentsByPaymentRefReleaseV2Request {
         let idempotencyKey: String
         let paymentRef: String
+        let reasonCode: String?
     }
-    struct PostMoneyPaymentsByPaymentRefReleaseResponse {
+    struct PostMoneyPaymentsByPaymentRefReleaseV2Response {
         let stateCode: String
     }
     struct PostMoneyWalletsRequest {

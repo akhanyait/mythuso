@@ -194,3 +194,7 @@ POST /v1/care/offers@1 callers=- purpose=dispatch because=-
 POST /v1/care/visits/{appointmentRef}/handover@1 callers=- purpose=treatment because=-
 POST /v1/care/visits/{appointmentRef}/complete@1 callers=- purpose=treatment because=-
 POST /v1/care/sync-batches@1 callers=- purpose=treatment because=-
+POST /v1/money/payments/{paymentRef}/cash-code@2 callers=nurse purpose=billing because=-
+POST /v1/money/payments/{paymentRef}/release@2 callers=ops-desk purpose=billing because=-
+POST /v1/money/payments/{paymentRef}/cash-code@1 callers=- purpose=billing because=-
+POST /v1/money/payments/{paymentRef}/release@1 callers=- purpose=billing because=-

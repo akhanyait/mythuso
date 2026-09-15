@@ -2,72 +2,34 @@
  * Money's cash code on the runtime, read from the store as it is at rest.
  *
  * The runtime's own tests prove a secret is kept out of the replay table and a refusal keeps only the
- * writes its route names, on synthetic routes. These prove the same two things on Money's real ones,
- * because the defect the Money lead found was a real cash code sitting in a real replay row: the store
- * file is opened directly, beside the runtime, and read as anybody with the sqlite shell would read it.
+ * writes its route names, on synthetic routes. These prove the same things on Money's real ones, because
+ * the defect the Money lead found was a real cash code sitting in a real replay row: the store file is
+ * opened directly, beside the runtime, and read as anybody with the sqlite shell would read it.
  *
- * The nurse's cash-code entry, POST /v1/money/payments/{paymentRef}/cash-code@1, is declared and still
- * proposed, so Money's engine does not bind it. Here it is bound by a copy of the engine written for the
- * test, with the request shape the contract already declares and the ledger's own enterCashCode behind
- * it. The only thing the copy adds is where the ledger's writes to the code row and the audit go: through
- * ctx.recordRefusal, as the route's keptOnRefusal allows, so that a wrong code survives the refusal it
- * causes. Nothing in this file is written into packages/catalog/apis.
+ * The nurse's entry, POST /v1/money/payments/{paymentRef}/cash-code@2, and the desk's release,
+ * POST /v1/money/payments/{paymentRef}/release@2, are bound by Money's own engine. Version one of each was
+ * declared and never built, and is withdrawn.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import moneyApi from '../../../catalog/apis/money.json' with { type: 'json' };
-import { createClock, createRuntime, defineEngine, ok, refuse, type EngineContext, type EventKey, type RouteKey } from '../runtime/index.ts';
+import { createClock, createRuntime, defineEngine, type EventKey, type RouteKey } from '../runtime/index.ts';
 import { engine } from './engine.ts';
-import { isRefusal, money, refusal, serviceById } from './domain/contract.ts';
-import { createMoney, TABLE_NAMES, type MoneyTables, type Table } from './domain/ledger.ts';
+import { money, refusal, serviceById } from './domain/contract.ts';
 
 const FLAG = { MYTHUSO_ENGINES: 'synthetic-data-only' };
 const START = '2026-09-14T09:00:00+02:00';
-const ENTRY: RouteKey = 'POST /v1/money/payments/{paymentRef}/cash-code@1';
+const ENTRY: RouteKey = 'POST /v1/money/payments/{paymentRef}/cash-code@2';
+const RELEASE: RouteKey = 'POST /v1/money/payments/{paymentRef}/release@2';
 const LIMIT = money.cash.attemptLimit;
-const SHOWN_ONCE = moneyApi.routes.find(r => r.method === 'POST' && r.path === '/v1/money/payments' && r.version === 2)!.secretResponseFields!.find(s => s.field === 'cashCode')!.shownOnce;
-
-/* The tables the handler records its writes into for a refusal to keep. The handler chooses to record
-   them; whether they survive the refusal is the runtime's decision, made from the route's keptOnRefusal,
-   so taking keptOnRefusal out of the contract makes the attempt test fail rather than this file. */
-const RECORDED = ['cash_codes', 'cash_audit'];
-const SQL_NAMES: Record<typeof TABLE_NAMES[number], string> = {
- payables: 'payables', payments: 'payments', cashCodes: 'cash_codes', cashAudit: 'cash_audit', attempts: 'payment_attempts', keys: 'payment_keys',
- billable: 'billable_visits', earned: 'earned_lines', cases: 'signed_cases', payouts: 'payouts', suspensions: 'partner_suspensions'
-};
-
-/* Reads go to the store; a put into a table the refusal keeps is recorded rather than run. */
-function recordingTables(ctx: EngineContext): MoneyTables {
- const table = <T,>(name: string): Table<T> => ({
-  get: key => { const row = ctx.store.prepare(`SELECT doc FROM ${name} WHERE ref = ?`).get(key) as { doc: string } | undefined; return row ? JSON.parse(row.doc) as T : undefined; },
-  put: (key, value) => {
-   const sql = `INSERT INTO ${name} (ref, doc) VALUES (?, ?) ON CONFLICT(ref) DO UPDATE SET doc = excluded.doc`;
-   if (RECORDED.includes(name)) ctx.recordRefusal(sql, key, JSON.stringify(value));
-   else ctx.store.prepare(sql).run(key, JSON.stringify(value));
-  },
-  all: () => (ctx.store.prepare(`SELECT doc FROM ${name} ORDER BY rowid`).all() as { doc: string }[]).map(row => JSON.parse(row.doc) as T)
- });
- return Object.fromEntries(TABLE_NAMES.map(name => [name, table(SQL_NAMES[name])])) as unknown as MoneyTables;
-}
-
-const withEntry = defineEngine({
- ...engine,
- routes: {
-  ...engine.routes,
-  [ENTRY]: (request, ctx) => {
-   const ledger = createMoney({
-    tables: recordingTables(ctx), clock: () => ctx.clock.now(), simulation: true,
-    publish: (key, payload, subjectRef) => { ctx.publish(key as EventKey, payload, { subjectRef, purposeOfUse: 'billing' }); }
-   });
-   const answer = ledger.enterCashCode({ role: ctx.caller.role, subjectRef: ctx.caller.ref ?? '' }, { paymentRef: String(request.fields['paymentRef']), code: String(request.fields['code']) });
-   return isRefusal(answer) ? refuse(answer.id) : ok({ stateCode: answer.stateCode });
-  }
- }
-});
+const REASON = money.cash.releaseReasons[0]!.id;
+const route = (path: string, version: number) => moneyApi.routes.find(r => r.method === 'POST' && r.path === path && r.version === version)!;
+const SHOWN_ONCE = route('/v1/money/payments', 2).secretResponseFields!.find(s => s.field === 'cashCode')!.shownOnce;
 
 const care = () => {
  const queue: { key: EventKey; payload: Record<string, unknown> }[] = [];
@@ -80,10 +42,8 @@ const care = () => {
 function world() {
  const dir = mkdtempSync(join(tmpdir(), 'mythuso-engines-money-cash-'));
  const publisher = care();
- const runtime = createRuntime({ env: FLAG, engines: [publisher.module, withEntry], dataDirectory: dir, clock: createClock(START) });
+ const runtime = createRuntime({ env: FLAG, engines: [publisher.module, engine], dataDirectory: dir, clock: createClock(START) });
  publisher.queue.push({ key: 'appointment.booked@2', payload: { appointmentRef: 'APT-1', clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: 'vitals' } });
- runtime.advance(1000);
- publisher.queue.push({ key: 'visit.billable@1', payload: { appointmentRef: 'APT-1', serviceId: 'vitals', clinicianRef: 'N-205' } });
  runtime.advance(1000);
  const raw = (sql: string) => {
   const db = new DatabaseSync(join(dir, 'money.sqlite'));
@@ -94,14 +54,23 @@ function world() {
   role: 'patient', ref: 'subj-lerato', purpose: 'billing',
   fields: { idempotencyKey: 'k-cash', payableRef: 'PB-APT-1', method: 'cash-otp', amountCents: serviceById('vitals').price * 100 }
  });
- const enter = (code: string, key: string, paymentRef: string) => runtime.call(ENTRY, { role: 'nurse', ref: 'N-205', purpose: 'billing', fields: { idempotencyKey: key, paymentRef, code } });
- return { runtime, raw, docs, payCash, enter };
+ const billable = () => {
+  publisher.queue.push({ key: 'visit.billable@1', payload: { appointmentRef: 'APT-1', serviceId: 'vitals', clinicianRef: 'N-205' } });
+  runtime.advance(1000);
+ };
+ const enter = (code: string, key: string, paymentRef: string, ref = 'N-205') => runtime.call(ENTRY, { role: 'nurse', ref, purpose: 'billing', fields: { idempotencyKey: key, paymentRef, code } });
+ const release = (key: string, paymentRef: string, reasonCode?: string) => runtime.call(RELEASE, { role: 'ops-desk', ref: 'O-801', purpose: 'billing', fields: { idempotencyKey: key, paymentRef, ...(reasonCode ? { reasonCode } : {}) } });
+ return { runtime, raw, docs, payCash, billable, enter, release };
 }
+const said = (id: string) => ({ error: id, message: refusal(id).statement });
 
-test('the cash-code entry route keeps, on a wrong code, exactly the code row and the audit, and nothing else', () => {
- const entry = moneyApi.routes.find(r => r.path === '/v1/money/payments/{paymentRef}/cash-code' && r.version === 1);
- assert.deepEqual([...(entry?.keptOnRefusal?.tables ?? [])].sort(), [...RECORDED].sort());
- assert.deepEqual([...(entry?.keptOnRefusal?.refusals ?? [])].sort(), ['cash-code-held', 'cash-without-otp']);
+test('the entry route keeps, on a wrong code, exactly the code row and the audit, and declares the code a secret request field', () => {
+ const entry = route('/v1/money/payments/{paymentRef}/cash-code', 2);
+ assert.deepEqual([...(entry.keptOnRefusal?.tables ?? [])].sort(), ['cash_audit', 'cash_codes']);
+ assert.deepEqual([...(entry.keptOnRefusal?.refusals ?? [])].sort(), ['cash-code-held', 'cash-without-otp']);
+ assert.deepEqual((entry.secretRequestFields ?? []).map(s => s.field), ['code']);
+ assert.equal(route('/v1/money/payments/{paymentRef}/cash-code', 1).withdrawn?.supersededBy, ENTRY);
+ assert.equal(route('/v1/money/payments/{paymentRef}/release', 1).withdrawn?.supersededBy, RELEASE);
 });
 
 test('a cash payment through payments@2 shows its code once, and the replay table at rest holds none of its digits', () => {
@@ -115,7 +84,6 @@ test('a cash payment through payments@2 shows its code once, and the replay tabl
  assert.equal(stored.length, 1, 'the answer was stored for replay');
  for (const row of replays) assert.ok(!String(row['body']).includes(code), `the cash code's digits are at rest in the replay row for ${row['route']}`);
  assert.ok(!('cashCode' in JSON.parse(String(stored[0]!['body']))), 'the replay row keeps the field at all');
- /* Money's own row is a salt and a digest, never the code. */
  for (const doc of docs('cash_codes')) {
   assert.deepEqual(Object.keys(doc).sort(), ['digest', 'held', 'salt', 'wrongAttempts']);
   assert.ok(!Object.values(doc).includes(code));
@@ -137,43 +105,71 @@ test('the same idempotency key again answers the contract’s shownOnce sentence
  runtime.close();
 });
 
-test('wrong cash codes up to money.json’s attemptLimit hold the payment, and the counter and audit rows survive every refusal', () => {
- const { runtime, docs, payCash, enter } = world();
+test('before the visit is billable the code is refused and nothing is counted; a payment that is not cash and another nurse are refused before a code is compared', () => {
+ const { runtime, docs, payCash, billable, enter } = world();
  const paid = payCash();
  const code = String(paid.body['cashCode']);
  const paymentRef = String(paid.body['paymentRef']);
- const wrong = code === '000000' ? '111111' : '000000';
- for (let attempt = 1; attempt <= LIMIT; attempt++) {
-  const expected = attempt < LIMIT ? 'cash-without-otp' : 'cash-code-held';
-  const answer = enter(wrong, `wrong-${attempt}`, paymentRef);
-  assert.deepEqual([answer.status, answer.body], [refusal(expected).status, { error: expected, message: refusal(expected).statement }], `attempt ${attempt}`);
-  assert.equal(docs('cash_codes')[0]!['wrongAttempts'], attempt, `attempt ${attempt} was rolled back with its refusal`);
- }
- assert.equal(docs('cash_codes')[0]!['held'], true);
-
- /* After the limit the right code is refused too, and that refusal is written down as well. */
- const right = enter(code, 'right-after-hold', paymentRef);
- assert.equal(right.body['error'], 'cash-code-held');
- const outcomes = docs('cash_audit').map(row => row['outcome']);
- assert.deepEqual(outcomes, [...Array(LIMIT - 1).fill('wrong'), 'held', 'refused-while-held']);
- assert.ok(docs('cash_audit').every(row => row['actorRole'] === 'nurse' && row['actorRef'] === 'N-205' && !Object.values(row).includes(code) && !Object.values(row).includes(wrong)), 'an audit row keeps who and when, never what was entered');
- assert.equal(docs('payments').find(p => p['paymentRef'] === paymentRef)!['stateCode'], 'pending', 'a held payment was recorded as paid');
- assert.equal(runtime.trail.all().filter(e => e.kind === 'published' && e.eventKey === 'payment.succeeded@1').length, 0);
+ assert.deepEqual(enter(code, 'early', paymentRef).body, said('cash-before-the-visit-finished'));
+ billable();
+ assert.deepEqual(enter(code, 'nothing', 'PAY-NOTHING-SYNTHETIC').body, said('payable-not-found'));
+ assert.deepEqual(enter(code === '000000' ? '111111' : '000000', 'other-nurse', paymentRef, 'N-204').body, said('cash-code-not-your-visit'));
+ assert.equal(docs('cash_codes')[0]!['wrongAttempts'], 0, 'a refusal before the code was compared counted an attempt');
+ assert.deepEqual(docs('cash_audit'), []);
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });
 
-test('the right code before the limit records the cash as paid, with the wrong attempts before it still counted', () => {
- const { runtime, docs, payCash, enter } = world();
+test('wrong codes to the limit hold the payment and survive every refusal; the right code is refused while held; a release needs a reason; then the right code is accepted', () => {
+ const { runtime, raw, docs, payCash, billable, enter, release } = world();
  const paid = payCash();
  const code = String(paid.body['cashCode']);
  const paymentRef = String(paid.body['paymentRef']);
- enter(code === '000000' ? '111111' : '000000', 'wrong-1', paymentRef);
- const right = enter(code, 'right', paymentRef);
- assert.deepEqual([right.status, right.body], [200, { stateCode: 'succeeded' }]);
- assert.deepEqual(docs('cash_audit').map(row => row['outcome']), ['wrong', 'accepted']);
- assert.equal(docs('cash_codes')[0]!['wrongAttempts'], 1);
+ const wrong = code === '000000' ? '111111' : '000000';
+ billable();
+ for (let attempt = 1; attempt <= LIMIT; attempt++) {
+  const expected = attempt < LIMIT ? 'cash-without-otp' : 'cash-code-held';
+  const answer = enter(wrong, `wrong-${attempt}`, paymentRef);
+  assert.deepEqual([answer.status, answer.body], [refusal(expected).status, said(expected)], `attempt ${attempt}`);
+  assert.equal(docs('cash_codes')[0]!['wrongAttempts'], attempt, `attempt ${attempt} was rolled back with its refusal`);
+ }
+ assert.equal(docs('cash_codes')[0]!['held'], true);
+
+ /* A wrong code sent again under a key already used is counted again: a refusal is never replayed. */
+ const right = enter(code, 'right-after-hold', paymentRef);
+ assert.deepEqual(right.body, said('cash-code-held'));
+ assert.deepEqual(docs('cash_audit').map(row => row['outcome']), [...Array(LIMIT - 1).fill('wrong'), 'held', 'refused-while-held']);
+ assert.equal(docs('payments').find(p => p['paymentRef'] === paymentRef)!['stateCode'], 'pending', 'a held payment was recorded as paid');
+
+ /* The desk. A nurse is not a caller; a release says why, with a reason the contract gives. */
+ assert.equal(runtime.call(RELEASE, { role: 'nurse', ref: 'N-205', purpose: 'billing', fields: { idempotencyKey: 'nurse-release', paymentRef, reasonCode: REASON } }).body['error'], 'caller-not-allowed');
+ assert.deepEqual(release('no-reason', paymentRef).body, said('release-without-a-reason'));
+ assert.deepEqual(release('odd-reason', paymentRef, 'because-synthetic').body, said('release-reason-not-known'));
+ assert.equal(docs('cash_codes')[0]!['held'], true, 'a refused release lifted the hold');
+ const released = release('released', paymentRef, REASON);
+ assert.deepEqual([released.status, released.body], [200, { stateCode: 'pending' }]);
+ assert.deepEqual(release('released', paymentRef, REASON).body, released.body, 'the same key replays rather than releasing twice');
+ assert.deepEqual(release('again', paymentRef, REASON).body, said('cash-code-not-held'));
+ assert.deepEqual(docs('cash_codes')[0]!, { ...docs('cash_codes')[0]!, wrongAttempts: 0, held: false });
+
+ const accepted = enter(code, 'right-after-release', paymentRef);
+ assert.deepEqual([accepted.status, accepted.body], [200, { stateCode: 'succeeded' }]);
+ const audit = docs('cash_audit');
+ assert.deepEqual(audit.map(row => row['outcome']), [...Array(LIMIT - 1).fill('wrong'), 'held', 'refused-while-held', 'released', 'accepted']);
+ const releasedRow = audit.find(row => row['outcome'] === 'released')!;
+ assert.deepEqual([releasedRow['actorRole'], releasedRow['actorRef'], releasedRow['reasonCode'], typeof releasedRow['at']], ['ops-desk', 'O-801', REASON, 'string']);
+ for (const row of audit) {
+  assert.ok(!Object.values(row).includes(code) && !Object.values(row).includes(wrong), 'an audit row keeps who and when, never what was entered');
+ }
  assert.equal(runtime.trail.all().filter(e => e.kind === 'published' && e.eventKey === 'payment.succeeded@1').length, 1);
+ assert.ok(!runtime.trail.all().some(e => e.body.includes(code)), 'the cash code reached the bus trail');
+
+ /* The accepted entry's replay row: no code in its body, and its request digest is not a digest of the code. */
+ const entryRows = raw(`SELECT body, request_digest FROM _runtime_replays WHERE route = '${ENTRY}'`);
+ assert.equal(entryRows.length, 1);
+ const withCode = createHash('sha256').update(JSON.stringify([['code', code], ['idempotencyKey', 'right-after-release'], ['paymentRef', paymentRef]])).digest('hex');
+ assert.notEqual(entryRows[0]!['request_digest'], withCode, 'the replay row keeps a digest of the cash code');
+ assert.ok(!String(entryRows[0]!['body']).includes(code));
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });

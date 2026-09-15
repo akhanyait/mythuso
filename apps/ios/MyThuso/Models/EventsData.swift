@@ -135,6 +135,7 @@ enum EventsData {
     static let deviceRecalledV1 = EventKey("device.recalled", 1, "devices")
     static let paymentSucceededV1 = EventKey("payment.succeeded", 1, "money")
     static let paymentFailedV1 = EventKey("payment.failed", 1, "money")
+    static let paymentRefundedV1 = EventKey("payment.refunded", 1, "money")
     static let payoutScheduledV1 = EventKey("payout.scheduled", 1, "money")
     static let payoutPaidV1 = EventKey("payout.paid", 1, "money")
     static let claimSubmittedV2 = EventKey("claim.submitted", 2, "money")
@@ -248,6 +249,7 @@ enum EventsData {
         deviceRecalledV1,
         paymentSucceededV1,
         paymentFailedV1,
+        paymentRefundedV1,
         payoutScheduledV1,
         payoutPaidV1,
         claimSubmittedV2,

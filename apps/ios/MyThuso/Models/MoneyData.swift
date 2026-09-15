@@ -25,6 +25,15 @@ extension Money {
     ]
     static let cashCodeLength = 6
     static let cashPendingWords = "Nothing has been paid yet. You pay the nurse at the door, and it is recorded as paid when she enters this code after the visit."
+    static let cashAttemptLimit = 5
+    static let cashNurseHeading = "Cash at the door"
+    static let cashNurseAsk = "Ask the patient for the cash code their MyThuso app showed them when they chose to pay cash. It is not the visit code."
+    static let cashNursePatientPhone = "The patient's phone, in this preview"
+    static let cashNurseShownOnce = "The patient's app shows this code once, when they choose cash, and never again. Money keeps only a salted digest of it."
+    static let cashNurseShownAlready = "The patient's app has shown its code, and nothing can show it again."
+    static let cashNurseEnter = "Record the cash as paid"
+    static let cashNurseCodeLabel = "Cash code"
+    static let cashNurseRecorded = "The cash is recorded as paid."
     static let providerlessWords = "Nothing was charged. A payment made here would go to the provider's own page, and no provider is connected to this phone."
     static let doctorFees: [DoctorFee] = [
         // doctor-case-fee: A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here.
@@ -45,6 +54,8 @@ extension Money {
     static let refusals: [String: String] = [
         "doctor-fee-undecided": "No doctor's payout is scheduled while the fee is undecided.",
         "card-number-held": "MyThuso never holds a card number.",
-        "scheme-sees-a-payment": "No scheme or employer sees what one person paid."
+        "scheme-sees-a-payment": "No scheme or employer sees what one person paid.",
+        "cash-without-otp": "Cash is reconciled with the patient's one-time code.",
+        "cash-code-held": "This cash payment has had too many wrong codes and is held for the operations desk."
     ]
 }

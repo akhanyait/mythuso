@@ -36,7 +36,9 @@ test('the wrong code, or the wrong nurse, records nothing', () => {
  money.hear(billable);
  const wrong = receipt.cashCode === '000000' ? '111111' : '000000';
  assert.deepEqual(money.enterCashCode(nurse, { paymentRef: receipt.paymentRef, code: wrong }), refusal('cash-without-otp'));
- assert.deepEqual(money.enterCashCode({ role: 'nurse', subjectRef: 'N-204' }, { paymentRef: receipt.paymentRef, code: receipt.cashCode! }), refusal('caller-not-allowed'));
+ assert.deepEqual(money.enterCashCode({ role: 'nurse', subjectRef: 'N-204' }, { paymentRef: receipt.paymentRef, code: receipt.cashCode! }), refusal('cash-code-not-your-visit'));
+ /* Refused before the code was compared, so the nurse who was there has lost no attempt to her. */
+ assert.equal(money.cashStanding(receipt.paymentRef)!.wrongAttempts, 1);
  assert.equal(money.payment(receipt.paymentRef)!.stateCode, 'pending');
 });
 

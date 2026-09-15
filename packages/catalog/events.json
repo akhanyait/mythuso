@@ -1505,6 +1505,23 @@
    "subscribers": ["core", "access"]
   },
   {
+   "type": "payment.refunded", "version": 1, "owner": "money",
+   "summary": "Money returned a payment for a visit that was cancelled, through the payment-result door, the whole of what was paid.",
+   "_refundNote": "Published once, when a reversal for a succeeded payment comes back through the payment-result door; a redelivered cancellation or a repeated reversal finds the payment already refunded and publishes nothing. The amount is the whole payment because packages/catalog/cancellation.json decides no late-cancellation charge (pendingDecision late-cancellation-charge), so nothing is kept back inside the window or outside it. Cash paid at the door is not reversed through a card provider and is not published here.",
+   "payload": [
+    { "field": "paymentRef", "type": "string", "required": true, "why": "The payment returned, Money's own." },
+    { "field": "payableRef", "type": "string", "required": true, "why": "What it had paid for, as Money's own payable." },
+    { "field": "amountCents", "type": "integer", "required": true, "why": "What went back, in cents: the payment's own amount, which was the catalogue's price for the service." },
+    { "field": "bookingRef", "type": "string", "required": false, "why": "The booking the payable was opened against, when it was, so Access marks its own booking refunded by its own reference and never by how Money names a payable. Absent for a payable opened from Care's appointment, which names no booking, and then no booking is marked." }
+   ],
+   "neverCarries": [
+    { "field": "cardNumber", "why": "MyThuso never holds one, and a reversal is reconciled by reference, not by the card it goes back to." },
+    { "field": "cashCode", "why": "The code is shown once to the person who paid and kept only as a salted digest. A refund has no use for it, and a code on the bus is a code in every subscriber's log." },
+    { "field": "findings", "why": "Why the visit was booked or what it would have found is clinical, and Money never holds it. A refund says money went back and for what, never why the care was needed." }
+   ],
+   "subscribers": ["access"]
+  },
+  {
    "type": "payout.scheduled", "version": 1, "owner": "money",
    "summary": "A weekly payout was worked out for a nurse, or a per-case fee for a doctor.",
    "payload": [

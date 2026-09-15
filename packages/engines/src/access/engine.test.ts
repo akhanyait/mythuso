@@ -45,6 +45,22 @@ const published = (runtime: Runtime) => runtime.trail.all().filter(e => e.kind =
 const book = (runtime: Runtime, slotRef: string, idempotencyKey = 'k-1', namedNurseFallback?: string, zoneId = ZONE) =>
  runtime.call(BOOK, { ...lerato, fields: { idempotencyKey, subjectRef: 'subject-lerato', serviceId: 'wound', mode: 'home', slotRef, zoneId, ...(namedNurseFallback ? { namedNurseFallback } : {}) } });
 
+/* Money, standing in: a tick that publishes what a test queued, so a refund arrives through the real bus and is
+   held to payment.refunded@1's frozen shape before Access hears it. */
+test('Access hears payment.refunded@1 for its own booking, as often as it is delivered, and a refund with no booking or for one it does not hold faults nothing', () => {
+ const queue: Record<string, unknown>[] = [];
+ const money = defineEngine({ id: 'money', routes: {}, subscriptions: {}, store: { schema: '' }, tick: (ctx: EngineContext) => { for (const payload of queue.splice(0)) ctx.publish('payment.refunded@1', payload, { subjectRef: 'subject-lerato', purposeOfUse: 'billing' }); } });
+ const runtime = createRuntime({ env: { MYTHUSO_ENGINES: 'synthetic-data-only' }, engines: [engine, money], dataDirectory: MEMORY, clock: createClock(START) });
+ const { bookingRef } = book(runtime, `${day}T09:00~N-205`).body;
+ const refund = { paymentRef: 'PAY-PB-SYNTHETIC-1', payableRef: 'PB-SYNTHETIC', amountCents: 29_900 };
+ queue.push({ ...refund, bookingRef }, { ...refund, bookingRef }, { ...refund }, { ...refund, bookingRef: 'BK-NOT-HELD-SYNTHETIC' });
+ runtime.advance(1);
+ const deliveries = runtime.trail.all().filter(e => e.eventKey === 'payment.refunded@1' && e.engine === 'access');
+ assert.deepEqual(deliveries.map(e => e.kind), ['delivered', 'delivered', 'delivered', 'delivered']);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
 test('a patient books an offered hour with a nurse whose badge is current, and the bus hears booking.requested@2 once, with the zone and never an address', () => {
  const runtime = start();
  const booked = book(runtime, `${day}T09:00~N-205`, 'k-1', 'wait');

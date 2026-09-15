@@ -11,7 +11,8 @@
 
    Nine routes: book, read a booking, cancel one, read a visit thread and write in it, hand a Gilbert
    conversation to the nurse queue, and Access's settings — read them, change one, confirm the clinical
-   review of one. And one subscription: appointment.completed@2, from Care.
+   review of one. And two subscriptions: appointment.completed@2, from Care, and payment.refunded@1, from Money,
+   which marks a booking refunded by the bookingRef it carries.
 
    POST /v1/access/bookings@2 is the booking route. Version one was withdrawn on 15 September: it had no
    field for what happens if a nurse asked for by name cannot take the visit, so the answer rode inside the
@@ -71,7 +72,7 @@ import sos from '../../../catalog/sos.json' with { type: 'json' };
 import { defineEngine, ok, refuse, type Answer, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, historyOf, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import { rotaAt } from '../settings/shape.ts';
-import { cancelBooking, readBooking, requestBooking, type Booking, type Ledger } from './domain/booking.ts';
+import { cancelBooking, readBooking, recordRefund, requestBooking, type Booking, type Ledger } from './domain/booking.ts';
 import { instantOf, isoIn, type AccessEvent, type Outcome } from './domain/contract.ts';
 import { queueHandover, type Handover } from './domain/handover.ts';
 import { rosterCandidates } from './domain/roster.ts';
@@ -158,6 +159,14 @@ export const engine = defineEngine({
    const thread = threadOf(ctx, held);
    const completed = completeThread(thread, new Date(at), accessInForceAt(historyOf(ctx.store), at).threadOpenHoursAfterVisit);
    if (completed !== thread) saveThread(ctx, completed);
+  },
+  /* Money returned what was paid for a booking. Found by the bookingRef the event carries, and marked once; a
+     refund with no bookingRef, or for a booking this store does not hold, marks nothing. See recordRefund. */
+  'payment.refunded@1': (event, ctx) => {
+   const bookingRef = typeof event.payload.bookingRef === 'string' ? event.payload.bookingRef : null;
+   if (bookingRef === null || typeof event.payload.paymentRef !== 'string' || typeof event.payload.amountCents !== 'number') return;
+   const marked = recordRefund(ledgerOf(ctx), { bookingRef, paymentRef: event.payload.paymentRef, amountCents: event.payload.amountCents, at: event.occurredAt });
+   if (marked) saveBooking(ctx, marked.booking);
   }
  },
  routes: {

@@ -3,11 +3,30 @@
  *
  * ── What is bound, and what is left to the mock ──────────────────────────────────────────────
  *
- * Wave 3 builds payments, payouts and doctors' fees. Three routes are answered here: taking a payment
- * at versions one and two, and reading your payouts. Wallets, vouchers, gifts, groups, claims, Market
- * orders, the nurse's cash-code entry and the desk's release stay proposed and are answered by
- * packages/mock-api. Every rule lives in ./domain — this file only opens the ledger over the engine's
- * own store, hands it the bus and the simulated clock, and turns its answers into ok and refuse.
+ * Wave 3 builds payments, payouts and doctors' fees. Five routes are answered here: taking a payment
+ * at versions one and two, reading your payouts, the nurse's cash-code entry and the desk's release of a
+ * held cash payment. Wallets, vouchers, gifts, groups, claims and Market orders stay proposed and are
+ * answered by packages/mock-api. Every rule lives in ./domain — this file only opens the ledger over the
+ * engine's own store, hands it the bus and the simulated clock, and turns its answers into ok and refuse.
+ *
+ * ── The cash code, on the runtime ────────────────────────────────────────────────────────────
+ *
+ * A wrong code is refused, and a refusal rolls back everything its handler did. So the entry route opens
+ * the ledger with its writes to cash_codes and cash_audit recorded through ctx.recordRefusal instead of
+ * run: the runtime keeps them after the rollback for the two refusals the route's keptOnRefusal names, and
+ * with everything else when the code is right. Without that, the count of wrong codes would be rolled back
+ * with each one and the attempt limit would never bite. The code itself is compared with a salted digest
+ * and goes nowhere: not into the audit, not onto the bus, and — because the route declares it a secret
+ * request field — not into the digest of the request the runtime keeps for replays either.
+ *
+ * The desk's release is an ordinary write: it resets the hold and appends the audit row saying who, when
+ * and why, and a refused release keeps nothing.
+ *
+ * ── A refund ─────────────────────────────────────────────────────────────────────────────────
+ *
+ * Money hears appointment.cancelled@1 and booking.cancelled@1 and sends a succeeded payment back through
+ * the payment-result door; the reversal's answer publishes payment.refunded@1 once. There is no refund
+ * route: nobody asks for a refund, a cancellation causes one.
  *
  * ── Why a payment has two versions ───────────────────────────────────────────────────────────
  *
@@ -55,18 +74,26 @@ const SQL_NAME: Record<typeof TABLE_NAMES[number], string> = {
    code table holds a salt and a digest, never a code. */
 const schema = [...TABLE_NAMES.map(name => `CREATE TABLE IF NOT EXISTS ${SQL_NAME[name]} (ref TEXT PRIMARY KEY, doc TEXT NOT NULL);`), SETTINGS_SCHEMA].join('\n');
 
-function storeTables(store: EngineStore): MoneyTables {
+/* The two tables a refused cash-code entry keeps, and the only two the entry route's keptOnRefusal names. */
+const KEPT_ON_A_WRONG_CODE = new Set([SQL_NAME.cashCodes, SQL_NAME.cashAudit]);
+
+/* `record`, when given, is where a put into a kept table goes instead of the store. See the header. */
+function storeTables(store: EngineStore, record?: EngineContext['recordRefusal']): MoneyTables {
  const table = <T,>(name: string): Table<T> => ({
   get: key => { const row = store.prepare(`SELECT doc FROM ${name} WHERE ref = ?`).get(key) as { doc: string } | undefined; return row ? JSON.parse(row.doc) as T : undefined; },
-  put: (key, value) => { store.prepare(`INSERT INTO ${name} (ref, doc) VALUES (?, ?) ON CONFLICT(ref) DO UPDATE SET doc = excluded.doc`).run(key, JSON.stringify(value)); },
+  put: (key, value) => {
+   const sql = `INSERT INTO ${name} (ref, doc) VALUES (?, ?) ON CONFLICT(ref) DO UPDATE SET doc = excluded.doc`;
+   if (record && KEPT_ON_A_WRONG_CODE.has(name)) record(sql, key, JSON.stringify(value));
+   else store.prepare(sql).run(key, JSON.stringify(value));
+  },
   all: () => (store.prepare(`SELECT doc FROM ${name} ORDER BY rowid`).all() as { doc: string }[]).map(row => JSON.parse(row.doc) as T)
  });
  return Object.fromEntries(TABLE_NAMES.map(name => [name, table(SQL_NAME[name])])) as unknown as MoneyTables;
 }
 
 /* Everything Money publishes is billing, whoever or whatever caused it. */
-const ledgerFor = (ctx: EngineContext) => createMoney({
- tables: storeTables(ctx.store),
+const ledgerFor = (ctx: EngineContext, keepsAttempts = false) => createMoney({
+ tables: storeTables(ctx.store, keepsAttempts ? (sql, ...params) => ctx.recordRefusal(sql, ...params) : undefined),
  clock: () => ctx.clock.now(),
  simulation: true,
  doctorFee: () => doctorFeeOf(settingsIn(moneySettings, ctx.store)),
@@ -115,6 +142,15 @@ export const engine = defineEngine({
    const answer = ledgerFor(ctx).payoutsFor({ role: ctx.caller.role, subjectRef: ctx.caller.ref ?? '' }, periodEnd);
    if (isRefusal(answer)) return refuse(answer.id);
    return ok({ payouts: answer.map(shown) });
+  },
+  'POST /v1/money/payments/{paymentRef}/cash-code@2': (request, ctx) => {
+   const answer = ledgerFor(ctx, true).enterCashCode({ role: ctx.caller.role, subjectRef: ctx.caller.ref ?? '' }, { paymentRef: String(request.fields['paymentRef']), code: String(request.fields['code']) });
+   return isRefusal(answer) ? refuse(answer.id) : ok({ stateCode: answer.stateCode });
+  },
+  'POST /v1/money/payments/{paymentRef}/release@2': (request, ctx) => {
+   const reasonCode = typeof request.fields['reasonCode'] === 'string' ? request.fields['reasonCode'] : undefined;
+   const answer = ledgerFor(ctx).releaseCashCode({ role: ctx.caller.role, subjectRef: ctx.caller.ref ?? '' }, { paymentRef: String(request.fields['paymentRef']), reasonCode });
+   return isRefusal(answer) ? refuse(answer.id) : ok({ stateCode: answer.stateCode });
   },
   ...settingsRoutes(moneySettings, { read: 'GET /v1/money/settings@1', change: 'POST /v1/money/setting-changes@1' })
  },

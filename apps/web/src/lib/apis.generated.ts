@@ -1449,20 +1449,21 @@ export interface PostMoneyPaymentsV2Response {
  readonly cashCode?: string;
 }
 
-export interface PostMoneyPaymentsByPaymentRefCashCodeRequest {
+export interface PostMoneyPaymentsByPaymentRefCashCodeV2Request {
  readonly idempotencyKey: string;
  readonly paymentRef: string;
  readonly code: string;
 }
-export interface PostMoneyPaymentsByPaymentRefCashCodeResponse {
+export interface PostMoneyPaymentsByPaymentRefCashCodeV2Response {
  readonly stateCode: string;
 }
 
-export interface PostMoneyPaymentsByPaymentRefReleaseRequest {
+export interface PostMoneyPaymentsByPaymentRefReleaseV2Request {
  readonly idempotencyKey: string;
  readonly paymentRef: string;
+ readonly reasonCode?: string;
 }
-export interface PostMoneyPaymentsByPaymentRefReleaseResponse {
+export interface PostMoneyPaymentsByPaymentRefReleaseV2Response {
  readonly stateCode: string;
 }
 
@@ -1706,8 +1707,8 @@ export const apiRoutes = {
  postMoneyPayments: { name: "postMoneyPayments", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 1, engine: "money", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
  getMoneyPayouts: { name: "getMoneyPayouts", method: "GET", path: "/v1/money/payouts", mountedPath: "/v1/money/payouts", version: 1, engine: "money", callers: ["nurse","locum","doctor"], purpose: ["billing"], idempotent: false, status: "built" },
  postMoneyPaymentsV2: { name: "postMoneyPaymentsV2", method: "POST", path: "/v1/money/payments", mountedPath: "/v1/money/payments", version: 2, engine: "money", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
- postMoneyPaymentsByPaymentRefCashCode: { name: "postMoneyPaymentsByPaymentRefCashCode", method: "POST", path: "/v1/money/payments/{paymentRef}/cash-code", mountedPath: "/v1/money/payments/{paymentRef}/cash-code", version: 1, engine: "money", callers: ["nurse"], purpose: ["billing"], idempotent: true, status: "proposed" },
- postMoneyPaymentsByPaymentRefRelease: { name: "postMoneyPaymentsByPaymentRefRelease", method: "POST", path: "/v1/money/payments/{paymentRef}/release", mountedPath: "/v1/money/payments/{paymentRef}/release", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: true, status: "proposed" },
+ postMoneyPaymentsByPaymentRefCashCodeV2: { name: "postMoneyPaymentsByPaymentRefCashCodeV2", method: "POST", path: "/v1/money/payments/{paymentRef}/cash-code", mountedPath: "/v1/money/payments/{paymentRef}/cash-code", version: 2, engine: "money", callers: ["nurse"], purpose: ["billing"], idempotent: true, status: "built" },
+ postMoneyPaymentsByPaymentRefReleaseV2: { name: "postMoneyPaymentsByPaymentRefReleaseV2", method: "POST", path: "/v1/money/payments/{paymentRef}/release", mountedPath: "/v1/money/payments/{paymentRef}/release", version: 2, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: true, status: "built" },
  postMoneyWallets: { name: "postMoneyWallets", method: "POST", path: "/v1/money/wallets", mountedPath: "/v1/money/wallets", version: 1, engine: "money", callers: ["patient","caregiver"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyVouchers: { name: "postMoneyVouchers", method: "POST", path: "/v1/money/vouchers", mountedPath: "/v1/money/vouchers", version: 1, engine: "money", callers: ["patient","caregiver","sponsor","corner"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyGifts: { name: "postMoneyGifts", method: "POST", path: "/v1/money/gifts", mountedPath: "/v1/money/gifts", version: 1, engine: "money", callers: ["caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "proposed" },

@@ -45,7 +45,38 @@
   "attemptLimitWhy": "Six digits are a million codes. Five wrong entries on one payment hold it for the operations desk, which releases it after speaking to the patient — so a code cannot be walked by trying, and a nurse who mistypes twice is not locked out of being paid.",
   "pendingWords": "Nothing has been paid yet. You pay the nurse at the door, and it is recorded as paid when she enters this code after the visit.",
   "reconciledOn": "visit.billable@1",
-  "why": "Cash leakage is a pilot measure, and a nurse's word that she was paid is not a record. The code is issued by Money to the patient and entered by the nurse, so a cash payment is recorded only when the person who paid and the person who was paid agree — and only against a visit Care has said was completed. It is not the visit code the nurse checks at the door: that one belongs to Care and never reaches Money."
+  "why": "Cash leakage is a pilot measure, and a nurse's word that she was paid is not a record. The code is issued by Money to the patient and entered by the nurse, so a cash payment is recorded only when the person who paid and the person who was paid agree — and only against a visit Care has said was completed. It is not the visit code the nurse checks at the door: that one belongs to Care and never reaches Money.",
+  "nurse": {
+   "heading": "Cash at the door",
+   "ask": "Ask the patient for the cash code their MyThuso app showed them when they chose to pay cash. It is not the visit code.",
+   "patientPhone": "The patient's phone, in this preview",
+   "shownOnce": "The patient's app shows this code once, when they choose cash, and never again. Money keeps only a salted digest of it.",
+   "shownAlready": "The patient's app has shown its code, and nothing can show it again.",
+   "enter": "Record the cash as paid",
+   "codeLabel": "Cash code",
+   "recorded": "The cash is recorded as paid.",
+   "why": "The nurse's side of the cash code, on all three platforms in these words. The preview has no patient's phone beside the nurse's, so the patient's screen is drawn on hers and says so; the code on it is shown once and hidden as soon as she enters anything, which is what the patient's app does."
+  },
+  "desk": {
+   "heading": "Held cash payments",
+   "intro": "Cash payments with too many wrong codes. The nurse cannot record one until you speak to the patient and release it.",
+   "empty": "No cash payment is held.",
+   "reasonLabel": "Why you are releasing it",
+   "release": "Release for the nurse to try again",
+   "released": "Released. The nurse may enter the code again. Releasing a hold pays nothing and changes no code.",
+   "wrongCodes": "{count} wrong codes",
+   "why": "The operations desk's panel on the web back office. The desk is the ops-desk caller in packages/catalog/apis.json; the vetting register holds no capability for releasing a hold, so none is claimed."
+  },
+  "releaseReasons": [
+   {"id": "patient-confirmed-code", "text": "I spoke to the patient, who read me the code their app showed them.", "decidedBy": null, "proposedBy": "Integrator (Wave 3, Money events)", "proposedBecause": "The usual case: the nurse mistyped, and the desk has heard the right code from the person who holds it rather than from the nurse."},
+   {"id": "patient-read-wrong-code", "text": "I spoke to the patient, who had read out a different number by mistake.", "decidedBy": null, "proposedBy": "Integrator (Wave 3, Money events)", "proposedBecause": "The patient, not the nurse, gave the wrong digits — often a visit code or an SMS from somebody else. Recorded apart so the audit shows where wrong codes come from."}
+  ],
+  "releaseReasonsWhy": "A release is audited by who, when and why, and the why is one of these codes rather than words the desk types, because the audit is read by finance and a desk's own words about a patient are where health information goes. Each is a proposal nobody has decided, and a reason added here is a change to POST /v1/money/payments/{paymentRef}/release@2's accepted values, which the build reads from this list.",
+  "deskPreview": [
+   {"appointmentRef": "APT-PREVIEW-CASH-1", "serviceId": "wound", "clinicianRef": "N-205", "subjectRef": "subj-preview-cash-1"},
+   {"appointmentRef": "APT-PREVIEW-CASH-2", "serviceId": "vitals", "clinicianRef": "N-204", "subjectRef": "subj-preview-cash-2"}
+  ],
+  "deskPreviewWhy": "Two cash visits the web preview's desk ledger books, bills and enters the wrong code for until the limit holds them, so the panel shows holds the ledger made rather than rows somebody typed. No amount is given here: each is the service's price in packages/catalog/services.json."
  },
 
  "providerless": {

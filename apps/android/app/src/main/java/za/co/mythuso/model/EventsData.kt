@@ -112,6 +112,7 @@ object EventsData {
             val DEVICE_RECALLED_V1 = EventKey("device.recalled", 1, "devices")
             val PAYMENT_SUCCEEDED_V1 = EventKey("payment.succeeded", 1, "money")
             val PAYMENT_FAILED_V1 = EventKey("payment.failed", 1, "money")
+            val PAYMENT_REFUNDED_V1 = EventKey("payment.refunded", 1, "money")
             val PAYOUT_SCHEDULED_V1 = EventKey("payout.scheduled", 1, "money")
             val PAYOUT_PAID_V1 = EventKey("payout.paid", 1, "money")
             val CLAIM_SUBMITTED_V2 = EventKey("claim.submitted", 2, "money")
@@ -225,6 +226,7 @@ object EventsData {
                 DEVICE_RECALLED_V1,
                 PAYMENT_SUCCEEDED_V1,
                 PAYMENT_FAILED_V1,
+                PAYMENT_REFUNDED_V1,
                 PAYOUT_SCHEDULED_V1,
                 PAYOUT_PAID_V1,
                 CLAIM_SUBMITTED_V2,

@@ -43,7 +43,7 @@ export type Actor = { role: string; subjectRef: string };
 
 export type Payable = {
  payableRef: string; kind: PayableKind;
- /** Null until visit.billable@1 names the service. appointment.booked@2 names it too; pricing the payable from it is Money's to decide. */
+ /** The catalogue's price for the service, from the moment appointment.booked@2 opens the payable. Null only for a payable a store opened under the booked event's first version, which named no service and is withdrawn, until visit.billable@1 names the service. */
  amountCents: number | null;
  subjectRef: string; payers: string[];
  serviceId?: string; planId?: string; tierId?: string; appointmentRef?: string; bookingRef?: string; cancelled: boolean;
@@ -78,8 +78,8 @@ export type Origin = 'simulated-provider' | 'network';
 
 /** What Money keeps for a cash code: never the code. */
 export type CashCodeRow = { salt: string; digest: string; wrongAttempts: number; held: boolean };
-/** One line of the cash audit: who tried, when, and what happened — never what was entered. */
-export type CashAuditRow = { paymentRef: string; at: string; actorRole: string; actorRef: string; outcome: 'wrong' | 'held' | 'refused-while-held' | 'accepted' | 'released' };
+/** One line of the cash audit: who tried, when, and what happened — never what was entered. A release also says why, as one of money.json's reason codes. */
+export type CashAuditRow = { paymentRef: string; at: string; actorRole: string; actorRef: string; outcome: 'wrong' | 'held' | 'refused-while-held' | 'accepted' | 'released'; reasonCode?: string };
 
 /* ---- The storage port ----------------------------------------------------------------------- */
 
@@ -130,8 +130,12 @@ const PAYMENT_CALLERS = ['patient', 'caregiver', 'sponsor'];
 const PAYOUT_CALLERS = ['nurse', 'locum', 'doctor'];
 /* The roles served in aggregate. A person's payment is never theirs to read. */
 const AGGREGATE_ROLES = ['scheme', 'employer', 'medical-scheme', 'insurer'];
-/* The desk that releases a cash payment held for too many wrong codes. */
+/* The desk that releases a cash payment held for too many wrong codes: the ops-desk caller packages/catalog/apis.json
+   names. The vetting register holds no capability for releasing a hold, so none is asked and no other role is
+   widened to stand in for the desk. */
 const CASH_DESK_ROLES = ['ops-desk'];
+/* The only reasons a hold is lifted for, from packages/catalog/money.json. */
+const releaseReasonIds = new Set(money.cash.releaseReasons.map(r => r.id));
 
 /* The same act, by content: the payable, the method and the amount. */
 const fingerprint = (request: Record<string, unknown>) =>
@@ -266,10 +270,16 @@ export function createMoney(options: MoneyOptions = {}) {
   const was = payment.stateCode;
   payment.providerReference = result.providerReference ?? payment.providerReference;
   if (mapped.state === 'refunded') {
-   /* A reversal names what it reverses, and only money that arrived can go back. */
-   if (was === 'succeeded') payment.stateCode = 'refunded';
-   t.payments.put(payment.paymentRef, payment);
-   return payment;
+   /* A reversal names what it reverses, and only money that arrived can go back. payment.refunded@1 is published
+      on the one step from succeeded to refunded and never again: a cancellation delivered twice, or the same
+      reversal sent twice, finds the payment refunded already and tells nobody a second time. It carries
+      references and the amount and nothing else — no card, no cash code, nothing about the care — and the
+      booking only when the payable was opened against one, so Access marks its own booking by its own reference. */
+   t.payments.put(payment.paymentRef, { ...payment, stateCode: was === 'succeeded' ? 'refunded' : was });
+   if (was === 'succeeded') {
+    emit('payment.refunded@1', { paymentRef: payment.paymentRef, payableRef: payment.payableRef, amountCents: payment.amountCents, ...(payable.bookingRef ? { bookingRef: payable.bookingRef } : {}) }, payable.subjectRef);
+   }
+   return t.payments.get(payment.paymentRef)!;
   }
   if (was === 'refunded' || (was === 'failed' && mapped.state === 'succeeded')) return payment;
   payment.stateCode = mapped.state as PaymentStateId;
@@ -287,25 +297,33 @@ export function createMoney(options: MoneyOptions = {}) {
 
  /* ---- Cash -------------------------------------------------------------------------------- */
 
- const audit = (paymentRef: string, actor: Actor, outcome: CashAuditRow['outcome']) => {
+ /* Who, when and what happened, and for a release why. Never the code that was entered, right or wrong. */
+ const audit = (paymentRef: string, actor: Actor, outcome: CashAuditRow['outcome'], reasonCode?: string) => {
   const at = clock().toISOString();
   const seq = t.cashAudit.all().filter(r => r.paymentRef === paymentRef).length + 1;
-  t.cashAudit.put(`${paymentRef}:${seq}`, { paymentRef, at, actorRole: actor.role, actorRef: actor.subjectRef, outcome });
+  t.cashAudit.put(`${paymentRef}:${seq}`, { paymentRef, at, actorRole: actor.role, actorRef: actor.subjectRef, outcome, ...(reasonCode ? { reasonCode } : {}) });
  };
 
  /**
   * The nurse enters the patient's code after the visit. Every wrong entry is written down with who made
   * it and when, and the attempt limit holds the payment for the desk: after it, the right code is refused
   * too, because a limit that the right guess can walk through is not a limit.
+  *
+  * Every wrong entry counts, whatever idempotency key it came with. A refused entry is never replayed, and
+  * one that was not counted because its key had been seen would let one key try every code there is.
   */
  function enterCashCode(actor: Actor, input: { paymentRef: string; code: string }): Payment | Refusal {
   const payment = t.payments.get(input.paymentRef);
+  /* Only a cash payment has a code. Anything else is refused before a code is compared, so it counts nothing. */
   if (!payment || payment.method !== 'cash-otp') return refusal('payable-not-found');
   const payable = t.payables.get(payment.payableRef)!;
   const visit = payable.appointmentRef ? t.billable.get(payable.appointmentRef) : undefined;
   /* Against a finished visit only, which Money learns from visit.billable and nowhere else. */
   if (!visit) return refusal('cash-before-the-visit-finished');
-  if (actor.role !== 'nurse' || actor.subjectRef !== visit.clinicianRef) return refusal('caller-not-allowed');
+  if (actor.role !== 'nurse') return refusal('caller-not-allowed');
+  /* Another nurse is refused before the code is compared: she can neither record the cash nor use up the
+     attempts of the nurse who was at the door. */
+  if (actor.subjectRef !== visit.clinicianRef) return refusal('cash-code-not-your-visit');
   if (payment.stateCode !== 'pending') return payment;
   const row = t.cashCodes.get(payment.paymentRef)!;
   if (row.held) {
@@ -326,19 +344,33 @@ export function createMoney(options: MoneyOptions = {}) {
   return payment;
  }
 
- /** The desk releases a held cash payment after speaking to the patient. The code is unchanged. */
- function releaseCashCode(actor: Actor, paymentRef: string): Payment | Refusal {
+ /**
+  * The desk releases a held cash payment after speaking to the patient. The code is unchanged and nothing is
+  * paid: the count of wrong codes starts again, so the nurse may enter it, and the audit says who, when and why.
+  */
+ function releaseCashCode(actor: Actor, input: { paymentRef: string; reasonCode?: string }): Payment | Refusal {
   if (!CASH_DESK_ROLES.includes(actor.role) || !actor.subjectRef) return refusal('caller-not-allowed');
-  const payment = t.payments.get(paymentRef);
-  const row = t.cashCodes.get(paymentRef);
+  const payment = t.payments.get(input.paymentRef);
+  const row = t.cashCodes.get(input.paymentRef);
   if (!payment || !row) return refusal('payable-not-found');
-  t.cashCodes.put(paymentRef, { ...row, wrongAttempts: 0, held: false });
-  audit(paymentRef, actor, 'released');
+  /* The hold is what stops a six-digit code being walked. It is lifted only for a reason somebody agreed, and
+     the reason is written down, or a desk that spoke to the patient and one that pressed a button look alike. */
+  if (typeof input.reasonCode !== 'string' || !input.reasonCode.trim()) return refusal('release-without-a-reason');
+  if (!releaseReasonIds.has(input.reasonCode)) return refusal('release-reason-not-known');
+  /* Resetting the count on a payment that is not held would hand whoever is trying a fresh set of attempts. */
+  if (!row.held) return refusal('cash-code-not-held');
+  t.cashCodes.put(input.paymentRef, { ...row, wrongAttempts: 0, held: false });
+  audit(input.paymentRef, actor, 'released', input.reasonCode);
   return payment;
  }
 
  /* ---- Hearing ----------------------------------------------------------------------------- */
 
+ /* A cancelled visit's payable is closed, and what was paid for it goes back through the payment-result door.
+    Under packages/catalog/cancellation.json the whole payment goes back, inside the window or outside it:
+    its late-cancellation charge is a pendingDecision nobody has made, and a refund that kept something back
+    would be that decision made here without anybody deciding it. Cash is not reversed through a card provider,
+    and a visit paid in cash at the door was already billable, so it is not a visit that is cancelled. */
  function refundWhere(matches: (payable: Payable) => boolean) {
   for (const payable of t.payables.all().filter(matches)) {
    t.payables.put(payable.payableRef, { ...payable, cancelled: true });
@@ -361,11 +393,15 @@ export function createMoney(options: MoneyOptions = {}) {
   const p = envelope.payload;
 
   if (envelope.type === 'appointment.booked') {
-   /* A held visit becomes a payable — without an amount, because this event names no service. */
+   /* A held visit becomes a payable, priced as it opens from the service appointment.booked@2 names, at the
+      price packages/catalog/services.json holds for it — never from a number on the event, which carries none
+      and refuses one. serviceById is loud about a service the catalogue does not sell, so the delivery is
+      rolled back and no payable opens at a price nobody set. */
    const appointmentRef = String(p['appointmentRef']);
+   const service = serviceById(String(p['serviceId']));
    const payableRef = payableRefFor(appointmentRef);
    if (!t.payables.get(payableRef) && envelope.subjectRef) {
-    t.payables.put(payableRef, { payableRef, kind: 'visit', amountCents: null, subjectRef: envelope.subjectRef, payers: [], appointmentRef, cancelled: false });
+    t.payables.put(payableRef, { payableRef, kind: 'visit', amountCents: service.price * 100, subjectRef: envelope.subjectRef, payers: [], serviceId: service.id, appointmentRef, cancelled: false });
    }
   } else if (envelope.type === 'visit.billable') {
    const appointmentRef = String(p['appointmentRef']), serviceId = String(p['serviceId']), clinicianRef = String(p['clinicianRef']);
@@ -390,10 +426,12 @@ export function createMoney(options: MoneyOptions = {}) {
    if (!row.cases.some(c => c.reviewRef === p['reviewRef'])) row.cases.push({ reviewRef: String(p['reviewRef']), feeCode, on, fee: feeNow() });
    t.cases.put(doctorRef, row);
   } else if (envelope.type === 'booking.confirmed') {
-   /* A confirmed booking names its service, and its price is the catalogue's for that service. Nothing is owed
-      on a confirmation — a payable opens when Care holds the visit — so what is read here is that the service is
-      one packages/catalog/services.json sells: serviceById is loud about one it does not, and the delivery is
-      rolled back rather than a booking being confirmed for a price nobody set. */
+   /* A confirmed booking names its service, and its price is the catalogue's for that service. It opens no payable
+      of its own: the payable is the visit Care holds, opened and priced by appointment.booked@2, and no event Money
+      hears names a booking and its appointment together, so a second payable here would be one visit owed twice
+      with nothing to tell the two apart. What is read is that the service is one packages/catalog/services.json
+      sells: serviceById is loud about one it does not, and the delivery is rolled back rather than a booking being
+      confirmed for a price nobody set. */
    serviceById(String(p['serviceId']));
   } else if (envelope.type === 'booking.cancelled') {
    refundWhere(payable => payable.bookingRef === p['bookingRef']);
@@ -548,6 +586,9 @@ export function createMoney(options: MoneyOptions = {}) {
   payment: (paymentRef: string) => t.payments.get(paymentRef),
   payable: (payableRef: string) => t.payables.get(payableRef),
   cashAuditFor: (paymentRef: string) => t.cashAudit.all().filter(r => r.paymentRef === paymentRef),
+  /* How many wrong codes a cash payment has had and whether it is held. Never the salt or the digest. */
+  cashStanding: (paymentRef: string) => { const row = t.cashCodes.get(paymentRef); return row ? { wrongAttempts: row.wrongAttempts, held: row.held } : undefined; },
+  heldCashPayments: () => t.payments.all().filter(p => p.method === 'cash-otp' && t.cashCodes.get(p.paymentRef)?.held === true),
   outbox: () => outbox.map(e => ({ ...e, payload: { ...e.payload } })),
   wordsFor: (state: PaymentStateId) => stateOf(state)
  };

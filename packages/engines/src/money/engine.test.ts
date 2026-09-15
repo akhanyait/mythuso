@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { MEMORY, createClock, createRuntime, defineEngine, type EventKey } from '../runtime/index.ts';
 import { loadRuntimeContract } from '../runtime/contract.ts';
 import { engine, HEARD } from './engine.ts';
-import { attempt } from './domain/provider.ts';
+import { attempt, reversal } from './domain/provider.ts';
 import { hearing, isRefusal, refusal, serviceById } from './domain/contract.ts';
 import { createMoney } from './domain/ledger.ts';
 import { moneyBlock } from './domain/settings.ts';
@@ -50,17 +50,14 @@ test('Money subscribes only to events on its moneyHears list', () => {
  assert.deepEqual(Object.keys(engine.subscriptions).sort(), [...HEARD].sort());
 });
 
-test('a booked visit is priced by visit.billable, paid once, and refused in the contract’s words', () => {
+test('a booked visit is priced from its serviceId as it opens, paid once, and refused in the contract’s words', () => {
  const { care, runtime, published } = world();
  care.queue.push({ key: 'appointment.booked@2', subjectRef: 'subj-lerato', payload: { appointmentRef: 'APT-1', clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: 'vitals' } });
  runtime.advance(1000);
 
- /* Before the visit is billable the payable has no price, and nothing is charged. */
- const early = runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: 'k-early' }));
- assert.deepEqual([early.status, early.body], [refusal('payable-not-priced').status, { error: 'payable-not-priced', message: refusal('payable-not-priced').statement }]);
-
- care.queue.push({ key: 'visit.billable@1', subjectRef: 'subj-lerato', payload: { appointmentRef: 'APT-1', serviceId: 'vitals', clinicianRef: 'N-205' } });
- runtime.advance(1000);
+ /* No visit.billable has arrived, and the payable already has the catalogue's price: an amount that is not it is refused. */
+ const short = runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: 'k-short', amountCents: vitals.price * 100 - 1 }));
+ assert.deepEqual([short.status, short.body], [refusal('amount-mismatch').status, { error: 'amount-mismatch', message: refusal('amount-mismatch').statement }]);
 
  const expected = attempt('PB-APT-1', 1, 'x', vitals.price * 100, new Date()).outcome === 'authorised' ? 'succeeded' : 'failed';
  const first = runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: 'k-1' }));
@@ -87,6 +84,70 @@ test('a booked visit is priced by visit.billable, paid once, and refused in the 
  assert.equal(runtime.call('GET /v1/money/payouts@1', { role: 'scheme', purpose: 'billing', fields: {} }).body['error'], 'caller-not-allowed');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
+});
+
+/* appointment.booked@2 names the service, and Money prices the payable from services.json as it opens it. A service
+   the catalogue does not sell is refused loudly: the delivery is rolled back, and nothing is owed at a price nobody set. */
+test('appointment.booked@2 opens its payable at the catalogue’s price for each service, and a service nobody sells opens nothing', () => {
+ const { care, runtime } = world();
+ const sold = ['wound', 'senior'].map((serviceId, i) => ({ serviceId, appointmentRef: `APT-PRICED-${i}` }));
+ for (const { serviceId, appointmentRef } of sold) care.queue.push({ key: 'appointment.booked@2', subjectRef: 'subj-lerato', payload: { appointmentRef, clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId } });
+ care.queue.push({ key: 'appointment.booked@2', subjectRef: 'subj-lerato', payload: { appointmentRef: 'APT-UNSOLD', clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: 'nothing-sold-synthetic' } });
+ runtime.advance(1000);
+ for (const { serviceId, appointmentRef } of sold) {
+  const price = serviceById(serviceId).price * 100;
+  const off = runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: `off-${serviceId}`, payableRef: `PB-${appointmentRef}`, amountCents: price + 100 }));
+  assert.equal(off.body['error'], 'amount-mismatch', serviceId);
+  const right = runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: `right-${serviceId}`, payableRef: `PB-${appointmentRef}`, amountCents: price }));
+  assert.equal(right.status, 200, `${serviceId}: ${JSON.stringify(right.body)}`);
+ }
+ const unsold = runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: 'unsold', payableRef: 'PB-APT-UNSOLD' }));
+ assert.equal(unsold.body['error'], 'payable-not-found');
+ const failed = runtime.trail.all().filter(e => e.kind === 'delivery-failed' && e.eventKey === 'appointment.booked@2' && e.engine === 'money');
+ assert.equal(failed.length, 1, 'the unsold service was not refused on delivery');
+ assert.equal(runtime.faults().length, 1);
+ assert.match(String((runtime.faults()[0]!.error as Error).message), /services\.json/);
+ runtime.close();
+});
+
+/* A cancelled visit's card payment goes back through the payment-result door, and payment.refunded@1 says so once:
+   the cancellation delivered again finds the payment refunded and tells nobody a second time. */
+test('a cancelled visit’s payment is refunded whole and published once, with references and the amount and nothing else', () => {
+ const { care, runtime, published } = world();
+ /* The simulated provider declines one attempt in five, seeded on the payable; the visit is one it authorises. */
+ const appointmentRef = Array.from({ length: 40 }, (_, i) => `APT-REFUND-${i}`).find(ref => attempt(`PB-${ref}`, 1, 'x', vitals.price * 100, new Date(START)).outcome === 'authorised')!;
+ const payableRef = `PB-${appointmentRef}`;
+ care.queue.push({ key: 'appointment.booked@2', subjectRef: 'subj-lerato', payload: { appointmentRef, clinicianRef: 'N-205', scheduledFor: '2026-09-15T09:00:00+02:00', serviceId: 'vitals' } });
+ runtime.advance(1000);
+ const paid = runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: 'k-refund', payableRef }));
+ assert.deepEqual([paid.status, paid.body['stateCode']], [200, 'succeeded'], JSON.stringify(paid.body));
+
+ const cancelled = { appointmentRef, cancelledByRole: 'patient', reasonCode: 'no-longer-needed', scheduledFor: '2026-09-15T09:00:00+02:00' };
+ care.queue.push({ key: 'appointment.cancelled@1', subjectRef: 'subj-lerato', payload: cancelled }, { key: 'appointment.cancelled@1', subjectRef: 'subj-lerato', payload: cancelled });
+ runtime.advance(1000);
+ care.queue.push({ key: 'appointment.cancelled@1', subjectRef: 'subj-lerato', payload: cancelled });
+ runtime.advance(1000);
+
+ const refunds = published('payment.refunded@1');
+ assert.equal(refunds.length, 1, 'a redelivered cancellation refunded twice');
+ const payload = (JSON.parse(refunds[0]!.body) as { payload: Record<string, unknown> }).payload;
+ assert.deepEqual(payload, { paymentRef: paid.body['paymentRef'], payableRef, amountCents: vitals.price * 100 });
+ assert.ok(!/card|cash|code|finding/i.test(Object.keys(payload).join()), 'the refund carries more than references and the amount');
+ /* The payable is closed, so nothing more is taken for a visit that is not happening. */
+ assert.equal(runtime.call('POST /v1/money/payments@1', pay({ idempotencyKey: 'k-after', payableRef })).body['error'], 'payable-not-found');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+
+ /* The ledger on its own: the same reversal sent through the door twice publishes once, and a booking's payable says which booking. */
+ const ledger = createMoney({ clock: () => new Date(START), simulation: true });
+ ledger.openVisitPayable({ payableRef, serviceId: 'vitals', subjectRef: 'subj-lerato', bookingRef: 'BK-SYNTHETIC-1' });
+ const receipt = ledger.pay({ role: 'patient', subjectRef: 'subj-lerato' }, { idempotencyKey: 'k', payableRef, method: 'card', amountCents: vitals.price * 100 });
+ assert.ok(!isRefusal(receipt) && receipt.stateCode === 'succeeded');
+ const reverse = reversal(payableRef, (receipt as { paymentRef: string }).paymentRef, vitals.price * 100, new Date(START));
+ ledger.acceptPaymentResult(reverse, 'simulated-provider');
+ ledger.acceptPaymentResult(reverse, 'simulated-provider');
+ const told = ledger.outbox().filter(e => e.type === 'payment.refunded');
+ assert.deepEqual(told.map(e => e.payload), [{ paymentRef: (receipt as { paymentRef: string }).paymentRef, payableRef, amountCents: vitals.price * 100, bookingRef: 'BK-SYNTHETIC-1' }]);
 });
 
 /* booking.confirmed@2 names the service that was booked, so Money prices by service from the catalogue rather

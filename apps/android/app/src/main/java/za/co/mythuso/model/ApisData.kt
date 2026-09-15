@@ -180,8 +180,8 @@ object ApisData {
     val POST_MONEY_PAYMENTS = Route("postMoneyPayments", "POST", "/v1/money/payments", "/v1/money/payments", 1, "money", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "built")
     val GET_MONEY_PAYOUTS = Route("getMoneyPayouts", "GET", "/v1/money/payouts", "/v1/money/payouts", 1, "money", listOf("nurse", "locum", "doctor"), listOf("billing"), false, "built")
     val POST_MONEY_PAYMENTS_V2 = Route("postMoneyPaymentsV2", "POST", "/v1/money/payments", "/v1/money/payments", 2, "money", listOf("patient", "caregiver", "sponsor"), listOf("billing"), true, "built")
-    val POST_MONEY_PAYMENTS_BY_PAYMENT_REF_CASH_CODE = Route("postMoneyPaymentsByPaymentRefCashCode", "POST", "/v1/money/payments/{paymentRef}/cash-code", "/v1/money/payments/{paymentRef}/cash-code", 1, "money", listOf("nurse"), listOf("billing"), true, "proposed")
-    val POST_MONEY_PAYMENTS_BY_PAYMENT_REF_RELEASE = Route("postMoneyPaymentsByPaymentRefRelease", "POST", "/v1/money/payments/{paymentRef}/release", "/v1/money/payments/{paymentRef}/release", 1, "money", listOf("ops-desk"), listOf("billing"), true, "proposed")
+    val POST_MONEY_PAYMENTS_BY_PAYMENT_REF_CASH_CODE_V2 = Route("postMoneyPaymentsByPaymentRefCashCodeV2", "POST", "/v1/money/payments/{paymentRef}/cash-code", "/v1/money/payments/{paymentRef}/cash-code", 2, "money", listOf("nurse"), listOf("billing"), true, "built")
+    val POST_MONEY_PAYMENTS_BY_PAYMENT_REF_RELEASE_V2 = Route("postMoneyPaymentsByPaymentRefReleaseV2", "POST", "/v1/money/payments/{paymentRef}/release", "/v1/money/payments/{paymentRef}/release", 2, "money", listOf("ops-desk"), listOf("billing"), true, "built")
     val POST_MONEY_WALLETS = Route("postMoneyWallets", "POST", "/v1/money/wallets", "/v1/money/wallets", 1, "money", listOf("patient", "caregiver"), listOf("billing"), true, "proposed")
     val POST_MONEY_VOUCHERS = Route("postMoneyVouchers", "POST", "/v1/money/vouchers", "/v1/money/vouchers", 1, "money", listOf("patient", "caregiver", "sponsor", "corner"), listOf("billing"), true, "proposed")
     val POST_MONEY_GIFTS = Route("postMoneyGifts", "POST", "/v1/money/gifts", "/v1/money/gifts", 1, "money", listOf("caregiver", "sponsor"), listOf("billing"), true, "proposed")
@@ -350,8 +350,8 @@ object ApisData {
         POST_MONEY_PAYMENTS,
         GET_MONEY_PAYOUTS,
         POST_MONEY_PAYMENTS_V2,
-        POST_MONEY_PAYMENTS_BY_PAYMENT_REF_CASH_CODE,
-        POST_MONEY_PAYMENTS_BY_PAYMENT_REF_RELEASE,
+        POST_MONEY_PAYMENTS_BY_PAYMENT_REF_CASH_CODE_V2,
+        POST_MONEY_PAYMENTS_BY_PAYMENT_REF_RELEASE_V2,
         POST_MONEY_WALLETS,
         POST_MONEY_VOUCHERS,
         POST_MONEY_GIFTS,
@@ -1632,19 +1632,20 @@ object ApisData {
         val stateCode: String,
         val cashCode: String? = null
     )
-    data class PostMoneyPaymentsByPaymentRefCashCodeRequest(
+    data class PostMoneyPaymentsByPaymentRefCashCodeV2Request(
         val idempotencyKey: String,
         val paymentRef: String,
         val code: String
     )
-    data class PostMoneyPaymentsByPaymentRefCashCodeResponse(
+    data class PostMoneyPaymentsByPaymentRefCashCodeV2Response(
         val stateCode: String
     )
-    data class PostMoneyPaymentsByPaymentRefReleaseRequest(
+    data class PostMoneyPaymentsByPaymentRefReleaseV2Request(
         val idempotencyKey: String,
-        val paymentRef: String
+        val paymentRef: String,
+        val reasonCode: String? = null
     )
-    data class PostMoneyPaymentsByPaymentRefReleaseResponse(
+    data class PostMoneyPaymentsByPaymentRefReleaseV2Response(
         val stateCode: String
     )
     data class PostMoneyWalletsRequest(
