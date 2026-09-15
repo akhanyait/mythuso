@@ -21,6 +21,10 @@
 .dv-no-weight { font-weight: 600; color: var(--amber, #b26a00); }
 .dv-mark { margin: 0; }
 .dv-capture-source { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+/* The registry sits in the Control Tower's stacked Incidents page. A grid or flex child keeps its content's width
+   unless told otherwise, so the table widened the page on a phone instead of scrolling inside its own container. */
+.dv-registry, .dv-health, .dv-link { min-width: 0; max-width: 100%; }
+.dv-registry > .table-scroll { max-width: 100%; min-width: 0; overflow-x: auto; }
 .dv-table th small { display: block; font-weight: 400; color: var(--ink-quiet, #5b6b6a); }
 .dv-table td button { white-space: nowrap; }
 .dv-not-connected { margin: 0; }
