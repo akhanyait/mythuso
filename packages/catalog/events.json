@@ -1115,13 +1115,21 @@
    ],
    "neverCarries": [
     { "field": "readingValues", "why": "The readings stay in the record." },
-    { "field": "deviationDetail", "why": "How far a reading moved is a reading." }
+    { "field": "deviationDetail", "why": "How far a reading moved is a reading." },
+    { "field": "baselineValues", "why": "A baseline is readings, and its values stay in the record with them. Added by the Safety lead, Wave 5." },
+    { "field": "raisedByRef", "why": "Who raised a tier is kept by Safety beside the deviation; the envelope's actorRole says which role. Added by the Safety lead, Wave 5." }
    ],
-   "subscribers": ["core", "care", "clinical"]
+   "subscribers": ["core"]
   },
   {
    "type": "safeguarding.reported", "version": 1, "owner": "safety",
    "summary": "A safeguarding concern was reported to the designated safeguarding lead.",
+   "withdrawn": {
+    "on": "2026-09-15",
+    "supersededBy": "safeguarding.reported@2",
+    "formerSubscribers": ["core"],
+    "why": "It carried the kind of concern, which is a protected category, into the log of every engine that heard it, and the reporter's role in the payload beside the envelope's. Core needs neither to open a concern for the desk. Its correction carries the report and nothing else."
+   },
    "payload": [
     { "field": "reportRef", "type": "string", "required": true, "why": "The report." },
     { "field": "categoryCode", "type": "string", "required": true, "why": "Elder or child, and the kind, as a code." },
@@ -1129,6 +1137,20 @@
    ],
    "neverCarries": [
     { "field": "narrative", "why": "What was seen is held by the safeguarding lead, not broadcast." }
+   ],
+   "subscribers": []
+  },
+  {
+   "type": "safeguarding.reported", "version": 2, "owner": "safety",
+   "summary": "A safeguarding concern was recorded, and is held open for the safeguarding officer.",
+   "payload": [
+    { "field": "reportRef", "type": "string", "required": true, "why": "The report, which Safety keeps. Who it is about, what kind of concern it is and who made it are read there, by whoever may." }
+   ],
+   "neverCarries": [
+    { "field": "categoryCode", "why": "The kind of concern is a protected category, and a bus is read by every subscriber." },
+    { "field": "groupCode", "why": "Whether it is about a child, an older person or an adult at risk is Safety's to hold, and Core needs none of it to open a concern." },
+    { "field": "narrative", "why": "What was seen is never typed into Safety, and never broadcast." },
+    { "field": "reporterRef", "why": "Who made a report is told to nobody who does not need to ask them what they saw. The envelope's actorRole says which role recorded it, as every envelope does." }
    ],
    "subscribers": ["core"]
   },
@@ -1551,7 +1573,7 @@
     { "field": "holderName", "why": "Who holds the device is read from the registry by the engine that must act. Added by the Devices lead, Wave 4." },
     { "field": "consumerDevice", "why": "Only a certified device is announced as stale, because device.stale@1 justifies an alert and a consumer device never raises one: packages/catalog/devices.json clinicalWeight. Added by the Devices lead, Wave 4." }
    ],
-   "subscribers": ["core", "care"]
+   "subscribers": ["core", "care", "safety"]
   },
   {
    "type": "device.recalled", "version": 1, "owner": "devices",
@@ -1564,7 +1586,7 @@
     { "field": "holderList", "why": "Who holds a recalled device is read from the registry by the engine that must act." },
     { "field": "markedReadingValue", "why": "The readings a recall marks stay in the record and are named by the registry, never carried here. Added by the Devices lead, Wave 4." }
    ],
-   "subscribers": ["core", "care", "money"]
+   "subscribers": ["core", "care", "money", "safety"]
   },
   {
    "type": "payment.succeeded", "version": 1, "owner": "money",

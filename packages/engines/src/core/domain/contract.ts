@@ -86,3 +86,23 @@ if (!ownerRoles.has(dischargeOwnerRole) || !ownerRoles.has(dischargeFallbackRole
 const dischargeSpan = spanForRung(closedLoop.dischargeReceived.ladderRung.value);
 if (dischargeSpan === undefined) throw new Error('packages/catalog/closed-loop.json gives a discharge follow-up a ladder rung the ladder does not hold, so its owner would have no time anybody chose.');
 export const dischargeSpanMs: number = dischargeSpan;
+
+/* A Sentinel tier raised by a clinician, heard from Safety: the rung from which Core opens a concern at all, who owns it
+   and who it falls back to. The time to acknowledge it is the ladder's for the rung Sentinel raised, so no second number
+   is kept for it. Core reads no Safety contract, and nothing Sentinel sends chooses the owner, the fallback or the time. */
+export const SENTINEL = closedLoop.sentinel.hears as EventKey;
+export const sentinelOpensAtRung: number = closedLoop.sentinel.opensAtRung.value;
+export const sentinelOwnerRole: string = closedLoop.sentinel.ownerRole.value;
+export const sentinelFallbackRole: string = closedLoop.sentinel.fallbackRole.value;
+if (spanForRung(sentinelOpensAtRung) === undefined) throw new Error('packages/catalog/closed-loop.json opens a Sentinel concern from a rung the ladder does not hold, so no tier Sentinel raises would reach anybody.');
+if (!ownerRoles.has(sentinelOwnerRole) || !ownerRoles.has(sentinelFallbackRole) || sentinelOwnerRole === sentinelFallbackRole) throw new Error('packages/catalog/closed-loop.json gives a Sentinel concern an owner or a fallback nobody can be, or the same role twice, so a tier three would reach nobody or have no fallback.');
+
+/* A safeguarding concern recorded at Safety: who owns the concern Core opens, who it falls back to, and the ladder rung whose
+   time the desk has. Closing that concern never closes the report, which Safety keeps open for a safeguarding officer. */
+export const SAFEGUARDING = closedLoop.safeguarding.hears as EventKey;
+export const safeguardingOwnerRole: string = closedLoop.safeguarding.ownerRole.value;
+export const safeguardingFallbackRole: string = closedLoop.safeguarding.fallbackRole.value;
+if (!ownerRoles.has(safeguardingOwnerRole) || !ownerRoles.has(safeguardingFallbackRole) || safeguardingOwnerRole === safeguardingFallbackRole) throw new Error('packages/catalog/closed-loop.json gives a safeguarding concern an owner or a fallback nobody can be, or the same role twice, so a report would reach nobody or have no fallback.');
+const safeguardingSpan = spanForRung(closedLoop.safeguarding.ladderRung.value);
+if (safeguardingSpan === undefined) throw new Error('packages/catalog/closed-loop.json gives a safeguarding concern a ladder rung the ladder does not hold, so the desk would have no time anybody chose.');
+export const safeguardingSpanMs: number = safeguardingSpan;

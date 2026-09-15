@@ -40,6 +40,7 @@ import { emitPassportSharing } from './emit-passport-sharing.mjs';
 import { emitDevices } from './emit-devices.mjs';
 import { emitMomEssential } from './emit-mom-essential.mjs';
 import { emitClinical } from './emit-clinical.mjs';
+import { emitSentinel } from './emit-sentinel.mjs';
 function files(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(join(dir,e.name)):[join(dir,e.name)]); }
 const read = f => readFileSync(f,'utf8');
 const native=[...files('apps/ios/MyThuso'),...files('apps/android/app/src/main')].filter(f=>/\.(swift|kt|xml)$/.test(f));
@@ -1073,14 +1074,14 @@ if(existsSync('apps/api/src')) {
   ['apps/android/app/src/main/java/za/co/mythuso/ui/ClinicalScreens.kt', 'can(it, "sign-clinical-review")', 'Clinical.confirmDecision(it)']
  ]) if (read(f).includes(forbidden) || !read(f).includes(required)) cFail(11, `${f} decides who may sign or confirm a clinical review with ${read(f).includes(forbidden) ? forbidden : 'something other than the review-confirmer setting'}. ${confirmerPromise}`);
  const settingsRoutesSrc = read('packages/engines/src/settings/routes.ts');
- if (!settingsRoutesSrc.includes("ctx.call('GET /v1/clinical/review-confirmers@1'") || !settingsRoutesSrc.includes("answer.answeredBy === 'engine'") || !/confirmers: confirmersIn\(ctx\)/.test(settingsRoutesSrc) || !/reviewersOf\(s, confirmers\)/.test(settingsRoutesSrc)) cFail(11, `packages/engines/src/settings/routes.ts no longer reads who confirms from Clinical, accepts an answer Clinical did not give, or confirms or reads without it. ${confirmerPromise}`);
+ if (!settingsRoutesSrc.includes("ctx.call('GET /v1/clinical/review-confirmers@2'") || !settingsRoutesSrc.includes("answer.answeredBy === 'engine'") || !/confirmers: confirmersIn\(ctx\)/.test(settingsRoutesSrc) || !/reviewersOf\(s, confirmers\)/.test(settingsRoutesSrc)) cFail(11, `packages/engines/src/settings/routes.ts no longer reads who confirms from Clinical, accepts an answer Clinical did not give, or confirms or reads without it. ${confirmerPromise}`);
  for (const f of files('packages/engines/src').filter(f => /\/engine\.ts$/.test(f))) {
   const source = read(f);
   if (!/review: 'POST \/v1\/[a-z]+\/setting-reviews@\d+'/.test(source)) continue;
   const bound = f === cEngineFile ? source.includes('}, { confirmers: ctx => inForceOf(ctx).confirmers })') : source.includes('}, { confirmers: confirmersFromClinical })');
   if (!bound) cFail(11, `${f} binds a settings review route without reading who confirms from Clinical's review-confirmer setting. ${confirmerPromise}`);
  }
- const confirmersRoute = cApi.routes.find(r => r.path === '/v1/clinical/review-confirmers' && r.version === 1 && !r.withdrawn);
+ const confirmersRoute = cApi.routes.find(r => r.path === '/v1/clinical/review-confirmers' && r.version === 2 && !r.withdrawn);
  if (confirmersRoute?.status !== 'built' || confirmersRoute.response.map(f => f.field).join() !== 'settingsVersion,confirmers' || !confirmersRoute.callers.every(c => c.startsWith('engine:'))) cFail(11, `GET /v1/clinical/review-confirmers@1 is not built, answers something beside the version and the roles, or is called by somebody other than an engine. ${confirmerPromise}`);
 
  /* And none of it on a patient's first load. */
@@ -1173,11 +1174,15 @@ const generated = [
     records.json decides, the clinical roles' names from vetting.json and the two settings' defaults. */
  ...['clinical.json', 'apis/clinical.json', 'records.json', 'vetting.json', 'protocols.json']
   .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run clinical', files: emitClinical() })),
+ /* SentinelData carries sentinel.json's tiers and words, the refusals of the four Sentinel and safeguarding routes from
+    apis/safety.json, and the baseline window and minimum from field-safety.json's settings (Safety lead, Wave 5). */
+ ...['sentinel.json', 'apis/safety.json', 'field-safety.json']
+  .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run sentinel', files: emitSentinel() })),
  /* The clinical review pack reads every contract a clinician has to review, so a change to any of them
     without regenerating is a failed build rather than a pack somebody signs against values no longer in force. */
  ...['settings.json', 'care.json', 'booking.json', 'field-safety.json', 'closed-loop.json', 'money.json', 'protocols.json',
   'gilbert-emergency-terms.json', 'assistant.json', 'vetting.json', 'vetting-proposals.json', 'records.json', 'sos.json',
-  'locales.json', 'events.json', 'apis/care.json', 'apis/access.json', 'medicines.json', 'apis/medicines.json', 'verify-in-service.json', 'devices.json']
+  'locales.json', 'events.json', 'apis/care.json', 'apis/access.json', 'medicines.json', 'apis/medicines.json', 'verify-in-service.json', 'devices.json', 'sentinel.json']
   .map(file => ({ source: `packages/catalog/${file}`, command: 'npm run review-pack', files: emitClinicalReviewPack() })),
  /* Wave 5: the pack's section G reads Clinical Intelligence's frames and registries. */
  ...['clinical.json', 'apis/clinical.json'].map(file => ({ source: `packages/catalog/${file}`, command: 'npm run review-pack', files: emitClinicalReviewPack() }))
@@ -8470,7 +8475,8 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const settingsBlock = safetyContract.settings;
  const timingKeys = ['grace', 'panic-window', 'extension-steps', 'extension-ceiling'];
  /* Wave 4 added three for patient SOS and next of kin; they are held to what SOS needs in the Safety · patient SOS block below. */
- const safetySettingKeys = [...timingKeys, 'stale-panic-window-uses-window-in-force', 'settings-changed-by', 'sos-area-window', 'next-of-kin-alert-window', 'next-of-kin-alert-retries'];
+ /* Wave 5 added the two a Sentinel baseline is opened under; they are held to what Sentinel needs of them in the Safety · Sentinel block. */
+ const safetySettingKeys = [...timingKeys, 'stale-panic-window-uses-window-in-force', 'settings-changed-by', 'sos-area-window', 'next-of-kin-alert-window', 'next-of-kin-alert-retries', 'sentinel-baseline-window-days', 'sentinel-baseline-minimum-readings'];
  const allSafetySettings = settingsBlock?.items ?? [];
  if (allSafetySettings.map(s => s.key).join(',') !== safetySettingKeys.join(',')) throw new Error(`packages/catalog/field-safety.json settings.items are ${allSafetySettings.map(s => s.key).join(', ') || 'missing'}; they are ${safetySettingKeys.join(', ')}, once each, so no setting an admin may change is missing and none is changed in two places.`);
  const itemOf = key => allSafetySettings.find(s => s.key === key);
@@ -8527,7 +8533,8 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  for (const id of safetyContract.engineRefusals ?? []) if (!safetyApi.refusals.some(x => x.id === id && x.statement?.trim() && x.answeredBy?.length)) throw new Error(`packages/catalog/field-safety.json names the engine refusal "${id}", and packages/catalog/apis/safety.json declares no engine refusal of that id answered by a route.`);
  /* The SOS and next-of-kin routes keep their sentences on the routes themselves, and an engine refusal answers only the routes it names, so
     their ids are known from there; the Safety · patient SOS block below holds each one to the route that answers it. */
- const sosRouteKeys = safetyApi.routes.filter(r => !r.withdrawn && /^\/v1\/safety\/(sos|next-of-kin)\b/.test(r.path)).map(r => `${r.method} ${r.path}@${r.version}`);
+ /* Wave 5's Sentinel and safeguarding routes keep their sentences on the routes too; the Safety · Sentinel block holds them. */
+ const sosRouteKeys = safetyApi.routes.filter(r => !r.withdrawn && /^\/v1\/safety\/(sos|next-of-kin|sentinel-deviations|sentinel-baselines|safeguarding-reports)\b/.test(r.path)).map(r => `${r.method} ${r.path}@${r.version}`);
  const knownRefusals = new Set([...safetyContract.refusals.map(r => r.id), ...safetyContract.routeRefusals.map(r => r.id), ...(safetyContract.engineRefusals ?? []),
   ...safetyApi.routes.filter(r => sosRouteKeys.includes(`${r.method} ${r.path}@${r.version}`)).flatMap(r => r.refusals.map(x => x.id)),
   ...safetyApi.refusals.filter(x => (x.answeredBy ?? []).some(k => sosRouteKeys.includes(k))).map(x => x.id)]);
@@ -8581,7 +8588,9 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const inProgressHandler = engineSource.slice(engineSource.indexOf("'appointment.in_progress@2': (event, ctx) =>"), engineSource.indexOf("'appointment.completed@2': (event, ctx) =>"));
  if (!engineSource.includes('panicWindowOf(historyOf(ctx.store))') || !/INSERT INTO panics \([^)]*settings_version[^)]*\)/.test(engineSource) || !/INSERT OR IGNORE INTO timers \([^)]*settings_version[^)]*doc[^)]*\)/.test(inProgressHandler)
   || !inProgressHandler.includes('const settings = inForce(historyOf(ctx.store));') || !inProgressHandler.includes('serviceId: String(event.payload.serviceId)') || !/startTimer\([\s\S]*\}, ctx\.clock\.now\(\)\.getTime\(\), settings\);/.test(inProgressHandler)) throw new Error('packages/engines/src/safety/engine.ts no longer starts a visit\'s timer from appointment.in_progress@2 with the service it carries and the settings in force, no longer stores the settings version a panic opened under and a timer started under, or no longer keeps the first a visit was heard under.');
- if (!engineSource.includes("settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@2', change: 'POST /v1/safety/setting-changes@2' })")) throw new Error('packages/engines/src/safety/engine.ts no longer answers its settings routes through packages/engines/src/settings, so its settings would be changed under a second set of rules.');
+ /* At version four and two since the Wave 5 integration: Sentinel's baseline settings wait on a clinical review, so
+    Safety reads who confirms one from Clinical like every other engine, and its read route admits the confirmers. */
+ if (!engineSource.includes("settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@4', change: 'POST /v1/safety/setting-changes@2', review: 'POST /v1/safety/setting-reviews@2' }, { confirmers: confirmersFromClinical })")) throw new Error('packages/engines/src/safety/engine.ts no longer answers its settings routes through packages/engines/src/settings, so its settings would be changed under a second set of rules.');
  const webSafety = read('apps/web/src/lib/field-safety.ts');
  const count = (source, pattern) => (source.match(pattern) ?? []).length;
  if (importsATiming(webSafety) || importsATiming(read('apps/web/src/features/FieldSafety.tsx')) || /timer\.graceMinutes|panic\.windowMinutes|default\.value/.test(webSafety)
@@ -10269,4 +10278,257 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  if (statusesRoute?.status === 'built' ? !signatureStored : hl7Contract.encounters.encounterStatuses.decision !== 'left-proposed' || !hl7Contract.encounters.encounterStatuses.why?.trim()) throw new Error(`GET /v1/record/encounter-statuses/{encounterRef}@1 is ${statusesRoute?.status}${signatureStored ? '' : ' while the Passport stores no signature or supersede'}, or packages/catalog/hl7v2-inbound.json no longer says why it stays proposed. ${hl7Contract.encounters.encounterStatuses.why}`);
 
  console.log(`Record · HL7 v2 bridge: ${hl7Contract.messageTypes.filter(t => t.built).length} message types from ${hl7Contract.facilities.length} registered synthetic partners, read by a hand-written parser that ${hl7Manifests.length} manifests declare no library beside; a patient is matched on PID-3 alone and never on a name or a date of birth; ${inboundRoute.refusals.length} refusals, each with its acknowledgement code and the gateway's sentence; a result is announced by Medicines, received unacknowledged, and never closed before a clinician acknowledges it; ${hl7Events.length} events carry no value, PID detail or message; the quarantine holds ${QUARANTINE_COLUMNS.length} columns and nothing a message said; no MLLP listener, nothing in deploy/, no typed retention or skew; and encounter-statuses@1 stays ${statusesRoute?.status}.`);
+}
+
+/* ==== Safety · Sentinel tiers one to three and safeguarding reports (Wave 5) ==============================
+
+   Added by the Safety lead. Self-contained. Nine things Sentinel and safeguarding must never stop being, each asked of
+   the code that decides it — the domain and the engine runtime are run, not only read:
+
+     1. A consumer or wearable reading never forms a baseline or raises a tier. Devices publishes only what
+        carriesWeight() accepts and Safety admits a reading only from that event; a runtime with both engines shows a
+        consumer reading forming nothing and a tier on it refused, while a certified reading opens a baseline.
+     2. No tier-four path exists: the contract's tiers stop below the ladder's dispatch rung, a tier at or above it is
+        refused in its own words, Core opens a concern below it, and no engine or screen names a rung above the contract's.
+     3. No evaluation answers a tier without a ratified rule: evaluate() answers not evaluated, names no rung, and the
+        contract names no ratified rule the protocol register does not ratify.
+     4. No threshold is typed anywhere: sentinel.json holds no number but its version and its rungs, and no Sentinel
+        source or screen names a threshold, a reference range or a statistic.
+     5. The stale interval is Devices' setting and nothing else: the contract points at it, Safety's settings hold none,
+        no Sentinel source or screen types it, and Safety's device.stale@1 handler reads no setting.
+     6. No event carries a value or a concern's content: sentinel.rung_raised@1 and safeguarding.reported@2 carry
+        references and a rung, refuse the values and the content by name, and are heard by Core alone.
+     7. The reporter is never in a response the reported party's side can read: no safeguarding route admits the patient,
+        a guardian is refused before anything is read, and no response names a reporter at any depth.
+     8. A safeguarding report is never recorded as sent to an authority: the contract says no connection exists, every
+        report the domain records is open and not sent, and no source, screen or sentence says one was.
+     9. No screen types a baseline window or minimum: each reads the settings in force or the generated defaults.
+   And none of it is on a patient's first load, and its generator is registered. */
+{
+ const sentinelFile = 'packages/catalog/sentinel.json';
+ const sentinelDoc = JSON.parse(read(sentinelFile));
+ const safetyApiDoc = JSON.parse(read('packages/catalog/apis/safety.json'));
+ const loopDoc = JSON.parse(read('packages/catalog/closed-loop.json'));
+ const fieldSafetyDoc = JSON.parse(read('packages/catalog/field-safety.json'));
+ const sentinelDomainFile = 'packages/engines/src/safety/domain/sentinel.ts';
+ const safetyEngineFile = 'packages/engines/src/safety/engine.ts';
+ const coreEngineFile = 'packages/engines/src/core/engine.ts';
+ const sentinelScreens = [
+  'apps/web/src/lib/sentinel.ts', 'apps/web/src/features/Sentinel.tsx',
+  'apps/ios/MyThuso/Models/Sentinel.swift', 'apps/ios/MyThuso/Features/SentinelView.swift',
+  'apps/android/app/src/main/java/za/co/mythuso/model/Sentinel.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/SentinelScreens.kt'
+ ];
+ const sentinelPromises = [
+  'A consumer or wearable reading never forms a Sentinel baseline or raises a tier (packages/catalog/sentinel.json baselines).',
+  'Tier four is refused: it needs a certified tier-four device and ratified rules, and neither exists (packages/catalog/sentinel.json tierFour).',
+  'No evaluation answers a tier while no baseline rule or deviation threshold is ratified (packages/catalog/sentinel.json evaluation).',
+  'No clinical threshold, baseline rule or deviation definition is typed anywhere: they come only from the clinical governance board.',
+  'How long a device may be silent before it is stale is Devices\' setting, and lives nowhere else (packages/catalog/sentinel.json baselines.staleIntervalFrom).',
+  'No event carries a reading\'s value, a baseline\'s value, a concern\'s content or who reported it.',
+  'The person a safeguarding report is about, and anybody acting for them, is never shown who made it (packages/catalog/sentinel.json safeguarding.reporterNeverShown).',
+  'A safeguarding report is never recorded as sent to the police or social development, because nothing sends one (packages/catalog/sentinel.json safeguarding.statutory).',
+  'A Sentinel baseline\'s window and minimum are Safety settings that wait on a clinical review, read in force on the web and from the generated defaults on a phone.'
+ ];
+ const sentinelFail = (n, detail) => { throw new Error(`${detail} ${sentinelPromises[n - 1]}`); };
+ const codeOf = source => source.replace(/\/\*[\s\S]*?\*\//g, ' ').split('\n').map(line => line.replace(/(^|\s)\/\/.*$/, '')).join('\n');
+ const snBodyOf = (source, signature) => {
+  const at = source.indexOf(signature);
+  if (at < 0) return '';
+  const open = source.indexOf('{\n', at);
+  let depth = 0;
+  for (let i = open; open >= 0 && i < source.length; i++) {
+   if (source[i] === '{') depth++;
+   if (source[i] === '}' && --depth === 0) return source.slice(open, i + 1);
+  }
+  return '';
+ };
+ const between = (source, from, to) => { const a = source.indexOf(from); const b = source.indexOf(to, a + 1); return a < 0 || b < 0 ? '' : source.slice(a, b); };
+ for (const f of [sentinelDomainFile, safetyEngineFile, ...sentinelScreens]) if (!existsSync(f)) throw new Error(`${f} is gone, so nothing holds Sentinel and safeguarding to what they refuse.`);
+ const liveSafetyKey = key => safetyApiDoc.routes.find(r => !r.withdrawn && `${r.method} ${r.path}@${r.version}` === key);
+ const sentinelDomain = await import('../packages/engines/src/safety/domain/sentinel.ts');
+ const domainSource = read(sentinelDomainFile);
+ const safetyEngineSource = read(safetyEngineFile);
+
+ /* 1. A consumer reading forms nothing and raises nothing, on the runtime and in the code that admits a reading. */
+ {
+  const { MEMORY: snMemory, createClock: snClock, createRuntime: snRuntime } = await import('../packages/engines/src/runtime/index.ts');
+  const { engine: snDevices } = await import('../packages/engines/src/devices/engine.ts');
+  const { engine: snSafety } = await import('../packages/engines/src/safety/engine.ts');
+  const runtime = snRuntime({ env: { MYTHUSO_ENGINES: 'synthetic-data-only' }, engines: [snDevices, snSafety], dataDirectory: snMemory, clock: snClock('2026-09-15T09:00:00+02:00') });
+  const snCall = (route, role, ref, purpose, fields) => runtime.call(route, { role, ref, purpose, fields });
+  try {
+   const devicesDoc = JSON.parse(read('packages/catalog/devices.json'));
+   const registerAs = (deviceClass, serial) => String(snCall('POST /v1/devices/registry@2', 'operator', 'party-proof-ops', 'treatment', deviceClass === 'certified'
+    ? { serial, model: 'Proof', firmware: '1', deviceClass, instrumentKind: 'pulse-oximeter', calibratedOn: '2026-09-01' }
+    : { serial, model: 'Proof', firmware: '1', deviceClass }).body.deviceRef);
+   const linkAs = (deviceRef, observationRef, fields) => {
+    const asked = snCall('POST /v1/devices/readings@2', 'nurse', 'party-proof-nurse', 'treatment', {
+     subjectRef: 'subject-proof', deviceRef, metric: 'pulse', unit: 'bpm', takenAt: '2026-09-15T09:00:00+02:00', source: 'kit-instrument', quality: 'good',
+     consentState: 'granted', intendedUse: 'clinical', simulated: false, ...fields
+    });
+    return asked.status === 200 ? snCall('POST /v1/devices/readings/{readingRef}/observation@1', 'nurse', 'party-proof-nurse', 'treatment', { readingRef: asked.body.readingRef, observationRef }) : asked;
+   };
+   const watch = registerAs('consumer', 'PROOF-WATCH');
+   const consumerEntries = [];
+   for (const source of devicesDoc.sources.filter(s => s.classes.includes('consumer')).map(s => s.id)) for (const quality of devicesDoc.qualities.map(q => q.id)) {
+    const entry = `Observation/proof-${source}-${quality}`;
+    if (linkAs(watch, entry, { source, quality, intendedUse: 'guidance' }).status === 200) consumerEntries.push(entry);
+   }
+   if (!consumerEntries.length) throw new Error('scripts/check-boundaries.mjs could not link a consumer reading on the runtime, so it has shown nothing about what Sentinel does with one.');
+   const before = snCall('GET /v1/safety/sentinel-baselines@1', 'nurse', 'party-proof-nurse', 'treatment', { subjectRef: 'subject-proof' });
+   if (before.body.error !== 'nothing-heard-for-that-patient') sentinelFail(1, `On the runtime, ${consumerEntries.length} consumer readings linked to the record left Safety answering ${JSON.stringify(before.body)} rather than that it heard nothing.`);
+   for (const entry of consumerEntries) {
+    const raised = snCall('POST /v1/safety/sentinel-deviations@2', 'nurse', 'party-proof-nurse', 'treatment', { idempotencyKey: `proof-${entry}`, subjectRef: 'subject-proof', recordEntryRef: entry, rung: 1 });
+    if (raised.body.error !== 'no-clinical-weight-behind-it') sentinelFail(1, `On the runtime, a tier raised on the consumer reading at ${entry} was answered ${JSON.stringify(raised.body)}.`);
+   }
+   linkAs(registerAs('certified', 'PROOF-OX'), 'Observation/proof-certified', {});
+   const after = snCall('GET /v1/safety/sentinel-baselines@1', 'nurse', 'party-proof-nurse', 'treatment', { subjectRef: 'subject-proof' });
+   if (after.status !== 200 || after.body.baselines?.length !== 1 || after.body.baselines[0].countedSoFar !== 1) throw new Error(`On the runtime, a certified reading did not open a baseline holding it (${JSON.stringify(after.body)}), so the refusals above prove nothing.`);
+   if (runtime.faults().length) throw new Error(`The Sentinel proof runtime faulted: ${JSON.stringify(runtime.faults().map(f => f.where))}`);
+  } finally {
+   runtime.close();
+  }
+  const code = codeOf(safetyEngineSource);
+  const handler = between(safetyEngineSource, "'reading.ingested@1': (event, ctx) => {", "'device.stale@1': (event, ctx) => {");
+  if ((code.match(/(?<![\w.])heard\(/g) ?? []).length !== 1 || !/(?<![\w.])heard\(event\.payload,/.test(handler)
+   || (safetyEngineSource.match(/INSERT OR IGNORE INTO sentinel_heard/g) ?? []).length !== 1 || !handler.includes('INSERT OR IGNORE INTO sentinel_heard')) {
+   sentinelFail(1, `${safetyEngineFile} admits a reading to Sentinel other than once, from reading.ingested@1, which Devices publishes only for a reading carrying clinical weight.`);
+  }
+  if (/deviceClass|intendedUse|carriesClinicalWeight|qualityCode/.test(snBodyOf(domainSource, 'export function heard('))) sentinelFail(1, `${sentinelDomainFile} heard() works out a reading's weight a second time. carriesWeight() is the one answer, and it was given before the event was published.`);
+  if (!/\.filter\(r => r\.published/.test(read('apps/web/src/lib/sentinel.ts'))) sentinelFail(1, 'apps/web/src/lib/sentinel.ts seeds Sentinel from readings Devices did not publish.');
+  for (const f of ['apps/ios/MyThuso/Models/Sentinel.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/Sentinel.kt']) {
+   const native = codeOf(read(f));
+   if (!native.includes('Devices.carriesWeight(') || /"(consumer|certified|simulator)"/.test(native)) sentinelFail(1, `${f} does not admit a reading through Devices.carriesWeight(), or names a device class itself.`);
+  }
+ }
+
+ /* 2. No tier four. */
+ const dispatchRung = loopDoc.ladder.rungs.find(r => /dispatch/i.test(r.name))?.rung;
+ if (!Number.isInteger(dispatchRung)) throw new Error('packages/catalog/closed-loop.json has no dispatch rung on its ladder, so scripts/check-boundaries.mjs cannot tell where tier four begins.');
+ if (!sentinelDoc.rungs?.length || sentinelDoc.rungs.some(r => !Number.isInteger(r.rung) || r.rung < 1 || r.rung >= dispatchRung) || sentinelDoc.tierFour?.refused !== true) sentinelFail(2, `${sentinelFile} offers a tier at or above the ladder's dispatch rung, ${dispatchRung}, or no longer refuses tier four.`);
+ if (!liveSafetyKey('POST /v1/safety/sentinel-deviations@2')?.refusals.some(x => x.id === sentinelDoc.tierFour.refusal)) sentinelFail(2, `POST /v1/safety/sentinel-deviations@2 does not declare ${sentinelDoc.tierFour.refusal}.`);
+ const proofReading = sentinelDomain.heard({ readingRef: 'proof', deviceRef: 'device-proof', metric: 'pulse', observationRef: 'Observation/proof' }, 'subject-proof', 0);
+ for (const rung of [dispatchRung, dispatchRung + 1]) {
+  const answer = sentinelDomain.raiseByHand({ deviationRef: 'proof', subjectRef: 'subject-proof', recordEntryRef: 'Observation/proof', rung, byRole: 'doctor', byRef: 'party-proof', undeclared: [] }, [proofReading], 0);
+  if (answer.ok || answer.refusal.id !== sentinelDoc.tierFour.refusal) sentinelFail(2, `${sentinelDomainFile} raiseByHand() answers a tier of ${rung} with ${answer.ok ? 'a tier raised' : `"${answer.refusal.id}"`}.`);
+ }
+ if (!(loopDoc.sentinel?.opensAtRung?.value < dispatchRung)) sentinelFail(2, 'packages/catalog/closed-loop.json opens a Sentinel concern only at or above the dispatch rung.');
+ for (const f of [sentinelDomainFile, safetyEngineFile, coreEngineFile, ...sentinelScreens]) {
+  /* The refusal's own id names tier four in order to refuse it, and is the one place the words may appear. */
+  const found = codeOf(read(f)).replaceAll(sentinelDoc.tierFour.refusal, '').match(/\b(rung|tier)\s*(===|==|=|:)\s*[4-9]\b|\b(tier|rung)[ -](four|4)\b|sentinel\w*dispatch/i);
+  if (found) sentinelFail(2, `${f} names "${found[0]}".`);
+ }
+
+ /* 3. Not evaluated, and never a tier. */
+ const evaluation = sentinelDomain.evaluate();
+ if (Object.keys(evaluation).sort().join() !== 'code,reasonCode,sentence' || evaluation.code !== 'not-evaluated' || evaluation.sentence !== sentinelDoc.evaluation.reasons.find(r => r.id === evaluation.reasonCode)?.sentence) sentinelFail(3, `${sentinelDomainFile} evaluate() answers ${JSON.stringify(evaluation)}.`);
+ const evaluateBody = snBodyOf(domainSource, 'export function evaluate(');
+ if (!evaluateBody || /rung|tier/i.test(codeOf(evaluateBody))) sentinelFail(3, `${sentinelDomainFile} evaluate() names a rung.`);
+ if (!snBodyOf(domainSource, 'export function stateFor(').includes('evaluation: evaluate()')) sentinelFail(3, `${sentinelDomainFile} stateFor() answers an evaluation evaluate() did not give.`);
+ const ratifiedSafety = JSON.parse(read('packages/catalog/protocols.json')).protocols.filter(p => p.engine === 'safety' && p.status === 'ratified').map(p => p.id);
+ if (!Array.isArray(sentinelDoc.evaluation.ratifiedRules) || sentinelDoc.evaluation.ratifiedRules.some(id => !ratifiedSafety.includes(id))) sentinelFail(3, `${sentinelFile} names a ratified rule packages/catalog/protocols.json does not ratify.`);
+ const baselinesRoute = liveSafetyKey('GET /v1/safety/sentinel-baselines@1');
+ if (!baselinesRoute || [...baselinesRoute.response, ...(baselinesRoute.response.find(f => f.field === 'baselines')?.fields ?? [])].some(f => /rung|tier/i.test(f.field))) sentinelFail(3, 'GET /v1/safety/sentinel-baselines@1 answers a baseline or its evaluation with a rung.');
+
+ /* 4. No threshold, anywhere. */
+ const numbersIn = (node, path = '') => Array.isArray(node) ? node.flatMap((x, i) => numbersIn(x, `${path}[${i}]`))
+  : node && typeof node === 'object' ? Object.entries(node).flatMap(([k, v]) => numbersIn(v, `${path}.${k}`)) : typeof node === 'number' ? [path] : [];
+ const strayNumber = numbersIn(sentinelDoc).find(p => p !== '.version' && !/^\.rungs\[\d+\]\.rung$/.test(p));
+ if (strayNumber) sentinelFail(4, `${sentinelFile} holds a number at ${strayNumber}.`);
+ const thresholdWords = /threshold|z-?score|standard ?deviation|stdev|percentile|referenceRange|normalRange|observationRanges|\.ranges\b|median|average|deviationPercent/i;
+ for (const f of [sentinelDomainFile, ...sentinelScreens]) {
+  const hit = codeOf(read(f)).match(thresholdWords);
+  if (hit) sentinelFail(4, `${f} names "${hit[0]}".`);
+ }
+
+ /* 5. The stale interval is Devices'. */
+ if (sentinelDoc.baselines?.staleIntervalFrom !== 'packages/catalog/devices.json#settings.stale-after-minutes') sentinelFail(5, `${sentinelFile} no longer points at Devices' stale-after-minutes.`);
+ if (fieldSafetyDoc.settings.items.some(s => /stale/i.test(s.key) && s.key !== 'stale-panic-window-uses-window-in-force')) sentinelFail(5, 'packages/catalog/field-safety.json holds a stale interval of its own.');
+ const staleSetting = JSON.parse(read('packages/catalog/devices.json')).settings.items.find(s => s.key === 'stale-after-minutes');
+ const staleNumbers = [staleSetting.default.value, staleSetting.bounds.lowest.value, staleSetting.bounds.highest.value].filter(v => v >= 100);
+ const staleTyped = new RegExp(`(?<![\\w.])(${staleNumbers.join('|')})(?![\\w.])|stale-after-minutes|staleAfter\\w*\\s*[:=]\\s*\\d`);
+ for (const f of [sentinelDomainFile, safetyEngineFile, ...sentinelScreens]) {
+  const hit = codeOf(read(f)).match(staleTyped);
+  if (hit) sentinelFail(5, `${f} types "${hit[0]}".`);
+ }
+ for (const [f, reads] of [['apps/web/src/lib/sentinel.ts', 'devicesSettingsNow().staleAfterMinutes'], ['apps/web/src/features/Sentinel.tsx', 'staleIntervalText()'], ['apps/ios/MyThuso/Models/Sentinel.swift', 'Devices.staleAfterMinutes'], ['apps/ios/MyThuso/Features/SentinelView.swift', 'Devices.staleAfterMinutes'], ['apps/android/app/src/main/java/za/co/mythuso/model/Sentinel.kt', 'DevicesData.staleAfterMinutes'], ['apps/android/app/src/main/java/za/co/mythuso/ui/SentinelScreens.kt', 'DevicesData.staleAfterMinutes']]) {
+  if (!read(f).includes(reads)) sentinelFail(5, `${f} no longer reads ${reads}.`);
+ }
+ if (/settingsOf|historyOf|staleAfter/.test(between(safetyEngineSource, "'device.stale@1': (event, ctx) => {", "'device.recalled@1': (event, ctx) => {"))) sentinelFail(5, `${safetyEngineFile} reads a setting when it hears device.stale@1. Devices decided the device was stale under its own interval.`);
+
+ /* 6. Nothing but references and a rung on the bus. */
+ const sentinelEvents = collectEvents().events;
+ const eventAt = key => sentinelEvents.find(e => `${e.type}@${e.version}` === key);
+ for (const [key, mustRefuse] of [['sentinel.rung_raised@1', ['readingValues', 'baselineValues', 'deviationDetail']], ['safeguarding.reported@2', ['categoryCode', 'narrative', 'reporterRef']]]) {
+  const e = eventAt(key);
+  if (!e || e.withdrawn) sentinelFail(6, `${key} is not live.`);
+  const carried = e.payload.find(f => !(/Refs?$/.test(f.field) && f.type === 'string') && !(f.field === 'rung' && f.type === 'integer'));
+  if (carried) sentinelFail(6, `${key} carries "${carried.field}".`);
+  const missing = mustRefuse.filter(name => !e.neverCarries.some(n => n.field === name));
+  if (missing.length) sentinelFail(6, `${key} no longer refuses ${missing.join(', ')} by name.`);
+  if (e.subscribers.join() !== 'core') sentinelFail(6, `${key} is heard by ${e.subscribers.join(', ')}. Core acts on it; an engine that does not act is not told.`);
+ }
+ if (!eventAt('safeguarding.reported@1')?.withdrawn || eventAt('safeguarding.reported@1').subscribers.length) sentinelFail(6, 'safeguarding.reported@1, which carried the kind of concern, is not withdrawn with no subscribers.');
+ const proofReport = sentinelDomain.recordReport({ reportRef: 'proof', subjectRef: 'subject-proof', groupCode: sentinelDomain.groups[0].id, categoryCode: sentinelDomain.categories[0].id, byRole: 'nurse', byRef: 'party-proof', undeclared: [] }, 0);
+ if (!proofReport.ok || JSON.stringify(proofReport.emits.map(e => Object.keys(e.payload))) !== '[["reportRef"]]' || !safetyEngineSource.includes('publishSentinel(ctx, recorded.emits, report.reportRef);')) sentinelFail(6, `${sentinelDomainFile} or ${safetyEngineFile} puts more than the report on the bus, or names the patient as its subject.`);
+ const coreSource = read(coreEngineFile);
+ if (!coreSource.includes('[SENTINEL]: heardSentinelRung, [SAFEGUARDING]: heardSafeguarding') || /categoryCode|groupCode|reporter/.test(snBodyOf(coreSource, 'function heardSafeguarding(')) || !snBodyOf(coreSource, 'function heardSentinelRung(').includes('rung < sentinelOpensAtRung')) sentinelFail(6, `${coreEngineFile} no longer hears a Sentinel tier and a safeguarding report narrowly: a concern from the rung closed-loop.json names, and a report by its reference alone.`);
+
+ /* 7. The reporter is never shown to the reported party's side. */
+ const grantRoles = JSON.parse(read('packages/catalog/consent.json')).grants.recipientRoles.map(r => r.id);
+ const reportedSide = new Set(['patient', 'self', 'guardian', ...grantRoles.filter(id => /caregiver|family|kin|guardian|household/.test(id))]);
+ const safeguardingRoutes = safetyApiDoc.routes.filter(r => !r.withdrawn && r.path.startsWith('/v1/safety/safeguarding-reports'));
+ if (safeguardingRoutes.length < 2) throw new Error('packages/catalog/apis/safety.json has lost a live safeguarding route, so scripts/check-boundaries.mjs reads nothing about who is shown a report.');
+ const namesAtDepth = fields => (fields ?? []).flatMap(f => [f.field, ...namesAtDepth(f.fields)]);
+ for (const r of safeguardingRoutes) {
+  const key = `${r.method} ${r.path}@${r.version}`;
+  const reporterNamed = namesAtDepth(r.response).find(name => /reporter|recordedBy|reportedBy|raisedBy/i.test(name));
+  if (reporterNamed) sentinelFail(7, `${key} answers with "${reporterNamed}".`);
+  const reported = r.callers.filter(c => reportedSide.has(c));
+  if (reported.some(c => c !== 'guardian') || (reported.includes('guardian') && !r.refusals.some(x => x.id === 'guardian-told-nothing-of-safeguarding'))) sentinelFail(7, `${key} admits ${reported.join(', ')}.`);
+ }
+ const listHandler = between(safetyEngineSource, "'GET /v1/safety/safeguarding-reports@1': (request, ctx) => {", '...settingsRoutes(safetySettings');
+ if (!/^[^]*?const guardian = guardianRefused\(ctx\.caller\.role\);\s*if \(guardian\) return refuse\(guardian\.refusal\.id\);\s*if \(request\.undeclared\.length\)/.test(listHandler) || !listHandler.includes('reportsForDesk(') || /recordedByRef|subjectRef|categoryCode/.test(listHandler)) sentinelFail(7, `${safetyEngineFile} answers the safeguarding list without refusing a guardian first, or reaches past reportsForDesk() for the reporter, the patient or the kind.`);
+ const [proofRow] = sentinelDomain.reportsForDesk([proofReport.value], 0);
+ if (Object.keys(proofRow).sort().join() !== 'ageMinutes,groupCode,heldForCode,recordedAt,reportRef,stateCode,statutoryCode,statutoryReasonCode' || sentinelDomain.guardianRefused('guardian')?.refusal.id !== 'guardian-told-nothing-of-safeguarding') sentinelFail(7, `${sentinelDomainFile} gives the desk a row with ${Object.keys(proofRow).join(', ')}, or does not refuse a guardian.`);
+ if (/categoryCode|subjectRef|recordedByRef/.test(snBodyOf(read('apps/web/src/features/Sentinel.tsx'), 'export function SafeguardingDesk('))) sentinelFail(7, 'apps/web/src/features/Sentinel.tsx shows the desk the kind of concern, the patient or the reporter.');
+
+ /* 8. Never sent. */
+ const statutory = sentinelDoc.safeguarding?.statutory;
+ if (statutory?.integrated !== false || statutory.statusCode !== 'not-sent' || !statutory.notSent?.trim() || sentinelDoc.safeguarding.states.length !== 1) sentinelFail(8, `${sentinelFile} says a connection to an authority exists, records a report as other than not sent, or gives a report a second state nothing here could move it to.`);
+ for (const g of sentinelDomain.groups) for (const c of sentinelDomain.categories) {
+  const recorded = sentinelDomain.recordReport({ reportRef: 'proof', subjectRef: 'subject-proof', groupCode: g.id, categoryCode: c.id, byRole: 'nurse', byRef: 'party-proof', undeclared: [] }, 0);
+  if (!recorded.ok || recorded.value.statutoryCode !== statutory.statusCode || recorded.value.stateCode !== sentinelDoc.safeguarding.states[0].id) sentinelFail(8, `${sentinelDomainFile} records a report about ${g.id} for ${c.id} as ${recorded.ok ? recorded.value.statutoryCode : recorded.refusal.id}.`);
+ }
+ const claimsSent = /(?<![Nn]ot |never |nothing is |no report is )(sent|reported|forwarded|submitted) to (SAPS|the police|the South African Police Service|the Department of Social Development|social development|DSD)\b|statutoryCode\s*[:=]\s*['"]sent|['"]statusCode['"]\s*:\s*['"]sent/;
+ for (const f of [sentinelFile, sentinelDomainFile, safetyEngineFile, ...sentinelScreens]) {
+  const hit = (f.endsWith('.json') ? read(f) : codeOf(read(f))).match(claimsSent);
+  if (hit) sentinelFail(8, `${f} says "${hit[0]}".`);
+ }
+ if (/\b(UPDATE|DELETE\s+FROM)\s+safeguarding_reports\b/.test(safetyEngineSource)) sentinelFail(8, `${safetyEngineFile} updates or deletes a safeguarding report, which nothing here may close or send.`);
+
+ /* 9. No screen types a window or a minimum. */
+ const windowSetting = fieldSafetyDoc.settings.items.find(s => s.key === sentinelDoc.baselines.windowSetting);
+ const minimumSetting = fieldSafetyDoc.settings.items.find(s => s.key === sentinelDoc.baselines.minimumSetting);
+ if (!windowSetting || !minimumSetting || [windowSetting, minimumSetting].some(s => s.owner !== 'safety' || s.reviewRequired !== 'sign-clinical-review')) sentinelFail(9, `${sentinelFile} names a window or a minimum that is not a Safety setting waiting on a clinical review.`);
+ const settingNumbers = [windowSetting, minimumSetting].flatMap(s => [s.default.value, s.bounds.lowest.value, s.bounds.highest.value]).filter(v => v >= 10);
+ const typedCount = new RegExp(`\\b(windowDays|minimumReadings|neededToForm|baselineWindowDays|baselineMinimumReadings|needed|days)\\s*[:=]\\s*\\d|(?<![\\w.])(${settingNumbers.join('|')})(?![\\w.])`);
+ for (const f of sentinelScreens) {
+  const hit = codeOf(read(f)).match(typedCount);
+  if (hit) sentinelFail(9, `${f} types "${hit[0]}".`);
+ }
+ for (const [f, reads] of [['apps/web/src/lib/sentinel.ts', 'sentinelSettingsNow()'], ['apps/ios/MyThuso/Models/Sentinel.swift', 'Sentinel.baselineMinimumReadings'], ['apps/android/app/src/main/java/za/co/mythuso/model/Sentinel.kt', 'SentinelData.baselineMinimumReadings']]) {
+  if (!read(f).includes(reads)) sentinelFail(9, `${f} no longer reads ${reads}.`);
+ }
+
+ /* None of it on a patient's first load, and the phones' copy generated by a registered machine. */
+ for (const f of ['apps/web/src/main.tsx', 'apps/web/src/App.tsx', 'apps/web/src/shells/PatientShell.tsx']) {
+  if (existsSync(f) && /from '[^']*(features\/Sentinel|lib\/sentinel)'/.test(read(f))) throw new Error(`${f} imports the Sentinel screens or store. They carry the Safety, Core and Devices domains and every engine's settings, and a patient on metered data must not download them on the first load.`);
+ }
+ const staffShell = read('apps/web/src/shells/StaffShell.tsx');
+ if (/^import [^;]*from '\.\.\/features\/Sentinel'/m.test(staffShell) || !staffShell.includes("lazy(() => import('../features/Sentinel')")) throw new Error('apps/web/src/shells/StaffShell.tsx imports the Sentinel screens statically, or no longer loads them on a dynamic import.');
+ const sentinelScripts = JSON.parse(read('package.json')).scripts;
+ if (sentinelScripts.sentinel !== 'node scripts/emit-sentinel.mjs' || !/npm run sentinel/.test(sentinelScripts.generate)) throw new Error('package.json no longer registers scripts/emit-sentinel.mjs as npm run sentinel and in npm run generate, so the phones\' copy of the Sentinel contract would stop being regenerated.');
+
+ console.log(`Safety · Sentinel and safeguarding: a consumer reading forms no baseline and raises no tier on the runtime; tiers stop at ${Math.max(...sentinelDoc.rungs.map(r => r.rung))} and tier four is refused; every evaluation is not evaluated; ${sentinelScreens.length} screens and the domain type no threshold, stale interval, window or minimum; two events carry references and a rung and are heard by Core alone; ${safeguardingRoutes.length} safeguarding routes show nobody on the reported party's side the reporter; and ${sentinelDomain.groups.length * sentinelDomain.categories.length} reports the domain could record are open and not sent.`);
 }

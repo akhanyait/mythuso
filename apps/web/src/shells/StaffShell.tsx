@@ -49,6 +49,12 @@ const KitHealth = lazy(() => import('../features/Devices').then(m => ({ default:
 const DeviceRegistryDesk = lazy(() => import('../features/Devices').then(m => ({ default: m.DeviceRegistryDesk })));
 /* The HL7 v2 quarantine, a development operator's view (Wave 5): its own import, fetched when the Control Tower opens it. */
 const Hl7Quarantine = lazy(() => import('../features/Hl7Quarantine').then(m => ({ default: m.Hl7Quarantine })));
+/* Sentinel and safeguarding arrive when a nurse opens her kit or her assessment, a doctor opens a patient, or the Control
+   Tower opens its incidents, and not before: they carry the Safety, Core and Devices domains and every engine's settings
+   through lib/settings. Added by the Safety lead, Wave 5. */
+const SentinelState = lazy(() => import('../features/Sentinel').then(m => ({ default: m.SentinelState })));
+const SafeguardingReport = lazy(() => import('../features/Sentinel').then(m => ({ default: m.SafeguardingReport })));
+const SafeguardingDesk = lazy(() => import('../features/Sentinel').then(m => ({ default: m.SafeguardingDesk })));
 import { VettingApplication, VettingQueue } from '../features/Vetting';
 import { t } from '../lib/i18n';
 import { endSession } from '../lib/auth';
@@ -247,15 +253,15 @@ const OnDeck = ({ role, children }: { role: StaffRole; children: ReactNode }) =>
 function renderSection(role: StaffRole, section: string, open: (m: string) => void, home: () => void) {
  const head = <SectionHead role={role} section={section}/>;
  if (role === 'Nurse') {
-  if (section === 'Assessments') return <OnDeck role={role}><VisitAssessment onClose={home}/><TriageStart/><GuidanceStart/></OnDeck>;
-  if (section === 'Thuso Kit') return <OnDeck role={role}><ThusoKit/><Suspense fallback={null}><KitHealth/></Suspense></OnDeck>;
+  if (section === 'Assessments') return <OnDeck role={role}><VisitAssessment onClose={home}/><TriageStart/><GuidanceStart/><Suspense fallback={null}><SafeguardingReport workspace="nurse"/></Suspense></OnDeck>;
+  if (section === 'Thuso Kit') return <OnDeck role={role}><ThusoKit/><Suspense fallback={null}><KitHealth/><SentinelState workspace="nurse"/></Suspense></OnDeck>;
   if (section === 'Earnings & payouts') return <OnDeck role={role}><Earnings/></OnDeck>;
   if (section === 'Vetting') return <OnDeck role={role}><VettingApplication roleId="nurse" onClose={home}/></OnDeck>;
  }
  if (role === 'Doctor') {
   if (section === 'Protocols') return <OnDeck role={role}><ClinicalProtocols/><TriageStart/><GuidanceStart/></OnDeck>;
   if (section === 'Teleconsultation') return <>{head}<Teleconsult/></>;
-  if (section === 'Patient context') return <OnDeck role={role}><PatientFile open={open}/><PromSchedule/></OnDeck>;
+  if (section === 'Patient context') return <OnDeck role={role}><PatientFile open={open}/><PromSchedule/><Suspense fallback={null}><SentinelState workspace="doctor"/><SafeguardingReport workspace="doctor"/></Suspense></OnDeck>;
   if (section === 'Consultation records') return <OnDeck role={role}><ConsultationFrame/><ConsultationRecord title="Consultation records"/></OnDeck>;
  }
  if (role === 'Partner' && section === 'Substitution & repeats') return <>{head}<Dispensing/></>;
@@ -486,7 +492,7 @@ function sectionBody(section: string, open: (m: string) => void) {
  return section === 'Schedule' ? <NurseSchedule open={open}/>
   : section === 'Review queue' ? <><ReviewQueue open={open}/><ReviewInbox/><SettingReviews/></>
    : section === 'Dispatch' ? <DispatchBoard/>
-    : section === 'Incidents' ? <><SafetyDesk/><SosDesk/><ConcernBoard/><IncidentBoard open={open} notice={false}/><HeldCashPayments/><Suspense fallback={null}><DeviceRegistryDesk/></Suspense></>
+    : section === 'Incidents' ? <><SafetyDesk/><SosDesk/><Suspense fallback={null}><SafeguardingDesk/><SafeguardingReport workspace="control-tower"/></Suspense><ConcernBoard/><IncidentBoard open={open} notice={false}/><HeldCashPayments/><Suspense fallback={null}><DeviceRegistryDesk/></Suspense></>
      : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
       /* The last fallback. Protocols and Quality used to land here — a card whose only control
          opened a dialog saying nothing happens — and both are screens of their own now. What is left

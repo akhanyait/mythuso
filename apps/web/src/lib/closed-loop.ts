@@ -74,6 +74,28 @@ export function closeConcern(loopRef: string, outcomeCode: string, byRole: strin
  return null;
 }
 
+/* A concern another engine's preview hands the board, opened the way Core opens one from an event it hears: under the
+   rota in force now, which the concern keeps, with the owner, fallback, time and alert fields the caller read from
+   packages/engines/src/core/domain/contract.ts. Sentinel's tier three and a safeguarding report arrive this way. One key
+   from one engine is one concern while it is open, however often it is handed in. Added by the Safety lead, Wave 5. */
+export type Opening = {
+ readonly loopRef: string; readonly sourceEngine: string; readonly purpose: string; readonly ownerRole: string; readonly fallbackRole: string;
+ readonly spanMs: number; readonly dedupeKey: string; readonly alert?: { readonly alertRef: string; readonly rung: number; readonly recordEntryRef: string | null };
+};
+export function openConcern(opening: Opening): Loop {
+ const from = advance(current(), Date.now());
+ const open = from.loops.find(loop => loop.closedAt === null && loop.sourceEngine === opening.sourceEngine && loop.dedupeKey === opening.dedupeKey);
+ if (open) return open;
+ const loop: Loop = {
+  loopRef: opening.loopRef, sourceEngine: opening.sourceEngine, purpose: opening.purpose, ownerRole: opening.ownerRole, fallbackRole: opening.fallbackRole,
+  holder: { kind: 'owner' }, rota: escalationRotaNow(), alerted: null, severity: null, openedAt: from.now, dueBy: from.now + opening.spanMs, spanMs: opening.spanMs,
+  acknowledgedAt: null, acknowledgedByRole: null, exhaustedAt: null, announcedAt: null, closedAt: null, outcomeRef: null, outcomeCode: null, closedByRole: null,
+  alertRef: opening.alert?.alertRef ?? null, rung: opening.alert?.rung ?? null, dedupeKey: opening.dedupeKey, recordEntryRef: opening.alert?.recordEntryRef ?? null
+ };
+ commit({ ...from, loops: [...from.loops, loop] });
+ return loop;
+}
+
 const current = () => (state ??= seed(Date.now()));
 function commit(next: ConcernState) {
  state = next;

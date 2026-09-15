@@ -476,8 +476,9 @@
    "path": "/v1/clinical/review-confirmers",
    "version": 1,
    "summary": "Tell an engine whose own settings wait on a clinical review which roles the review-confirmer setting names in force, so every engine's review route confirms for exactly those roles and nothing else decides it.",
-   "callers": ["engine:access", "engine:care", "engine:medicines"],
+   "callers": [],
    "callerJustifications": {"engine:access": "triage.completed@2", "engine:care": "visit.handover.submitted@1", "engine:medicines": "result.acknowledged@1"},
+   "withdrawn": {"on": "2026-09-16", "supersededBy": "GET /v1/clinical/review-confirmers@2", "why": "Safety's Sentinel baseline settings wait on a clinical review too (Wave 5), so Safety reads who confirms one from here as Access, Care and Medicines do. An engine caller added to a frozen route is a widening, so version two carries the same answer to one more engine."},
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -494,6 +495,31 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'GET /v1/clinical/review-confirmers@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/clinical/review-confirmers",
+   "version": 2,
+   "summary": "Tell an engine whose own settings wait on a clinical review which roles the review-confirmer setting names in force, so every engine's review route confirms for exactly those roles and nothing else decides it.",
+   "callers": ["engine:access", "engine:care", "engine:medicines", "engine:safety"],
+   "callerJustifications": {"engine:access": "triage.completed@2", "engine:care": "visit.handover.submitted@1", "engine:medicines": "result.acknowledged@1", "engine:safety": "triage.completed@2"},
+   "purpose": ["audit"],
+   "request": [],
+   "response": [
+    {"field": "settingsVersion", "type": "integer", "required": true, "why": "The Clinical settings version the answer was read under."},
+    {"field": "confirmers", "type": "list", "required": true, "why": "The roles review-confirmer names in force, each a clinical role its own limits allow."}
+   ],
+   "refusals": [
+    {"id": "confirmers-read-by-engines", "status": 403, "statement": "Who confirms a clinical review is read here by an engine whose own settings wait on one, and by nobody else.", "why": "A person reads the setting, who proposed it and every change to it on Clinical's settings route. This answer carries none of that, and is for the engines that confirm reviews by it."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/clinical/engine.ts", "handler": "'GET /v1/clinical/review-confirmers@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {

@@ -112,3 +112,7 @@ GET /v1/access/settings@2 7a3ded0d9f06dd22
 GET /v1/care/settings@2 260672d14e21089f
 GET /v1/clinical/settings@2 51789e871cf2577e
 GET /v1/medicines/settings@2 d2b7aecd399b6d11
+GET /v1/safety/settings@3 0060a35d42fe5b24
+GET /v1/safety/sentinel-baselines@1 18a83c2ff25a0c01
+GET /v1/safety/safeguarding-reports@1 6305bc4740f973f3
+GET /v1/safety/settings@4 bfdaa6492a37f8d5

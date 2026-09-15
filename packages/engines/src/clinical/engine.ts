@@ -190,7 +190,7 @@ export const engine = defineEngine({
 
   /* Who confirms a clinical review, for every other engine whose settings wait on one. The value in force, with the
      version that set it and nothing else: who changed it and why is read on the settings route, by a person. */
-  'GET /v1/clinical/review-confirmers@1': (_request, ctx) => {
+  'GET /v1/clinical/review-confirmers@2': (_request, ctx) => {
    if (!ctx.caller.role.startsWith('engine:')) return refuse('confirmers-read-by-engines');
    const inForce = inForceOf(ctx);
    return ok({ settingsVersion: inForce.settingsVersion, confirmers: [...inForce.confirmers] });

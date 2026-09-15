@@ -23,7 +23,7 @@ import clinicalContract from '../../../catalog/clinical.json' with { type: 'json
    setting's contract default, read from the catalog. */
 const clinical = defineEngine({
  id: 'clinical', subscriptions: {}, store: { schema: '' },
- routes: { 'GET /v1/clinical/review-confirmers@1': () => ok({ settingsVersion: 1, confirmers: [...clinicalContract.settings.items.find(s => s.key === clinicalContract.reviews.confirmerSetting)!.default.value] }) }
+ routes: { 'GET /v1/clinical/review-confirmers@2': () => ok({ settingsVersion: 1, confirmers: [...clinicalContract.settings.items.find(s => s.key === clinicalContract.reviews.confirmerSetting)!.default.value] }) }
 });
 
 const START = '2026-09-14T09:00:00+02:00';

@@ -55,17 +55,42 @@
  * and tries the SOS was pressed under; a guardian is refused on all three before anything else. The arithmetic is
  * ./domain/sos.ts's, and every sentence is packages/catalog/apis/safety.json's.
  *
+ * SENTINEL TIERS ONE TO THREE (Wave 5). Safety hears reading.ingested@1, which Devices publishes only for a reading
+ * carrying clinical weight, and keeps the reading by where it is in the record — never its value. The first reading of a
+ * patient's measure opens a baseline under the window and minimum in force, which the baseline keeps. device.stale@1
+ * suspends every baseline a reading from the device is counted in, until a newer reading from it is heard; device.recalled@1
+ * takes every reading from the device out of every baseline and deletes none. The stale interval is Devices' own: Safety
+ * acts on the announcement and knows no number. Nothing is evaluated, because no baseline rule or threshold is ratified,
+ * and the read route says so in the contract's sentence. POST /v1/safety/sentinel-deviations@2 records a tier a named
+ * clinician chose, one to three, on a reading Safety heard, refuses tier four in its own words, and publishes
+ * sentinel.rung_raised@1, from which Core opens an alert at the rung closed-loop.json names. Version one, which Devices
+ * called with a device class it set itself, is withdrawn with no callers. The arithmetic is ./domain/sentinel.ts's.
+ *
+ * SAFEGUARDING REPORTS (Wave 5). POST /v1/safety/safeguarding-reports@2 records who a concern is about, the group and the
+ * kind chosen from packages/catalog/sentinel.json and who recorded it, and nothing typed. It is open, held for a
+ * safeguarding officer no role on the register holds yet, and not sent to the police or social development; nothing here
+ * updates or deletes a report. It publishes safeguarding.reported@2 carrying the report alone, under the report as its
+ * subject, so no log learns who it is about. The desk's list carries no kind, no patient and no reporter, takes no
+ * filter, and refuses a guardian before anything is read.
+ *
+ * SETTINGS. Sentinel's window and minimum wait on a clinical review, so the settings read is at version three with a
+ * doctor among its callers and the review route is bound; version two is withdrawn with no callers.
+ *
  * Nothing here is a real service: no timer reaches a desk, no panic reaches a person, no press reaches anybody,
- * nobody is told anything, and nobody is sent.
+ * nobody is told anything, nobody is sent, no patient is monitored and no report reaches anybody.
  */
 import { randomUUID } from 'node:crypto';
 import { defineEngine, ok, refuse, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
-import { SETTINGS_SCHEMA, historyOf, settingsRoutes } from '../settings/routes.ts';
+import { SETTINGS_SCHEMA, confirmersFromClinical, historyOf, settingsRoutes } from '../settings/routes.ts';
 import { acknowledgeOverdue, checkIn, close, completeVisit, extend, extensionLeft, silenceOverdue, standingOf, startTimer, stepsOffered, tick as tickTimer, type Timer } from './domain/checkins.ts';
 import { deskQueue } from './domain/desk.ts';
 import { acknowledge, positionFor, raisePanic, resolve, sharingEndsAt, type DeskActor, type Panic } from './domain/panics.ts';
 import { instant, type EmittedEvent, type Result } from './domain/rules.ts';
-import { inForce, panicWindowOf, safetySettings, sosSettingsOf } from './domain/settings.ts';
+import { inForce, panicWindowOf, safetySettings, sentinelSettingsOf, sosSettingsOf } from './domain/settings.ts';
+import {
+ evaluate, guardianRefused, heard, leaveByRecall, openBaseline, raiseByHand, recordReport, reportsForDesk, resumeFor, stateFor, suspendFor,
+ type Baseline, type Deviation, type HeardReading, type Report, type SentinelEmit
+} from './domain/sentinel.ts';
 import {
  alertAgain, areaFor, areaSharingEndsAt, firstAttempts, nominate, nominationStateOf, partnerConnected, raiseSos, sosDesk, sosStateOf, standDownSos, withdrawNomination, wouldSay,
  type Attempt, type Nomination, type Sos
@@ -112,6 +137,33 @@ const schema = [
  ' notification_ref TEXT PRIMARY KEY,',
  ' sos_ref TEXT NOT NULL,',
  ' nomination_ref TEXT NOT NULL,',
+ ' doc TEXT NOT NULL',
+ ');',
+ /* Sentinel holds references and states and nothing a value could be written into: a reading by where it is in the
+    record, a baseline by the settings it was opened under, a tier by who raised it. */
+ 'CREATE TABLE IF NOT EXISTS sentinel_heard (',
+ ' reading_ref TEXT PRIMARY KEY,',
+ ' subject_ref TEXT NOT NULL,',
+ ' device_ref TEXT NOT NULL,',
+ ' metric TEXT NOT NULL,',
+ ' record_entry_ref TEXT NOT NULL UNIQUE,',
+ ' heard_at INTEGER NOT NULL,',
+ ' left_by_recall_at INTEGER',
+ ');',
+ 'CREATE TABLE IF NOT EXISTS sentinel_baselines (',
+ ' subject_ref TEXT NOT NULL,',
+ ' metric TEXT NOT NULL,',
+ ' doc TEXT NOT NULL,',
+ ' PRIMARY KEY (subject_ref, metric)',
+ ');',
+ 'CREATE TABLE IF NOT EXISTS sentinel_deviations (',
+ ' deviation_ref TEXT PRIMARY KEY,',
+ ' subject_ref TEXT NOT NULL,',
+ ' doc TEXT NOT NULL',
+ ');',
+ /* A report is added and never updated or deleted: nothing here closes one. */
+ 'CREATE TABLE IF NOT EXISTS safeguarding_reports (',
+ ' report_ref TEXT PRIMARY KEY,',
  ' doc TEXT NOT NULL',
  ');',
  SETTINGS_SCHEMA
@@ -188,6 +240,23 @@ const putAttempt = (ctx: EngineContext, attempt: Attempt) => {
  ctx.store.prepare('INSERT INTO next_of_kin_attempts (notification_ref, sos_ref, nomination_ref, doc) VALUES (?, ?, ?, ?)').run(attempt.notificationRef, attempt.sosRef, attempt.nominationRef, JSON.stringify(attempt));
 };
 const optionalInstant = (at: number | null) => at === null ? null : instant(at);
+
+/* ── Sentinel and safeguarding ──────────────────────────────────────────────────────────────────────── */
+
+type HeardRow = { reading_ref: string; subject_ref: string; device_ref: string; metric: string; record_entry_ref: string; heard_at: number; left_by_recall_at: number | null };
+const HEARD_COLUMNS = 'reading_ref, subject_ref, device_ref, metric, record_entry_ref, heard_at, left_by_recall_at';
+const allHeard = (ctx: EngineContext): HeardReading[] => (ctx.store.prepare(`SELECT ${HEARD_COLUMNS} FROM sentinel_heard ORDER BY heard_at, rowid`).all() as HeardRow[]).map(row => ({
+ readingRef: row.reading_ref, subjectRef: row.subject_ref, deviceRef: row.device_ref, metric: row.metric, recordEntryRef: row.record_entry_ref, heardAt: row.heard_at, leftByRecallAt: row.left_by_recall_at
+}));
+const allBaselines = (ctx: EngineContext): Baseline[] => (ctx.store.prepare('SELECT doc FROM sentinel_baselines ORDER BY rowid').all() as { doc: string }[]).map(row => JSON.parse(row.doc) as Baseline);
+const putBaseline = (ctx: EngineContext, baseline: Baseline) => {
+ ctx.store.prepare('INSERT INTO sentinel_baselines (subject_ref, metric, doc) VALUES (?, ?, ?) ON CONFLICT(subject_ref, metric) DO UPDATE SET doc = excluded.doc').run(baseline.subjectRef, baseline.metric, JSON.stringify(baseline));
+};
+const allDeviations = (ctx: EngineContext): Deviation[] => (ctx.store.prepare('SELECT doc FROM sentinel_deviations ORDER BY rowid').all() as { doc: string }[]).map(row => JSON.parse(row.doc) as Deviation);
+const allReports = (ctx: EngineContext): Report[] => (ctx.store.prepare('SELECT doc FROM safeguarding_reports ORDER BY rowid').all() as { doc: string }[]).map(row => JSON.parse(row.doc) as Report);
+const publishSentinel = (ctx: EngineContext, emits: readonly SentinelEmit[], subjectRef: string) => {
+ for (const event of emits) ctx.publish((event.type + '@' + event.version) as EventKey, event.payload, { subjectRef });
+};
 
 /* ── The nurse ────────────────────────────────────────────────────────────────────────────────────── */
 
@@ -451,7 +520,62 @@ export const engine = defineEngine({
    return ok({ notificationRef: attempt.notificationRef, statusCode: attempt.statusCode, reasonCode: attempt.reasonCode, attempt: attempt.attempt, attemptsAllowed: sos!.attemptsAllowed, windowEndsAt: instant(sos!.alertWindowEndsAt), wouldSay: wouldSay(now) });
   },
 
-  ...settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@2', change: 'POST /v1/safety/setting-changes@2' })
+  /* A tier raised by a named clinician. Every refusal is decided on the readings Sentinel heard, before anything is kept,
+     and the patient's token is the subject of the event, as it is of any alert about a patient. */
+  'POST /v1/safety/sentinel-deviations@2': (request, ctx) => {
+   const now = nowOf(ctx);
+   const raised = raiseByHand({
+    deviationRef: 'deviation-' + randomUUID(), subjectRef: request.fields.subjectRef, recordEntryRef: request.fields.recordEntryRef, rung: request.fields.rung,
+    byRole: ctx.caller.role, byRef: ctx.caller.ref, undeclared: request.undeclared
+   }, allHeard(ctx), now);
+   if (!raised.ok) return refuse(raised.refusal.id);
+   const deviation = raised.value;
+   ctx.store.prepare('INSERT INTO sentinel_deviations (deviation_ref, subject_ref, doc) VALUES (?, ?, ?)').run(deviation.deviationRef, deviation.subjectRef, JSON.stringify(deviation));
+   publishSentinel(ctx, raised.emits, deviation.subjectRef);
+   return ok({ deviationRef: deviation.deviationRef, rung: deviation.rung, raisedAt: instant(now), toldCode: deviation.toldCode, evaluationCode: evaluate().code });
+  },
+
+  /* Read whole, from what each baseline kept, with the evaluation's answer — which is not evaluated — and never a value. */
+  'GET /v1/safety/sentinel-baselines@1': (request, ctx) => {
+   if (request.undeclared.length) return refuse('sentinel-read-takes-no-filter');
+   const state = stateFor(String(request.fields.subjectRef), allBaselines(ctx), allHeard(ctx), allDeviations(ctx), nowOf(ctx));
+   if (!state) return refuse('nothing-heard-for-that-patient');
+   return ok({
+    evaluationCode: state.evaluation.code, notEvaluatedReasonCode: state.evaluation.reasonCode,
+    baselines: state.baselines.map(b => ({
+     metric: b.metric, stateCode: b.stateCode, countedSoFar: b.countedSoFar, neededToForm: b.neededToForm, windowDays: b.windowDays,
+     settingsVersion: b.settingsVersion, openedAt: instant(b.openedAt), suspendedSince: optionalInstant(b.suspendedSince), leftByRecall: b.leftByRecall
+    })),
+    raised: state.raised.map(d => ({ deviationRef: d.deviationRef, rung: d.rung, recordEntryRef: d.recordEntryRef, raisedAt: instant(d.raisedAt), raisedByRole: d.raisedByRole, toldCode: d.toldCode }))
+   });
+  },
+
+  /* Recorded, held for the officer and not sent, in one act. The report is the subject of the event rather than the patient,
+     so no engine's log learns that a safeguarding concern exists about somebody. */
+  'POST /v1/safety/safeguarding-reports@2': (request, ctx) => {
+   const now = nowOf(ctx);
+   const recorded = recordReport({
+    reportRef: 'safeguarding-' + randomUUID(), subjectRef: String(request.fields.subjectRef), groupCode: request.fields.groupCode, categoryCode: request.fields.categoryCode,
+    byRole: ctx.caller.role, byRef: ctx.caller.ref, undeclared: request.undeclared
+   }, now);
+   if (!recorded.ok) return refuse(recorded.refusal.id);
+   const report = recorded.value;
+   ctx.store.prepare('INSERT INTO safeguarding_reports (report_ref, doc) VALUES (?, ?)').run(report.reportRef, JSON.stringify(report));
+   publishSentinel(ctx, recorded.emits, report.reportRef);
+   return ok({ reportRef: report.reportRef, recordedAt: instant(now), stateCode: report.stateCode, heldForCode: report.heldForCode, statutoryCode: report.statutoryCode, statutoryReasonCode: report.statutoryReasonCode });
+  },
+
+  /* A guardian is refused before anything else, then a filter. The rows are reportsForDesk()'s, which carry no kind, no patient and no reporter. */
+  'GET /v1/safety/safeguarding-reports@1': (request, ctx) => {
+   const guardian = guardianRefused(ctx.caller.role);
+   if (guardian) return refuse(guardian.refusal.id);
+   if (request.undeclared.length) return refuse('safeguarding-list-takes-no-filter');
+   return ok({ items: reportsForDesk(allReports(ctx), nowOf(ctx)).map(row => ({ ...row, recordedAt: instant(row.recordedAt) })) });
+  },
+
+  /* Sentinel's baseline window and minimum wait on a clinical review (Wave 5), so who confirms one is Clinical's
+     review-confirmer setting in force, asked of Clinical, as it is on Access, Care and Medicines. */
+  ...settingsRoutes(safetySettings, { read: 'GET /v1/safety/settings@4', change: 'POST /v1/safety/setting-changes@2', review: 'POST /v1/safety/setting-reviews@2' }, { confirmers: confirmersFromClinical })
  },
  subscriptions: {
   'appointment.in_progress@2': (event, ctx) => {
@@ -474,6 +598,39 @@ export const engine = defineEngine({
    if (!found) return;
    const completed = completeVisit(found.timer, ctx.clock.now().getTime());
    if (completed.ok) putTimer(ctx, completed.value, found.heldBy);
+  },
+  /* A reading that reached the record with clinical weight, which is the only kind Devices publishes on this event. It is
+     heard once, opens the patient's baseline for its measure under the settings in force if none is open, and lifts a
+     suspension its device's silence put on any baseline. A payload without what it declares fails loudly on the trail,
+     rather than a reading quietly missing from somebody's baseline. */
+  'reading.ingested@1': (event, ctx) => {
+   const now = nowOf(ctx);
+   const reading = heard(event.payload, event.subjectRef, now);
+   if (!reading) throw new Error('Safety heard reading.ingested@1 without the reading, device, measure and record entry it declares, and cannot place it in a baseline.');
+   const kept = ctx.store.prepare(`INSERT OR IGNORE INTO sentinel_heard (${HEARD_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+    .run(reading.readingRef, reading.subjectRef, reading.deviceRef, reading.metric, reading.recordEntryRef, reading.heardAt, null);
+   if (!kept.changes) return;
+   const baselines = allBaselines(ctx);
+   if (!baselines.some(b => b.subjectRef === reading.subjectRef && b.metric === reading.metric)) {
+    putBaseline(ctx, openBaseline(reading.subjectRef, reading.metric, sentinelSettingsOf(historyOf(ctx.store)), now));
+   }
+   for (const lifted of resumeFor(baselines, reading.deviceRef, now)) putBaseline(ctx, lifted);
+  },
+  /* Devices announced a certified device stale under its own interval in force. Safety knows no interval: it suspends,
+     from now, every baseline a counted reading from the device is in. */
+  'device.stale@1': (event, ctx) => {
+   const deviceRef = text(event.payload.deviceRef);
+   if (!deviceRef) return;
+   for (const suspended of suspendFor(allBaselines(ctx), allHeard(ctx), deviceRef, nowOf(ctx))) putBaseline(ctx, suspended);
+  },
+  /* Every reading from a recalled device leaves every baseline, marked with when; none is deleted. */
+  'device.recalled@1': (event, ctx) => {
+   const deviceRef = text(event.payload.deviceRef);
+   if (!deviceRef) return;
+   const now = nowOf(ctx);
+   const left = leaveByRecall(allHeard(ctx), allBaselines(ctx), deviceRef, now);
+   for (const reading of left.readings) ctx.store.prepare('UPDATE sentinel_heard SET left_by_recall_at = ? WHERE reading_ref = ? AND left_by_recall_at IS NULL').run(now, reading.readingRef);
+   for (const baseline of left.baselines) putBaseline(ctx, baseline);
   }
  },
  tick: ctx => {

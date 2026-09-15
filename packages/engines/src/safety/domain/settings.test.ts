@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { MINUTE, extensionReasons, serviceMinutes } from './rules.ts';
-import { changeSetting, defaultTimings, defaultsInForce, inForce, keyOf, panicWindowOf, safetyBlock, sosSettingsOf, type SettingsInForce, type TimingId } from './settings.ts';
+import { changeSetting, defaultTimings, defaultsInForce, inForce, keyOf, panicWindowOf, safetyBlock, sentinelSettingsOf, sosSettingsOf, type SettingsInForce, type TimingId } from './settings.ts';
 import type { Bound, Change, ChangeRequest, Result } from '../../settings/shape.ts';
 import { extend, startTimer } from './checkins.ts';
 import { raisePanic } from './panics.ts';
@@ -45,7 +45,12 @@ const withBounds = (key: string, lowest: number, highest: number, run: () => voi
 
 test('the defaults are the contract’s, each inside its own bounds, and each setting is the timing its key names', () => {
  assert.deepEqual(inForce([]), defaultsInForce);
- assert.deepEqual(safetyBlock.items.map(s => s.key), ['grace', 'panic-window', 'extension-steps', 'extension-ceiling', 'stale-panic-window-uses-window-in-force', 'settings-changed-by', 'sos-area-window', 'next-of-kin-alert-window', 'next-of-kin-alert-retries']);
+ assert.deepEqual(safetyBlock.items.map(s => s.key), ['grace', 'panic-window', 'extension-steps', 'extension-ceiling', 'stale-panic-window-uses-window-in-force', 'settings-changed-by', 'sos-area-window', 'next-of-kin-alert-window', 'next-of-kin-alert-retries', 'sentinel-baseline-window-days', 'sentinel-baseline-minimum-readings']);
+ /* Wave 5 added the two a Sentinel baseline is opened under. They wait on a clinical review, and are held to what
+    sentinelSettingsOf reads rather than to a timing key. */
+ const sentinel = sentinelSettingsOf([]);
+ assert.deepEqual([sentinel.windowDays, sentinel.minimumReadings], ['sentinel-baseline-window-days', 'sentinel-baseline-minimum-readings'].map(key => safetyBlock.items.find(s => s.key === key)!.default.value));
+ for (const key of ['sentinel-baseline-window-days', 'sentinel-baseline-minimum-readings']) assert.equal(safetyBlock.items.find(s => s.key === key)!.reviewRequired, 'sign-clinical-review', `${key} waits on a clinical review`);
  /* Wave 4 added three settings an SOS is pressed under. They are not timings a visit or a panic is handed, so they are
     held to what sosSettingsOf reads rather than to a timing key. */
  const sos = sosSettingsOf([]);

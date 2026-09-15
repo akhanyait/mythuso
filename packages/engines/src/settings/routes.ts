@@ -88,7 +88,7 @@ export type ConfirmersReader = (ctx: EngineContext) => readonly string[] | null;
    An answer the development mock gave, or a refusal, is not Clinical's answer, and confirms nobody: a review nobody
    may confirm waits, where a review confirmed by whoever a fallback guessed would be a signature under nothing. */
 export const confirmersFromClinical: ConfirmersReader = ctx => {
- const answer = ctx.call('GET /v1/clinical/review-confirmers@1', {}, { purpose: 'audit' });
+ const answer = ctx.call('GET /v1/clinical/review-confirmers@2', {}, { purpose: 'audit' });
  const roles = answer.body['confirmers'];
  return answer.status === 200 && answer.answeredBy === 'engine' && Array.isArray(roles) && roles.every(role => typeof role === 'string') ? roles as string[] : null;
 };

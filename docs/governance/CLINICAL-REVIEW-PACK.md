@@ -23,7 +23,7 @@ recommendation for the board.
 
 Writing in this pack changes nothing. A decision takes effect only through the contract's own process:
 
-- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`, `POST /v1/trust/setting-changes@2`, `POST /v1/record/setting-changes@1`, `POST /v1/devices/setting-changes@2`, `POST /v1/clinical/setting-changes@1`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/care/setting-reviews@2`, `POST /v1/access/setting-reviews@2`, `POST /v1/medicines/setting-reviews@2`, `POST /v1/clinical/setting-reviews@2`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
+- **Settings (sections A and E).** An admin puts a value in force on the Configuration tab (`POST /v1/safety/setting-changes@2`, `POST /v1/care/setting-changes@1`, `POST /v1/money/setting-changes@1`, `POST /v1/core/setting-changes@1`, `POST /v1/access/setting-changes@1`, `POST /v1/medicines/setting-changes@1`, `POST /v1/trust/setting-changes@2`, `POST /v1/record/setting-changes@1`, `POST /v1/devices/setting-changes@2`, `POST /v1/clinical/setting-changes@1`). For a setting that waits on a clinical review, somebody holding `sign-clinical-review` (Sign a clinical decision) then confirms that exact value, with a reason, in the doctor workspace's "Settings waiting for clinical review" panel (`apps/web/src/features/SettingReviews.tsx`, `POST /v1/safety/setting-reviews@2`, `POST /v1/care/setting-reviews@2`, `POST /v1/access/setting-reviews@2`, `POST /v1/medicines/setting-reviews@2`, `POST /v1/clinical/setting-reviews@2`). "Nobody confirms the clinical review of a change they made themselves." A default can instead be changed in the contract itself, naming the reviewer and the day (`packages/catalog/settings.json` `provenance.reviewed`) with a changelog entry, as `settings.json` `howToChange` describes.
 - **Who can confirm through the panel today:** Doctor (`doctor`), because Clinical's `review-confirmer` setting names that role by default (`packages/catalog/clinical.json`), and every engine's review route confirms for the roles that setting names in force and for nobody else. An admin may name any of Doctor (`doctor`), Registered nurse (`nurse`) on the Configuration tab, and that change waits on a clinical review of its own. A Clinical Governance Lead who is a registered nurse could confirm through the panel once the setting names her role.
 - **Protocols (section B).** "A protocol is not ratified until the register names the role and the person who signed it off, and the day they did." "Changing a ratified protocol means adding a new version that names the one it supersedes. The ratified row is never edited." The row in `packages/catalog/protocols.json` changes status, ratifiedBy and ratifiedOn, and gains a contentRef once the text exists. Core announces a ratification as `protocol.ratified@1`.
 - **Gilbert's emergency terms (section C).** Only in `packages/catalog/gilbert-emergency-terms.json`: raise `version`, add a changelog entry (day, role, terms added and removed, why, the new `termsHash`), keep the shared fixtures passing on all three platforms, and record `clinicalReview.reviewedBy` and `reviewedOn`. `CLAUDE.md` holds the rule; `npm run check` replays the changelog.
@@ -36,23 +36,73 @@ Until a decision is recorded, the app shows "Not clinically reviewed" beside eve
 
 | Section | What waits on a clinician | Items |
 |---|---|---|
-| A | Settings that carry `reviewRequired` and name no reviewer | 8 |
+| A | Settings that carry `reviewRequired` and name no reviewer | 10 |
 | B | Protocols in the registry that are not ratified | 12 |
 | C | Gilbert's emergency terms | 1 |
 | D | Clinical scopes and proposed clinical roles on the vetting register | 8 |
-| E | Other clinical proposals and safety numbers nobody clinical has decided | 23 |
+| E | Other clinical proposals and safety numbers nobody clinical has decided | 31 |
 | F | Clinical content with no clinical sign-off recorded | 3 |
 | G | Clinical Intelligence's frames and empty registries, waiting on the board | 6 |
-| | **Total** | **61** |
+| | **Total** | **71** |
 
 Each item gives the value in force by default, what an admin may set it to, why it was proposed and by whom,
 the question for the reviewer, and blank sign-off fields.
 
 ## A. Settings waiting for clinical review
 
+### Field safety settings (`packages/catalog/field-safety.json`)
+
+#### A1. Sentinel baseline window
+
+| | |
+|---|---|
+| Setting | `safety:sentinel-baseline-window-days` |
+| What it decides | How many days back does a patient's Sentinel baseline count readings with clinical weight from? |
+| In force by default | 30 days |
+| What an admin may set | An admin may set 7 days to 180 days. These limits are proposals nobody has decided. |
+| Guardrail | A Sentinel baseline always looks back at least a week, and never more than six months. |
+| Why this default | A proposal nobody has decided. Proposed by the Safety lead (Wave 5): A month: long enough to hold several visits' readings for a patient seen weekly, short enough that a baseline describes the patient as they are now. Nobody clinical has decided it, and it decides nothing about whether a reading is concerning, because no baseline rule is ratified. |
+| Who may change it | the roles named by the setting `settings-changed-by` |
+| What a change reaches | A change applies to baselines opened after it. A baseline already open keeps the window and the settings version it was opened under. |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/safety/setting-reviews@2` |
+
+**Question for the reviewer:** is 30 days clinically safe as the answer to "How many days back does a patient's Sentinel baseline count readings with clinical weight from", and are the limits an admin may set safe as well?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### A2. Readings before a Sentinel baseline is formed
+
+| | |
+|---|---|
+| Setting | `safety:sentinel-baseline-minimum-readings` |
+| What it decides | How many readings with clinical weight must a patient's baseline hold inside its window before it is shown as formed? |
+| In force by default | 5 readings |
+| What an admin may set | An admin may set 3 readings to 30 readings. These limits are proposals nobody has decided. |
+| Guardrail | A Sentinel baseline is never shown as formed from fewer than three readings, and never asks for more than thirty. |
+| Why this default | A proposal nobody has decided. Proposed by the Safety lead (Wave 5): Five readings is about a month of weekly visits, enough that one unusual day is one reading among several. A formed baseline is a count and nothing more: no baseline rule is ratified, so nothing is worked out from it. |
+| Who may change it | the roles named by the setting `settings-changed-by` |
+| What a change reaches | A change applies to baselines opened after it. A baseline already open keeps the minimum and the settings version it was opened under. |
+| Confirmed by | Somebody who may `sign-clinical-review`, through `POST /v1/safety/setting-reviews@2` |
+
+**Question for the reviewer:** is 5 readings clinically safe as the answer to "How many readings with clinical weight must a patient's baseline hold inside its window before it is shown as formed", and are the limits an admin may set safe as well?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
 ### Care settings (`packages/catalog/care.json`)
 
-#### A1. Who may be offered an injection visit
+#### A3. Who may be offered an injection visit
 
 | | |
 |---|---|
@@ -76,7 +126,7 @@ the question for the reviewer, and blank sign-off fields.
 | HPCSA/SANC number | |
 | Date | |
 
-#### A2. Who may be offered a family planning visit
+#### A4. Who may be offered a family planning visit
 
 | | |
 |---|---|
@@ -100,7 +150,7 @@ the question for the reviewer, and blank sign-off fields.
 | HPCSA/SANC number | |
 | Date | |
 
-#### A3. Who may be offered a sick-note visit
+#### A5. Who may be offered a sick-note visit
 
 | | |
 |---|---|
@@ -124,7 +174,7 @@ the question for the reviewer, and blank sign-off fields.
 | HPCSA/SANC number | |
 | Date | |
 
-#### A4. An Encounter entry counts as signed
+#### A6. An Encounter entry counts as signed
 
 | | |
 |---|---|
@@ -150,7 +200,7 @@ the question for the reviewer, and blank sign-off fields.
 
 ### Access settings (`packages/catalog/booking.json`)
 
-#### A5. Photos in a visit thread
+#### A7. Photos in a visit thread
 
 | | |
 |---|---|
@@ -176,7 +226,7 @@ the question for the reviewer, and blank sign-off fields.
 
 ### Medicines & Labs settings (`packages/catalog/medicines.json`)
 
-#### A6. How urgently an unacknowledged lab result goes to a clinician
+#### A8. How urgently an unacknowledged lab result goes to a clinician
 
 | | |
 |---|---|
@@ -202,7 +252,7 @@ the question for the reviewer, and blank sign-off fields.
 
 ### Clinical Intelligence settings (`packages/catalog/clinical.json`)
 
-#### A7. Who confirms a clinical review
+#### A9. Who confirms a clinical review
 
 | | |
 |---|---|
@@ -226,7 +276,7 @@ the question for the reviewer, and blank sign-off fields.
 | HPCSA/SANC number | |
 | Date | |
 
-#### A8. When a patient is asked whether their care helped
+#### A10. When a patient is asked whether their care helped
 
 | | |
 |---|---|
@@ -482,7 +532,7 @@ From `packages/catalog/protocols.json`. Named and numbered. Not ratified, not in
 | Status | Draft. Ratified by: nobody. Content: none written |
 | Engine that would work under it | `safety` |
 | What ratification would allow | A recommendation or act by the safety engine may cite `safeguarding-and-mandatory-reporting@1` as the ratified protocol it followed. Until then nothing may claim to follow it. |
-| Other contracts that name it | None yet |
+| Other contracts that name it | `packages/catalog/sentinel.json` |
 
 **Question for the reviewer:** what must the safeguarding and mandatory reporting protocol contain before it is ratified, who writes it, and should the board ratify it as version 1?
 
@@ -1192,6 +1242,158 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
+#### E24. The Sentinel tier that opens a concern on the rota
+
+| | |
+|---|---|
+| Where | `packages/catalog/closed-loop.json` `sentinel.opensAtRung` |
+| Why it is clinical | A tier below it pages nobody and a tier at it pages a doctor. Which tier a patient's concern must reach before a clinician is asked to take it on is a clinical judgement. |
+| Proposed value | `3` |
+| Why it was proposed | Proposed by the Safety lead (Wave 5): Rung three is the ladder's Clinician alert. A tier one is recorded and a tier two is for the nurse's own queue, and neither pages anybody; a tier three is somebody a clinician must take on now, which is what a concern on the rota is for. |
+
+**Question for the reviewer:** the contract asks "From which Sentinel rung Core opens a concern on the escalation rota". Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### E25. Who owns a Sentinel concern, and who it falls back to
+
+| | |
+|---|---|
+| Where | `packages/catalog/closed-loop.json` `sentinel.ownerRole` |
+| Why it is clinical | A Sentinel tier three is a concern about a patient's monitoring that nobody has taken on. Which clinician owns it first, and who holds it when they do not answer, decides who judges what the patient needs. |
+| Proposed value | `"doctor"` |
+| Why it was proposed | Proposed by the Safety lead (Wave 5): A tier three is the ladder's Clinician alert, and a doctor is the clinician who can decide what it needs. |
+
+**Question for the reviewer:** the contract asks "Who owns the concern Core opens for a Sentinel tier three". Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### E26. Who owns a Sentinel concern, and who it falls back to
+
+| | |
+|---|---|
+| Where | `packages/catalog/closed-loop.json` `sentinel.fallbackRole` |
+| Why it is clinical | A Sentinel tier three is a concern about a patient's monitoring that nobody has taken on. Which clinician owns it first, and who holds it when they do not answer, decides who judges what the patient needs. |
+| Proposed value | `"nurse"` |
+| Why it was proposed | Proposed by the Safety lead (Wave 5): A registered nurse can go to the patient, and the on-call nurse lead is on the rota around the clock. |
+
+**Question for the reviewer:** the contract asks "Who holds a Sentinel concern the doctor has not taken on in time". Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### E27. How long the desk has to take on a safeguarding concern
+
+| | |
+|---|---|
+| Where | `packages/catalog/closed-loop.json` `safeguarding.ladderRung` |
+| Why it is clinical | A safeguarding concern is somebody who may be at risk. How long it waits before it goes to somebody else belongs with the safeguarding protocol the Clinical Governance Lead signs. |
+| Proposed value | `2` |
+| Why it was proposed | Proposed by the Safety lead (Wave 5): A recorded safeguarding concern is somebody who may be at risk and is not in danger this minute, because somebody in danger is pointed at emergency services first. Rung two gives the desk the ladder's urgent time rather than a second number. |
+
+**Question for the reviewer:** the contract asks "How long the desk has to take on a safeguarding concern before it goes to its fallback". Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### E28. What a Sentinel tier means, and who is told
+
+| | |
+|---|---|
+| Where | `packages/catalog/sentinel.json` `rungs[0]` |
+| Why it is clinical | Each tier says how urgent a concern about a patient's monitoring is and who hears of it: nobody, the nurse's queue, or a doctor on the rota. What each tier means, and whether the right people are told at each, is a clinical decision. |
+| Proposed value | `undefined` |
+| Why it was proposed | Proposed by the Safety lead (Wave 5): A tier that pages nobody gives a clinician somewhere to put an observation that matters for the next visit without making it a concern somebody must close. |
+
+**Question for the reviewer:** Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### E29. What a Sentinel tier means, and who is told
+
+| | |
+|---|---|
+| Where | `packages/catalog/sentinel.json` `rungs[1]` |
+| Why it is clinical | Each tier says how urgent a concern about a patient's monitoring is and who hears of it: nobody, the nurse's queue, or a doctor on the rota. What each tier means, and whether the right people are told at each, is a clinical decision. |
+| Proposed value | `undefined` |
+| Why it was proposed | Proposed by the Safety lead (Wave 5): The ladder's second rung is Nurse review. A nurse's own queue is where it is read, and the rota is kept for what cannot wait for her. |
+
+**Question for the reviewer:** Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### E30. What a Sentinel tier means, and who is told
+
+| | |
+|---|---|
+| Where | `packages/catalog/sentinel.json` `rungs[2]` |
+| Why it is clinical | Each tier says how urgent a concern about a patient's monitoring is and who hears of it: nobody, the nurse's queue, or a doctor on the rota. What each tier means, and whether the right people are told at each, is a clinical decision. |
+| Proposed value | `undefined` |
+| Why it was proposed | Proposed by the Safety lead (Wave 5): The ladder's third rung is Clinician alert. A concern on the escalation rota is the one thing in this build that keeps asking until somebody answers. |
+
+**Question for the reviewer:** Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### E31. The groups and kinds of concern a safeguarding report is recorded under
+
+| | |
+|---|---|
+| Where | `packages/catalog/sentinel.json` `safeguarding.groupsAndCategories` |
+| Why it is clinical | A safeguarding report is recorded against these and nothing typed. Whether they name what a nurse or a doctor needs to say about a child, an older person or an adult at risk belongs with the safeguarding protocol. |
+| Proposed value | `undefined` |
+| Why it was proposed | Proposed by the Safety lead (Wave 5): The kinds of harm South African safeguarding practice names for children and older persons, said plainly. None of them is a diagnosis, and none of them needs a word typed to choose. |
+
+**Question for the reviewer:** the contract asks "The groups and the kinds of concern a safeguarding report is recorded under, until safeguarding-and-mandatory-reporting@1 in packages/catalog/protocols.json is written and ratified". Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
 ## F. Clinical content with no clinical sign-off recorded
 
 #### F1. Reference ranges a reading is flagged against
@@ -1433,6 +1635,8 @@ Listed so that leaving them out is a decision a reviewer can disagree with.
 | `devices:calibration-due-days` | How many days before an instrument's calibration runs out is it shown as due? | How early a calibration is shown as due. An overdue calibration marks every reading taken while it lasts whatever this says, and the cadence itself is packages/catalog/capture.json's. |
 | `devices:kit-deposit` | What deposit is recorded against a kit when it is issued? | The deposit recorded against a kit. A commercial number, recorded and taken from nobody in this build. |
 | `closed-loop.json escalationReasons.byCaller` | The reasons the desk may give for escalating a concern before its deadline. | The reasons the desk moves a concern early say who answered and who can decide, not anything about the patient. |
+| `closed-loop.json safeguarding.ownerRole` | Who owns the concern Core opens when a safeguarding concern is recorded. | Who owns the desk's concern for a safeguarding report says who makes sure the report reaches the safeguarding officer. The report itself is held for that officer, and nothing about the patient is on the concern. |
+| `closed-loop.json safeguarding.fallbackRole` | Who holds a safeguarding concern the desk has not taken on in time. | Who owns the desk's concern for a safeguarding report says who makes sure the report reaches the safeguarding officer. The report itself is held for that officer, and nothing about the patient is on the concern. |
 | `vetting-proposals.json head-of-operations` | Holds the last post on the escalation rota, and answers for a concern the desk and the nurse lead did not take on. | Operations authority over the desk's escalations. The register grants it no record, no summary and no dispatch. |
 
 ## Not yet classified

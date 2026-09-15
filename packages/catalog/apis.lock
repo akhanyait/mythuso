@@ -285,3 +285,12 @@ GET /v1/clinical/settings@2 aa9b8224e6c1e960
 POST /v1/clinical/setting-reviews@2 76245c95b7858435
 GET /v1/medicines/settings@2 c14598c261e32c78
 POST /v1/medicines/setting-reviews@2 68db57fd25017353
+GET /v1/safety/settings@3 f884cd8e32ff0f90
+POST /v1/safety/setting-reviews@1 310247d002eb18cb
+POST /v1/safety/sentinel-deviations@2 e677637b1a1a004b
+GET /v1/safety/sentinel-baselines@1 d5b9a9deb5ed9f0c
+POST /v1/safety/safeguarding-reports@2 e7ecc69923c1c778
+GET /v1/safety/safeguarding-reports@1 1b27b7a0dab8ecca
+GET /v1/clinical/review-confirmers@2 d9bb39253ac955f8
+GET /v1/safety/settings@4 e2a0aafaf0a73409
+POST /v1/safety/setting-reviews@2 f3f178a81103509f

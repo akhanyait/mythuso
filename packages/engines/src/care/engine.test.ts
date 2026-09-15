@@ -37,7 +37,7 @@ const READ: RouteKey = 'GET /v1/care/settings@2';
    setting's contract default, read from the catalog. */
 const clinical = defineEngine({
  id: 'clinical', subscriptions: {}, store: { schema: '' },
- routes: { 'GET /v1/clinical/review-confirmers@1': () => ok({ settingsVersion: 1, confirmers: [...clinicalContract.settings.items.find(s => s.key === clinicalContract.reviews.confirmerSetting)!.default.value] }) }
+ routes: { 'GET /v1/clinical/review-confirmers@2': () => ok({ settingsVersion: 1, confirmers: [...clinicalContract.settings.items.find(s => s.key === clinicalContract.reviews.confirmerSetting)!.default.value] }) }
 });
 const CHANGE: RouteKey = 'POST /v1/care/setting-changes@1';
 const DISPATCHER = 'dispatcher-synthetic-1';

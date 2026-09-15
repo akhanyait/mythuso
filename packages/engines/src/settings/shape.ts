@@ -408,7 +408,7 @@ export function reviewStateOf(setting: Setting, snapshot: Snapshot, reviews: rea
    grants sign-clinical-review to a role, and that grant no longer decides who confirms: an admin who names a senior
    nurse on the Configuration screen reaches every engine's review route at once, and a value outside the setting's
    limits is refused before it is ever in force. The value is Clinical's, kept in Clinical's store, so whoever asks
-   hands it in — Clinical from its own store, every other engine from GET /v1/clinical/review-confirmers@1, the
+   hands it in — Clinical from its own store, every other engine from GET /v1/clinical/review-confirmers@2, the
    preview from the tab's history — and hands in null when it could not be read, which confirms nobody rather than
    falling back to a list somebody typed. */
 const confirmerSetting = (clinical.settings.items as readonly { key: string; allowedRoles?: { roles: readonly string[] } }[]).find(s => s.key === clinical.reviews.confirmerSetting);

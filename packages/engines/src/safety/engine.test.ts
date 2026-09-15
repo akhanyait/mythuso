@@ -25,7 +25,7 @@ import type { Bound } from '../settings/shape.ts';
 
 const START = '2026-09-14T09:00:00+02:00';
 const ROUTE = 'POST /v1/safety/panics@1';
-const READ = 'GET /v1/safety/settings@2';
+const READ = 'GET /v1/safety/settings@4';
 const CHANGE = 'POST /v1/safety/setting-changes@2';
 const CHECKINS = 'GET /v1/safety/checkins@1';
 const EXTEND = 'POST /v1/safety/checkins/{checkinRef}/extend@2';
@@ -319,7 +319,12 @@ test('an admin reads the timings in force with their ranges and an empty history
   assert.equal(s.setAtVersion, 1, `${s.setting} was set by the contract`);
   assert.deepEqual([s.limits.bounds.lowest.value, s.limits.bounds.highest.value, s.unit], [row(s.setting).lowest.value, row(s.setting).highest.value, row(s.setting).unit]);
  }
- for (const role of ['nurse', 'ops-desk']) assert.equal(runtime.call(READ, { role, ref: 'party-synthetic-1', purpose: 'audit', fields: {} }).body.error, 'caller-not-allowed', role);
+ /* The nurse is a caller of the read route since Sentinel's settings began waiting on a clinical review (Wave 5): an
+    admin may name her on Clinical's review-confirmer setting, and somebody who confirms a value reads what she is
+    confirming. She is refused here all the same, by the handler rather than by the runtime, because reading who
+    changed these settings is for the roles that may change them. The desk is not a caller at all. */
+ assert.equal(runtime.call(READ, { role: 'nurse', ref: 'party-synthetic-1', purpose: 'audit', fields: {} }).body.error, 'settings-read-not-permitted', 'nurse');
+ assert.equal(runtime.call(READ, { role: 'ops-desk', ref: 'party-synthetic-1', purpose: 'audit', fields: {} }).body.error, 'caller-not-allowed', 'ops-desk');
  runtime.close();
 });
 

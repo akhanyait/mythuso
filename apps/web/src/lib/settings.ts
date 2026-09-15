@@ -4,7 +4,7 @@ import {
  type Change, type ChangeRequest, type Refusal, type Review, type ReviewState, type Setting, type SettingValue, type SettingsEngine, type Snapshot
 } from '../../../../packages/engines/src/settings/shape.ts';
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
-import { inForce, panicWindowOf, sosSettingsOf, type PanicWindow, type SettingsInForce, type SosSettings } from '../../../../packages/engines/src/safety/domain/settings.ts';
+import { inForce, panicWindowOf, sentinelSettingsOf, sosSettingsOf, type PanicWindow, type SentinelSettings, type SettingsInForce, type SosSettings } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { careInForceOf, type CareInForce } from '../../../../packages/engines/src/care/domain/settings.ts';
 import { doctorFeeOf, nurseShareSentenceOf, planTermsOf, voucherExpiryYearsOf, type DoctorFeeInForce, type PlanTerms } from '../../../../packages/engines/src/money/domain/settings.ts';
 import { rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
@@ -123,6 +123,9 @@ export const devicesSettingsNow = (): DevicesInForce => devicesInForce(historyOf
 /* Clinical's two, read the same way: the inbox asks clinicalSettingsNow() whenever it is drawn or a review is signed,
    for who may confirm; a signature asks it once for the days outcome questions are asked on, and the episode keeps them. */
 export const clinicalSettingsNow = (): ClinicalInForce => clinicalInForce(historyOf('clinical'));
+/* Sentinel's two, read the same way: a baseline asks sentinelSettingsNow() once, when the first reading of a patient's
+   measure opens it, and keeps the window, the minimum and the version it was handed. */
+export const sentinelSettingsNow = (): SentinelSettings => sentinelSettingsOf(historyOf('safety'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not

@@ -46,6 +46,8 @@ struct ThusoKitView: View {
                 /* Whether each instrument is reporting, in date and not recalled, before any of them is paired:
                    a nurse picks up the one that is sound, not the first one in the bag. */
                 KitHealthSection()
+                /* The patient's Sentinel state, made only of what the instruments above published with clinical weight. */
+                SentinelSection(patient: patient)
                 if mayWrite.allowed {
                     discovery
                     pairedInstruments

@@ -101,7 +101,7 @@ enum EventsData {
     static let sosStoodDownV1 = EventKey("sos.stood_down", 1, "safety")
     static let nokNotifiedV1 = EventKey("nok.notified", 1, "safety")
     static let sentinelRungRaisedV1 = EventKey("sentinel.rung_raised", 1, "safety")
-    static let safeguardingReportedV1 = EventKey("safeguarding.reported", 1, "safety")
+    static let safeguardingReportedV2 = EventKey("safeguarding.reported", 2, "safety")
     static let admissionNeedIdentifiedV1 = EventKey("admission.need_identified", 1, "movement")
     static let facilityCandidateSelectedV1 = EventKey("facility.candidate_selected", 1, "movement")
     static let admissionPreauthSubmittedV1 = EventKey("admission.preauth.submitted", 1, "movement")
@@ -219,7 +219,7 @@ enum EventsData {
         sosStoodDownV1,
         nokNotifiedV1,
         sentinelRungRaisedV1,
-        safeguardingReportedV1,
+        safeguardingReportedV2,
         admissionNeedIdentifiedV1,
         facilityCandidateSelectedV1,
         admissionPreauthSubmittedV1,

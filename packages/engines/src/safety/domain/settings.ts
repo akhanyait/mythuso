@@ -101,6 +101,19 @@ export function sosSettingsOf(history: readonly Change[]): SosSettings {
  });
 }
 
+/** What a Sentinel baseline is opened under: how many days back it counts, how many readings it needs before it is shown as
+    formed, and the settings version that said so. Read once, when a baseline is opened by the first reading heard for a
+    patient's measure, and kept on the baseline, so a change reaches baselines opened after it and never rewrites one. */
+export type SentinelSettings = { readonly settingsVersion: number; readonly windowDays: number; readonly minimumReadings: number };
+export function sentinelSettingsOf(history: readonly Change[]): SentinelSettings {
+ const snapshot = snapshotOf(safetyBlock, history);
+ return Object.freeze({
+  settingsVersion: snapshot.settingsVersion,
+  windowDays: snapshot.values['sentinel-baseline-window-days'] as number,
+  minimumReadings: snapshot.values['sentinel-baseline-minimum-readings'] as number
+ });
+}
+
 export function changeSetting(history: readonly Change[], request: ChangeRequest, now: number): Result<{ readonly change: Change; readonly inForce: SettingsInForce }> {
  const result = proposeChange(safetySettings, history, request, now);
  if (!result.ok) return result;
