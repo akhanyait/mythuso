@@ -214,6 +214,7 @@
   "listLength": "{lowest} to {highest} items",
   "limitsAreProposals": "What an admin may set is a proposal nobody has decided.",
   "limitsDecided": "What an admin may set was decided.",
+  "limitsPartlyDecided": "Some of what an admin may set was decided; the rest is a proposal nobody has decided.",
   "appliesTo": "What a change reaches",
   "guardrail": "What no value may do",
   "notReviewed": "Not clinically reviewed",
