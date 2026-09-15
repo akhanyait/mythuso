@@ -124,7 +124,7 @@ export class VisitDesk {
   /* Switched off for this visit, an Encounter entry is not proof of a signature, and nothing else Care can
      ask says whether one exists, so the refusal names the record route that is missing rather than blaming
      the nurse's record. A visit started before the setting existed kept no rule, and is today's behaviour. */
-  if (visit.startedUnder?.encounterEntryCountsAsSigned === false) return refuseForEngine(this.#contract, ROUTES.handover, 'encounter-signature-unconfirmed');
+  if (visit.startedUnder?.encounterEntryCountsAsSigned === false) return refuseForEngine(this.#contract, ROUTES.handover, 'encounter-signature-awaits-status-route');
   if (!this.#record.encounterComplete(request.encounterRef)) return refuse(this.#contract, ROUTES.handover, 'encounter-incomplete');
   visit.handover = { encounterRef: request.encounterRef, submittedAt: now.toISOString() };
   return answer({ reviewQueued: true }, [this.#event(visit, 'visit.handover.submitted', 1, ROUTES.handover, { appointmentRef: visit.appointmentRef, encounterRef: request.encounterRef })]);
@@ -136,7 +136,7 @@ export class VisitDesk {
   if (visit.state === 'completed') return answer({ completedAt: visit.completedAt! });
   if (visit.state !== 'in-progress') return refuse(this.#contract, ROUTES.complete, 'complete-without-start');
   if (!this.#matches(visit, request.visitCode)) return refuse(this.#contract, ROUTES.complete, 'visit-code-wrong');
-  if (visit.startedUnder?.encounterEntryCountsAsSigned === false) return refuseForEngine(this.#contract, ROUTES.complete, 'encounter-signature-unconfirmed');
+  if (visit.startedUnder?.encounterEntryCountsAsSigned === false) return refuseForEngine(this.#contract, ROUTES.complete, 'encounter-signature-awaits-status-route');
   if (!this.#record.encounterSigned(request.encounterRef)) return refuse(this.#contract, ROUTES.complete, 'encounter-unsigned');
   visit.state = 'completed';
   visit.completedAt = now.toISOString();

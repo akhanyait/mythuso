@@ -21,7 +21,7 @@ function desk(people: Candidate[], withBadges = people.map(p => p.clinicianRef),
  offers.register({ appointmentRef: 'TH-9', subjectRef: 'sub-9', serviceId, zone: at('parktown'), scheduledFor: '2026-09-14T16:00:00+02:00', previousClinicianRefs: [] });
  return offers;
 }
-const nurse = (clinicianRef: string, zone: string): Candidate => ({ clinicianRef, roleId: 'nurse', scope: ['Wound care'], base: at(zone) });
+const nurse = (clinicianRef: string, zone: string, scope: readonly string[] = ['Wound care']): Candidate => ({ clinicianRef, roleId: 'nurse', scope, base: at(zone) });
 
 test('an offer goes to the first eligible nurse, expires when the setting in force says, and emits appointment.offered without the patient’s place', () => {
  const offers = desk([nurse('far', 'soweto'), nurse('near', 'parktown')]);
@@ -55,6 +55,83 @@ test('an offer made before the expiry changes keeps the expiry it was made with,
  if (!next.ok) return;
  assert.equal(next.value.offerExpiresAt, addMinutes(addMinutes(NOW, EXPIRY), longer).toISOString(), 'the next offer is made with the expiry in force');
  assert.equal(offers.offerRef(next.value.offerRef)!.settingsVersion, inForce.settingsVersion);
+});
+
+/* ---- A nurse asked for by name, and what the patient answered ----------------------------------------- */
+
+function namedDesk(people: Candidate[], named: string, fallback: 'wait' | 'soonest' | null, scheduledFor = '2026-09-14T16:00:00+02:00') {
+ const trust = new TrustCache(careContract.badgeTiers);
+ for (const p of people) trust.learn({ ...HEARD, subjectRef: p.clinicianRef, occurredAt: '2026-09-14T06:00:00+02:00', payload: { badgeTier: 'verified', hardGatesPassed: true } });
+ const offers = new OfferDesk({ contract: careContract, trust, candidates: () => people, settings: () => careByDefault });
+ offers.register({ appointmentRef: 'TH-9', subjectRef: 'sub-9', serviceId: 'wound', zone: at('parktown'), scheduledFor, previousClinicianRefs: [], namedClinicianRef: named, namedNurseFallback: fallback });
+ return offers;
+}
+const offeredTo = (answer: { ok: boolean; events?: readonly { payload: Record<string, unknown> }[] }) => answer.ok ? answer.events?.[0]?.payload.clinicianRef : null;
+
+test('wait: she is offered it first, and the offer keeps the answer and the settings version it was made under', () => {
+ const offers = namedDesk([nurse('near', 'parktown'), nurse('asked-for', 'soweto')], 'asked-for', 'wait');
+ const made = offers.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW);
+ assert.equal(offeredTo(made), 'asked-for');
+ assert.ok(made.ok);
+ if (!made.ok) return;
+ const offer = offers.offerRef(made.value.offerRef)!;
+ assert.deepEqual([offer.namedNurseFallback, offer.settingsVersion], ['wait', careByDefault.settingsVersion]);
+ assert.equal(offers.toldFor('TH-9'), null, 'nothing to tell while she has it');
+});
+
+test('wait: a lapsed offer goes back to her, never to the nearer nurse, and the patient is told she has not taken it yet', () => {
+ const offers = namedDesk([nurse('near', 'parktown'), nurse('asked-for', 'soweto')], 'asked-for', 'wait');
+ assert.ok(offers.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW).ok);
+ for (let round = 1; round <= 3; round += 1) {
+  const lapsed = offers.lapse(addMinutes(NOW, EXPIRY * round));
+  assert.equal(lapsed.length, 1);
+  assert.equal(offeredTo(lapsed[0]!.next), 'asked-for', `round ${round}`);
+ }
+ assert.ok(offers.offersFor('TH-9').every(o => o.clinicianRef === 'asked-for'), 'nobody else was ever asked');
+ assert.equal(offers.toldFor('TH-9')?.toldId, 'still-waiting');
+});
+
+test('wait: when she declines, when a gate withholds her, or when the hour comes first, nobody else is asked and the patient is told she cannot take it', () => {
+ const people = [nurse('near', 'parktown'), nurse('asked-for', 'soweto')];
+
+ const declined = namedDesk(people, 'asked-for', 'wait');
+ const made = declined.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW);
+ assert.ok(made.ok);
+ if (!made.ok) return;
+ const said = declined.decline({ idempotencyKey: 'd', offerRef: made.value.offerRef }, { clinicianRef: 'asked-for' }, NOW);
+ assert.equal(said.ok && said.value.next && !said.value.next.ok ? said.value.next.id : null, 'waiting-for-named-nurse');
+ assert.equal(declined.passOnDeclined(NOW)[0]?.next.ok, false);
+ assert.deepEqual(declined.toldFor('TH-9') && [declined.toldFor('TH-9')!.toldId, declined.toldFor('TH-9')!.fallback, declined.toldFor('TH-9')!.settingsVersion], ['cannot-take', 'wait', careByDefault.settingsVersion]);
+ assert.equal(declined.offersFor('TH-9').length, 1);
+
+ const outsideScope = namedDesk([nurse('near', 'parktown'), nurse('asked-for', 'soweto', ['Chronic care'])], 'asked-for', 'wait');
+ const refused = outsideScope.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW);
+ assert.deepEqual(refused.ok ? null : [refused.id, refused.status, refused.statement], ['waiting-for-named-nurse', 409, careContract.routes.find(r => r.path === '/v1/care/offers' && r.version === 2)!.refusals.find(r => r.id === 'waiting-for-named-nurse')!.statement]);
+ assert.equal(outsideScope.offersFor('TH-9').length, 0, 'the eligible nearer nurse is not offered it');
+ assert.equal(outsideScope.toldFor('TH-9')?.toldId, 'cannot-take');
+
+ const late = namedDesk(people, 'asked-for', 'wait', addMinutes(NOW, EXPIRY).toISOString());
+ assert.ok(late.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW).ok);
+ const atTheHour = late.lapse(addMinutes(NOW, EXPIRY));
+ assert.equal(atTheHour[0]?.next.ok, false, 'the hour came before she took it');
+ assert.equal(late.toldFor('TH-9')?.toldId, 'cannot-take');
+});
+
+test('soonest: when she cannot take it, the next eligible nurse is offered it and the patient is told who', () => {
+ const offers = namedDesk([nurse('near', 'parktown'), nurse('asked-for', 'soweto')], 'asked-for', 'soonest');
+ assert.equal(offeredTo(offers.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW)), 'asked-for');
+ const lapsed = offers.lapse(addMinutes(NOW, EXPIRY));
+ assert.equal(offeredTo(lapsed[0]!.next), 'near');
+ assert.deepEqual([offers.toldFor('TH-9')?.toldId, offers.toldFor('TH-9')?.offeredToRef, offers.toldFor('TH-9')?.fallback], ['gone-to-soonest', 'near', 'soonest']);
+ const withheld = namedDesk([nurse('near', 'parktown'), nurse('asked-for', 'soweto', ['Chronic care'])], 'asked-for', 'soonest');
+ assert.equal(offeredTo(withheld.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW)), 'near');
+});
+
+test('a named nurse with no answer on record is waited for, never silently replaced', () => {
+ const offers = namedDesk([nurse('near', 'parktown'), nurse('asked-for', 'soweto', ['Chronic care'])], 'asked-for', null);
+ const refused = offers.offer({ idempotencyKey: 'k', appointmentRef: 'TH-9', serviceId: 'wound' }, NOW);
+ assert.equal(refused.ok ? null : refused.id, 'waiting-for-named-nurse');
+ assert.equal(offers.toldFor('TH-9')?.fallback, 'wait');
 });
 
 test('the same idempotency key twice is one offer and no second event', () => {

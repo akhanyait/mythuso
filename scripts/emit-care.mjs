@@ -33,15 +33,22 @@ export function emitCare(root = '') {
  const protocols = read('packages/catalog/protocols.json');
 
  const routeRefusal = (path, id) => {
-  const route = api.routes.find(r => r.method === 'POST' && r.path === path);
+  /* The live version: a withdrawn one keeps the words it was frozen with, and the phones say what a route answers now. */
+  const route = api.routes.filter(r => r.method === 'POST' && r.path === path && !r.withdrawn).sort((a, b) => b.version - a.version)[0];
   const found = route?.refusals.find(r => r.id === id);
-  if (!found) throw new Error(`packages/catalog/apis/care.json has no refusal "${id}" on POST ${path}.`);
+  if (!found) throw new Error(`packages/catalog/apis/care.json has no refusal "${id}" on the live POST ${path}.`);
   return found.statement;
  };
  const engineRefusal = id => {
   const found = api.refusals.find(r => r.id === id);
   if (!found) throw new Error(`packages/catalog/apis/care.json has lost the engine refusal "${id}".`);
   return found.statement;
+ };
+ /* What the patient is told about a visit asked of a nurse by name, with {nurse} and {soonest} left for the screen to fill. */
+ const toldSentence = id => {
+  const found = contract.offers.namedFallback?.told.find(t => t.id === id);
+  if (!found) throw new Error(`${SOURCE} offers.namedFallback has no sentence for "${id}".`);
+  return found.sentence;
  };
  const nurse = vetting.roles.find(r => r.id === 'nurse');
  if (!nurse?.scope?.note) throw new Error('packages/catalog/vetting.json has lost the nurse scope note Care withholds with.');
@@ -95,7 +102,11 @@ export function emitCare(root = '') {
   ['handoverQueued', contract.handover.queued],
   ['completeCodeWrong', routeRefusal('/v1/care/visits/{appointmentRef}/complete', 'visit-code-wrong')],
   ['encounterUnsigned', routeRefusal('/v1/care/visits/{appointmentRef}/complete', 'encounter-unsigned')],
-  ['encounterSignatureUnconfirmed', engineRefusal('encounter-signature-unconfirmed')],
+  ['encounterSignatureUnconfirmed', engineRefusal('encounter-signature-awaits-status-route')],
+  ['waitingForNamedNurse', routeRefusal('/v1/care/offers', 'waiting-for-named-nurse')],
+  ['namedStillWaiting', toldSentence('still-waiting')],
+  ['namedCannotTake', toldSentence('cannot-take')],
+  ['namedGoneToSoonest', toldSentence('gone-to-soonest')],
   ['notClinicallyReviewed', notClinicallyReviewed],
   ['completeWithoutStart', routeRefusal('/v1/care/visits/{appointmentRef}/complete', 'complete-without-start')],
   ['billable', contract.complete.billable]

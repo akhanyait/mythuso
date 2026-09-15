@@ -2,7 +2,8 @@
  "engine": "record",
  "_note": "Record is the Health Passport. Its §26 paths keep their names and are mounted under /v1/record by reference; the P0 service answers most of them already, in development, on synthetic data, on loopback. Share links and export are proposed; the HL7 v2 inbound path is a supplier's, so it is a door to add rather than a route. Every read goes through the consent gateway.",
  "version": 1,
- "resources": ["fhir", "consent", "audit", "share", "export", "breakglass", "summary", "dev-subjects", "session-ends", "consent-checks"],
+ "resources": ["fhir", "consent", "audit", "share", "export", "breakglass", "summary", "dev-subjects", "session-ends", "consent-checks", "encounter-statuses"],
+ "_encounterStatusesNote": "The resource is encounter-statuses and not encounters. A field ending Ref is read as a reference into the store of the engine that declares its resource, so declaring encounters here would make every frozen encounterRef on Care's and Clinical's routes a reach into the record's store, which they are not: they carry the reference and the entry stays in the record.",
  "doors": [],
  "doorsToAdd": [
   {"id": "hl7v2-inbound", "why": "ADT, ORU and ORM messages from partner systems are supplier callbacks. §26 names the path /hl7v2/inbound; it is mounted as a door with mutual TLS per partner, not answered as a route.", "passportPath": "/hl7v2/inbound", "capabilityNamed": {"section": "§26", "what": "ADT/ORU/ORM bridge from partner systems"}},
@@ -322,6 +323,33 @@
    "status": "built",
    "evidence": {"file": "apps/passport/src/server.ts", "handler": "parts[0] === 'fhir'"},
    "enforcedBy": {"mechanism": "passport-grant", "grantReads": ["records", "routine"], "patientToo": true}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/record/encounter-statuses/{encounterRef}",
+   "version": 1,
+   "summary": "Say whether an encounter is written, signed or superseded, and nothing it contains, to the Care engine deciding whether a visit may be handed over or completed.",
+   "callers": ["engine:care"],
+   "callerJustifications": {"engine:care": "passport.entry.written@1"},
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The encounter entry passport.entry.written named, which the nurse hands over and completes against."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "written, signed or superseded. Written is an entry nobody has signed; superseded is one a later entry replaced, and a visit is never completed against it."},
+    {"field": "signedAt", "type": "instant", "required": false, "why": "When it was signed, present only when it is signed."},
+    {"field": "supersededByRef", "type": "string", "required": false, "why": "The entry that replaced it, present only when it is superseded, so Care can ask about that one instead."}
+   ],
+   "refusals": [
+    {"id": "no-such-encounter", "status": 404, "statement": "There is no encounter by that reference here.", "why": "An unknown reference and one for an entry of another kind are one answer, so a status request cannot be used to find out what else a patient's record holds."},
+    {"id": "status-before-written", "status": 409, "statement": "That encounter has not been written yet, so it has no status to give.", "why": "passport.entry.written is what tells Care an encounter exists. A status asked for before it is heard is a guess at a reference, answered as one."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "It changes nothing and returns no clinical content — a state, a time and a reference — so there is no read of the record's content to emit passport.access.read for. The record keeps its own log of the call.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "proposed"
   },
   {
    "method": "POST",

@@ -183,3 +183,8 @@ POST /v1/access/setting-changes@1 995074f2284cabc1
 POST /v1/access/setting-reviews@1 f6bf985ab5c9836f
 POST /v1/access/bookings@2 7724d66e1e54b6dc
 POST /v1/access/conversations/{conversationRef}/handover@2 f06981056ff156cb
+POST /v1/care/offers@2 526ac6d6dce8b1b9
+POST /v1/care/visits/{appointmentRef}/handover@2 56d3c99334a43e81
+POST /v1/care/visits/{appointmentRef}/complete@2 1379a901f82dd225
+POST /v1/care/sync-batches@2 0847a45f47120c57
+GET /v1/record/encounter-statuses/{encounterRef}@1 db50565464dbe5e0

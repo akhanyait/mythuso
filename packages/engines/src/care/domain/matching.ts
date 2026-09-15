@@ -29,7 +29,7 @@
  * wherever it is shown. Ties are broken by the clinician reference so that the same roster produces
  * the same order on every machine. */
 import { distanceKm, isInsideSouthAfrica, MAX_REALISTIC_DISPATCH_KM, type LatLng } from './geo.ts';
-import { requirementFor, serviceFor, type CareContract, type Requirement } from './contract.ts';
+import { requirementFor, routeOf, serviceFor, type CareContract, type Requirement } from './contract.ts';
 import type { TrustReader } from './trust.ts';
 
 export type Candidate = {
@@ -57,7 +57,12 @@ export type AppointmentToFill = {
  readonly supervisorRef?: string | null;
  /** The booking in Access that asked for this visit, kept so completion can name it. Null for a visit no booking asked for. */
  readonly bookingRef?: string | null;
+ /** What the patient answered for a nurse asked for by name who cannot take it: wait or soonest, as booking.requested@2 carried it. */
+ readonly namedNurseFallback?: NamedFallback | null;
 };
+
+/** packages/catalog/booking.json person.fallback.choices, which Care honours. */
+export type NamedFallback = 'wait' | 'soonest';
 
 export type Continuity = 'named' | 'previous' | null;
 export type Ranked = { readonly candidate: Candidate; readonly continuity: Continuity; readonly distanceKm: number };
@@ -71,9 +76,9 @@ export type Match =
  | { readonly kind: 'visit-zone-unknown' };
 
 const trustStatement = (contract: CareContract) =>
- contract.routes.find(r => r.path === '/v1/care/offers')!.refusals.find(r => r.id === 'no-current-trust-score')!.statement;
+ routeOf(contract, '/v1/care/offers').refusals.find(r => r.id === 'no-current-trust-score')!.statement;
 const carerStatement = (contract: CareContract) =>
- contract.routes.find(r => r.path === '/v1/care/offers')!.refusals.find(r => r.id === 'carer-without-rn')!.statement;
+ routeOf(contract, '/v1/care/offers').refusals.find(r => r.id === 'carer-without-rn')!.statement;
 
 /* A service's roles are the row's own, or — for the three visits no named scope covers — the roles in force
    in the setting the row names, as the caller read them when it started this match. A row naming a setting

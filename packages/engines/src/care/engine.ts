@@ -32,20 +32,31 @@
  *               under way. A doctor confirms a scope setting's review through the review route; until one
  *               does the value is in force and the read route says it is not clinically reviewed.
  *
- * WHAT IS NOT BOUND. POST /v1/care/sync-batches: its frozen request carries operation references and
- * nothing else, and capture.json's conflicts cannot be decided without each operation's visit and
- * observation — the domain's SyncIntake decides them, tested, against a shape the route has not got.
- * The four reads (shifts, services, locum shifts, circuits) are answered by the contract mock. */
+ *   Named     booking.requested@2's namedNurseFallback is kept beside the appointment. With wait the offer desk
+ *   nurses    re-offers only the named nurse while the visit's hour has not come; when she cannot be reached the
+ *             offer route refuses with waiting-for-named-nurse and keeps the one row saying the patient is told,
+ *             in care_named_waits. With soonest it passes on and records who it went to. No event carries either
+ *             to Access yet, so the row is Care's and the telling reaches a patient only on the web preview.
+ *   Sync      POST /v1/care/sync-batches@2 carries each operation's visit, observation entry, measure and phone
+ *             time, and binds the domain's SyncIntake, with its batches and attached measures in this store.
+ *
+ * WHAT IS NOT BOUND. The four reads (shifts, services, locum shifts, circuits) are answered by the contract mock. */
 import { randomInt } from 'node:crypto';
 import roster from '../../../catalog/roster.json' with { type: 'json' };
 import geography from '../../../catalog/geography.json' with { type: 'json' };
 import care from '../../../catalog/care.json' with { type: 'json' };
+import records from '../../../catalog/records.json' with { type: 'json' };
 import { defineEngine, ok, refuse, type Answer, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import {
- careContract, careInForceOf, careSettings, instantAt, OfferDesk, TrustCache, VisitDesk,
- type AppointmentToFill, type Candidate, type CareEvent, type Offer, type Visit
+ careContract, careInForceOf, careSettings, instantAt, OfferDesk, SyncIntake, TrustCache, VisitDesk,
+ type AppointmentToFill, type Candidate, type CareEvent, type NamedFallback, type NamedWait, type Offer, type QueuedCapture, type Received, type Visit
 } from './domain/index.ts';
+
+const FALLBACKS: readonly NamedFallback[] = ['wait', 'soonest'];
+const OPERATION_KINDS: readonly string[] = care.sync.operationKinds;
+const MEASURES = new Set(records.observations.measures.map(m => m.id));
+const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
 
 const zoneAt = (name: string | null) => (name ? geography.zones.find(z => z.id === name || z.name === name)?.at : undefined) ?? null;
 
@@ -64,6 +75,9 @@ CREATE TABLE IF NOT EXISTS care_visits (appointment_ref TEXT PRIMARY KEY, docume
 CREATE TABLE IF NOT EXISTS care_badges (subject_ref TEXT PRIMARY KEY, badge_tier TEXT NOT NULL, hard_gates_passed INTEGER NOT NULL, occurred_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS care_encounters (entry_ref TEXT PRIMARY KEY, author_ref TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS care_booking_requests (appointment_ref TEXT PRIMARY KEY, booking_ref TEXT NOT NULL UNIQUE, named_nurse_fallback TEXT);
+CREATE TABLE IF NOT EXISTS care_named_waits (appointment_ref TEXT PRIMARY KEY, document TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS care_sync_batches (batch_key TEXT PRIMARY KEY, document TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS care_sync_observed (appointment_ref TEXT NOT NULL, measure TEXT NOT NULL, PRIMARY KEY (appointment_ref, measure));
 INSERT OR IGNORE INTO care_appointments (appointment_ref, subject_ref, service_id, zone_id, day_offset, slot, named_clinician_ref, previous_clinician_refs, visit_code)
  VALUES (${sql(preview.appointmentRef)}, ${sql(preview.subjectRef)}, ${sql(preview.serviceId)}, ${sql(preview.zone)}, ${preview.dayOffset}, ${sql(preview.slot)},
          ${sql(preview.namedClinicianRef)}, ${sql(JSON.stringify(preview.previousClinicianRefs))}, ${sql(preview.visitCode)});
@@ -75,7 +89,7 @@ type AppointmentRow = {
  day_offset: number | null; slot: string | null; named_clinician_ref: string | null; previous_clinician_refs: string; visit_code: string | null;
 };
 
-type Desks = { trust: TrustCache; offers: OfferDesk; visits: VisitDesk; rows: AppointmentRow[] };
+type Desks = { trust: TrustCache; offers: OfferDesk; visits: VisitDesk; sync: SyncIntake; rows: AppointmentRow[] };
 
 function load(ctx: EngineContext): Desks {
  const now = ctx.clock.now();
@@ -94,8 +108,11 @@ function load(ctx: EngineContext): Desks {
   appointmentRef: row.appointment_ref, subjectRef: row.subject_ref, serviceId: row.service_id, zone: zoneAt(row.zone_id),
   scheduledFor: row.scheduled_for ?? '', namedClinicianRef: row.named_clinician_ref,
   previousClinicianRefs: JSON.parse(row.previous_clinician_refs) as string[],
-  bookingRef: requested.get(row.appointment_ref)?.booking_ref ?? null
+  bookingRef: requested.get(row.appointment_ref)?.booking_ref ?? null,
+  /* An answer this engine does not recognise is kept as no answer, which the offer desk reads as wait. */
+  namedNurseFallback: FALLBACKS.find(f => f === requested.get(row.appointment_ref)?.named_nurse_fallback) ?? null
  }));
+ const told = (ctx.store.prepare('SELECT document FROM care_named_waits').all() as { document: string }[]).map(r => JSON.parse(r.document) as NamedWait);
  const offers = (ctx.store.prepare('SELECT document FROM care_offers ORDER BY rowid').all() as { document: string }[]).map(r => JSON.parse(r.document) as Offer);
  const held = (ctx.store.prepare('SELECT document, visit_code FROM care_visits').all() as { document: string; visit_code: string }[])
   .map(r => ({ visit: JSON.parse(r.document) as Visit, visitCode: r.visit_code }));
@@ -105,12 +122,19 @@ function load(ctx: EngineContext): Desks {
  const trust = new TrustCache(careContract.badgeTiers, badges);
  /* Asked when an offer is made or a visit starts, from this store's own history, and kept by what asked. */
  const inForce = () => careInForceOf(settingsIn(careSettings, ctx.store));
+ const visits = new VisitDesk({ contract: careContract, held, settings: inForce, record: { encounterComplete: ref => written.has(ref), encounterSigned: ref => written.has(ref) } });
+ const batches = (ctx.store.prepare('SELECT batch_key, document FROM care_sync_batches').all() as { batch_key: string; document: string }[]).map(r => [r.batch_key, JSON.parse(r.document) as Received] as const);
+ const observed = (ctx.store.prepare('SELECT appointment_ref, measure FROM care_sync_observed').all() as { appointment_ref: string; measure: string }[]).map(r => [r.appointment_ref, r.measure] as const);
  return {
-  trust, rows,
-  offers: new OfferDesk({ contract: careContract, trust, candidates: () => CANDIDATES, book: { appointments, offers, bookings: held.map(h => h.visit) }, settings: inForce }),
-  visits: new VisitDesk({ contract: careContract, held, settings: inForce, record: { encounterComplete: ref => written.has(ref), encounterSigned: ref => written.has(ref) } })
+  trust, rows, visits,
+  offers: new OfferDesk({ contract: careContract, trust, candidates: () => CANDIDATES, book: { appointments, offers, bookings: held.map(h => h.visit), told }, settings: inForce }),
+  sync: new SyncIntake({ contract: careContract, visits, trust, state: { batches, observed } })
  };
 }
+
+/* The one row a refused offer may keep, as POST /v1/care/offers@2's keptOnRefusal names it: that the patient of a
+   visit waiting for a named nurse is to be told she cannot take it. Everything else the refusal did rolls back. */
+const TOLD_UPSERT = 'INSERT INTO care_named_waits (appointment_ref, document) VALUES (?, ?) ON CONFLICT(appointment_ref) DO UPDATE SET document = excluded.document';
 
 function save(ctx: EngineContext, desks: Desks): void {
  const s = ctx.store;
@@ -125,6 +149,26 @@ function save(ctx: EngineContext, desks: Desks): void {
   s.prepare('INSERT INTO care_badges (subject_ref, badge_tier, hard_gates_passed, occurred_at) VALUES (?, ?, ?, ?) ON CONFLICT(subject_ref) DO UPDATE SET badge_tier = excluded.badge_tier, hard_gates_passed = excluded.hard_gates_passed, occurred_at = excluded.occurred_at')
    .run(b.subjectRef, b.badgeTier, b.hardGatesPassed ? 1 : 0, b.occurredAt);
  }
+ for (const t of desks.offers.state().told ?? []) s.prepare(TOLD_UPSERT).run(t.appointmentRef, JSON.stringify(t));
+ const synced = desks.sync.state();
+ for (const [key, received] of synced.batches) s.prepare('INSERT OR IGNORE INTO care_sync_batches (batch_key, document) VALUES (?, ?)').run(key, JSON.stringify(received));
+ for (const [appointmentRef, measure] of synced.observed) s.prepare('INSERT OR IGNORE INTO care_sync_observed (appointment_ref, measure) VALUES (?, ?)').run(appointmentRef, measure);
+}
+
+/* An operation in a queued batch, held to the inner shape POST /v1/care/sync-batches@2 declares. The binder checks
+   that operations is a list of objects; what is inside each is the handler's to hold, and a batch with one
+   operation it cannot read is refused whole rather than applied round it. */
+type Operation = { operationRef: string; kind: string; appointmentRef: string; observationRef: string; measure: string; deviceAt: string };
+const words = (row: Record<string, unknown>, ...names: string[]) => names.every(n => typeof row[n] === 'string' && (row[n] as string).trim() !== '');
+function operationsIn(request: HandlerRequest): { ok: true; operations: Operation[] } | { ok: false; id: string } {
+ const rows = Array.isArray(request.fields.operations) ? request.fields.operations as unknown[] : [];
+ const objects = rows.filter((row): row is Record<string, unknown> => typeof row === 'object' && row !== null && !Array.isArray(row));
+ if (objects.length !== rows.length) return { ok: false, id: 'operation-incomplete' };
+ /* What was queued is asked before whether it is complete: a start queued without a measure is refused as a start. */
+ if (objects.some(row => typeof row.kind === 'string' && !OPERATION_KINDS.includes(row.kind))) return { ok: false, id: 'operation-not-replayed' };
+ const complete = objects.every(row => words(row, 'operationRef', 'kind', 'appointmentRef', 'observationRef', 'measure', 'deviceAt')
+  && MEASURES.has(row.measure as string) && INSTANT.test(row.deviceAt as string) && Number.isFinite(Date.parse(row.deviceAt as string)));
+ return complete ? { ok: true, operations: objects as unknown as Operation[] } : { ok: false, id: 'operation-incomplete' };
 }
 
 /* The domain's events, onto the bus. The actor defaults to the admitted caller's role; a tick says it
@@ -156,9 +200,16 @@ export const engine = defineEngine({
  store: { schema: SCHEMA },
 
  routes: {
-  'POST /v1/care/offers@1': bind((request, desks, now, _ref, ctx) => {
-   const made = desks.offers.offer({ idempotencyKey: ctx.idempotencyKey ?? text(request, 'idempotencyKey'), appointmentRef: text(request, 'appointmentRef'), serviceId: text(request, 'serviceId') }, now);
-   if (!made.ok) return refuse(made.id);
+  /* A visit waiting for a named nurse she cannot be offered is refused, and the refusal keeps the row saying the
+     patient is told so — the runtime rolls everything else back, and without the row nobody would ever be told. */
+  'POST /v1/care/offers@2': bind((request, desks, now, _ref, ctx) => {
+   const appointmentRef = text(request, 'appointmentRef');
+   const made = desks.offers.offer({ idempotencyKey: ctx.idempotencyKey ?? text(request, 'idempotencyKey'), appointmentRef, serviceId: text(request, 'serviceId') }, now);
+   if (!made.ok) {
+    const told = made.id === 'waiting-for-named-nurse' ? desks.offers.toldFor(appointmentRef) : null;
+    if (told) ctx.recordRefusal(TOLD_UPSERT, told.appointmentRef, JSON.stringify(told));
+    return refuse(made.id);
+   }
    publish(ctx, made.events);
    return ok({ offerRef: made.value.offerRef, offerExpiresAt: made.value.offerExpiresAt });
   }, false),
@@ -200,18 +251,39 @@ export const engine = defineEngine({
    return ok({ attachedCount: attached.value.attachedCount });
   }),
 
-  'POST /v1/care/visits/{appointmentRef}/handover@1': bind((request, desks, now, clinicianRef, ctx) => {
+  'POST /v1/care/visits/{appointmentRef}/handover@2': bind((request, desks, now, clinicianRef, ctx) => {
    const queued = desks.visits.handover({ appointmentRef: text(request, 'appointmentRef'), encounterRef: text(request, 'encounterRef') }, { clinicianRef }, now);
    if (!queued.ok) return refuse(queued.id);
    publish(ctx, queued.events);
    return ok({ reviewQueued: queued.value.reviewQueued });
   }),
 
-  'POST /v1/care/visits/{appointmentRef}/complete@1': bind((request, desks, now, clinicianRef, ctx) => {
+  'POST /v1/care/visits/{appointmentRef}/complete@2': bind((request, desks, now, clinicianRef, ctx) => {
    const done = desks.visits.complete({ appointmentRef: text(request, 'appointmentRef'), visitCode: text(request, 'visitCode'), encounterRef: text(request, 'encounterRef') }, { clinicianRef }, now);
    if (!done.ok) return refuse(done.id);
    publish(ctx, done.events);
    return ok({ completedAt: done.value.completedAt });
+  }),
+
+  /* The offline queue, decided by the domain's SyncIntake exactly as packages/catalog/capture.json resolves each
+     conflict. Who captured a reading is the nurse the runtime admitted, never a field in the batch. Conflicts are
+     answered rather than refused, because a refusal rolls back the readings that did apply. */
+  'POST /v1/care/sync-batches@2': bind((request, desks, now, clinicianRef) => {
+   const read = operationsIn(request);
+   if (!read.ok) return refuse(read.id);
+   const operations: QueuedCapture[] = read.operations.map(o => ({
+    operationRef: o.operationRef, kind: 'capture', appointmentRef: o.appointmentRef, observationId: o.measure, observationRef: o.observationRef, capturedBy: clinicianRef, deviceAt: o.deviceAt
+   }));
+   const received = desks.sync.receive({ batchRef: text(request, 'batchRef'), operations }, { clinicianRef }, now);
+   if (!received.ok) return refuse(received.id);
+   const r = received.value;
+   return ok({
+    acceptedCount: r.acceptedCount,
+    applied: r.applied.map(a => ({ operationRef: a.operationRef, receivedAt: a.receivedAt, deviceAt: a.deviceBelieved, clockSkew: a.clockSkew })),
+    conflicts: r.conflicts.map(c => ({ operationRef: c.operationRef, conflictCode: c.conflictId })),
+    refused: r.refused.map(x => ({ operationRef: x.operationRef, refusalId: x.id })),
+    ...(r.notMerged ? { notMerged: r.notMerged } : {})
+   });
   }),
 
   ...settingsRoutes(careSettings, { read: 'GET /v1/care/settings@1', change: 'POST /v1/care/setting-changes@1', review: 'POST /v1/care/setting-reviews@1' })

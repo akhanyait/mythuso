@@ -11,6 +11,10 @@
    before a change lapses when it said it would, while the next offer reads the change. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { openDatabase } from '../runtime/store.ts';
 import care from '../../../catalog/care.json' with { type: 'json' };
 import roster from '../../../catalog/roster.json' with { type: 'json' };
 import geography from '../../../catalog/geography.json' with { type: 'json' };
@@ -50,8 +54,11 @@ function setup(cleared: readonly string[]) {
  return { runtime, as };
 }
 
+/* A synthetic engine that publishes what it is given on the first tick, for a runtime a test builds itself. */
+const stand = (id: string, acts: ((ctx: EngineContext) => void)[]) => defineEngine({ id, routes: {}, subscriptions: {}, store: { schema: '' }, tick: (ctx: EngineContext) => { for (const act of acts.splice(0)) act(ctx); } });
+
 const offer = (runtime: Runtime, key = 'offer-1', appointmentRef = P.appointmentRef) =>
- runtime.call('POST /v1/care/offers@1', { role: 'dispatcher', ref: DISPATCHER, purpose: 'dispatch', fields: { idempotencyKey: key, appointmentRef, serviceId: P.serviceId } });
+ runtime.call('POST /v1/care/offers@2', { role: 'dispatcher', ref: DISPATCHER, purpose: 'dispatch', fields: { idempotencyKey: key, appointmentRef, serviceId: P.serviceId } });
 const asNurse = (runtime: Runtime, ref: string, route: RouteKey, purpose: string, fields: Record<string, unknown>) =>
  runtime.call(route, { role: 'nurse', ref, purpose, fields });
 const published = (runtime: Runtime, key: string) => runtime.trail.all().filter(e => e.kind === 'published' && e.eventKey === key);
@@ -139,15 +146,15 @@ test('the visit: the code to start, no checklist under a draft, handover and com
  assert.deepEqual([checklist.status, checklist.body.message], [409, 'A checklist runs only under a ratified protocol.']);
  assert.equal(visit('POST /v1/care/visits/{appointmentRef}/capture@1', { observationRefs: ['obs-1', 'obs-2'] }).body.attachedCount, 2);
 
- assert.equal(visit('POST /v1/care/visits/{appointmentRef}/handover@1', { encounterRef: P.encounterRef }).status, 422);
- assert.equal(visit('POST /v1/care/visits/{appointmentRef}/complete@1', { visitCode: P.visitCode, encounterRef: P.encounterRef }).body.error, 'encounter-unsigned');
+ assert.equal(visit('POST /v1/care/visits/{appointmentRef}/handover@2', { encounterRef: P.encounterRef }).status, 422);
+ assert.equal(visit('POST /v1/care/visits/{appointmentRef}/complete@2', { visitCode: P.visitCode, encounterRef: P.encounterRef }).body.error, 'encounter-unsigned');
 
  as('record', ctx => ctx.publish('passport.entry.written@1', { entryRef: P.encounterRef, resourceType: 'Encounter', authorRole: 'nurse', authorRef: P.clinicianRef, provenance: 'nurse-visit' }, { subjectRef: P.subjectRef, purposeOfUse: 'treatment' }));
 
- assert.equal(visit('POST /v1/care/visits/{appointmentRef}/handover@1', { encounterRef: P.encounterRef }).body.reviewQueued, true);
- const wrongEnd = visit('POST /v1/care/visits/{appointmentRef}/complete@1', { visitCode: '482191', encounterRef: P.encounterRef });
+ assert.equal(visit('POST /v1/care/visits/{appointmentRef}/handover@2', { encounterRef: P.encounterRef }).body.reviewQueued, true);
+ const wrongEnd = visit('POST /v1/care/visits/{appointmentRef}/complete@2', { visitCode: '482191', encounterRef: P.encounterRef });
  assert.equal(wrongEnd.body.message, 'The visit code did not match, so the visit is not complete.');
- assert.equal(visit('POST /v1/care/visits/{appointmentRef}/complete@1', { visitCode: P.visitCode, encounterRef: P.encounterRef }).status, 200);
+ assert.equal(visit('POST /v1/care/visits/{appointmentRef}/complete@2', { visitCode: P.visitCode, encounterRef: P.encounterRef }).status, 200);
 
  for (const key of ['appointment.in_progress@2', 'visit.handover.submitted@1', 'appointment.completed@2', 'visit.billable@1']) assert.equal(published(runtime, key).length, 1, key);
  assert.ok(runtime.trail.all().every(e => !e.body.includes(P.visitCode)), 'the visit code is never written to the trail');
@@ -179,6 +186,106 @@ test('a booking heard with a zone geography.json holds becomes a real appointmen
  assert.equal(named.status, 200, JSON.stringify(named.body));
  const [, offeredNamed] = published(runtime, 'appointment.offered@1');
  assert.ok(offeredNamed!.body.includes(askedFor), offeredNamed!.body);
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+/* ---- A nurse asked for by name, on the runtime ---------------------------------------------------- */
+
+const NOT_WOUND = roster.nurses.filter(n => !n.scope.includes('Wound care')).map(n => n.id);
+
+test('wait: a named nurse Care cannot offer the visit is never replaced, the dispatcher is refused in the route’s words, and the row telling the patient survives the rollback', () => {
+ const dir = mkdtempSync(join(tmpdir(), 'mythuso-engines-care-wait-'));
+ try {
+  const runtime = createRuntime({ env: { MYTHUSO_ENGINES: 'synthetic-data-only' }, engines: [engine, stand('trust', [ctx => { for (const ref of [...WOUND, ...NOT_WOUND]) ctx.publish('person.trust_updated@2', { badgeTier: 'verified', hardGatesPassed: true }, { subjectRef: ref, purposeOfUse: 'dispatch' }); }]),
+   stand('access', [ctx => ctx.publish('booking.requested@2', { bookingRef: 'bk-wait', serviceId: 'wound', mode: 'home', requestedFor: '2026-09-15T10:00:00+02:00', zoneId: P.zone, namedClinicianRef: NOT_WOUND[0]!, namedNurseFallback: 'wait' }, { subjectRef: 'sub-bk-wait', purposeOfUse: 'dispatch' })])], dataDirectory: dir, clock: createClock(START) });
+  runtime.advance(1);
+  const refused = offer(runtime, 'o-wait', 'apt-bk-wait');
+  const route = careApi.routes.find(r => r.path === '/v1/care/offers' && r.version === 2)!.refusals.find(r => r.id === 'waiting-for-named-nurse')!;
+  assert.deepEqual([refused.status, refused.body.error, refused.body.message], [route.status, route.id, route.statement]);
+  runtime.advance(care.settings.items.find(s => s.key === 'offer-expiry')!.default.value as number * MINUTE);
+  assert.equal(published(runtime, 'appointment.offered@1').length, 0, 'no nurse was offered it, on the route or from the tick');
+  assert.deepEqual(runtime.faults(), []);
+  runtime.close();
+  const store = openDatabase(dir, 'care');
+  const kept = store.prepare('SELECT document FROM care_named_waits').all() as { document: string }[];
+  store.close();
+  assert.equal(kept.length, 1, 'the refusal kept the one row keptOnRefusal names');
+  assert.deepEqual((({ toldId, fallback, namedClinicianRef }) => ({ toldId, fallback, namedClinicianRef }))(JSON.parse(kept[0]!.document)), { toldId: 'cannot-take', fallback: 'wait', namedClinicianRef: NOT_WOUND[0] });
+ } finally {
+  rmSync(dir, { recursive: true, force: true });
+ }
+});
+
+test('wait: a lapsed offer to her is offered to her again from the tick, and soonest passes it to the next nurse', () => {
+ const run = (fallback: 'wait' | 'soonest') => {
+  const { runtime, as } = setup(WOUND);
+  const named = WOUND[WOUND.length - 1]!;
+  as('access', ctx => ctx.publish('booking.requested@2', { bookingRef: `bk-${fallback}`, serviceId: 'wound', mode: 'home', requestedFor: '2026-09-15T10:00:00+02:00', zoneId: P.zone, namedClinicianRef: named, namedNurseFallback: fallback }, { subjectRef: `sub-${fallback}`, purposeOfUse: 'dispatch' }));
+  assert.equal(offer(runtime, `o-${fallback}`, `apt-bk-${fallback}`).status, 200);
+  runtime.advance(care.settings.items.find(s => s.key === 'offer-expiry')!.default.value as number * MINUTE);
+  const to = published(runtime, 'appointment.offered@1').map(e => (JSON.parse(e.body) as { payload: { clinicianRef: string } }).payload.clinicianRef);
+  assert.deepEqual(runtime.faults(), []);
+  runtime.close();
+  return { named, to };
+ };
+ const waiting = run('wait');
+ assert.deepEqual(waiting.to, [waiting.named, waiting.named], 'offered to her twice and to nobody else');
+ const soonest = run('soonest');
+ assert.equal(soonest.to.length, 2);
+ assert.equal(soonest.to[0], soonest.named);
+ assert.notEqual(soonest.to[1], soonest.named, 'passed to the next eligible nurse');
+});
+
+/* ---- The offline queue, on the runtime --------------------------------------------------------------- */
+
+const SYNC: RouteKey = 'POST /v1/care/sync-batches@2';
+test('a synced batch is held to capture.json’s conflicts through the runtime: duplicate, clock skew, a lapsed capturer and a stale write are shown and never merged', () => {
+ const { runtime, as } = setup(WOUND);
+ const offerRef = String(offer(runtime).body.offerRef);
+ asNurse(runtime, P.clinicianRef, ACCEPT, 'dispatch', { idempotencyKey: 'a-1', offerRef });
+ assert.equal(asNurse(runtime, P.clinicianRef, 'POST /v1/care/visits/{appointmentRef}/start@1', 'treatment', { appointmentRef: P.appointmentRef, visitCode: P.visitCode }).status, 200);
+ const now = runtime.clock.iso();
+ const op = (operationRef: string, measure: string, extra: Record<string, unknown> = {}) => ({ operationRef, kind: 'capture', appointmentRef: P.appointmentRef, observationRef: `obs-${operationRef}`, measure, deviceAt: now, ...extra });
+ const sync = (key: string, batchRef: string, operations: unknown[], who = P.clinicianRef) => asNurse(runtime, who, SYNC, 'treatment', { idempotencyKey: key, batchRef, operations });
+
+ const ahead = new Date(Date.parse(now) + 60 * MINUTE).toISOString();
+ const first = sync('s-1', 'b-1', [op('op1', 'pulse'), op('op2', 'pulse'), op('op3', 'temperature', { deviceAt: ahead })]);
+ assert.equal(first.status, 200, JSON.stringify(first.body));
+ assert.equal(first.body.acceptedCount, 2);
+ assert.deepEqual(first.body.conflicts, [{ operationRef: 'op2', conflictCode: 'duplicate-observation' }]);
+ assert.equal(first.body.notMerged, careApi.routes.find(r => r.path === '/v1/care/sync-batches' && r.version === 2)!.refusals.find(r => r.id === 'conflict-not-merged')!.statement);
+ assert.deepEqual((first.body.applied as { operationRef: string; clockSkew: boolean }[]).map(a => [a.operationRef, a.clockSkew]), [['op1', false], ['op3', true]]);
+ assert.deepEqual(sync('s-2', 'b-1', [op('op9', 'glucose')]).body, first.body, 'the same batch from the same nurse is its first answer, whatever key the retry carries');
+
+ const malformed = sync('s-3', 'b-2', [{ operationRef: 'op4', kind: 'capture', appointmentRef: P.appointmentRef }]);
+ assert.deepEqual([malformed.status, malformed.body.error], [422, 'operation-incomplete']);
+ const notReplayed = sync('s-4', 'b-3', [op('op5', 'pulse', { kind: 'start' })]);
+ assert.deepEqual([notReplayed.status, notReplayed.body.error], [422, 'operation-not-replayed']);
+
+ as('trust', ctx => ctx.publish('person.trust_updated@2', { badgeTier: 'verified', hardGatesPassed: false }, { subjectRef: P.clinicianRef, purposeOfUse: 'dispatch' }));
+ assert.deepEqual(sync('s-5', 'b-4', [op('op6', 'oxygen')]).body.conflicts, [{ operationRef: 'op6', conflictCode: 'vetting-lapsed' }]);
+ as('trust', ctx => ctx.publish('person.trust_updated@2', { badgeTier: 'verified', hardGatesPassed: true }, { subjectRef: P.clinicianRef, purposeOfUse: 'dispatch' }));
+
+ as('record', ctx => ctx.publish('passport.entry.written@1', { entryRef: P.encounterRef, resourceType: 'Encounter', authorRole: 'nurse', authorRef: P.clinicianRef, provenance: 'nurse-visit' }, { subjectRef: P.subjectRef, purposeOfUse: 'treatment' }));
+ assert.equal(asNurse(runtime, P.clinicianRef, 'POST /v1/care/visits/{appointmentRef}/complete@2', 'treatment', { appointmentRef: P.appointmentRef, visitCode: P.visitCode, encounterRef: P.encounterRef }).status, 200);
+ const stale = sync('s-6', 'b-5', [op('op7', 'glucose')]);
+ assert.deepEqual([stale.body.acceptedCount, stale.body.conflicts], [0, [{ operationRef: 'op7', conflictCode: 'stale-write' }]]);
+ assert.equal(runtime.trail.all().filter(e => e.kind === 'published' && (e.eventKey ?? '').startsWith('passport.')).length, 1, 'a sync publishes nothing of its own');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('another nurse’s batch of the same name is her own, and a capture for a visit that is not hers is refused per operation', () => {
+ const { runtime } = setup(WOUND);
+ const offerRef = String(offer(runtime).body.offerRef);
+ asNurse(runtime, P.clinicianRef, ACCEPT, 'dispatch', { idempotencyKey: 'a-1', offerRef });
+ asNurse(runtime, P.clinicianRef, 'POST /v1/care/visits/{appointmentRef}/start@1', 'treatment', { appointmentRef: P.appointmentRef, visitCode: P.visitCode });
+ const op = { operationRef: 'op1', kind: 'capture', appointmentRef: P.appointmentRef, observationRef: 'obs-1', measure: 'pulse', deviceAt: runtime.clock.iso() };
+ const mine = asNurse(runtime, P.clinicianRef, SYNC, 'treatment', { idempotencyKey: 'k', batchRef: 'same', operations: [op] });
+ const other = asNurse(runtime, 'N-206', SYNC, 'treatment', { idempotencyKey: 'k', batchRef: 'same', operations: [op] });
+ assert.equal(mine.body.acceptedCount, 1);
+ assert.deepEqual([other.body.acceptedCount, other.body.refused], [0, [{ operationRef: 'op1', refusalId: 'caller-not-allowed' }]]);
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
 });
@@ -339,7 +446,7 @@ test('a nurse, an admin, a doctor nobody can name, and a doctor without the capa
 });
 
 test('switched off, an Encounter entry does not count as signed: a visit started after the change is refused handover and completion, and one started before it is not', () => {
- const unconfirmed = careApi.refusals.find(r => r.id === 'encounter-signature-unconfirmed')!;
+ const unconfirmed = careApi.refusals.find(r => r.id === 'encounter-signature-awaits-status-route')!;
  const walk = (switchOffBeforeStart: boolean) => {
   const { runtime, as } = setup(WOUND);
   const offerRef = String(offer(runtime).body.offerRef);
@@ -354,18 +461,19 @@ test('switched off, an Encounter entry does not count as signed: a visit started
  };
 
  const after = walk(true);
- const handover = after.visit('POST /v1/care/visits/{appointmentRef}/handover@1', { encounterRef: P.encounterRef });
+ const handover = after.visit('POST /v1/care/visits/{appointmentRef}/handover@2', { encounterRef: P.encounterRef });
  assert.deepEqual([handover.status, handover.body.error, handover.body.message], [unconfirmed.status, unconfirmed.id, unconfirmed.statement]);
- const complete = after.visit('POST /v1/care/visits/{appointmentRef}/complete@1', { visitCode: P.visitCode, encounterRef: P.encounterRef });
+ const complete = after.visit('POST /v1/care/visits/{appointmentRef}/complete@2', { visitCode: P.visitCode, encounterRef: P.encounterRef });
  assert.deepEqual([complete.status, complete.body.error], [unconfirmed.status, unconfirmed.id]);
- assert.ok(unconfirmed.statement.includes('GET /fhir/{resourceType}/{id}'), 'the sentence names the record route that is missing');
+ assert.ok(unconfirmed.statement.includes('GET /v1/record/encounter-statuses/{encounterRef}'), 'the sentence names the proposed record route Care is waiting on');
+ assert.deepEqual(unconfirmed.answeredBy, ['POST /v1/care/visits/{appointmentRef}/handover@2', 'POST /v1/care/visits/{appointmentRef}/complete@2']);
  assert.equal(published(after.runtime, 'visit.billable@1').length, 0);
  assert.deepEqual(after.runtime.faults(), []);
  after.runtime.close();
 
  const before = walk(false);
- assert.equal(before.visit('POST /v1/care/visits/{appointmentRef}/handover@1', { encounterRef: P.encounterRef }).body.reviewQueued, true, 'a visit keeps the rule it started under');
- assert.equal(before.visit('POST /v1/care/visits/{appointmentRef}/complete@1', { visitCode: P.visitCode, encounterRef: P.encounterRef }).status, 200);
+ assert.equal(before.visit('POST /v1/care/visits/{appointmentRef}/handover@2', { encounterRef: P.encounterRef }).body.reviewQueued, true, 'a visit keeps the rule it started under');
+ assert.equal(before.visit('POST /v1/care/visits/{appointmentRef}/complete@2', { visitCode: P.visitCode, encounterRef: P.encounterRef }).status, 200);
  assert.deepEqual(before.runtime.faults(), []);
  before.runtime.close();
 });

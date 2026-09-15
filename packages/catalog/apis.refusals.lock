@@ -284,3 +284,9 @@ shared settings.json#refusals review@1 setting-review-already-confirmed 8131b812
 shared settings.json#refusals review@1 setting-review-own-change f993db8386db86f5
 POST /v1/access/bookings@2 58508f3bb631b06b
 POST /v1/access/conversations/{conversationRef}/handover@2 35305c752a41ec1b
+POST /v1/care/offers@2 313faeaad2ffb38f
+POST /v1/care/visits/{appointmentRef}/handover@2 ab0d04e606cd0ba7
+POST /v1/care/visits/{appointmentRef}/complete@2 2ef4a1ed883a1069
+POST /v1/care/sync-batches@2 9b252a2d59a17229
+GET /v1/record/encounter-statuses/{encounterRef}@1 bd4ed62a683e4740
+shared apis/care.json#refusals encounter-signature-awaits-status-route ce8542abf3c5f197

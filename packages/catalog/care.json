@@ -198,6 +198,16 @@
 
  "offers": {
   "_expiryNote": "How long an offer lasts is the setting offer-expiry in settings above: decided by the founder, changed by an admin within its bounds, and read by the engine when it makes an offer. Nothing in this block holds it.",
+  "namedFallback": {
+   "_note": "What Care does with a visit asked of one nurse by name when she cannot take it, by the answer booking.requested@2 carries in namedNurseFallback — wait or soonest, from packages/catalog/booking.json person.fallback.choices — and what the patient is told. With wait, an offer to her that lapses is offered to her again, with the expiry in force, while the visit's hour has not come; when a gate withholds her, she declined, or the hour came first, nobody else is asked, the offer route refuses with waiting-for-named-nurse and the patient is told cannotTake. With soonest, the visit goes to the next eligible nurse and the patient is told goneToSoonest. A named nurse with no answer on record is treated as wait, because the event promises the answer is present and sending somebody else on a missing answer is the silent substitution the answer exists to prevent. Each told row keeps the answer and the settings version it was decided under. {nurse} is the nurse asked for and {soonest} the nurse it went to, each filled with her name where a screen shows the sentence.",
+   "defaultWhenMissing": "wait",
+   "told": [
+    { "id": "still-waiting", "sentence": "{nurse} has not taken this visit yet. It is still waiting for her, and nobody else has been sent." },
+    { "id": "cannot-take", "sentence": "{nurse} cannot take this visit, so it is waiting and nobody else has been sent. A dispatcher is asked to decide with you what happens next." },
+    { "id": "gone-to-soonest", "sentence": "{nurse} could not take this visit, so it has been offered to {soonest}, the soonest nurse whose badge is current. You are told again before she sets off." }
+   ],
+   "toldWhy": "The patient answered a question about this moment when they booked, and booking.json promised them they would be told. A visit that waits in silence, or a different nurse who arrives unannounced, breaks that promise whichever answer they gave."
+  },
   "order": [
    { "id": "named", "marker": "Your patient asked for you", "why": "A patient who names a nurse is asking for the person she already trusts in her house. She is asked first, if every gate lets her be asked at all." },
    { "id": "previous", "marker": "You have seen this patient before", "why": "Continuity is clinical before it is courtesy: a nurse who dressed a wound last week can see whether it is better. The most recent nurse is asked first." },

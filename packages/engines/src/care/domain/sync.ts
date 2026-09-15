@@ -15,8 +15,14 @@
  * reading is not attached — not the newer one, not the device-stamped one, not the one from the
  * nurse in better standing. A timestamp does not win a clinical disagreement; a clinician does.
  *
- * A batch is idempotent by its reference: a phone that loses the answer and sends the batch again
- * gets the first answer back, and nothing is attached twice.
+ * A batch is idempotent by its reference and the nurse who sent it: a phone that loses the answer and
+ * sends the batch again gets the first answer back, and nothing is attached twice. Another nurse whose
+ * phone named a batch the same is answered for her own batch — a reference chosen on a phone is not a
+ * promise that no other phone chose it, which is the defect the runtime's replay table was fixed for.
+ *
+ * On the runtime, POST /v1/care/sync-batches@2 hands this the operations with their visit, observation
+ * entry, measure and phone time, and the batches and the measures already attached are kept in Care's
+ * store through state(), so a batch answered before a restart is answered the same after it.
  *
  * Only captures travel this way. A start, a handover or a completion each asks something of somebody
  * at the moment it happens, and packages/catalog/care.json says why none is replayed from a queue. */
@@ -45,46 +51,61 @@ export type Received = {
  readonly conflictRefs: readonly string[];
  readonly conflicts: readonly ConflictShown[];
  readonly applied: readonly Applied[];
- /** Operations the visit would not take at all — a capture against a visit that has not started. */
- readonly refused: readonly { operationRef: string; statement: string }[];
+ /** Operations the visit would not take at all — a capture against a visit that has not started — with the refusal's id and sentence. */
+ readonly refused: readonly { operationRef: string; id: string; statement: string }[];
  /** The route's own sentence, present whenever a conflict is shown. */
  readonly notMerged: string | null;
 };
+
+/** What a store keeps: every answered batch by its key, and every measure attached per visit. */
+export type SyncState = { readonly batches: readonly (readonly [string, Received])[]; readonly observed: readonly (readonly [string, string])[] };
 
 export class SyncIntake {
  #contract: CareContract;
  #visits: VisitDesk;
  #trust: TrustReader;
- #batches = new Map<string, Answer<Received>>();
+ #batches = new Map<string, Received>();
  /** appointmentRef → observation ids already attached, which is what a duplicate is a duplicate of. */
  #observed = new Map<string, Set<string>>();
 
- constructor(options: { contract: CareContract; visits: VisitDesk; trust: TrustReader }) {
+ constructor(options: { contract: CareContract; visits: VisitDesk; trust: TrustReader; state?: SyncState }) {
   this.#contract = options.contract;
   this.#visits = options.visits;
   this.#trust = options.trust;
+  for (const [key, received] of options.state?.batches ?? []) this.#batches.set(key, received);
+  for (const [appointmentRef, observationId] of options.state?.observed ?? []) this.#observed.set(appointmentRef, (this.#observed.get(appointmentRef) ?? new Set<string>()).add(observationId));
+ }
+
+ state(): SyncState {
+  return { batches: [...this.#batches.entries()], observed: [...this.#observed.entries()].flatMap(([ref, ids]) => [...ids].map(id => [ref, id] as const)) };
  }
 
  receive(batch: { batchRef: string; operations: readonly QueuedCapture[] }, caller: Caller, now: Date): Answer<Received> {
-  const seen = this.#batches.get(batch.batchRef);
-  if (seen) return seen.ok ? answer(seen.value) : seen;
+  /* Each half encoded and joined by a character encoding never leaves, so no reference chosen on a phone can make
+     two nurses' batches one key. */
+  const key = `${encodeURIComponent(caller.clinicianRef)}|${encodeURIComponent(batch.batchRef)}`;
+  const seen = this.#batches.get(key);
+  if (seen) return answer(seen);
   const conflict = (id: string) => {
    const row = this.#contract.conflicts.find(c => c.id === id);
    if (!row) throw new Error(`packages/catalog/capture.json has lost the conflict "${id}".`);
    return row;
   };
-  const conflicts: ConflictShown[] = [], applied: Applied[] = [], refused: { operationRef: string; statement: string }[] = [];
+  const conflicts: ConflictShown[] = [], applied: Applied[] = [], refused: { operationRef: string; id: string; statement: string }[] = [];
   const receivedAt = now.toISOString();
   for (const op of batch.operations) {
    const show = (id: string) => { const row = conflict(id); conflicts.push({ operationRef: op.operationRef, conflictId: row.id, name: row.name, detail: row.detail }); };
-   if (op.capturedBy !== caller.clinicianRef) { refused.push({ operationRef: op.operationRef, statement: refuse(this.#contract, ROUTES.sync, 'caller-not-allowed').statement }); continue; }
+   /* Whose visit it is is asked before anything about the visit, and an unknown visit is the same answer. A
+      conflict is information — that a measure was already taken, that the visit is over — and a nurse who does
+      not hold the visit is told none of it. */
    const visit = this.#visits.visit(op.appointmentRef);
+   if (op.capturedBy !== caller.clinicianRef || !visit || visit.clinicianRef !== caller.clinicianRef) { const r = refuse(this.#contract, ROUTES.sync, 'caller-not-allowed'); refused.push({ operationRef: op.operationRef, id: r.id, statement: r.statement }); continue; }
    if (visit?.state === 'completed') { show('stale-write'); continue; }
    if (!this.#trust.standing(op.capturedBy).current) { show('vetting-lapsed'); continue; }
    const observed = this.#observed.get(op.appointmentRef) ?? new Set<string>();
    if (observed.has(op.observationId)) { show('duplicate-observation'); continue; }
    const attached = this.#visits.capture({ appointmentRef: op.appointmentRef, observationRefs: [op.observationRef] }, caller);
-   if (!attached.ok) { refused.push({ operationRef: op.operationRef, statement: attached.statement }); continue; }
+   if (!attached.ok) { refused.push({ operationRef: op.operationRef, id: attached.id, statement: attached.statement }); continue; }
    observed.add(op.observationId);
    this.#observed.set(op.appointmentRef, observed);
    /* The server's clock is authoritative for order. A device clock ahead of it is recorded as what the
@@ -93,13 +114,13 @@ export class SyncIntake {
    if (skewed) conflict('clock-skew');
    applied.push({ operationRef: op.operationRef, receivedAt, deviceBelieved: op.deviceAt, clockSkew: skewed });
   }
-  const result = answer<Received>({
+  const received: Received = {
    acceptedCount: applied.length,
    conflictRefs: conflicts.map(c => c.operationRef),
    conflicts, applied, refused,
    notMerged: conflicts.length ? refuse(this.#contract, ROUTES.sync, 'conflict-not-merged').statement : null
-  });
-  this.#batches.set(batch.batchRef, result);
-  return result;
+  };
+  this.#batches.set(key, received);
+  return answer(received);
  }
 }

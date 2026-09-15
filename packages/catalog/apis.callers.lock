@@ -185,3 +185,12 @@ POST /v1/access/bookings@2 callers=caregiver,guardian,patient,thuso-line-agent p
 POST /v1/access/conversations/{conversationRef}/handover@2 callers=caregiver,patient purpose=treatment because=-
 POST /v1/access/bookings@1 callers=- purpose=dispatch because=-
 POST /v1/access/conversations/{conversationRef}/handover@1 callers=- purpose=treatment because=-
+POST /v1/care/offers@2 callers=dispatcher purpose=dispatch because=-
+POST /v1/care/visits/{appointmentRef}/handover@2 callers=locum,nurse purpose=treatment because=-
+POST /v1/care/visits/{appointmentRef}/complete@2 callers=locum,nurse purpose=treatment because=-
+POST /v1/care/sync-batches@2 callers=locum,nurse purpose=treatment because=-
+GET /v1/record/encounter-statuses/{encounterRef}@1 callers=engine:care purpose=treatment because=engine:care=passport.entry.written@1
+POST /v1/care/offers@1 callers=- purpose=dispatch because=-
+POST /v1/care/visits/{appointmentRef}/handover@1 callers=- purpose=treatment because=-
+POST /v1/care/visits/{appointmentRef}/complete@1 callers=- purpose=treatment because=-
+POST /v1/care/sync-batches@1 callers=- purpose=treatment because=-

@@ -34,7 +34,7 @@ export type Requirement = {
 export type ProtocolRow = { readonly id: string; readonly name: string; readonly engine: string; readonly version: number; readonly status: string };
 export type ConflictRow = { readonly id: string; readonly name: string; readonly resolution: string; readonly detail: string };
 type RouteRefusal = { id: string; status: number; statement: string };
-type Route = { method: string; path: string; version: number; purpose: string[]; refusals: RouteRefusal[] };
+type Route = { method: string; path: string; version: number; purpose: string[]; refusals: RouteRefusal[]; withdrawn?: unknown };
 
 export type CareContract = {
  readonly timezone: string;
@@ -105,9 +105,12 @@ export const ROUTES = {
 } as const;
 export type RoutePath = typeof ROUTES[keyof typeof ROUTES];
 
+/* The live version of a path, newest first. A withdrawn version keeps its refusals in the contract as the record
+   of what was frozen, and an act that read them would answer in words the route no longer says — or, for offers,
+   miss the refusal version two added — so the withdrawn ones are never what an act refuses from. */
 export function routeOf(contract: CareContract, path: RoutePath): Route {
- const found = contract.routes.find(route => route.path === path && route.method === 'POST');
- if (!found) throw new Error(`packages/catalog/apis/care.json has no POST ${path}.`);
+ const found = contract.routes.filter(route => route.path === path && route.method === 'POST' && !route.withdrawn).sort((a, b) => b.version - a.version)[0];
+ if (!found) throw new Error(`packages/catalog/apis/care.json has no live POST ${path}.`);
  return found;
 }
 

@@ -79,15 +79,15 @@ object ApisData {
     val GET_ACCESS_SETTINGS = Route("getAccessSettings", "GET", "/v1/access/settings", "/v1/access/settings", 1, "access", listOf("admin", "doctor"), listOf("audit"), false, "built")
     val POST_ACCESS_SETTING_CHANGES = Route("postAccessSettingChanges", "POST", "/v1/access/setting-changes", "/v1/access/setting-changes", 1, "access", listOf("admin"), listOf("audit"), true, "built")
     val POST_ACCESS_SETTING_REVIEWS = Route("postAccessSettingReviews", "POST", "/v1/access/setting-reviews", "/v1/access/setting-reviews", 1, "access", listOf("doctor"), listOf("audit"), true, "built")
-    val POST_CARE_OFFERS = Route("postCareOffers", "POST", "/v1/care/offers", "/v1/care/offers", 1, "care", listOf("dispatcher"), listOf("dispatch"), true, "built")
+    val POST_CARE_OFFERS_V2 = Route("postCareOffersV2", "POST", "/v1/care/offers", "/v1/care/offers", 2, "care", listOf("dispatcher"), listOf("dispatch"), true, "built")
     val POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT = Route("postCareOffersByOfferRefAccept", "POST", "/v1/care/offers/{offerRef}/accept", "/v1/care/offers/{offerRef}/accept", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "built")
     val POST_CARE_OFFERS_BY_OFFER_REF_DECLINE = Route("postCareOffersByOfferRefDecline", "POST", "/v1/care/offers/{offerRef}/decline", "/v1/care/offers/{offerRef}/decline", 1, "care", listOf("nurse", "locum"), listOf("dispatch"), true, "built")
     val POST_CARE_VISITS_BY_APPOINTMENT_REF_START = Route("postCareVisitsByAppointmentRefStart", "POST", "/v1/care/visits/{appointmentRef}/start", "/v1/care/visits/{appointmentRef}/start", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
     val POST_CARE_VISITS_BY_APPOINTMENT_REF_CHECKLIST = Route("postCareVisitsByAppointmentRefChecklist", "POST", "/v1/care/visits/{appointmentRef}/checklist", "/v1/care/visits/{appointmentRef}/checklist", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
     val POST_CARE_VISITS_BY_APPOINTMENT_REF_CAPTURE = Route("postCareVisitsByAppointmentRefCapture", "POST", "/v1/care/visits/{appointmentRef}/capture", "/v1/care/visits/{appointmentRef}/capture", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
-    val POST_CARE_VISITS_BY_APPOINTMENT_REF_HANDOVER = Route("postCareVisitsByAppointmentRefHandover", "POST", "/v1/care/visits/{appointmentRef}/handover", "/v1/care/visits/{appointmentRef}/handover", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
-    val POST_CARE_VISITS_BY_APPOINTMENT_REF_COMPLETE = Route("postCareVisitsByAppointmentRefComplete", "POST", "/v1/care/visits/{appointmentRef}/complete", "/v1/care/visits/{appointmentRef}/complete", 1, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
-    val POST_CARE_SYNC_BATCHES = Route("postCareSyncBatches", "POST", "/v1/care/sync-batches", "/v1/care/sync-batches", 1, "care", listOf("nurse", "locum"), listOf("treatment"), true, "proposed")
+    val POST_CARE_VISITS_BY_APPOINTMENT_REF_HANDOVER_V2 = Route("postCareVisitsByAppointmentRefHandoverV2", "POST", "/v1/care/visits/{appointmentRef}/handover", "/v1/care/visits/{appointmentRef}/handover", 2, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
+    val POST_CARE_VISITS_BY_APPOINTMENT_REF_COMPLETE_V2 = Route("postCareVisitsByAppointmentRefCompleteV2", "POST", "/v1/care/visits/{appointmentRef}/complete", "/v1/care/visits/{appointmentRef}/complete", 2, "care", listOf("nurse", "locum"), listOf("treatment"), false, "built")
+    val POST_CARE_SYNC_BATCHES_V2 = Route("postCareSyncBatchesV2", "POST", "/v1/care/sync-batches", "/v1/care/sync-batches", 2, "care", listOf("nurse", "locum"), listOf("treatment"), true, "built")
     val GET_CARE_SHIFTS = Route("getCareShifts", "GET", "/v1/care/shifts", "/v1/care/shifts", 1, "care", listOf("nurse", "locum", "dispatcher"), listOf("dispatch"), false, "proposed")
     val GET_CARE_SERVICES = Route("getCareServices", "GET", "/v1/care/services", "/v1/care/services", 1, "care", listOf("patient", "caregiver", "nurse", "dispatcher", "thuso-line-agent"), listOf("dispatch"), false, "proposed")
     val GET_CARE_LOCUM_SHIFTS = Route("getCareLocumShifts", "GET", "/v1/care/locum-shifts", "/v1/care/locum-shifts", 1, "care", listOf("locum"), listOf("dispatch"), false, "proposed")
@@ -157,6 +157,7 @@ object ApisData {
     val POST_RECORD_FHIR_BY_RESOURCE_TYPE = Route("postRecordFhirByResourceType", "POST", "/fhir/{resourceType}", "/v1/record/fhir/{resourceType}", 1, "record", listOf("patient", "nurse-assigned", "doctor-assigned", "pharmacist"), listOf("treatment", "dispensing", "subject-access"), false, "built")
     val GET_RECORD_FHIR_BY_RESOURCE_TYPE_BY_ID = Route("getRecordFhirByResourceTypeById", "GET", "/fhir/{resourceType}/{id}", "/v1/record/fhir/{resourceType}/{id}", 1, "record", listOf("patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"), listOf("treatment", "dispensing", "subject-access"), false, "built")
     val GET_RECORD_FHIR_BY_RESOURCE_TYPE = Route("getRecordFhirByResourceType", "GET", "/fhir/{resourceType}", "/v1/record/fhir/{resourceType}", 1, "record", listOf("patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"), listOf("treatment", "dispensing", "subject-access"), false, "built")
+    val GET_RECORD_ENCOUNTER_STATUSES_BY_ENCOUNTER_REF = Route("getRecordEncounterStatusesByEncounterRef", "GET", "/v1/record/encounter-statuses/{encounterRef}", "/v1/record/encounter-statuses/{encounterRef}", 1, "record", listOf("engine:care"), listOf("treatment"), false, "proposed")
     val POST_RECORD_SHARE_LINK = Route("postRecordShareLink", "POST", "/share/link", "/v1/record/share/link", 1, "record", listOf("patient", "responder-on-trip"), listOf("treatment", "emergency"), false, "proposed")
     val POST_RECORD_EXPORT = Route("postRecordExport", "POST", "/export", "/v1/record/export", 1, "record", listOf("patient"), listOf("subject-access"), false, "proposed")
     val GET_MEDICINES_FORMULARY = Route("getMedicinesFormulary", "GET", "/v1/medicines/formulary", "/v1/medicines/formulary", 1, "medicines", listOf("doctor", "nurse", "pharmacist"), listOf("dispensing"), false, "proposed")
@@ -248,15 +249,15 @@ object ApisData {
         GET_ACCESS_SETTINGS,
         POST_ACCESS_SETTING_CHANGES,
         POST_ACCESS_SETTING_REVIEWS,
-        POST_CARE_OFFERS,
+        POST_CARE_OFFERS_V2,
         POST_CARE_OFFERS_BY_OFFER_REF_ACCEPT,
         POST_CARE_OFFERS_BY_OFFER_REF_DECLINE,
         POST_CARE_VISITS_BY_APPOINTMENT_REF_START,
         POST_CARE_VISITS_BY_APPOINTMENT_REF_CHECKLIST,
         POST_CARE_VISITS_BY_APPOINTMENT_REF_CAPTURE,
-        POST_CARE_VISITS_BY_APPOINTMENT_REF_HANDOVER,
-        POST_CARE_VISITS_BY_APPOINTMENT_REF_COMPLETE,
-        POST_CARE_SYNC_BATCHES,
+        POST_CARE_VISITS_BY_APPOINTMENT_REF_HANDOVER_V2,
+        POST_CARE_VISITS_BY_APPOINTMENT_REF_COMPLETE_V2,
+        POST_CARE_SYNC_BATCHES_V2,
         GET_CARE_SHIFTS,
         GET_CARE_SERVICES,
         GET_CARE_LOCUM_SHIFTS,
@@ -326,6 +327,7 @@ object ApisData {
         POST_RECORD_FHIR_BY_RESOURCE_TYPE,
         GET_RECORD_FHIR_BY_RESOURCE_TYPE_BY_ID,
         GET_RECORD_FHIR_BY_RESOURCE_TYPE,
+        GET_RECORD_ENCOUNTER_STATUSES_BY_ENCOUNTER_REF,
         POST_RECORD_SHARE_LINK,
         POST_RECORD_EXPORT,
         GET_MEDICINES_FORMULARY,
@@ -810,12 +812,12 @@ object ApisData {
         val settingsVersion: Int,
         val reviewedAt: String
     )
-    data class PostCareOffersRequest(
+    data class PostCareOffersV2Request(
         val idempotencyKey: String,
         val appointmentRef: String,
         val serviceId: String
     )
-    data class PostCareOffersResponse(
+    data class PostCareOffersV2Response(
         val offerRef: String,
         val offerExpiresAt: String
     )
@@ -856,28 +858,32 @@ object ApisData {
     data class PostCareVisitsByAppointmentRefCaptureResponse(
         val attachedCount: Int
     )
-    data class PostCareVisitsByAppointmentRefHandoverRequest(
+    data class PostCareVisitsByAppointmentRefHandoverV2Request(
         val appointmentRef: String,
         val encounterRef: String
     )
-    data class PostCareVisitsByAppointmentRefHandoverResponse(
+    data class PostCareVisitsByAppointmentRefHandoverV2Response(
         val reviewQueued: Boolean
     )
-    data class PostCareVisitsByAppointmentRefCompleteRequest(
+    data class PostCareVisitsByAppointmentRefCompleteV2Request(
         val appointmentRef: String,
         val visitCode: String,
         val encounterRef: String
     )
-    data class PostCareVisitsByAppointmentRefCompleteResponse(
+    data class PostCareVisitsByAppointmentRefCompleteV2Response(
         val completedAt: String
     )
-    data class PostCareSyncBatchesRequest(
+    data class PostCareSyncBatchesV2Request(
+        val idempotencyKey: String,
         val batchRef: String,
-        val operationRefs: List<String>
+        val operations: List<Map<String, Any?>>
     )
-    data class PostCareSyncBatchesResponse(
+    data class PostCareSyncBatchesV2Response(
         val acceptedCount: Int,
-        val conflictRefs: List<String>
+        val applied: List<Map<String, Any?>>,
+        val conflicts: List<Map<String, Any?>>,
+        val refused: List<Map<String, Any?>>,
+        val notMerged: String? = null
     )
     class GetCareShiftsRequest
     data class GetCareShiftsResponse(
@@ -1439,6 +1445,14 @@ object ApisData {
     data class GetRecordFhirByResourceTypeResponse(
         val entries: List<Map<String, Any?>>,
         val sealedContentExists: Boolean? = null
+    )
+    data class GetRecordEncounterStatusesByEncounterRefRequest(
+        val encounterRef: String
+    )
+    data class GetRecordEncounterStatusesByEncounterRefResponse(
+        val stateCode: String,
+        val signedAt: String? = null,
+        val supersededByRef: String? = null
     )
     data class PostRecordShareLinkRequest(
         val scope: List<String>,

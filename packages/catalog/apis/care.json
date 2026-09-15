@@ -10,7 +10,8 @@
   {"id": "visit-without-code", "status": 403, "statement": "A visit starts and completes only with the visit code.", "why": "The code is the proof the right nurse is at the right door."},
   {"id": "location-beyond-the-visit", "status": 403, "statement": "A nurse's location is not shared beyond the visit.", "why": "Tracking is on the day, for the visit, and ends with it."},
   {"id": "carer-without-their-rn", "status": 409, "statement": "A supervised carer is not dispatched without their registered nurse.", "why": "Supervision ratios are enforced in dispatch or not at all."},
-  {"id": "encounter-signature-unconfirmed", "status": 409, "statement": "This visit is set to wait for the record to confirm its encounter is signed, and no record route answers Care yet: GET /fhir/{resourceType}/{id} does not take calls from the Care engine. It is not handed over or completed until one does.", "why": "The setting encounter-entry-counts-as-signed in packages/catalog/care.json is switched off for this visit. It is an engine refusal rather than one on the handover and completion routes, because both frozen routes answer it and neither route's shape changes. Its answeredBy names both, and the runtime refuses it from any other route, so it is frozen with them in packages/catalog/apis.refusals.lock rather than beside them.", "answeredBy": ["POST /v1/care/visits/{appointmentRef}/handover@1", "POST /v1/care/visits/{appointmentRef}/complete@1"]}
+  {"id": "encounter-signature-unconfirmed", "status": 409, "statement": "This visit is set to wait for the record to confirm its encounter is signed, and no record route answers Care yet: GET /fhir/{resourceType}/{id} does not take calls from the Care engine. It is not handed over or completed until one does.", "why": "The setting encounter-entry-counts-as-signed in packages/catalog/care.json is switched off for this visit. It is an engine refusal rather than one on the handover and completion routes, because both frozen routes answer it and neither route's shape changes. Its answeredBy names both, and the runtime refuses it from any other route, so it is frozen with them in packages/catalog/apis.refusals.lock rather than beside them.", "answeredBy": ["POST /v1/care/visits/{appointmentRef}/handover@1", "POST /v1/care/visits/{appointmentRef}/complete@1"]},
+  {"id": "encounter-signature-awaits-status-route", "status": 409, "statement": "This visit is set to wait for the record to confirm its encounter is signed, and the record route that would say so, GET /v1/record/encounter-statuses/{encounterRef}, is proposed and not built. It is not handed over or completed until that route answers Care.", "why": "The setting encounter-entry-counts-as-signed in packages/catalog/care.json is switched off for this visit. encounter-signature-unconfirmed said no record route took calls from Care; since 15 September one is declared for Care in packages/catalog/apis/record.json, and naming it is new words, so it is a new id rather than an edit to a frozen one. Its answeredBy names version two of the handover and completion routes, which were versioned to answer it.", "answeredBy": ["POST /v1/care/visits/{appointmentRef}/handover@2", "POST /v1/care/visits/{appointmentRef}/complete@2"]}
  ],
  "ownIds": [],
  "routes": [
@@ -19,7 +20,7 @@
    "path": "/v1/care/offers",
    "version": 1,
    "summary": "Offer a visit to the best eligible clinician.",
-   "callers": ["dispatcher"],
+   "callers": [],
    "purpose": ["dispatch"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -42,8 +43,42 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/offers@1'"},
-   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/offers@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/care/offers@2", "why": "It had no refusal for a visit the patient asked to wait for a named nurse, so when she could not be offered it the only true answers left were to send somebody the patient did not ask for or to say everybody eligible had been asked, which was false. And its visit-zone-unknown reasoning still said booking.requested carries no zone, which version two of that event corrected. Version two adds waiting-for-named-nurse and keeps the row that says the patient was told. Its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/offers",
+   "version": 2,
+   "summary": "Offer a visit to the best eligible clinician, or, where the patient asked to wait for a nurse by name, to her alone.",
+   "callers": ["dispatcher"],
+   "purpose": ["dispatch"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit to fill."},
+    {"field": "serviceId", "type": "string", "required": true, "why": "The service, which sets the scope needed."}
+   ],
+   "response": [
+    {"field": "offerRef", "type": "string", "required": true, "why": "The offer."},
+    {"field": "offerExpiresAt", "type": "instant", "required": true, "why": "When it lapses: to the next clinician, or, for a visit waiting for a named nurse, back to her while the visit's hour has not come."}
+   ],
+   "refusals": [
+    {"id": "no-current-trust-score", "status": 409, "statement": "Nobody without a current Trust Score is offered a visit.", "why": "Verify ranks; Care never offers past a failed gate."},
+    {"id": "carer-without-rn", "status": 409, "statement": "A supervised carer is not offered a visit without their registered nurse.", "why": "Supervision is enforced in the offer."},
+    {"id": "service-not-offered", "status": 409, "statement": "That service is not offered yet, so nobody is matched to it.", "why": "A service later than the seed phase in packages/catalog/care.json has nobody who has agreed to deliver it."},
+    {"id": "no-eligible-clinician", "status": 409, "statement": "Everybody eligible for this visit has been asked, so it goes to a dispatcher.", "why": "An offer is never made to somebody a gate withheld just to fill the visit."},
+    {"id": "visit-zone-unknown", "status": 409, "statement": "Nobody is offered a visit until Care knows the suburb it is in.", "why": "booking.requested@2 carries the zone id, and Care refuses one packages/catalog/geography.json does not hold: a distance measured to a suburb the map has no centre for would rank nobody honestly."},
+    {"id": "waiting-for-named-nurse", "status": 409, "statement": "This visit is waiting for the nurse the patient asked for by name, and she cannot be offered it now, so nobody else is asked. It goes to a dispatcher, and the patient is told.", "why": "The patient answered wait, from packages/catalog/booking.json person.fallback. Care re-offers her the visit each time an offer to her lapses, while its hour has not come; she cannot be offered it when a gate withholds her, when she declined it, or when the hour came before she took it. Giving it to the next nurse then would send somebody the patient did not ask for, which is the one thing their answer refused."}
+   ],
+   "emits": ["appointment.offered@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/offers@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "keptOnRefusal": {"refusals": ["waiting-for-named-nurse"], "tables": ["care_named_waits"], "why": "A refused offer is rolled back, and the one thing a refusal for a waiting visit must keep is the row saying the patient is to be told she cannot take it, with the answer and the settings version it was decided under. Without it the visit waits and nobody is told. It is one row about one visit, never an offer and never a booking."}
   },
   {
    "method": "POST",
@@ -184,6 +219,33 @@
    "path": "/v1/care/visits/{appointmentRef}/handover",
    "version": 1,
    "summary": "Hand the visit to a doctor for review.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit."},
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The encounter to review."}
+   ],
+   "response": [
+    {"field": "reviewQueued", "type": "boolean", "required": true, "why": "Whether it went into the clinical inbox."}
+   ],
+   "refusals": [
+    {"id": "encounter-incomplete", "status": 422, "statement": "The encounter has required sections missing.", "why": "A doctor reviews a complete encounter, not a draft."},
+    {"id": "handover-without-visit", "status": 409, "statement": "A visit that has not started is not handed to a doctor.", "why": "A doctor reviews what a nurse found at a visit that happened."}
+   ],
+   "emits": ["visit.handover.submitted@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/visits/{appointmentRef}/handover@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/care/visits/{appointmentRef}/handover@2", "why": "The engine refusal it answered, encounter-signature-unconfirmed, says no record route takes calls from Care. One is declared for Care now, and a refusal routes share keeps its words, so the true sentence is a new engine refusal, encounter-signature-awaits-status-route, which a frozen route cannot begin to answer without a version. Its shape is unchanged. Its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/visits/{appointmentRef}/handover",
+   "version": 2,
+   "summary": "Hand the visit to a doctor for review, refused in the record route's own name while the encounter's signature cannot be confirmed.",
    "callers": ["nurse", "locum"],
    "purpose": ["treatment"],
    "request": [
@@ -202,7 +264,7 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "built",
-   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/visits/{appointmentRef}/handover@1'"},
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/visits/{appointmentRef}/handover@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
@@ -210,6 +272,35 @@
    "path": "/v1/care/visits/{appointmentRef}/complete",
    "version": 1,
    "summary": "Complete a visit with the visit code.",
+   "callers": [],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit."},
+    {"field": "visitCode", "type": "string", "required": true, "why": "The patient's code again, at the end."},
+    {"field": "encounterRef", "type": "string", "required": true, "why": "The signed encounter."}
+   ],
+   "response": [
+    {"field": "completedAt", "type": "instant", "required": true, "why": "When."}
+   ],
+   "refusals": [
+    {"id": "visit-code-wrong", "status": 403, "statement": "The visit code did not match, so the visit is not complete.", "why": "Completion is confirmed by the patient, not assumed."},
+    {"id": "encounter-unsigned", "status": 409, "statement": "The encounter is not signed.", "why": "A visit is complete when its record is."},
+    {"id": "complete-without-start", "status": 409, "statement": "A visit that never started cannot be completed.", "why": "Completion confirms a visit the code opened; without a start there is nothing to confirm."}
+   ],
+   "emits": ["appointment.completed@2", "visit.billable@1"],
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E2", "what": "OTP start and completion"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/visits/{appointmentRef}/complete@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"},
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/care/visits/{appointmentRef}/complete@2", "why": "The engine refusal it answered, encounter-signature-unconfirmed, says no record route takes calls from Care. One is declared for Care now, and a refusal routes share keeps its words, so the true sentence is a new engine refusal, encounter-signature-awaits-status-route, which a frozen route cannot begin to answer without a version. Its shape is unchanged. Its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/visits/{appointmentRef}/complete",
+   "version": 2,
+   "summary": "Complete a visit with the visit code, refused in the record route's own name while the encounter's signature cannot be confirmed.",
    "callers": ["nurse", "locum"],
    "purpose": ["treatment"],
    "request": [
@@ -230,7 +321,7 @@
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E2", "what": "OTP start and completion"},
    "status": "built",
-   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/visits/{appointmentRef}/complete@1'"},
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/visits/{appointmentRef}/complete@2'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
@@ -238,7 +329,7 @@
    "path": "/v1/care/sync-batches",
    "version": 1,
    "summary": "Upload the offline queue.",
-   "callers": ["nurse", "locum"],
+   "callers": [],
    "purpose": ["treatment"],
    "request": [
     {"field": "batchRef", "type": "string", "required": true, "why": "The batch, chosen on the phone."},
@@ -256,7 +347,59 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-15", "supersededBy": "POST /v1/care/sync-batches@2", "why": "It sent operation references and nothing else, and packages/catalog/capture.json's conflicts cannot be decided without each operation's visit, its observation and the time the phone took it: a duplicate is the same measure twice in one visit, a stale write is a reading for a visit already completed, and clock skew is the phone's time against the server's. It was never built. Its callers are version two's."}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/care/sync-batches",
+   "version": 2,
+   "summary": "Upload the offline queue of readings captured with no signal, each with its visit, its observation and the time the phone took it, and be shown every conflict rather than have one merged.",
+   "callers": ["nurse", "locum"],
+   "purpose": ["treatment"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the phone for this upload. The same key twice is the same batch once, answered again rather than applied again."},
+    {"field": "batchRef", "type": "string", "required": true, "why": "The batch, as the phone names it in the queue it shows the nurse. A batch this nurse already sent is answered with its first answer whatever key a retry carries, and another nurse's batch of the same name is her own."},
+    {"field": "operations", "type": "list", "required": true, "object": true, "why": "The queued operations, in the order the nurse took them.", "fields": [
+     {"field": "operationRef", "type": "string", "required": true, "why": "The operation, as the phone queued it. A conflict or a refusal is shown back by it."},
+     {"field": "kind", "type": "string", "required": true, "why": "What was queued, one of packages/catalog/care.json sync.operationKinds. Only a capture travels this way."},
+     {"field": "appointmentRef", "type": "string", "required": true, "why": "The visit the reading belongs to, named as every Care visit route names it. A reading for a visit already completed is a stale write."},
+     {"field": "observationRef", "type": "string", "required": true, "why": "The observation entry the Passport gateway already wrote. The reading travels there and never here."},
+     {"field": "measure", "type": "string", "required": true, "why": "Which measure in packages/catalog/records.json observations.measures the entry is of, and never its value. The same measure twice in one visit is a duplicate a clinician decides."},
+     {"field": "deviceAt", "type": "instant", "required": true, "why": "When the phone believed it took the reading. Kept beside the server's receipt time and never presented as when it happened; ahead of the server is clock skew."}
+    ]}
+   ],
+   "response": [
+    {"field": "acceptedCount", "type": "integer", "required": true, "why": "How many readings were attached."},
+    {"field": "applied", "type": "list", "required": true, "object": true, "why": "Every reading attached, in server order.", "fields": [
+     {"field": "operationRef", "type": "string", "required": true, "why": "The operation attached."},
+     {"field": "receivedAt", "type": "instant", "required": true, "why": "The server's receipt time, which orders it."},
+     {"field": "deviceAt", "type": "instant", "required": true, "why": "What the phone believed, kept beside it."},
+     {"field": "clockSkew", "type": "boolean", "required": true, "why": "Whether the phone's time was ahead of the server's, which the server resolves by ordering on its own."}
+    ]},
+    {"field": "conflicts", "type": "list", "required": true, "object": true, "why": "Every operation shown back to the nurse and not applied.", "fields": [
+     {"field": "operationRef", "type": "string", "required": true, "why": "The operation not applied."},
+     {"field": "conflictCode", "type": "string", "required": true, "why": "The conflict's id in packages/catalog/capture.json conflicts, whose name and detail a screen shows."}
+    ]},
+    {"field": "refused", "type": "list", "required": true, "object": true, "why": "Operations the visit would not take at all, each with the refusal a direct capture would have answered.", "fields": [
+     {"field": "operationRef", "type": "string", "required": true, "why": "The operation refused."},
+     {"field": "refusalId", "type": "string", "required": true, "why": "The refusal POST /v1/care/visits/{appointmentRef}/capture@1 or the shared list declares, whose sentence a screen shows."}
+    ]},
+    {"field": "notMerged", "type": "string", "required": false, "why": "This route's conflict-not-merged sentence, present whenever a conflict is shown, so the nurse reads why nothing was merged in the contract's words."}
+   ],
+   "refusals": [
+    {"id": "conflict-not-merged", "status": 409, "statement": "A conflict is shown to the nurse, never merged silently.", "why": "Two versions of a visit merged by software is a record nobody wrote. The batch is answered rather than refused when some operations conflict, because refusing would roll back the readings that did not; the sentence travels in notMerged."},
+    {"id": "operation-incomplete", "status": 422, "statement": "An operation in this batch does not name its visit, its observation entry, the measure it is of and the time the phone took it, so nothing in the batch was applied.", "why": "Every conflict rule needs all four. An operation without them could only be applied by guessing which rule it escaped, and a batch half-applied round a malformed operation is a queue nobody can reason about."},
+    {"id": "operation-not-replayed", "status": 422, "statement": "Only a reading captured with no signal is replayed from a queue. A start, a handover or a completion is not, so nothing in the batch was applied.", "why": "packages/catalog/care.json sync.whyOnlyCapture: each of the others asks something of somebody at the moment it happens, and replaying one an hour later answers that question on the patient's behalf."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A reading was written through the Passport gateway, which emitted passport.entry.written; attaching it to the visit is Care's own bookkeeping, as POST /v1/care/visits/{appointmentRef}/capture@1 is.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/sync-batches@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   },
   {
    "method": "GET",

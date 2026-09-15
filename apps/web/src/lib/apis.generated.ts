@@ -528,12 +528,12 @@ export interface PostAccessSettingReviewsResponse {
  readonly reviewedAt: string;
 }
 
-export interface PostCareOffersRequest {
+export interface PostCareOffersV2Request {
  readonly idempotencyKey: string;
  readonly appointmentRef: string;
  readonly serviceId: string;
 }
-export interface PostCareOffersResponse {
+export interface PostCareOffersV2Response {
  readonly offerRef: string;
  readonly offerExpiresAt: string;
 }
@@ -580,30 +580,34 @@ export interface PostCareVisitsByAppointmentRefCaptureResponse {
  readonly attachedCount: number;
 }
 
-export interface PostCareVisitsByAppointmentRefHandoverRequest {
+export interface PostCareVisitsByAppointmentRefHandoverV2Request {
  readonly appointmentRef: string;
  readonly encounterRef: string;
 }
-export interface PostCareVisitsByAppointmentRefHandoverResponse {
+export interface PostCareVisitsByAppointmentRefHandoverV2Response {
  readonly reviewQueued: boolean;
 }
 
-export interface PostCareVisitsByAppointmentRefCompleteRequest {
+export interface PostCareVisitsByAppointmentRefCompleteV2Request {
  readonly appointmentRef: string;
  readonly visitCode: string;
  readonly encounterRef: string;
 }
-export interface PostCareVisitsByAppointmentRefCompleteResponse {
+export interface PostCareVisitsByAppointmentRefCompleteV2Response {
  readonly completedAt: string;
 }
 
-export interface PostCareSyncBatchesRequest {
+export interface PostCareSyncBatchesV2Request {
+ readonly idempotencyKey: string;
  readonly batchRef: string;
- readonly operationRefs: readonly string[];
+ readonly operations: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
-export interface PostCareSyncBatchesResponse {
+export interface PostCareSyncBatchesV2Response {
  readonly acceptedCount: number;
- readonly conflictRefs: readonly string[];
+ readonly applied: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly conflicts: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly refused: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly notMerged?: string;
 }
 
 export type GetCareShiftsRequest = Record<string, never>;
@@ -1236,6 +1240,15 @@ export interface GetRecordFhirByResourceTypeResponse {
  readonly sealedContentExists?: boolean;
 }
 
+export interface GetRecordEncounterStatusesByEncounterRefRequest {
+ readonly encounterRef: string;
+}
+export interface GetRecordEncounterStatusesByEncounterRefResponse {
+ readonly stateCode: string;
+ readonly signedAt?: string;
+ readonly supersededByRef?: string;
+}
+
 export interface PostRecordShareLinkRequest {
  readonly scope: readonly string[];
  readonly expiresAt: string;
@@ -1592,15 +1605,15 @@ export const apiRoutes = {
  getAccessSettings: { name: "getAccessSettings", method: "GET", path: "/v1/access/settings", mountedPath: "/v1/access/settings", version: 1, engine: "access", callers: ["admin","doctor"], purpose: ["audit"], idempotent: false, status: "built" },
  postAccessSettingChanges: { name: "postAccessSettingChanges", method: "POST", path: "/v1/access/setting-changes", mountedPath: "/v1/access/setting-changes", version: 1, engine: "access", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
  postAccessSettingReviews: { name: "postAccessSettingReviews", method: "POST", path: "/v1/access/setting-reviews", mountedPath: "/v1/access/setting-reviews", version: 1, engine: "access", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built" },
- postCareOffers: { name: "postCareOffers", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 1, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "built" },
+ postCareOffersV2: { name: "postCareOffersV2", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 2, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postCareOffersByOfferRefAccept: { name: "postCareOffersByOfferRefAccept", method: "POST", path: "/v1/care/offers/{offerRef}/accept", mountedPath: "/v1/care/offers/{offerRef}/accept", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postCareOffersByOfferRefDecline: { name: "postCareOffersByOfferRefDecline", method: "POST", path: "/v1/care/offers/{offerRef}/decline", mountedPath: "/v1/care/offers/{offerRef}/decline", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postCareVisitsByAppointmentRefStart: { name: "postCareVisitsByAppointmentRefStart", method: "POST", path: "/v1/care/visits/{appointmentRef}/start", mountedPath: "/v1/care/visits/{appointmentRef}/start", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
  postCareVisitsByAppointmentRefChecklist: { name: "postCareVisitsByAppointmentRefChecklist", method: "POST", path: "/v1/care/visits/{appointmentRef}/checklist", mountedPath: "/v1/care/visits/{appointmentRef}/checklist", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
  postCareVisitsByAppointmentRefCapture: { name: "postCareVisitsByAppointmentRefCapture", method: "POST", path: "/v1/care/visits/{appointmentRef}/capture", mountedPath: "/v1/care/visits/{appointmentRef}/capture", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
- postCareVisitsByAppointmentRefHandover: { name: "postCareVisitsByAppointmentRefHandover", method: "POST", path: "/v1/care/visits/{appointmentRef}/handover", mountedPath: "/v1/care/visits/{appointmentRef}/handover", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
- postCareVisitsByAppointmentRefComplete: { name: "postCareVisitsByAppointmentRefComplete", method: "POST", path: "/v1/care/visits/{appointmentRef}/complete", mountedPath: "/v1/care/visits/{appointmentRef}/complete", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
- postCareSyncBatches: { name: "postCareSyncBatches", method: "POST", path: "/v1/care/sync-batches", mountedPath: "/v1/care/sync-batches", version: 1, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: true, status: "proposed" },
+ postCareVisitsByAppointmentRefHandoverV2: { name: "postCareVisitsByAppointmentRefHandoverV2", method: "POST", path: "/v1/care/visits/{appointmentRef}/handover", mountedPath: "/v1/care/visits/{appointmentRef}/handover", version: 2, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postCareVisitsByAppointmentRefCompleteV2: { name: "postCareVisitsByAppointmentRefCompleteV2", method: "POST", path: "/v1/care/visits/{appointmentRef}/complete", mountedPath: "/v1/care/visits/{appointmentRef}/complete", version: 2, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postCareSyncBatchesV2: { name: "postCareSyncBatchesV2", method: "POST", path: "/v1/care/sync-batches", mountedPath: "/v1/care/sync-batches", version: 2, engine: "care", callers: ["nurse","locum"], purpose: ["treatment"], idempotent: true, status: "built" },
  getCareShifts: { name: "getCareShifts", method: "GET", path: "/v1/care/shifts", mountedPath: "/v1/care/shifts", version: 1, engine: "care", callers: ["nurse","locum","dispatcher"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
  getCareServices: { name: "getCareServices", method: "GET", path: "/v1/care/services", mountedPath: "/v1/care/services", version: 1, engine: "care", callers: ["patient","caregiver","nurse","dispatcher","thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
  getCareLocumShifts: { name: "getCareLocumShifts", method: "GET", path: "/v1/care/locum-shifts", mountedPath: "/v1/care/locum-shifts", version: 1, engine: "care", callers: ["locum"], purpose: ["dispatch"], idempotent: false, status: "proposed" },
@@ -1670,6 +1683,7 @@ export const apiRoutes = {
  postRecordFhirByResourceType: { name: "postRecordFhirByResourceType", method: "POST", path: "/fhir/{resourceType}", mountedPath: "/v1/record/fhir/{resourceType}", version: 1, engine: "record", callers: ["patient","nurse-assigned","doctor-assigned","pharmacist"], purpose: ["treatment","dispensing","subject-access"], idempotent: false, status: "built" },
  getRecordFhirByResourceTypeById: { name: "getRecordFhirByResourceTypeById", method: "GET", path: "/fhir/{resourceType}/{id}", mountedPath: "/v1/record/fhir/{resourceType}/{id}", version: 1, engine: "record", callers: ["patient","caregiver","next-of-kin","nurse-assigned","doctor-assigned","pharmacist","care-coordinator"], purpose: ["treatment","dispensing","subject-access"], idempotent: false, status: "built" },
  getRecordFhirByResourceType: { name: "getRecordFhirByResourceType", method: "GET", path: "/fhir/{resourceType}", mountedPath: "/v1/record/fhir/{resourceType}", version: 1, engine: "record", callers: ["patient","caregiver","next-of-kin","nurse-assigned","doctor-assigned","pharmacist","care-coordinator"], purpose: ["treatment","dispensing","subject-access"], idempotent: false, status: "built" },
+ getRecordEncounterStatusesByEncounterRef: { name: "getRecordEncounterStatusesByEncounterRef", method: "GET", path: "/v1/record/encounter-statuses/{encounterRef}", mountedPath: "/v1/record/encounter-statuses/{encounterRef}", version: 1, engine: "record", callers: ["engine:care"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  postRecordShareLink: { name: "postRecordShareLink", method: "POST", path: "/share/link", mountedPath: "/v1/record/share/link", version: 1, engine: "record", callers: ["patient","responder-on-trip"], purpose: ["treatment","emergency"], idempotent: false, status: "proposed" },
  postRecordExport: { name: "postRecordExport", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed" },
  getMedicinesFormulary: { name: "getMedicinesFormulary", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 1, engine: "medicines", callers: ["doctor","nurse","pharmacist"], purpose: ["dispensing"], idempotent: false, status: "proposed" },

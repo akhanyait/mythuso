@@ -7547,7 +7547,8 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const careCode = files('packages/engines/src/care').filter(f => f.endsWith('.ts') && !f.endsWith('.test.ts'));
  const contractSource = read('packages/engines/src/care/domain/contract.ts');
  const routePaths = Object.fromEntries([...contractSource.matchAll(/^ (\w+): '(\/v1\/care[^']*)'/gm)].map(m => [m[1], m[2]]));
- const refusalsOn = path => new Set((careApi.routes.find(r => r.method === 'POST' && r.path === path)?.refusals ?? []).map(r => r.id));
+ /* The live version of a path: a withdrawn one keeps the refusals it was frozen with, and an act refuses from the version in force. */
+ const refusalsOn = path => new Set((careApi.routes.filter(r => r.method === 'POST' && r.path === path && !r.withdrawn).sort((a, b) => b.version - a.version)[0]?.refusals ?? []).map(r => r.id));
  const anyCareRefusal = new Set([...careApi.routes.flatMap(r => r.refusals.map(x => x.id)), ...careApi.refusals.map(r => r.id), ...sharedRefusalIds]);
  let citedRefusals = 0;
  for (const file of careCode) {
@@ -7620,7 +7621,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
        sentences, or the expiry. The screens are listed by name so the check reaches them the day they
        land, and a missing one is not yet an error. */
  const careScreens = [
-  'apps/web/src/lib/care-visit.ts', 'apps/web/src/features/CareVisit.tsx',
+  'apps/web/src/lib/care-visit.ts', 'apps/web/src/features/CareVisit.tsx', 'apps/web/src/lib/care-named-nurse.ts',
   'apps/ios/MyThuso/Models/CareVisit.swift', 'apps/ios/MyThuso/Features/CareVisitView.swift',
   'apps/android/app/src/main/java/za/co/mythuso/model/CareVisit.kt', 'apps/android/app/src/main/java/za/co/mythuso/ui/CareVisitScreens.kt'
  ].filter(existsSync);
@@ -7628,6 +7629,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
   ...careApi.routes.flatMap(r => r.refusals.map(x => x.statement)), ...careApi.refusals.map(r => r.statement),
   offers.declined, offers.lapsed, offers.withheldIsNotLast.statement, careContract.checklist.noProtocol,
   careContract.position.whileShared, careContract.record.sentence, careContract.handover.queued, careContract.complete.billable,
+  ...careContract.offers.namedFallback.told.map(t => t.sentence.split('{')[0].trim()).filter(Boolean),
   ...careContract.withheld.filter(w => w.statement).map(w => w.statement)
  ];
  for (const file of [...careCode, ...careScreens]) {
@@ -7686,6 +7688,98 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  for (const file of [...careCode, ...careScreens]) {
   const typed = read(file).match(typedRoleList);
   if (typed) throw new Error(`${file} types a list of roles, ${typed[0]}…. Who may be offered a service is its row in packages/catalog/care.json or the setting the row names, read in force; a typed list is one an admin's change and a clinician's review never reach.`);
+ }
+
+ /* 10. What Wave 3 Phase B closed, each held so it cannot quietly reopen.
+        a. Nobody hears or publishes a withdrawn appointment event. booked@1, in_progress@1 and completed@1 were
+           withdrawn on 15 September for what they left out; each keeps its lock line, has no subscriber, and its
+           former subscribers are exactly version two's; Care's routes emit version two; and the engines that
+           hear them — Money, Safety, Access — subscribe to version two and nothing older. The pattern search over
+           code above refuses any hand-written naming of a withdrawn version; this refuses a move left half done.
+        b. A visit the patient asked to wait for a named nurse is never passed to another nurse. Asked of the
+           domain itself: a named nurse outside the service's scope, a decline and a lapse under wait each end
+           with no offer to anybody but her, and the first with the refusal waiting-for-named-nurse and a told row;
+           under soonest the next eligible nurse is offered it. The live offers route keeps that row on the
+           refusal, or the patient is never told.
+        c. POST /v1/care/sync-batches@2 operations carry their visit and their observation. Every conflict rule in
+           capture.json needs them; version one sent references alone and is withdrawn; the engine binds version
+           two and hands the domain each operation's own visit and observation.
+        d. The encounter refusal names a route that is declared. Whatever Care answers when an Encounter entry
+           does not count as signed names a live record route that takes calls from engine:care, and is answered
+           only by live Care routes; the refusal it replaced keeps its words and answers only withdrawn ones. */
+ {
+  const eventsNow = careEventsContract.events;
+  const moved = { 'appointment.booked': ['core', 'record', 'money'], 'appointment.in_progress': ['core', 'record', 'safety'], 'appointment.completed': ['core', 'record', 'trust', 'access'] };
+  const hearing = { money: ['packages/engines/src/money/engine.ts', "'appointment.booked@2'"], safety: ['packages/engines/src/safety/engine.ts', "'appointment.in_progress@2': (event, ctx) =>"], access: ['packages/engines/src/access/engine.ts', "'appointment.completed@2': (event, ctx) =>"] };
+  for (const [type, subscribers] of Object.entries(moved)) {
+   const one = eventsNow.find(e => e.type === type && e.version === 1), two = eventsNow.find(e => e.type === type && e.version === 2);
+   if (!one?.withdrawn || one.withdrawn.supersededBy !== `${type}@2` || one.subscribers.length || [...one.withdrawn.formerSubscribers].sort().join() !== [...subscribers].sort().join()) throw new Error(`${type}@1 is not withdrawn in favour of ${type}@2 with ${subscribers.join(', ')} as its former subscribers and nobody left hearing it.`);
+   if (!two || two.withdrawn || [...two.subscribers].sort().join() !== [...subscribers].sort().join()) throw new Error(`${type}@2 is not live with exactly the subscribers version one had, ${subscribers.join(', ')}. A subscriber move left half done is an engine still built against the withdrawn shape.`);
+   if (type !== 'appointment.completed' && !two.payload.some(f => f.field === 'serviceId' && f.required)) throw new Error(`${type}@2 does not carry the serviceId it was versioned for.`);
+   if (type === 'appointment.completed' && !two.payload.some(f => f.field === 'bookingRef')) throw new Error('appointment.completed@2 does not carry the bookingRef it was versioned for.');
+  }
+  for (const r of careApi.routes.filter(x => !x.withdrawn)) for (const key of r.emits) if (/^appointment\.(booked|in_progress|completed)@1$/.test(key)) throw new Error(`${r.method} ${r.path}@${r.version} still emits ${key}, which is withdrawn.`);
+  for (const [engineId, [file, needle]] of Object.entries(hearing)) {
+   const source = read(file);
+   if (!source.includes(needle) || /'appointment\.(booked|in_progress|completed)@1'/.test(source)) throw new Error(`${file} does not hear the appointment event ${engineId} subscribes to at version two, or still names version one.`);
+  }
+
+  const { OfferDesk: Desk } = await import('../packages/engines/src/care/domain/offers.ts');
+  const { TrustCache: Trust, HEARD: heard } = await import('../packages/engines/src/care/domain/trust.ts');
+  const { careByDefault: byDefault } = await import('../packages/engines/src/care/domain/settings.ts');
+  const zoneAtProof = careGeography.zones[0].at;
+  const proofNow = new Date('2026-06-01T09:00:00+02:00');
+  const minutes = expiryDefault.value;
+  const desk = (people, fallback) => {
+   const trust = new Trust(domainContract.badgeTiers);
+   for (const p of people) trust.learn({ ...heard, subjectRef: p.clinicianRef, occurredAt: proofNow.toISOString(), payload: { badgeTier: domainContract.badgeTiers[0], hardGatesPassed: true } });
+   const d = new Desk({ contract: domainContract, trust, candidates: () => people, settings: () => byDefault });
+   d.register({ appointmentRef: 'proof', subjectRef: 'proof', serviceId: 'wound', zone: zoneAtProof, scheduledFor: new Date(proofNow.getTime() + 24 * 60 * 60_000).toISOString(), previousClinicianRefs: [], namedClinicianRef: 'asked-for', namedNurseFallback: fallback });
+   return d;
+  };
+  const woundScope = careContract.services.find(s => s.serviceId === 'wound').scope;
+  const other = { clinicianRef: 'other', roleId: 'nurse', scope: [woundScope], base: zoneAtProof };
+  const askedFor = scope => ({ clinicianRef: 'asked-for', roleId: 'nurse', scope, base: zoneAtProof });
+  const onlyHer = (d, label) => { if (d.offersFor('proof').some(o => o.clinicianRef !== 'asked-for')) throw new Error(`packages/engines/src/care/domain/offers.ts passed a visit waiting for its named nurse to another nurse ${label}. A patient who answered wait is never sent somebody they did not ask for.`); };
+  const outside = desk([other, askedFor([])], 'wait');
+  const refusedOutside = outside.offer({ idempotencyKey: 'k', appointmentRef: 'proof', serviceId: 'wound' }, proofNow);
+  onlyHer(outside, 'when a gate withheld her');
+  if (refusedOutside.ok || refusedOutside.id !== 'waiting-for-named-nurse' || outside.toldFor('proof')?.toldId !== 'cannot-take') throw new Error('A visit waiting for a named nurse Care cannot offer it to is not refused as waiting-for-named-nurse with the patient told she cannot take it.');
+  const lapsing = desk([other, askedFor([woundScope])], 'wait');
+  lapsing.offer({ idempotencyKey: 'k', appointmentRef: 'proof', serviceId: 'wound' }, proofNow);
+  lapsing.lapse(new Date(proofNow.getTime() + minutes * 60_000));
+  onlyHer(lapsing, 'when her offer lapsed');
+  if (lapsing.offersFor('proof').length !== 2) throw new Error('A lapsed offer to a named nurse the patient asked to wait for is not offered to her again.');
+  const declining = desk([other, askedFor([woundScope])], 'wait');
+  const first = declining.offer({ idempotencyKey: 'k', appointmentRef: 'proof', serviceId: 'wound' }, proofNow);
+  if (first.ok) declining.decline({ idempotencyKey: 'd', offerRef: first.value.offerRef }, { clinicianRef: 'asked-for' }, proofNow);
+  declining.passOnDeclined(proofNow);
+  onlyHer(declining, 'when she declined');
+  const soonest = desk([other, askedFor([])], 'soonest');
+  const passed = soonest.offer({ idempotencyKey: 'k', appointmentRef: 'proof', serviceId: 'wound' }, proofNow);
+  if (!passed.ok || passed.events[0].payload.clinicianRef !== 'other' || soonest.toldFor('proof')?.toldId !== 'gone-to-soonest') throw new Error('Under soonest, a visit whose named nurse cannot be offered it does not go to the next eligible nurse with the patient told who.');
+  const offersTwo = careApi.routes.find(r => r.method === 'POST' && r.path === '/v1/care/offers' && !r.withdrawn);
+  if (!offersTwo?.refusals.some(r => r.id === 'waiting-for-named-nurse') || !(offersTwo.keptOnRefusal?.refusals ?? []).includes('waiting-for-named-nurse') || !careEngineSource.includes("made.id === 'waiting-for-named-nurse' ? desks.offers.toldFor(appointmentRef) : null") || !careEngineSource.includes('ctx.recordRefusal(TOLD_UPSERT')) throw new Error('The live offers route does not refuse with waiting-for-named-nurse and keep the row that tells the patient, or the engine does not record that row when it refuses.');
+
+  const syncOne = careApi.routes.find(r => r.method === 'POST' && r.path === '/v1/care/sync-batches' && r.version === 1);
+  const syncLive = careApi.routes.filter(r => r.method === 'POST' && r.path === '/v1/care/sync-batches' && !r.withdrawn);
+  const operations = syncLive[0]?.request.find(f => f.field === 'operations');
+  const inner = new Map((operations?.fields ?? []).map(f => [f.field, f]));
+  if (!syncOne?.withdrawn || syncLive.length !== 1 || syncLive[0].version !== 2 || operations?.object !== true || operations.type !== 'list'
+   || !['operationRef', 'kind', 'appointmentRef', 'observationRef', 'measure', 'deviceAt'].every(field => inner.get(field)?.required === true)) throw new Error('POST /v1/care/sync-batches@2 does not carry, for every operation, its visit, its observation entry, the measure it is of, its kind and the time the phone took it, as required fields; or version one is not withdrawn. capture.json\'s conflicts cannot be decided without them.');
+  if (!careEngineSource.includes("'POST /v1/care/sync-batches@2': bind(") || !careEngineSource.includes('appointmentRef: o.appointmentRef, observationId: o.measure, observationRef: o.observationRef')) throw new Error('packages/engines/src/care/engine.ts does not bind POST /v1/care/sync-batches@2 and hand the domain each operation\'s own visit and observation.');
+
+  const encounterRefusalId = [...read('packages/engines/src/care/domain/visits.ts').matchAll(/encounterEntryCountsAsSigned === false\) return refuseForEngine\(this\.#contract, ROUTES\.\w+, '([a-z-]+)'\)/g)].map(m => m[1]);
+  if (encounterRefusalId.length !== 2 || new Set(encounterRefusalId).size !== 1) throw new Error('packages/engines/src/care/domain/visits.ts no longer answers handover and completion with one engine refusal when an Encounter entry does not count as signed.');
+  const encounterRefusal = careApi.refusals.find(r => r.id === encounterRefusalId[0]);
+  const named = encounterRefusal?.statement.match(/\b(GET|POST) (\/[^\s,]+)/);
+  const { routes: everyRoute } = loadApis();
+  const declared = named && everyRoute.find(r => r.method === named[1] && r.path === named[2] && !r.withdrawn);
+  if (!declared || !declared.callers.includes('engine:care')) throw new Error(`The encounter refusal "${encounterRefusalId[0]}" names ${named ? `${named[1]} ${named[2]}` : 'no route'}, which is not a live route taking calls from engine:care. A refusal that tells a nurse what Care is waiting for names something that exists.`);
+  const answeredLive = (encounterRefusal.answeredBy ?? []).length > 0 && encounterRefusal.answeredBy.every(key => careApi.routes.some(r => `${r.method} ${r.path}@${r.version}` === key && !r.withdrawn));
+  const previous = careApi.refusals.find(r => r.id === 'encounter-signature-unconfirmed');
+  const previousOnlyWithdrawn = (previous?.answeredBy ?? []).every(key => careApi.routes.some(r => `${r.method} ${r.path}@${r.version}` === key && r.withdrawn));
+  if (!answeredLive || !previousOnlyWithdrawn) throw new Error(`"${encounterRefusalId[0]}" is not answered only by live Care routes, or encounter-signature-unconfirmed still answers a live one. The old words stay with the withdrawn versions that answered them.`);
  }
 
  console.log(`Care offers ${careContract.services.length} services by the register's roles and scopes, ${careContract.services.filter(s => !s.protocolIds.length).length} of them with no protocol to run a checklist under and the rest under drafts that run none; an offer lapses after ${expiryDefault.value} minutes by default, decided by the ${expiryDefault.decidedBy} on ${expiryDefault.decidedOn} and changed by an admin within its bounds, and keeps the expiry it was made with. The ported distance agrees with packages/geo at ${probes.length * probes.length} pairs of points, ${citedRefusals} refusals cited in Care's code are declared where the runtime looks, ${published.length} event publications are live, Care's own and carry no visit code, and ${careCode.length + careScreens.length} hand-written Care files type none of the ${owned.length} sentences the contracts own.`);

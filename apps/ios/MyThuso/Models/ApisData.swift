@@ -79,15 +79,15 @@ enum ApisData {
     static let getAccessSettings = Route(id: "getAccessSettings", method: "GET", path: "/v1/access/settings", mountedPath: "/v1/access/settings", version: 1, engine: "access", callers: ["admin", "doctor"], purpose: ["audit"], idempotent: false, status: "built")
     static let postAccessSettingChanges = Route(id: "postAccessSettingChanges", method: "POST", path: "/v1/access/setting-changes", mountedPath: "/v1/access/setting-changes", version: 1, engine: "access", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
     static let postAccessSettingReviews = Route(id: "postAccessSettingReviews", method: "POST", path: "/v1/access/setting-reviews", mountedPath: "/v1/access/setting-reviews", version: 1, engine: "access", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built")
-    static let postCareOffers = Route(id: "postCareOffers", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 1, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "built")
+    static let postCareOffersV2 = Route(id: "postCareOffersV2", method: "POST", path: "/v1/care/offers", mountedPath: "/v1/care/offers", version: 2, engine: "care", callers: ["dispatcher"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let postCareOffersByOfferRefAccept = Route(id: "postCareOffersByOfferRefAccept", method: "POST", path: "/v1/care/offers/{offerRef}/accept", mountedPath: "/v1/care/offers/{offerRef}/accept", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let postCareOffersByOfferRefDecline = Route(id: "postCareOffersByOfferRefDecline", method: "POST", path: "/v1/care/offers/{offerRef}/decline", mountedPath: "/v1/care/offers/{offerRef}/decline", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let postCareVisitsByAppointmentRefStart = Route(id: "postCareVisitsByAppointmentRefStart", method: "POST", path: "/v1/care/visits/{appointmentRef}/start", mountedPath: "/v1/care/visits/{appointmentRef}/start", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postCareVisitsByAppointmentRefChecklist = Route(id: "postCareVisitsByAppointmentRefChecklist", method: "POST", path: "/v1/care/visits/{appointmentRef}/checklist", mountedPath: "/v1/care/visits/{appointmentRef}/checklist", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postCareVisitsByAppointmentRefCapture = Route(id: "postCareVisitsByAppointmentRefCapture", method: "POST", path: "/v1/care/visits/{appointmentRef}/capture", mountedPath: "/v1/care/visits/{appointmentRef}/capture", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
-    static let postCareVisitsByAppointmentRefHandover = Route(id: "postCareVisitsByAppointmentRefHandover", method: "POST", path: "/v1/care/visits/{appointmentRef}/handover", mountedPath: "/v1/care/visits/{appointmentRef}/handover", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
-    static let postCareVisitsByAppointmentRefComplete = Route(id: "postCareVisitsByAppointmentRefComplete", method: "POST", path: "/v1/care/visits/{appointmentRef}/complete", mountedPath: "/v1/care/visits/{appointmentRef}/complete", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
-    static let postCareSyncBatches = Route(id: "postCareSyncBatches", method: "POST", path: "/v1/care/sync-batches", mountedPath: "/v1/care/sync-batches", version: 1, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: true, status: "proposed")
+    static let postCareVisitsByAppointmentRefHandoverV2 = Route(id: "postCareVisitsByAppointmentRefHandoverV2", method: "POST", path: "/v1/care/visits/{appointmentRef}/handover", mountedPath: "/v1/care/visits/{appointmentRef}/handover", version: 2, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postCareVisitsByAppointmentRefCompleteV2 = Route(id: "postCareVisitsByAppointmentRefCompleteV2", method: "POST", path: "/v1/care/visits/{appointmentRef}/complete", mountedPath: "/v1/care/visits/{appointmentRef}/complete", version: 2, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postCareSyncBatchesV2 = Route(id: "postCareSyncBatchesV2", method: "POST", path: "/v1/care/sync-batches", mountedPath: "/v1/care/sync-batches", version: 2, engine: "care", callers: ["nurse", "locum"], purpose: ["treatment"], idempotent: true, status: "built")
     static let getCareShifts = Route(id: "getCareShifts", method: "GET", path: "/v1/care/shifts", mountedPath: "/v1/care/shifts", version: 1, engine: "care", callers: ["nurse", "locum", "dispatcher"], purpose: ["dispatch"], idempotent: false, status: "proposed")
     static let getCareServices = Route(id: "getCareServices", method: "GET", path: "/v1/care/services", mountedPath: "/v1/care/services", version: 1, engine: "care", callers: ["patient", "caregiver", "nurse", "dispatcher", "thuso-line-agent"], purpose: ["dispatch"], idempotent: false, status: "proposed")
     static let getCareLocumShifts = Route(id: "getCareLocumShifts", method: "GET", path: "/v1/care/locum-shifts", mountedPath: "/v1/care/locum-shifts", version: 1, engine: "care", callers: ["locum"], purpose: ["dispatch"], idempotent: false, status: "proposed")
@@ -157,6 +157,7 @@ enum ApisData {
     static let postRecordFhirByResourceType = Route(id: "postRecordFhirByResourceType", method: "POST", path: "/fhir/{resourceType}", mountedPath: "/v1/record/fhir/{resourceType}", version: 1, engine: "record", callers: ["patient", "nurse-assigned", "doctor-assigned", "pharmacist"], purpose: ["treatment", "dispensing", "subject-access"], idempotent: false, status: "built")
     static let getRecordFhirByResourceTypeById = Route(id: "getRecordFhirByResourceTypeById", method: "GET", path: "/fhir/{resourceType}/{id}", mountedPath: "/v1/record/fhir/{resourceType}/{id}", version: 1, engine: "record", callers: ["patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"], purpose: ["treatment", "dispensing", "subject-access"], idempotent: false, status: "built")
     static let getRecordFhirByResourceType = Route(id: "getRecordFhirByResourceType", method: "GET", path: "/fhir/{resourceType}", mountedPath: "/v1/record/fhir/{resourceType}", version: 1, engine: "record", callers: ["patient", "caregiver", "next-of-kin", "nurse-assigned", "doctor-assigned", "pharmacist", "care-coordinator"], purpose: ["treatment", "dispensing", "subject-access"], idempotent: false, status: "built")
+    static let getRecordEncounterStatusesByEncounterRef = Route(id: "getRecordEncounterStatusesByEncounterRef", method: "GET", path: "/v1/record/encounter-statuses/{encounterRef}", mountedPath: "/v1/record/encounter-statuses/{encounterRef}", version: 1, engine: "record", callers: ["engine:care"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let postRecordShareLink = Route(id: "postRecordShareLink", method: "POST", path: "/share/link", mountedPath: "/v1/record/share/link", version: 1, engine: "record", callers: ["patient", "responder-on-trip"], purpose: ["treatment", "emergency"], idempotent: false, status: "proposed")
     static let postRecordExport = Route(id: "postRecordExport", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "proposed")
     static let getMedicinesFormulary = Route(id: "getMedicinesFormulary", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 1, engine: "medicines", callers: ["doctor", "nurse", "pharmacist"], purpose: ["dispensing"], idempotent: false, status: "proposed")
@@ -248,15 +249,15 @@ enum ApisData {
         getAccessSettings,
         postAccessSettingChanges,
         postAccessSettingReviews,
-        postCareOffers,
+        postCareOffersV2,
         postCareOffersByOfferRefAccept,
         postCareOffersByOfferRefDecline,
         postCareVisitsByAppointmentRefStart,
         postCareVisitsByAppointmentRefChecklist,
         postCareVisitsByAppointmentRefCapture,
-        postCareVisitsByAppointmentRefHandover,
-        postCareVisitsByAppointmentRefComplete,
-        postCareSyncBatches,
+        postCareVisitsByAppointmentRefHandoverV2,
+        postCareVisitsByAppointmentRefCompleteV2,
+        postCareSyncBatchesV2,
         getCareShifts,
         getCareServices,
         getCareLocumShifts,
@@ -326,6 +327,7 @@ enum ApisData {
         postRecordFhirByResourceType,
         getRecordFhirByResourceTypeById,
         getRecordFhirByResourceType,
+        getRecordEncounterStatusesByEncounterRef,
         postRecordShareLink,
         postRecordExport,
         getMedicinesFormulary,
@@ -810,12 +812,12 @@ enum ApisData {
         let settingsVersion: Int
         let reviewedAt: String
     }
-    struct PostCareOffersRequest {
+    struct PostCareOffersV2Request {
         let idempotencyKey: String
         let appointmentRef: String
         let serviceId: String
     }
-    struct PostCareOffersResponse {
+    struct PostCareOffersV2Response {
         let offerRef: String
         let offerExpiresAt: String
     }
@@ -856,28 +858,32 @@ enum ApisData {
     struct PostCareVisitsByAppointmentRefCaptureResponse {
         let attachedCount: Int
     }
-    struct PostCareVisitsByAppointmentRefHandoverRequest {
+    struct PostCareVisitsByAppointmentRefHandoverV2Request {
         let appointmentRef: String
         let encounterRef: String
     }
-    struct PostCareVisitsByAppointmentRefHandoverResponse {
+    struct PostCareVisitsByAppointmentRefHandoverV2Response {
         let reviewQueued: Bool
     }
-    struct PostCareVisitsByAppointmentRefCompleteRequest {
+    struct PostCareVisitsByAppointmentRefCompleteV2Request {
         let appointmentRef: String
         let visitCode: String
         let encounterRef: String
     }
-    struct PostCareVisitsByAppointmentRefCompleteResponse {
+    struct PostCareVisitsByAppointmentRefCompleteV2Response {
         let completedAt: String
     }
-    struct PostCareSyncBatchesRequest {
+    struct PostCareSyncBatchesV2Request {
+        let idempotencyKey: String
         let batchRef: String
-        let operationRefs: [String]
+        let operations: [[String: Any]]
     }
-    struct PostCareSyncBatchesResponse {
+    struct PostCareSyncBatchesV2Response {
         let acceptedCount: Int
-        let conflictRefs: [String]
+        let applied: [[String: Any]]
+        let conflicts: [[String: Any]]
+        let refused: [[String: Any]]
+        let notMerged: String?
     }
     struct GetCareShiftsRequest {}
     struct GetCareShiftsResponse {
@@ -1439,6 +1445,14 @@ enum ApisData {
     struct GetRecordFhirByResourceTypeResponse {
         let entries: [[String: Any]]
         let sealedContentExists: Bool?
+    }
+    struct GetRecordEncounterStatusesByEncounterRefRequest {
+        let encounterRef: String
+    }
+    struct GetRecordEncounterStatusesByEncounterRefResponse {
+        let stateCode: String
+        let signedAt: String?
+        let supersededByRef: String?
     }
     struct PostRecordShareLinkRequest {
         let scope: [String]
