@@ -173,3 +173,8 @@ GET /v1/safety/settings@2 36ed327835fb428e
 POST /v1/safety/setting-changes@2 0a83f3647d71f0f1
 GET /v1/money/settings@1 3dc2210baa1feb11
 POST /v1/money/setting-changes@1 6bcc02f7d68e34a3
+GET /v1/core/loops@2 0a2c645e0fe2129e
+POST /v1/core/loops/{loopRef}/acknowledge@2 e6f2b968aee95552
+POST /v1/core/loops/{loopRef}/escalate@2 0fd50d01c711911e
+GET /v1/core/settings@1 57398bf4f3e2c1b9
+POST /v1/core/setting-changes@1 c80982cbae4735b4

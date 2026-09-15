@@ -8,7 +8,8 @@
  "sources": [
   { "engine": "safety", "file": "packages/catalog/field-safety.json" },
   { "engine": "care", "file": "packages/catalog/care.json" },
-  { "engine": "money", "file": "packages/catalog/money.json" }
+  { "engine": "money", "file": "packages/catalog/money.json" },
+  { "engine": "core", "file": "packages/catalog/closed-loop.json" }
  ],
  "_sourcesNote": "Every contract that holds a settings block, and the engine that owns it. packages/engines/src/settings/blocks.ts imports exactly these, and the build fails on a settings block in a contract this list does not name. An engine adding its first setting adds its contract here.",
 
@@ -35,7 +36,7 @@
   { "key": "maxLength", "required": false, "why": "For text: { value } in characters, with its provenance." },
   { "key": "mustKeep", "required": false, "why": "For text: [{ words, why }], sentences no rewording may drop. The way a guardrail on wording is written as a rule rather than trusted." },
   { "key": "allowedRoles", "required": false, "why": "For a roleList: { roles } from the vetting register, with its provenance." },
-  { "key": "posts", "required": false, "why": "For a schedule: [{ id, label, role }], the positions a rota is made of, each held by a role on the vetting register. A rota names posts, never people." },
+  { "key": "posts", "required": false, "why": "For a schedule: [{ id, label, role }], the positions a rota is made of, each held by a role on the vetting register. A rota names posts, never people. A post no role on the register holds yet is written { id, label, role: null, roleMissing }, with a sentence saying so: it stays on the rota, no window may name it, and whatever reaches it goes to the next post rather than to a role it was never given." },
   { "key": "mustCover", "required": false, "why": "For a schedule: [{ post, days, from, to, why }], hours that must always have that post on them." },
   { "key": "of", "required": false, "why": "For a list: the type of every item — minutes, count, moneyCents, percentage, enum or text — whose limits the setting carries as it would for one value." },
   { "key": "items", "required": false, "why": "For a list or a roleList: { lowest, highest }, how many items or roles, each with its provenance. A roleList that must always name somebody says so here." },
@@ -178,6 +179,7 @@
   "maxLength": "Up to {count} characters",
   "roles": "Only these roles may be named: {roles}",
   "posts": "A rota of posts: {posts}",
+  "postWithoutRole": "{post}, which no role on the vetting register holds yet",
   "listLength": "{lowest} to {highest} items",
   "limitsAreProposals": "What an admin may set is a proposal nobody has decided.",
   "limitsDecided": "What an admin may set was decided.",

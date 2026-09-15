@@ -89,10 +89,10 @@ test('an idempotent route replays the same key as the same act once', () => {
    people, so it is where two callers can choose the same key. */
 const acknowledging = (runs: { count: number }) => defineEngine({
  ...empty, id: 'core',
- routes: { 'POST /v1/core/loops/{loopRef}/acknowledge@1': (_request, ctx) => { runs.count++; return ok({ acknowledgedAt: ctx.clock.iso() }); } },
+ routes: { 'POST /v1/core/loops/{loopRef}/acknowledge@2': (_request, ctx) => { runs.count++; return ok({ acknowledgedAt: ctx.clock.iso() }); } },
 });
 const acknowledge = (runtime: ReturnType<typeof runtimeWith>, ref: string | null, fields: Record<string, unknown>) =>
- runtime.call('POST /v1/core/loops/{loopRef}/acknowledge@1', { role: 'nurse', ref, purpose: 'treatment', fields });
+ runtime.call('POST /v1/core/loops/{loopRef}/acknowledge@2', { role: 'nurse', ref, purpose: 'treatment', fields });
 
 test('two callers who choose the same key get their own answers, never each other\'s', () => {
  const runs = { count: 0 };

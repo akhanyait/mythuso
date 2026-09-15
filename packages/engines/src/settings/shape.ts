@@ -45,7 +45,8 @@ export type Provenance = {
 };
 export type Bound = Provenance & { readonly value: number };
 export type Choice = Provenance & { readonly value: string | boolean; readonly label: string };
-export type Post = { readonly id: string; readonly label: string; readonly role: string };
+/** A position on a rota. role is null, with roleMissing saying why, for a post no role on the vetting register holds yet. */
+export type Post = { readonly id: string; readonly label: string; readonly role: string | null; readonly roleMissing?: string };
 export type Cover = { readonly post: string; readonly days: readonly string[]; readonly from: string; readonly to: string; readonly why: string };
 /** What a value of one type is held to. A list's items and a record's parts are held to theirs the same way. */
 export type Limits = {
@@ -177,10 +178,12 @@ function wrongType(limits: Limits, value: unknown): boolean {
   case 'enum': case 'text': return typeof value !== 'string';
   case 'roleList': return !Array.isArray(value) || !value.every(role => typeof role === 'string');
   /* A window is a post, days and hours and nothing else. A field beside them — a name, a phone number —
-     is refused as the wrong kind of value, which is how a rota stays a rota of posts. */
+     is refused as the wrong kind of value, which is how a rota stays a rota of posts. So is a window for a
+     post no role on the register holds: nobody could be on it, and a rota that said somebody was would be
+     a post quietly given to whoever the admin had in mind. */
   case 'schedule': return !Array.isArray(value) || !value.every(w => isRecord(w)
    && Object.keys(w).sort().join(',') === 'days,from,post,to'
-   && (limits.posts ?? []).some(post => post.id === w.post)
+   && (limits.posts ?? []).some(post => post.id === w.post && post.role !== null)
    && Array.isArray(w.days) && w.days.length > 0 && new Set(w.days).size === w.days.length && w.days.every(day => DAYS.includes(day as string))
    && minuteOfDay(w.from) !== null && minuteOfDay(w.to) !== null && minuteOfDay(w.from)! < minuteOfDay(w.to)!);
   case 'list': return !Array.isArray(value) || value.some(item => wrongType(itemsOf(limits), item));

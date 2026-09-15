@@ -7,6 +7,8 @@ import { settingsEngines } from '../../../../packages/engines/src/settings/regis
 import { inForce, panicWindowOf, type PanicWindow, type SettingsInForce } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { careInForceOf, type CareInForce } from '../../../../packages/engines/src/care/domain/settings.ts';
 import { doctorFeeOf, nurseShareSentenceOf, planTermsOf, type DoctorFeeInForce, type PlanTerms } from '../../../../packages/engines/src/money/domain/settings.ts';
+import { rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
+import type { KeptRota } from '../../../../packages/engines/src/core/domain/loops.ts';
 import { roleOf, whoIs } from './roles';
 import { can } from './vetting';
 
@@ -79,6 +81,9 @@ export const careSettingsNow = (): CareInForce => careInForceOf(snapshotNow('car
 export const momPlanNow = (): PlanTerms => planTermsOf(snapshotNow('money'));
 export const doctorFeeNow = (): DoctorFeeInForce => doctorFeeOf(snapshotNow('money'));
 export const nurseShareSentenceNow = (): string => nurseShareSentenceOf(snapshotNow('money'));
+/* The escalation rota and its minutes in force, for the Control Tower's concerns: asked once when a concern
+   is opened, and kept by the concern. */
+export const escalationRotaNow = (): KeptRota => rotaOf(snapshotNow('core'));
 
 /* Whether the value a setting held at a settings version has been clinically reviewed. Something that started
    under an older version — an offer on a nurse's screen — is described by the value it started under, not
