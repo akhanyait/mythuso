@@ -1705,8 +1705,19 @@ for(const {source,command,files} of generated) {
  const { createHash: quoteDigest } = await import('node:crypto');
  const quotesNow = quoteChecks.map(q => [q.named.section, q.named.what, q.named.paraphrase === true]).sort((p, q) => (JSON.stringify(p) < JSON.stringify(q) ? -1 : 1));
  const quotesHashNow = quoteDigest('sha256').update(JSON.stringify(quotesNow)).digest('hex');
+ /* Without the documents the failure names no hash, neither the one just computed nor the one recorded.
+    The reviewer's Money pass found the first version printed the new hash, so a quote edited on a clean
+    clone could be passed off as verified by pasting that hash into the record: the record would then
+    describe a comparison that never happened. Only the documents-present branch prints the record, and
+    only after every quote has been found word for word. So this message is built by one function that
+    is not given a hash, the build refuses that function if its source names one, and the message itself
+    is refused if it carries anything shaped like one, under whatever name it was passed in. */
+ const quotesChangedWithoutDocuments = (count, missing, verifiedOn) => `The capability quotes changed on a machine without the documents: ${missing.join(' and ')} ${missing.length === 1 ? 'is' : 'are'} not here, so the ${count} quotes cannot be compared with the words they cite, and they no longer match what was last verified on ${verifiedOn}. Compare them on a machine where Documentation/ exists; the check there compares every quote and prints the record to write. Nothing is printed here that could be copied into the record, because a record copied from a machine that compared nothing describes a verification that did not happen.`;
+ if (/quotesHash|Digest|sha256/i.test(String(quotesChangedWithoutDocuments))) throw new Error('scripts/check-boundaries.mjs builds the documents-absent quote failure from a hash. A hash printed where the documents are absent can be pasted into apis.json#quoteVerification without a single quote being compared.');
  if (absentDocuments.length) {
-  if (quotesHashNow !== quoteRecord.quotesHash) fail('quotes-are-quotes', `The capability quotes changed on a machine without the documents: ${absentDocuments.join(' and ')} ${absentDocuments.length === 1 ? 'is' : 'are'} not here, so the ${quoteChecks.length} quotes hash to ${quotesHashNow} and packages/catalog/apis.json#quoteVerification recorded ${quoteRecord.quotesHash} on ${quoteRecord.verifiedOn}. Compare them where Documentation/ exists; the check there prints the record to write.`);
+  const quotesChangedMessage = quotesChangedWithoutDocuments(quoteChecks.length, absentDocuments, quoteRecord.verifiedOn);
+  if (/[0-9a-f]{64}/i.test(quotesChangedMessage)) throw new Error('The documents-absent quote failure carries a 64-character hex value. Whatever it is called, a value shaped like the quotes hash printed where the documents are absent can be pasted into apis.json#quoteVerification without a single quote being compared.');
+  if (quotesHashNow !== quoteRecord.quotesHash) fail('quotes-are-quotes', quotesChangedMessage);
   quoteNote = `${absentDocuments.join(' and ')} ${absentDocuments.length === 1 ? 'is' : 'are'} not in this checkout, so ${quoteChecks.length} capability quotes were held to the hash recorded when they were last compared with the documents, on ${quoteRecord.verifiedOn}, and match it`;
  }
  else {
