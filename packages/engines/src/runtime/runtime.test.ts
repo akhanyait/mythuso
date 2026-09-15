@@ -233,3 +233,60 @@ test('the trail is a hash chain that notices a line changed underneath it', () =
  assert.equal(runtime.trail.verify(), false);
  runtime.close();
 });
+
+/* The store an engine is handed is its own tables and nothing more. This is the reviewer's escape as
+   reproduced: a Care tick ended the binder's transaction, attached Safety's file and an arbitrary one,
+   read Safety's rows and began a new transaction so that nothing looked wrong. It must be refused, and
+   the attempt must be a fault rather than a quiet success. */
+test('an engine cannot end the binder\'s transaction, attach another engine\'s store or create a database through its own', async () => {
+ const { existsSync } = await import('node:fs');
+ const directory = mkdtempSync(join(tmpdir(), 'mythuso-engines-escape-'));
+ let seen: unknown = null;
+ const safety = defineEngine({ ...empty, id: 'safety', store: { schema: 'CREATE TABLE IF NOT EXISTS panics (ref TEXT PRIMARY KEY);' }, tick: ctx => { ctx.store.prepare('INSERT OR IGNORE INTO panics (ref) VALUES (?)').run('panic-synthetic-1'); } });
+ const care = defineEngine({ ...empty, id: 'care', tick: ctx => {
+  ctx.store.exec(`COMMIT; ATTACH '${join(directory, 'safety.sqlite')}' AS other; ATTACH '${join(directory, 'arbitrary.sqlite')}' AS arb; CREATE TABLE arb.loot (ref TEXT); BEGIN;`);
+  seen = ctx.store.prepare('SELECT ref FROM other.panics').all();
+ } });
+ const runtime = runtimeWith([safety, care], directory);
+ runtime.advance(1);
+ assert.equal(seen, null, 'care never read safety\'s rows');
+ assert.equal(existsSync(join(directory, 'arbitrary.sqlite')), false, 'no database was created');
+ const careFaults = runtime.faults().filter(f => f.engine === 'care');
+ assert.equal(careFaults.length, 1, 'the attempt is a fault, not a quiet success');
+ assert.equal((careFaults[0]!.error as Error).name, 'StoreRefused');
+ runtime.close();
+});
+
+test('the store refuses every statement that reaches past the engine\'s own tables, however it is spelt', () => {
+ const outcomes: Record<string, string> = {};
+ const attempts: Record<string, string> = {
+  'attach': "ATTACH DATABASE ':memory:' AS other",
+  'attach behind a comment, in lower case': "/* just a read */ attach database ':memory:' as other",
+  'detach': 'DETACH DATABASE other',
+  'begin': 'BEGIN',
+  'commit': 'COMMIT',
+  'rollback': 'ROLLBACK',
+  'savepoint': 'SAVEPOINT s',
+  'release': 'RELEASE s',
+  'vacuum into': "VACUUM INTO '/tmp/mythuso-engines-copy.sqlite'",
+  'a pragma that writes': 'PRAGMA writable_schema = 1',
+  'the replay table': 'SELECT * FROM _runtime_replays',
+  'the replay table, quoted': 'SELECT * FROM "_runtime_replays"',
+  'the replay table, bracketed and in capitals': 'DELETE FROM [_RUNTIME_REPLAYS]',
+  'the replay table, as a string where a table name belongs': "SELECT * FROM '_runtime_replays'",
+  'a second statement after the first': 'SELECT 1; DELETE FROM notes',
+ };
+ const runtime = runtimeWith([defineEngine({ ...empty, id: 'care', store: { schema: 'CREATE TABLE IF NOT EXISTS notes (ref TEXT);' }, tick: ctx => {
+  for (const [name, sql] of Object.entries(attempts)) {
+   try { ctx.store.prepare(sql).all(); outcomes[name] = 'ran'; } catch (error) { outcomes[name] = (error as Error).name; }
+  }
+  ctx.store.prepare('INSERT INTO notes (ref) VALUES (?)').run('note-synthetic-1');
+  outcomes.own = String((ctx.store.prepare('SELECT COUNT(*) AS n FROM notes').get() as { n: number }).n);
+  outcomes['a pragma that reads'] = String((ctx.store.prepare('PRAGMA table_info(notes)').all() as unknown[]).length);
+ } })]);
+ runtime.advance(1);
+ for (const name of Object.keys(attempts)) assert.equal(outcomes[name], 'StoreRefused', name);
+ assert.equal(outcomes.own, '1', 'the engine still writes and reads its own tables');
+ assert.equal(outcomes['a pragma that reads'], '1', 'a read-only pragma on its own table still works');
+ runtime.close();
+});

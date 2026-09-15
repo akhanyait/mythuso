@@ -6141,6 +6141,18 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  if (!/caller_ref = \?/.test(runtimeSource) || !/row\.request_digest !== digest\) return render\(shared\('idempotency-key-reused'\)\)/.test(runtimeSource) || !/runtimeRefusal\('caller-unidentified'\)/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts no longer looks a replay up by the caller\'s reference, refuses an unidentified caller, and refuses a reused key whose request differs. A replay that skips any of the three answers somebody with an answer that was not theirs.');
  if (!JSON.parse(read('packages/catalog/apis.json')).sharedRefusals.some(r => r.id === 'idempotency-key-reused' && r.status === 409)) throw new Error('packages/catalog/apis.json has lost the shared refusal idempotency-key-reused, so a reused key has no sentence to be refused with.');
 
+ /* 3c. The store a handler holds is a facade, never the handle. The reviewer attached Safety's file and
+        an arbitrary one through a Care tick and committed half of the binder's transaction, and the
+        grep for new DatabaseSync( above saw none of it, because nothing was opened: it was handed over.
+        So the runtime must hand out the facade and confirm the transaction is still its own before it
+        commits, and the facade's own rule is run here against every spelling of every escape found. */
+ if (!/store: facades\.get\(engine\)!/.test(runtimeSource) || /store: stores\.get\(/.test(runtimeSource)) throw new Error('packages/engines/src/runtime/runtime.ts hands a handler something other than the store facade. The DatabaseSync handle attaches, commits and vacuums whatever its type says.');
+ if ((runtimeSource.match(/if \(!db\.isTransaction\) throw/g) ?? []).length < 2) throw new Error('packages/engines/src/runtime/runtime.ts no longer confirms, after a handler and after a tick or a delivery, that the transaction it is about to commit is still the one it began.');
+ const { refusalFor } = await import('../packages/engines/src/runtime/facade.ts');
+ const storeEscapes = ['COMMIT', "attach database 'x' as y", "/* only a read */ ATTACH 'x' AS y", 'DETACH y', 'BEGIN', 'end', 'ROLLBACK', 'SAVEPOINT s', 'RELEASE s', "VACUUM INTO 'x'", 'EXPLAIN SELECT 1', 'PRAGMA writable_schema = 1', 'PRAGMA other.table_info(t)', 'SELECT * FROM _runtime_replays', 'SELECT * FROM "_RUNTIME_replays"', 'SELECT * FROM [_runtime_replays]', "SELECT * FROM '_runtime_replays'", 'SELECT 1; SELECT 2'];
+ for (const sql of storeEscapes) if (!refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts lets a handler run ${JSON.stringify(sql)} against its store. ${runtimeRefusalOf('store-statement-refused')?.why ?? ''}`);
+ for (const sql of ['SELECT ref FROM notes', "INSERT INTO notes (ref) VALUES ('a; COMMIT; b')", 'PRAGMA table_info(notes)', 'SELECT 1;', 'CREATE TABLE IF NOT EXISTS notes (ref TEXT)']) if (refusalFor(sql)) throw new Error(`packages/engines/src/runtime/facade.ts refuses ${JSON.stringify(sql)}, which only touches the engine's own tables. A facade that refuses ordinary work is one somebody routes around.`);
+
  /* 4. A route built on the runtime names a handler in its own engine's directory that registers it. */
  const { routes: routesForRuntime } = loadApis();
  const onRuntime = routesForRuntime.filter(r => r.status === 'built' && r.enforcedBy?.mechanism === runtimeSettings.mechanism);
