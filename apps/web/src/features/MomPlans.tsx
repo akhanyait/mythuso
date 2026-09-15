@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
+import essential from '../../../../packages/catalog/mom-essential.json' with { type: 'json' };
 import { NotConnected } from '../components/NotConnected';
 import { money } from '../lib/catalog';
 import { groupsOf, momPlan } from '../lib/mom-plans';
@@ -12,6 +13,11 @@ import './mom-plans.css';
  * tall columns side by side were tried against the brief and rejected: every inclusion carries a
  * sentence about what is not real yet, and three columns of that at a third of the width is a wall.
  *
+ * Since Wave 4 one tier can be walked end to end as a preview: the button under the plan opens the Essential journey,
+ * where a son or daughter asks for it, the parent agrees, and the first month is paid through Money's simulated
+ * provider or a voucher — each screen saying so. Nothing is bought, and the rest of this comment is still true of the
+ * panel itself.
+ *
  * Nothing here can be bought and nothing pretends to be. There is no button that joins, the page's
  * payments notice sits above the prices, and each inclusion stands beside the notice of the capability
  * it waits on — read from packages/catalog/capabilities.json, so the sentence leaves the day the thing
@@ -24,12 +30,20 @@ import './mom-plans.css';
  * to list are those settings now, each with a proposal an admin changes on the back office, so there is
  * no "Not decided yet" to show; what the settings may never say is refused before they are in force.
  */
-export function MomPlans() {
+/* The Essential journey is its own chunk: a family comparing prices downloads the plan, and only somebody who asks for
+   the monthly tier downloads the ledger, the booking rules and the journey behind it. */
+const MomEssentialJourney = lazy(() => import('./MomEssential').then(m => ({ default: m.MomEssential })));
+const fillPlan = (text: string, plan: string) => text.replace('{plan}', plan);
+
+export function MomPlans({ family }: { family?: { sponsor: string; parents: readonly string[] } }) {
  useSettingsHistories();
  const plan = momPlanNow();
  const [chosen, setChosen] = useState(plan.tiers[0]!.id);
+ const [journey, setJourney] = useState(false);
+ const essentialTier = plan.tiers.find(x => x.id === essential.planCode);
+ const essentialName = essentialTier ? `${plan.name} ${essentialTier.name}` : plan.name;
  const t = plan.tiers.find(x => x.id === chosen) ?? plan.tiers[0]!;
- return <section className="panel mom-plan" aria-labelledby="mom-plan-title">
+ return <><section className="panel mom-plan" aria-labelledby="mom-plan-title">
   <header className="mom-plan-head">
    <p className="mom-plan-payer">{momPlan.payer.headline}</p>
    <h2 id="mom-plan-title">{plan.name}</h2>
@@ -79,5 +93,14 @@ export function MomPlans() {
     </div>
    </aside>
   </div>
- </section>;
+  {/* One secondary button, under everything the plan says it will not do, so it is read after the refusals rather
+      than instead of them. Only with a parent in the household to ask for. */}
+  {family && family.parents.length > 0 && !journey && <div className="mom-essential-open">
+   <button type="button" className="secondary" onClick={() => setJourney(true)}>{fillPlan(essential.screen.open, essentialName)}</button>
+  </div>}
+ </section>
+ {family && journey && <Suspense fallback={<p className="helper" role="status">{fillPlan(essential.screen.open, essentialName)}</p>}>
+  <MomEssentialJourney sponsorName={family.sponsor} parentOptions={family.parents}/>
+ </Suspense>}
+ </>;
 }

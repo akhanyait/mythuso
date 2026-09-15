@@ -116,8 +116,8 @@ struct MomEssentialView: View {
             if journey.paymentTried { ruled(W.nothingCharged).accessibilityIdentifier("mom-essential-nothing-charged") }
             Text(say(W.view)).font(.headline).foregroundStyle(ThusoTheme.charcoal).accessibilityAddTraits(.isHeader)
             muted(journey.sharedUntil.map { say(W.summariesShared, ["until": day($0)]) } ?? say(W.summariesNone))
-            disclosures(W.seesHeading, Programmes.sponsorSees)
-            disclosures(W.neverSeesHeading, Programmes.sponsorNeverSees)
+            listed(W.seesHeading, MomEssentialData.sponsorSees)
+            listed(W.neverSeesHeading, Programmes.sponsorNeverSees.map(\.what))
             muted(W.notBuilt)
             action(say(W.openAsParent)) { switchTo(.parent) }
         }
@@ -168,11 +168,11 @@ struct MomEssentialView: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    private func disclosures(_ heading: String, _ items: [Disclosure]) -> some View {
+    private func listed(_ heading: String, _ items: [String]) -> some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             Text(heading).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal).accessibilityAddTraits(.isHeader)
-            ForEach(items) { item in
-                Text(item.what).font(.subheadline).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+            ForEach(items, id: \.self) { item in
+                Text(item).font(.subheadline).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
             }
         }
     }

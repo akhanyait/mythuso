@@ -62,6 +62,10 @@
 .mom-addons li{font-size:14px;line-height:1.6;color:var(--body)}
 .mom-addons{margin-top:var(--space-8);display:grid;gap:var(--space-4)}
 
+/* The way into the Essential journey: one secondary button under a rule, read after the refusals above it. */
+.mom-essential-open{padding-top:var(--space-16);border-top:1px solid var(--line)}
+.mom-essential-open button{min-height:44px}
+
 @media(min-width:1000px){
  .mom-plan{padding:var(--space-32)}
  .mom-plan-body{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);column-gap:var(--space-40)}

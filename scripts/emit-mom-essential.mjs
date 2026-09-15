@@ -68,6 +68,11 @@ enum MomEssentialData {
     /// The caregiver role's ceiling in consent.json, never past the founder's maximum.
     static let summaryDays = ${summaryDays}
 
+    /// What a sponsor is shown of a parent's plan. What a sponsor never sees is ProgrammesData's.
+    static let sponsorSees: [String] = [
+${contract.sharing.sponsorSees.map(s => `        ${swift(s.what)}`).join(',\n')}
+    ]
+
     static let states: [MomEssentialState] = [
 ${contract.states.map(st => `        .init(id: ${swift(st.id)}, name: ${swift(st.name)}, sponsorWords: ${swift(st.sponsorWords)}, parentWords: ${swift(st.parentWords)})`).join(',\n')}
     ]
@@ -121,6 +126,11 @@ object MomEssentialData {
     const val includedVisitsPerMonth = ${visit.perPeriod}
     /** The caregiver role's ceiling in consent.json, never past the founder's maximum. */
     const val summaryDays = ${summaryDays}
+
+    /** What a sponsor is shown of a parent's plan. What a sponsor never sees is ProgrammesData's. */
+    val sponsorSees = listOf(
+${contract.sharing.sponsorSees.map(s => `        ${kotlin(s.what)}`).join(',\n')}
+    )
 
     val states = listOf(
 ${contract.states.map(st => `        MomEssentialState(${kotlin(st.id)}, ${kotlin(st.name)}, ${kotlin(st.sponsorWords)}, ${kotlin(st.parentWords)})`).join(',\n')}

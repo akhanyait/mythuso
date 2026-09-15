@@ -14,6 +14,14 @@ object MomEssentialData {
     /** The caregiver role's ceiling in consent.json, never past the founder's maximum. */
     const val summaryDays = 90
 
+    /** What a sponsor is shown of a parent's plan. What a sponsor never sees is ProgrammesData's. */
+    val sponsorSees = listOf(
+        "Whether the plan has started, and when this month ends",
+        "How many of the month's included visits and collections have been used",
+        "The day something happened on the plan, and what kind of care it was only if she chose that",
+        "Whether she shares her visit summaries with you, and until when"
+    )
+
     val states = listOf(
         MomEssentialState("awaiting-parent", "Waiting for her to agree", "Waiting for {parent} to agree, in her own account. Nothing is paid until she does.", "{sponsor} would like to pay for {plan} for you. It starts only if you agree."),
         MomEssentialState("awaiting-payment", "Agreed, not paid", "{parent} agreed. The plan starts when the first month is paid.", "You agreed. It starts when the first month is paid."),

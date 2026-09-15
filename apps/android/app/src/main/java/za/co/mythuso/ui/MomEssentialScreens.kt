@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import za.co.mythuso.model.Disclosure
 import za.co.mythuso.model.MomEssentialData
 import za.co.mythuso.model.MomEssentialJourney
 import za.co.mythuso.model.lineDetailChoices
@@ -45,7 +44,6 @@ import za.co.mythuso.model.momFill
 import za.co.mythuso.model.momFirstName
 import za.co.mythuso.model.momPlan
 import za.co.mythuso.model.sponsorNeverSees
-import za.co.mythuso.model.sponsorSees
 
 /*
  * MyThuso for Mom Essential on Android, as the two people it is between.
@@ -130,8 +128,8 @@ private val dayFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM y
                 if (journey.paymentTried) Ruled(w.nothingCharged)
                 Text(say(w.view), style = MaterialTheme.typography.titleMedium, color = Charcoal, modifier = Modifier.semantics { heading() })
                 Note(journey.sharedUntil?.let { say(w.summariesShared, mapOf("until" to it.format(dayFormat))) } ?: say(w.summariesNone))
-                Disclosures(w.seesHeading, sponsorSees)
-                Disclosures(w.neverSeesHeading, sponsorNeverSees)
+                Listed(w.seesHeading, MomEssentialData.sponsorSees)
+                Listed(w.neverSeesHeading, sponsorNeverSees.map { it.what })
                 Note(w.notBuilt)
                 Action(say(w.openAsParent)) { switchTo(true) }
             }
@@ -169,8 +167,8 @@ private val dayFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM y
     }
 }
 
-@Composable private fun Disclosures(heading: String, items: List<Disclosure>) {
-    Section(heading) { items.forEach { Text(it.what, style = MaterialTheme.typography.bodyMedium, color = Charcoal) } }
+@Composable private fun Listed(heading: String, items: List<String>) {
+    Section(heading) { items.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, color = Charcoal) } }
 }
 
 @Composable private fun Ruled(text: String) {

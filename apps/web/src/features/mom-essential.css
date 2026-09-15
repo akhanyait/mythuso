@@ -1,0 +1,66 @@
+/* ---- MyThuso for Mom Essential, the journey ---------------------------------------------------
+   One panel under the plan it asks for. The hierarchy is the state of the yes — waiting for her,
+   agreed, started — set as the one tinted block on the panel, then the single next step beneath
+   it. Who the reader is acting as sits under the heading as a line of text with a rule beside it,
+   not a coloured badge, so the perspective is said rather than signalled.
+
+   Every size is on the type scale and every gap on the spacing scale; indigo is the only ink that
+   carries emphasis, and teal and mango carry no text. */
+.me{display:grid;gap:var(--space-16);padding:var(--space-24);margin:0 0 var(--space-32)}
+.me-head{display:grid;gap:var(--space-4)}
+.me-head h3{font-size:20px;line-height:1.3;margin:0;color:var(--ink)}
+.me-acting{margin:var(--space-4) 0 0;font-size:15px;font-weight:600;line-height:1.4;color:var(--indigo);padding-left:var(--space-12);border-left:2px solid var(--indigo)}
+.me-note{margin:0;font-size:14px;line-height:1.55;color:var(--body);max-width:68ch}
+
+.me-state{display:grid;gap:var(--space-4);padding:var(--space-16);background:var(--indigo-soft);border-radius:var(--r-control)}
+.me-state-name{font-size:14px;font-weight:600;color:var(--indigo)}
+.me-state p{margin:0;font-size:16px;line-height:1.5;color:var(--ink)}
+.me-refused{margin:0;font-size:15px;line-height:1.5;color:var(--danger);padding-left:var(--space-12);border-left:2px solid var(--danger)}
+.me-said{margin:0;font-size:15px;line-height:1.5;color:var(--ink);padding-left:var(--space-12);border-left:2px solid var(--indigo)}
+
+.me-step{display:grid;gap:var(--space-16);align-content:start}
+.me-step h4{font-size:16px;line-height:1.35;margin:var(--space-8) 0 0;color:var(--ink)}
+.me-step h5{font-size:14px;line-height:1.4;margin:0 0 var(--space-8);color:var(--ink)}
+.me-step p{margin:0;font-size:15px;line-height:1.6;color:var(--slate)}
+.me-field{display:grid;gap:var(--space-8);font-size:14px;font-weight:600;color:var(--ink);max-width:28rem}
+.me-field select{min-height:44px;font-size:16px}
+
+.me-tier{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:var(--space-8) var(--space-16);padding:var(--space-12) 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.me-tier strong{font-size:16px;color:var(--ink)}
+.me-tier small{display:block;font-size:14px;color:var(--body);font-weight:400}
+.me-price{font-size:22px;font-weight:300;font-variant-numeric:tabular-nums;white-space:nowrap}
+.me-includes,.me-rules,.me-columns ul{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-8)}
+.me-includes li,.me-columns li{font-size:15px;line-height:1.5;color:var(--slate);padding-left:var(--space-16);position:relative}
+.me-includes li::before,.me-columns li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:var(--r-pill);background:var(--slate)}
+.me-rules li{font-size:14px;line-height:1.6;color:var(--ink);padding-left:var(--space-12);border-left:2px solid var(--ink)}
+.me-why{font-size:14px!important;color:var(--body)!important}
+
+.me-choices{display:grid;gap:var(--space-8);margin:0;padding:0;border:0}
+.me-choices legend{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:var(--space-8)}
+.me-choice{display:flex;gap:var(--space-12);align-items:flex-start;min-height:44px;padding:var(--space-12);border:1px solid var(--line);border-radius:var(--r-control);background:var(--surface);cursor:pointer}
+.me-choice:has(input:checked){border-color:var(--indigo)}
+.me-choice input{margin-top:var(--space-4);flex:0 0 auto;width:20px;height:20px;accent-color:var(--ink)}
+.me-choice span{display:grid;gap:var(--space-4)}
+.me-choice strong{font-size:15px;font-weight:600;color:var(--ink)}
+.me-choice small{font-size:14px;line-height:1.5;color:var(--body)}
+.me-voucher{font-size:14px!important;overflow-wrap:anywhere}
+.me-owed{display:flex;justify-content:space-between;gap:var(--space-16);font-size:15px;color:var(--slate)}
+.me-owed strong{color:var(--ink);font-variant-numeric:tabular-nums}
+.me-actions{display:flex;flex-wrap:wrap;gap:var(--space-8)}
+.me-step button{min-height:44px;justify-self:start}
+
+.me-count{font-weight:600;color:var(--ink)!important}
+.me-lines{width:100%;border-collapse:collapse;font-size:15px}
+.me-lines caption{text-align:left;font-size:14px;font-weight:600;color:var(--ink);padding-bottom:var(--space-8)}
+.me-lines th,.me-lines td{text-align:left;padding:var(--space-8) 0;border-top:1px solid var(--line);color:var(--slate);font-weight:400}
+.me-lines th{width:45%;font-variant-numeric:tabular-nums;color:var(--ink)}
+.me-summaries{padding-left:var(--space-12);border-left:2px solid var(--indigo)}
+.me-columns{display:grid;gap:var(--space-16)}
+
+@media(max-width:599px){
+ .me{padding:var(--space-16)}
+ .me-step button{justify-self:stretch}
+}
+@media(min-width:900px){
+ .me-columns{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:var(--space-24)}
+}

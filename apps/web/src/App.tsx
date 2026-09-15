@@ -189,7 +189,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
        : page === 'Help & support' ? <GettingHelp navigate={navigate} open={setModal}/>
        : page === 'Care you sponsor' ? <SponsoredCare person={people[1]} relation={relationOf(people[1], people)} navigate={navigate} open={setModal}/>
        : page === 'My family' ? <Family members={members} invitations={invitations} onRevoke={id => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i))} open={setModal} navigate={navigate}/>
-        : page === 'Care plans' ? <Plans open={setModal}/>
+        : page === 'Care plans' ? <Plans open={setModal} family={{ sponsor: people[0]!, parents: people.filter(p => relationOf(p, people) === 'Mother') }}/>
          : page === 'Thuso Wallet' ? <WalletPage open={setModal}/>
           : page === 'Privacy & settings' ? <Privacy open={setModal}/>
            : page === 'Language & access' ? <Access/>

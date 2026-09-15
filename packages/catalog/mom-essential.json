@@ -60,7 +60,13 @@
 
  "sharing": {
   "lineDetailFrom": "packages/catalog/programmes.json#sponsor.lineDetail",
-  "seesFrom": "packages/catalog/programmes.json#sponsor.sees",
+  "sponsorSees": [
+   { "what": "Whether the plan has started, and when this month ends" },
+   { "what": "How many of the month's included visits and collections have been used" },
+   { "what": "The day something happened on the plan, and what kind of care it was only if she chose that" },
+   { "what": "Whether she shares her visit summaries with you, and until when" }
+  ],
+  "sponsorSeesWhy": "What a sponsor is shown of a parent's plan. programmes.json's sponsor.sees describes a sponsorship budget — an amount on each line and what is left of money set aside — and a plan's lines carry neither, so a screen quoting it would promise what it does not show. What a sponsor never sees is programmes.json's, and is true of a plan word for word.",
   "neverSeesFrom": "packages/catalog/programmes.json#sponsor.neverSees",
   "summaries": {
    "recipientRole": "caregiver",
