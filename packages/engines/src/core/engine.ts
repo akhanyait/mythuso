@@ -54,6 +54,17 @@
  * outcome closed-loop.json maps the reason to, through the close route's own rule. Nothing else: Core reads no plan,
  * so who pressed changes neither the owner, the deadline nor the Control Tower's order.
  *
+ * ── A Sentinel tier and a safeguarding concern ─────────────────────────────────────────────────────────
+ *
+ * Core hears sentinel.rung_raised@1 and opens one alert for a tier raised at or above the rung closed-loop.json
+ * sentinel.opensAtRung names, owned by a doctor with a nurse behind them and given the ladder's time for the rung raised;
+ * below that rung it opens nothing. It hears safeguarding.reported@2 and opens one concern owned by the desk, falling back
+ * to the Head of Operations; closing it never closes the report, which is Safety's. Core stays a declared subscriber of
+ * reading.ingested@1 and binds no handler for it: the frozen POST /v1/core/events@1 names it as the event that justifies
+ * Devices calling Core, so removing Core would break that route, and Core never carries clinical content
+ * (packages/catalog/apis.json clinicalContent.alwaysForEngines). A reading reaches Core only as a tier a clinician raised
+ * on one, and the bus withholds reading.ingested@1 from Core because nothing here registers for it.
+ *
  * ── What Core does not read ──────────────────────────────────────────────────────────────────────────
  *
  * No Safety timing. A panic's window and an overdue check-in's grace are Safety's settings, and a Safety
@@ -65,6 +76,7 @@ import { randomUUID } from 'node:crypto';
 import { BusRefused, defineEngine, instant, ok, refuse, type BusEvent, type EngineContext, type EventKey, type HandlerRequest } from '../runtime/index.ts';
 import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.ts';
 import { EXHAUSTED, PANIC, PANIC_RESOLVED, RESULT_ACKNOWLEDGED, resultAlertsFrom, resultClosesAs, engineIds, highestSeverity, outcomes, ownerRoles, panicOutcomes, panicSpanMs, reasons, spanForRung, SOS, SOS_STOOD_DOWN, sosFallbackRole, sosOutcomes, sosOwnerRole, sosSpanMs } from './domain/contract.ts';
+import { SAFEGUARDING, SENTINEL, safeguardingFallbackRole, safeguardingOwnerRole, safeguardingSpanMs, sentinelFallbackRole, sentinelOpensAtRung, sentinelOwnerRole } from './domain/contract.ts';
 import { closeRefusal, everyPostOnDuty, holdersOf, movedTo, nextHolder, postOf, settle, stateCodeOf, towerOrder, type KeptRota, type Loop, type Skip } from './domain/loops.ts';
 import { coreSettings, rotaOf } from './domain/settings.ts';
 
@@ -333,6 +345,49 @@ function heardSosStoodDown(event: BusEvent, ctx: EngineContext) {
  publish(ctx, closed, 'loop.closed@1', { loopRef: closed.loopRef, outcomeRef: sosRef, closedByRole: event.actorRole });
 }
 
+/* ── A Sentinel tier ────────────────────────────────────────────────────────────────────────────────── */
+
+/* A tier a named clinician raised at Safety. Below the rung closed-loop.json names, Core opens nothing: a tier one is
+   recorded where Sentinel keeps it and a tier two is the nurse's own queue. From that rung it is one alert for the concern
+   however often the bus delivers it, owned by the clinician closed-loop.json names with its fallback behind them, with
+   the ladder's time for the rung raised and the record entry it points at — the shape an alert raised on
+   POST /v1/core/alerts@2 has, so acknowledging, escalating and closing it are the same acts. Nothing about the reading
+   reaches Core but where it is in the record, and nothing Sentinel sends chooses the owner or the time. */
+function heardSentinelRung(event: BusEvent, ctx: EngineContext) {
+ const rung = event.payload['rung'];
+ const concernRef = text(event.payload['concernRef']);
+ if (typeof rung !== 'number' || rung < sentinelOpensAtRung || !concernRef) return;
+ const spanMs = spanForRung(rung);
+ if (spanMs === undefined) throw new Error(`Core heard ${SENTINEL} at a rung the ladder does not hold, and will not guess how long a clinician has to take it on.`);
+ if (all(ctx).some(loop => loop.alertRef !== null && loop.sourceEngine === event.owner && loop.dedupeKey === concernRef)) return;
+ const recordEntryRef = text(event.payload['recordEntryRef']) || null;
+ const loop: Loop = {
+  ...fresh(ctx, { sourceEngine: event.owner, ownerRole: sentinelOwnerRole, fallbackRole: sentinelFallbackRole }, nowOf(ctx), spanMs, rotaNow(ctx)),
+  alertRef: `alert-${randomUUID()}`, rung, dedupeKey: concernRef, recordEntryRef
+ };
+ put(ctx, loop);
+ audit(ctx, loop, 'sentinel-raised', String(loop.rota.settingsVersion));
+ publish(ctx, loop, 'alert.raised@1', {
+  alertRef: loop.alertRef, tier: rung, sourceEngine: loop.sourceEngine, ownerRole: loop.ownerRole, acknowledgeBy: at(loop.dueBy),
+  ...(recordEntryRef ? { recordEntryRef } : {})
+ });
+}
+
+/* ── A safeguarding concern ─────────────────────────────────────────────────────────────────────────── */
+
+/* A safeguarding concern recorded at Safety. One report is one concern however often the bus delivers it, owned by the
+   role closed-loop.json names and falling back to its fallback, with that rung's time. The event carries the report and
+   nothing else, so Core holds no patient, no kind of concern and no reporter. Closing this concern says the desk took the
+   report on; the report itself is Safety's and stays open for a safeguarding officer. */
+function heardSafeguarding(event: BusEvent, ctx: EngineContext) {
+ const reportRef = text(event.payload['reportRef']);
+ if (!reportRef || all(ctx).some(loop => loop.alertRef === null && loop.holder.kind !== 'every-post' && loop.sourceEngine === event.owner && loop.dedupeKey === reportRef)) return;
+ const loop: Loop = { ...fresh(ctx, { sourceEngine: event.owner, ownerRole: safeguardingOwnerRole, fallbackRole: safeguardingFallbackRole }, nowOf(ctx), safeguardingSpanMs, rotaNow(ctx)), dedupeKey: reportRef };
+ put(ctx, loop);
+ audit(ctx, loop, 'safeguarding-opened', String(loop.rota.settingsVersion));
+ publish(ctx, loop, 'loop.opened@1', { loopRef: loop.loopRef, sourceEngine: loop.sourceEngine, ownerRole: loop.ownerRole, dueBy: at(loop.dueBy) });
+}
+
 /* ── Acting on a concern ──────────────────────────────────────────────────────────────────────────── */
 
 function acknowledge(request: HandlerRequest, ctx: EngineContext) {
@@ -434,7 +489,7 @@ export const engine = defineEngine({
   'POST /v1/core/alerts@2': raiseAlert,
   ...settingsRoutes(coreSettings, { read: 'GET /v1/core/settings@1', change: 'POST /v1/core/setting-changes@1' })
  },
- subscriptions: { [PANIC]: heardPanic, [PANIC_RESOLVED]: heardPanicResolved, [RESULT_ACKNOWLEDGED]: heardResultAcknowledged, [SOS]: heardSos, [SOS_STOOD_DOWN]: heardSosStoodDown },
+ subscriptions: { [PANIC]: heardPanic, [PANIC_RESOLVED]: heardPanicResolved, [RESULT_ACKNOWLEDGED]: heardResultAcknowledged, [SOS]: heardSos, [SOS_STOOD_DOWN]: heardSosStoodDown, [SENTINEL]: heardSentinelRung, [SAFEGUARDING]: heardSafeguarding },
  tick: ctx => {
   const now = nowOf(ctx);
   for (const loop of all(ctx)) {

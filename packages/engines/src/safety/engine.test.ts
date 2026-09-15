@@ -25,7 +25,7 @@ import type { Bound } from '../settings/shape.ts';
 
 const START = '2026-09-14T09:00:00+02:00';
 const ROUTE = 'POST /v1/safety/panics@1';
-const READ = 'GET /v1/safety/settings@2';
+const READ = 'GET /v1/safety/settings@3';
 const CHANGE = 'POST /v1/safety/setting-changes@2';
 const CHECKINS = 'GET /v1/safety/checkins@1';
 const EXTEND = 'POST /v1/safety/checkins/{checkinRef}/extend@2';
