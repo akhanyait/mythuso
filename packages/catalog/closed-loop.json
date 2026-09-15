@@ -134,6 +134,24 @@
   "why": "A stand-down closes the concern Core opened for the SOS through the same closeRefusal rule the close route asks, pointing at the SOS, by the role that stood it down. A reason the map does not name is not guessed at: the concern stays open for a person to close, and Core's audit says it was not stood down."
  },
 
+ "sentinel": {
+  "hears": "sentinel.rung_raised@1",
+  "opensAtRung": {"value": 3, "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "Rung three is the ladder's Clinician alert. A tier one is recorded and a tier two is for the nurse's own queue, and neither pages anybody; a tier three is somebody a clinician must take on now, which is what a concern on the rota is for.", "question": "From which Sentinel rung Core opens a concern on the escalation rota."},
+  "ownerRole": {"value": "doctor", "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "A tier three is the ladder's Clinician alert, and a doctor is the clinician who can decide what it needs.", "question": "Who owns the concern Core opens for a Sentinel tier three."},
+  "fallbackRole": {"value": "nurse", "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "A registered nurse can go to the patient, and the on-call nurse lead is on the rota around the clock.", "question": "Who holds a Sentinel concern the doctor has not taken on in time."},
+  "rule": "One tier raised is one alert however often the bus delivers it, keyed by the concern Sentinel raised and pointing at the record entry it is about. Below opensAtRung Core opens nothing. The time to acknowledge it is the ladder's for the rung it was raised at, and nothing Sentinel sends chooses the owner, the fallback or the time.",
+  "why": "sentinel.rung_raised@1 names Core as its subscriber. Core reads no Safety contract: which rung opens a concern, and who owns it, are proposals here, beside the ladder whose times they use."
+ },
+
+ "safeguarding": {
+  "hears": "safeguarding.reported@2",
+  "ownerRole": {"value": "operator", "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "The desk makes sure a safeguarding report reaches the safeguarding officer. Until that role is on the vetting register, the desk is the one place a report cannot go unnoticed.", "question": "Who owns the concern Core opens when a safeguarding concern is recorded."},
+  "fallbackRole": {"value": "head-of-operations", "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "The Head of Operations answers for a concern the desk did not take on, and a safeguarding report nobody took on is exactly that.", "question": "Who holds a safeguarding concern the desk has not taken on in time."},
+  "ladderRung": {"value": 2, "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "A recorded safeguarding concern is somebody who may be at risk and is not in danger this minute, because somebody in danger is pointed at emergency services first. Rung two gives the desk the ladder's urgent time rather than a second number.", "question": "How long the desk has to take on a safeguarding concern before it goes to its fallback."},
+  "rule": "One report is one concern however often the bus delivers it, owned by the desk and falling back to the Head of Operations, then walking the rota it was opened under. Closing the concern says the desk took the report on; it never closes the report, which only a safeguarding officer could.",
+  "why": "safeguarding.reported@2 names Core as its subscriber and carries the report and nothing else. Core reads no Safety contract: the owner, the fallback and the rung are proposals here."
+ },
+
  "_reasonsNotSettingsNote":"The snooze reasons and the reasons the desk escalates by hand stay proposals in this file rather than becoming settings, on purpose. Each is a code that travels on the bus — alert.escalated@1 and loop.escalated@1 carry reasonCode — or is sent by an app a nurse already has. A code an admin added on the back office would be put on the bus to subscribers that were built and reviewed against the codes here and cannot read it; a code an admin removed would refuse the reason a nurse's phone still offers her. Neither is an admin choosing within bounds: both are a change to the contract every subscriber and every app is built against, made the way this file is changed. The question each asks stays open beside it until somebody with the authority answers it.",
 
  "exhaustion": {

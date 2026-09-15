@@ -232,10 +232,52 @@
      "statement": "Next of kin are tried at least once when somebody presses SOS, and never more than six times about one SOS.",
      "forbids": [-1, 6, 20]
     }
+   },
+   {
+    "key": "sentinel-baseline-window-days",
+    "label": "Sentinel baseline window",
+    "help": "How many days back does a patient's Sentinel baseline count readings with clinical weight from?",
+    "owner": "safety",
+    "type": "count",
+    "unit": "days",
+    "positive": true,
+    "default": { "value": 30, "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "A month: long enough to hold several visits' readings for a patient seen weekly, short enough that a baseline describes the patient as they are now. Nobody clinical has decided it, and it decides nothing about whether a reading is concerning, because no baseline rule is ratified." },
+    "bounds": {
+     "lowest": { "value": 7, "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "A week. Fewer days than that and a patient seen weekly has one reading in their baseline." },
+     "highest": { "value": 180, "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "Six months. Longer than that and a baseline describes somebody the patient may have stopped being." }
+    },
+    "changedBy": { "fromSetting": "settings-changed-by" },
+    "reviewRequired": "sign-clinical-review",
+    "appliesTo": "A change applies to baselines opened after it. A baseline already open keeps the window and the settings version it was opened under.",
+    "guardrail": {
+     "statement": "A Sentinel baseline always looks back at least a week, and never more than six months.",
+     "forbids": [0, 6, 181]
+    }
+   },
+   {
+    "key": "sentinel-baseline-minimum-readings",
+    "label": "Readings before a Sentinel baseline is formed",
+    "help": "How many readings with clinical weight must a patient's baseline hold inside its window before it is shown as formed?",
+    "owner": "safety",
+    "type": "count",
+    "unit": "readings",
+    "positive": true,
+    "default": { "value": 5, "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "Five readings is about a month of weekly visits, enough that one unusual day is one reading among several. A formed baseline is a count and nothing more: no baseline rule is ratified, so nothing is worked out from it." },
+    "bounds": {
+     "lowest": { "value": 3, "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "Fewer than three and a single reading is a third of the baseline." },
+     "highest": { "value": 30, "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "Thirty is a reading a day for a month. Asking for more leaves most patients' baselines forming for good." }
+    },
+    "changedBy": { "fromSetting": "settings-changed-by" },
+    "reviewRequired": "sign-clinical-review",
+    "appliesTo": "A change applies to baselines opened after it. A baseline already open keeps the minimum and the settings version it was opened under.",
+    "guardrail": {
+     "statement": "A Sentinel baseline is never shown as formed from fewer than three readings, and never asks for more than thirty.",
+     "forbids": [0, 2, 31]
+    }
    }
   ],
   "defaults": {
-   "version": 4,
+   "version": 5,
    "changelog": [
     {
      "version": 1,
@@ -279,6 +321,16 @@
       { "setting": "next-of-kin-alert-retries", "from": null, "to": 2 }
      ],
      "why": "Patient SOS and next of kin came onto the engine. How long the desk sees the area an SOS was pressed from, how long next of kin may be tried after it and how many more times are open questions nobody has decided, so they are settings with proposed defaults, under the founder's instruction that open questions become admin settings."
+    },
+    {
+     "version": 5,
+     "on": "2026-09-15",
+     "by": "Safety lead (Wave 5), proposed and not decided",
+     "changed": [
+      { "setting": "sentinel-baseline-window-days", "from": null, "to": 30 },
+      { "setting": "sentinel-baseline-minimum-readings", "from": null, "to": 5 }
+     ],
+     "why": "Sentinel's baselines came onto the engine. How far back a baseline counts and how many readings it needs before it is shown as formed are open questions nobody clinical has decided, so they are settings with proposed defaults that wait on a clinical review, under the founder's instruction that open questions become admin settings."
     }
    ]
   }

@@ -78,7 +78,7 @@ object EventsData {
             val SOS_STOOD_DOWN_V1 = EventKey("sos.stood_down", 1, "safety")
             val NOK_NOTIFIED_V1 = EventKey("nok.notified", 1, "safety")
             val SENTINEL_RUNG_RAISED_V1 = EventKey("sentinel.rung_raised", 1, "safety")
-            val SAFEGUARDING_REPORTED_V1 = EventKey("safeguarding.reported", 1, "safety")
+            val SAFEGUARDING_REPORTED_V2 = EventKey("safeguarding.reported", 2, "safety")
             val ADMISSION_NEED_IDENTIFIED_V1 = EventKey("admission.need_identified", 1, "movement")
             val FACILITY_CANDIDATE_SELECTED_V1 = EventKey("facility.candidate_selected", 1, "movement")
             val ADMISSION_PREAUTH_SUBMITTED_V1 = EventKey("admission.preauth.submitted", 1, "movement")
@@ -196,7 +196,7 @@ object EventsData {
                 SOS_STOOD_DOWN_V1,
                 NOK_NOTIFIED_V1,
                 SENTINEL_RUNG_RAISED_V1,
-                SAFEGUARDING_REPORTED_V1,
+                SAFEGUARDING_REPORTED_V2,
                 ADMISSION_NEED_IDENTIFIED_V1,
                 FACILITY_CANDIDATE_SELECTED_V1,
                 ADMISSION_PREAUTH_SUBMITTED_V1,

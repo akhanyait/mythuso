@@ -302,3 +302,12 @@ POST /v1/devices/kits/{kitRef}/return@1 callers=- purpose=audit because=-
 POST /v1/devices/kits/{kitRef}/loss@1 callers=- purpose=audit because=-
 POST /v1/devices/setting-changes@1 callers=- purpose=audit because=-
 POST /v1/devices/setting-changes@2 callers=admin purpose=audit because=-
+GET /v1/safety/settings@3 callers=admin,doctor,operator purpose=audit because=-
+POST /v1/safety/setting-reviews@1 callers=doctor purpose=audit because=-
+POST /v1/safety/sentinel-deviations@2 callers=doctor,locum,nurse purpose=treatment because=-
+GET /v1/safety/sentinel-baselines@1 callers=doctor,locum,nurse purpose=treatment because=-
+POST /v1/safety/safeguarding-reports@2 callers=doctor,locum,nurse,operator purpose=audit,treatment because=-
+GET /v1/safety/safeguarding-reports@1 callers=guardian,operator purpose=audit because=-
+GET /v1/safety/settings@2 callers=- purpose=audit because=-
+POST /v1/safety/safeguarding-reports@1 callers=- purpose=emergency because=-
+POST /v1/safety/sentinel-deviations@1 callers=- purpose=treatment because=-

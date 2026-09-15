@@ -375,3 +375,9 @@ POST /v1/devices/kits/{kitRef}/loss@2 6e209e7cef8a580c
 GET /v1/devices/settings@1 b54f5f3782525231
 POST /v1/devices/setting-changes@1 71a7873f90e36070
 POST /v1/devices/setting-changes@2 17cc0dd72f0b3013
+GET /v1/safety/settings@3 2b1d2275fb6dffaa
+POST /v1/safety/setting-reviews@1 7296b435515cc321
+POST /v1/safety/sentinel-deviations@2 dc2a12c3b27ba1e1
+GET /v1/safety/sentinel-baselines@1 26710fa241e4dcc1
+POST /v1/safety/safeguarding-reports@2 475fe7a24ab6e7e8
+GET /v1/safety/safeguarding-reports@1 79429fd406d045c7

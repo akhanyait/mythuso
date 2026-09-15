@@ -1,0 +1,148 @@
+{
+ "_note": "Sentinel tiers one to three, and safeguarding reports, on the Safety engine. Proposed by the Safety lead (Wave 5) on 15 September 2026. This file holds what each tier means and who is told, why tier four is refused, what a baseline may be made of and what suspends it, what an evaluation answers while no rule is ratified, and how a safeguarding report is recorded, held and never sent. It holds no clinical threshold, no baseline rule and no deviation definition, and it is not going to: those come only from the clinical governance board, and scripts/check-boundaries.mjs fails the build if a number that could be one appears here. The words are proposals nobody has decided. Nothing here is a real service: no patient is monitored, nobody is told anything and no report reaches anybody.",
+ "version": 1,
+ "engine": "safety",
+ "api": "packages/catalog/apis/safety.json",
+
+ "whereValuesLive": {
+  "decision": "references-and-states",
+  "sentence": "Sentinel never holds a reading's value or a baseline's value. It keeps which readings with clinical weight a patient's baseline is made of, by reference, whether the baseline is forming, formed or suspended, and the tiers a clinician raised. The values stay in the Health Passport, where the reading was written.",
+  "why": "A reading is special personal information under POPIA, and packages/catalog/devices.json whereValuesLive already keeps values out of the engine runtime's development store. Sentinel reads what Devices publishes, which is a reference, and the build fails if its store grows a column a value could be written into."
+ },
+
+ "rungs": [
+  {"rung": 1, "id": "recorded", "label": "Tier 1 · recorded", "means": "Something a clinician wants on the patient's Sentinel record, which needs nobody to act now.", "toldCode": "sentinel-record", "whoIsTold": "Nobody is told. It is recorded beside the patient's baselines, and a nurse sees it when she opens them.", "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "A tier that pages nobody gives a clinician somewhere to put an observation that matters for the next visit without making it a concern somebody must close."},
+  {"rung": 2, "id": "nurse-queue", "label": "Tier 2 · nurse review", "means": "Something a nurse should look at before the patient's next visit.", "toldCode": "nurse-queue", "whoIsTold": "The patient's nurses see it first in the patient's Sentinel state. Nobody is paged.", "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "The ladder's second rung is Nurse review. A nurse's own queue is where it is read, and the rota is kept for what cannot wait for her."},
+  {"rung": 3, "id": "clinician-alert", "label": "Tier 3 · clinician alert", "means": "Something a clinician must take on now.", "toldCode": "core-loop", "whoIsTold": "Core opens a concern owned by a doctor, with a nurse behind them, and the Control Tower sees it until somebody closes it with an outcome.", "decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "The ladder's third rung is Clinician alert. A concern on the escalation rota is the one thing in this build that keeps asking until somebody answers."}
+ ],
+ "_rungsNote": "rung, not tier, is the field on the bus and on every route: outside the alert ladder tier is a trust word (packages/catalog/events.json trustNames), and a rung is how urgent a concern is, never a person's standing. The words for each tier are proposals. Which rung Core opens a concern from is packages/catalog/closed-loop.json sentinel.opensAtRung, because Core reads no Safety contract; the build holds the core-loop tier here to it.",
+
+ "tierFour": {
+  "refused": true,
+  "means": "A patient who is unresponsive, and a dispatch nobody pressed for.",
+  "needs": [
+   {"id": "certified-tier-four-device", "sentence": "A device certified to show that a patient is unresponsive, registered as one."},
+   {"id": "ratified-tier-four-rules", "sentence": "Rules for tier four that the clinical governance board has ratified."}
+  ],
+  "refusal": "tier-four-not-in-this-build",
+  "why": "packages/catalog/sos-press.json already says that knowing a patient is unresponsive needs a certified device on the Sentinel ladder at tier four, and that nothing is sent for it until then. Neither the device nor the rules exist, so no route, screen or tick offers tier four, and one asked for is refused in its own words rather than recorded as a three."
+ },
+
+ "baselines": {
+  "formedFrom": "reading.ingested@1",
+  "weightRule": "packages/catalog/devices.json#clinicalWeight",
+  "sentence": "A baseline is made only of readings that reached the record with clinical weight: from a certified registered device, not simulated, an adequate sample, not recalled, and meant for the record. A consumer or wearable reading never forms a baseline and never raises a tier.",
+  "howItIsArithmetic": "Devices publishes reading.ingested@1 only when packages/engines/src/devices/domain/readings.ts carriesWeight() says a reading carries clinical weight, and Sentinel admits a reading only from that event. A reading Sentinel never heard is in no baseline, and a tier raised on it is refused.",
+  "windowSetting": "sentinel-baseline-window-days",
+  "minimumSetting": "sentinel-baseline-minimum-readings",
+  "settingsFrom": "packages/catalog/field-safety.json#settings",
+  "keepsItsSettings": "A baseline keeps the window and the minimum in force when it was opened, and the settings version that said so. A change reaches baselines opened after it and never rewrites one already open.",
+  "states": [
+   {"id": "forming", "label": "Forming", "sentence": "Fewer readings with clinical weight inside its window than the minimum it was opened under."},
+   {"id": "formed", "label": "Enough readings", "sentence": "At least the minimum inside its window. Nothing is worked out from them, because no baseline rule is ratified."},
+   {"id": "suspended", "label": "Suspended", "sentence": "A device that gave it a reading went stale. It counts towards nothing until that device sends a newer reading with clinical weight."}
+  ],
+  "suspendedMeans": "A baseline is suspended when a device that gave it a reading goes stale, on device.stale@1. Suspended means it is shown as suspended wherever it is shown and counts towards nothing, whatever it holds, until the device that went stale sends a newer reading with clinical weight, which lifts the suspension. Nothing is deleted, readings from other devices are still kept by reference, and a clinician may still raise a tier by hand.",
+  "staleIntervalFrom": "packages/catalog/devices.json#settings.stale-after-minutes",
+  "staleWhy": "How long a device may be silent before it is stale is Devices' setting, and Devices announces a certified device as stale on device.stale@1 when the interval in force passes. Sentinel acts on the announcement and never on a number of its own, so the interval lives in one place.",
+  "recalledMeans": "When a device is recalled, on device.recalled@1, every reading from it leaves every baseline it was in, and a tier raised on one is refused. device.recalled@1 carries no moment the recall took effect from, so Sentinel takes out every reading from that device rather than guess which ones the registry marked; the registry's marks name the exact readings. A reading that left is kept by reference with when it left, and is never counted again."
+ },
+
+ "evaluation": {
+  "code": "not-evaluated",
+  "ratifiedRules": [],
+  "_ratifiedRulesNote": "A rule named here would have to be a protocol packages/catalog/protocols.json lists as ratified, with its signature. None is, so this list is empty, and the build fails if it is not while no Safety protocol is ratified.",
+  "reasons": [
+   {"id": "no-ratified-rule", "sentence": "Not evaluated. No baseline rule or deviation threshold has been ratified by the clinical governance board, so Sentinel compares no reading with this patient's baseline and raises no tier by itself."},
+   {"id": "ratified-rule-not-built", "sentence": "Not evaluated. A rule has been ratified and is not built into this preview, so Sentinel compares nothing and raises no tier by itself."}
+  ],
+  "raisedByHand": "A clinician may raise a tier by hand, on a reading that reached the record with clinical weight, at the tier they choose. Sentinel records it with who raised it and never chooses the tier."
+ },
+
+ "safeguarding": {
+  "groups": [
+   {"id": "child", "label": "A child"},
+   {"id": "older-person", "label": "An older person"},
+   {"id": "adult-at-risk", "label": "An adult at risk"}
+  ],
+  "categories": [
+   {"id": "neglect", "label": "Neglect"},
+   {"id": "physical-harm", "label": "Physical harm"},
+   {"id": "emotional-harm", "label": "Emotional or psychological harm"},
+   {"id": "sexual-harm", "label": "Sexual harm"},
+   {"id": "financial-exploitation", "label": "Financial exploitation"}
+  ],
+  "groupsAndCategories": {"decidedBy": null, "proposedBy": "Safety lead (Wave 5)", "proposedBecause": "The kinds of harm South African safeguarding practice names for children and older persons, said plainly. None of them is a diagnosis, and none of them needs a word typed to choose.", "question": "The groups and the kinds of concern a safeguarding report is recorded under, until safeguarding-and-mandatory-reporting@1 in packages/catalog/protocols.json is written and ratified."},
+  "categoryIsProtected": "The kind of concern is held as a protected category is held in packages/catalog/records.json: it is never a header chip, never on the desk's list, never on the bus, and never shown again after the person recording it chooses it.",
+  "states": [
+   {"id": "open", "label": "Open"}
+  ],
+  "neverAutoCloses": "A safeguarding report never closes by itself. No clock, tick, setting or stand-down closes one, and no route closes one until a safeguarding officer role exists to do it.",
+  "officer": {
+   "role": null,
+   "name": "Safeguarding officer",
+   "heldForCode": "safeguarding-officer-not-on-register",
+   "heldFor": "Held open for the safeguarding officer. No safeguarding officer role is on the vetting register yet, so nobody has taken it on.",
+   "roleMissing": "No safeguarding officer role is on packages/catalog/vetting.json. A role there needs its own checks, its provenance in packages/catalog/vetting-proposals.json and a build block holding what it may do, and vetting.json is on the patient's first load, so adding one grows what every patient downloads. That is a decision for somebody with the authority to accept a role. Until then every report is held open for a safeguarding officer nobody holds, and the desk sees that it is."
+  },
+  "statutory": {
+   "integrated": false,
+   "authorities": [
+    {"id": "saps", "name": "the South African Police Service"},
+    {"id": "dsd", "name": "the Department of Social Development"}
+   ],
+   "statusCode": "not-sent",
+   "reasonCode": "not-integrated",
+   "notSent": "Not sent to the South African Police Service or the Department of Social Development. No connection to either exists in this build, so a report the law requires is made by a person, by phone or in person, and nothing here says it was made.",
+   "mayApply": [
+    {"group": "child", "sentence": "A concern about a child may be one the Children's Act 2005, section 110, requires to be reported."},
+    {"group": "older-person", "sentence": "A concern about an older person may be one the Older Persons Act 2006, section 26, requires to be reported."},
+    {"group": "adult-at-risk", "sentence": "Whether a concern about an adult at risk must be reported to anybody depends on what happened, and a person decides it."}
+   ],
+   "reviewedBy": null,
+   "why": "A report recorded here reaches nobody outside this preview, and a screen that said it had been reported would be a family, a nurse or a desk believing the police or a social worker had been told. So the report says what would need to happen, that it did not, and why. Which Acts apply is written as a proposal nobody with legal authority has reviewed."
+  },
+  "reporterNeverShown": "The person a report is about, and anybody acting for them, is never shown who made it. No route they may call carries the reporter, and the desk's list does not either.",
+  "guardian": "A guardian is not told whether a safeguarding report exists or what it says. Guardian authority is not proven, and docs/governance/INFORMATION-OFFICER.md D-10 is open.",
+  "noNarrative": "What was seen is not typed into this preview. It is told to a person, because nothing here has the protections that account needs."
+ },
+
+ "screens": {
+  "sentinel": {
+   "heading": "Sentinel",
+   "intro": "This patient's baselines, made only of readings that reached the record with clinical weight, and every tier a clinician raised by hand.",
+   "patient": "Patient {patient}",
+   "evaluation": "Not evaluated",
+   "counted": "{counted} of {needed} readings with clinical weight in the last {days} days",
+   "openedUnder": "Opened under settings version {version}",
+   "suspendedSince": "Suspended since {time}",
+   "leftByRecall": "{count} left when their device was recalled",
+   "staleFrom": "A device is stale after {interval} without a sync, by Devices' setting in force.",
+   "raiseHeading": "Raise a tier by hand",
+   "raiseIntro": "The tier is yours to choose. Sentinel records it with your name and evaluates nothing.",
+   "entry": "Reading",
+   "rung": "Tier",
+   "raise": "Raise this tier",
+   "raised": "Raised at tier {rung} at {time}.",
+   "raisedList": "Tiers raised by hand",
+   "noneRaised": "No tier has been raised by hand.",
+   "tierFourHeading": "Tier four"
+  },
+  "report": {
+   "heading": "Record a safeguarding concern",
+   "intro": "For a child, an older person or an adult at risk you are worried about. Choose who it is about and the kind of concern. Nothing typed is kept.",
+   "patient": "About patient {patient}",
+   "group": "Who it is about",
+   "category": "The kind of concern",
+   "record": "Record the concern",
+   "recorded": "Recorded at {time}."
+  },
+  "desk": {
+   "heading": "Safeguarding reports",
+   "intro": "Every report recorded, and who it is held for. The kind of concern, the patient and who made it are not shown here.",
+   "empty": "No safeguarding report has been recorded.",
+   "recordedAgo": "Recorded {age} minutes ago"
+  },
+  "preview": "This preview keeps Sentinel and safeguarding reports in this tab's memory. No patient is monitored, nobody is told and no report reaches anybody."
+ }
+}
