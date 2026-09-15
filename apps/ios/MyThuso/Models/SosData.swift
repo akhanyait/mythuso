@@ -187,7 +187,7 @@ extension Sos {
         static let standDown = "Stand it down"
         static let stoodDown = "Stood down at {at} · {reason}"
         static let routedEmergencyServices = "Your answers point to emergency services. MyThuso has sent nobody. Call 10177 now, or 112 from a mobile."
-        static let routedUrgentVisit = "A cleared nurse is being asked to come. Nobody is on the way until a nurse accepts, and this screen will not say one has."
+        static let routedUrgentVisit = "Your answers point to an urgent visit, but no nurse is being asked: Thuso SOS visits are not offered on this build, so nobody is on the way. If it gets worse, call 10177, or 112 from a mobile."
         static let routedCannotHelp = "MyThuso cannot send anybody for this. Why, and what to do instead, is above."
         static let partnerNotConnected = "No ambulance partner is connected. Pressing SOS here does not reach an ambulance, and nobody is on the way because of it. Call 10177 for an ambulance, or 112 from a mobile."
         static let priority = "No plan puts anybody ahead of somebody more unwell. An SOS from a MyThuso for Mom Premium parent is routed, offered and shown to the desk exactly as anybody else's."

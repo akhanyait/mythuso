@@ -194,7 +194,7 @@ object SosPressText {
     const val standDown = "Stand it down"
     const val stoodDown = "Stood down at {at} · {reason}"
     const val routedEmergencyServices = "Your answers point to emergency services. MyThuso has sent nobody. Call 10177 now, or 112 from a mobile."
-    const val routedUrgentVisit = "A cleared nurse is being asked to come. Nobody is on the way until a nurse accepts, and this screen will not say one has."
+    const val routedUrgentVisit = "Your answers point to an urgent visit, but no nurse is being asked: Thuso SOS visits are not offered on this build, so nobody is on the way. If it gets worse, call 10177, or 112 from a mobile."
     const val routedCannotHelp = "MyThuso cannot send anybody for this. Why, and what to do instead, is above."
     const val partnerNotConnected = "No ambulance partner is connected. Pressing SOS here does not reach an ambulance, and nobody is on the way because of it. Call 10177 for an ambulance, or 112 from a mobile."
     const val priority = "No plan puts anybody ahead of somebody more unwell. An SOS from a MyThuso for Mom Premium parent is routed, offered and shown to the desk exactly as anybody else's."

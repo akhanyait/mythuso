@@ -57,7 +57,7 @@ test('pressing SOS keeps the numbers first, says no ambulance partner is connect
 
   const raised = d.locator('.sos-raised');
   await expect(raised).toContainText(filled(press.engine.partner.notConnected));
-  await expect(raised).toContainText(press.engine.raised.routed['urgent-visit']);
+  await expect(raised).toContainText(filled(press.engine.raised.routed['urgent-visit']));
   await expect(raised).toContainText(press.engine.raised.noNextOfKin);
   await expect(raised).toContainText(press.engine.priority.statement);
   expect(await emergencyIsFirst(d)).toBeLessThanOrEqual(1);

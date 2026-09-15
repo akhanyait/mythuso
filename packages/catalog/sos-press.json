@@ -90,7 +90,7 @@
    "recorded": "Pressed at {at}.",
    "routed": {
     "emergency-services": "Your answers point to emergency services. MyThuso has sent nobody. Call {ambulance} now, or {mobile} from a mobile.",
-    "urgent-visit": "A cleared nurse is being asked to come. Nobody is on the way until a nurse accepts, and this screen will not say one has.",
+    "urgent-visit": "Your answers point to an urgent visit, but no nurse is being asked: Thuso SOS visits are not offered on this build, so nobody is on the way. If it gets worse, call {ambulance}, or {mobile} from a mobile.",
     "cannot-help": "MyThuso cannot send anybody for this. Why, and what to do instead, is above."
    },
    "areaShared": "The desk can see the area you chose until {ends}. After that nothing keeps where you were.",

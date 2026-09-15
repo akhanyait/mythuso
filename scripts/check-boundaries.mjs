@@ -8358,7 +8358,7 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  /* Which dispatch happens without a human is written down, and it is one: an urgent-visit offer for an SOS pressed in
     the app. A channel that does not raise names the refusal the press route answers it with. */
  const dwh = pressC.engine?.dispatchWithoutAHuman;
- if (!dwh?.statement?.trim() || dwh.allowed?.length !== 1 || dwh.allowed[0].id !== 'sos-pressed-in-the-app' || !(dwh.allowedByThePlanNotBuilt ?? []).some(x => x.id === 'unresponsive-patient') || !(dwh.neverWithoutAHuman ?? []).length) sosFail(0, 'packages/catalog/sos.json engine.dispatchWithoutAHuman no longer says, as one allowed dispatch and the rest refused, what is sent without a person at the desk deciding.');
+ if (!dwh?.statement?.trim() || dwh.allowed?.length !== 1 || dwh.allowed[0].id !== 'sos-pressed-in-the-app' || !(dwh.allowedByThePlanNotBuilt ?? []).some(x => x.id === 'unresponsive-patient') || !(dwh.neverWithoutAHuman ?? []).length) sosFail(0, 'packages/catalog/sos-press.json engine.dispatchWithoutAHuman no longer says, as one allowed dispatch and the rest refused, what is sent without a person at the desk deciding.');
  for (const c of pressC.engine.channels) if (c.raises ? c.refusal !== null : !answers(RAISE, c.refusal)) sosFail(0, 'The channel "' + c.id + '" ' + (c.raises ? 'raises and names a refusal.' : 'names "' + c.refusal + '", which ' + RAISE + ' cannot answer.'));
  if (!answers(RAISE, 'dispatch-without-a-human') || !answers(RAISE, 'wearable-alone')) sosFail(0, RAISE + ' no longer answers dispatch-without-a-human and wearable-alone.');
 
@@ -8377,6 +8377,13 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const claimed = pressCopy.flatMap(text => text.split(/(?<=[.!?])\s+/)).find(s => claims.some(c => c.test(s)) && !denies.test(s));
  if (claimed) sosFail(2, 'Copy on the SOS press, the desk or next of kin says or implies an ambulance or an emergency service: "' + claimed.trim().slice(0, 160) + '". MyThuso is not an emergency service, and no ambulance partner is connected.');
  /* A number lives in one place: the press's sentences write {ambulance} and {mobile}, filled from sos.json. */
+ /* The press says no nurse is being asked because Thuso SOS is not offered on this build. That is true only while
+    services.json places sos in a later phase than Care's seed phase, when Care's offer desk refuses service-not-offered.
+    The day the phase moves, a nurse would be asked and the sentence would understate what happened, so it must be
+    rewritten in the same change. */
+ const sosServicePhase = catalogue.find(s => s.id === 'sos')?.phase, careSeedPhase = JSON.parse(read('packages/catalog/care.json')).seedPhase;
+ const saysNotOffered = /not offered on this build/.test(pressC.engine.raised.routed['urgent-visit'] ?? '');
+ if (!(typeof sosServicePhase === 'number' && typeof careSeedPhase === 'number') || saysNotOffered !== (sosServicePhase > careSeedPhase)) sosFail(2, 'packages/catalog/sos-press.json engine.raised.routed.urgent-visit ' + (saysNotOffered ? 'says Thuso SOS visits are not offered on this build, but services.json places sos at phase ' + sosServicePhase + ' and care.json seedPhase is ' + careSeedPhase + ', so Care would ask a nurse.' : 'no longer says Thuso SOS visits are not offered on this build, while Care still refuses them as service-not-offered: the press would imply a nurse is being asked.'));
  const typedInPress = read('packages/catalog/sos-press.json').match(/\d{3,}/);
  if (typedInPress) sosFail(2, 'packages/catalog/sos-press.json types the number ' + typedInPress[0] + '. Write {ambulance} or {mobile}; packages/engines/src/safety/domain/sos.ts and scripts/emit-sos.mjs fill them from packages/catalog/sos.json, so a wrong digit has one place to be wrong.');
  if (!safetyRoutes.doors.includes(pressC.engine.partner.door) || !/does not reach an ambulance/.test(pressC.engine.partner.notConnected) || !/\{ambulance\}/.test(pressC.engine.partner.notConnected) || !sosDomain.includes('export const partnerConnected = false;') || !webPress.includes('sosEngine.partner.notConnected') || !iosView.includes('Sos.PressText.partnerNotConnected') || !androidView.includes('SosPressText.partnerNotConnected')) sosFail(2, 'The press no longer says, on every platform and in the contract\'s sentence, that no ambulance partner is connected.');
