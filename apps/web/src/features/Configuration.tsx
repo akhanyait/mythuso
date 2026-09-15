@@ -282,7 +282,9 @@ function SettingItem({ engine, setting, snapshot, history, open, onOpen, onClose
    ? <span className="pill cf-review"><ShieldCheck size={15}/>{fill(say.reviewed, { who: review.reviewed.byRef, on: review.reviewed.on ? dayOf(review.reviewed.on) : review.reviewed.at === null ? '' : whenOf(review.reviewed.at) })}</span>
    : <span className="pill cf-review is-unreviewed"><ShieldAlert size={15}/>{say.notReviewed}</span>)}
   <p className="ss-meta">{fill(say.defaultIs, { value: valueText(setting, setting.default.value) })} · {provenanceText(setting.default)}</p>
-  {limits && <p className="ss-meta">{limits}. {bounds.length && bounds.every(entry => entry.decidedBy === null) ? say.limitsAreProposals : say.limitsDecided}</p>}
+  {/* Whether what an admin may set was decided is said only of limits that carry a decision or a proposal. A
+      rota's posts carry neither, and calling them decided would credit a decision nobody took. */}
+  {limits && <p className="ss-meta">{limits}.{bounds.length ? ` ${bounds.every(entry => entry.decidedBy === null) ? say.limitsAreProposals : say.limitsDecided}` : ''}</p>}
   <dl className="cf-rules">
    <div><dt>{say.appliesTo}</dt><dd>{setting.appliesTo}</dd></div>
    {setting.guardrail && <div><dt>{say.guardrail}</dt><dd>{setting.guardrail.statement}</dd></div>}

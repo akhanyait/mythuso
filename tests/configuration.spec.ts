@@ -93,7 +93,10 @@ test('every engine’s settings are drawn from its contract: in force, the defau
       await expect(item).toContainText(fill(say.defaultIs, { value: valueText(row, row.default.value) }));
       await expect(item).toContainText(provenance(row.default));
       for (const limit of limitsTexts(row)) await expect(item).toContainText(limit);
-      await expect(item).toContainText(say.limitsAreProposals);
+      /* Only limits that carry a provenance are said to be proposals; a rota's posts carry none and are said to be neither. */
+      const carriesProvenance = Boolean(row.bounds || row.allowed || row.allowedRoles || row.items || (row as { maxLength?: unknown }).maxLength);
+      if (carriesProvenance) await expect(item).toContainText(say.limitsAreProposals);
+      else await expect(item).not.toContainText(say.limitsDecided);
       await expect(item).toContainText(row.appliesTo);
       if (row.guardrail) await expect(item).toContainText(row.guardrail.statement);
       await expect(item).toContainText(say.neverChanged);

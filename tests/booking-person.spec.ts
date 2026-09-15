@@ -118,7 +118,8 @@ test('asking for a nurse by name keeps as soon as possible under the fallback in
   await d.getByRole('button', { name: 'Continue' }).click(); // when → payment
   await d.getByRole('button', { name: 'Continue' }).click(); // payment → review
 
-  const line = (label: string) => d.locator('.review-line').filter({ hasText: label });
+  /* A review line by its own label rather than by any text in it: the fallback answer speaks of a nurse too. */
+  const line = (label: string) => d.locator('.review-line').filter({ has: page.locator('span', { hasText: new RegExp(`^${label}$`) }) });
   await expect(line(booking.review.nurseLabel)).toContainText(`${name} · ${badge.name}`);
   await expect(line(booking.person.fallback.reviewLabel)).toContainText(rule.asksPatient ? soonest.sentence
     : booking.person.fallback.choices.find((c: { id: string }) => c.id === rule.resolvesTo).sentence);

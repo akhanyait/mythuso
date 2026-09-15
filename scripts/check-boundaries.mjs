@@ -7799,7 +7799,10 @@ console.log(`The shop sells ${shopContract.products.length} things over ${shopCo
  const accessThreadFiles = ['apps/web/src/features/VisitAccess.tsx', 'packages/engines/src/access/domain/thread.ts', 'packages/engines/src/access/engine.ts', 'apps/ios/MyThuso/Features/VisitThreadView.swift', 'apps/android/app/src/main/java/za/co/mythuso/ui/BookingScreens.kt', 'apps/ios/MyThuso/Models/Booking.swift', 'apps/android/app/src/main/java/za/co/mythuso/model/Booking.kt'];
  const limitValues = [accessSetting('visit-thread-max-characters'), accessSetting('visit-thread-open-hours-after-visit')].flatMap(s => [s.default.value, s.bounds.lowest.value, s.bounds.highest.value]).filter(v => v > 1);
  /* A number is a limit only where it stands alone: the 24 in an opacity of 0.24 is not one. */
- const typedLimit = new RegExp(`\\bMAX_CHARACTERS\\b|maxLength=\\{?\\s*\\d|(?<![.\\d])(${limitValues.join('|')})\\s*(\\*\\s*(60|3600|HOUR)\\b|characters\\b|hours?\\b)|(?<![.\\d])\\d+\\s*\\*\\s*3600\\b|plusHours\\(\\s*\\d|[<>]=?\\s*(${limitValues.join('|')})(?![.\\d])`);
+ /* The longest message's default and ceiling are refused standing alone too, so a count drawn as "/ 500" is caught;
+    the hours are caught only beside a unit or a multiplication, because 24 and 72 are ordinary numbers elsewhere. */
+ const lengthValues = [accessSetting('visit-thread-max-characters').default.value, accessSetting('visit-thread-max-characters').bounds.highest.value];
+ const typedLimit = new RegExp(`\\bMAX_CHARACTERS\\b|maxLength=\\{?\\s*\\d|(?<![.\\d\\w])(${lengthValues.join('|')})(?![.\\d\\w])|(?<![.\\d])(${limitValues.join('|')})\\s*(\\*\\s*(60|3600|HOUR)\\b|characters\\b|hours?\\b)|(?<![.\\d])\\d+\\s*\\*\\s*3600\\b|plusHours\\(\\s*\\d|[<>]=?\\s*(${limitValues.join('|')})(?![.\\d])`);
  for (const file of accessThreadFiles) {
   const typed = read(file).match(typedLimit);
   if (typed) throw new Error(`${file} types a thread limit as "${typed[0]}". The longest message and the hours a thread stays open are Access's settings, read in force on the web and the engine and from the generated BookingData on a phone.`);

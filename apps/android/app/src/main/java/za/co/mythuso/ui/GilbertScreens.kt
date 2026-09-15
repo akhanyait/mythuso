@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import za.co.mythuso.model.BookingData
 import za.co.mythuso.model.Gilbert
 import za.co.mythuso.model.GilbertChannel
 import za.co.mythuso.model.GilbertData
