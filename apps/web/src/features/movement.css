@@ -11,7 +11,9 @@
 .mv-not-ambulance { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0; color: var(--ink); }
 .mv-not-ambulance svg { flex: none; margin-top: 2px; color: var(--indigo-deep); }
 
-.mv-fields { display: grid; gap: var(--space-12); grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+/* Two columns of choices on a wide screen, so four fields are a square rather than three and an orphan; one on a phone. */
+.mv-fields { display: grid; gap: var(--space-12); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 640px) { .mv-fields { grid-template-columns: minmax(0, 1fr); } }
 .mv-fields label { min-width: 0; }
 
 .mv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-8); }
@@ -39,6 +41,12 @@
 .mv-summary { display: grid; gap: var(--space-4); padding: var(--space-12); border-radius: var(--r-control); background: var(--indigo-wash); }
 .mv-summary p { margin: 0; color: var(--ink); }
 .mv-checklist { display: grid; gap: var(--space-4); border: 0; padding: 0; margin: 0; }
+.mv-checklist legend { font-weight: 600; color: var(--ink); padding: 0; margin-bottom: var(--space-4); }
+/* The box sits beside the first line of its sentence, and the whole row stays the target. */
+.mv-checklist .checkbox { display: flex; gap: var(--space-8); align-items: flex-start; min-height: 44px; }
+.mv-checklist .checkbox input { flex: none; margin: 2px 0 0; }
+/* A reference is one word: a trip or an admission number broken over two lines reads as two. */
+.mv-table th, .mv-row-head strong { white-space: nowrap; }
 
 .mv-refused { display: grid; gap: var(--space-4); padding: var(--space-12); border-radius: var(--r-control); background: var(--danger-soft); color: var(--ink); }
 .mv-refused p { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0; }
