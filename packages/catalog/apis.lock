@@ -264,3 +264,15 @@ POST /v1/money/voucher-redemptions@1 4d361844d6c5f58e
 POST /v1/money/plan-subscriptions@1 091d65da31b03b97
 POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1 2f462b75ab7a6977
 GET /v1/money/plan-subscriptions/{subscriptionRef}@1 50cc73908a5dd892
+POST /v1/money/groups@2 1d34a1160ee84ef6
+POST /v1/money/group-memberships@1 9d01f8eaff914a81
+POST /v1/money/group-memberships/{membershipRef}/accept@1 4eb2c4c9813c5a1a
+POST /v1/money/group-memberships/{membershipRef}/leave@1 97549c9a86dcd8d8
+POST /v1/money/group-payments@1 098d2862795565e9
+GET /v1/money/groups/{groupRef}@1 649daf69d7795dd9
+GET /v1/money/group-memberships@1 1b4ebecae3e67e69
+POST /v1/money/claims@3 d783a088cca3ea2a
+POST /v1/money/claims/{claimRef}/consent@1 2e4ec1841f3ea133
+POST /v1/money/claims/{claimRef}/submit@1 e9af1935fe76dd6e
+GET /v1/money/claims@1 32870c61fb81428c
+GET /v1/money/held-cash-payments@1 6d9b16181d99b813

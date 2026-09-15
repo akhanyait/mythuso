@@ -308,3 +308,17 @@ POST /v1/money/plan-subscriptions@1 callers=patient,sponsor purpose=billing beca
 POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1 callers=patient,sponsor purpose=billing because=-
 GET /v1/money/plan-subscriptions/{subscriptionRef}@1 callers=patient,sponsor purpose=billing because=-
 POST /v1/money/vouchers@1 callers=- purpose=billing because=-
+POST /v1/money/groups@1 callers=- purpose=billing because=-
+POST /v1/money/claims@2 callers=- purpose=billing because=-
+POST /v1/money/groups@2 callers=employer,sponsor purpose=billing because=-
+POST /v1/money/group-memberships@1 callers=employer,sponsor purpose=billing because=-
+POST /v1/money/group-memberships/{membershipRef}/accept@1 callers=employer,patient,sponsor purpose=billing because=-
+POST /v1/money/group-memberships/{membershipRef}/leave@1 callers=patient purpose=billing because=-
+POST /v1/money/group-payments@1 callers=patient purpose=billing because=-
+GET /v1/money/groups/{groupRef}@1 callers=employer,sponsor purpose=billing because=-
+GET /v1/money/group-memberships@1 callers=patient purpose=billing because=-
+POST /v1/money/claims@3 callers=doctor purpose=billing because=-
+POST /v1/money/claims/{claimRef}/consent@1 callers=patient purpose=billing because=-
+POST /v1/money/claims/{claimRef}/submit@1 callers=admin,doctor purpose=billing because=-
+GET /v1/money/claims@1 callers=doctor,patient purpose=billing because=-
+GET /v1/money/held-cash-payments@1 callers=ops-desk purpose=billing because=-

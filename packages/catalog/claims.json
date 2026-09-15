@@ -1,0 +1,103 @@
+{
+ "_note": "Claims to a medical scheme and the pre-authorisation request, as Money holds them: the frame a claim moves through, the gates it must pass and the words a patient and a doctor read. Beside packages/catalog/apis/money.json, which holds every route and refusal with its status, and packages/catalog/feeds.json, which holds the claim-response door. Read by packages/engines/src/money/domain/claims.ts and the web. Nothing here is a real service: no claim is sent, no scheme is contacted and nothing is paid.",
+ "_honestyNote": "Every claim in this build stops before it is sent, and says so. No switching partner is connected, no licensed tariff code set and no adopted ICD-10 code set exist, and a claim is not a claim without both. So the frame is built — drafted by the doctor who signed the review, agreed to by the patient, asked to be sent — and the asking is refused in a sentence, rather than a screen that shows a claim going somewhere it cannot go.",
+
+ "states": [
+  {"id": "drafted", "name": "Drafted", "reachable": true, "patientWords": "Your doctor has drafted a claim to your medical scheme for this visit. Nothing is sent unless you agree.", "doctorWords": "Drafted. The patient is asked to agree before anything is sent."},
+  {"id": "consented", "name": "Agreed, not sent", "reachable": true, "patientWords": "You agreed to send this claim. It has not been sent: no switching partner is connected, so nothing has reached your scheme.", "doctorWords": "The patient agreed. It has not been sent: no switching partner is connected."},
+  {"id": "submitted", "name": "Sent", "reachable": false, "patientWords": "Your claim was sent to your scheme.", "doctorWords": "Sent to the scheme.", "unreachableBecause": "Only a connected switching partner sends a claim, and none is."},
+  {"id": "responded", "name": "Answered", "reachable": false, "patientWords": "Your scheme has answered this claim.", "doctorWords": "The scheme answered.", "unreachableBecause": "An answer arrives only through the claim-response door, which refuses every payload."},
+  {"id": "paid", "name": "Paid by your scheme", "reachable": false, "patientWords": "Your scheme paid this claim.", "doctorWords": "Paid by the scheme.", "unreachableBecause": "Nothing is paid by a scheme that was never sent the claim."},
+  {"id": "rejected", "name": "Not paid by your scheme", "reachable": false, "patientWords": "Your scheme did not pay this claim. What is owed for the visit is still owed.", "doctorWords": "Rejected by the scheme.", "unreachableBecause": "Nothing is rejected by a scheme that was never sent the claim."}
+ ],
+ "statesNote": "The six states the Billing & Claims frame names. Only drafted and consented are reached in this build, and each of the other four says why not. No code in packages/engines/src/money writes any of the four, and scripts/check-boundaries.mjs holds it to that.",
+
+ "gates": [
+  {"id": "signed-review", "refusal": "claim-review-not-signed", "asked": "draft"},
+  {"id": "visit-happened", "refusal": "claim-visit-not-finished", "asked": "draft"},
+  {"id": "no-typed-code", "refusal": "claim-code-typed", "asked": "draft"},
+  {"id": "one-claim-a-visit", "refusal": "claim-already-drafted", "asked": "draft"},
+  {"id": "patient-agreed", "refusal": "claim-without-consent", "asked": "submit"},
+  {"id": "agreement-in-date", "refusal": "claim-consent-expired", "asked": "submit"},
+  {"id": "a-switching-partner", "refusal": "claim-not-submitted", "asked": "submit"},
+  {"id": "an-adopted-code", "refusal": "claim-without-an-adopted-code", "asked": "submit"}
+ ],
+ "gatesNote": "In the order they are asked. The switching partner is asked before the code because a code set is adopted with the switching partner: which tariff and ICD-10 editions a scheme accepts, and the licence to use them, are part of that contract (codeSets.adoptedWith). A claim that one day has both is still stopped at the first that is missing, and nothing after the last gate is written, because no adapter to a switching partner exists.",
+
+ "stop": {
+  "refusal": "claim-not-submitted",
+  "words": "Not submitted: no switching partner is connected.",
+  "door": "claim-response",
+  "capability": "scheme-claims"
+ },
+
+ "codeSets": {
+  "adopted": [],
+  "adoptedWith": "claim-response",
+  "tariff": {"adopted": false, "statement": "No licensed tariff code set is adopted in this build.", "why": "A tariff code set for private practice in South Africa is licensed, and no licence is held. A code typed from memory, from a list found somewhere or from a service's name is a claim coded by nobody."},
+  "icd10": {"adopted": false, "statement": "No adopted ICD-10 code set exists in this build.", "why": "Which ICD-10 edition South African schemes take, and the coding standards that go with it, are chosen with the switching partner. A diagnosis code is chosen by the clinician inside the record and never passes through Money (POST /v1/money/claims@1 was withdrawn for carrying one)."},
+  "statement": "No code set is adopted in this build, so a claim carries no code: none is typed, none is chosen from a list and none is worked out from the service.",
+  "doctorWords": "No adopted code set",
+  "doctorDetail": "A claim needs a code you choose from an adopted code set. None is adopted, so there is nothing to choose from, and nothing is filled in for you.",
+  "fieldWords": ["tariff", "icd", "icd10", "diagnosis", "diagnoses", "diagnostic", "procedure", "nappi", "ccsa", "cpt", "code", "codes", "coding", "condition", "reason", "why"],
+  "fieldWordsWhy": "A request carrying a field named for a code, a coding, a diagnosis or a reason is refused in the code-set sentence rather than ignored. The declared fields of every claim route carry no code, so anything like one is somebody sending what no clinician chose from an adopted set."
+ },
+
+ "builtFrom": {
+  "review": "review.billable@1",
+  "visit": "visit.billable@1",
+  "why": "A claim is for care that happened and that a doctor signed. Clinical publishes review.signed@1 and review.billable@1 when a doctor signs; Money hears only review.billable@1, which names the review, the doctor and a fee code, because review.signed@1 carries the encounter reference, and packages/catalog/events.json moneyHears refuses an event Money hears that carries a reference into the record. So Money is not a subscriber of review.signed@1. A draft is refused unless Money heard a signed review by the calling doctor about the same person as the visit's payable, signed on or after the visit's day, and heard visit.billable@1 for the visit itself.",
+  "noReviewRefOnARoute": "No claim route carries the review's reference. packages/catalog/apis/clinical.json declares the reviews resource, so a reviewRef on one of Money's routes would be a reference into Clinical's store. Money finds the signed review from what it heard."
+ },
+
+ "consent": {
+  "setting": "claim-consent-days",
+  "ceilingFrom": "packages/catalog/consent.json#grants.maximumExpiryDays",
+  "notAGrant": "Agreeing to send a claim is not a grant to read your record. Your scheme opens nothing; it is sent what one claim carries, once, and only if you agree.",
+  "never": "A scheme is told nothing about who else may read your record.",
+  "why": "A claim tells a scheme that a person was seen, when and for what, and that is health information under POPIA. So a claim is sent only with the patient's agreement for that claim, and the agreement lasts as long as Money's setting claim-consent-days in force on the day she gave it, never longer than the founder's ninety-day ceiling in packages/catalog/consent.json. A change to the setting reaches agreements given after it and never one already given.",
+  "grantFieldsFrom": "packages/catalog/events.json#grantFields"
+ },
+
+ "preauthorisation": {
+  "states": [
+   {"id": "requested", "name": "Asked for", "reachable": false, "words": "A pre-authorisation was asked for."},
+   {"id": "submitted", "name": "Sent", "reachable": false, "words": "The request was sent to the scheme."},
+   {"id": "decided", "name": "Decided", "reachable": false, "words": "The scheme decided."}
+  ],
+  "ownedBy": "movement",
+  "heardOn": "admission.preauth.decided@1",
+  "stop": "claim-not-submitted",
+  "words": "A pre-authorisation request stops at the same door as a claim: no switching partner is connected, so nothing is asked of a scheme before care.",
+  "why": "Movement arranges an admission and owns admission.preauth.submitted@1 and admission.preauth.decided@1 (packages/catalog/events.json). Money hears the decision on its moneyHears list and builds no route that asks for one, because the request belongs to the admission Movement holds. The frame is written here so the doctor's claim draft can say where a pre-authorisation would stop, and none of its states is reached."
+ },
+
+ "screen": {
+  "patient": {
+   "heading": "Claims to your medical scheme",
+   "intro": "Each claim for a visit, what state it is in, and whether anything has been sent. Nothing is sent without your agreement.",
+   "agree": "Agree to send this claim",
+   "agreed": "You agreed on {day}. Your agreement lasts until {until}.",
+   "amount": "Owed for the visit",
+   "empty": "No claim has been drafted for any of your visits."
+  },
+  "doctor": {
+   "heading": "Claim draft",
+   "intro": "A claim for a visit whose review you signed. You choose its code from an adopted code set, and the patient agrees before it is sent.",
+   "draft": "Draft a claim for this visit",
+   "send": "Send to the scheme",
+   "codeLabel": "Code",
+   "preauthHeading": "Pre-authorisation"
+  },
+  "preview": "This is a preview. No claim is sent and no scheme is contacted."
+ },
+
+ "preview": {
+  "serviceId": "vitals",
+  "appointmentRef": "APT-PREVIEW-CLAIM-1",
+  "clinicianRef": "N-205",
+  "doctorRef": "D-401",
+  "subjectRef": "subj-preview-patient",
+  "why": "One visit the web preview's ledger books, completes and hears a signed review for, so the claim on the patient's record and on the doctor's draft is one the ledger drafted. The review is one of packages/catalog/money.json's signed sample cases, read from there; no amount is here, because the visit is priced from packages/catalog/services.json."
+ }
+}

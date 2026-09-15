@@ -2,11 +2,9 @@
  "engine": "money",
  "_note": "Money is Thuso Money: payments, payouts, wallets, vouchers, gifts, group wallets, claims and Market orders. Every write is idempotent with a key. MyThuso never holds a card number. Wave 2 contract; Waves 3 and 5 build.",
  "version": 1,
- "resources": ["payments", "payouts", "wallets", "vouchers", "gifts", "groups", "claims", "market-orders", "settings", "setting-changes", "voucher-redemptions", "plan-subscriptions"],
- "doors": ["payment-result", "payout-advice"],
- "doorsToAdd": [
-  {"id": "claim-response", "why": "The switching partner's claim responses are supplier callbacks; a door to add.", "capabilityNamed": {"section": "FS-E10", "what": "First scheme claim switched"}}
- ],
+ "resources": ["payments", "payouts", "wallets", "vouchers", "gifts", "groups", "claims", "market-orders", "settings", "setting-changes", "voucher-redemptions", "plan-subscriptions", "group-memberships", "group-payments", "held-cash-payments"],
+ "doors": ["payment-result", "payout-advice", "claim-response"],
+ "doorsToAdd": [],
  "refusals": [
   {"id": "card-number-held", "status": 422, "statement": "MyThuso never holds a card number.", "why": "The provider's page takes it."},
   {"id": "payout-line-names-its-amount", "status": 422, "statement": "A payout line does not name its own amount for a visit.", "why": "The share is packages/catalog/earnings.json's arithmetic."},
@@ -313,7 +311,7 @@
    "path": "/v1/money/groups",
    "version": 1,
    "summary": "Create a group wallet for a stokvel, church or employer.",
-   "callers": ["patient", "sponsor", "employer"],
+   "callers": [],
    "purpose": ["billing"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -331,7 +329,8 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E10", "what": "Group wallets for stokvels, churches and employers"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-16", "supersededBy": "POST /v1/money/groups@2", "why": "It created a group wallet, and a wallet MyThuso keeps for a group is a deposit MyThuso holds for other people, which only a bank may take (packages/catalog/groups.json noPooledMoney). It named every member in the request that opened the group, so a member was added by whoever typed her token rather than by her own agreement, and it answered no refusal for a group paying for somebody who is not a member or an employer reading about an employee. It was never built. Version two opens a group that holds nothing; POST /v1/money/group-memberships@1 invites, a member agrees through .../accept@1, and POST /v1/money/group-payments@1 charges the group's own account for one member's payable. Its callers are those routes'."}
   },
   {
    "method": "POST",
@@ -366,7 +365,7 @@
    "path": "/v1/money/claims",
    "version": 2,
    "summary": "Record the billing side of a claim: what is owed, its tariff code and the amount. Why the service was needed is coded inside the record and sent to the switch without passing through Money.",
-   "callers": ["admin"],
+   "callers": [],
    "purpose": ["billing"],
    "request": [
     {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same act once."},
@@ -386,7 +385,8 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": {"section": "FS-E10", "what": "Billing & Claims engine"},
-   "status": "proposed"
+   "status": "proposed",
+   "withdrawn": {"on": "2026-09-16", "supersededBy": "POST /v1/money/claims@3", "why": "It took a tariff code the caller typed and an amount the caller chose, and no licensed tariff code set is adopted, so its one required code could only come from somebody's memory and its amount from somebody other than the catalogue (packages/catalog/claims.json codeSets). It answered submitted when no switching partner is connected to submit to, took no patient agreement, and had nowhere to refuse a claim for a visit that never happened or a duplicate under a new key. It was never built. Version three is drafted by the doctor who signed the review, carries no code and no amount of the caller's, and is agreed to by the patient through POST /v1/money/claims/{claimRef}/consent@1 before POST /v1/money/claims/{claimRef}/submit@1 stops at the switching partner. Its callers are those routes'."}
   },
   {
    "method": "POST",
@@ -695,6 +695,382 @@
    "capabilityNamed": null,
    "status": "built",
    "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'GET /v1/money/plan-subscriptions/{subscriptionRef}@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/groups",
+   "version": 2,
+   "summary": "Open a group that pays for its members' care: a stokvel or a church, opened by a sponsor, or an employer. The group holds no money at MyThuso.",
+   "callers": ["sponsor", "employer"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same group once."},
+    {"field": "groupKind", "type": "string", "required": true, "why": "stokvel, church or employer, from packages/catalog/groups.json kinds. Each kind names the role that opens it."}
+   ],
+   "response": [
+    {"field": "groupRef", "type": "string", "required": true, "why": "The group, Money's own. It is a reference and a kind, and nothing in it holds an amount."},
+    {"field": "groupKind", "type": "string", "required": true, "why": "What was opened."}
+   ],
+   "refusals": [
+    {"id": "group-holds-money", "status": 422, "statement": "MyThuso never holds a group's money. A group pays for its members' care from its own account, one payment at a time, and nothing is pooled, deposited or kept here.", "why": "Holding money for other people is taking deposits, which only a bank may do (packages/catalog/groups.json noPooledMoney). A request carrying a balance, a deposit, a pool, a wallet or a contribution is refused rather than ignored, because an ignored field is a field somebody believes worked."},
+    {"id": "group-kind-not-offered", "status": 422, "statement": "A group is a stokvel, a church or an employer.", "why": "The kinds are packages/catalog/groups.json's, and each says who opens it and what a member may let it see."},
+    {"id": "group-kind-not-yours", "status": 403, "statement": "Only an employer opens a group for its staff, and only a person opens a stokvel or a church group.", "why": "An employer's group offers its members only the month's total, because an employer sees nothing about an employee's health. A stokvel opened by an employer would offer amounts and days to the one payer who must never see them."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A group is an arrangement between people, and nothing is owed or paid by opening one. No other engine acts on a group existing, and the event contract refuses an event nobody subscribes to.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/groups@2'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/group-memberships",
+   "version": 1,
+   "summary": "A group invites somebody to let it pay for her care. Nothing is paid for her unless she agrees in her own account.",
+   "callers": ["sponsor", "employer"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same invitation once."},
+    {"field": "groupRef", "type": "string", "required": true, "why": "The group inviting, which the caller opened."},
+    {"field": "subjectRef", "type": "string", "required": true, "why": "Who is invited, as identity's opaque token."}
+   ],
+   "response": [
+    {"field": "membershipRef", "type": "string", "required": true, "why": "The invitation, Money's own, which the person invited agrees to or does not."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "invited, from packages/catalog/groups.json states."}
+   ],
+   "refusals": [
+    {"id": "group-not-found", "status": 404, "statement": "There is no group of yours with that reference.", "why": "Only the person who opened a group administers it, and the answer never says whether a group exists for somebody else."},
+    {"id": "member-added-without-agreement", "status": 422, "statement": "Nobody is made a member of a group without agreeing, in her own account. An invitation is all a group can send.", "why": "A request carrying an agreement, a consent or an acceptance for the person invited is refused rather than recorded (packages/catalog/groups.json memberFieldWords)."},
+    {"id": "group-holds-money", "status": 422, "statement": "MyThuso never holds a group's money. A group pays for its members' care from its own account, one payment at a time, and nothing is pooled, deposited or kept here.", "why": "An invitation carrying a contribution or a deposit is the pool the contract refuses, asked for one member at a time."},
+    {"id": "group-full", "status": 409, "statement": "This group already has as many members as a group may have.", "why": "Money's setting group-member-cap in force, counting everybody invited or agreed and nobody who left."},
+    {"id": "already-invited", "status": 409, "statement": "This person has already been invited to this group, or is already a member.", "why": "Two invitations to one person are two answers she could give, and the group could read the one it preferred."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An invitation changes nothing anybody owes. The person invited is asked when she opens her own account, and no other engine acts on an invitation.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/group-memberships@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/group-memberships/{membershipRef}/accept",
+   "version": 1,
+   "summary": "The person invited agrees to let the group pay for her care, as herself, and chooses how the group's screen reads what it paid for her.",
+   "callers": ["patient", "sponsor", "employer"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same agreement once."},
+    {"field": "membershipRef", "type": "string", "required": true, "why": "The invitation."},
+    {"field": "lineDetail", "type": "string", "required": true, "why": "amount-and-day or month-total-only, from packages/catalog/groups.json lineDetails, and only one her group's kind offers. Hers to choose."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "member."},
+    {"field": "lineDetail", "type": "string", "required": true, "why": "What she chose."}
+   ],
+   "refusals": [
+    {"id": "membership-not-found", "status": 404, "statement": "There is no invitation of yours with that reference.", "why": "Only the person invited and the person who invited her can name it, and the answer never says whether it exists for anybody else. An invitation she left is not open to agree to again; the group invites her afresh."},
+    {"id": "only-the-member-agrees", "status": 403, "statement": "Only the person invited agrees to join a group, from her own account. A group invites and never agrees for anybody.", "why": "A sponsor and an employer are callers of this route so that the refusal is said in these words rather than as a role the route does not take: inviting is what a group may do, and agreeing is not."},
+    {"id": "employer-sees-health", "status": 403, "statement": "An employer sees nothing about an employee's health: not who used care, not when and not what for.", "why": "An employee cannot choose to show her employer the day a visit was paid for, because the day is her health, and a choice made under an employer's eye is not freely made (packages/catalog/groups.json employer)."},
+    {"id": "group-line-detail-not-offered", "status": 422, "statement": "Choose one of the ways this group may see what it paid for you.", "why": "The ways are packages/catalog/groups.json's, and each kind offers its own."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An agreement lets the group pay for what she asks it to pay for later. A payment publishes payment.succeeded@1, and no other engine acts on the agreement itself.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/group-memberships/{membershipRef}/accept@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/group-memberships/{membershipRef}/leave",
+   "version": 1,
+   "summary": "A member leaves a group, as herself. It pays for nothing new, and what it already paid stays paid.",
+   "callers": ["patient"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same leaving once."},
+    {"field": "membershipRef", "type": "string", "required": true, "why": "Her membership."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "left."}
+   ],
+   "refusals": [
+    {"id": "membership-not-found", "status": 404, "statement": "There is no invitation of yours with that reference.", "why": "A member leaves only her own membership."},
+    {"id": "not-a-group-member", "status": 409, "statement": "You are not a member of this group, so there is nothing to leave.", "why": "An invitation she never agreed to lets the group pay for nothing already; leaving it would record an agreement that was never given."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Leaving stops the group paying for what she asks after it. Nothing already paid is reversed, and no other engine acts on a membership ending.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/group-memberships/{membershipRef}/leave@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/group-payments",
+   "version": 1,
+   "summary": "A member asks her group to pay for a visit she owes: the group's own account is charged through the provider, up to the limit in force, and nothing is held at MyThuso.",
+   "callers": ["patient"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same charge once."},
+    {"field": "groupRef", "type": "string", "required": true, "why": "The group she agreed to let pay for her."},
+    {"field": "payableRef", "type": "string", "required": true, "why": "What she owes, Money's own payable, for a visit."},
+    {"field": "method", "type": "string", "required": true, "why": "card or eft, from packages/catalog/groups.json pays, on the provider's own page for the group's account."},
+    {"field": "amountCents", "type": "integer", "required": true, "why": "What the payable owes, in cents: the catalogue's price for the service, less anything a voucher paid."}
+   ],
+   "response": [
+    {"field": "paymentRef", "type": "string", "required": true, "why": "The payment."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "pending, succeeded or failed."}
+   ],
+   "refusals": [
+    {"id": "card-number-sent", "status": 422, "statement": "MyThuso never takes a card number; the provider's page does.", "why": "Refused before it is logged, whoever's card it is."},
+    {"id": "group-holds-money", "status": 422, "statement": "MyThuso never holds a group's money. A group pays for its members' care from its own account, one payment at a time, and nothing is pooled, deposited or kept here.", "why": "A charge asking to draw on a balance, a pool or a wallet names money that does not exist here and must not."},
+    {"id": "group-pays-only-members", "status": 403, "statement": "A group pays only for its own members, and only for somebody who agreed to join it.", "why": "Somebody invited and not yet agreed, somebody who left, and somebody never invited are all refused in these words, so a group's account is never charged on anybody's word but a member's."},
+    {"id": "payable-not-found", "status": 404, "statement": "Nothing is owed under that reference.", "why": "A group pays towards Money's own payable, whose amount comes from the catalogue. One with no catalogue price yet has nothing Money can read as owed."},
+    {"id": "someone-elses-payable", "status": 403, "statement": "That is not yours to pay.", "why": "A member asks her group to pay for her own visits and nobody else's."},
+    {"id": "method-not-offered", "status": 422, "statement": "That way of paying is not offered for this.", "why": "A group pays for a visit by card or EFT (packages/catalog/groups.json pays): not cash, which is the patient's at her door, not a debit order and not a wallet."},
+    {"id": "already-paid", "status": 409, "statement": "This has already been paid. Nothing was charged again.", "why": "A payable paid, or waiting on a cash code, is not paid a second time from a group's account."},
+    {"id": "amount-mismatch", "status": 409, "statement": "That amount is not what is owed.", "why": "A payable's amount comes from the catalogue."},
+    {"id": "group-limit-reached", "status": 409, "statement": "This would take what the group pays for you this month past its limit, so the group was not charged.", "why": "Money's setting group-member-monthly-limit-cents in force when she asks, counting what the group already paid for her this calendar month and any payment still waiting on the provider."}
+   ],
+   "emits": ["payment.succeeded@1", "payment.failed@1"],
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E10", "what": "Group wallets for stokvels, churches and employers"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/group-payments@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/money/groups/{groupRef}",
+   "version": 1,
+   "summary": "Read a group as the person who opened it may see it: who agreed and what was paid, the day and the amount only where a member chose that, and for an employer only a month's total above the floor. Never what anybody's care was.",
+   "callers": ["sponsor", "employer"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "groupRef", "type": "string", "required": true, "why": "The group."}
+   ],
+   "response": [
+    {"field": "groupKind", "type": "string", "required": true, "why": "stokvel, church or employer."},
+    {"field": "membersAgreed", "type": "integer", "required": false, "why": "How many agreed. Left out for an employer while fewer agreed than packages/catalog/programmes.json's floor."},
+    {"field": "invitationsWaiting", "type": "integer", "required": false, "why": "How many are invited and have not agreed. Left out for an employer below the floor."},
+    {"field": "monthTotalCents", "type": "integer", "required": false, "why": "What the group paid this calendar month for everybody together. Left out for an employer below the floor."},
+    {"field": "members", "type": "list", "required": true, "object": true, "why": "Each member's invitation and what she let the group see. Empty for an employer, always.", "fields": [
+     {"field": "membershipRef", "type": "string", "required": true, "why": "The invitation."},
+     {"field": "stateCode", "type": "string", "required": true, "why": "invited, member or left."},
+     {"field": "lineDetail", "type": "string", "required": true, "nullable": true, "why": "What she chose, or null before she agreed."},
+     {"field": "lines", "type": "list", "required": true, "object": true, "why": "The group's payments for her, only where she chose amount-and-day: the day and the amount, never the service or why.", "fields": [
+      {"field": "on", "type": "iso-date", "required": true, "why": "The day the group was charged."},
+      {"field": "amountCents", "type": "integer", "required": true, "why": "What it was charged."}
+     ]}
+    ]}
+   ],
+   "refusals": [
+    {"id": "group-not-found", "status": 404, "statement": "There is no group of yours with that reference.", "why": "Only the person who opened a group reads it."},
+    {"id": "employer-sees-health", "status": 403, "statement": "An employer sees nothing about an employee's health: not who used care, not when and not what for.", "why": "An employer asking for anything beyond its group is refused rather than answered with less, so the refusal is said and not guessed at."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'GET /v1/money/groups/{groupRef}@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/money/group-memberships",
+   "version": 1,
+   "summary": "Read your own invitations and memberships: which kind of group, whether you agreed and how, and what the group paid for you this month against its limit.",
+   "callers": ["patient"],
+   "purpose": ["billing"],
+   "request": [],
+   "response": [
+    {"field": "memberships", "type": "list", "required": true, "object": true, "why": "Yours, oldest first.", "fields": [
+     {"field": "membershipRef", "type": "string", "required": true, "why": "The invitation."},
+     {"field": "groupKind", "type": "string", "required": true, "why": "stokvel, church or employer."},
+     {"field": "stateCode", "type": "string", "required": true, "why": "invited, member or left."},
+     {"field": "lineDetail", "type": "string", "required": true, "nullable": true, "why": "What you chose, or null before you agreed."},
+     {"field": "paidThisMonthCents", "type": "integer", "required": true, "why": "What the group was charged for you this calendar month."},
+     {"field": "limitCents", "type": "integer", "required": true, "why": "Money's setting group-member-monthly-limit-cents in force now."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "group-memberships-are-your-own", "status": 403, "statement": "You read only your own invitations and memberships.", "why": "A request naming anybody else, or asking for more than its own, is refused rather than answered with less."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'GET /v1/money/group-memberships@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/claims",
+   "version": 3,
+   "summary": "The doctor who signed a visit's review drafts a claim to the patient's scheme for it: the billing half only, with no code and no amount of the caller's.",
+   "callers": ["doctor"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same draft once."},
+    {"field": "payableRef", "type": "string", "required": true, "why": "The visit's payable, Money's own, paid or still owed. The review is found from what Money heard, never named here."}
+   ],
+   "response": [
+    {"field": "claimRef", "type": "string", "required": true, "why": "The claim, Money's own."},
+    {"field": "stateCode", "type": "string", "required": true, "why": "drafted, from packages/catalog/claims.json states."},
+    {"field": "codeSetAdopted", "type": "boolean", "required": true, "why": "Whether any code set is adopted: false in this build, so the draft says there is no code to choose."}
+   ],
+   "refusals": [
+    {"id": "payable-not-found", "status": 404, "statement": "Nothing is owed under that reference.", "why": "A claim is for Money's own payable for a visit, whose amount comes from the catalogue."},
+    {"id": "claim-visit-not-finished", "status": 409, "statement": "A claim is drafted only for a visit that happened, whether it is paid or still owed.", "why": "Money learns a visit happened from visit.billable@1 and nowhere else. A cancelled visit, or one Care has not said was billable, is not care anybody can claim for."},
+    {"id": "claim-review-not-signed", "status": 409, "statement": "A claim is drafted only for a visit a doctor has signed a review of.", "why": "Money hears a signed review on review.billable@1 (packages/catalog/claims.json builtFrom). With no signed review about the same person, on or after the visit, there is nothing reviewed to claim for."},
+    {"id": "claim-review-not-yours", "status": 403, "statement": "Only the doctor who signed the review drafts its claim.", "why": "The doctor who signed is the one who answers for what the claim says was done."},
+    {"id": "claim-code-typed", "status": 422, "statement": "No code set is adopted in this build, so a claim carries no code: none is typed, none is chosen from a list and none is worked out from the service.", "why": "packages/catalog/claims.json codeSets. A request carrying a field named for a code or a coding is refused in these words rather than ignored."},
+    {"id": "diagnosis-sent-to-money", "status": 422, "statement": "Money never receives why a service was needed.", "why": "Finance sees a service and an amount. A diagnosis is chosen inside the record and goes to the switching partner from there."},
+    {"id": "claim-already-drafted", "status": 409, "statement": "This visit already has a claim. Nothing was drafted again.", "why": "One visit, one claim. A second draft under a new key is a scheme asked twice for one visit."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "A draft is a record inside Money that the patient is asked about. No other engine acts on a claim being drafted, and the event contract refuses an event nobody subscribes to.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E10", "what": "Billing & Claims engine"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/claims@3'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/claims/{claimRef}/consent",
+   "version": 1,
+   "summary": "The patient agrees, as herself, to send a drafted claim to her scheme. It is not a grant to read her record, and the scheme is told nothing about her grants.",
+   "callers": ["patient"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same agreement once."},
+    {"field": "claimRef", "type": "string", "required": true, "why": "The claim."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "consented."},
+    {"field": "consentExpiresOn", "type": "iso-date", "required": true, "why": "The last day the claim may be sent under this agreement: Money's setting claim-consent-days in force today, never longer than packages/catalog/consent.json's ceiling."}
+   ],
+   "refusals": [
+    {"id": "claim-not-found", "status": 404, "statement": "There is no claim of yours with that reference.", "why": "Only the patient a claim is about agrees to it, and the answer never says whether a claim exists for anybody else."},
+    {"id": "scheme-told-about-a-grant", "status": 422, "statement": "A scheme is told nothing about who else may read your record, and a claim carries none of it.", "why": "A scheme receives aggregate data only (packages/catalog/consent.json scheme-receives-aggregate-only). A request carrying a grant, a recipient, a scope or a sealed flag is refused rather than recorded."},
+    {"id": "claim-consented-already", "status": 409, "statement": "You have already agreed to send this claim. Nothing changed.", "why": "An agreement given again under a new key would move the day it runs out, which is a change she did not ask for."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "An agreement lets the claim be sent. Nothing is sent while no switching partner is connected, and no other engine acts on the agreement itself.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/claims/{claimRef}/consent@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "POST",
+   "path": "/v1/money/claims/{claimRef}/submit",
+   "version": 1,
+   "summary": "Ask for an agreed claim to be sent to the scheme. In this build every one stops: no switching partner is connected, and no code set is adopted.",
+   "callers": ["doctor", "admin"],
+   "purpose": ["billing"],
+   "request": [
+    {"field": "idempotencyKey", "type": "string", "required": true, "why": "Chosen by the caller. The same key twice is the same request once."},
+    {"field": "claimRef", "type": "string", "required": true, "why": "The claim."}
+   ],
+   "response": [
+    {"field": "stateCode", "type": "string", "required": true, "why": "submitted, the day a switching partner is connected. No answer of this version carries it in this build."}
+   ],
+   "refusals": [
+    {"id": "claim-not-found", "status": 404, "statement": "There is no claim of yours with that reference.", "why": "A doctor sends only a claim she drafted; the back office any claim."},
+    {"id": "claim-without-consent", "status": 409, "statement": "A claim is sent only with the patient's agreement to send it, and this one does not have it.", "why": "A claim tells a scheme a person was seen, when and for what (packages/catalog/claims.json consent)."},
+    {"id": "claim-consent-expired", "status": 409, "statement": "The patient's agreement to send this claim has run out. Nothing was sent.", "why": "An agreement lasts the days in force when she gave it, and a claim sent after is sent on an agreement that no longer stands."},
+    {"id": "claim-not-submitted", "status": 423, "statement": "Not submitted: no switching partner is connected.", "why": "A claim is sent only through the switching partner behind the claim-response door in packages/catalog/feeds.json, whose switch-on conditions are none of them met. The claim stays agreed and unsent."},
+    {"id": "claim-without-an-adopted-code", "status": 422, "statement": "A claim is sent only with a code a clinician chose from an adopted code set, and no code set is adopted in this build.", "why": "Asked after the switching partner, because a code set is adopted with the partner (packages/catalog/claims.json gatesNote)."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Nothing is submitted while no switching partner is connected. claim.submitted@2 is the event for a claim that reached a scheme, and this version cannot publish it; the day a partner is connected is a new version of this route.",
+   "idempotent": true,
+   "endpointNamed": null,
+   "capabilityNamed": {"section": "FS-E10", "what": "First scheme claim switched"},
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'POST /v1/money/claims/{claimRef}/submit@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/money/claims",
+   "version": 1,
+   "summary": "Read claims: the patient her own, and a doctor the ones she drafted, each with its state and why it has not been sent.",
+   "callers": ["patient", "doctor"],
+   "purpose": ["billing"],
+   "request": [],
+   "response": [
+    {"field": "claims", "type": "list", "required": true, "object": true, "why": "Oldest first.", "fields": [
+     {"field": "claimRef", "type": "string", "required": true, "why": "The claim."},
+     {"field": "stateCode", "type": "string", "required": true, "why": "drafted or consented, the two states this build reaches."},
+     {"field": "payableRef", "type": "string", "required": true, "why": "The visit's payable."},
+     {"field": "amountCents", "type": "integer", "required": true, "why": "The catalogue's amount for the visit when the claim was drafted."},
+     {"field": "draftedOn", "type": "iso-date", "required": true, "why": "The day it was drafted."},
+     {"field": "consentExpiresOn", "type": "iso-date", "required": true, "nullable": true, "why": "The last day it may be sent, or null before the patient agreed."},
+     {"field": "codeSetAdopted", "type": "boolean", "required": true, "why": "Whether any code set is adopted: false in this build."},
+     {"field": "notSubmittedBecause", "type": "string", "required": true, "why": "The id of the refusal a request to send it is answered with today."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "claims-are-your-own", "status": 403, "statement": "You read only the claims about you, or the ones you drafted.", "why": "A request naming anybody else, or asking for more than its own, is refused rather than answered with less."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'GET /v1/money/claims@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
+  },
+  {
+   "method": "GET",
+   "path": "/v1/money/held-cash-payments",
+   "version": 1,
+   "summary": "The operations desk reads the cash payments held for too many wrong codes, to release each after speaking to the patient.",
+   "callers": ["ops-desk"],
+   "purpose": ["billing"],
+   "request": [],
+   "response": [
+    {"field": "payments", "type": "list", "required": true, "object": true, "why": "Every cash payment held now.", "fields": [
+     {"field": "paymentRef", "type": "string", "required": true, "why": "The held payment, which POST /v1/money/payments/{paymentRef}/release@2 releases."},
+     {"field": "wrongAttempts", "type": "integer", "required": true, "why": "How many wrong codes it has had."},
+     {"field": "heldAt", "type": "instant", "required": true, "why": "When the attempt limit held it, from the cash audit."}
+    ]}
+   ],
+   "refusals": [
+    {"id": "held-cash-list-names-nobody", "status": 422, "statement": "The desk's list names a payment and how many wrong codes it had, and never the patient or a code.", "why": "The desk speaks to the patient through the visit, not through this list. A request asking for a subject, a code or anything else is refused rather than answered with less."}
+   ],
+   "emits": [],
+   "emitsNoneBecause": "Reading changes nothing.",
+   "idempotent": false,
+   "endpointNamed": null,
+   "capabilityNamed": null,
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/money/engine.ts", "handler": "'GET /v1/money/held-cash-payments@1'"},
    "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]

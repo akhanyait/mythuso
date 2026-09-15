@@ -352,10 +352,73 @@
      "statement": "No voucher lasts less than the three years section 63 of the Consumer Protection Act gives a prepaid voucher.",
      "forbids": [0, 1, 2]
     }
+   },
+   {
+    "key": "group-member-monthly-limit-cents",
+    "label": "What a group pays for one member in a month",
+    "help": "At most how much may a stokvel, a church or an employer be charged for one member's visits in a month?",
+    "_groupsNote": "packages/catalog/groups.json names this setting. A group keeps no money at MyThuso, so this is not a balance or a contribution: it is the most a group's own account is charged, one payable at a time, for one member in one month.",
+    "owner": "money",
+    "type": "moneyCents",
+    "unit": "cents",
+    "default": {"value": 150000, "decidedBy": null, "proposedBy": "Money lead (Wave 5)", "proposedBecause": "Enough for a few ordinary home visits in a month at the catalogue's prices and short of an amount a group would be surprised to find charged for one member. No document gives a figure; a treasurer or an employer who wants more or less asks an admin."},
+    "bounds": {
+     "lowest": {"value": 50000, "decidedBy": null, "proposedBy": "Money lead (Wave 5)", "proposedBecause": "Below this a group could not pay for one visit of the dearer services in packages/catalog/services.json, and a limit that pays for nothing is a group that promises members nothing."},
+     "highest": {"value": 500000, "decidedBy": null, "proposedBy": "Money lead (Wave 5)", "proposedBecause": "Past this a group is paying for far more care in a month than a home-visit service delivers to one person, and an amount that large charged in one month for one member is worth a conversation before it is a setting."},
+     "notCitedBecause": "No document gives a range for what a group pays for one member in a month. Groups are the Full Scope's Billing & Claims capability with no figure attached."
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to group payments asked for after it. A payment already made stays made, and what a group already paid for a member this month counts towards the limit in force.",
+    "guardrail": {
+     "statement": "No group is charged for a member without a limit, and none is given a limit outside the range an admin may set.",
+     "forbids": [0, 49999, 500001]
+    }
+   },
+   {
+    "key": "group-member-cap",
+    "label": "How many members a group may have",
+    "help": "At most how many people may one stokvel, church or employer group invite to let it pay for their care?",
+    "owner": "money",
+    "type": "count",
+    "unit": "members",
+    "positive": true,
+    "default": {"value": 50, "decidedBy": null, "proposedBy": "Money lead (Wave 5)", "proposedBecause": "A stokvel or a congregation's care fund is usually tens of people, and a small employer's staff fits too. A larger employer asks an admin, and the question is worth asking before a group of hundreds is charged through one account."},
+    "bounds": {
+     "lowest": {"value": 2, "decidedBy": null, "proposedBy": "Money lead (Wave 5)", "proposedBecause": "A group of one is a sponsor, which MyThuso already has, with its own rules."},
+     "highest": {"value": 500, "decidedBy": null, "proposedBy": "Money lead (Wave 5)", "proposedBecause": "Past this, a group is an employer programme, and packages/catalog/programmes.json is where one is run."}
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to invitations sent after it. Nobody already invited or already a member is removed because the cap went down.",
+    "guardrail": {
+     "statement": "No group has fewer than two possible members or more than an admin may set.",
+     "forbids": [0, 1, 501]
+    }
+   },
+   {
+    "key": "claim-consent-days",
+    "label": "How long a patient's agreement to send a claim lasts",
+    "help": "For how many days after a patient agrees to send a claim to her scheme may it still be sent?",
+    "_claimsNote": "packages/catalog/claims.json names this setting. The highest an admin may set is the founder's ceiling on every consent grant, read from packages/catalog/consent.json, and scripts/check-boundaries.mjs holds this bound to that entry.",
+    "owner": "money",
+    "type": "count",
+    "unit": "days",
+    "positive": true,
+    "default": {"value": 30, "decidedBy": null, "proposedBy": "Money lead (Wave 5)", "proposedBecause": "Long enough for a claim to be sent once a switching partner and a code set exist, and short enough that an agreement given about one visit is not used a season later, when the patient has forgotten she gave it."},
+    "bounds": {
+     "lowest": {"value": 1, "decidedBy": null, "proposedBy": "Money lead (Wave 5)", "proposedBecause": "An agreement that runs out on the day it is given is an agreement nobody can act on."},
+     "highest": {"value": 90, "decidedBy": null, "proposedBy": "Money lead (Wave 5)", "proposedBecause": "The founder's ceiling on every consent grant in packages/catalog/consent.json. An agreement to send a claim is not a grant, and it is held to no longer than one."},
+     "citedFrom": {"file": "packages/catalog/consent.json", "path": "grants.maximumExpiryDays"}
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to agreements given after it. An agreement already given keeps the day it runs out.",
+    "guardrail": {
+     "statement": "No agreement to send a claim lasts longer than the ceiling on every consent grant, or less than a day.",
+     "forbids": [0, 91]
+    }
    }
   ],
   "defaults": {
-   "version": 3,
+   "version": 4,
    "changelog": [
     {
      "version": 1,
@@ -392,6 +455,17 @@
       {"setting": "voucher-expiry-years", "from": null, "to": 3}
      ],
      "why": "Vouchers, in Wave 4. The founder instructed that a voucher's expiry be an admin setting whose lowest value is the three years section 63 of the Consumer Protection Act gives a prepaid voucher; the default is proposed at that lowest value until counsel confirms the reading."
+    },
+    {
+     "version": 4,
+     "on": "2026-09-16",
+     "by": "Money lead (Wave 5)",
+     "changed": [
+      {"setting": "group-member-monthly-limit-cents", "from": null, "to": 150000},
+      {"setting": "group-member-cap", "from": null, "to": 50},
+      {"setting": "claim-consent-days", "from": null, "to": 30}
+     ],
+     "why": "Group payers and claims, in Wave 5. What a group may be charged for one member in a month, how many members a group may have, and how long a patient's agreement to send a claim lasts were open policy questions; the founder's instruction is that open questions become admin settings with proposed defaults, so each is a proposal an admin may change."
     }
    ]
   }

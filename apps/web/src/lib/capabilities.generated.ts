@@ -2,7 +2,7 @@
 // Do not edit by hand — run `npm run capabilities`. The build fails if this file and its source
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// The 22 capabilities as the web's first view reads them: each one's name, connection, state,
+// The 23 capabilities as the web's first view reads them: each one's name, connection, state,
 // notice, what blocks it and what its stand-in is and refuses, word for word from the contract. The rules, the
 // evidence, the surfaces, the permissions and the commentary are not written out, so a patient does not download
 // them to read her visits; the status page reads the rules through lib/capability-rules.ts.
@@ -388,6 +388,19 @@ export const capabilities: readonly FirstViewCapability[] = [
   "blockedBy": [
    "A USSD aggregator under contract, reaching the mobile networks and saying where a session is logged.",
    "A USSD code assigned to MyThuso."
+  ],
+  "simulation": null
+ },
+ {
+  "id": "scheme-claims",
+  "name": "Claims to medical schemes",
+  "connected": false,
+  "state": "absent",
+  "notice": "No claim reaches a medical scheme. No switching partner is connected, so every claim stops before it is sent.",
+  "blockedBy": [
+   "A claims switching house under contract, which becomes an operator under POPIA section 21.",
+   "A licensed tariff code set and an adopted ICD-10 code set, chosen with the switching house.",
+   "A signed data protection impact assessment covering health information sent to a medical scheme."
   ],
   "simulation": null
  }

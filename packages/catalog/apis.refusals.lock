@@ -380,3 +380,15 @@ POST /v1/money/voucher-redemptions@1 dd3bf4a607d16c53
 POST /v1/money/plan-subscriptions@1 216c74a9c0848aa0
 POST /v1/money/plan-subscriptions/{subscriptionRef}/accept@1 191f5d95643452e7
 GET /v1/money/plan-subscriptions/{subscriptionRef}@1 44c9ca3267e64200
+POST /v1/money/groups@2 a058d2c5d46b7509
+POST /v1/money/group-memberships@1 ba35be5c923cf6f4
+POST /v1/money/group-memberships/{membershipRef}/accept@1 e73626a10872a83c
+POST /v1/money/group-memberships/{membershipRef}/leave@1 c4bfee76097035d2
+POST /v1/money/group-payments@1 1767e06b79088ef6
+GET /v1/money/groups/{groupRef}@1 63747c81b0208052
+GET /v1/money/group-memberships@1 0d967fc80981ec3e
+POST /v1/money/claims@3 2d0c57be5156c1a5
+POST /v1/money/claims/{claimRef}/consent@1 77f2bf6a16e49d07
+POST /v1/money/claims/{claimRef}/submit@1 50db92f12d69f493
+GET /v1/money/claims@1 0fcabc0e4435fff5
+GET /v1/money/held-cash-payments@1 b6a80a6dcc50419d

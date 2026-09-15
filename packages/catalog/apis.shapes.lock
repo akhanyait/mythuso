@@ -103,3 +103,7 @@ GET /v1/devices/settings@1 d36af35b57f71c3d
 POST /v1/devices/setting-changes@1 0021ed001782a1fc
 POST /v1/devices/setting-changes@2 665edcfd8bcf6edb
 GET /v1/money/plan-subscriptions/{subscriptionRef}@1 5929c2d228ae0312
+GET /v1/money/groups/{groupRef}@1 50a8fab86561c8e8
+GET /v1/money/group-memberships@1 f4e834d761ac4767
+GET /v1/money/claims@1 228aec32d7db00ce
+GET /v1/money/held-cash-payments@1 7c88f33a33e38dbb

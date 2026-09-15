@@ -2431,6 +2431,136 @@
     "section72": "A USSD aggregator becomes an operator under POPIA section 21 on signature, and each mobile network operator carries the session under its own licence. Whether any of them keeps a session log outside South Africa is not determined.",
     "determined": false
    }
+  },
+  {
+   "id": "claim-response",
+   "name": "A medical scheme's answer to a claim",
+   "capabilities": [
+    "scheme-claims"
+   ],
+   "supplier": "A claims switching house under contract, which carries claims to South African medical schemes and brings their answers back. None is contracted, and no scheme has been approached.",
+   "route": "POST /feeds/claim-response",
+   "arrives": "One scheme's answer to one claim: Money's reference for the claim, whether it was paid, part-paid or rejected, what was paid in cents, and when the scheme decided.",
+   "derivedFrom": [
+    "packages/catalog/claims.json",
+    "packages/catalog/apis/money.json",
+    "packages/engines/src/money/domain/claims.ts"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "scheme-claims",
+    "sample": [
+     "apps/web/src/features/Claims.tsx"
+    ],
+    "unchanged": "No claim is sent and no answer arrives. A claim is drafted by the doctor who signed the review, agreed to by the patient, and stops at \"Not submitted: no switching partner is connected.\" That is correct and this file does not change it."
+   },
+   "accepts": [
+    {
+     "field": "claimReference",
+     "type": "string",
+     "required": true,
+     "why": "Money's own claim reference, which the switching house was sent with the claim. A scheme's own claim number is not the key: an answer matched on it cannot be matched at all if the switching house is changed."
+    },
+    {
+     "field": "decisionCode",
+     "type": "string",
+     "required": true,
+     "why": "paid, part-paid or rejected, as claim.decided@1 carries it. A code rather than words, because a scheme's words about why it did not pay are where a diagnosis is repeated back."
+    },
+    {
+     "field": "paidCents",
+     "type": "integer",
+     "required": true,
+     "why": "What the scheme paid, in whole cents. Nought for a rejection, and never more than the claim asked for, which is reconciled rather than believed."
+    },
+    {
+     "field": "currency",
+     "type": "string",
+     "required": true,
+     "why": "ZAR, stated rather than assumed."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When the scheme decided, with an offset, so a patient's statement says the day her claim was answered rather than the day the answer was delivered."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-switching-house-is-contracted",
+     "must": "A claims switching house is contracted, and the contract names the schemes it reaches, where a claim and its answer are kept and for how long.",
+     "why": "A claim tells a scheme that a person was seen, when and for what. Who carries it, and where they keep it, is the first thing a patient is owed before she agrees to send one.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "code-sets-are-adopted",
+     "must": "A licensed tariff code set and an ICD-10 code set are adopted with the switching house, and packages/catalog/claims.json codeSets.adopted names them.",
+     "why": "A claim coded from memory, from a list found somewhere or from a service's name is a claim coded by nobody. packages/catalog/claims.json adopts none today.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-dpia-covers-claims",
+     "must": "A signed data protection impact assessment covers health information sent to a medical scheme through a switching house.",
+     "why": "A claim is identifiable health information leaving MyThuso, which is the processing docs/governance names a DPIA for, and none is signed.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "diagnosis",
+     "refusal": "A claim response may not carry a diagnosis or why a service was needed.",
+     "why": "Money faces payers and never holds why somebody was seen. A scheme's answer that repeats the diagnosis back would put it in the one engine built never to hold it.",
+     "also": [
+      "diagnoses",
+      "icd10",
+      "icd10Codes",
+      "diagnosisCode",
+      "clinicalReason",
+      "reasonForVisit"
+     ]
+    },
+    {
+     "field": "memberNumber",
+     "refusal": "A claim response may not carry a scheme membership number.",
+     "why": "A membership number joins a person to a scheme's whole claims history. It is in the record under the patient's grant, and Money never holds it.",
+     "also": [
+      "medicalAidNumber",
+      "schemeMemberNumber",
+      "membershipNumber",
+      "dependantCode"
+     ]
+    },
+    {
+     "field": "rejectionNarrative",
+     "refusal": "A claim response may not carry a scheme's own words about a claim.",
+     "why": "A scheme's free text about why it did not pay is where a diagnosis is written down again. A decision is a code.",
+     "also": [
+      "rejectionReason",
+      "schemeRemarks",
+      "remarks",
+      "comments"
+     ]
+    },
+    {
+     "field": "idNumber",
+     "refusal": "A claim response may not carry an identity number.",
+     "why": "Money's claim reference is how an answer is matched. An identity number identifies nothing this door needs and cannot be changed when it leaks.",
+     "also": [
+      "saIdNumber",
+      "identityNumber",
+      "nationalId",
+      "passportNumber"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "A claims switching house becomes an operator under POPIA section 21 on signature, and passes each claim to a medical scheme. Whether any of them processes a claim outside South Africa depends on a recipient nobody has named. Not determined.",
+    "determined": false
+   }
   }
  ]
 }

@@ -1893,26 +1893,6 @@ export interface PostMoneyGiftsResponse {
  readonly giftRef: string;
 }
 
-export interface PostMoneyGroupsRequest {
- readonly idempotencyKey: string;
- readonly groupKind: string;
- readonly memberSubjectRefs: readonly string[];
-}
-export interface PostMoneyGroupsResponse {
- readonly groupRef: string;
-}
-
-export interface PostMoneyClaimsV2Request {
- readonly idempotencyKey: string;
- readonly payableRef: string;
- readonly tariffCode: string;
- readonly amountCents: number;
-}
-export interface PostMoneyClaimsV2Response {
- readonly claimRef: string;
- readonly stateCode: string;
-}
-
 export interface PostMoneyMarketOrdersRequest {
  readonly idempotencyKey: string;
  readonly productIds: readonly string[];
@@ -2011,6 +1991,108 @@ export interface GetMoneyPlanSubscriptionsBySubscriptionRefResponse {
  readonly lineDetail?: string;
  readonly included: ReadonlyArray<Readonly<Record<string, unknown>>>;
  readonly lines: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostMoneyGroupsV2Request {
+ readonly idempotencyKey: string;
+ readonly groupKind: string;
+}
+export interface PostMoneyGroupsV2Response {
+ readonly groupRef: string;
+ readonly groupKind: string;
+}
+
+export interface PostMoneyGroupMembershipsRequest {
+ readonly idempotencyKey: string;
+ readonly groupRef: string;
+ readonly subjectRef: string;
+}
+export interface PostMoneyGroupMembershipsResponse {
+ readonly membershipRef: string;
+ readonly stateCode: string;
+}
+
+export interface PostMoneyGroupMembershipsByMembershipRefAcceptRequest {
+ readonly idempotencyKey: string;
+ readonly membershipRef: string;
+ readonly lineDetail: string;
+}
+export interface PostMoneyGroupMembershipsByMembershipRefAcceptResponse {
+ readonly stateCode: string;
+ readonly lineDetail: string;
+}
+
+export interface PostMoneyGroupMembershipsByMembershipRefLeaveRequest {
+ readonly idempotencyKey: string;
+ readonly membershipRef: string;
+}
+export interface PostMoneyGroupMembershipsByMembershipRefLeaveResponse {
+ readonly stateCode: string;
+}
+
+export interface PostMoneyGroupPaymentsRequest {
+ readonly idempotencyKey: string;
+ readonly groupRef: string;
+ readonly payableRef: string;
+ readonly method: string;
+ readonly amountCents: number;
+}
+export interface PostMoneyGroupPaymentsResponse {
+ readonly paymentRef: string;
+ readonly stateCode: string;
+}
+
+export interface GetMoneyGroupsByGroupRefRequest {
+ readonly groupRef: string;
+}
+export interface GetMoneyGroupsByGroupRefResponse {
+ readonly groupKind: string;
+ readonly membersAgreed?: number;
+ readonly invitationsWaiting?: number;
+ readonly monthTotalCents?: number;
+ readonly members: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export type GetMoneyGroupMembershipsRequest = Record<string, never>;
+export interface GetMoneyGroupMembershipsResponse {
+ readonly memberships: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export interface PostMoneyClaimsV3Request {
+ readonly idempotencyKey: string;
+ readonly payableRef: string;
+}
+export interface PostMoneyClaimsV3Response {
+ readonly claimRef: string;
+ readonly stateCode: string;
+ readonly codeSetAdopted: boolean;
+}
+
+export interface PostMoneyClaimsByClaimRefConsentRequest {
+ readonly idempotencyKey: string;
+ readonly claimRef: string;
+}
+export interface PostMoneyClaimsByClaimRefConsentResponse {
+ readonly stateCode: string;
+ readonly consentExpiresOn: string;
+}
+
+export interface PostMoneyClaimsByClaimRefSubmitRequest {
+ readonly idempotencyKey: string;
+ readonly claimRef: string;
+}
+export interface PostMoneyClaimsByClaimRefSubmitResponse {
+ readonly stateCode: string;
+}
+
+export type GetMoneyClaimsRequest = Record<string, never>;
+export interface GetMoneyClaimsResponse {
+ readonly claims: ReadonlyArray<Readonly<Record<string, unknown>>>;
+}
+
+export type GetMoneyHeldCashPaymentsRequest = Record<string, never>;
+export interface GetMoneyHeldCashPaymentsResponse {
+ readonly payments: ReadonlyArray<Readonly<Record<string, unknown>>>;
 }
 
 export const apiRoutes = {
@@ -2211,8 +2293,6 @@ export const apiRoutes = {
  postMoneyPaymentsByPaymentRefReleaseV2: { name: "postMoneyPaymentsByPaymentRefReleaseV2", method: "POST", path: "/v1/money/payments/{paymentRef}/release", mountedPath: "/v1/money/payments/{paymentRef}/release", version: 2, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: true, status: "built" },
  postMoneyWallets: { name: "postMoneyWallets", method: "POST", path: "/v1/money/wallets", mountedPath: "/v1/money/wallets", version: 1, engine: "money", callers: ["patient","caregiver"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyGifts: { name: "postMoneyGifts", method: "POST", path: "/v1/money/gifts", mountedPath: "/v1/money/gifts", version: 1, engine: "money", callers: ["caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "proposed" },
- postMoneyGroups: { name: "postMoneyGroups", method: "POST", path: "/v1/money/groups", mountedPath: "/v1/money/groups", version: 1, engine: "money", callers: ["patient","sponsor","employer"], purpose: ["billing"], idempotent: true, status: "proposed" },
- postMoneyClaimsV2: { name: "postMoneyClaimsV2", method: "POST", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 2, engine: "money", callers: ["admin"], purpose: ["billing"], idempotent: true, status: "proposed" },
  postMoneyMarketOrders: { name: "postMoneyMarketOrders", method: "POST", path: "/v1/money/market-orders", mountedPath: "/v1/money/market-orders", version: 1, engine: "money", callers: ["patient","caregiver"], purpose: ["billing"], idempotent: true, status: "proposed" },
  getMoneySettings: { name: "getMoneySettings", method: "GET", path: "/v1/money/settings", mountedPath: "/v1/money/settings", version: 1, engine: "money", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built" },
  postMoneySettingChanges: { name: "postMoneySettingChanges", method: "POST", path: "/v1/money/setting-changes", mountedPath: "/v1/money/setting-changes", version: 1, engine: "money", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built" },
@@ -2220,5 +2300,17 @@ export const apiRoutes = {
  postMoneyVoucherRedemptions: { name: "postMoneyVoucherRedemptions", method: "POST", path: "/v1/money/voucher-redemptions", mountedPath: "/v1/money/voucher-redemptions", version: 1, engine: "money", callers: ["patient","caregiver","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
  postMoneyPlanSubscriptions: { name: "postMoneyPlanSubscriptions", method: "POST", path: "/v1/money/plan-subscriptions", mountedPath: "/v1/money/plan-subscriptions", version: 1, engine: "money", callers: ["sponsor","patient"], purpose: ["billing"], idempotent: true, status: "built" },
  postMoneyPlanSubscriptionsBySubscriptionRefAccept: { name: "postMoneyPlanSubscriptionsBySubscriptionRefAccept", method: "POST", path: "/v1/money/plan-subscriptions/{subscriptionRef}/accept", mountedPath: "/v1/money/plan-subscriptions/{subscriptionRef}/accept", version: 1, engine: "money", callers: ["patient","sponsor"], purpose: ["billing"], idempotent: true, status: "built" },
- getMoneyPlanSubscriptionsBySubscriptionRef: { name: "getMoneyPlanSubscriptionsBySubscriptionRef", method: "GET", path: "/v1/money/plan-subscriptions/{subscriptionRef}", mountedPath: "/v1/money/plan-subscriptions/{subscriptionRef}", version: 1, engine: "money", callers: ["patient","sponsor"], purpose: ["billing"], idempotent: false, status: "built" }
+ getMoneyPlanSubscriptionsBySubscriptionRef: { name: "getMoneyPlanSubscriptionsBySubscriptionRef", method: "GET", path: "/v1/money/plan-subscriptions/{subscriptionRef}", mountedPath: "/v1/money/plan-subscriptions/{subscriptionRef}", version: 1, engine: "money", callers: ["patient","sponsor"], purpose: ["billing"], idempotent: false, status: "built" },
+ postMoneyGroupsV2: { name: "postMoneyGroupsV2", method: "POST", path: "/v1/money/groups", mountedPath: "/v1/money/groups", version: 2, engine: "money", callers: ["sponsor","employer"], purpose: ["billing"], idempotent: true, status: "built" },
+ postMoneyGroupMemberships: { name: "postMoneyGroupMemberships", method: "POST", path: "/v1/money/group-memberships", mountedPath: "/v1/money/group-memberships", version: 1, engine: "money", callers: ["sponsor","employer"], purpose: ["billing"], idempotent: true, status: "built" },
+ postMoneyGroupMembershipsByMembershipRefAccept: { name: "postMoneyGroupMembershipsByMembershipRefAccept", method: "POST", path: "/v1/money/group-memberships/{membershipRef}/accept", mountedPath: "/v1/money/group-memberships/{membershipRef}/accept", version: 1, engine: "money", callers: ["patient","sponsor","employer"], purpose: ["billing"], idempotent: true, status: "built" },
+ postMoneyGroupMembershipsByMembershipRefLeave: { name: "postMoneyGroupMembershipsByMembershipRefLeave", method: "POST", path: "/v1/money/group-memberships/{membershipRef}/leave", mountedPath: "/v1/money/group-memberships/{membershipRef}/leave", version: 1, engine: "money", callers: ["patient"], purpose: ["billing"], idempotent: true, status: "built" },
+ postMoneyGroupPayments: { name: "postMoneyGroupPayments", method: "POST", path: "/v1/money/group-payments", mountedPath: "/v1/money/group-payments", version: 1, engine: "money", callers: ["patient"], purpose: ["billing"], idempotent: true, status: "built" },
+ getMoneyGroupsByGroupRef: { name: "getMoneyGroupsByGroupRef", method: "GET", path: "/v1/money/groups/{groupRef}", mountedPath: "/v1/money/groups/{groupRef}", version: 1, engine: "money", callers: ["sponsor","employer"], purpose: ["billing"], idempotent: false, status: "built" },
+ getMoneyGroupMemberships: { name: "getMoneyGroupMemberships", method: "GET", path: "/v1/money/group-memberships", mountedPath: "/v1/money/group-memberships", version: 1, engine: "money", callers: ["patient"], purpose: ["billing"], idempotent: false, status: "built" },
+ postMoneyClaimsV3: { name: "postMoneyClaimsV3", method: "POST", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 3, engine: "money", callers: ["doctor"], purpose: ["billing"], idempotent: true, status: "built" },
+ postMoneyClaimsByClaimRefConsent: { name: "postMoneyClaimsByClaimRefConsent", method: "POST", path: "/v1/money/claims/{claimRef}/consent", mountedPath: "/v1/money/claims/{claimRef}/consent", version: 1, engine: "money", callers: ["patient"], purpose: ["billing"], idempotent: true, status: "built" },
+ postMoneyClaimsByClaimRefSubmit: { name: "postMoneyClaimsByClaimRefSubmit", method: "POST", path: "/v1/money/claims/{claimRef}/submit", mountedPath: "/v1/money/claims/{claimRef}/submit", version: 1, engine: "money", callers: ["doctor","admin"], purpose: ["billing"], idempotent: true, status: "built" },
+ getMoneyClaims: { name: "getMoneyClaims", method: "GET", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 1, engine: "money", callers: ["patient","doctor"], purpose: ["billing"], idempotent: false, status: "built" },
+ getMoneyHeldCashPayments: { name: "getMoneyHeldCashPayments", method: "GET", path: "/v1/money/held-cash-payments", mountedPath: "/v1/money/held-cash-payments", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: false, status: "built" }
 } as const satisfies Record<string, ApiRoute>;
