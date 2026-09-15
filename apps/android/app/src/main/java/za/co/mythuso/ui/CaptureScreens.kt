@@ -244,6 +244,10 @@ private fun stateTone(state: CaptureState) = when (state) {
             }
         )
 
+        /* The registry's view of the same six instruments: reporting, stale or recalled, and what each
+           reading taken on one carries. It reads the serials and calibrations this phone already holds. */
+        KitHealthSection(capture)
+
         DeckSectionHead("Paired instruments", count = "${capture.paired.size}")
         if (capture.paired.isEmpty()) EmptyStateCard("Nothing is paired", "Discover below. In this preview discovery is a timer and a list compiled into the app.")
         capture.paired.forEach { paired ->
@@ -546,6 +550,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             if (reading.superseded) StatusPill("Superseded · kept", "quiet")
             if (reading.countersignedBy != null) StatusPill("Countersigned", "teal")
         }
+        CaptureSourcePills(reading)
         Note("Written to this phone ${ageText(reading.writtenMillis)}.")
         TextButton(onClick = { open = !open }, shape = ThusoButtonShape) { Text(if (open) "Less" else "What travels with this reading") }
         if (open) {

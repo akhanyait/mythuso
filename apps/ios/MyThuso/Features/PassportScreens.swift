@@ -127,6 +127,13 @@ struct DevicePermissionView: View {
                 if integration.id == "thuso-kit" { instruments }
                 withdrawing
                 blocked
+                /* Not a connect button: a request that is recorded and reads nothing, on a screen that says so
+                   before it offers anything. */
+                if let platform = Devices.platform(integration.id) {
+                    NavigationLink { WearableLinkRequestView(platformId: platform.id) } label: {
+                        Text(Devices.fill(Devices.WearableText.heading, ["platform": platform.name])).frame(maxWidth: .infinity)
+                    }.buttonStyle(QuietButton())
+                }
                 NavigationLink { ServicesView() } label: {
                     Text("Book a visit — the nurse brings the instruments").frame(maxWidth: .infinity)
                 }.buttonStyle(CareButton())
