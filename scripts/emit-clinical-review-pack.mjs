@@ -76,11 +76,17 @@ const NOT_CLINICAL_SETTINGS = {
  'trust:settings-changed-by': 'Who may change the Verify in service settings. An authority question, not a clinical one.',
  'record:*': 'How long a share link or an emergency card lasts, how often each opens and what a link opens by default decide who may read a record and for how long. That is a privacy question for the Information Officer and the DPIA, not a clinical one, and none of them decides what is done to a patient.',
  'devices:calibration-due-days': 'How early a calibration is shown as due. An overdue calibration marks every reading taken while it lasts whatever this says, and the cadence itself is packages/catalog/capture.json\'s.',
- 'devices:kit-deposit': 'The deposit recorded against a kit. A commercial number, recorded and taken from nobody in this build.'
+ 'devices:kit-deposit': 'The deposit recorded against a kit. A commercial number, recorded and taken from nobody in this build.',
+ 'record:hl7-quarantine-retention-days': 'How long the record of an HL7 message nobody could be matched to is kept. The record holds nothing the message said, and the period is a retention question for the Information Officer (D-8), not a clinical one. Wave 5, Trust & Record lead.',
+ 'record:hl7-clock-skew-minutes': 'How far a partner\'s clock may drift before its message is refused. It decides whether a message is believed to describe the present, and a refused message is sent again; it decides nothing done to a patient. Wave 5, Trust & Record lead.'
 };
 
 /* Proposals outside a settings block (decidedBy: null), classified by where they sit. */
 const PROPOSALS = [
+ /* Wave 5, Trust & Record lead: the follow-up concern Core opens when a hospital says a patient was discharged. */
+ { file: 'closed-loop.json', path: /^\.dischargeReceived\.ownerRole$/, title: 'Who follows up a patient discharged from hospital', clinical: 'A patient home from hospital may not have understood the discharge or have their medicines. Which registered role calls them first is a question about their care.' },
+ { file: 'closed-loop.json', path: /^\.dischargeReceived\.fallbackRole$/, title: 'Who holds a discharge follow-up nobody took on', clinical: 'A discharge nobody followed up is a patient nobody checked on. Who it goes to next decides whether a clinician sees it before harm does.' },
+ { file: 'closed-loop.json', path: /^\.dischargeReceived\.ladderRung$/, title: 'How urgently a discharge follow-up goes to its owner', clinical: 'The rung decides how long a patient home from hospital waits for somebody to take their follow-up on. Whether a routine discharge is a nurse-review urgency is a clinical judgement.' },
  { file: 'closed-loop.json', path: /^\.ladder\.rungs\[\d+\]\.acknowledgeWithinMinutes$/, clinical: 'A rung is how urgent a concern about a patient is, and this is how long its first owner has to take it on. The Master Blueprint v4 sets an expectation for acknowledging an escalation (Part F, Incidents).' },
  { file: 'closed-loop.json', path: /^\.panic\.ladderRung$/, title: 'The rung a panic is given', clinical:'A nurse who presses panic is given the time the ladder gives this rung. Whether a nurse in danger and a patient in danger should share one number belongs with the field safety policy the Clinical Governance Lead signs (Full Scope v1.0, Engine 4).' },
  { file: 'closed-loop.json', path: /^\.snooze\.reasons$/, title: 'The reasons a concern may be snoozed', clinical:'A snooze lets a concern about a patient wait. Whether a reason is good enough for that is a clinical judgement.' },

@@ -302,3 +302,7 @@ POST /v1/devices/kits/{kitRef}/return@1 callers=- purpose=audit because=-
 POST /v1/devices/kits/{kitRef}/loss@1 callers=- purpose=audit because=-
 POST /v1/devices/setting-changes@1 callers=- purpose=audit because=-
 POST /v1/devices/setting-changes@2 callers=admin purpose=audit because=-
+POST /hl7v2/inbound@1 callers=developer purpose=diagnostics,treatment because=-
+POST /v1/record/patient-identifiers@1 callers=patient purpose=subject-access because=-
+GET /v1/record/hl7v2-quarantine@1 callers=developer purpose=audit because=-
+POST /v1/medicines/lab-results@1 callers=engine:record purpose=diagnostics because=engine:record=lab.order.placed@1

@@ -186,6 +186,9 @@ object ApisData {
     val POST_RECORD_EXPORT_V2 = Route("postRecordExportV2", "POST", "/export", "/v1/record/export", 2, "record", listOf("patient"), listOf("subject-access"), false, "built")
     val GET_RECORD_SETTINGS = Route("getRecordSettings", "GET", "/v1/record/settings", "/v1/record/settings", 1, "record", listOf("admin"), listOf("audit"), false, "built")
     val POST_RECORD_SETTING_CHANGES = Route("postRecordSettingChanges", "POST", "/v1/record/setting-changes", "/v1/record/setting-changes", 1, "record", listOf("admin"), listOf("audit"), true, "built")
+    val POST_RECORD_HL7V2_INBOUND = Route("postRecordHl7v2Inbound", "POST", "/hl7v2/inbound", "/v1/record/hl7v2/inbound", 1, "record", listOf("developer"), listOf("treatment", "diagnostics"), true, "built")
+    val POST_RECORD_PATIENT_IDENTIFIERS = Route("postRecordPatientIdentifiers", "POST", "/v1/record/patient-identifiers", "/v1/record/patient-identifiers", 1, "record", listOf("patient"), listOf("subject-access"), true, "built")
+    val GET_RECORD_HL7V2_QUARANTINE = Route("getRecordHl7v2Quarantine", "GET", "/v1/record/hl7v2-quarantine", "/v1/record/hl7v2-quarantine", 1, "record", listOf("developer"), listOf("audit"), false, "built")
     val POST_MEDICINES_LAB_ORDERS_V2 = Route("postMedicinesLabOrdersV2", "POST", "/v1/medicines/lab-orders", "/v1/medicines/lab-orders", 2, "medicines", listOf("doctor", "nurse"), listOf("diagnostics"), false, "built")
     val GET_MEDICINES_FORMULARY_V2 = Route("getMedicinesFormularyV2", "GET", "/v1/medicines/formulary", "/v1/medicines/formulary", 2, "medicines", listOf("doctor", "nurse", "pharmacist"), listOf("dispensing", "treatment"), false, "built")
     val POST_MEDICINES_INTERACTION_CHECKS_V2 = Route("postMedicinesInteractionChecksV2", "POST", "/v1/medicines/interaction-checks", "/v1/medicines/interaction-checks", 2, "medicines", listOf("doctor", "pharmacist"), listOf("dispensing", "treatment"), false, "built")
@@ -200,6 +203,7 @@ object ApisData {
     val GET_MEDICINES_SETTINGS = Route("getMedicinesSettings", "GET", "/v1/medicines/settings", "/v1/medicines/settings", 1, "medicines", listOf("admin", "doctor"), listOf("audit"), false, "built")
     val POST_MEDICINES_SETTING_CHANGES = Route("postMedicinesSettingChanges", "POST", "/v1/medicines/setting-changes", "/v1/medicines/setting-changes", 1, "medicines", listOf("admin"), listOf("audit"), true, "built")
     val POST_MEDICINES_SETTING_REVIEWS = Route("postMedicinesSettingReviews", "POST", "/v1/medicines/setting-reviews", "/v1/medicines/setting-reviews", 1, "medicines", listOf("doctor"), listOf("audit"), true, "built")
+    val POST_MEDICINES_LAB_RESULTS = Route("postMedicinesLabResults", "POST", "/v1/medicines/lab-results", "/v1/medicines/lab-results", 1, "medicines", listOf("engine:record"), listOf("diagnostics"), false, "built")
     val POST_DEVICES_REGISTRY_V2 = Route("postDevicesRegistryV2", "POST", "/v1/devices/registry", "/v1/devices/registry", 2, "devices", listOf("operator"), listOf("treatment"), false, "built")
     val POST_DEVICES_REGISTRY_BY_DEVICE_REF_RECALL_V2 = Route("postDevicesRegistryByDeviceRefRecallV2", "POST", "/v1/devices/registry/{deviceRef}/recall", "/v1/devices/registry/{deviceRef}/recall", 2, "devices", listOf("operator"), listOf("audit"), false, "built")
     val GET_DEVICES_REGISTRY_BY_DEVICE_REF_HEALTH_V2 = Route("getDevicesRegistryByDeviceRefHealthV2", "GET", "/v1/devices/registry/{deviceRef}/health", "/v1/devices/registry/{deviceRef}/health", 2, "devices", listOf("nurse", "operator"), listOf("treatment"), false, "built")
@@ -391,6 +395,9 @@ object ApisData {
         POST_RECORD_EXPORT_V2,
         GET_RECORD_SETTINGS,
         POST_RECORD_SETTING_CHANGES,
+        POST_RECORD_HL7V2_INBOUND,
+        POST_RECORD_PATIENT_IDENTIFIERS,
+        GET_RECORD_HL7V2_QUARANTINE,
         POST_MEDICINES_LAB_ORDERS_V2,
         GET_MEDICINES_FORMULARY_V2,
         POST_MEDICINES_INTERACTION_CHECKS_V2,
@@ -405,6 +412,7 @@ object ApisData {
         GET_MEDICINES_SETTINGS,
         POST_MEDICINES_SETTING_CHANGES,
         POST_MEDICINES_SETTING_REVIEWS,
+        POST_MEDICINES_LAB_RESULTS,
         POST_DEVICES_REGISTRY_V2,
         POST_DEVICES_REGISTRY_BY_DEVICE_REF_RECALL_V2,
         GET_DEVICES_REGISTRY_BY_DEVICE_REF_HEALTH_V2,
@@ -1794,6 +1802,27 @@ object ApisData {
         val settingsVersion: Int,
         val appliesFrom: String
     )
+    data class PostRecordHl7v2InboundRequest(
+        val message: String
+    )
+    data class PostRecordHl7v2InboundResponse(
+        val acknowledgementCode: String,
+        val acknowledgement: String,
+        val replayed: Boolean
+    )
+    data class PostRecordPatientIdentifiersRequest(
+        val assigningAuthority: String,
+        val identifier: String
+    )
+    data class PostRecordPatientIdentifiersResponse(
+        val linkedAt: String
+    )
+    class GetRecordHl7v2QuarantineRequest
+    data class GetRecordHl7v2QuarantineResponse(
+        val retentionDays: Int,
+        val settingsVersion: Int,
+        val quarantined: List<Map<String, Any?>>
+    )
     data class PostMedicinesLabOrdersV2Request(
         val subjectRef: String,
         val serviceRequestRef: String,
@@ -1920,6 +1949,16 @@ object ApisData {
     data class PostMedicinesSettingReviewsResponse(
         val settingsVersion: Int,
         val reviewedAt: String
+    )
+    data class PostMedicinesLabResultsRequest(
+        val labOrderRef: String,
+        val resultEntryRef: String,
+        val labPartyRef: String,
+        val releasedAt: String,
+        val verifiedByRegistration: String
+    )
+    data class PostMedicinesLabResultsResponse(
+        val receivedAt: String
     )
     data class PostDevicesRegistryV2Request(
         val serial: String,

@@ -1396,9 +1396,15 @@
     { "field": "facilityRef", "type": "string", "required": true, "why": "The facility that sent it." }
    ],
    "neverCarries": [
-    { "field": "admissionDiagnosis", "why": "The reason for admission is in the encounter." }
+    { "field": "admissionDiagnosis", "why": "The reason for admission is in the encounter." },
+    { "field": "diagnosis", "why": "Wave 5: the HL7 bridge does not read a hospital's diagnosis at all, and nothing on the bus says why somebody was admitted." },
+    { "field": "resultValues", "why": "Wave 5: a result's values are in the record, under the patient's grants." },
+    { "field": "patientIdentifier", "why": "Wave 5: the hospital number a message was matched on is kept only as a keyed digest in the Passport. The envelope's subject token is who the event is about." },
+    { "field": "patientName", "why": "Wave 5: the Passport holds no name and refuses a message that sends one." },
+    { "field": "visitNumber", "why": "Wave 5: the hospital's visit number is kept only as a keyed digest. The encounter reference is the Passport's own." },
+    { "field": "rawMessage", "why": "Wave 5: the message is kept nowhere. What it became is the Encounter in the record." }
    ],
-   "subscribers": ["core", "care", "movement"]
+   "subscribers": ["care"]
   },
   {
    "type": "passport.discharge.received", "version": 1, "owner": "record",
@@ -1408,9 +1414,15 @@
     { "field": "facilityRef", "type": "string", "required": true, "why": "The facility that sent it." }
    ],
    "neverCarries": [
-    { "field": "dischargeSummary", "why": "The summary is in the record; discharge follow-up opens a loop that reads it there." }
+    { "field": "dischargeSummary", "why": "The summary is in the record; discharge follow-up opens a loop that reads it there." },
+    { "field": "diagnosis", "why": "Wave 5: the HL7 bridge does not read a hospital's diagnosis at all, and nothing on the bus says what somebody was treated for." },
+    { "field": "resultValues", "why": "Wave 5: a result's values are in the record, under the patient's grants." },
+    { "field": "patientIdentifier", "why": "Wave 5: the hospital number a message was matched on is kept only as a keyed digest in the Passport. The envelope's subject token is who the event is about." },
+    { "field": "patientName", "why": "Wave 5: the Passport holds no name and refuses a message that sends one." },
+    { "field": "visitNumber", "why": "Wave 5: the hospital's visit number is kept only as a keyed digest. The encounter reference is the Passport's own." },
+    { "field": "rawMessage", "why": "Wave 5: the message is kept nowhere. What it became is the Encounter in the record." }
    ],
-   "subscribers": ["core", "care", "clinical"]
+   "subscribers": ["core"]
   },
   {
    "type": "prescription.prescribed", "version": 1, "owner": "medicines",
@@ -1485,7 +1497,7 @@
    "neverCarries": [
     { "field": "testsOrdered", "why": "What was ordered is in the ServiceRequest in the record." }
    ],
-   "subscribers": ["core", "clinical"]
+   "subscribers": ["core", "clinical", "record"]
   },
   {
    "type": "lab.result.received", "version": 1, "owner": "medicines",

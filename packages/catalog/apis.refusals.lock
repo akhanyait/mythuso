@@ -375,3 +375,7 @@ POST /v1/devices/kits/{kitRef}/loss@2 6e209e7cef8a580c
 GET /v1/devices/settings@1 b54f5f3782525231
 POST /v1/devices/setting-changes@1 71a7873f90e36070
 POST /v1/devices/setting-changes@2 17cc0dd72f0b3013
+POST /hl7v2/inbound@1 6262fc54aa1ea717
+POST /v1/record/patient-identifiers@1 231dd76fdb7be802
+GET /v1/record/hl7v2-quarantine@1 a9d1a7fafa197e7e
+POST /v1/medicines/lab-results@1 873e477d30a3765f

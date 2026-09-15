@@ -40,9 +40,9 @@ Until a decision is recorded, the app shows "Not clinically reviewed" beside eve
 | B | Protocols in the registry that are not ratified | 12 |
 | C | Gilbert's emergency terms | 1 |
 | D | Clinical scopes and proposed clinical roles on the vetting register | 8 |
-| E | Other clinical proposals and safety numbers nobody clinical has decided | 20 |
+| E | Other clinical proposals and safety numbers nobody clinical has decided | 23 |
 | F | Clinical content with no clinical sign-off recorded | 3 |
-| | **Total** | **50** |
+| | **Total** | **53** |
 
 Each item gives the value in force by default, what an admin may set it to, why it was proposed and by whom,
 the question for the reviewer, and blank sign-off fields.
@@ -1084,6 +1084,63 @@ These do not carry `reviewRequired`, so the app does not mark them "not clinical
 | HPCSA/SANC number | |
 | Date | |
 
+#### E21. Who follows up a patient discharged from hospital
+
+| | |
+|---|---|
+| Where | `packages/catalog/closed-loop.json` `dischargeReceived.ownerRole` |
+| Why it is clinical | A patient home from hospital may not have understood the discharge or have their medicines. Which registered role calls them first is a question about their care. |
+| Proposed value | `"nurse"` |
+| Why it was proposed | Proposed by the Trust & Record lead (Wave 5): A registered nurse is who calls a patient who has come home from hospital, checks that they understood the discharge and have their medicines, and books a visit when one is needed. The discharge itself is read in the record under her grant. |
+
+**Question for the reviewer:** the contract asks "Who owns the follow-up concern Core opens when a hospital says a patient was discharged". Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### E22. Who holds a discharge follow-up nobody took on
+
+| | |
+|---|---|
+| Where | `packages/catalog/closed-loop.json` `dischargeReceived.fallbackRole` |
+| Why it is clinical | A discharge nobody followed up is a patient nobody checked on. Who it goes to next decides whether a clinician sees it before harm does. |
+| Proposed value | `"doctor"` |
+| Why it was proposed | Proposed by the Trust & Record lead (Wave 5): A doctor can judge what a discharge nobody has followed up needs, including whether it needs a visit today. |
+
+**Question for the reviewer:** the contract asks "Who holds a discharge follow-up concern the nurse has not taken on in time". Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### E23. How urgently a discharge follow-up goes to its owner
+
+| | |
+|---|---|
+| Where | `packages/catalog/closed-loop.json` `dischargeReceived.ladderRung` |
+| Why it is clinical | The rung decides how long a patient home from hospital waits for somebody to take their follow-up on. Whether a routine discharge is a nurse-review urgency is a clinical judgement. |
+| Proposed value | `2` |
+| Why it was proposed | Proposed by the Trust & Record lead (Wave 5): Nurse review. A discharge is not an emergency, and rung three would page a clinician for every routine one; the nurse rung's time is the least the ladder gives a concern a nurse must read. |
+
+**Question for the reviewer:** the contract asks "How long the nurse has to take on a discharge follow-up concern before it goes to its fallback". Is the proposed value clinically safe, and should a change to it wait on a clinical review?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
 ## F. Clinical content with no clinical sign-off recorded
 
 #### F1. Reference ranges a reading is flagged against
@@ -1196,6 +1253,8 @@ Listed so that leaving them out is a decision a reviewer can disagree with.
 | `record:share-link-default-scope` | What a share link opens when the patient makes one without choosing its categories. | How long a share link or an emergency card lasts, how often each opens and what a link opens by default decide who may read a record and for how long. That is a privacy question for the Information Officer and the DPIA, not a clinical one, and none of them decides what is done to a patient. |
 | `record:emergency-card-lifetime-days` | How many days an emergency card stays open, if the grant it rides on lasts that long. | How long a share link or an emergency card lasts, how often each opens and what a link opens by default decide who may read a record and for how long. That is a privacy question for the Information Officer and the DPIA, not a clinical one, and none of them decides what is done to a patient. |
 | `record:emergency-card-max-uses` | How many times an emergency card can be scanned open before it stops opening. | How long a share link or an emergency card lasts, how often each opens and what a link opens by default decide who may read a record and for how long. That is a privacy question for the Information Officer and the DPIA, not a clinical one, and none of them decides what is done to a patient. |
+| `record:hl7-quarantine-retention-days` | How many days the Passport keeps the record of an HL7 message it could not match to a patient — who sent it, what kind it was and why it was refused — before the record is deleted. | How long the record of an HL7 message nobody could be matched to is kept. The record holds nothing the message said, and the period is a retention question for the Information Officer (D-8), not a clinical one. Wave 5, Trust & Record lead. |
+| `record:hl7-clock-skew-minutes` | How many minutes the time an HL7 message says it was sent may differ from the Passport's own clock before the message is refused. | How far a partner's clock may drift before its message is refused. It decides whether a message is believed to describe the present, and a refused message is sent again; it decides nothing done to a patient. Wave 5, Trust & Record lead. |
 | `devices:calibration-due-days` | How many days before an instrument's calibration runs out is it shown as due? | How early a calibration is shown as due. An overdue calibration marks every reading taken while it lasts whatever this says, and the cadence itself is packages/catalog/capture.json's. |
 | `devices:kit-deposit` | What deposit is recorded against a kit when it is issued? | The deposit recorded against a kit. A commercial number, recorded and taken from nobody in this build. |
 | `closed-loop.json escalationReasons.byCaller` | The reasons the desk may give for escalating a concern before its deadline. | The reasons the desk moves a concern early say who answered and who can decide, not anything about the patient. |

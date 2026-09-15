@@ -66,7 +66,8 @@
    { "id": "break-glass-notes", "sentence": "The notes a clinician wrote when breaking the glass are left out. The reason they chose is already in your access log.", "why": "The note is kept sealed for the governance review, and free text written under pressure is where a name ends up." },
    { "id": "access-log", "sentence": "Your access log is left out. Read it where the chain can show whether it has been altered.", "why": "A hash chain proves itself only in place. A copy in a file proves nothing about itself and would read as if it did." },
    { "id": "keys-and-tags", "sentence": "The keys your record is encrypted under, and the tags that hide which category an entry is filed in, are left out.", "why": "They protect the record and are not part of it." },
-   { "id": "grants-and-links", "sentence": "The grants and links you made are left out. They are permissions over your record rather than your record.", "why": "Each ends on its own, and a copy of one in a file would outlive it." }
+   { "id": "grants-and-links", "sentence": "The grants and links you made are left out. They are permissions over your record rather than your record.", "why": "Each ends on its own, and a copy of one in a file would outlive it." },
+   { "id": "partner-messages", "sentence": "Admissions, discharges and results a hospital or a laboratory sent by HL7 are left out of the export and out of any link. You can read them in your own session, and your access log shows each message.", "why": "Wave 5. The export and a link's opening are frozen as carrying the resource types packages/catalog/passport-gateway.json lists, and an Encounter or a DiagnosticReport a partner's message wrote is neither. They go in when a new version of each route declares them, not by a change nobody versioned." }
   ]
  },
 
@@ -78,7 +79,7 @@
    { "id": "developer", "label": "A developer, making the synthetic record" },
    { "id": "unauthenticated", "label": "Nobody the Passport could identify" }
   ],
-  "_roleLabelsNote": "The grant roles are named by packages/catalog/consent.json and are not repeated here.",
+  "_roleLabelsNote": "The grant roles are named by packages/catalog/consent.json and the registered HL7 development partners by packages/catalog/hl7v2-inbound.json, and neither is repeated here.",
   "actions": [
    { "id": "dev.subjects", "label": "Made this synthetic record" },
    { "id": "session.end", "label": "Ended a session" },
@@ -94,7 +95,13 @@
    { "id": "share.link.create", "label": "Made a share link" },
    { "id": "share.link.use", "label": "Opened a share link" },
    { "id": "share.link.revoke", "label": "Revoked a share link" },
-   { "id": "export", "label": "Exported the record" }
+   { "id": "export", "label": "Exported the record" },
+   { "id": "identifier.link", "label": "Linked a hospital number to your record" },
+   { "id": "identifier.link.contested", "label": "Somebody tried to link your hospital number to their own record" },
+   { "id": "hl7v2.adt.admit", "label": "A hospital said you were admitted" },
+   { "id": "hl7v2.adt.discharge", "label": "A hospital said you were discharged" },
+   { "id": "hl7v2.oru.result", "label": "A laboratory sent a result" },
+   { "id": "hl7v2.replay", "label": "A hospital or laboratory sent a message again" }
   ],
   "probeSuffix": ".probe",
   "probeLabel": "Asked for your record with somebody else's permission",
@@ -179,22 +186,27 @@
    { "ref": "grant-preview-kin", "recipientRole": "next-of-kin", "scope": ["emergency-card"], "purpose": "emergency", "endsInDays": 60, "sealedIncluded": false }
   ],
   "accessLog": [
+   { "dayOffset": -25, "time": "19:20", "requesterRole": "patient", "action": "identifier.link", "outcome": "granted", "reason": { "statement": "identifierLinked" } },
    { "dayOffset": -21, "time": "08:02", "requesterRole": "patient", "action": "consent.grant", "outcome": "granted", "reason": { "statement": "patientSession" } },
    { "dayOffset": -20, "time": "10:41", "requesterRole": "next-of-kin", "action": "summary.emergency", "purpose": "emergency", "outcome": "granted", "reason": { "statement": "granted" } },
    { "dayOffset": -14, "time": "16:18", "requesterRole": "caregiver", "action": "read", "purpose": "treatment", "outcome": "refused", "reason": { "refusal": "expired" } },
+   { "dayOffset": -12, "time": "22:14", "requesterRole": "synthetic-general-hospital", "action": "hl7v2.adt.admit", "purpose": "treatment", "outcome": "granted", "reason": { "statement": "hl7Received" } },
+   { "dayOffset": -10, "time": "11:02", "requesterRole": "synthetic-general-hospital", "action": "hl7v2.adt.discharge", "purpose": "treatment", "outcome": "granted", "reason": { "statement": "hl7Received" } },
    { "dayOffset": -9, "time": "02:37", "requesterRole": "dispatch-desk", "action": "breakglass", "purpose": "emergency", "outcome": "granted", "reason": { "breakGlass": "unresponsive" }, "breakGlass": true, "reviewDueInHours": 24 },
    { "dayOffset": -6, "time": "09:12", "requesterRole": "doctor-assigned", "action": "search", "purpose": "treatment", "outcome": "granted", "reason": { "statement": "granted" } },
    { "dayOffset": -6, "time": "09:13", "requesterRole": "doctor-assigned", "action": "read", "purpose": "billing", "outcome": "refused", "reason": { "refusal": "wrong-purpose" } },
    { "dayOffset": -4, "time": "11:30", "requesterRole": "patient", "action": "share.link.create", "outcome": "granted", "reason": { "statement": "patientSession" } },
    { "dayOffset": -3, "time": "14:05", "requesterRole": "doctor-assigned", "action": "share.link.use", "purpose": "treatment", "outcome": "granted", "reason": { "statement": "linkUsed" } },
+   { "dayOffset": -2, "time": "09:40", "requesterRole": "synthetic-pathology-laboratory", "action": "hl7v2.oru.result", "purpose": "diagnostics", "outcome": "refused", "reason": { "refusal": "hl7-pid-field-without-consent-basis" } },
+   { "dayOffset": -2, "time": "10:05", "requesterRole": "synthetic-pathology-laboratory", "action": "hl7v2.oru.result", "purpose": "diagnostics", "outcome": "granted", "reason": { "statement": "hl7Received" } },
    { "dayOffset": -1, "time": "07:55", "requesterRole": "doctor-assigned", "action": "share.link.use", "purpose": "treatment", "outcome": "refused", "reason": { "refusal": "link-used-up" } }
   ]
  },
 
  "settings": {
-  "_note": "The Record engine's settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open policy questions become admin settings, and five questions about links became these: how long a share link lasts and how often it opens, what a link opens when the patient does not say, and how long an emergency card lasts and how often it opens. Every default, lowest bound and allowed value is the Record P1 lead's proposal and nobody has decided it; the highest bound on each lifetime is the founder's grant ceiling. GET /v1/record/settings@1 and POST /v1/record/setting-changes@1 answer through packages/engines/src/settings on the engine runtime. The Passport P0 reads the values in force through packages/engines/src/record/domain/settings.ts when a link is made, and the link keeps what it read. Neither phone has an admin surface, so each uses the defaults scripts/emit-passport-sharing.mjs generates.",
+  "_note": "The Record engine's settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open policy questions become admin settings, and five questions about links became these: how long a share link lasts and how often it opens, what a link opens when the patient does not say, and how long an emergency card lasts and how often it opens. Every default, lowest bound and allowed value is the Record P1 lead's proposal and nobody has decided it; the highest bound on each lifetime is the founder's grant ceiling. GET /v1/record/settings@1 and POST /v1/record/setting-changes@1 answer through packages/engines/src/settings on the engine runtime. The Passport P0 reads the values in force through packages/engines/src/record/domain/settings.ts when a link is made, and the link keeps what it read. Neither phone has an admin surface, so each uses the defaults scripts/emit-passport-sharing.mjs generates. Wave 5 added two for the HL7 v2 bridge in packages/catalog/hl7v2-inbound.json, proposed by the Trust & Record lead: how long the record of a message nobody could match is kept, which the Information Officer confirms (docs/governance/INFORMATION-OFFICER.md, D-8), and how far a message's clock may be from the Passport's. The Passport reads both through inboundInForce() when a message arrives, and a quarantined message keeps the deletion day it was given.",
   "heading": "Record settings",
-  "intro": "How long a share link or an emergency card lasts, how many times each opens, and what a link opens when the patient does not choose.",
+  "intro": "How long a share link or an emergency card lasts, how many times each opens, what a link opens when the patient does not choose, how long an unmatched HL7 message's record is kept and how far a message's clock may drift.",
   "items": [
    {
     "key": "share-link-lifetime-days",
@@ -371,10 +383,79 @@
      "statement": "No emergency card opens without end, and none is used up before the people in one emergency have read it.",
      "forbids": [0, 2, 51, 500]
     }
+   },
+   {
+    "key": "hl7-quarantine-retention-days",
+    "label": "How long an unmatched HL7 message's record is kept",
+    "help": "How many days the Passport keeps the record of an HL7 message it could not match to a patient — who sent it, what kind it was and why it was refused — before the record is deleted.",
+    "owner": "record",
+    "type": "count",
+    "unit": "days",
+    "positive": true,
+    "default": {
+     "value": 30,
+     "decidedBy": null,
+     "proposedBy": "Trust & Record lead (Wave 5)",
+     "proposedBecause": "A month is long enough for a partner to read its rejection, for the patient to link the number the message carried and for the partner to send the message again, and short enough that a list of messages about nobody in particular does not become a register of them. The record keeps nothing a message said. How long it is kept is still a retention period, and the Information Officer confirms every retention period (docs/governance/INFORMATION-OFFICER.md, D-8); until they do, this is a proposal and says so."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 7,
+      "decidedBy": null,
+      "proposedBy": "Trust & Record lead (Wave 5)",
+      "proposedBecause": "A week covers a partner's weekend and a public holiday before anybody at the partner reads the rejection and asks why."
+     },
+     "highest": {
+      "value": 90,
+      "decidedBy": null,
+      "proposedBy": "Trust & Record lead (Wave 5)",
+      "proposedBecause": "A quarter of a year. Past that, the record of a rejected message answers no question a person is still asking, and keeping it is keeping it for its own sake."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to messages quarantined after it. A message already quarantined keeps the deletion day it was given.",
+    "guardrail": {
+     "statement": "The record of an unmatched message is always deleted, and never kept longer than a quarter of a year.",
+     "forbids": [0, 91, 365]
+    }
+   },
+   {
+    "key": "hl7-clock-skew-minutes",
+    "label": "How far an HL7 message's clock may be from the Passport's",
+    "help": "How many minutes the time an HL7 message says it was sent may differ from the Passport's own clock before the message is refused.",
+    "owner": "record",
+    "type": "minutes",
+    "unit": "minutes",
+    "default": {
+     "value": 10,
+     "decidedBy": null,
+     "proposedBy": "Trust & Record lead (Wave 5)",
+     "proposedBecause": "Ten minutes absorbs a partner's clock drifting and an interface queue holding a message for a moment, and still refuses a message replayed from yesterday or one a system held back until it no longer described the present."
+    },
+    "bounds": {
+     "lowest": {
+      "value": 1,
+      "decidedBy": null,
+      "proposedBy": "Trust & Record lead (Wave 5)",
+      "proposedBecause": "A minute is about as close as two clocks kept to time over the internet can be relied on to agree."
+     },
+     "highest": {
+      "value": 60,
+      "decidedBy": null,
+      "proposedBy": "Trust & Record lead (Wave 5)",
+      "proposedBecause": "An hour. A message further out than that was held by somebody's queue, and it is sent again rather than accepted as if it were current."
+     }
+    },
+    "changedBy": "admin",
+    "appliesTo": "A change applies to messages that arrive after it. A message already received was judged against the skew in force when it arrived.",
+    "guardrail": {
+     "statement": "A message whose clock is far from the Passport's is always refused, and none is accepted from more than an hour away.",
+     "forbids": [0, 61, 1440]
+    }
    }
   ],
   "defaults": {
-   "version": 1,
+   "version": 2,
    "changelog": [
     {
      "version": 1,
@@ -388,6 +469,16 @@
       { "setting": "emergency-card-max-uses", "from": null, "to": 10 }
      ],
      "why": "The founder instructed that open questions become admin settings. The Record P1 lead proposed these five defaults, with their lowest bounds and allowed values, and nobody has decided them. Each lifetime's highest bound is the founder's grant ceiling."
+    },
+    {
+     "version": 2,
+     "on": "2026-09-15",
+     "by": "Trust & Record lead (Wave 5)",
+     "changed": [
+      { "setting": "hl7-quarantine-retention-days", "from": null, "to": 30 },
+      { "setting": "hl7-clock-skew-minutes", "from": null, "to": 10 }
+     ],
+     "why": "The HL7 v2 bridge raised two open questions, and the founder instructed that open questions become admin settings. The Trust & Record lead proposed both with their bounds; nobody has decided them, and the retention period waits on the Information Officer (D-8)."
     }
    ]
   }

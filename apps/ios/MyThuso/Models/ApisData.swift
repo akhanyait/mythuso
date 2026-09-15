@@ -186,6 +186,9 @@ enum ApisData {
     static let postRecordExportV2 = Route(id: "postRecordExportV2", method: "POST", path: "/export", mountedPath: "/v1/record/export", version: 2, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: false, status: "built")
     static let getRecordSettings = Route(id: "getRecordSettings", method: "GET", path: "/v1/record/settings", mountedPath: "/v1/record/settings", version: 1, engine: "record", callers: ["admin"], purpose: ["audit"], idempotent: false, status: "built")
     static let postRecordSettingChanges = Route(id: "postRecordSettingChanges", method: "POST", path: "/v1/record/setting-changes", mountedPath: "/v1/record/setting-changes", version: 1, engine: "record", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
+    static let postRecordHl7v2Inbound = Route(id: "postRecordHl7v2Inbound", method: "POST", path: "/hl7v2/inbound", mountedPath: "/v1/record/hl7v2/inbound", version: 1, engine: "record", callers: ["developer"], purpose: ["treatment", "diagnostics"], idempotent: true, status: "built")
+    static let postRecordPatientIdentifiers = Route(id: "postRecordPatientIdentifiers", method: "POST", path: "/v1/record/patient-identifiers", mountedPath: "/v1/record/patient-identifiers", version: 1, engine: "record", callers: ["patient"], purpose: ["subject-access"], idempotent: true, status: "built")
+    static let getRecordHl7v2Quarantine = Route(id: "getRecordHl7v2Quarantine", method: "GET", path: "/v1/record/hl7v2-quarantine", mountedPath: "/v1/record/hl7v2-quarantine", version: 1, engine: "record", callers: ["developer"], purpose: ["audit"], idempotent: false, status: "built")
     static let postMedicinesLabOrdersV2 = Route(id: "postMedicinesLabOrdersV2", method: "POST", path: "/v1/medicines/lab-orders", mountedPath: "/v1/medicines/lab-orders", version: 2, engine: "medicines", callers: ["doctor", "nurse"], purpose: ["diagnostics"], idempotent: false, status: "built")
     static let getMedicinesFormularyV2 = Route(id: "getMedicinesFormularyV2", method: "GET", path: "/v1/medicines/formulary", mountedPath: "/v1/medicines/formulary", version: 2, engine: "medicines", callers: ["doctor", "nurse", "pharmacist"], purpose: ["dispensing", "treatment"], idempotent: false, status: "built")
     static let postMedicinesInteractionChecksV2 = Route(id: "postMedicinesInteractionChecksV2", method: "POST", path: "/v1/medicines/interaction-checks", mountedPath: "/v1/medicines/interaction-checks", version: 2, engine: "medicines", callers: ["doctor", "pharmacist"], purpose: ["dispensing", "treatment"], idempotent: false, status: "built")
@@ -200,6 +203,7 @@ enum ApisData {
     static let getMedicinesSettings = Route(id: "getMedicinesSettings", method: "GET", path: "/v1/medicines/settings", mountedPath: "/v1/medicines/settings", version: 1, engine: "medicines", callers: ["admin", "doctor"], purpose: ["audit"], idempotent: false, status: "built")
     static let postMedicinesSettingChanges = Route(id: "postMedicinesSettingChanges", method: "POST", path: "/v1/medicines/setting-changes", mountedPath: "/v1/medicines/setting-changes", version: 1, engine: "medicines", callers: ["admin"], purpose: ["audit"], idempotent: true, status: "built")
     static let postMedicinesSettingReviews = Route(id: "postMedicinesSettingReviews", method: "POST", path: "/v1/medicines/setting-reviews", mountedPath: "/v1/medicines/setting-reviews", version: 1, engine: "medicines", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "built")
+    static let postMedicinesLabResults = Route(id: "postMedicinesLabResults", method: "POST", path: "/v1/medicines/lab-results", mountedPath: "/v1/medicines/lab-results", version: 1, engine: "medicines", callers: ["engine:record"], purpose: ["diagnostics"], idempotent: false, status: "built")
     static let postDevicesRegistryV2 = Route(id: "postDevicesRegistryV2", method: "POST", path: "/v1/devices/registry", mountedPath: "/v1/devices/registry", version: 2, engine: "devices", callers: ["operator"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postDevicesRegistryByDeviceRefRecallV2 = Route(id: "postDevicesRegistryByDeviceRefRecallV2", method: "POST", path: "/v1/devices/registry/{deviceRef}/recall", mountedPath: "/v1/devices/registry/{deviceRef}/recall", version: 2, engine: "devices", callers: ["operator"], purpose: ["audit"], idempotent: false, status: "built")
     static let getDevicesRegistryByDeviceRefHealthV2 = Route(id: "getDevicesRegistryByDeviceRefHealthV2", method: "GET", path: "/v1/devices/registry/{deviceRef}/health", mountedPath: "/v1/devices/registry/{deviceRef}/health", version: 2, engine: "devices", callers: ["nurse", "operator"], purpose: ["treatment"], idempotent: false, status: "built")
@@ -391,6 +395,9 @@ enum ApisData {
         postRecordExportV2,
         getRecordSettings,
         postRecordSettingChanges,
+        postRecordHl7v2Inbound,
+        postRecordPatientIdentifiers,
+        getRecordHl7v2Quarantine,
         postMedicinesLabOrdersV2,
         getMedicinesFormularyV2,
         postMedicinesInteractionChecksV2,
@@ -405,6 +412,7 @@ enum ApisData {
         getMedicinesSettings,
         postMedicinesSettingChanges,
         postMedicinesSettingReviews,
+        postMedicinesLabResults,
         postDevicesRegistryV2,
         postDevicesRegistryByDeviceRefRecallV2,
         getDevicesRegistryByDeviceRefHealthV2,
@@ -1794,6 +1802,27 @@ enum ApisData {
         let settingsVersion: Int
         let appliesFrom: String
     }
+    struct PostRecordHl7v2InboundRequest {
+        let message: String
+    }
+    struct PostRecordHl7v2InboundResponse {
+        let acknowledgementCode: String
+        let acknowledgement: String
+        let replayed: Bool
+    }
+    struct PostRecordPatientIdentifiersRequest {
+        let assigningAuthority: String
+        let identifier: String
+    }
+    struct PostRecordPatientIdentifiersResponse {
+        let linkedAt: String
+    }
+    struct GetRecordHl7v2QuarantineRequest {}
+    struct GetRecordHl7v2QuarantineResponse {
+        let retentionDays: Int
+        let settingsVersion: Int
+        let quarantined: [[String: Any]]
+    }
     struct PostMedicinesLabOrdersV2Request {
         let subjectRef: String
         let serviceRequestRef: String
@@ -1920,6 +1949,16 @@ enum ApisData {
     struct PostMedicinesSettingReviewsResponse {
         let settingsVersion: Int
         let reviewedAt: String
+    }
+    struct PostMedicinesLabResultsRequest {
+        let labOrderRef: String
+        let resultEntryRef: String
+        let labPartyRef: String
+        let releasedAt: String
+        let verifiedByRegistration: String
+    }
+    struct PostMedicinesLabResultsResponse {
+        let receivedAt: String
     }
     struct PostDevicesRegistryV2Request {
         let serial: String

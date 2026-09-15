@@ -134,6 +134,15 @@
   "why": "A stand-down closes the concern Core opened for the SOS through the same closeRefusal rule the close route asks, pointing at the SOS, by the role that stood it down. A reason the map does not name is not guessed at: the concern stays open for a person to close, and Core's audit says it was not stood down."
  },
 
+ "dischargeReceived": {
+  "hears": "passport.discharge.received@1",
+  "ownerRole": {"value": "nurse", "decidedBy": null, "proposedBy": "Trust & Record lead (Wave 5)", "proposedBecause": "A registered nurse is who calls a patient who has come home from hospital, checks that they understood the discharge and have their medicines, and books a visit when one is needed. The discharge itself is read in the record under her grant.", "question": "Who owns the follow-up concern Core opens when a hospital says a patient was discharged."},
+  "fallbackRole": {"value": "doctor", "decidedBy": null, "proposedBy": "Trust & Record lead (Wave 5)", "proposedBecause": "A doctor can judge what a discharge nobody has followed up needs, including whether it needs a visit today.", "question": "Who holds a discharge follow-up concern the nurse has not taken on in time."},
+  "ladderRung": {"value": 2, "decidedBy": null, "proposedBy": "Trust & Record lead (Wave 5)", "proposedBecause": "Nurse review. A discharge is not an emergency, and rung three would page a clinician for every routine one; the nurse rung's time is the least the ladder gives a concern a nurse must read.", "question": "How long the nurse has to take on a discharge follow-up concern before it goes to its fallback."},
+  "rule": "One discharge is one follow-up concern however often the bus delivers it, keyed by its encounter: owned by a nurse, falling back to a doctor, then walking the rota it was opened under. A person closes it with an outcome; no event closes it for them.",
+  "why": "passport.discharge.received@1 names Core as its only subscriber. Core reads no Record contract: the owner, the fallback and the rung are proposals here, beside the rota they walk. The concern points at the encounter, and what the discharge says is read in the record."
+ },
+
  "_reasonsNotSettingsNote":"The snooze reasons and the reasons the desk escalates by hand stay proposals in this file rather than becoming settings, on purpose. Each is a code that travels on the bus — alert.escalated@1 and loop.escalated@1 carry reasonCode — or is sent by an app a nurse already has. A code an admin added on the back office would be put on the bus to subscribers that were built and reviewed against the codes here and cannot read it; a code an admin removed would refuse the reason a nurse's phone still offers her. Neither is an admin choosing within bounds: both are a change to the contract every subscriber and every app is built against, made the way this file is changed. The question each asks stays open beside it until somebody with the authority answers it.",
 
  "exhaustion": {
