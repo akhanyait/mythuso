@@ -62,12 +62,13 @@ import { SETTINGS_SCHEMA, settingsIn, settingsRoutes } from '../settings/routes.
 import { canonical, cardSpellings, isRefusal } from './domain/contract.ts';
 import { createMoney, TABLE_NAMES, type MoneyTables, type Payout, type Table } from './domain/ledger.ts';
 import { isoDateInSouthAfrica, paysOnFor } from './domain/payouts.ts';
-import { doctorFeeOf, moneySettings, voucherExpiryYearsOf } from './domain/settings.ts';
+import { claimConsentDaysOf, doctorFeeOf, groupMemberCapOf, groupMemberMonthlyLimitCentsOf, moneySettings, voucherExpiryYearsOf } from './domain/settings.ts';
 
 const SQL_NAME: Record<typeof TABLE_NAMES[number], string> = {
  payables: 'payables', payments: 'payments', cashCodes: 'cash_codes', cashAudit: 'cash_audit', attempts: 'payment_attempts', keys: 'payment_keys',
  billable: 'billable_visits', earned: 'earned_lines', cases: 'signed_cases', payouts: 'payouts', suspensions: 'partner_suspensions',
- vouchers: 'vouchers', redemptions: 'voucher_redemptions', subscriptions: 'plan_subscriptions', acts: 'act_keys'
+ vouchers: 'vouchers', redemptions: 'voucher_redemptions', subscriptions: 'plan_subscriptions', acts: 'act_keys',
+ groups: 'payer_groups', memberships: 'group_memberships', groupCharges: 'group_charges', reviews: 'heard_reviews', claims: 'claims'
 };
 
 /* Every table is a reference and a document. Money's rows are billing facts — a payable, an attempt,
@@ -99,6 +100,9 @@ const ledgerFor = (ctx: EngineContext, keepsAttempts = false) => createMoney({
  simulation: true,
  doctorFee: () => doctorFeeOf(settingsIn(moneySettings, ctx.store)),
  voucherExpiryYears: () => voucherExpiryYearsOf(settingsIn(moneySettings, ctx.store)),
+ groupMemberMonthlyLimitCents: () => groupMemberMonthlyLimitCentsOf(settingsIn(moneySettings, ctx.store)),
+ groupMemberCap: () => groupMemberCapOf(settingsIn(moneySettings, ctx.store)),
+ claimConsentDays: () => claimConsentDaysOf(settingsIn(moneySettings, ctx.store)),
  publish: (key, payload, subjectRef) => { ctx.publish(key as EventKey, payload, { subjectRef, purposeOfUse: 'billing' }); }
 });
 
@@ -193,6 +197,69 @@ export const engine = defineEngine({
     ...always, included: answer.included.map(i => ({ ...i })), lines: answer.lines.map(l => ({ ...l })),
     ...(payableRef ? { payableRef } : {}), ...(startedOn ? { startedOn } : {}), ...(monthEndsOn ? { monthEndsOn } : {}), ...(lineDetail ? { lineDetail } : {})
    });
+  },
+
+  /* Group payers. A group is opened, invites, and is charged for one member's payable when she asks; it holds nothing.
+     The names of undeclared fields go to the ledger, which refuses a pool, a deposit or an agreement made for somebody
+     by them rather than dropping them. A card number is refused by name before the ledger sees the request, as a
+     payment is. */
+  'POST /v1/money/groups@2': (request, ctx) => {
+   const answer = ledgerFor(ctx).openGroup(actorOf(ctx), { ...request.fields }, request.undeclared);
+   return isRefusal(answer) ? refuse(answer.id) : ok({ groupRef: answer.groupRef, groupKind: answer.groupKind });
+  },
+  'POST /v1/money/group-memberships@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).inviteMember(actorOf(ctx), { ...request.fields }, request.undeclared);
+   return isRefusal(answer) ? refuse(answer.id) : ok({ membershipRef: answer.membershipRef, stateCode: answer.stateCode });
+  },
+  'POST /v1/money/group-memberships/{membershipRef}/accept@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).acceptMembership(actorOf(ctx), { ...request.fields });
+   return isRefusal(answer) ? refuse(answer.id) : ok({ stateCode: answer.stateCode, lineDetail: answer.lineDetail });
+  },
+  'POST /v1/money/group-memberships/{membershipRef}/leave@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).leaveGroup(actorOf(ctx), { ...request.fields });
+   return isRefusal(answer) ? refuse(answer.id) : ok({ stateCode: answer.stateCode });
+  },
+  'POST /v1/money/group-payments@1': (request, ctx) => {
+   if (request.undeclared.some(name => cardSpellings.has(canonical(name)))) return refuse('card-number-sent');
+   const answer = ledgerFor(ctx).payFromGroup(actorOf(ctx), { ...request.fields }, request.undeclared);
+   return isRefusal(answer) ? refuse(answer.id) : ok({ paymentRef: answer.paymentRef, stateCode: answer.stateCode });
+  },
+  /* What an employer is not shown is left out rather than sent as null: the route declares the three figures optional
+     for exactly that reason, and members is empty for an employer always. */
+  'GET /v1/money/groups/{groupRef}@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).groupFor(actorOf(ctx), String(request.fields['groupRef']), request.undeclared);
+   if (isRefusal(answer)) return refuse(answer.id);
+   const { membersAgreed, invitationsWaiting, monthTotalCents } = answer;
+   return ok({
+    groupKind: answer.groupKind, members: answer.members.map(m => ({ ...m, lines: m.lines.map(l => ({ ...l })) })),
+    ...(membersAgreed !== null ? { membersAgreed } : {}), ...(invitationsWaiting !== null ? { invitationsWaiting } : {}), ...(monthTotalCents !== null ? { monthTotalCents } : {})
+   });
+  },
+  'GET /v1/money/group-memberships@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).membershipsFor(actorOf(ctx), request.undeclared);
+   return isRefusal(answer) ? refuse(answer.id) : ok({ memberships: answer.map(m => ({ ...m })) });
+  },
+
+  /* Claims. Drafted by the doctor who signed, agreed to by the patient, and stopped at the switching partner: the submit
+     route has no answer but a refusal while no partner is connected, and no code set is adopted. */
+  'POST /v1/money/claims@3': (request, ctx) => {
+   const answer = ledgerFor(ctx).draftClaim(actorOf(ctx), { ...request.fields }, request.undeclared);
+   return isRefusal(answer) ? refuse(answer.id) : ok({ claimRef: answer.claimRef, stateCode: answer.stateCode, codeSetAdopted: answer.codeSetAdopted });
+  },
+  'POST /v1/money/claims/{claimRef}/consent@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).consentToClaim(actorOf(ctx), { ...request.fields }, request.undeclared);
+   return isRefusal(answer) ? refuse(answer.id) : ok({ stateCode: answer.stateCode, consentExpiresOn: answer.consentExpiresOn });
+  },
+  'POST /v1/money/claims/{claimRef}/submit@1': (request, ctx) => refuse(ledgerFor(ctx).submitClaim(actorOf(ctx), { ...request.fields }).id),
+  'GET /v1/money/claims@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).claimsFor(actorOf(ctx), request.undeclared);
+   return isRefusal(answer) ? refuse(answer.id) : ok({ claims: answer.map(c => ({ ...c })) });
+  },
+
+  /* The desk's list of held cash payments, which the web desk has drawn from its own ledger since Wave 3. */
+  'GET /v1/money/held-cash-payments@1': (request, ctx) => {
+   const answer = ledgerFor(ctx).heldCashList(actorOf(ctx), request.undeclared);
+   return isRefusal(answer) ? refuse(answer.id) : ok({ payments: answer.map(p => ({ ...p })) });
   },
 
   ...settingsRoutes(moneySettings, { read: 'GET /v1/money/settings@1', change: 'POST /v1/money/setting-changes@1' })
