@@ -9,7 +9,8 @@
   {"id": "offer-without-trust-score", "status": 409, "statement": "Nobody without a current Trust Score is offered a visit.", "why": "No score, no dispatch: the rule Verify enforces at the bus."},
   {"id": "visit-without-code", "status": 403, "statement": "A visit starts and completes only with the visit code.", "why": "The code is the proof the right nurse is at the right door."},
   {"id": "location-beyond-the-visit", "status": 403, "statement": "A nurse's location is not shared beyond the visit.", "why": "Tracking is on the day, for the visit, and ends with it."},
-  {"id": "carer-without-their-rn", "status": 409, "statement": "A supervised carer is not dispatched without their registered nurse.", "why": "Supervision ratios are enforced in dispatch or not at all."}
+  {"id": "carer-without-their-rn", "status": 409, "statement": "A supervised carer is not dispatched without their registered nurse.", "why": "Supervision ratios are enforced in dispatch or not at all."},
+  {"id": "encounter-signature-unconfirmed", "status": 409, "statement": "This visit is set to wait for the record to confirm its encounter is signed, and no record route answers Care yet: GET /fhir/{resourceType}/{id} does not take calls from the Care engine. It is not handed over or completed until one does.", "why": "The setting encounter-entry-counts-as-signed in packages/catalog/care.json is switched off for this visit. It is an engine refusal rather than one on the handover and completion routes, because both frozen routes answer it and neither route's shape changes."}
  ],
  "ownIds": [],
  "routes": [
@@ -347,8 +348,8 @@
    "method": "GET",
    "path": "/v1/care/settings",
    "version": 1,
-   "summary": "Read Care's settings in force — today, how long an offer lasts — each with its default and who decided it, what an admin may set, and every change made to them.",
-   "callers": ["admin"],
+   "summary": "Read Care's settings in force — how long an offer lasts, who may be offered the visits no named scope covers, and whether an Encounter entry counts as signed — each with its default and who decided it, what an admin may set, its clinical review, and every change made to them.",
+   "callers": ["admin", "doctor"],
    "purpose": ["audit"],
    "request": [],
    "response": [
@@ -420,7 +421,7 @@
    "method": "POST",
    "path": "/v1/care/setting-reviews",
    "version": 1,
-   "summary": "Confirm the clinical review of the value in force for a Care setting that waits on one. None does yet; the scope settings for injections, family planning and sick-note visits will, and a doctor holds sign-clinical-review.",
+   "summary": "Confirm the clinical review of the value in force for a Care setting that waits on one: who may be offered an injection, a family planning or a sick-note visit, and whether an Encounter entry counts as signed. A doctor holds sign-clinical-review.",
    "callers": ["doctor"],
    "purpose": ["audit"],
    "request": [
@@ -447,7 +448,9 @@
    "idempotent": true,
    "endpointNamed": null,
    "capabilityNamed": null,
-   "status": "proposed"
+   "status": "built",
+   "evidence": {"file": "packages/engines/src/care/engine.ts", "handler": "'POST /v1/care/setting-reviews@1'"},
+   "enforcedBy": {"mechanism": "engines-runtime:callers"}
   }
  ]
 }

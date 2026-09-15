@@ -6,6 +6,7 @@ import geography from '../../../../catalog/geography.json' with { type: 'json' }
 import { careContract, type CareContract } from './contract.ts';
 import { match, type AppointmentToFill, type Candidate } from './matching.ts';
 import { HEARD, TrustCache } from './trust.ts';
+import { careByDefault } from './settings.ts';
 
 const at = (id: string) => geography.zones.find(z => z.id === id)!.at;
 const badge = (cache: TrustCache, ref: string, hardGatesPassed = true, occurredAt = '2026-09-14T06:00:00+02:00', badgeTier = 'verified') =>
@@ -22,7 +23,7 @@ test('continuity comes first: the named nurse, then the most recent previous nur
  const trust = new TrustCache(careContract.badgeTiers);
  const people = [nurse('near', 'parktown'), nurse('far', 'soweto'), nurse('before', 'randburg'), nurse('earlier', 'melville'), nurse('asked-for', 'soweto')];
  for (const p of people) badge(trust, p.clinicianRef);
- const found = match({ ...visit, namedClinicianRef: 'asked-for', previousClinicianRefs: ['before', 'earlier'] }, people, trust, careContract);
+ const found = match({ ...visit, namedClinicianRef: 'asked-for', previousClinicianRefs: ['before', 'earlier'] }, people, trust, careContract, careByDefault.roles);
  assert.equal(found.kind, 'matched');
  if (found.kind !== 'matched') return;
  assert.deepEqual(found.ranked.map(r => r.candidate.clinicianRef), ['asked-for', 'before', 'earlier', 'near', 'far']);
@@ -36,7 +37,7 @@ test('a nurse with no current badge is withheld with the contract sentence, neve
  badge(trust, 'cleared');
  badge(trust, 'gates-failed', false);
  badge(trust, 'odd-tier', true, undefined, 'platinum');
- const found = match({ ...visit, previousClinicianRefs: ['never-heard'] }, people, trust, careContract);
+ const found = match({ ...visit, previousClinicianRefs: ['never-heard'] }, people, trust, careContract, careByDefault.roles);
  assert.equal(found.kind, 'matched');
  if (found.kind !== 'matched') return;
  assert.deepEqual(found.ranked.map(r => r.candidate.clinicianRef), ['cleared']);
@@ -51,7 +52,7 @@ test('a nurse with no current badge is withheld with the contract sentence, neve
 test('scope of practice is asked before the badge, and in the vetting register’s own words', () => {
  const trust = new TrustCache(careContract.badgeTiers);
  const people = [nurse('chronic-only', 'parktown', ['Chronic care']), nurse('a-doctor', 'parktown', ['Wound care'], 'doctor')];
- const found = match(visit, people, trust, careContract);
+ const found = match(visit, people, trust, careContract, careByDefault.roles);
  assert.equal(found.kind, 'matched');
  if (found.kind !== 'matched') return;
  assert.equal(found.ranked.length, 0);
@@ -62,7 +63,7 @@ test('a service with no named scope is open to any registered nurse or locum, an
  const trust = new TrustCache(careContract.badgeTiers);
  const people = [nurse('paeds', 'parktown', ['Paediatric']), nurse('locum', 'rosebank', ['Elderly care'], 'locum'), nurse('courier', 'parktown', [], 'courier')];
  for (const p of people) badge(trust, p.clinicianRef);
- const found = match({ ...visit, serviceId: 'injection' }, people, trust, careContract);
+ const found = match({ ...visit, serviceId: 'injection' }, people, trust, careContract, careByDefault.roles);
  assert.equal(found.kind, 'matched');
  if (found.kind !== 'matched') return;
  assert.deepEqual(found.ranked.map(r => r.candidate.clinicianRef), ['paeds', 'locum']);
@@ -74,7 +75,7 @@ test('nobody is given an invented distance: no base, or a base outside South Afr
  const cupertino: Candidate = { clinicianRef: 'simulator', roleId: 'nurse', scope: ['Wound care'], base: { lat: 37.33, lng: -122.03 } };
  const people = [nurse('tembisa', null), cupertino];
  for (const p of people) badge(trust, p.clinicianRef);
- const found = match(visit, people, trust, careContract);
+ const found = match(visit, people, trust, careContract, careByDefault.roles);
  assert.equal(found.kind, 'matched');
  if (found.kind !== 'matched') return;
  assert.equal(found.ranked.length, 0);
@@ -84,15 +85,15 @@ test('nobody is given an invented distance: no base, or a base outside South Afr
 test('a visit whose suburb Care has not been told is offered to nobody, rather than to whoever sorts first', () => {
  const trust = new TrustCache(careContract.badgeTiers);
  badge(trust, 'n');
- assert.equal(match({ ...visit, zone: null }, [nurse('n', 'parktown')], trust, careContract).kind, 'visit-zone-unknown');
- assert.equal(match({ ...visit, zone: { lat: 37.33, lng: -122.03 } }, [nurse('n', 'parktown')], trust, careContract).kind, 'visit-zone-unknown');
+ assert.equal(match({ ...visit, zone: null }, [nurse('n', 'parktown')], trust, careContract, careByDefault.roles).kind, 'visit-zone-unknown');
+ assert.equal(match({ ...visit, zone: { lat: 37.33, lng: -122.03 } }, [nurse('n', 'parktown')], trust, careContract, careByDefault.roles).kind, 'visit-zone-unknown');
 });
 
 test('a later-phase service is not offered to anybody, however eligible', () => {
  const trust = new TrustCache(careContract.badgeTiers);
  badge(trust, 'n');
- assert.equal(match({ ...visit, serviceId: 'screening' }, [nurse('n', 'parktown')], trust, careContract).kind, 'service-not-offered');
- assert.equal(match({ ...visit, serviceId: 'no-such-service' }, [nurse('n', 'parktown')], trust, careContract).kind, 'service-not-offered');
+ assert.equal(match({ ...visit, serviceId: 'screening' }, [nurse('n', 'parktown')], trust, careContract, careByDefault.roles).kind, 'service-not-offered');
+ assert.equal(match({ ...visit, serviceId: 'no-such-service' }, [nurse('n', 'parktown')], trust, careContract, careByDefault.roles).kind, 'service-not-offered');
 });
 
 /* The register has no carer yet, so the contract under test gives the carer service a role. The rule
@@ -108,8 +109,8 @@ test('a supervised carer is never matched without her registered nurse', () => {
  const people = [carer('with-rn', 'rn-1'), carer('other-rn', 'rn-2'), carer('alone', null)];
  for (const p of people) badge(trust, p.clinicianRef);
  const carerVisit = { ...visit, serviceId: 'carer' };
- assert.equal(match(carerVisit, people, trust, withCarers).kind, 'carer-without-rn');
- const found = match({ ...carerVisit, supervisorRef: 'rn-1' }, people, trust, withCarers);
+ assert.equal(match(carerVisit, people, trust, withCarers, careByDefault.roles).kind, 'carer-without-rn');
+ const found = match({ ...carerVisit, supervisorRef: 'rn-1' }, people, trust, withCarers, careByDefault.roles);
  assert.equal(found.kind, 'matched');
  if (found.kind !== 'matched') return;
  assert.deepEqual(found.ranked.map(r => r.candidate.clinicianRef), ['with-rn']);
@@ -120,7 +121,7 @@ test('the same roster gives the same order on every run', () => {
  const trust = new TrustCache(careContract.badgeTiers);
  const people = [nurse('b', 'rosebank'), nurse('a', 'rosebank'), nurse('c', 'rosebank')];
  for (const p of people) badge(trust, p.clinicianRef);
- const found = match(visit, people, trust, careContract);
+ const found = match(visit, people, trust, careContract, careByDefault.roles);
  assert.equal(found.kind, 'matched');
  if (found.kind === 'matched') assert.deepEqual(found.ranked.map(r => r.candidate.clinicianRef), ['a', 'b', 'c']);
 });

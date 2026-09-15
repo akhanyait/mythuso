@@ -6,6 +6,7 @@ import { careContract } from './contract.ts';
 import { SyncIntake, type QueuedCapture } from './sync.ts';
 import { HEARD, TrustCache } from './trust.ts';
 import { VisitDesk } from './visits.ts';
+import { careByDefault } from './settings.ts';
 
 const NOW = new Date('2026-09-14T15:50:00+02:00');
 const me = { clinicianRef: 'N-205' };
@@ -17,7 +18,7 @@ const capture = (operationRef: string, observationId: string, extra: Partial<Que
 function setup(cleared = true) {
  const trust = new TrustCache(careContract.badgeTiers);
  trust.learn({ ...HEARD, subjectRef: 'N-205', occurredAt: '2026-09-14T06:00:00+02:00', payload: { badgeTier: 'verified', hardGatesPassed: cleared } });
- const visits = new VisitDesk({ contract: careContract, record: { encounterComplete: () => true, encounterSigned: () => true } });
+ const visits = new VisitDesk({ contract: careContract, settings: () => careByDefault, record: { encounterComplete: () => true, encounterSigned: () => true } });
  visits.hold({ appointmentRef: 'TH-3107', subjectRef: 'sub', serviceId: 'wound', clinicianRef: 'N-205', scheduledFor: '2026-09-14T16:00:00+02:00' }, care.preview.visitCode);
  visits.start({ appointmentRef: 'TH-3107', visitCode: care.preview.visitCode }, me, NOW);
  return { visits, intake: new SyncIntake({ contract: careContract, visits, trust }) };

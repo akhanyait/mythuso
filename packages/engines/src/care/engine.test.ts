@@ -14,8 +14,10 @@ import assert from 'node:assert/strict';
 import care from '../../../catalog/care.json' with { type: 'json' };
 import roster from '../../../catalog/roster.json' with { type: 'json' };
 import settingsContract from '../../../catalog/settings.json' with { type: 'json' };
+import careApi from '../../../catalog/apis/care.json' with { type: 'json' };
 import { MEMORY, createClock, createRuntime, defineEngine, type EngineContext, type RouteKey, type Runtime } from '../runtime/index.ts';
-import { careBlock, offerExpiryByDefault } from './domain/settings.ts';
+import { confirmReview } from '../settings/shape.ts';
+import { careBlock, careByDefault } from './domain/settings.ts';
 import { engine } from './engine.ts';
 
 const START = '2026-09-14T09:00:00+02:00';
@@ -53,7 +55,7 @@ const asNurse = (runtime: Runtime, ref: string, route: RouteKey, purpose: string
  runtime.call(route, { role: 'nurse', ref, purpose, fields });
 const published = (runtime: Runtime, key: string) => runtime.trail.all().filter(e => e.kind === 'published' && e.eventKey === key);
 const change = (runtime: Runtime, fields: Record<string, unknown>) =>
- runtime.call(CHANGE, { ...ADMIN, fields: { idempotencyKey: 'change-1', setting: 'offer-expiry', wholeNumber: offerExpiryByDefault.minutes * 2, reason: 'Nurses in the outer suburbs need longer to read an offer.', expectedVersion: 1, ...fields } });
+ runtime.call(CHANGE, { ...ADMIN, fields: { idempotencyKey: 'change-1', setting: 'offer-expiry', wholeNumber: careByDefault.offerExpiryMinutes * 2, reason: 'Nurses in the outer suburbs need longer to read an offer.', expectedVersion: 1, ...fields } });
 const sentence = (id: string) => settingsContract.refusals.find(r => r.route === 'change' && r.id === id)!.statement;
 
 test('with no badge heard, nobody is offered the visit, and the refusal is the Trust Score one', () => {
@@ -113,7 +115,7 @@ test('a decline passes the visit on at the next tick; the declined offer cannot 
 test('an unanswered offer lapses when the setting in force says, passes on, and cannot be accepted after', () => {
  const { runtime } = setup(WOUND);
  const offerRef = String(offer(runtime).body.offerRef);
- runtime.advance(offerExpiryByDefault.minutes * MINUTE);
+ runtime.advance(careByDefault.offerExpiryMinutes * MINUTE);
  assert.equal(published(runtime, 'appointment.offered@1').length, 2);
  const late = asNurse(runtime, P.clinicianRef, ACCEPT, 'dispatch', { idempotencyKey: 'a-1', offerRef });
  assert.deepEqual([late.status, late.body.message], [410, 'That offer has lapsed.']);
@@ -172,7 +174,7 @@ test('an admin reads the offer expiry in force with who decided it and its bound
  assert.deepEqual(answer.body.history, []);
  const [row] = answer.body.settings as { setting: string; inForce: number; default: number; setAtVersion: number; provenance: { decidedBy: string; decidedOn: string }; limits: { bounds: { lowest: { value: number }; highest: { value: number } } }; changedBy: string[]; appliesTo: string; reviewRequired: string | null }[];
  assert.equal(row!.setting, 'offer-expiry');
- assert.deepEqual([row!.inForce, row!.default, row!.setAtVersion], [offerExpiryByDefault.minutes, offerExpiryByDefault.minutes, 1]);
+ assert.deepEqual([row!.inForce, row!.default, row!.setAtVersion], [careByDefault.offerExpiryMinutes, careByDefault.offerExpiryMinutes, 1]);
  assert.deepEqual([row!.provenance.decidedBy, row!.provenance.decidedOn], [expiry.default.decidedBy, expiry.default.decidedOn]);
  assert.deepEqual([row!.limits.bounds.lowest.value, row!.limits.bounds.highest.value], [lowest.value, highest.value]);
  assert.deepEqual(row!.changedBy, ['admin']);
@@ -193,7 +195,7 @@ test('a change is refused in the shared sentences, and nothing is recorded or pu
  refused(change(runtime, { idempotencyKey: 'zero', wholeNumber: 0 }), 'setting-not-above-zero');
  refused(change(runtime, { idempotencyKey: 'below', wholeNumber: lowest.value - 1 }), 'setting-out-of-range');
  refused(change(runtime, { idempotencyKey: 'above', wholeNumber: highest.value + 1 }), 'setting-out-of-range');
- refused(change(runtime, { idempotencyKey: 'same', wholeNumber: offerExpiryByDefault.minutes }), 'setting-unchanged');
+ refused(change(runtime, { idempotencyKey: 'same', wholeNumber: careByDefault.offerExpiryMinutes }), 'setting-unchanged');
  assert.equal(change(runtime, { idempotencyKey: 'a-word', wholeNumber: 'twenty' }).body.error, 'field-of-the-wrong-type', 'the binder refuses a word where the route declares a number');
  assert.equal(runtime.call(CHANGE, { role: 'nurse', ref: 'N-205', purpose: 'audit', fields: { idempotencyKey: 'n', setting: 'offer-expiry', wholeNumber: 20, reason: 'x', expectedVersion: 1 } }).body.error, 'caller-not-allowed');
  assert.equal(runtime.call(CHANGE, { ...ADMIN, ref: null, fields: { idempotencyKey: 'nobody', setting: 'offer-expiry', wholeNumber: 20, reason: 'x', expectedVersion: 1 } }).body.error, 'caller-unidentified', 'an admin nobody can name is never recorded as having changed anything');
@@ -207,7 +209,7 @@ test('an accepted change is recorded once with who, when, from, to and why, and 
  const { runtime } = setup([]);
  runtime.advance(5 * MINUTE);
  const at = runtime.clock.iso();
- const to = offerExpiryByDefault.minutes * 2;
+ const to = careByDefault.offerExpiryMinutes * 2;
  const first = change(runtime, {});
  assert.equal(first.status, 200, JSON.stringify(first.body));
  assert.deepEqual(first.body, { settingsVersion: 2, appliesFrom: new Date(Date.parse(at)).toISOString() });
@@ -215,7 +217,7 @@ test('an accepted change is recorded once with who, when, from, to and why, and 
  assert.equal(change(runtime, { wholeNumber: to + 1 }).body.error, 'idempotency-key-reused', 'a reused key with a different change is refused rather than replayed');
  const read = runtime.call(READ, { ...ADMIN, fields: {} }).body;
  assert.equal(read.settingsVersion, 2);
- assert.deepEqual(read.history, [{ settingsVersion: 2, setting: 'offer-expiry', from: offerExpiryByDefault.minutes, to, reason: 'Nurses in the outer suburbs need longer to read an offer.', byRole: 'admin', byRef: ADMIN.ref, at: new Date(Date.parse(at)).toISOString() }]);
+ assert.deepEqual(read.history, [{ settingsVersion: 2, setting: 'offer-expiry', from: careByDefault.offerExpiryMinutes, to, reason: 'Nurses in the outer suburbs need longer to read an offer.', byRole: 'admin', byRef: ADMIN.ref, at: new Date(Date.parse(at)).toISOString() }]);
  assert.equal(runtime.trail.all().filter(e => e.kind === 'published').length, 0, 'a change is the row in the history and nothing on the bus');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
@@ -226,17 +228,125 @@ test('an offer made before a change lapses when it said it would, and the offer 
  const madeAt = runtime.clock.now().getTime();
  const made = offer(runtime);
  assert.equal(made.status, 200, JSON.stringify(made.body));
- assert.equal(Date.parse(String(made.body.offerExpiresAt)), madeAt + offerExpiryByDefault.minutes * MINUTE);
+ assert.equal(Date.parse(String(made.body.offerExpiresAt)), madeAt + careByDefault.offerExpiryMinutes * MINUTE);
 
  const longer = highest.value;
  assert.equal(change(runtime, { wholeNumber: longer }).status, 200);
- runtime.advance(offerExpiryByDefault.minutes * MINUTE - 1);
+ runtime.advance(careByDefault.offerExpiryMinutes * MINUTE - 1);
  assert.equal(published(runtime, 'appointment.offered@1').length, 1, 'a longer expiry does not keep the first offer open past its own');
  runtime.advance(1);
  const offered = published(runtime, 'appointment.offered@1').map(e => (JSON.parse(e.body) as { payload: { offerExpiresAt: string } }).payload.offerExpiresAt);
  assert.equal(offered.length, 2, 'the first offer lapsed at its own expiry and passed on');
- assert.equal(Date.parse(offered[0]!), madeAt + offerExpiryByDefault.minutes * MINUTE, 'the first offer kept the expiry it was made with');
+ assert.equal(Date.parse(offered[0]!), madeAt + careByDefault.offerExpiryMinutes * MINUTE, 'the first offer kept the expiry it was made with');
  assert.equal(Date.parse(offered[1]!), runtime.clock.now().getTime() + longer * MINUTE, 'the next offer was made with the expiry in force');
  assert.deepEqual(runtime.faults(), []);
  runtime.close();
+});
+
+/* ---- Clinical review of the scope settings ------------------------------------------------------ */
+
+const REVIEW: RouteKey = 'POST /v1/care/setting-reviews@1';
+const DOCTOR = { role: 'doctor', ref: 'party-synthetic-401', purpose: 'audit' };
+const CLINICALLY_SAFE = 'Inside a registered nurse’s general scope, under the injection administration protocol.';
+type ReadRow = { setting: string; inForce: unknown; setAtVersion: number; reviewRequired: string | null; reviewed: { byRef: string } | null };
+const rowOf = (runtime: Runtime, key: string) => (runtime.call(READ, { ...DOCTOR, fields: {} }).body.settings as ReadRow[]).find(s => s.setting === key)!;
+const review = (runtime: Runtime, fields: Record<string, unknown>, caller: { role: string; ref: string | null; purpose: string } = DOCTOR) =>
+ runtime.call(REVIEW, { ...caller, fields: { idempotencyKey: 'review-1', setting: 'injection-roles', reason: CLINICALLY_SAFE, ...fields } });
+const refusedInReview = (answer: { body: Record<string, unknown> }, id: string) =>
+ assert.deepEqual([answer.body.error, answer.body.message], [id, settingsContract.refusals.find(r => r.route === 'review' && r.id === id)!.statement], JSON.stringify(answer.body));
+const narrowInjections = (runtime: Runtime, fields: Record<string, unknown> = {}, caller = ADMIN) =>
+ runtime.call(CHANGE, { ...caller, fields: { idempotencyKey: 'narrow', setting: 'injection-roles', roles: ['nurse'], reason: 'Locums are not yet covered for injections.', expectedVersion: 1, ...fields } });
+
+test('the scope settings are in force and read as not clinically reviewed, by the admin who changes them and the doctor who reviews them', () => {
+ const { runtime } = setup([]);
+ for (const key of ['injection-roles', 'family-planning-roles', 'sick-note-roles', 'encounter-entry-counts-as-signed']) {
+  const row = rowOf(runtime, key);
+  assert.deepEqual([row.inForce, row.reviewRequired, row.reviewed], [careBlock.items.find(s => s.key === key)!.default.value, 'sign-clinical-review', null], key);
+ }
+ assert.equal(runtime.call(READ, { ...ADMIN, fields: {} }).status, 200);
+ runtime.close();
+});
+
+test('a doctor confirms the exact version in force, never an older or a later one, and once', () => {
+ const { runtime } = setup([]);
+ assert.equal(narrowInjections(runtime).status, 200);
+ assert.deepEqual([rowOf(runtime, 'injection-roles').inForce, rowOf(runtime, 'injection-roles').reviewed], [['nurse'], null], 'in force at once, and not clinically reviewed');
+
+ refusedInReview(review(runtime, { idempotencyKey: 'old', settingsVersion: 1 }), 'setting-review-not-in-force');
+ refusedInReview(review(runtime, { idempotencyKey: 'ahead', settingsVersion: 3 }), 'setting-review-not-in-force');
+ refusedInReview(review(runtime, { idempotencyKey: 'no-reason', settingsVersion: 2, reason: '  ' }), 'setting-review-without-reason');
+ refusedInReview(review(runtime, { idempotencyKey: 'expiry', setting: 'offer-expiry', settingsVersion: 1 }), 'setting-review-not-needed');
+
+ const confirmed = review(runtime, { settingsVersion: 2 });
+ assert.deepEqual([confirmed.status, confirmed.body], [200, { settingsVersion: 2, reviewedAt: new Date(runtime.clock.iso()).toISOString() }], JSON.stringify(confirmed.body));
+ assert.equal(rowOf(runtime, 'injection-roles').reviewed?.byRef, DOCTOR.ref);
+ assert.equal(rowOf(runtime, 'family-planning-roles').reviewed, null, 'a review confirms one setting and no other');
+ refusedInReview(review(runtime, { idempotencyKey: 'twice', settingsVersion: 2 }, { ...DOCTOR, ref: 'party-synthetic-402' }), 'setting-review-already-confirmed');
+
+ /* A change after a confirmation is a value nobody has reviewed, and the old confirmation does not reach it. */
+ assert.equal(narrowInjections(runtime, { idempotencyKey: 'widen', roles: ['nurse', 'locum'], expectedVersion: 2, reason: 'Locum cover was confirmed.' }).status, 200);
+ assert.equal(rowOf(runtime, 'injection-roles').reviewed, null);
+ refusedInReview(review(runtime, { idempotencyKey: 'stale', settingsVersion: 2 }), 'setting-review-not-in-force');
+ assert.equal(review(runtime, { idempotencyKey: 'fresh', settingsVersion: 3 }).status, 200);
+ assert.equal(runtime.trail.all().filter(e => e.kind === 'published').length, 0, 'a confirmation is a row in the reviews and nothing on the bus');
+ assert.deepEqual(runtime.faults(), []);
+ runtime.close();
+});
+
+test('nobody confirms the clinical review of a change they made themselves', () => {
+ const { runtime } = setup([]);
+ const both = 'party-synthetic-777';
+ assert.equal(narrowInjections(runtime, {}, { ...ADMIN, ref: both }).status, 200);
+ const own = review(runtime, { settingsVersion: 2 }, { ...DOCTOR, ref: both });
+ assert.equal(own.status, 403);
+ refusedInReview(own, 'setting-review-own-change');
+ assert.equal(rowOf(runtime, 'injection-roles').reviewed, null);
+ assert.equal(review(runtime, { idempotencyKey: 'another', settingsVersion: 2 }).status, 200, 'another doctor confirms it');
+ runtime.close();
+});
+
+test('a nurse, an admin, a doctor nobody can name, and a doctor without the capability the setting names are refused a review', () => {
+ const { runtime } = setup([]);
+ for (const role of ['nurse', 'admin', 'dispatcher']) assert.equal(review(runtime, { idempotencyKey: role, settingsVersion: 1 }, { role, ref: 'party-synthetic-1', purpose: 'audit' }).body.error, 'caller-not-allowed', role);
+ assert.equal(review(runtime, { idempotencyKey: 'nobody', settingsVersion: 1 }, { ...DOCTOR, ref: null }).body.error, 'caller-unidentified');
+ assert.equal(rowOf(runtime, 'injection-roles').reviewed, null);
+ runtime.close();
+
+ /* The route admits the roles that hold sign-clinical-review; the rules ask the setting's own capability.
+    A setting that named one doctors do not hold is refused to a doctor in the contract's sentence. */
+ const otherCapability = { block: { ...careBlock, items: careBlock.items.map(s => s.key === 'injection-roles' ? { ...s, reviewRequired: 'review-vetting' } : s) } };
+ const refused = confirmReview(otherCapability, [], [], { setting: 'injection-roles', settingsVersion: 1, reason: CLINICALLY_SAFE, byRole: 'doctor', byRef: DOCTOR.ref }, Date.parse(START));
+ assert.deepEqual(refused.ok ? null : [refused.refusal.id, refused.refusal.statement], ['setting-review-not-permitted', settingsContract.refusals.find(r => r.route === 'review' && r.id === 'setting-review-not-permitted')!.statement]);
+});
+
+test('switched off, an Encounter entry does not count as signed: a visit started after the change is refused handover and completion, and one started before it is not', () => {
+ const unconfirmed = careApi.refusals.find(r => r.id === 'encounter-signature-unconfirmed')!;
+ const walk = (switchOffBeforeStart: boolean) => {
+  const { runtime, as } = setup(WOUND);
+  const offerRef = String(offer(runtime).body.offerRef);
+  asNurse(runtime, P.clinicianRef, ACCEPT, 'dispatch', { idempotencyKey: 'a-1', offerRef });
+  const visit = (route: RouteKey, fields: Record<string, unknown>) => asNurse(runtime, P.clinicianRef, route, 'treatment', { appointmentRef: P.appointmentRef, ...fields });
+  const switchOff = () => assert.equal(runtime.call(CHANGE, { ...ADMIN, fields: { idempotencyKey: 'off', setting: 'encounter-entry-counts-as-signed', switchedOn: false, reason: 'An entry written is not proof the nurse signed it.', expectedVersion: 1 } }).status, 200);
+  if (switchOffBeforeStart) switchOff();
+  assert.equal(visit('POST /v1/care/visits/{appointmentRef}/start@1', { visitCode: P.visitCode }).status, 200);
+  if (!switchOffBeforeStart) switchOff();
+  as('record', ctx => ctx.publish('passport.entry.written@1', { entryRef: P.encounterRef, resourceType: 'Encounter', authorRole: 'nurse', authorRef: P.clinicianRef, provenance: 'nurse-visit' }, { subjectRef: P.subjectRef, purposeOfUse: 'treatment' }));
+  return { runtime, visit };
+ };
+
+ const after = walk(true);
+ const handover = after.visit('POST /v1/care/visits/{appointmentRef}/handover@1', { encounterRef: P.encounterRef });
+ assert.deepEqual([handover.status, handover.body.error, handover.body.message], [unconfirmed.status, unconfirmed.id, unconfirmed.statement]);
+ const complete = after.visit('POST /v1/care/visits/{appointmentRef}/complete@1', { visitCode: P.visitCode, encounterRef: P.encounterRef });
+ assert.deepEqual([complete.status, complete.body.error], [unconfirmed.status, unconfirmed.id]);
+ assert.ok(unconfirmed.statement.includes('GET /fhir/{resourceType}/{id}'), 'the sentence names the record route that is missing');
+ assert.equal(published(after.runtime, 'visit.billable@1').length, 0);
+ assert.deepEqual(after.runtime.faults(), []);
+ after.runtime.close();
+
+ const before = walk(false);
+ assert.equal(before.visit('POST /v1/care/visits/{appointmentRef}/handover@1', { encounterRef: P.encounterRef }).body.reviewQueued, true, 'a visit keeps the rule it started under');
+ assert.equal(before.visit('POST /v1/care/visits/{appointmentRef}/complete@1', { visitCode: P.visitCode, encounterRef: P.encounterRef }).status, 200);
+ assert.deepEqual(before.runtime.faults(), []);
+ before.runtime.close();
 });

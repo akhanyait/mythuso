@@ -27,7 +27,7 @@ import type { PaymentView } from '../lib/money';
 import { HOME_SUBURB, nurseOfVisit } from '../lib/arrival';
 import { confirmBooking, emptyLedger, fallbackRuleOf, offeredSlots, personOptions, requestBooking, type FallbackCode, type Hold, type PersonChoice } from '../../../../packages/engines/src/access/domain/booking.ts';
 import { badge, candidatesFor, fill, person as personStep, review, time, zoneInAddress } from '../lib/booking';
-import { accessSettingsNow, offerExpiryNow } from '../lib/settings';
+import { accessSettingsNow, careSettingsNow } from '../lib/settings';
 import { subjectRefOf } from '../lib/names';
 import { NurseChoice } from './NurseChoice';
 import { BookingStatus } from './BookingStatus';
@@ -129,7 +129,7 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
     through; a change in the back office reaches the next booking. The setting never produces a booking
     with no nurse and no message: the rule the patient is shown either sends somebody or says the visit
     waits, and when the patient is asked, waiting for her is chosen first because she is who they asked for. */
- const [inForce] = useState(() => ({ access: accessSettingsNow(), expiry: offerExpiryNow() }));
+ const [inForce] = useState(() => ({ access: accessSettingsNow(), expiry: { minutes: careSettingsNow().offerExpiryMinutes } }));
  const rule = fallbackRuleOf(inForce.access.namedNurseFallback);
  const [picked, setPicked] = useState<FallbackCode>(personStep.fallback.choices[0]!.id as FallbackCode);
  const fallback: FallbackCode | null = choice.kind === 'nearest' ? null : rule.asksPatient ? picked : rule.resolvesTo;

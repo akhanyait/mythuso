@@ -155,6 +155,10 @@ import Foundation
 
     func handOver() {
         guard startedAt != nil else { refusal = Refusal(stage: .handover, statement: CareData.handoverWithoutVisit); return }
+        /* Whether a signed-off assessment counts as a signed encounter is a setting; the phone uses its generated
+           default, which is today's behaviour. Switched off in the contract, nothing on this phone can prove a
+           signature, so handover and completion are refused in the engine's sentence naming the missing route. */
+        guard CareData.encounterEntryCountsAsSigned else { refusal = Refusal(stage: .handover, statement: CareData.encounterSignatureUnconfirmed); return }
         guard signedOff else { refusal = Refusal(stage: .handover, statement: CareData.encounterIncomplete); return }
         handedOver = true
         refusal = nil
@@ -164,6 +168,7 @@ import Foundation
     func complete(code: String, at: Date = Date()) {
         guard startedAt != nil else { refusal = Refusal(stage: .complete, statement: CareData.completeWithoutStart); return }
         guard Self.matches(code) else { refusal = Refusal(stage: .complete, statement: CareData.completeCodeWrong); return }
+        guard CareData.encounterEntryCountsAsSigned else { refusal = Refusal(stage: .complete, statement: CareData.encounterSignatureUnconfirmed); return }
         guard signedOff else { refusal = Refusal(stage: .complete, statement: CareData.encounterUnsigned); return }
         completedAt = at
         refusal = nil

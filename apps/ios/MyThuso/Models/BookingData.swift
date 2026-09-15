@@ -112,7 +112,7 @@ enum BookingData {
         static let maxCharacters = 500
         /// Access's setting visit-thread-open-hours-after-visit. A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here.
         static let openHoursAfterVisit = 24
-        /// Access's setting visit-thread-photos, which waits on a doctor's clinical review. A proposal nobody has decided. A default an admin may change on the web; this app has no admin surface and uses it as written here.
+        /// Access's setting visit-thread-photos, which waits on a doctor's clinical review. A proposal nobody has decided. Not clinically reviewed. A default an admin may change on the web; this app has no admin surface and uses it as written here.
         static let photos = false
         static let empty = "No messages yet. Anything you write stays with this visit."
         static let kept = "Kept with this visit. Not delivered: nothing reaches her phone."

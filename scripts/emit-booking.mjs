@@ -78,12 +78,12 @@ export function resolveBooking(root = '') {
  });
  const refusals = [...contract.refusals.map(r => ({ id: r.id, route: null, status: null, sentence: r.sentence })), ...routeRefusals];
  const settings = {
-  fallback: settingDefault(SOURCE, contract, 'named-nurse-fallback', { as: 'choice' }),
+  fallback: settingDefault(SOURCE, contract, 'named-nurse-fallback'),
   maxCharacters: settingDefault(SOURCE, contract, 'visit-thread-max-characters'),
-  photos: settingDefault(SOURCE, contract, 'visit-thread-photos', { as: 'boolean' }),
-  openHours: settingDefault(SOURCE, contract, 'visit-thread-open-hours-after-visit', { as: 'count' }),
-  answeredBy: settingDefault(SOURCE, contract, 'handover-answered-by', { as: 'roles' }),
-  hours: settingDefault(SOURCE, contract, 'handover-hours', { as: 'windows' })
+  photos: settingDefault(SOURCE, contract, 'visit-thread-photos'),
+  openHours: settingDefault(SOURCE, contract, 'visit-thread-open-hours-after-visit'),
+  answeredBy: settingDefault(SOURCE, contract, 'handover-answered-by'),
+  hours: settingDefault(SOURCE, contract, 'handover-hours')
  };
  /* That every value the fallback may take has a rule, and every rule is a value, is scripts/check-boundaries.mjs's to hold. */
  if (!contract.person.fallback.rules.some(rule => rule.setting === settings.fallback.value)) throw new Error(`${SOURCE} defaults named-nurse-fallback to "${settings.fallback.value}", which has no rule in person.fallback, so a phone could not say what happens.`);

@@ -5,7 +5,7 @@ import { closeThread, closedSentence, completeThread, postMessage, threadAt, typ
 import { instantOf } from '../../../../packages/engines/src/access/domain/contract.ts';
 import { nurseOfVisit } from '../lib/arrival';
 import { fill, thread as words } from '../lib/booking';
-import { accessSettingsAt, accessSettingsNow, clinicallyReviewedNow, settingsWords, useSettingsHistories } from '../lib/settings';
+import { accessSettingsAt, accessSettingsNow, reviewStateAt, settingsScreen, useSettingsHistories, useSettingsReviews } from '../lib/settings';
 import { subjectRefOf } from '../lib/names';
 import { BookingStatus } from './BookingStatus';
 import type { VisitRow } from './Pages';
@@ -88,7 +88,10 @@ export function VisitThread({ thread, nurseName, onChange, onBack }: ThreadProps
   setDraft('');
   onChange(outcome.value.thread);
  };
- const photosReviewed = clinicallyReviewedNow('access', 'visit-thread-photos');
+ /* Whether a doctor has confirmed the photos setting in force, from the reviews her workspace records in
+    this tab: the same state the back office and her review queue show, so the three never disagree. */
+ useSettingsReviews();
+ const photosReviewed = reviewStateAt('access', 'visit-thread-photos').reviewed !== null;
  return <div className="form-stack visit-thread">
   <button type="button" className="text-button thread-back" onClick={onBack}><ArrowLeft size={16} aria-hidden="true"/>Back to the visit</button>
   <header className="thread-head">
@@ -99,7 +102,7 @@ export function VisitThread({ thread, nurseName, onChange, onBack }: ThreadProps
   <p className="thread-record-note">{words.notARecord}</p>
   {settings.threadPhotos
    ? <p className="thread-photos" role="note"><ImageOff size={16} aria-hidden="true"/><span>{words.photosNotInPreview}
-     {!photosReviewed && <span className="pill thread-unreviewed"><ShieldAlert size={14} aria-hidden="true"/>{settingsWords.notReviewed}</span>}</span></p>
+     {!photosReviewed && <span className="pill thread-unreviewed"><ShieldAlert size={14} aria-hidden="true"/>{settingsScreen.notReviewed}</span>}</span></p>
    : <p className="thread-photos"><ImageOff size={16} aria-hidden="true"/><span>{words.wordsOnly}</span></p>}
   {/* "Anything you write stays with this visit" is an invitation, and a closed thread has no field to
       write in. An empty closed thread draws no log at all; the closed sentence below says why. */}

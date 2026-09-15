@@ -100,6 +100,14 @@ private const val TICK_MILLIS = 15_000L
         CareEyebrow("A visit offered to you")
         CareTitle(serviceName)
         offer.marker?.let { Text(it, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Charcoal) }
+        /* This app has no admin surface and never reads the value an admin puts in force on the web: it offers
+           by the generated default. So the marker describes that default and only that — shown while the
+           contract's default for who may be offered this service waits on a clinical review, and gone the day a
+           reviewed default is emitted, never because a doctor confirmed a web value this phone is not using. It
+           never withholds the offer. */
+        if (CareData.scopeNotReviewed(CareData.Preview.serviceId)) {
+            Text(CareData.notClinicallyReviewed, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
+        }
         CareFact("When", "Today, ${CareVisitState.clock(care.scheduledFor)}", "${care.service?.duration ?: 0} min")
         CareFact("How far", "%.1f km".format(offer.distanceKm), CareData.distanceBasis)
         CareFact("Lapses", CareVisitState.clock(offer.expiresAtMillis), if (care.minutesLeft == 0) "Now" else "In ${care.minutesLeft} min")
